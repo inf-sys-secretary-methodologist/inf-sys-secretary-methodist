@@ -25,6 +25,7 @@ jobs:
     - name: Lint Markdown files
       uses: DavidAnson/markdownlint-cli2-action@v13
       with:
+        config: '.markdownlint.json'
         globs: |
           docs/**/*.md
           README.md

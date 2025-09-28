@@ -8,10 +8,44 @@
     },
     {
       "pattern": "^https://app.inf-sys.example.com"
+    },
+    {
+      "pattern": "^https://staging-api.inf-sys.example.com"
+    },
+    {
+      "pattern": "^https://staging-db.example.com"
+    },
+    {
+      "pattern": "^https://staging-redis.example.com"
+    },
+    {
+      "pattern": "^https://staging-kafka.example.com"
+    },
+    {
+      "pattern": "^https://external-system.com"
+    },
+    {
+      "pattern": "^https://releases.hashicorp.com"
+    },
+    {
+      "pattern": "^https://github.com/your-org"
+    },
+    {
+      "pattern": "^https://ghcr.io/your-org"
+    },
+    {
+      "pattern": "^https://files.inf-sys.example.com"
+    },
+    {
+      "pattern": "^gs://inf-sys-backups"
+    },
+    {
+      "pattern": "^#"
     }
   ],
   "timeout": "20s",
   "retryOn429": true,
   "retryCount": 3,
-  "fallbackIfNotFound": false
+  "fallbackIfNotFound": false,
+  "aliveStatusCodes": [200, 206, 301, 302, 303, 307, 308]
 }

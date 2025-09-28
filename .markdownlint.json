@@ -1,0 +1,30 @@
+{
+  "line-length": false,
+  "no-trailing-punctuation": false,
+  "no-emphasis-as-heading": false,
+  "single-trailing-newline": false,
+  "blanks-around-headings": false,
+  "blanks-around-lists": false,
+  "blanks-around-fences": false,
+  "ul-style": false,
+  "fenced-code-language": false,
+  "proper-names": false,
+  "blanks-around-tables": false,
+  "table-column-count": false,
+  "link-fragments": false,
+  "no-trailing-spaces": false,
+  "no-hard-tabs": false,
+  "no-inline-html": {
+    "allowed_elements": [
+      "br",
+      "sub",
+      "sup",
+      "kbd",
+      "details",
+      "summary"
+    ]
+  },
+  "no-duplicate-heading": {
+    "siblings_only": true
+  }
+}

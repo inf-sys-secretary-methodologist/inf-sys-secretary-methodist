@@ -3,8 +3,20 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - 'services/**'
+      - 'frontend/**'
+      - '.github/workflows/ci.yml'
+      - 'docker-compose.yml'
+      - 'Dockerfile*'
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'services/**'
+      - 'frontend/**'
+      - '.github/workflows/ci.yml'
+      - 'docker-compose.yml'
+      - 'Dockerfile*'
 
 env:
   GO_VERSION: 1.21
@@ -22,12 +34,24 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Check if service exists
+      id: check_service
+      run: |
+        if [ -d "services/${{ matrix.service }}" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Service ${{ matrix.service }} directory does not exist yet"
+        fi
+
     - name: Set up Go
+      if: steps.check_service.outputs.exists == 'true'
       uses: actions/setup-go@v4
       with:
         go-version: ${{ env.GO_VERSION }}
 
     - name: Cache Go modules
+      if: steps.check_service.outputs.exists == 'true'
       uses: actions/cache@v3
       with:
         path: ~/go/pkg/mod
@@ -36,16 +60,19 @@ jobs:
           ${{ runner.os }}-go-
 
     - name: Install dependencies
+      if: steps.check_service.outputs.exists == 'true'
       run: |
         cd services/${{ matrix.service }}
         go mod download
 
     - name: Run tests
+      if: steps.check_service.outputs.exists == 'true'
       run: |
         cd services/${{ matrix.service }}
         go test -v -race -coverprofile=coverage.out ./...
 
     - name: Upload coverage
+      if: steps.check_service.outputs.exists == 'true'
       uses: codecov/codecov-action@v3
       with:
         file: services/${{ matrix.service }}/coverage.out
@@ -58,7 +85,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Check if frontend exists
+      id: check_frontend
+      run: |
+        if [ -d "frontend" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Frontend directory does not exist yet"
+        fi
+
     - name: Set up Node.js
+      if: steps.check_frontend.outputs.exists == 'true'
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
@@ -66,26 +104,31 @@ jobs:
         cache-dependency-path: frontend/package-lock.json
 
     - name: Install dependencies
+      if: steps.check_frontend.outputs.exists == 'true'
       run: |
         cd frontend
         npm ci
 
     - name: Run linting
+      if: steps.check_frontend.outputs.exists == 'true'
       run: |
         cd frontend
         npm run lint
 
     - name: Run type checking
+      if: steps.check_frontend.outputs.exists == 'true'
       run: |
         cd frontend
         npm run type-check
 
     - name: Run unit tests
+      if: steps.check_frontend.outputs.exists == 'true'
       run: |
         cd frontend
         npm run test:unit
 
     - name: Run E2E tests
+      if: steps.check_frontend.outputs.exists == 'true'
       run: |
         cd frontend
         npm run test:e2e
