@@ -1,5 +1,8 @@
 # Information System of the Academic Secretary/Methodologist
 
+![CI/CD Pipeline](https://github.com/daniil/inf-sys-secretary-methodist/actions/workflows/ci.yml/badge.svg)
+![Documentation CI](https://github.com/daniil/inf-sys-secretary-methodist/actions/workflows/docs.yml/badge.svg)
+
 ## Main features
 * Document management
 * Scheduling  
@@ -29,6 +32,7 @@ The project is created to:
 - [💻 Local Development Setup](docs/development/local-development.md) - Environment setup
 - [⚙️ Coding Standards](docs/development/coding-standards.md) - Go & Next.js best practices
 - [🧪 Testing Strategy](docs/development/testing-strategy.md) - Comprehensive testing approach
+- [🔄 CI/CD Workflows](docs/development/ci-cd-workflows.md) - Automated testing & deployment
 - [🔄 Sprint Management Guide](docs/development/sprint-management.md) - GitHub Projects workflow
 - [🔀 Pull Request Guidelines](docs/development/pull-request-guide.md) - PR standards and process
 
