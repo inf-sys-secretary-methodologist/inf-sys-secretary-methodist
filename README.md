@@ -1,7 +1,7 @@
 # Information System of the Academic Secretary/Methodologist
 
-![CI/CD Pipeline](https://github.com/daniil/inf-sys-secretary-methodist/actions/workflows/ci.yml/badge.svg)
-![Documentation CI](https://github.com/daniil/inf-sys-secretary-methodist/actions/workflows/docs.yml/badge.svg)
+![CI/CD Pipeline](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/ci.yml/badge.svg)
+![Documentation CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/docs.yml/badge.svg)
 
 ## Main features
 * Document management
