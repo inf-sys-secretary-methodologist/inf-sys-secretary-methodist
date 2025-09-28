@@ -1,0 +1,117 @@
+name: Documentation CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+
+jobs:
+  # Validate Markdown files
+  markdown-lint:
+    runs-on: ubuntu-latest
+    name: Lint Markdown Files
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Lint Markdown files
+      uses: DavidAnson/markdownlint-cli2-action@v13
+      with:
+        globs: |
+          docs/**/*.md
+          README.md
+
+  # Check for broken links
+  link-checker:
+    runs-on: ubuntu-latest
+    name: Check Documentation Links
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check links in documentation
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        config-file: '.github/markdown-link-config.json'
+        folder-path: 'docs'
+        file-path: 'README.md'
+
+  # Validate documentation structure
+  structure-check:
+    runs-on: ubuntu-latest
+    name: Validate Documentation Structure
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check required documentation files
+      run: |
+        echo "📋 Checking documentation structure..."
+
+        # Required directories
+        required_dirs=(
+          "docs/api"
+          "docs/architecture"
+          "docs/deployment"
+          "docs/development"
+          "docs/security"
+          "docs/users"
+          "docs/workflows"
+        )
+
+        # Required files
+        required_files=(
+          "docs/README.md"
+          "docs/project-overview.md"
+          "docs/api/api-documentation.md"
+          "docs/architecture/microservices-architecture.md"
+          "docs/development/coding-standards.md"
+          "docs/deployment/docker-setup.md"
+          "README.md"
+        )
+
+        missing_items=()
+
+        # Check directories
+        for dir in "${required_dirs[@]}"; do
+          if [[ ! -d "$dir" ]]; then
+            missing_items+=("Directory: $dir")
+          fi
+        done
+
+        # Check files
+        for file in "${required_files[@]}"; do
+          if [[ ! -f "$file" ]]; then
+            missing_items+=("File: $file")
+          fi
+        done
+
+        if [[ ${#missing_items[@]} -gt 0 ]]; then
+          echo "❌ Missing required documentation:"
+          printf '%s\n' "${missing_items[@]}"
+          exit 1
+        else
+          echo "✅ All required documentation is present"
+        fi
+
+  # Spell check (optional)
+  spell-check:
+    runs-on: ubuntu-latest
+    name: Spell Check Documentation
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Spell check documentation
+      uses: rojopolis/spellcheck-github-actions@0.28.0
+      with:
+        config_path: .github/spellcheck-config.yml
+        task_name: Markdown
