@@ -140,7 +140,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Check if code exists for scanning
+      id: check_code
+      run: |
+        if [ -d "services" ] || [ -d "frontend" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "No code directories found for security scanning"
+        fi
+
     - name: Run Trivy vulnerability scanner
+      if: steps.check_code.outputs.exists == 'true'
       uses: aquasecurity/trivy-action@master
       with:
         scan-type: 'fs'
@@ -149,6 +160,7 @@ jobs:
         output: 'trivy-results.sarif'
 
     - name: Upload Trivy scan results
+      if: steps.check_code.outputs.exists == 'true'
       uses: github/codeql-action/upload-sarif@v2
       with:
         sarif_file: 'trivy-results.sarif'
@@ -166,10 +178,31 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Check if component exists
+      id: check_component
+      run: |
+        if [ "${{ matrix.component }}" = "frontend" ]; then
+          if [ -d "frontend" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Frontend directory does not exist yet"
+          fi
+        else
+          if [ -d "services/${{ matrix.component }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Service ${{ matrix.component }} directory does not exist yet"
+          fi
+        fi
+
     - name: Set up Docker Buildx
+      if: steps.check_component.outputs.exists == 'true'
       uses: docker/setup-buildx-action@v3
 
     - name: Login to Container Registry
+      if: steps.check_component.outputs.exists == 'true'
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
@@ -177,6 +210,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Extract metadata
+      if: steps.check_component.outputs.exists == 'true'
       id: meta
       uses: docker/metadata-action@v5
       with:
@@ -187,6 +221,7 @@ jobs:
           type=sha
 
     - name: Build and push
+      if: steps.check_component.outputs.exists == 'true'
       uses: docker/build-push-action@v5
       with:
         context: ${{ matrix.component == 'frontend' && './frontend' || format('./services/{0}', matrix.component) }}

@@ -43,6 +43,11 @@ jobs:
       with:
         config-file: '.github/markdown-link-config.json'
         folder-path: 'docs'
+
+    - name: Check links in README
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        config-file: '.github/markdown-link-config.json'
         file-path: 'README.md'
 
   # Validate documentation structure
@@ -112,7 +117,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Spell check documentation
-      uses: rojopolis/spellcheck-github-actions@0.28.0
+      uses: rojopolis/spellcheck-github-actions@0.35.0
       with:
         config_path: .github/spellcheck-config.yml
         task_name: Markdown
