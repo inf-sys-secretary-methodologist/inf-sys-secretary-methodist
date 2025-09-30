@@ -8,10 +8,11 @@ Welcome to the **Information System of the Academic Secretary/Methodologist** do
 Start here if you're new to the project:
 
 1. **[Local Development Setup](development/local-development.md)** - Get your environment ready
-2. **[CI/CD Workflows](development/ci-cd-workflows.md)** - Automated testing & deployment setup
-3. **[Sprint Management](development/sprint-management.md)** - Learn our GitHub Projects workflow
-4. **[Pull Request Guide](development/pull-request-guide.md)** - Understand our PR process
-5. **[Coding Standards](development/coding-standards.md)** - Follow our code style
+2. **[Git Terminal Guide](development/git-terminal-guide.md)** - Master Git commands and workflows
+3. **[CI/CD Workflows](development/ci-cd-workflows.md)** - Automated testing & deployment setup
+4. **[Sprint Management](development/sprint-management.md)** - Learn our GitHub Projects workflow
+5. **[Pull Request Guide](development/pull-request-guide.md)** - Understand our PR process
+6. **[Coding Standards](development/coding-standards.md)** - Follow our code style
 
 ### 🏗️ Architecture & Deployment
 - **[Docker Setup](deployment/docker-setup.md)** - Containerization guide

@@ -178,13 +178,81 @@
 
 ### Горизонтальное масштабирование
 - Stateless сервисы
-- Auto-scaling на основе метрик
+- Auto-scaling на основе метрик (до 1000 одновременных пользователей)
 - Load balancing между репликами
+- CDN для статических ресурсов
+- Redis кэширование для улучшения производительности
 
 ### Вертикальное масштабирование
 - Resource limits и requests в Kubernetes
 - Мониторинг использования ресурсов
 - Оптимизация производительности БД
+
+## 🔗 Схемы интеграции
+
+### 📊 Интеграция с 1С
+```
+┌─────────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   1С: Предприятие   │◄──►│ integration-svc  │◄──►│   user-service  │
+│                     │    │                  │    │                 │
+│ • Сотрудники        │    │ • REST API       │    │ • Синхронизация │
+│ • Студенты          │    │ • Планировщик    │    │ • Маппинг ролей │
+│ • Организация       │    │ • Валидация      │    │ • Уведомления   │
+│ • Финансы           │    │ • Логирование    │    │ • Конфликты     │
+└─────────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+**Протоколы интеграции:**
+- **REST API** - основной канал обмена данными
+- **WebService (SOAP)** - для legacy систем 1С
+- **File Exchange** - CSV/XML файлы через SFTP
+- **Real-time sync** - через Kafka events
+
+### 📧 Email Integration
+```
+┌─────────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   SMTP Server       │◄──►│ notification-svc │◄──►│  All Services   │
+│                     │    │                  │    │                 │
+│ • Корп. почта       │    │ • Шаблоны        │    │ • Workflow      │
+│ • Gmail/Outlook     │    │ • Очереди        │    │ • Alerts        │
+│ • Mail.ru           │    │ • Retry logic    │    │ • Reports       │
+└─────────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+### 🔐 Электронная подпись
+```
+┌─────────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│  Crypto Pro CSP     │◄──►│ signature-svc    │◄──►│ document-svc    │
+│                     │    │                  │    │                 │
+│ • УЦ Сертификаты    │    │ • PKCS#7         │    │ • PDF signing   │
+│ • Ключевые носители │    │ • Валидация      │    │ • XAdES         │
+│ • ФЗ-63 соответствие│    │ • Timestamps     │    │ • Архив подписей│
+└─────────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+### 💾 Файловые хранилища
+```
+┌─────────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Object Storage    │◄──►│   file-service   │◄──►│  Frontend Apps  │
+│                     │    │                  │    │                 │
+│ • MinIO/S3          │    │ • Versioning     │    │ • Upload UI     │
+│ • Yandex Cloud      │    │ • Compression    │    │ • Preview       │
+│ • Local FS          │    │ • Virus scan     │    │ • Download      │
+│ • Network drives    │    │ • Thumbnails     │    │ • Search        │
+└─────────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+### 📱 External APIs
+```
+┌─────────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   External APIs     │◄──►│ integration-svc  │◄──►│  Core Services  │
+│                     │    │                  │    │                 │
+│ • Госуслуги ЕСИА    │    │ • API Gateway    │    │ • Auth service  │
+│ • ФИС ФРДО          │    │ • Rate limiting  │    │ • User service  │
+│ • Telegram Bot API  │    │ • Circuit break  │    │ • Notification  │
+│ • SMS providers     │    │ • Monitoring     │    │ • Reporting     │
+└─────────────────────┘    └──────────────────┘    └─────────────────┘
+```
 
 ## 🚀 CI/CD Pipeline
 
@@ -195,3 +263,19 @@
 5. **Deploy** → Staging environment
 6. **Approval** → Manual/Automated
 7. **Production Deploy** → Blue-Green deployment
+
+## 🔄 Data Flow Architecture
+
+### Основной поток данных
+```
+User Request → API Gateway → Auth Service → Business Service → Database
+     ↓              ↓            ↓              ↓              ↓
+Response ← Load Balancer ← Cache Layer ← Service Mesh ← Storage Layer
+```
+
+### Event-Driven Architecture
+```
+Service A → Kafka Topic → Service B → Event Store → Analytics
+    ↓           ↓           ↓           ↓            ↓
+ Events → Message Queue → Consumers → Aggregation → Reports
+```

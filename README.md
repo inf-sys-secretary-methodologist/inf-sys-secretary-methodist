@@ -30,6 +30,7 @@ The project is created to:
 
 ### 🚀 Development
 - [💻 Local Development Setup](docs/development/local-development.md) - Environment setup
+- [🔧 Git Terminal Guide](docs/development/git-terminal-guide.md) - Complete Git commands reference
 - [⚙️ Coding Standards](docs/development/coding-standards.md) - Go & Next.js best practices
 - [🧪 Testing Strategy](docs/development/testing-strategy.md) - Comprehensive testing approach
 - [🔄 CI/CD Workflows](docs/development/ci-cd-workflows.md) - Automated testing & deployment
