@@ -76,8 +76,8 @@ jobs:
           "docs/README.md"
           "docs/project-overview.md"
           "docs/api/api-documentation.md"
-          "docs/architecture/microservices-architecture.md"
-          "docs/development/coding-standards.md"
+          "docs/architecture/modular-architecture.md"
+          "docs/development/development-guide.md"
           "docs/deployment/docker-setup.md"
           "README.md"
         )
