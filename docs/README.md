@@ -1,36 +1,57 @@
-# 📚 Project Documentation
+# 📚 Documentation Index
 
-Welcome to the **Information System of the Academic Secretary/Methodologist** documentation!
+> 👈 **Main project information**: See [../README.md](../README.md) for project overview, features, and technology stack.
 
-## 🎯 Navigation
+## 📂 Documentation Structure
 
-### 👨‍💻 For Developers
-Start here if you're new to the project:
+```
+docs/
+├── 🏗️ architecture/          # System design and patterns
+│   ├── modular-architecture.md
+│   └── microservices-migration-guide.md
+├── 💻 development/           # Development guides and practices
+│   ├── development-guide.md
+│   ├── clean-code-patterns.md
+│   ├── sprint-management.md
+│   ├── pull-request-guide.md
+│   ├── git-terminal-guide.md
+│   ├── testing-strategy.md
+│   └── ci-cd-workflows.md
+├── 🚀 deployment/            # Infrastructure and deployment
+│   ├── docker-setup.md
+│   ├── infrastructure.md
+│   ├── environment.md
+│   └── production-deploy.md
+├── 📊 api/                   # API documentation
+│   ├── api-documentation.md
+│   ├── authentication.md
+│   └── documents.md
+├── 👥 users/                 # User management
+│   └── roles-and-permissions.md
+├── 🔄 workflows/             # Business processes
+│   └── document-lifecycle.md
+├── 🔒 security/              # Security guidelines
+│   └── security-guidelines.md
+└── project-overview.md       # Business requirements
+```
 
-1. **[Local Development Setup](development/local-development.md)** - Get your environment ready
-2. **[Git Terminal Guide](development/git-terminal-guide.md)** - Master Git commands and workflows
-3. **[CI/CD Workflows](development/ci-cd-workflows.md)** - Automated testing & deployment setup
-4. **[Sprint Management](development/sprint-management.md)** - Learn our GitHub Projects workflow
-5. **[Pull Request Guide](development/pull-request-guide.md)** - Understand our PR process
-6. **[Coding Standards](development/coding-standards.md)** - Follow our code style
+## 🚀 Quick Navigation
 
-### 🏗️ Architecture & Deployment
-- **[Docker Setup](deployment/docker-setup.md)** - Containerization guide
-- **[Production Deployment](deployment/production-deploy.md)** - Deploy to production
-- **[Environment Configuration](deployment/environment.md)** - Env vars and config
+### For New Developers
+1. [📖 Development Guide](development/development-guide.md) - Complete handbook
+2. [🧩 Modular Architecture](architecture/modular-architecture.md) - System design
+3. [🔀 Pull Request Guide](development/pull-request-guide.md) - Contribution process
 
-### 📖 API Reference
-- **[REST API Documentation](api/api-documentation.md)** - Complete API reference
-- **[Authentication](api/authentication.md)** - Auth endpoints and flow
-- **[Document Management](api/documents.md)** - Document-related endpoints
+### For Architects
+1. [🧩 Modular Architecture](architecture/modular-architecture.md) - DDD patterns
+2. [🧩 Clean Code & Patterns](development/clean-code-patterns.md) - SOLID principles
+3. [🚀 Microservices Migration](architecture/microservices-migration-guide.md) - Migration strategy
 
-## 🚀 Quick Links
-
-- **[Main README](../README.md)** - Project overview and features
-- **[Contributing Guidelines](development/pull-request-guide.md)** - How to contribute
-- **[GitHub Project Board](../../projects)** - Track issues and sprints
-- **[Issues](../../issues)** - Report bugs or request features
+### For DevOps
+1. [🐳 Docker Setup](deployment/docker-setup.md) - Containerization
+2. [☁️ Infrastructure](deployment/infrastructure.md) - Cloud architecture
+3. [🔄 CI/CD Workflows](development/ci-cd-workflows.md) - Automation
 
 ---
 
-> 💡 **Tip**: Use `Ctrl+F` to quickly find what you're looking for, or check the [main README](../README.md) for a project overview.
+**💡 Tip**: All documentation links in the main README are relative to this docs folder.
