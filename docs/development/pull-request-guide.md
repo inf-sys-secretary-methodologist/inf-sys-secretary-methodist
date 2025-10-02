@@ -38,9 +38,12 @@ git pull origin main
 git checkout -b feature/issue-123-user-authentication
 
 # Naming pattern:
-# feature/issue-{номер}-{краткое-описание}
-# bugfix/issue-{номер}-{краткое-описание}  
-# hotfix/issue-{номер}-{краткое-описание}
+# feature/issue-{номер}-{краткое-описание}   # Новая функциональность для пользователя
+# task/issue-{номер}-{краткое-описание}      # Инфраструктурные задачи, настройка
+# bugfix/issue-{номер}-{краткое-описание}    # Исправление багов
+# hotfix/issue-{номер}-{краткое-описание}    # Критические исправления
+# config/issue-{номер}-{краткое-описание}    # Изменения конфигурации
+# chore/issue-{номер}-{краткое-описание}     # Рутинные задачи, зависимости
 ```
 
 ### 2. Коммиты
@@ -58,12 +61,14 @@ Closes #123"
 
 ### 3. Префиксы коммитов
 - `feat:` - новая функциональность
+- `task:` - инфраструктурные задачи, настройка
 - `fix:` - исправление бага
 - `docs:` - обновление документации
 - `style:` - форматирование кода
 - `refactor:` - рефакторинг
 - `test:` - добавление тестов
-- `chore:` - обновление зависимостей, конфигурации
+- `config:` - изменения конфигурации
+- `chore:` - обновление зависимостей, рутинные задачи
 
 ## 📝 Структура PR
 
@@ -151,23 +156,29 @@ Related to #124
 
 ### Ветки
 ```
-feature/issue-123-user-authentication
-bugfix/issue-456-login-validation
-hotfix/issue-789-security-patch
-docs/issue-101-api-documentation
-refactor/issue-202-auth-middleware
+feature/issue-123-user-authentication     # Новая функциональность
+task/issue-124-setup-backend-structure    # Инфраструктурные задачи
+bugfix/issue-456-login-validation         # Исправление багов
+hotfix/issue-789-security-patch           # Критические исправления
+config/issue-202-docker-configuration     # Изменения конфигурации
+chore/issue-303-update-dependencies       # Рутинные задачи
+docs/issue-101-api-documentation          # Документация
+refactor/issue-505-auth-middleware        # Рефакторинг
 ```
 
 ### PR Labels
 Используйте следующие лейблы:
 - `🚀 feature` - новая функциональность
+- `⚙️ task` - инфраструктурные задачи, настройка
 - `🐛 bugfix` - исправление багов
-- `📚 documentation` - обновление документации  
+- `📚 documentation` - обновление документации
 - `🔧 refactor` - рефакторинг кода
 - `🧪 tests` - добавление тестов
 - `⚡ performance` - улучшение производительности
 - `🔒 security` - вопросы безопасности
 - `🎨 ui/ux` - изменения интерфейса
+- `🔧 config` - изменения конфигурации
+- `📦 chore` - рутинные задачи, зависимости
 
 ### Размер PR
 - `size/S` - до 100 строк
