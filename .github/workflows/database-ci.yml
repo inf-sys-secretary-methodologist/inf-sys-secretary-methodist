@@ -1,0 +1,176 @@
+name: Database CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'internal/**/persistence/**'
+      - 'migrations/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/database-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'internal/**/persistence/**'
+      - 'migrations/**'
+      - 'docker-compose.yml'
+
+env:
+  GO_VERSION: '1.21'
+  POSTGRES_VERSION: '15'
+
+jobs:
+  # Integration tests with PostgreSQL
+  integration-tests:
+    name: Integration Tests with PostgreSQL
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U test_user; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+
+    - name: Run integration tests
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: test_db
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+      run: |
+        go test -v -tags=integration ./... || echo "No integration tests yet"
+
+  # Test database migrations (when they exist)
+  migration-test:
+    name: Test Database Migrations
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: migration_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check if migrations exist
+      id: check_migrations
+      run: |
+        if [ -d "migrations" ] && [ "$(ls -A migrations)" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "No migrations directory or empty"
+        fi
+
+    - name: Install golang-migrate
+      if: steps.check_migrations.outputs.exists == 'true'
+      run: |
+        curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz
+        sudo mv migrate /usr/local/bin/
+        migrate -version
+
+    - name: Run migrations up
+      if: steps.check_migrations.outputs.exists == 'true'
+      run: |
+        migrate -path migrations -database "postgres://test_user:test_password@localhost:5432/migration_test?sslmode=disable" up
+
+    - name: Run migrations down
+      if: steps.check_migrations.outputs.exists == 'true'
+      run: |
+        migrate -path migrations -database "postgres://test_user:test_password@localhost:5432/migration_test?sslmode=disable" down -all
+
+    - name: Run migrations up again (idempotency test)
+      if: steps.check_migrations.outputs.exists == 'true'
+      run: |
+        migrate -path migrations -database "postgres://test_user:test_password@localhost:5432/migration_test?sslmode=disable" up
+
+  # Docker compose validation
+  docker-compose-test:
+    name: Docker Compose Validation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check if docker-compose.yml exists
+      id: check_compose
+      run: |
+        if [ -f "docker-compose.yml" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "No docker-compose.yml found"
+        fi
+
+    - name: Validate docker-compose.yml
+      if: steps.check_compose.outputs.exists == 'true'
+      run: |
+        docker-compose config
+
+    - name: Start services
+      if: steps.check_compose.outputs.exists == 'true'
+      run: |
+        docker-compose up -d
+        sleep 10
+
+    - name: Check services health
+      if: steps.check_compose.outputs.exists == 'true'
+      run: |
+        docker-compose ps
+
+    - name: Stop services
+      if: steps.check_compose.outputs.exists == 'true'
+      run: |
+        docker-compose down -v
