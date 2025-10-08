@@ -1,0 +1,98 @@
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck      # Проверка обработки ошибок
+    - gosimple      # Упрощение кода
+    - govet         # Проверка подозрительных конструкций
+    - ineffassign   # Неиспользуемые присваивания
+    - staticcheck   # Множество статических проверок
+    - typecheck     # Проверка типов
+    - unused        # Неиспользуемый код
+    - gofmt         # Форматирование
+    - goimports     # Импорты
+    - misspell      # Опечатки в комментариях
+    - revive        # Замена golint
+    - gosec         # Security issues
+    - bodyclose     # HTTP body close
+    - noctx         # HTTP requests без context
+    - errname       # Naming conventions для ошибок
+    - errorlint     # Error wrapping
+    - goconst       # Повторяющиеся строки/числа
+    - gocritic      # Множество проверок
+    - gocyclo       # Цикломатическая сложность
+    - godot         # Комментарии с точкой
+    - gomnd         # Magic numbers
+    - nestif        # Вложенность if
+    - prealloc      # Предаллокация slices
+    - predeclared   # Использование предопределенных идентификаторов
+    - unconvert     # Лишние конвертации типов
+    - unparam       # Неиспользуемые параметры функций
+    - whitespace    # Лишние пробелы
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    check-shadowing: true
+
+  gocyclo:
+    min-complexity: 15
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  gomnd:
+    ignored-functions:
+      - 'time.Second'
+      - 'time.Minute'
+      - 'time.Hour'
+
+  misspell:
+    locale: US
+
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+      - name: indent-error-flow
+        severity: warning
+      - name: var-naming
+        severity: warning
+
+  gosec:
+    excludes:
+      - G104  # Errors unhandled (covered by errcheck)
+
+  nestif:
+    min-complexity: 4
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - gosec
+        - gomnd
+
+    # Exclude shadowing check for err variable
+    - linters:
+        - govet
+      text: 'shadow: declaration of "err"'
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
