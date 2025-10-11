@@ -6,12 +6,18 @@ on:
     paths:
       - 'docs/**'
       - 'README.md'
+      - 'backend-README.md'
+      - '.env.example'
+      - 'internal/shared/infrastructure/config/**'
       - '.github/workflows/docs.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'docs/**'
       - 'README.md'
+      - 'backend-README.md'
+      - '.env.example'
+      - 'internal/shared/infrastructure/config/**'
 
 jobs:
   # Validate Markdown files
@@ -29,6 +35,7 @@ jobs:
         globs: |
           docs/**/*.md
           README.md
+          backend-README.md
 
   # Check for broken links
   link-checker:
@@ -123,3 +130,44 @@ jobs:
         # Use basic spell check - will create simple config if needed
         find docs -name "*.md" -exec echo "Checking {}" \; -exec cspell {} --no-progress --show-context \; || true
         echo "Spell check completed (non-blocking)"
+
+  # Verify .env.example sync with config.go
+  env-config-sync:
+    runs-on: ubuntu-latest
+    name: Verify .env.example and config.go Sync
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check .env.example variables match config.go
+      run: |
+        echo "🔍 Checking .env.example and config.go synchronization..."
+
+        # Extract env variables from .env.example (excluding comments and empty lines)
+        env_vars=$(grep -v '^#' .env.example | grep -v '^$' | cut -d= -f1 | sort)
+
+        # Extract getEnv calls from config.go
+        config_vars=$(grep -oP 'getEnv\w*\("\K[^"]+' internal/shared/infrastructure/config/config.go | sort | uniq)
+
+        echo "Variables in .env.example:"
+        echo "$env_vars"
+        echo ""
+        echo "Variables referenced in config.go:"
+        echo "$config_vars"
+        echo ""
+
+        # Check if all config.go variables are in .env.example
+        missing=()
+        for var in $config_vars; do
+          if ! echo "$env_vars" | grep -q "^${var}$"; then
+            missing+=("$var")
+          fi
+        done
+
+        if [ ${#missing[@]} -gt 0 ]; then
+          echo "❌ The following variables are in config.go but missing from .env.example:"
+          printf '%s\n' "${missing[@]}"
+          exit 1
+        else
+          echo "✅ All config.go variables are present in .env.example"
+        fi

@@ -1,8 +1,12 @@
-# Backend - Information System Secretary/Methodologist
+# Backend - Information System of Academic Secretary/Methodologist
 
-Go backend implementation using modular monolith architecture with Domain-Driven Design and Clean Architecture patterns.
+Модульный монолит на Go с использованием Domain-Driven Design (DDD) и Clean Architecture.
 
-## 📁 Project Structure
+## 🏗️ Архитектура
+
+Проект построен на принципах модульного монолита с четкими границами между модулями:
+
+### Структура проекта
 
 ```
 .

@@ -1,0 +1,226 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.golangci.yml'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.golangci.yml'
+      - '.github/workflows/backend-ci.yml'
+
+env:
+  GO_VERSION: '1.21'
+  GOLANGCI_LINT_VERSION: 'latest'
+
+jobs:
+  # Линтинг Go кода
+  lint:
+    name: Lint Go Code
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check if Go module exists
+      id: check_gomod
+      run: |
+        if [ -f "go.mod" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Go module (go.mod) does not exist yet, skipping lint"
+        fi
+
+    - name: Set up Go
+      if: steps.check_gomod.outputs.exists == 'true'
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+
+    - name: Run golangci-lint
+      if: steps.check_gomod.outputs.exists == 'true'
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: ${{ env.GOLANGCI_LINT_VERSION }}
+        args: --timeout=5m --config=.golangci.yml
+
+  # Юнит-тесты
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check if Go module exists
+      id: check_gomod
+      run: |
+        if [ -f "go.mod" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Go module (go.mod) does not exist yet, skipping tests"
+        fi
+
+    - name: Set up Go
+      if: steps.check_gomod.outputs.exists == 'true'
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+
+    - name: Download dependencies
+      if: steps.check_gomod.outputs.exists == 'true'
+      run: go mod download
+
+    - name: Verify dependencies
+      if: steps.check_gomod.outputs.exists == 'true'
+      run: go mod verify
+
+    - name: Run tests with coverage
+      if: steps.check_gomod.outputs.exists == 'true'
+      run: |
+        go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+
+    - name: Check test coverage
+      if: steps.check_gomod.outputs.exists == 'true'
+      run: |
+        coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Total coverage: ${coverage}%"
+        # Проверяем минимальный coverage (10% временно, целевой 80%)
+        threshold=10
+        if (( $(echo "$coverage < $threshold" | bc -l) )); then
+          echo "Coverage ${coverage}% is below threshold ${threshold}%"
+          exit 1
+        fi
+
+    - name: Upload coverage to Codecov
+      if: steps.check_gomod.outputs.exists == 'true'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+
+  # Build проверка
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check if Go module exists
+      id: check_gomod
+      run: |
+        if [ -f "go.mod" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Go module (go.mod) does not exist yet, skipping build"
+        fi
+
+    - name: Set up Go
+      if: steps.check_gomod.outputs.exists == 'true'
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+
+    - name: Build server
+      if: steps.check_gomod.outputs.exists == 'true'
+      run: |
+        go build -v -o bin/server cmd/server/main.go
+
+    - name: Verify binary
+      if: steps.check_gomod.outputs.exists == 'true'
+      run: |
+        test -f bin/server && test -x bin/server && echo "Server binary built successfully"
+
+  # Проверка форматирования
+  format:
+    name: Check Formatting
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check if Go module exists
+      id: check_gomod
+      run: |
+        if [ -f "go.mod" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Go module (go.mod) does not exist yet, skipping format check"
+        fi
+
+    - name: Set up Go
+      if: steps.check_gomod.outputs.exists == 'true'
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Check gofmt
+      if: steps.check_gomod.outputs.exists == 'true'
+      run: |
+        unformatted=$(gofmt -l .)
+        if [ -n "$unformatted" ]; then
+          echo "The following files are not formatted:"
+          echo "$unformatted"
+          exit 1
+        fi
+
+    - name: Run go vet
+      if: steps.check_gomod.outputs.exists == 'true'
+      run: go vet ./...
+
+  # Проверка модулей
+  mod-verify:
+    name: Verify Go Modules
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check if Go module exists
+      id: check_gomod
+      run: |
+        if [ -f "go.mod" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Go module (go.mod) does not exist yet, skipping module verification"
+        fi
+
+    - name: Set up Go
+      if: steps.check_gomod.outputs.exists == 'true'
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Check go.mod tidiness
+      if: steps.check_gomod.outputs.exists == 'true'
+      run: |
+        go mod tidy
+        git diff --exit-code go.mod go.sum
