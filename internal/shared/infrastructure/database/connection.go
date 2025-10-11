@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	_ "github.com/lib/pq"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
+	_ "github.com/lib/pq"
 )
 
 // NewConnection creates a new database connection

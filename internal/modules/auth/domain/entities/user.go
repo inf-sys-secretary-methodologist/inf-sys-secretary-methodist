@@ -22,11 +22,11 @@ type User struct {
 type UserRole string
 
 const (
-	RoleAdmin      UserRole = "admin"
-	RoleSecretary  UserRole = "secretary"
-	RoleMethodist  UserRole = "methodist"
-	RoleTeacher    UserRole = "teacher"
-	RoleStudent    UserRole = "student"
+	RoleAdmin     UserRole = "admin"
+	RoleSecretary UserRole = "secretary"
+	RoleMethodist UserRole = "methodist"
+	RoleTeacher   UserRole = "teacher"
+	RoleStudent   UserRole = "student"
 )
 
 // UserStatus represents user account status
@@ -58,19 +58,19 @@ func NewUser(id, email, passwordHash, name string, role UserRole) *User {
 // Activate activates the user account
 func (u *User) Activate() {
 	u.Status = UserStatusActive
-	u.Touch()
+	u.Entity.Touch()
 }
 
 // Deactivate deactivates the user account
 func (u *User) Deactivate() {
 	u.Status = UserStatusInactive
-	u.Touch()
+	u.Entity.Touch()
 }
 
 // Block blocks the user account
 func (u *User) Block() {
 	u.Status = UserStatusBlocked
-	u.Touch()
+	u.Entity.Touch()
 }
 
 // IsActive checks if user is active
