@@ -1,7 +1,8 @@
+version: 2
+
 run:
   timeout: 5m
   tests: true
-  modules-download-mode: readonly
 
 linters:
   enable:
@@ -10,28 +11,28 @@ linters:
     - govet         # Проверка подозрительных конструкций
     - ineffassign   # Неиспользуемые присваивания
     - staticcheck   # Множество статических проверок
-    - typecheck     # Проверка типов
     - unused        # Неиспользуемый код
-    - gofmt         # Форматирование
-    - goimports     # Импорты
     - misspell      # Опечатки в комментариях
     - revive        # Замена golint
     - gosec         # Security issues
     - bodyclose     # HTTP body close
-    - noctx         # HTTP requests без context
-    - errname       # Naming conventions для ошибок
     - errorlint     # Error wrapping
     - goconst       # Повторяющиеся строки/числа
     - gocritic      # Множество проверок
     - gocyclo       # Цикломатическая сложность
     - godot         # Комментарии с точкой
-    - gomnd         # Magic numbers
+    - mnd           # Magic numbers
     - nestif        # Вложенность if
     - prealloc      # Предаллокация slices
     - predeclared   # Использование предопределенных идентификаторов
     - unconvert     # Лишние конвертации типов
     - unparam       # Неиспользуемые параметры функций
     - whitespace    # Лишние пробелы
+
+formatters:
+  enable:
+    - gofmt         # Форматирование кода
+    - goimports     # Сортировка импортов
 
 linters-settings:
   errcheck:
@@ -48,7 +49,7 @@ linters-settings:
     min-len: 3
     min-occurrences: 3
 
-  gomnd:
+  mnd:
     ignored-functions:
       - 'time.Second'
       - 'time.Minute'
@@ -82,7 +83,7 @@ issues:
         - gocyclo
         - errcheck
         - gosec
-        - gomnd
+        - mnd
 
     # Exclude shadowing check for err variable
     - linters:

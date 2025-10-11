@@ -9,6 +9,7 @@ on:
       - 'pkg/**'
       - 'go.mod'
       - 'go.sum'
+      - '.golangci.yml'
       - '.github/workflows/backend-ci.yml'
   pull_request:
     branches: [ main, develop ]
@@ -18,11 +19,12 @@ on:
       - 'pkg/**'
       - 'go.mod'
       - 'go.sum'
+      - '.golangci.yml'
       - '.github/workflows/backend-ci.yml'
 
 env:
   GO_VERSION: '1.21'
-  GOLANGCI_LINT_VERSION: 'v1.55'
+  GOLANGCI_LINT_VERSION: 'v1.61'
 
 jobs:
   # Линтинг Go кода
