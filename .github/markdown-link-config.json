@@ -40,6 +40,9 @@
       "pattern": "^gs://inf-sys-backups"
     },
     {
+      "pattern": "^https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/workflows/"
+    },
+    {
       "pattern": "^#"
     }
   ],
