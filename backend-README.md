@@ -74,17 +74,17 @@ git clone https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-m
 cd inf-sys-secretary-methodist
 ```
 
-2. Скопируйте `.env.example` в `.env`:
+1. Скопируйте `.env.example` в `.env`:
 ```bash
 cp .env.example .env
 ```
 
-3. Установите зависимости:
+1. Установите зависимости:
 ```bash
 go mod download
 ```
 
-4. Запустите приложение:
+1. Запустите приложение:
 ```bash
 go run cmd/server/main.go
 ```

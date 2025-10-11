@@ -71,14 +71,14 @@ func (uow *PostgresUnitOfWork) Execute(fn func() error) error {
 
 	defer func() {
 		if r := recover(); r != nil {
-			uow.Rollback()
+			_ = uow.Rollback()
 			panic(r)
 		}
 	}()
 
 	if err := fn(); err != nil {
 		if rbErr := uow.Rollback(); rbErr != nil {
-			return fmt.Errorf("transaction error: %w, rollback error: %v", err, rbErr)
+			return fmt.Errorf("transaction error: %w, rollback error: %w", err, rbErr)
 		}
 		return err
 	}

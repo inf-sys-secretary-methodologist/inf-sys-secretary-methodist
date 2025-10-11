@@ -18,7 +18,6 @@ linters:
     - goconst       # Повторяющиеся строки/числа
     - gocritic      # Множество проверок
     - gocyclo       # Цикломатическая сложность
-    - godot         # Комментарии с точкой
     - mnd           # Magic numbers
     - nestif        # Вложенность if
     - prealloc      # Предаллокация slices

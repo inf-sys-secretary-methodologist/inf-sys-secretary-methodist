@@ -48,7 +48,7 @@ func TestDomainError_Unwrap(t *testing.T) {
 		Err:     wrappedErr,
 	}
 
-	if got := domainErr.Unwrap(); got != wrappedErr {
+	if got := domainErr.Unwrap(); !errors.Is(got, wrappedErr) {
 		t.Errorf("Unwrap() = %v, want %v", got, wrappedErr)
 	}
 }
@@ -63,7 +63,7 @@ func TestNewDomainError(t *testing.T) {
 	if domainErr.Message != "test message" {
 		t.Errorf("expected Message 'test message', got '%s'", domainErr.Message)
 	}
-	if domainErr.Err != wrappedErr {
+	if !errors.Is(domainErr.Err, wrappedErr) {
 		t.Errorf("expected wrapped error to be preserved")
 	}
 }

@@ -7,20 +7,20 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 )
 
-// PostgresUserRepository implements UserRepository for PostgreSQL
-type PostgresUserRepository struct {
+// UserRepository implements UserRepository for PostgreSQL
+type UserRepository struct {
 	db *sql.DB
 }
 
-// NewPostgresUserRepository creates a new PostgreSQL user repository
-func NewPostgresUserRepository(db *sql.DB) *PostgresUserRepository {
-	return &PostgresUserRepository{
+// NewUserRepository creates a new PostgreSQL user repository
+func NewUserRepository(db *sql.DB) *UserRepository {
+	return &UserRepository{
 		db: db,
 	}
 }
 
 // Save saves a user to the database
-func (r *PostgresUserRepository) Save(user *entities.User) error {
+func (r *UserRepository) Save(user *entities.User) error {
 	query := `
 		INSERT INTO users (id, email, password_hash, name, role, status, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -52,7 +52,7 @@ func (r *PostgresUserRepository) Save(user *entities.User) error {
 }
 
 // GetByID retrieves a user by ID
-func (r *PostgresUserRepository) GetByID(id string) (*entities.User, error) {
+func (r *UserRepository) GetByID(id string) (*entities.User, error) {
 	query := `
 		SELECT id, email, password_hash, name, role, status, created_at, updated_at
 		FROM users
@@ -83,7 +83,7 @@ func (r *PostgresUserRepository) GetByID(id string) (*entities.User, error) {
 }
 
 // GetByEmail retrieves a user by email
-func (r *PostgresUserRepository) GetByEmail(email string) (*entities.User, error) {
+func (r *UserRepository) GetByEmail(email string) (*entities.User, error) {
 	query := `
 		SELECT id, email, password_hash, name, role, status, created_at, updated_at
 		FROM users
@@ -114,7 +114,7 @@ func (r *PostgresUserRepository) GetByEmail(email string) (*entities.User, error
 }
 
 // Delete deletes a user by ID
-func (r *PostgresUserRepository) Delete(id string) error {
+func (r *UserRepository) Delete(id string) error {
 	query := `DELETE FROM users WHERE id = $1`
 
 	result, err := r.db.Exec(query, id)
@@ -135,7 +135,7 @@ func (r *PostgresUserRepository) Delete(id string) error {
 }
 
 // List retrieves a list of users with pagination
-func (r *PostgresUserRepository) List(limit, offset int) ([]*entities.User, error) {
+func (r *UserRepository) List(limit, offset int) ([]*entities.User, error) {
 	query := `
 		SELECT id, email, password_hash, name, role, status, created_at, updated_at
 		FROM users
