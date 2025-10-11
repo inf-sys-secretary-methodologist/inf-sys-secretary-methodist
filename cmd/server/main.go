@@ -79,7 +79,7 @@ func setupRoutes() http.Handler {
 	// Health check endpoint
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK")) //nolint:errcheck // health check response
 	})
 
 	// TODO: Add module routes

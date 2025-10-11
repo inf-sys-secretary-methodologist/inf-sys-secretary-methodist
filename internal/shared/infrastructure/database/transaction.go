@@ -71,7 +71,7 @@ func (uow *PostgresUnitOfWork) Execute(fn func() error) error {
 
 	defer func() {
 		if r := recover(); r != nil {
-			_ = uow.Rollback()
+			_ = uow.Rollback() //nolint:errcheck // rollback in panic recovery
 			panic(r)
 		}
 	}()

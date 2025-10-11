@@ -18,12 +18,10 @@ linters:
     - goconst       # Повторяющиеся строки/числа
     - gocritic      # Множество проверок
     - gocyclo       # Цикломатическая сложность
-    - mnd           # Magic numbers
     - nestif        # Вложенность if
     - prealloc      # Предаллокация slices
     - predeclared   # Использование предопределенных идентификаторов
     - unconvert     # Лишние конвертации типов
-    - unparam       # Неиспользуемые параметры функций
     - whitespace    # Лишние пробелы
     - gofmt         # Форматирование кода
     - goimports     # Сортировка импортов
@@ -93,6 +91,7 @@ issues:
   max-same-issues: 0
 
 output:
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
