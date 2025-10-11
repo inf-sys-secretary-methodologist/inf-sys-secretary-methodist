@@ -1,7 +1,9 @@
 # Information System of the Academic Secretary/Methodologist
 
-![CI/CD Pipeline](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/ci.yml/badge.svg)
+![Backend CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/backend-ci.yml/badge.svg)
 ![Documentation CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/docs.yml/badge.svg)
+![Security](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/security.yml/badge.svg)
+![Database CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/database-ci.yml/badge.svg)
 
 ## 🎯 Main Features
 * **Document Management**: Complete lifecycle from creation to archiving
@@ -26,18 +28,32 @@ Built on **modular monolith** principles with:
 - **Redis** 7+
 - **Docker** & Docker Compose
 
+### Repository Structure
+This is a **monorepository** containing:
+- `backend/` - Go backend (modular monolith)
+- `frontend/` - Next.js 14 frontend
+- `docs/` - Project documentation
+
 ### Quick Start
+
+**Backend:**
 ```bash
-# Clone repository
-git clone https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist.git
-cd inf-sys-secretary-methodist
+cd backend
+cp .env.example .env
+go mod download
+go run cmd/server/main.go
+```
 
-# Start with Docker
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+**Docker (Full Stack):**
+```bash
 docker-compose up -d
-
-# Or manual setup
-make setup
-make dev
 ```
 
 ## 📚 Documentation
@@ -77,23 +93,24 @@ make dev
 ### Backend (Modular Monolith)
 - **Language**: Go 1.21+
 - **Architecture**: DDD + Clean Architecture
-- **Framework**: Gin + gRPC (ready for microservices)
+- **Framework**: net/http + gRPC (ready for microservices)
 - **Database**: PostgreSQL 15+ (Primary), Redis (Cache/Sessions)
-- **Messaging**: Apache Kafka (Event-driven)
+- **Messaging**: In-memory EventBus (Kafka-ready)
 - **Authentication**: OAuth 2.0 + JWT
-- **Patterns**: Repository, CQRS, Event Sourcing
+- **Patterns**: Repository, CQRS, Event Sourcing, Unit of Work
 
 ### Frontend
 - **Framework**: Next.js 14 + TypeScript
-- **UI Library**: MUI (Material-UI) + Tailwind CSS
+- **UI Library**: MUI (Material-UI)
 - **State Management**: Zustand
+- **Data Fetching**: SWR + axios
 - **Testing**: Jest + React Testing Library + Playwright
 
 ### Infrastructure
 - **Orchestration**: Kubernetes (GKE/AKS)
 - **Monitoring**: Prometheus + Grafana + Jaeger
 - **Logging**: ELK Stack (Elasticsearch + Logstash + Kibana)
-- **CI/CD**: GitLab CI/CD
+- **CI/CD**: GitHub Actions (Backend CI, Security, Database, PR Validation, Dependabot)
 - **Load Balancer**: Nginx + CloudFlare
 
 ## 🤝 Contributing
