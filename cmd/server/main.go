@@ -15,6 +15,12 @@ import (
 )
 
 func main() {
+	// Handle version flag
+	if len(os.Args) > 1 && os.Args[1] == "--version" {
+		fmt.Println("inf-sys-secretary-methodist v0.1.0")
+		return
+	}
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
