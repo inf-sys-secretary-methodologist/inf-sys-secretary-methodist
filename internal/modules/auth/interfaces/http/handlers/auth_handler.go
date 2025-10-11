@@ -27,7 +27,7 @@ type LoginRequest struct {
 
 // LoginResponse represents login response body
 type LoginResponse struct {
-	Token string `json:"token"`
+	Token string  `json:"token"`
 	User  UserDTO `json:"user"`
 }
 
@@ -72,5 +72,5 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp) //nolint:errcheck // response encoding
 }

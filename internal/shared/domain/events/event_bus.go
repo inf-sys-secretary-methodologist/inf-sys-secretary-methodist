@@ -66,9 +66,7 @@ func (bus *InMemoryEventBus) Publish(event common.DomainEvent) error {
 	for _, handler := range handlers {
 		// Execute handlers asynchronously
 		go func(h EventHandler, e common.DomainEvent) {
-			if err := h.Handle(e); err != nil {
-				// TODO: Add proper error logging
-			}
+			_ = h.Handle(e) //nolint:errcheck // TODO: Add proper error logging
 		}(handler, event)
 	}
 

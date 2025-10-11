@@ -1,0 +1,97 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck      # Проверка обработки ошибок
+    - gosimple      # Упрощение кода
+    - govet         # Проверка подозрительных конструкций
+    - ineffassign   # Неиспользуемые присваивания
+    - staticcheck   # Множество статических проверок
+    - unused        # Неиспользуемый код
+    - misspell      # Опечатки в комментариях
+    - revive        # Замена golint
+    - gosec         # Security issues
+    - bodyclose     # HTTP body close
+    - errorlint     # Error wrapping
+    - goconst       # Повторяющиеся строки/числа
+    - gocritic      # Множество проверок
+    - gocyclo       # Цикломатическая сложность
+    - nestif        # Вложенность if
+    - prealloc      # Предаллокация slices
+    - predeclared   # Использование предопределенных идентификаторов
+    - unconvert     # Лишние конвертации типов
+    - whitespace    # Лишние пробелы
+    - gofmt         # Форматирование кода
+    - goimports     # Сортировка импортов
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    enable:
+      - atomic
+      - bools
+      - buildtag
+      - nilfunc
+      - printf
+
+  gocyclo:
+    min-complexity: 15
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  mnd:
+    ignored-functions:
+      - 'time.Second'
+      - 'time.Minute'
+      - 'time.Hour'
+
+  misspell:
+    locale: US
+
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+      - name: indent-error-flow
+        severity: warning
+      - name: var-naming
+        severity: warning
+
+  gosec:
+    excludes:
+      - G104  # Errors unhandled (covered by errcheck)
+
+  nestif:
+    min-complexity: 4
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - gosec
+        - mnd
+
+    # Exclude shadowing check for err variable
+    - linters:
+        - govet
+      text: 'shadow: declaration of "err"'
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true

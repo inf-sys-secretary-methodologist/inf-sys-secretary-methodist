@@ -15,6 +15,12 @@ import (
 )
 
 func main() {
+	// Handle version flag
+	if len(os.Args) > 1 && os.Args[1] == "--version" {
+		fmt.Println("inf-sys-secretary-methodist v0.1.0")
+		return
+	}
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -79,7 +85,7 @@ func setupRoutes() http.Handler {
 	// Health check endpoint
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK")) //nolint:errcheck // health check response
 	})
 
 	// TODO: Add module routes

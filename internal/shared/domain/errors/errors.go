@@ -5,18 +5,18 @@ import "errors"
 // Domain errors
 var (
 	// Common errors
-	ErrNotFound          = errors.New("resource not found")
-	ErrAlreadyExists     = errors.New("resource already exists")
-	ErrInvalidInput      = errors.New("invalid input")
-	ErrUnauthorized      = errors.New("unauthorized")
-	ErrForbidden         = errors.New("forbidden")
-	ErrInternalError     = errors.New("internal error")
+	ErrNotFound      = errors.New("resource not found")
+	ErrAlreadyExists = errors.New("resource already exists")
+	ErrInvalidInput  = errors.New("invalid input")
+	ErrUnauthorized  = errors.New("unauthorized")
+	ErrForbidden     = errors.New("forbidden")
+	ErrInternalError = errors.New("internal error")
 
 	// Validation errors
-	ErrValidationFailed  = errors.New("validation failed")
-	ErrRequiredField     = errors.New("required field is missing")
-	ErrInvalidFormat     = errors.New("invalid format")
-	ErrInvalidLength     = errors.New("invalid length")
+	ErrValidationFailed = errors.New("validation failed")
+	ErrRequiredField    = errors.New("required field is missing")
+	ErrInvalidFormat    = errors.New("invalid format")
+	ErrInvalidLength    = errors.New("invalid length")
 )
 
 // DomainError represents a domain-specific error
