@@ -559,29 +559,33 @@ Add these to your README.md:
 All PRs must pass:
 
 ✅ **Backend CI**
-  - All linters pass
-  - Tests pass with ≥80% coverage
-  - Builds successfully on Linux & macOS
-  - Code properly formatted
-  - Go modules verified
+
+- All linters pass
+- Tests pass with ≥80% coverage
+- Builds successfully on Linux & macOS
+- Code properly formatted
+- Go modules verified
 
 ✅ **Documentation CI**
-  - Markdown properly formatted
-  - All links valid
-  - Required docs exist
-  - Config files in sync
+
+- Markdown properly formatted
+- All links valid
+- Required docs exist
+- Config files in sync
 
 ✅ **Security**
-  - No critical/high vulnerabilities
-  - No security issues found by gosec
-  - No secrets in code
-  - No unsafe dependencies
+
+- No critical/high vulnerabilities
+- No security issues found by gosec
+- No secrets in code
+- No unsafe dependencies
 
 ✅ **PR Validation**
-  - Semantic PR title
-  - Valid branch name
-  - Reasonable size (<1000 lines)
-  - Linked to issue
+
+- Semantic PR title
+- Valid branch name
+- Reasonable size (<1000 lines)
+- Linked to issue
 
 ## 🔄 Continuous Improvement
 
