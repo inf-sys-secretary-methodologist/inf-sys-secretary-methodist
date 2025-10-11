@@ -1,9 +1,9 @@
 # Information System of the Academic Secretary/Methodologist
 
-![Backend CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/backend-ci.yml/badge.svg)
-![Documentation CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/docs.yml/badge.svg)
-![Security](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/security.yml/badge.svg)
-![Database CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/database-ci.yml/badge.svg)
+[![Backend CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/workflows/Backend%20CI/badge.svg)](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/backend-ci.yml)
+[![Documentation CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/workflows/Documentation%20CI/badge.svg)](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/docs.yml)
+[![Security](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/workflows/Security%20Audit/badge.svg)](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/security.yml)
+[![Database CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/workflows/Database%20CI/badge.svg)](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/actions/workflows/database-ci.yml)
 
 ## 🎯 Main Features
 * **Document Management**: Complete lifecycle from creation to archiving
