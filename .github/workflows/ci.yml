@@ -73,7 +73,7 @@ jobs:
 
     - name: Upload coverage
       if: steps.check_service.outputs.exists == 'true'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         file: services/${{ matrix.service }}/coverage.out
         flags: ${{ matrix.service }}
