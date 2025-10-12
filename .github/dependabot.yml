@@ -1,0 +1,54 @@
+version: 2
+
+updates:
+  # Go modules dependencies
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "backend"
+      - "automation"
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    reviewers:
+      - "inf-sys-secretary-methodologist/backend-team"
+    assignees:
+      - "inf-sys-secretary-methodologist/backend-team"
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "devops"
+      - "automation"
+      - "dependencies"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "devops"
+      - "automation"
+      - "dependencies"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"

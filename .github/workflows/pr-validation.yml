@@ -1,0 +1,192 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [ main, develop ]
+
+jobs:
+  # Validate PR title and branch name
+  pr-metadata:
+    name: Validate PR Metadata
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check PR title format
+      uses: amannn/action-semantic-pull-request@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        types: |
+          feat
+          task
+          fix
+          docs
+          style
+          refactor
+          test
+          config
+          chore
+        scopes: |
+          backend
+          frontend
+          docs
+          ci
+          config
+          auth
+          users
+          documents
+          workflow
+          schedule
+          reporting
+          tasks
+          notifications
+          files
+          integration
+        requireScope: false
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate branch naming convention
+      run: |
+        BRANCH_NAME="${{ github.head_ref }}"
+        echo "Checking branch name: $BRANCH_NAME"
+
+        # Allowed patterns: feature/issue-N-description, task/issue-N-description, etc.
+        if [[ ! "$BRANCH_NAME" =~ ^(feature|task|bugfix|hotfix|config|chore|docs|refactor)/(issue-[0-9]+(\.[0-9]+)?-[a-z0-9-]+)$ ]]; then
+          echo "❌ Invalid branch name format!"
+          echo "Expected format: <type>/issue-<number>-<description>"
+          echo "Examples:"
+          echo "  - feature/issue-123-user-authentication"
+          echo "  - task/issue-2.1-go-module-setup"
+          echo "  - bugfix/issue-456-login-validation"
+          exit 1
+        fi
+        echo "✅ Branch name is valid"
+
+  # Check PR description
+  pr-description:
+    name: Validate PR Description
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check PR has description
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const pr = context.payload.pull_request;
+          if (!pr.body || pr.body.trim().length < 20) {
+            core.setFailed('PR description is too short or empty. Please provide a meaningful description.');
+          }
+
+    - name: Check PR is linked to an issue
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const pr = context.payload.pull_request;
+          const body = pr.body || '';
+
+          // Check for issue references: #123, Part of #123, Closes #123, etc.
+          const issuePattern = /#\d+|Part of #\d+|Closes #\d+|Fixes #\d+|Resolves #\d+/i;
+
+          if (!issuePattern.test(body)) {
+            core.warning('PR does not appear to reference any issues. Please link to related issue(s).');
+          } else {
+            console.log('✅ PR is linked to issue(s)');
+          }
+
+  # Check PR size
+  pr-size:
+    name: Check PR Size
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check PR size
+      run: |
+        # Get changed lines (additions + deletions)
+        CHANGED_LINES=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD | \
+          grep -oP '\d+(?= insertion)|\d+(?= deletion)' | \
+          awk '{s+=$1} END {print s}')
+
+        echo "Total changed lines: ${CHANGED_LINES:-0}"
+
+        # Warn if PR is very large (>500 lines)
+        if [ "${CHANGED_LINES:-0}" -gt 500 ]; then
+          echo "::warning::This PR is quite large (${CHANGED_LINES} lines). Consider splitting it into smaller PRs."
+        fi
+
+        # Fail if PR is extremely large (>1000 lines)
+        if [ "${CHANGED_LINES:-0}" -gt 1000 ]; then
+          echo "::error::This PR is too large (${CHANGED_LINES} lines). Please split it into smaller PRs."
+          exit 1
+        fi
+
+  # Check for required labels
+  pr-labels:
+    name: Check PR Labels
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check for labels
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const pr = context.payload.pull_request;
+          const labels = pr.labels.map(label => label.name);
+
+          if (labels.length === 0) {
+            core.warning('PR has no labels. Please add appropriate labels (backend, frontend, documentation, etc.).');
+          } else {
+            console.log(`✅ PR has ${labels.length} label(s): ${labels.join(', ')}`);
+          }
+
+  # Validate no merge conflicts
+  no-conflicts:
+    name: Check for Merge Conflicts
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check for merge conflicts
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const pr = context.payload.pull_request;
+          if (pr.mergeable === false) {
+            core.setFailed('This PR has merge conflicts. Please resolve them before merging.');
+          } else if (pr.mergeable === null) {
+            core.warning('Merge status is unknown. GitHub is still calculating mergeability.');
+          } else {
+            console.log('✅ No merge conflicts detected');
+          }
+
+  # Final status check
+  validation-complete:
+    name: PR Validation Complete
+    runs-on: ubuntu-latest
+    needs: [pr-metadata, pr-description, pr-size, pr-labels, no-conflicts]
+    if: always()
+
+    steps:
+    - name: Check all validations passed
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const jobs = ${{ toJSON(needs) }};
+          const failed = Object.values(jobs).filter(job => job.result === 'failure');
+          const warnings = Object.values(jobs).filter(job => job.result !== 'success' && job.result !== 'failure');
+
+          if (failed.length > 0) {
+            core.warning(`${failed.length} PR validation(s) failed. Please review and fix if needed.`);
+          }
+
+          if (warnings.length > 0) {
+            core.warning(`${warnings.length} PR validation(s) had warnings.`);
+          }
+
+          console.log('✅ PR validation check completed!');
