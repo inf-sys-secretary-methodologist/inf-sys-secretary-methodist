@@ -26,7 +26,7 @@ jobs:
     name: Lint Markdown Files
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Lint Markdown files
       uses: DavidAnson/markdownlint-cli2-action@v20
@@ -43,7 +43,7 @@ jobs:
     name: Check Documentation Links
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install markdown-link-check
       run: npm install -g markdown-link-check
@@ -61,7 +61,7 @@ jobs:
     name: Validate Documentation Structure
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Check required documentation files
       run: |
@@ -119,7 +119,7 @@ jobs:
     name: Spell Check Documentation
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install cspell
       run: npm install -g cspell
@@ -137,7 +137,7 @@ jobs:
     name: Verify .env.example and config.go Sync
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Check .env.example variables match config.go
       run: |
