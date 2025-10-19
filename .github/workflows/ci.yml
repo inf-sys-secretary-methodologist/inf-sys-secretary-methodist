@@ -32,7 +32,7 @@ jobs:
         service: [auth, user, document, workflow, schedule, reporting, task, notification, file, integration]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Check if service exists
       id: check_service
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Check if frontend exists
       id: check_frontend
@@ -138,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Check if code exists for scanning
       id: check_code
@@ -171,7 +171,7 @@ jobs:
         component: [auth, user, document, workflow, schedule, reporting, task, notification, file, integration, frontend]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Check if component exists
       id: check_component
@@ -234,7 +234,7 @@ jobs:
     environment: staging
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Deploy to staging
       run: |
@@ -249,7 +249,7 @@ jobs:
     environment: production
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Deploy to production
       run: |
