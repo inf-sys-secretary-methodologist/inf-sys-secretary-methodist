@@ -55,7 +55,7 @@ jobs:
 
     - name: Run golangci-lint
       if: steps.check_gomod.outputs.exists == 'true'
-      uses: golangci/golangci-lint-action@v3
+      uses: golangci/golangci-lint-action@v8
       with:
         version: ${{ env.GOLANGCI_LINT_VERSION }}
         args: --timeout=5m --config=.golangci.yml
