@@ -16,6 +16,11 @@ type User struct {
 	Name         string
 	Role         UserRole
 	Status       UserStatus
+
+	ID        int64     `db:"id"`
+	Password  string    `db:"password"` // hashed
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
 }
 
 // UserRole represents user role
