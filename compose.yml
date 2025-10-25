@@ -1,0 +1,99 @@
+# compose.yml
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres-dev
+    environment:
+      POSTGRES_DB: inf_sys_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inf_sys_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend-dev
+    ports:
+      - "8080:8080"
+    environment:
+      # Server
+      SERVER_PORT: 8080
+      SERVER_READ_TIMEOUT: 10s
+      SERVER_WRITE_TIMEOUT: 10s
+      SERVER_IDLE_TIMEOUT: 120s
+
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: inf_sys_db
+      DB_SSL_MODE: disable
+      DB_MAX_OPEN_CONNS: 25
+      DB_MAX_IDLE_CONNS: 5
+      DB_CONN_MAX_LIFETIME: 5m
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      REDIS_POOL_SIZE: 10
+
+      # Logging
+      LOG_LEVEL: debug
+      LOG_FORMAT: json
+
+      # Application
+      APP_ENV: development
+      APP_VERSION: 0.1.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://host.docker.internal:8080
+      NODE_ENV: development
+    depends_on:
+      - backend
+    # Для Linux раскомментируй:
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+volumes:
+  postgres_:
+  redis_:

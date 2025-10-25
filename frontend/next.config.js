@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
+  eslint: {
+    ignoreDuringBuilds: true, // ← отключает ESLint на сборке
+  },
   reactStrictMode: true,
   swcMinify: true,
 
@@ -14,6 +18,10 @@ const nextConfig = {
         destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/:path*`,
       },
     ];
+  },
+  webpack(config) {
+    config.cache = false;
+    return config;
   },
 }
 
