@@ -1,26 +1,20 @@
 package entities
 
 import (
+	"fmt"
 	"time"
-
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/common"
 )
 
 // User represents a user entity in the auth domain
 type User struct {
-	common.Entity
-	common.AggregateRoot
-
-	Email        string
-	PasswordHash string
-	Name         string
-	Role         UserRole
-	Status       UserStatus
-
-	ID        int64     `db:"id"`
-	Password  string    `db:"password"` // hashed
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
+	ID        int64      `db:"id"`
+	Email     string     `db:"email"`
+	Password  string     `db:"password"` // hashed password
+	Name      string     `db:"name"`
+	Role      UserRole   `db:"role"`
+	Status    UserStatus `db:"status"`
+	CreatedAt time.Time  `db:"created_at"`
+	UpdatedAt time.Time  `db:"updated_at"`
 }
 
 // UserRole represents user role
@@ -44,39 +38,52 @@ const (
 )
 
 // NewUser creates a new user
-func NewUser(id, email, passwordHash, name string, role UserRole) *User {
+func NewUser(email, passwordHash, name string, role UserRole) *User {
 	now := time.Now()
 	return &User{
-		Entity: common.Entity{
-			ID:        id,
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Email:        email,
-		PasswordHash: passwordHash,
-		Name:         name,
-		Role:         role,
-		Status:       UserStatusActive,
+		Email:     email,
+		Password:  passwordHash,
+		Name:      name,
+		Role:      role,
+		Status:    UserStatusActive,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 }
 
 // Activate activates the user account
 func (u *User) Activate() {
 	u.Status = UserStatusActive
-	u.Entity.Touch()
+	u.UpdatedAt = time.Now()
 }
 
 // Deactivate deactivates the user account
 func (u *User) Deactivate() {
 	u.Status = UserStatusInactive
-	u.Entity.Touch()
+	u.UpdatedAt = time.Now()
 }
 
 // Block blocks the user account
 func (u *User) Block() {
 	u.Status = UserStatusBlocked
-	u.Entity.Touch()
+	u.UpdatedAt = time.Now()
 }
+
+// CanLogin checks if user can login
+func (u *User) CanLogin() error {
+	if !u.IsActive() {
+		return ErrAccountNotActive
+	}
+	if u.Status == UserStatusBlocked {
+		return ErrAccountBlocked
+	}
+	return nil
+}
+
+var (
+	ErrAccountNotActive = fmt.Errorf("account is not active")
+	ErrAccountBlocked   = fmt.Errorf("account is blocked")
+)
 
 // IsActive checks if user is active
 func (u *User) IsActive() bool {

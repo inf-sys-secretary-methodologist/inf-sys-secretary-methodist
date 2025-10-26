@@ -1,11 +1,17 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
+)
+
+var (
+	ErrUserNotFound = errors.New("user not found")
 )
 
 type userRepositoryPG struct {
@@ -16,73 +22,153 @@ func NewUserRepositoryPG(db *sql.DB) repositories.UserRepository {
 	return &userRepositoryPG{db: db}
 }
 
-func (r *userRepositoryPG) Create(user *entities.User) error {
+func (r *userRepositoryPG) Create(ctx context.Context, user *entities.User) error {
 	query := `
-		INSERT INTO users (id, email, password, role, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, NOW(), NOW())
+		INSERT INTO users (email, password, name, role, status, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id
 	`
-	_, err := r.db.Exec(query, user.ID, user.Email, user.Password, user.Role)
-	return err
+	err := r.db.QueryRowContext(ctx, query,
+		user.Email,
+		user.Password,
+		user.Name,
+		user.Role,
+		user.Status,
+		user.CreatedAt,
+		user.UpdatedAt,
+	).Scan(&user.ID)
+
+	if err != nil {
+		return fmt.Errorf("failed to create user: %w", err)
+	}
+	return nil
 }
 
-func (r *userRepositoryPG) Delete(userID string) error {
-	_, err := r.db.Exec(`DELETE FROM users WHERE id = $1`, userID)
-	return err
+func (r *userRepositoryPG) Delete(ctx context.Context, userID int64) error {
+	result, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("user not found: %w", ErrUserNotFound)
+	}
+
+	return nil
 }
 
-func (r *userRepositoryPG) GetByEmail(email string) (*entities.User, error) {
+func (r *userRepositoryPG) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
 	user := &entities.User{}
-	err := r.db.QueryRow(
-		`SELECT id, email, password, role, created_at, updated_at FROM users WHERE email = $1`,
+	err := r.db.QueryRowContext(ctx,
+		`SELECT id, email, password, name, role, status, created_at, updated_at
+		 FROM users WHERE email = $1`,
 		email,
-	).Scan(&user.ID, &user.Email, &user.Password, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.Role, &user.Status, &user.CreatedAt, &user.UpdatedAt)
+
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+		return nil, fmt.Errorf("user with email %s not found: %w", email, ErrUserNotFound)
 	}
-	return user, err
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user by email: %w", err)
+	}
+
+	return user, nil
 }
 
-func (r *userRepositoryPG) GetByID(userID string) (*entities.User, error) {
+func (r *userRepositoryPG) GetByID(ctx context.Context, userID int64) (*entities.User, error) {
 	user := &entities.User{}
-	err := r.db.QueryRow(
-		`SELECT id, email, password, role, created_at, updated_at FROM users WHERE id = $1`,
+	err := r.db.QueryRowContext(ctx,
+		`SELECT id, email, password, name, role, status, created_at, updated_at
+		 FROM users WHERE id = $1`,
 		userID,
-	).Scan(&user.ID, &user.Email, &user.Password, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.Role, &user.Status, &user.CreatedAt, &user.UpdatedAt)
+
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+		return nil, fmt.Errorf("user with id %d not found: %w", userID, ErrUserNotFound)
 	}
-	return user, err
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user by id: %w", err)
+	}
+
+	return user, nil
 }
 
-func (r *userRepositoryPG) List(page int, limit int) ([]*entities.User, error) {
-	offset := (page - 1) * limit
-	rows, err := r.db.Query(
-		`SELECT id, email, password, role, created_at, updated_at FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+func (r *userRepositoryPG) List(ctx context.Context, limit, offset int) ([]*entities.User, error) {
+	// Validate pagination parameters
+	if limit <= 0 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	if limit > 100 {
+		limit = 100 // Max limit
+	}
+
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT id, email, password, name, role, status, created_at, updated_at
+		 FROM users
+		 ORDER BY created_at DESC
+		 LIMIT $1 OFFSET $2`,
 		limit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query users list: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			err = fmt.Errorf("failed to close rows: %w", closeErr)
+		}
+	}()
 
 	users := []*entities.User{}
 	for rows.Next() {
 		user := &entities.User{}
-		if err := rows.Scan(&user.ID, &user.Email, &user.Password, &user.Role, &user.CreatedAt, &user.UpdatedAt); err != nil {
-			return nil, err
+		if err := rows.Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.Role, &user.Status, &user.CreatedAt, &user.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
 		users = append(users, user)
 	}
-	return users, rows.Err()
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating user rows: %w", err)
+	}
+
+	return users, nil
 }
 
-// internal/modules/auth/infrastructure/persistence/user_repository_pg.go
-func (r *userRepositoryPG) Save(user *entities.User) error {
+func (r *userRepositoryPG) Save(ctx context.Context, user *entities.User) error {
 	query := `
 		UPDATE users
-		SET email = $1, password = $2, role = $3, updated_at = NOW()
-		WHERE id = $4
+		SET email = $1, password = $2, name = $3, role = $4, status = $5, updated_at = $6
+		WHERE id = $7
 	`
-	_, err := r.db.Exec(query, user.Email, user.Password, user.Role, user.ID)
-	return err
+	result, err := r.db.ExecContext(ctx, query,
+		user.Email,
+		user.Password,
+		user.Name,
+		user.Role,
+		user.Status,
+		user.UpdatedAt,
+		user.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("user not found: %w", ErrUserNotFound)
+	}
+
+	return nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,8 +11,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
+
+	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
+	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
+	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/middleware"
 )
 
 func main() {
@@ -29,19 +40,63 @@ func main() {
 
 	// Initialize logger
 	logger := logging.NewLogger(cfg.Log.Level)
+	securityLogger := logging.NewSecurityLogger(logger)
+	auditLogger := logging.NewAuditLogger(logger)
+	perfLogger := logging.NewPerformanceLogger(logger)
+
 	logger.Info("Starting application", map[string]interface{}{
 		"environment": cfg.Environment,
 		"version":     cfg.Version,
 	})
 
-	// TODO: Initialize dependencies (database, redis, etc.)
-	// TODO: Initialize modules
-	// TODO: Setup API Gateway and routes
+	// Initialize database
+	db, err := initDatabase(cfg, logger)
+	if err != nil {
+		logger.Error("Failed to initialize database", map[string]interface{}{
+			"error": err.Error(),
+		})
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	logger.Info("Database connected successfully", map[string]interface{}{
+		"max_open_conns": cfg.Database.MaxOpenConns,
+		"max_idle_conns": cfg.Database.MaxIdleConns,
+	})
+
+	// Initialize Redis cache
+	redisCache, err := initRedisCache(cfg, logger)
+	if err != nil {
+		logger.Warn("Redis cache not available, running without cache", map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
+	if redisCache != nil {
+		defer redisCache.Close()
+		logger.Info("Redis cache connected successfully", nil)
+	}
+
+	// Initialize auth module with all optimizations
+	authUseCase, authHandlerInstance := initAuthModule(
+		db,
+		redisCache,
+		securityLogger,
+		auditLogger,
+		perfLogger,
+	)
+
+	// Setup router with all middleware
+	router := setupRoutes(
+		authUseCase,
+		authHandlerInstance,
+		securityLogger,
+		perfLogger,
+	)
 
 	// Create HTTP server
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
-		Handler:      setupRoutes(),
+		Handler:      router,
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
 		IdleTimeout:  cfg.Server.IdleTimeout,
@@ -51,6 +106,7 @@ func main() {
 	go func() {
 		logger.Info("Server starting", map[string]interface{}{
 			"port": cfg.Server.Port,
+			"environment": cfg.Environment,
 		})
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("Server failed to start", map[string]interface{}{
@@ -79,16 +135,167 @@ func main() {
 	logger.Info("Server stopped", nil)
 }
 
-func setupRoutes() http.Handler {
-	mux := http.NewServeMux()
+func initDatabase(cfg *config.Config, logger *logging.Logger) (*sql.DB, error) {
+	dsn := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.Username,
+		cfg.Database.Password,
+		cfg.Database.Database,
+	)
+
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	// Configure connection pool for optimal performance
+	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+	db.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime)
+
+	// Test connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	return db, nil
+}
+
+func initRedisCache(cfg *config.Config, logger *logging.Logger) (*cache.RedisCache, error) {
+	redisAddr := fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port)
+	redisCache, err := cache.NewRedisCache(redisAddr, cfg.Redis.Password, cfg.Redis.DB)
+	if err != nil {
+		return nil, err
+	}
+	return redisCache, nil
+}
+
+func initAuthModule(
+	db *sql.DB,
+	redisCache *cache.RedisCache,
+	securityLog *logging.SecurityLogger,
+	auditLog *logging.AuditLogger,
+	perfLog *logging.PerformanceLogger,
+) (*usecases.AuthUseCase, *authHandler.AuthHandler) {
+	// JWT secrets (should be loaded from env in production)
+	jwtSecret := []byte("your-secret-key-change-in-production")
+	refreshSecret := []byte("your-refresh-secret-change-in-production")
+
+	// Initialize base repository
+	baseRepo := persistence.NewUserRepositoryPG(db)
+
+	// Wrap with caching if Redis is available
+	var userRepo interface{} = baseRepo
+	if redisCache != nil {
+		userCache := cache.NewUserCache(redisCache, 5*time.Minute)
+		userRepo = persistence.NewCachedUserRepository(baseRepo, userCache, perfLog)
+	}
+
+	// Initialize use case with full logging
+	authUseCase := usecases.NewAuthUseCase(
+		userRepo.(repositories.UserRepository),
+		jwtSecret,
+		refreshSecret,
+		securityLog,
+		auditLog,
+	)
+
+	// Initialize handler
+	authHandlerInstance := authHandler.NewAuthHandler(authUseCase)
+
+	return authUseCase, authHandlerInstance
+}
+
+func setupRoutes(
+	authUseCase *usecases.AuthUseCase,
+	authHandlerInstance *authHandler.AuthHandler,
+	securityLog *logging.SecurityLogger,
+	perfLog *logging.PerformanceLogger,
+) *gin.Engine {
+	router := gin.New()
+
+	// Global middleware stack (order matters!)
+	router.Use(gin.Recovery())
+	router.Use(middleware.CorrelationIDMiddleware())
+	router.Use(middleware.RequestContextMiddleware())
+	router.Use(authMiddleware.SecurityHeadersMiddleware())
+	router.Use(performanceMiddleware(perfLog))
 
 	// Health check endpoint
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("OK")) //nolint:errcheck // health check response
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "OK",
+			"timestamp": time.Now().UTC(),
+		})
 	})
 
-	// TODO: Add module routes
+	// Public auth routes with rate limiting
+	authGroup := router.Group("/api/auth")
+	authGroup.Use(authMiddleware.RateLimitMiddleware(5, 15*time.Minute))
+	authGroup.Use(rateLimitLogger(securityLog))
+	{
+		authGroup.POST("/register", authHandlerInstance.Register)
+		authGroup.POST("/login", authHandlerInstance.Login)
+		authGroup.POST("/refresh", authHandlerInstance.RefreshToken)
+	}
 
-	return mux
+	// Protected routes (require JWT)
+	protectedGroup := router.Group("/api")
+	protectedGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
+	{
+		protectedGroup.GET("/me", func(c *gin.Context) {
+			userID, _ := c.Get("user_id")
+			role, _ := c.Get("role")
+			c.JSON(http.StatusOK, gin.H{
+				"user_id": userID,
+				"role":    role,
+			})
+		})
+
+		// Admin only routes
+		adminGroup := protectedGroup.Group("/admin")
+		adminGroup.Use(authMiddleware.RequireRole("admin"))
+		{
+			adminGroup.GET("/users", func(c *gin.Context) {
+				c.JSON(http.StatusOK, gin.H{"message": "Admin users list"})
+			})
+		}
+	}
+
+	return router
+}
+
+// performanceMiddleware logs HTTP request performance
+func performanceMiddleware(perfLog *logging.PerformanceLogger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+
+		c.Next()
+
+		duration := time.Since(start)
+		perfLog.LogHTTPRequest(
+			c.Request.Context(),
+			c.Request.Method,
+			c.Request.URL.Path,
+			c.Writer.Status(),
+			duration,
+		)
+	}
+}
+
+// rateLimitLogger logs rate limit violations
+func rateLimitLogger(securityLog *logging.SecurityLogger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+
+		// Check if rate limited
+		if c.Writer.Status() == http.StatusTooManyRequests {
+			securityLog.LogRateLimitExceeded(c.Request.Context(), c.Request.URL.Path)
+		}
+	}
 }
