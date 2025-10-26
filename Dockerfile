@@ -1,35 +1,39 @@
 # backend/Dockerfile
 
 # Stage 1: Build
-FROM golang:1.25.3-bookworm AS builder
+FROM golang:1.25.3-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /app
 
-# Копируем зависимости
+# Копируем зависимости и скачиваем их (кэшируется отдельным слоем)
 COPY go.mod go.sum ./
-RUN go mod download
+RUN go mod download && go mod verify
 
-# Копируем исходный код
-COPY . .
+# Копируем только необходимый код
+COPY cmd/ ./cmd/
+COPY internal/ ./internal/
 
-# Собираем статический бинарник (без CGO)
-RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server
+# Собираем статический бинарник с оптимизациями
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags='-w -s -extldflags "-static"' \
+    -a -installsuffix cgo \
+    -o server ./cmd/server
 
-# Stage 2: Runtime на Ubuntu
-FROM ubuntu:22.04
+# Stage 2: Минимальный runtime на scratch
+FROM scratch
 
-# Обновляем систему и устанавливаем минимальные зависимости
-RUN apt-get update && \
-    apt-get install -y ca-certificates curl tzdata && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
+# Копируем необходимые системные файлы
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 # Копируем бинарник
-COPY --from=builder /app/server .
+COPY --from=builder /app/server /server
 
-# Порты: HTTP и gRPC
-EXPOSE 8080 
+# Порт HTTP
+EXPOSE 8080
 
 # Запуск
-CMD ["./main"]
+ENTRYPOINT ["/server"]

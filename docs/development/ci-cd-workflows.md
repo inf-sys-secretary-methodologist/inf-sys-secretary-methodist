@@ -147,7 +147,6 @@ on:
     paths:
       - 'docs/**'
       - 'README.md'
-      - 'backend-README.md'
       - '.env.example'
       - '.github/workflows/docs.yml'
   pull_request: [same paths]
@@ -158,7 +157,7 @@ on:
 ##### 1. Markdown Linting (`markdown-lint`)
 - **Tool**: markdownlint-cli2
 - **Config**: `.markdownlint.json`
-- **Scope**: All `docs/**/*.md`, `README.md`, `backend-README.md`
+- **Scope**: All `docs/**/*.md`, `README.md`
 
 ##### 2. Link Checking (`link-checker`)
 - **Tool**: markdown-link-check
@@ -408,7 +407,7 @@ npm run test:e2e
 #### Documentation Checks
 ```bash
 # Markdown linting
-markdownlint-cli2 "docs/**/*.md" README.md backend-README.md
+markdownlint-cli2 "docs/**/*.md" README.md
 
 # Link checking
 find docs -name "*.md" -exec markdown-link-check {} \;

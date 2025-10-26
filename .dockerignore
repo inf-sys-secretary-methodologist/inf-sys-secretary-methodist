@@ -1,0 +1,64 @@
+# Backend .dockerignore
+# Build context: корневая директория (для backend сервиса)
+
+# Frontend (весь frontend не нужен в backend образе)
+frontend/
+
+# Go dependencies (vendor обычно не используется с Go modules)
+vendor/
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+
+# Test binaries и coverage
+*.test
+*.out
+coverage.out
+*.coverprofile
+coverage/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Documentation
+README.md
+docs/
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+compose.yml
+.dockerignore

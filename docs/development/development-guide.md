@@ -18,14 +18,14 @@
 ### Требования к окружению
 
 #### Backend (Go)
-- **Go**: версия 1.21+
-- **PostgreSQL**: 15+
+- **Go**: версия 1.25+
+- **PostgreSQL**: 17+
 - **Redis**: 7+
 - **Docker**: для контейнеризации
 - **Make**: для автоматизации
 
 #### Frontend (Next.js)
-- **Node.js**: версия 18+
+- **Node.js**: версия 25+ (Current)
 - **npm/yarn**: пакетный менеджер
 - **TypeScript**: для type safety
 

@@ -36,7 +36,7 @@ services:
   # ===================
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:17-alpine
     container_name: inf-sys-postgres
     environment:
       POSTGRES_DB: inf_sys
@@ -232,7 +232,7 @@ networks:
 # services/[service-name]/Dockerfile
 
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25.3-alpine AS builder
 
 # Установка зависимостей
 RUN apk add --no-cache git ca-certificates tzdata
@@ -291,7 +291,7 @@ ENTRYPOINT ["/main"]
 # frontend/[app-name]/Dockerfile
 
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -306,7 +306,7 @@ COPY . .
 RUN npm run build
 
 # Runtime stage
-FROM node:18-alpine AS runner
+FROM node:25-alpine AS runner
 
 # Создание пользователя для безопасности
 RUN addgroup --system --gid 1001 nodejs
@@ -533,7 +533,7 @@ services:
           memory: 128M
 
   postgres:
-    image: postgres:15
+    image: postgres:17
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -740,7 +740,7 @@ version: '3.8'
 
 services:
   test-postgres:
-    image: postgres:15-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: test_db
       POSTGRES_USER: test_user
@@ -775,7 +775,7 @@ services:
 ### Test Dockerfile:
 ```dockerfile
 # Dockerfile.test
-FROM golang:1.21-alpine
+FROM golang:1.25.3-alpine
 
 RUN apk add --no-cache git make
 

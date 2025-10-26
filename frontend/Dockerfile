@@ -1,30 +1,62 @@
 # frontend/Dockerfile
 
-# Stage 1: Build
-FROM node:18-bookworm AS builder
+# Stage 1: Dependencies
+FROM node:25-alpine AS deps
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci
+# Копируем только package файлы для кэширования
+COPY package.json package-lock.json ./
+RUN npm ci --production=false --ignore-scripts
 
+# Stage 2: Builder
+FROM node:25-alpine AS builder
+
+WORKDIR /app
+
+# Копируем установленные зависимости
+COPY --from=deps /app/node_modules ./node_modules
+
+# Копируем исходники
 COPY . .
 
+# Build-time переменные
 ENV NEXT_PUBLIC_API_URL=http://localhost:8080
+ENV NEXT_TELEMETRY_DISABLED=1
 
+# Собираем приложение
 RUN npm run build
 
-# Stage 2: Production
-FROM node:18-alpine AS runner
+# Stage 3: Runner (минимальный production образ)
+FROM node:25-alpine AS runner
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci --omit=dev
+# Создаем пользователя для безопасности
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./next/static
+# Копируем только production зависимости
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
+
+# Копируем собранное приложение
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Public директория не требуется для этого приложения
+
+# Используем непривилегированного пользователя
+USER nextjs
+
+# Отключаем телеметрию
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+ENV PORT=3000
 
 EXPOSE 3000
+
+# Healthcheck для мониторинга
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
 
 CMD ["node", "server.js"]

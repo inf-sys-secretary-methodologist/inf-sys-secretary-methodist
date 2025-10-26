@@ -1,40 +1,44 @@
-# Information System of the Academic Secretary/Methodologist
+# Информационная система академического секретаря/методиста
 
 ![Backend CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/workflows/Backend%20CI/badge.svg)
 ![Documentation CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/workflows/Documentation%20CI/badge.svg)
 ![Security](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/workflows/Security%20Audit/badge.svg)
 ![Database CI](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/workflows/Database%20CI/badge.svg)
 
-## 🎯 Main Features
-* **Document Management**: Complete lifecycle from creation to archiving
-* **Workflow Automation**: Approval processes with role-based routing
-* **Schedule Management**: Academic planning and resource optimization
-* **Reporting & Analytics**: Comprehensive business intelligence
-* **Integration Support**: Seamless connection with 1C and external systems
+## 🎯 Основные возможности
 
-## 🏗️ Architecture
-Built on **modular monolith** principles with:
+* **Управление документами**: Полный жизненный цикл от создания до архивирования
+* **Автоматизация рабочих процессов**: Процессы согласования с маршрутизацией по ролям
+* **Управление расписанием**: Академическое планирование и оптимизация ресурсов
+* **Отчетность и аналитика**: Комплексная бизнес-аналитика
+* **Поддержка интеграций**: Бесшовное подключение к 1С и внешним системам
+
+## 🏗️ Архитектура
+
+Построено на принципах **модульного монолита**:
 - Domain-Driven Design (DDD)
-- Clean Architecture patterns
-- Event-driven communication
-- Microservices-ready structure
+- Паттерны Clean Architecture
+- Event-driven коммуникация
+- Структура, готовая к переходу на микросервисы
 
-## 🚀 Getting Started
+## 🚀 Быстрый старт
 
-### Prerequisites
-- **Go** 1.21+
-- **Node.js** 18+
-- **PostgreSQL** 15+
+### Системные требования
+
+- **Go** 1.25+
+- **Node.js** 25+ (Current)
+- **PostgreSQL** 17+
 - **Redis** 7+
 - **Docker** & Docker Compose
 
-### Repository Structure
-This is a **monorepository** containing:
-- `backend/` - Go backend (modular monolith)
-- `frontend/` - Next.js 14 frontend
-- `docs/` - Project documentation
+### Структура репозитория
 
-### Quick Start
+Это **монорепозиторий**, содержащий:
+- `backend/` - Backend на Go (модульный монолит)
+- `frontend/` - Frontend на Next.js 15
+- `docs/` - Документация проекта
+
+### Быстрый запуск
 
 **Backend:**
 ```bash
@@ -56,71 +60,110 @@ npm run dev
 docker-compose up -d
 ```
 
-## 📚 Documentation
+## 📚 Документация
 
-### 🏃‍♂️ Quick Start for Developers
-- [📖 Development Guide](docs/development/development-guide.md) - **Start here!** Complete handbook
-- [🧩 Clean Code & Patterns](docs/development/clean-code-patterns.md) - Senior-level practices & SOLID
-- [🔀 Pull Request Guide](docs/development/pull-request-guide.md) - PR process and templates
+### 🏃‍♂️ Быстрый старт для разработчиков
 
-### 🏗️ Architecture & Design
-- [🎯 Project Overview](docs/project-overview.md) - Goals, users, and requirements
-- [🧩 Modular Architecture](docs/architecture/modular-architecture.md) - DDD-based modular design
-- [🚀 Microservices Migration Guide](docs/architecture/microservices-migration-guide.md) - Migration strategy
-- [📄 Document Lifecycle & Workflows](docs/workflows/document-lifecycle.md) - Business processes
+- [📖 Руководство по разработке](docs/development/development-guide.md) - **Начните отсюда!** Полное руководство
+- [🧩 Clean Code и паттерны](docs/development/clean-code-patterns.md) - Практики уровня Senior и SOLID
+- [🔀 Руководство по Pull Request](docs/development/pull-request-guide.md) - Процесс и шаблоны PR
 
-### 📋 Development Process
-- [🔧 Git Terminal Guide](docs/development/git-terminal-guide.md) - Complete Git commands reference
-- [🔄 Sprint Management](docs/development/sprint-management.md) - Agile workflow with GitHub Projects
-- [🧪 Testing Strategy](docs/development/testing-strategy.md) - Testing approach
-- [🔄 CI/CD Workflows](docs/development/ci-cd-workflows.md) - Automation pipeline
+### 🏗️ Архитектура и дизайн
 
-### 🚀 Deployment & Operations
-- [🐳 Docker Setup](docs/deployment/docker-setup.md) - Containerization guide
-- [☁️ Infrastructure](docs/deployment/infrastructure.md) - Cloud architecture and scaling
-- [🔧 Environment Configuration](docs/deployment/environment.md) - Environment variables
-- [☁️ Production Deployment](docs/deployment/production-deploy.md) - Production setup
-- [🛡️ Security Guidelines](docs/security/security-guidelines.md) - Security framework
+- [🎯 Обзор проекта](docs/project-overview.md) - Цели, пользователи и требования
+- [🧩 Модульная архитектура](docs/architecture/modular-architecture.md) - Модульный дизайн на основе DDD
+- [🚀 Руководство по миграции на микросервисы](docs/architecture/microservices-migration-guide.md) - Стратегия миграции
+- [📄 Жизненный цикл документов](docs/workflows/document-lifecycle.md) - Бизнес-процессы
 
-### 📊 API & Integration
-- [📖 REST API Reference](docs/api/api-documentation.md) - Complete API docs
-- [🔐 Authentication](docs/api/authentication.md) - Auth endpoints
-- [📄 Document Management API](docs/api/documents.md) - Document endpoints
-- [👥 Roles and Permissions](docs/users/roles-and-permissions.md) - User roles and access control
+### 📋 Процесс разработки
 
-## 🏗️ Technology Stack
+- [🔧 Руководство по Git в терминале](docs/development/git-terminal-guide.md) - Полный справочник команд Git
+- [🔄 Управление спринтами](docs/development/sprint-management.md) - Agile workflow с GitHub Projects
+- [🧪 Стратегия тестирования](docs/development/testing-strategy.md) - Подход к тестированию
+- [🔄 CI/CD Workflows](docs/development/ci-cd-workflows.md) - Пайплайн автоматизации
 
-### Backend (Modular Monolith)
-- **Language**: Go 1.21+
-- **Architecture**: DDD + Clean Architecture
-- **Framework**: net/http + gRPC (ready for microservices)
-- **Database**: PostgreSQL 15+ (Primary), Redis (Cache/Sessions)
-- **Messaging**: In-memory EventBus (Kafka-ready)
-- **Authentication**: OAuth 2.0 + JWT
-- **Patterns**: Repository, CQRS, Event Sourcing, Unit of Work
+### 🚀 Развертывание и эксплуатация
+
+- [🐳 Настройка Docker](docs/deployment/docker-setup.md) - Руководство по контейнеризации
+- [☁️ Инфраструктура](docs/deployment/infrastructure.md) - Облачная архитектура и масштабирование
+- [🔧 Конфигурация окружения](docs/deployment/environment.md) - Переменные окружения
+- [☁️ Развертывание в production](docs/deployment/production-deploy.md) - Настройка production
+- [🛡️ Руководство по безопасности](docs/security/security-guidelines.md) - Фреймворк безопасности
+
+### 📊 API и интеграции
+
+- [📖 Справочник REST API](docs/api/api-documentation.md) - Полная документация API
+- [🔐 Аутентификация](docs/api/authentication.md) - Endpoints аутентификации
+- [📄 API управления документами](docs/api/documents.md) - Endpoints документов
+- [👥 Роли и права доступа](docs/users/roles-and-permissions.md) - Роли пользователей и контроль доступа
+
+## 🏗️ Технологический стек
+
+### Backend (Модульный монолит)
+
+- **Язык**: Go 1.25+
+- **Архитектура**: DDD + Clean Architecture
+- **Фреймворк**: Gin + gRPC (готов к микросервисам)
+- **База данных**: PostgreSQL 17+ (основная), Redis (кеш/сессии)
+- **Messaging**: In-memory EventBus (готов к Kafka)
+- **Аутентификация**: OAuth 2.0 + JWT
+- **Паттерны**: Repository, CQRS, Event Sourcing, Unit of Work
+- **Логирование**: Структурированное JSON логирование с correlation IDs
+- **Кеширование**: Redis с Decorator pattern (прирост производительности в 30x)
 
 ### Frontend
-- **Framework**: Next.js 14 + TypeScript
-- **UI Library**: MUI (Material-UI)
-- **State Management**: Zustand
-- **Data Fetching**: SWR + axios
-- **Testing**: Jest + React Testing Library + Playwright
 
-### Infrastructure
-- **Orchestration**: Kubernetes (GKE/AKS)
-- **Monitoring**: Prometheus + Grafana + Jaeger
-- **Logging**: ELK Stack (Elasticsearch + Logstash + Kibana)
+- **Фреймворк**: Next.js 15 + TypeScript 5.7
+- **UI библиотека**: Material-UI 6
+- **Управление состоянием**: Zustand 5
+- **Загрузка данных**: SWR 2.3 + axios 1.7
+- **Тестирование**: Jest 29 + React Testing Library 16 + Playwright 1.49
+
+### Инфраструктура
+
+- **Оркестрация**: Kubernetes (GKE/AKS)
+- **Мониторинг**: Prometheus + Grafana + Jaeger
+- **Логирование**: ELK Stack (Elasticsearch + Logstash + Kibana)
 - **CI/CD**: GitHub Actions (Backend CI, Security, Database, PR Validation, Dependabot)
 - **Load Balancer**: Nginx + CloudFlare
 
-## 🤝 Contributing
+## 🔒 Безопасность и производительность
 
-1. Read our [Development Guidelines](docs/development/)
-2. Check the [Sprint Management Guide](docs/development/sprint-management.md)
-3. Follow our [Pull Request Process](docs/development/pull-request-guide.md)
+### Реализованные меры безопасности
 
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- ✅ **JWT с полными security claims** (iat, nbf, jti, aud, iss)
+- ✅ **Bcrypt cost 14** - защита от брутфорса
+- ✅ **Timing attack prevention** - dummy hash comparison
+- ✅ **Rate limiting** (5 req/15 min) - защита от DDoS
+- ✅ **Security headers** - 6 заголовков безопасности
+- ✅ **Полное логирование** всех security events
+
+### Оптимизация производительности
+
+| Метрика | Без кеша | С Redis кешем | Улучшение |
+|---------|----------|---------------|-----------|
+| GetUserByID | 15-20ms | 0.5-1ms | **30x быстрее** |
+| GetUserByEmail | 15-20ms | 0.5-1ms | **30x быстрее** |
+| Login (полный flow) | 350-400ms | 200-250ms | **40% быстрее** |
+| Пропускная способность | ~200-300 req/sec | ~800-1200 req/sec | **4x больше** |
+
+**Подробности**: См. [docs/LOGGING_AND_PERFORMANCE.md](docs/LOGGING_AND_PERFORMANCE.md)
+
+## 🤝 Участие в разработке
+
+1. Прочитайте [Руководство по разработке](docs/development/development-guide.md)
+2. Ознакомьтесь с [Руководством по управлению спринтами](docs/development/sprint-management.md)
+3. Следуйте [Процессу Pull Request](docs/development/pull-request-guide.md)
+
+## 📄 Лицензия
+
+Этот проект лицензирован под MIT License - см. файл [LICENSE](LICENSE) для деталей.
 
 ---
-*"Enhancing organizational efficiency through automation and methodological support."*
+
+**Стек технологий (обновлено 2025)**:
+- Backend: Go 1.25 • PostgreSQL 17 • Redis 7 • Gin • DDD • Clean Architecture
+- Frontend: Next.js 15 • React 19 • TypeScript 5.7 • MUI 6 • Zustand 5
+- DevOps: Docker • Kubernetes • GitHub Actions • Prometheus • Grafana
+
+*"Повышение эффективности организации через автоматизацию и методическую поддержку."*

@@ -1,15 +1,15 @@
-# 📚 Documentation Index
+# 📚 Индекс документации
 
-> 👈 **Main project information**: See [../README.md](../README.md) for project overview, features, and technology stack.
+> 👈 **Основная информация о проекте**: См. [../README.md](../README.md) для обзора проекта, возможностей и технологического стека.
 
-## 📂 Documentation Structure
+## 📂 Структура документации
 
 ```
 docs/
-├── 🏗️ architecture/          # System design and patterns
+├── 🏗️ architecture/          # Проектирование системы и паттерны
 │   ├── modular-architecture.md
 │   └── microservices-migration-guide.md
-├── 💻 development/           # Development guides and practices
+├── 💻 development/           # Руководства и практики разработки
 │   ├── development-guide.md
 │   ├── clean-code-patterns.md
 │   ├── sprint-management.md
@@ -17,41 +17,55 @@ docs/
 │   ├── git-terminal-guide.md
 │   ├── testing-strategy.md
 │   └── ci-cd-workflows.md
-├── 🚀 deployment/            # Infrastructure and deployment
+├── 🚀 deployment/            # Инфраструктура и развертывание
 │   ├── docker-setup.md
 │   ├── infrastructure.md
 │   ├── environment.md
 │   └── production-deploy.md
-├── 📊 api/                   # API documentation
+├── 📊 api/                   # Документация API
 │   ├── api-documentation.md
 │   ├── authentication.md
 │   └── documents.md
-├── 👥 users/                 # User management
+├── 👥 users/                 # Управление пользователями
 │   └── roles-and-permissions.md
-├── 🔄 workflows/             # Business processes
+├── 🔄 workflows/             # Бизнес-процессы
 │   └── document-lifecycle.md
-├── 🔒 security/              # Security guidelines
+├── 🔒 security/              # Рекомендации по безопасности
 │   └── security-guidelines.md
-└── project-overview.md       # Business requirements
+├── LOGGING_AND_PERFORMANCE.md # Логирование и оптимизация
+└── project-overview.md       # Бизнес-требования
 ```
 
-## 🚀 Quick Navigation
+## 🚀 Быстрая навигация
 
-### For New Developers
-1. [📖 Development Guide](development/development-guide.md) - Complete handbook
-2. [🧩 Modular Architecture](architecture/modular-architecture.md) - System design
-3. [🔀 Pull Request Guide](development/pull-request-guide.md) - Contribution process
+### Для новых разработчиков
 
-### For Architects
-1. [🧩 Modular Architecture](architecture/modular-architecture.md) - DDD patterns
-2. [🧩 Clean Code & Patterns](development/clean-code-patterns.md) - SOLID principles
-3. [🚀 Microservices Migration](architecture/microservices-migration-guide.md) - Migration strategy
+1. [📖 Руководство по разработке](development/development-guide.md) - Полное руководство
+2. [🧩 Модульная архитектура](architecture/modular-architecture.md) - Проектирование системы
+3. [🔀 Руководство по Pull Request](development/pull-request-guide.md) - Процесс участия
 
-### For DevOps
-1. [🐳 Docker Setup](deployment/docker-setup.md) - Containerization
-2. [☁️ Infrastructure](deployment/infrastructure.md) - Cloud architecture
-3. [🔄 CI/CD Workflows](development/ci-cd-workflows.md) - Automation
+### Для архитекторов
+
+1. [🧩 Модульная архитектура](architecture/modular-architecture.md) - Паттерны DDD
+2. [🧩 Clean Code и паттерны](development/clean-code-patterns.md) - Принципы SOLID
+3. [🚀 Миграция на микросервисы](architecture/microservices-migration-guide.md) - Стратегия миграции
+
+### Для DevOps
+
+1. [🐳 Настройка Docker](deployment/docker-setup.md) - Контейнеризация
+2. [☁️ Инфраструктура](deployment/infrastructure.md) - Облачная архитектура
+3. [🔄 CI/CD Workflows](development/ci-cd-workflows.md) - Автоматизация
+
+### Оптимизация и мониторинг
+
+1. [📊 Логирование и производительность](LOGGING_AND_PERFORMANCE.md) - Полное руководство по:
+   - Security logging (логи безопасности)
+   - Audit logging (audit trail)
+   - Performance logging (мониторинг производительности)
+   - Redis caching (прирост в 30x)
+   - Correlation IDs для трейсинга
+   - Метрики и best practices
 
 ---
 
-**💡 Tip**: All documentation links in the main README are relative to this docs folder.
+**💡 Совет**: Все ссылки на документацию в главном README относительны к папке docs.
