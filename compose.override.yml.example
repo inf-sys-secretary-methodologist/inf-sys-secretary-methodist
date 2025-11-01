@@ -1,0 +1,60 @@
+# compose.override.yml.example
+#
+# Это пример файла для локальной разработки.
+# Скопируйте его в compose.override.yml и настройте под свои нужды:
+#   cp compose.override.yml.example compose.override.yml
+#
+# Файл compose.override.yml автоматически используется Docker Compose
+# и НЕ должен коммититься в git (добавлен в .gitignore)
+
+services:
+  postgres:
+    environment:
+      # Для локальной разработки можно использовать простой пароль
+      POSTGRES_PASSWORD: postgres
+    # Раскомментируйте для доступа к PostgreSQL с хоста
+    # ports:
+    #   - "5432:5432"
+
+  redis:
+    environment:
+      # Redis пароль (пустой для локальной разработки)
+      REDIS_PASSWORD: ""
+    # Раскомментируйте для доступа к Redis с хоста
+    # ports:
+    #   - "6379:6379"
+
+  backend:
+    # Переопределите переменные окружения для локальной разработки
+    environment:
+      # Database credentials
+      DB_PASSWORD: postgres
+
+      # Redis credentials
+      REDIS_PASSWORD: ""
+
+      # Для детального логирования
+      LOG_LEVEL: debug
+
+      # JWT секрет (только для разработки!)
+      # В продакшене ОБЯЗАТЕЛЬНО используйте сильный случайный ключ
+      JWT_SECRET: dev-secret-change-in-production
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production
+
+  frontend:
+    # Переопределите для локальной разработки
+    environment:
+      # API URL для доступа к backend
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+
+    # Раскомментируйте для Linux:
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+# Для локальной разработки можете добавить дополнительные сервисы:
+#
+# mailhog:
+#   image: mailhog/mailhog:latest
+#   ports:
+#     - "1025:1025"  # SMTP
+#     - "8025:8025"  # Web UI

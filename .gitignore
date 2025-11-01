@@ -22,6 +22,10 @@ vendor/
 .env.local
 .env.*.local
 
+# Docker Compose override (local development settings)
+compose.override.yml
+docker-compose.override.yml
+
 # IDE files
 .vscode/
 .idea/

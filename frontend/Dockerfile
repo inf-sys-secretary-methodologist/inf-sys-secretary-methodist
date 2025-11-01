@@ -36,14 +36,10 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Копируем только production зависимости
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/node_modules ./node_modules
-
-# Копируем собранное приложение
+# Копируем собранное приложение (standalone уже содержит минимальный набор зависимостей)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Public директория не требуется для этого приложения
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Используем непривилегированного пользователя
 USER nextjs

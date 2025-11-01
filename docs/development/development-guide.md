@@ -51,16 +51,38 @@ cp .env.example .env.local
 
 ### Docker Setup
 
+**ВАЖНО**: Для безопасности используем переопределения конфигурации через `compose.override.yml`.
+
 ```bash
+# Первичная настройка (только один раз)
+cp compose.override.yml.example compose.override.yml
+
+# Отредактируйте compose.override.yml и установите безопасные пароли
+# Для локальной разработки можно использовать дефолтные значения из примера
+
 # Запуск всех сервисов
-docker-compose up -d
+docker compose up -d
 
 # Только БД и Redis
-docker-compose up -d postgres redis
+docker compose up -d postgres redis
 
 # Проверка статуса
-docker-compose ps
+docker compose ps
+
+# Логи
+docker compose logs -f backend
 ```
+
+**Структура файлов:**
+- `compose.yml` - базовая конфигурация (в гите)
+- `compose.override.yml.example` - пример локальных настроек (в гите)
+- `compose.override.yml` - ваши локальные настройки (НЕ в гите, добавлен в .gitignore)
+
+**Важные переменные окружения:**
+- `POSTGRES_PASSWORD` - пароль PostgreSQL (ОБЯЗАТЕЛЬНО установить)
+- `JWT_SECRET` - секрет для JWT токенов (ОБЯЗАТЕЛЬНО установить)
+- `JWT_REFRESH_SECRET` - секрет для refresh токенов (ОБЯЗАТЕЛЬНО установить)
+- `REDIS_PASSWORD` - пароль Redis (опционально для dev, обязательно для prod)
 
 ### Database Setup
 
