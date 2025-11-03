@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -19,37 +19,46 @@ func NewLoggingMiddleware(logger *logging.Logger) *LoggingMiddleware {
 	}
 }
 
-// Handle logs HTTP requests
-func (m *LoggingMiddleware) Handle(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// Handler returns Gin middleware function
+func (m *LoggingMiddleware) Handler() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		start := time.Now()
+		path := c.Request.URL.Path
+		query := c.Request.URL.RawQuery
 
-		// Create response writer wrapper to capture status code
-		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		// Обрабатываем запрос
+		c.Next()
 
-		// Call next handler
-		next.ServeHTTP(rw, r)
-
-		// Log request
+		// Вычисляем время выполнения
 		duration := time.Since(start)
-		m.logger.Info("HTTP request", map[string]interface{}{
-			"method":      r.Method,
-			"path":        r.URL.Path,
-			"status_code": rw.statusCode,
+
+		// Логируем запрос
+		fields := map[string]interface{}{
+			"method":      c.Request.Method,
+			"path":        path,
+			"status_code": c.Writer.Status(),
 			"duration_ms": duration.Milliseconds(),
-			"remote_addr": r.RemoteAddr,
-		})
-	})
-}
+			"remote_addr": c.ClientIP(),
+			"user_agent":  c.Request.UserAgent(),
+		}
 
-// responseWriter wraps http.ResponseWriter to capture status code
-type responseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
+		if query != "" {
+			fields["query"] = query
+		}
 
-// WriteHeader captures the status code
-func (rw *responseWriter) WriteHeader(code int) {
-	rw.statusCode = code
-	rw.ResponseWriter.WriteHeader(code)
+		// Добавляем request_id если есть
+		if requestID := c.GetString("request_id"); requestID != "" {
+			fields["request_id"] = requestID
+		}
+
+		// Логируем с соответствующим уровнем в зависимости от статуса
+		statusCode := c.Writer.Status()
+		if statusCode >= 500 {
+			m.logger.Error("HTTP request", fields)
+		} else if statusCode >= 400 {
+			m.logger.Warn("HTTP request", fields)
+		} else {
+			m.logger.Info("HTTP request", fields)
+		}
+	}
 }

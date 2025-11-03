@@ -1,7 +1,9 @@
 package middleware
 
 import (
-	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 // CORSMiddleware provides CORS headers
@@ -20,20 +22,53 @@ func NewCORSMiddleware(origins, methods, headers []string) *CORSMiddleware {
 	}
 }
 
-// Handle adds CORS headers to responses
-func (m *CORSMiddleware) Handle(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "*") // TODO: Make configurable
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+// Handler returns Gin middleware function
+func (m *CORSMiddleware) Handler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		origin := c.Request.Header.Get("Origin")
 
-		// Handle preflight requests
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
+		// Проверяем разрешенные origins
+		allowedOrigin := m.getAllowedOrigin(origin)
+		if allowedOrigin != "" {
+			c.Header("Access-Control-Allow-Origin", allowedOrigin)
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
+
+		// Устанавливаем разрешенные методы
+		if len(m.allowedMethods) > 0 {
+			c.Header("Access-Control-Allow-Methods", strings.Join(m.allowedMethods, ", "))
+		}
+
+		// Устанавливаем разрешенные заголовки
+		if len(m.allowedHeaders) > 0 {
+			c.Header("Access-Control-Allow-Headers", strings.Join(m.allowedHeaders, ", "))
+		}
+
+		// Обрабатываем preflight запросы
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
 			return
 		}
 
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
+}
+
+// getAllowedOrigin проверяет, разрешен ли origin
+func (m *CORSMiddleware) getAllowedOrigin(origin string) string {
+	if len(m.allowedOrigins) == 0 {
+		return ""
+	}
+
+	// Проверяем на wildcard
+	for _, allowed := range m.allowedOrigins {
+		if allowed == "*" {
+			return origin
+		}
+		if allowed == origin {
+			return origin
+		}
+	}
+
+	return ""
 }

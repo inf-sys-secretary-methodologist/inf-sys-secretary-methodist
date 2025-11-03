@@ -15,6 +15,7 @@ type Config struct {
 	Database    DatabaseConfig
 	Redis       RedisConfig
 	Log         LogConfig
+	CORS        CORSConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -50,6 +51,13 @@ type LogConfig struct {
 	Level string
 }
 
+// CORSConfig holds CORS configuration
+type CORSConfig struct {
+	AllowedOrigins []string
+	AllowedMethods []string
+	AllowedHeaders []string
+}
+
 // Load reads configuration from environment variables
 func Load() (*Config, error) {
 	config := &Config{
@@ -79,6 +87,11 @@ func Load() (*Config, error) {
 		},
 		Log: LogConfig{
 			Level: getEnv("LOG_LEVEL", "info"),
+		},
+		CORS: CORSConfig{
+			AllowedOrigins: getEnvAsSlice("CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
+			AllowedMethods: getEnvAsSlice("CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+			AllowedHeaders: getEnvAsSlice("CORS_ALLOWED_HEADERS", []string{"Content-Type", "Authorization"}),
 		},
 	}
 
@@ -116,4 +129,64 @@ func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
 		return value
 	}
 	return defaultValue
+}
+
+func getEnvAsSlice(key string, defaultValue []string) []string {
+	valueStr := os.Getenv(key)
+	if valueStr == "" {
+		return defaultValue
+	}
+	// Split by comma, support spaces
+	var result []string
+	for _, v := range splitAndTrim(valueStr, ",") {
+		if v != "" {
+			result = append(result, v)
+		}
+	}
+	if len(result) == 0 {
+		return defaultValue
+	}
+	return result
+}
+
+func splitAndTrim(s, sep string) []string {
+	parts := []string{}
+	for _, part := range splitString(s, sep) {
+		trimmed := trimSpace(part)
+		if trimmed != "" {
+			parts = append(parts, trimmed)
+		}
+	}
+	return parts
+}
+
+func splitString(s, sep string) []string {
+	if s == "" {
+		return []string{}
+	}
+	var result []string
+	current := ""
+	for i := 0; i < len(s); i++ {
+		if i+len(sep) <= len(s) && s[i:i+len(sep)] == sep {
+			result = append(result, current)
+			current = ""
+			i += len(sep) - 1
+		} else {
+			current += string(s[i])
+		}
+	}
+	result = append(result, current)
+	return result
+}
+
+func trimSpace(s string) string {
+	start := 0
+	end := len(s)
+	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
+		start++
+	}
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
+		end--
+	}
+	return s[start:end]
 }
