@@ -21,7 +21,7 @@ func TestContext(t *testing.T) context.Context {
 // For now, it returns a connection to the actual test database
 // In the future, this can be replaced with testcontainers
 func SetupTestDB(t *testing.T) *sql.DB {
-	dsn := "host=localhost port=5432 user=postgres password=postgres dbname=secretary_methodist_test sslmode=disable"
+	dsn := "host=localhost port=5432 user=postgres password=postgres dbname=inf_sys_db_test sslmode=disable"
 
 	db, err := sql.Open("postgres", dsn)
 	require.NoError(t, err, "Failed to connect to test database")
