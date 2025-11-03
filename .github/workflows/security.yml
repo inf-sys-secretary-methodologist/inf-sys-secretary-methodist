@@ -10,7 +10,7 @@ on:
     - cron: '0 2 * * *'
 
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.25'
 
 jobs:
   # Trivy vulnerability scanner
@@ -20,7 +20,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
 
     - name: Run Trivy scanner in table format
       uses: aquasecurity/trivy-action@master
@@ -38,7 +38,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
 
     - name: Check if Go module exists
       id: check_gomod
@@ -70,7 +70,7 @@ jobs:
   #
   #   steps:
   #   - name: Checkout code
-  #     uses: actions/checkout@v5
+  #     uses: actions/checkout@v4
   #
   #   - name: Dependency Review
   #     uses: actions/dependency-review-action@v3
@@ -84,7 +84,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -103,7 +103,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
 
     - name: Check if Go module exists
       id: check_gomod
@@ -149,7 +149,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
 
     - name: Check if Go module exists
       id: check_gomod
@@ -196,7 +196,7 @@ jobs:
   #
   #   steps:
   #   - name: Checkout code
-  #     uses: actions/checkout@v5
+  #     uses: actions/checkout@v4
   #
   #   - name: Initialize CodeQL
   #     uses: github/codeql-action/init@v3
