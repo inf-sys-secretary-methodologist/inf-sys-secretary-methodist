@@ -23,7 +23,7 @@ on:
       - '.github/workflows/backend-ci.yml'
 
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.25'
   GOLANGCI_LINT_VERSION: 'latest'
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
 
     - name: Check if Go module exists
       id: check_gomod
@@ -67,7 +67,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
 
     - name: Check if Go module exists
       id: check_gomod
@@ -104,8 +104,8 @@ jobs:
       run: |
         coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "Total coverage: ${coverage}%"
-        # Проверяем минимальный coverage (10% временно, целевой 80%)
-        threshold=10
+        # Проверяем минимальный coverage (70% для production-ready кода)
+        threshold=70
         if (( $(echo "$coverage < $threshold" | bc -l) )); then
           echo "Coverage ${coverage}% is below threshold ${threshold}%"
           exit 1
@@ -126,7 +126,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
 
     - name: Check if Go module exists
       id: check_gomod
@@ -162,7 +162,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
 
     - name: Check if Go module exists
       id: check_gomod
@@ -201,7 +201,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
 
     - name: Check if Go module exists
       id: check_gomod
@@ -224,3 +224,80 @@ jobs:
       run: |
         go mod tidy
         git diff --exit-code go.mod go.sum
+
+  # Integration тесты с БД
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: secretary_methodist_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check if Go module exists
+      id: check_gomod
+      run: |
+        if [ -f "go.mod" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Go module (go.mod) does not exist yet, skipping integration tests"
+        fi
+
+    - name: Set up Go
+      if: steps.check_gomod.outputs.exists == 'true'
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+
+    - name: Wait for services
+      if: steps.check_gomod.outputs.exists == 'true'
+      run: |
+        for i in {1..30}; do
+          nc -z localhost 5432 && nc -z localhost 6379 && break
+          echo "Waiting for services..."
+          sleep 1
+        done
+
+    - name: Run integration tests
+      if: steps.check_gomod.outputs.exists == 'true'
+      env:
+        DATABASE_URL: postgres://postgres:postgres@localhost:5432/secretary_methodist_test?sslmode=disable
+        REDIS_URL: redis://localhost:6379
+      run: |
+        # Запускаем только integration тесты (suite tests)
+        go test -v -race -tags=integration ./...
+
+    - name: Run all tests with services
+      if: steps.check_gomod.outputs.exists == 'true'
+      env:
+        DATABASE_URL: postgres://postgres:postgres@localhost:5432/secretary_methodist_test?sslmode=disable
+        REDIS_URL: redis://localhost:6379
+      run: |
+        go test -v -race -coverprofile=coverage.integration.out -covermode=atomic ./...
