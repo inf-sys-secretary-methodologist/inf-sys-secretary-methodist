@@ -10,16 +10,18 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
 )
 
-type sessionRepositoryPG struct {
+// SessionRepositoryPG implements PostgreSQL session repository
+type SessionRepositoryPG struct {
 	db *sql.DB
 }
 
 // NewSessionRepositoryPG creates a new PostgreSQL session repository
 func NewSessionRepositoryPG(db *sql.DB) repositories.SessionRepository {
-	return &sessionRepositoryPG{db: db}
+	return &SessionRepositoryPG{db: db}
 }
 
-func (r *sessionRepositoryPG) Create(ctx context.Context, session *entities.Session) error {
+// Create creates a new session
+func (r *SessionRepositoryPG) Create(ctx context.Context, session *entities.Session) error {
 	query := `
 		INSERT INTO sessions (user_id, refresh_token, user_agent, ip_address, expires_at, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -41,7 +43,8 @@ func (r *sessionRepositoryPG) Create(ctx context.Context, session *entities.Sess
 	return nil
 }
 
-func (r *sessionRepositoryPG) GetByRefreshToken(ctx context.Context, refreshToken string) (*entities.Session, error) {
+// GetByRefreshToken retrieves a session by refresh token
+func (r *SessionRepositoryPG) GetByRefreshToken(ctx context.Context, refreshToken string) (*entities.Session, error) {
 	session := &entities.Session{}
 	query := `
 		SELECT id, user_id, refresh_token, user_agent, ip_address, expires_at, created_at, updated_at
@@ -66,7 +69,8 @@ func (r *sessionRepositoryPG) GetByRefreshToken(ctx context.Context, refreshToke
 	return session, nil
 }
 
-func (r *sessionRepositoryPG) Delete(ctx context.Context, refreshToken string) error {
+// Delete deletes a session by refresh token
+func (r *SessionRepositoryPG) Delete(ctx context.Context, refreshToken string) error {
 	result, err := r.db.ExecContext(ctx,
 		`DELETE FROM sessions WHERE refresh_token = $1`,
 		refreshToken,
@@ -87,7 +91,8 @@ func (r *sessionRepositoryPG) Delete(ctx context.Context, refreshToken string) e
 	return nil
 }
 
-func (r *sessionRepositoryPG) DeleteByUserID(ctx context.Context, userID int64) error {
+// DeleteByUserID deletes all sessions for a user
+func (r *SessionRepositoryPG) DeleteByUserID(ctx context.Context, userID int64) error {
 	_, err := r.db.ExecContext(ctx,
 		`DELETE FROM sessions WHERE user_id = $1`,
 		userID,
@@ -99,7 +104,8 @@ func (r *sessionRepositoryPG) DeleteByUserID(ctx context.Context, userID int64) 
 	return nil
 }
 
-func (r *sessionRepositoryPG) DeleteExpired(ctx context.Context) error {
+// DeleteExpired deletes all expired sessions
+func (r *SessionRepositoryPG) DeleteExpired(ctx context.Context) error {
 	_, err := r.db.ExecContext(ctx,
 		`DELETE FROM sessions WHERE expires_at < $1`,
 		time.Now(),
@@ -111,7 +117,8 @@ func (r *sessionRepositoryPG) DeleteExpired(ctx context.Context) error {
 	return nil
 }
 
-func (r *sessionRepositoryPG) GetActiveByUserID(ctx context.Context, userID int64) ([]*entities.Session, error) {
+// GetActiveByUserID retrieves all active sessions for a user
+func (r *SessionRepositoryPG) GetActiveByUserID(ctx context.Context, userID int64) ([]*entities.Session, error) {
 	query := `
 		SELECT id, user_id, refresh_token, user_agent, ip_address, expires_at, created_at, updated_at
 		FROM sessions
