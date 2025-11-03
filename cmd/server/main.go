@@ -19,6 +19,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure"
+	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -85,12 +86,24 @@ func main() {
 		perfLogger,
 	)
 
+	// Initialize shared middleware
+	corsMiddleware := appMiddleware.NewCORSMiddleware(
+		cfg.CORS.AllowedOrigins,
+		cfg.CORS.AllowedMethods,
+		cfg.CORS.AllowedHeaders,
+	)
+	loggingMiddleware := appMiddleware.NewLoggingMiddleware(logger)
+
 	// Setup router with all middleware
 	router := setupRoutes(
 		authUseCase,
 		authHandlerInstance,
 		securityLogger,
 		perfLogger,
+		cfg,
+		logger,
+		corsMiddleware,
+		loggingMiddleware,
 	)
 
 	// Create HTTP server
@@ -216,14 +229,20 @@ func setupRoutes(
 	authHandlerInstance *authHandler.AuthHandler,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
+	cfg *config.Config,
+	logger *logging.Logger,
+	corsMiddleware *appMiddleware.CORSMiddleware,
+	loggingMiddleware *appMiddleware.LoggingMiddleware,
 ) *gin.Engine {
 	router := gin.New()
 
 	// Global middleware stack (order matters!)
 	router.Use(gin.Recovery())
-	router.Use(middleware.CorrelationIDMiddleware())
+	router.Use(middleware.RequestIDMiddleware()) // Request ID для трейсинга
 	router.Use(middleware.RequestContextMiddleware())
+	router.Use(corsMiddleware.Handler()) // CORS из конфига
 	router.Use(authMiddleware.SecurityHeadersMiddleware())
+	router.Use(loggingMiddleware.Handler()) // Логирование всех запросов
 	router.Use(performanceMiddleware(perfLog))
 
 	// Health check endpoint

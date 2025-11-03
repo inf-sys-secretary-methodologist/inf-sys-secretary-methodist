@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
 // JWTMiddleware validates JWT tokens
@@ -15,14 +16,16 @@ func JWTMiddleware(authUseCase *usecases.AuthUseCase) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+			resp := response.Unauthorized("Authorization header required")
+			c.JSON(http.StatusUnauthorized, resp)
 			c.Abort()
 			return
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if tokenString == authHeader {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Bearer token required"})
+			resp := response.Unauthorized("Bearer token required")
+			c.JSON(http.StatusUnauthorized, resp)
 			c.Abort()
 			return
 		}
@@ -30,7 +33,8 @@ func JWTMiddleware(authUseCase *usecases.AuthUseCase) gin.HandlerFunc {
 		ctx := c.Request.Context()
 		claims, err := authUseCase.ValidateAccessToken(ctx, tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			resp := response.Unauthorized("Invalid or expired token")
+			c.JSON(http.StatusUnauthorized, resp)
 			c.Abort()
 			return
 		}
@@ -55,14 +59,16 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userRole, exists := c.Get("role")
 		if !exists {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+			resp := response.Forbidden("User role not found in context")
+			c.JSON(http.StatusForbidden, resp)
 			c.Abort()
 			return
 		}
 
 		roleStr, ok := userRole.(string)
 		if !ok || !roleMap[roleStr] {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+			resp := response.Forbidden("Insufficient permissions")
+			c.JSON(http.StatusForbidden, resp)
 			c.Abort()
 			return
 		}
@@ -157,9 +163,8 @@ func RateLimitMiddleware(maxRequests int, window time.Duration) gin.HandlerFunc 
 		key := c.ClientIP()
 
 		if !limiter.Allow(key) {
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "Rate limit exceeded",
-			})
+			resp := response.ErrorResponse("RATE_LIMIT_EXCEEDED", "Too many requests. Please try again later.")
+			c.JSON(http.StatusTooManyRequests, resp)
 			c.Abort()
 			return
 		}

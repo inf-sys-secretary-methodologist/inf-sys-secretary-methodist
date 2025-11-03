@@ -7,25 +7,29 @@ import (
 	"github.com/google/uuid"
 )
 
-// CorrelationIDMiddleware adds a unique correlation ID to each request for distributed tracing
-func CorrelationIDMiddleware() gin.HandlerFunc {
+// RequestIDMiddleware adds a unique request ID to each request for distributed tracing
+func RequestIDMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Try to get correlation ID from header
-		correlationID := c.GetHeader("X-Correlation-ID")
-
-		// If not present, generate new one
-		if correlationID == "" {
-			correlationID = uuid.New().String()
+		// Try to get request ID from header (support both X-Request-ID and X-Correlation-ID)
+		requestID := c.GetHeader("X-Request-ID")
+		if requestID == "" {
+			requestID = c.GetHeader("X-Correlation-ID")
 		}
 
-		// Set in response header
-		c.Header("X-Correlation-ID", correlationID)
+		// If not present, generate new one
+		if requestID == "" {
+			requestID = uuid.New().String()
+		}
 
-		// Add to gin context
-		c.Set("correlation_id", correlationID)
+		// Set in response headers (both for backward compatibility)
+		c.Header("X-Request-ID", requestID)
+		c.Header("X-Correlation-ID", requestID)
+
+		// Add to gin context (используем request_id для консистентности с другими middleware)
+		c.Set("request_id", requestID)
 
 		// Add to request context for downstream use
-		ctx := context.WithValue(c.Request.Context(), "correlation_id", correlationID)
+		ctx := context.WithValue(c.Request.Context(), "request_id", requestID)
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
