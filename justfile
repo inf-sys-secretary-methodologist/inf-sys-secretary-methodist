@@ -63,21 +63,51 @@ fmt:
 
 # Запустить миграции
 migrate-up:
-    @echo "Running migrations..."
-    # TODO: Добавить команду миграций когда инструмент настроен
+    @echo "Запуск миграций..."
+    docker run --rm -v "$(pwd)/migrations:/migrations" --network host migrate/migrate:latest -path=/migrations -database "postgres://$(grep DB_USER .env | cut -d= -f2):$(grep DB_PASSWORD .env | cut -d= -f2)@$(grep DB_HOST .env | cut -d= -f2):$(grep DB_PORT .env | cut -d= -f2)/$(grep DB_NAME .env | cut -d= -f2)?sslmode=disable" up
 
-# Откатить миграции
+# Откатить все миграции
 migrate-down:
-    @echo "Rolling back migrations..."
-    # TODO: Добавить команду отката миграций
+    @echo "Откат всех миграций..."
+    docker run --rm -v "$(pwd)/migrations:/migrations" --network host migrate/migrate:latest -path=/migrations -database "postgres://$(grep DB_USER .env | cut -d= -f2):$(grep DB_PASSWORD .env | cut -d= -f2)@$(grep DB_HOST .env | cut -d= -f2):$(grep DB_PORT .env | cut -d= -f2)/$(grep DB_NAME .env | cut -d= -f2)?sslmode=disable" down
+
+# Откатить одну последнюю миграцию
+migrate-down-one:
+    @echo "Откат одной миграции..."
+    docker run --rm -v "$(pwd)/migrations:/migrations" --network host migrate/migrate:latest -path=/migrations -database "postgres://$(grep DB_USER .env | cut -d= -f2):$(grep DB_PASSWORD .env | cut -d= -f2)@$(grep DB_HOST .env | cut -d= -f2):$(grep DB_PORT .env | cut -d= -f2)/$(grep DB_NAME .env | cut -d= -f2)?sslmode=disable" down 1
+
+# Откатить N миграций
+migrate-down-n N:
+    @echo "Откат {{N}} миграций..."
+    docker run --rm -v "$(pwd)/migrations:/migrations" --network host migrate/migrate:latest -path=/migrations -database "postgres://$(grep DB_USER .env | cut -d= -f2):$(grep DB_PASSWORD .env | cut -d= -f2)@$(grep DB_HOST .env | cut -d= -f2):$(grep DB_PORT .env | cut -d= -f2)/$(grep DB_NAME .env | cut -d= -f2)?sslmode=disable" down {{N}}
+
+# Применить конкретную версию миграции
+migrate-goto VERSION:
+    @echo "Переход к версии {{VERSION}}..."
+    docker run --rm -v "$(pwd)/migrations:/migrations" --network host migrate/migrate:latest -path=/migrations -database "postgres://$(grep DB_USER .env | cut -d= -f2):$(grep DB_PASSWORD .env | cut -d= -f2)@$(grep DB_HOST .env | cut -d= -f2):$(grep DB_PORT .env | cut -d= -f2)/$(grep DB_NAME .env | cut -d= -f2)?sslmode=disable" goto {{VERSION}}
+
+# Форсировать версию (для восстановления после ошибок)
+migrate-force VERSION:
+    @echo "Установка версии {{VERSION}} без применения миграции..."
+    docker run --rm -v "$(pwd)/migrations:/migrations" --network host migrate/migrate:latest -path=/migrations -database "postgres://$(grep DB_USER .env | cut -d= -f2):$(grep DB_PASSWORD .env | cut -d= -f2)@$(grep DB_HOST .env | cut -d= -f2):$(grep DB_PORT .env | cut -d= -f2)/$(grep DB_NAME .env | cut -d= -f2)?sslmode=disable" force {{VERSION}}
+
+# Показать текущую версию БД
+migrate-version:
+    @echo "Текущая версия миграции:"
+    docker run --rm -v "$(pwd)/migrations:/migrations" --network host migrate/migrate:latest -path=/migrations -database "postgres://$(grep DB_USER .env | cut -d= -f2):$(grep DB_PASSWORD .env | cut -d= -f2)@$(grep DB_HOST .env | cut -d= -f2):$(grep DB_PORT .env | cut -d= -f2)/$(grep DB_NAME .env | cut -d= -f2)?sslmode=disable" version
+
+# Создать новую миграцию
+migrate-create NAME:
+    @echo "Создание миграции: {{NAME}}"
+    docker run --rm -v "$(pwd)/migrations:/migrations" migrate/migrate:latest create -ext sql -dir /migrations -seq {{NAME}}
 
 # Настроить тестовую БД
 setup-test-db:
-    @echo "Setting up test database..."
-    createdb secretary_methodist_test || true
-    # TODO: Добавить миграции для test DB
+    @echo "Настройка тестовой БД..."
+    docker exec postgres-dev psql -U postgres -c "CREATE DATABASE inf_sys_db_test;" || true
+    migrate -path migrations -database "postgres://$(grep DB_USER .env | cut -d= -f2):$(grep DB_PASSWORD .env | cut -d= -f2)@$(grep DB_HOST .env | cut -d= -f2):$(grep DB_PORT .env | cut -d= -f2)/inf_sys_db_test?sslmode=disable" up
 
 # Удалить тестовую БД
 drop-test-db:
-    @echo "Dropping test database..."
-    dropdb secretary_methodist_test || true
+    @echo "Удаление тестовой БД..."
+    docker exec postgres-dev psql -U postgres -c "DROP DATABASE IF EXISTS inf_sys_db_test;"
