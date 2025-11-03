@@ -1,0 +1,903 @@
+// Database Schema для Information System Secretary-Methodist
+// Визуализация: https://dbdiagram.io/
+
+Project inf_sys_secretary_methodist {
+  database_type: 'PostgreSQL'
+  Note: '''
+    Информационная система секретаря-методиста
+    Всего: 46 таблиц (45 + schema_migrations)
+  '''
+}
+
+// ============================================================================
+// CORE MODULE - Пользователи и сессии (2 таблицы)
+// ============================================================================
+
+Table users {
+  id bigserial [pk, increment]
+  username varchar(100) [unique, not null]
+  email varchar(255) [unique, not null]
+  password_hash varchar(255) [not null]
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  middle_name varchar(100)
+  role varchar(50) [not null, note: 'admin, secretary, methodist, teacher, student']
+  status varchar(50) [not null, default: 'active', note: 'active, inactive, suspended']
+  avatar_url varchar(500)
+  phone varchar(20)
+  position varchar(255)
+  department varchar(255)
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    role
+    status
+    email
+  }
+
+  Note: 'Пользователи системы'
+}
+
+Table sessions {
+  id bigserial [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  token_hash varchar(255) [unique, not null]
+  expires_at timestamp [not null]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    user_id
+    token_hash
+    expires_at
+  }
+
+  Note: 'JWT refresh token сессии'
+}
+
+// ============================================================================
+// DOCUMENTS MODULE - Документооборот (10 таблиц)
+// ============================================================================
+
+Table document_types {
+  id bigserial [pk, increment]
+  name varchar(255) [not null, unique]
+  code varchar(50) [not null, unique, note: 'memo, order_main, order_hr, directive, etc']
+  description text
+  template_path varchar(500)
+  numbering_pattern varchar(100) [note: 'ПР-{YYYY}-{###}']
+  retention_period_months int
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: 'Типы документов (служебки, приказы, распоряжения)'
+}
+
+Table document_categories {
+  id bigserial [pk, increment]
+  name varchar(255) [not null]
+  code varchar(50) [not null, unique]
+  description text
+  parent_category_id bigint [ref: > document_categories.id]
+  display_order int [default: 0]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    parent_category_id
+    code
+  }
+
+  Note: 'Иерархические категории документов'
+}
+
+Table documents {
+  id bigserial [pk, increment]
+  document_type_id bigint [not null, ref: > document_types.id]
+  category_id bigint [ref: > document_categories.id]
+
+  registration_number varchar(100) [unique]
+  title varchar(500) [not null]
+  subject text [note: 'О приобретении монитора']
+  content text
+
+  author_id bigint [not null, ref: > users.id]
+  author_department varchar(255)
+  recipient_id bigint [ref: > users.id]
+  recipient_external varchar(500)
+
+  status varchar(50) [not null, default: 'draft', note: 'draft, registered, routing, approval, approved, rejected, execution, executed, archived']
+  priority varchar(50) [default: 'normal', note: 'low, normal, high, urgent']
+
+  file_name varchar(500)
+  file_path varchar(1000)
+  file_size bigint
+  mime_type varchar(100)
+
+  metadata jsonb [note: 'Гибкие метаданные для разных типов документов']
+
+  registered_at timestamp
+  approved_at timestamp
+  approved_by bigint [ref: > users.id]
+  executed_at timestamp
+  archived_at timestamp
+
+  due_date date
+  retention_until date
+
+  deleted_at timestamp
+  deleted_by bigint [ref: > users.id]
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    document_type_id
+    category_id
+    author_id
+    recipient_id
+    status
+    registration_number
+    (registered_at, status)
+    created_at
+  }
+
+  Note: 'Основная таблица документов'
+}
+
+Table document_versions {
+  id bigserial [pk, increment]
+  document_id bigint [not null, ref: > documents.id]
+  version_number int [not null]
+  content text
+  file_path varchar(1000)
+  file_size bigint
+  changes_description text
+  created_by bigint [not null, ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    document_id
+    (document_id, version_number) [unique]
+  }
+
+  Note: 'Версии документов'
+}
+
+Table document_routes {
+  id bigserial [pk, increment]
+  document_id bigint [not null, ref: > documents.id]
+  approver_id bigint [ref: > users.id]
+  approver_role varchar(50) [note: 'admin, secretary, methodist']
+  step_order int [not null]
+  approval_type varchar(50) [not null, note: 'sequential, parallel']
+  status varchar(50) [not null, default: 'pending', note: 'pending, approved, rejected, skipped']
+  comment text
+  approved_at timestamp
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    document_id
+    approver_id
+    status
+  }
+
+  Note: 'Маршруты согласования документов'
+}
+
+Table document_permissions {
+  id bigserial [pk, increment]
+  document_id bigint [not null, ref: > documents.id]
+  user_id bigint [ref: > users.id]
+  role varchar(50) [note: 'admin, secretary, methodist, teacher, student']
+  permission varchar(50) [not null, note: 'read, write, approve, delete']
+  granted_by bigint [ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    document_id
+    user_id
+    role
+  }
+
+  Note: 'Права доступа к документам'
+}
+
+Table document_relations {
+  id bigserial [pk, increment]
+  document_id bigint [not null, ref: > documents.id]
+  related_document_id bigint [not null, ref: > documents.id]
+  relation_type varchar(50) [not null, note: 'reply, attachment, reference, supersedes, amendment']
+  description text
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    document_id
+    related_document_id
+    relation_type
+  }
+
+  Note: 'Связи между документами'
+}
+
+Table document_tags {
+  id bigserial [pk, increment]
+  name varchar(100) [not null, unique]
+  color varchar(7) [note: 'HEX color']
+  created_at timestamp [not null, default: `now()`]
+
+  Note: 'Теги для документов'
+}
+
+Table document_tag_relations {
+  document_id bigint [not null, ref: > documents.id]
+  tag_id bigint [not null, ref: > document_tags.id]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (document_id, tag_id) [pk]
+    tag_id
+  }
+
+  Note: 'Связь документов и тегов'
+}
+
+Table document_history {
+  id bigserial [pk, increment]
+  document_id bigint [not null, ref: > documents.id]
+  user_id bigint [ref: > users.id]
+  action varchar(100) [not null, note: 'created, updated, approved, rejected, archived']
+  details jsonb
+  ip_address varchar(45)
+  user_agent varchar(500)
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    document_id
+    user_id
+    action
+    created_at
+  }
+
+  Note: 'История изменений документов (аудит)'
+}
+
+// ============================================================================
+// SCHEDULE MODULE - Расписание (13 таблиц)
+// ============================================================================
+
+Table academic_years {
+  id bigserial [pk, increment]
+  name varchar(50) [not null, unique, note: '2023/2024']
+  start_date date [not null]
+  end_date date [not null]
+  is_current boolean [not null, default: false]
+  created_at timestamp [not null, default: `now()`]
+
+  Note: 'Учебные годы'
+}
+
+Table semesters {
+  id bigserial [pk, increment]
+  academic_year_id bigint [not null, ref: > academic_years.id]
+  name varchar(50) [not null, note: 'Осенний, Весенний']
+  semester_number int [not null, note: '1 or 2']
+  start_date date [not null]
+  end_date date [not null]
+  is_current boolean [not null, default: false]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    academic_year_id
+    is_current
+  }
+
+  Note: 'Семестры'
+}
+
+Table faculties {
+  id bigserial [pk, increment]
+  name varchar(255) [not null, unique]
+  short_name varchar(50)
+  code varchar(50) [unique]
+  dean_id bigint [ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: 'Факультеты/Институты'
+}
+
+Table departments {
+  id bigserial [pk, increment]
+  faculty_id bigint [not null, ref: > faculties.id]
+  name varchar(255) [not null]
+  short_name varchar(50)
+  code varchar(50) [unique]
+  head_id bigint [ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    faculty_id
+  }
+
+  Note: 'Кафедры'
+}
+
+Table specialties {
+  id bigserial [pk, increment]
+  department_id bigint [not null, ref: > departments.id]
+  name varchar(255) [not null]
+  code varchar(50) [unique, note: '38.03.01']
+  degree_level varchar(50) [note: 'bachelor, master, specialist']
+  duration_years int
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    department_id
+    code
+  }
+
+  Note: 'Специальности/Направления подготовки'
+}
+
+Table student_groups {
+  id bigserial [pk, increment]
+  specialty_id bigint [not null, ref: > specialties.id]
+  name varchar(100) [not null, unique, note: 'ЭК-201']
+  course_number int [not null]
+  admission_year int [not null]
+  curator_id bigint [ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    specialty_id
+    course_number
+  }
+
+  Note: 'Учебные группы студентов'
+}
+
+Table disciplines {
+  id bigserial [pk, increment]
+  name varchar(255) [not null]
+  code varchar(50) [unique]
+  credits int
+  total_hours int
+  lecture_hours int
+  practice_hours int
+  lab_hours int
+  description text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: 'Учебные дисциплины'
+}
+
+Table curriculum_plans {
+  id bigserial [pk, increment]
+  specialty_id bigint [not null, ref: > specialties.id]
+  academic_year_id bigint [not null, ref: > academic_years.id]
+  name varchar(255) [not null]
+  approved_at timestamp
+  approved_by bigint [ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    specialty_id
+    academic_year_id
+  }
+
+  Note: 'Учебные планы'
+}
+
+Table curriculum_disciplines {
+  id bigserial [pk, increment]
+  curriculum_plan_id bigint [not null, ref: > curriculum_plans.id]
+  discipline_id bigint [not null, ref: > disciplines.id]
+  semester_number int [not null]
+  credits int
+  lecture_hours int
+  practice_hours int
+  lab_hours int
+  control_type varchar(50) [note: 'exam, credit, diff_credit']
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    curriculum_plan_id
+    discipline_id
+    semester_number
+  }
+
+  Note: 'Дисциплины в учебных планах'
+}
+
+Table classrooms {
+  id bigserial [pk, increment]
+  building varchar(50)
+  room_number varchar(50) [not null]
+  name varchar(255) [unique, note: '101А, Актовый зал']
+  capacity int
+  classroom_type varchar(50) [note: 'lecture, laboratory, computer, sports']
+  equipment jsonb [note: 'Проектор, компьютеры и т.д.']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: 'Аудитории'
+}
+
+Table lesson_types {
+  id bigserial [pk, increment]
+  name varchar(100) [not null, unique, note: 'Лекция, Практика, Лабораторная']
+  code varchar(50) [not null, unique]
+  color varchar(7) [note: 'HEX color для UI']
+  created_at timestamp [not null, default: `now()`]
+
+  Note: 'Типы занятий'
+}
+
+Table schedule_lessons {
+  id bigserial [pk, increment]
+  semester_id bigint [not null, ref: > semesters.id]
+  discipline_id bigint [not null, ref: > disciplines.id]
+  teacher_id bigint [not null, ref: > users.id]
+  group_id bigint [not null, ref: > student_groups.id]
+  classroom_id bigint [not null, ref: > classrooms.id]
+  lesson_type_id bigint [not null, ref: > lesson_types.id]
+
+  day_of_week int [not null, note: '1-7 (Mon-Sun)']
+  time_start time [not null]
+  time_end time [not null]
+  week_type varchar(20) [note: 'all, odd, even']
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    semester_id
+    discipline_id
+    teacher_id
+    group_id
+    classroom_id
+    day_of_week
+    (classroom_id, day_of_week, time_start)
+  }
+
+  Note: 'Расписание занятий'
+}
+
+Table schedule_changes {
+  id bigserial [pk, increment]
+  schedule_lesson_id bigint [not null, ref: > schedule_lessons.id]
+  change_date date [not null]
+  change_type varchar(50) [not null, note: 'cancellation, move, replacement']
+
+  new_teacher_id bigint [ref: > users.id]
+  new_classroom_id bigint [ref: > classrooms.id]
+  new_time_start time
+  new_time_end time
+
+  reason text
+  created_by bigint [not null, ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    schedule_lesson_id
+    change_date
+  }
+
+  Note: 'Замены и изменения расписания'
+}
+
+// ============================================================================
+// TASKS MODULE - Управление задачами (11 таблиц)
+// ============================================================================
+
+Table projects {
+  id bigserial [pk, increment]
+  name varchar(255) [not null]
+  description text
+  owner_id bigint [not null, ref: > users.id]
+  status varchar(50) [not null, default: 'active', note: 'planning, active, on_hold, completed, cancelled']
+  start_date date
+  end_date date
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    owner_id
+    status
+  }
+
+  Note: 'Проекты для группировки задач'
+}
+
+Table tasks {
+  id bigserial [pk, increment]
+  project_id bigint [ref: > projects.id]
+
+  title varchar(500) [not null]
+  description text
+
+  document_id bigint [ref: > documents.id]
+
+  author_id bigint [not null, ref: > users.id]
+  assignee_id bigint [ref: > users.id]
+
+  status varchar(50) [not null, default: 'new', note: 'new, assigned, in_progress, review, completed, cancelled, deferred']
+  priority varchar(50) [not null, default: 'normal', note: 'low, normal, high, urgent']
+
+  due_date timestamp
+  start_date timestamp
+  completed_at timestamp
+
+  progress int [default: 0, note: '0-100%']
+  estimated_hours decimal(10,2)
+  actual_hours decimal(10,2)
+
+  tags text[] [note: 'Массив тегов']
+  metadata jsonb
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    project_id
+    document_id
+    author_id
+    assignee_id
+    status
+    priority
+    due_date
+  }
+
+  Note: 'Задачи и поручения'
+}
+
+Table task_watchers {
+  task_id bigint [not null, ref: > tasks.id]
+  user_id bigint [not null, ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (task_id, user_id) [pk]
+    user_id
+  }
+
+  Note: 'Наблюдатели задач'
+}
+
+Table task_attachments {
+  id bigserial [pk, increment]
+  task_id bigint [not null, ref: > tasks.id]
+  file_name varchar(500) [not null]
+  file_path varchar(1000) [not null]
+  file_size bigint [not null]
+  mime_type varchar(100)
+  uploaded_by bigint [not null, ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    task_id
+  }
+
+  Note: 'Вложения к задачам'
+}
+
+Table task_comments {
+  id bigserial [pk, increment]
+  task_id bigint [not null, ref: > tasks.id]
+  author_id bigint [not null, ref: > users.id]
+  content text [not null]
+  parent_comment_id bigint [ref: > task_comments.id]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    task_id
+    author_id
+    parent_comment_id
+  }
+
+  Note: 'Комментарии к задачам'
+}
+
+Table task_checklists {
+  id bigserial [pk, increment]
+  task_id bigint [not null, ref: > tasks.id]
+  title varchar(500) [not null]
+  position int [not null, default: 0]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    task_id
+  }
+
+  Note: 'Чеклисты задач'
+}
+
+Table task_checklist_items {
+  id bigserial [pk, increment]
+  checklist_id bigint [not null, ref: > task_checklists.id]
+  title varchar(500) [not null]
+  is_completed boolean [not null, default: false]
+  position int [not null, default: 0]
+  completed_by bigint [ref: > users.id]
+  completed_at timestamp
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    checklist_id
+  }
+
+  Note: 'Элементы чеклистов'
+}
+
+Table task_dependencies {
+  id bigserial [pk, increment]
+  task_id bigint [not null, ref: > tasks.id]
+  depends_on_task_id bigint [not null, ref: > tasks.id]
+  dependency_type varchar(50) [not null, default: 'finish_to_start', note: 'finish_to_start, start_to_start, finish_to_finish, start_to_finish']
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    task_id
+    depends_on_task_id
+  }
+
+  Note: 'Зависимости задач (для диаграмм Ганта)'
+}
+
+Table task_history {
+  id bigserial [pk, increment]
+  task_id bigint [not null, ref: > tasks.id]
+  user_id bigint [ref: > users.id]
+  field_name varchar(100) [not null]
+  old_value text
+  new_value text
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    task_id
+    user_id
+    created_at
+  }
+
+  Note: 'История изменений задач'
+}
+
+Table task_reminders {
+  id bigserial [pk, increment]
+  task_id bigint [not null, ref: > tasks.id]
+  user_id bigint [not null, ref: > users.id]
+  remind_at timestamp [not null]
+  is_sent boolean [not null, default: false]
+  sent_at timestamp
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    task_id
+    user_id
+    remind_at
+  }
+
+  Note: 'Напоминания о задачах'
+}
+
+Table task_templates {
+  id bigserial [pk, increment]
+  name varchar(255) [not null]
+  description text
+  title_template varchar(500) [not null]
+  description_template text
+  default_priority varchar(50) [not null, default: 'normal']
+  default_estimated_hours decimal(10,2)
+  checklist_items jsonb
+  created_by bigint [not null, ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    created_by
+  }
+
+  Note: 'Шаблоны задач'
+}
+
+// ============================================================================
+// REPORTS MODULE - Отчётность (9 таблиц)
+// ============================================================================
+
+Table report_types {
+  id bigserial [pk, increment]
+  name varchar(255) [not null, unique]
+  code varchar(50) [not null, unique]
+  description text
+  category varchar(100) [note: 'academic, administrative, financial, methodical']
+  template_path varchar(500)
+  output_format varchar(50) [default: 'pdf', note: 'pdf, xlsx, docx, html']
+  is_periodic boolean [not null, default: false]
+  period_type varchar(50) [note: 'daily, weekly, monthly, quarterly, annual']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: 'Типы отчётов'
+}
+
+Table report_parameters {
+  id bigserial [pk, increment]
+  report_type_id bigint [not null, ref: > report_types.id]
+  parameter_name varchar(100) [not null]
+  parameter_type varchar(50) [not null, note: 'string, number, date, boolean, select, multiselect']
+  is_required boolean [not null, default: true]
+  default_value text
+  options jsonb
+  display_order int [not null, default: 0]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    report_type_id
+  }
+
+  Note: 'Параметры отчётов'
+}
+
+Table reports {
+  id bigserial [pk, increment]
+  report_type_id bigint [not null, ref: > report_types.id]
+
+  title varchar(500) [not null]
+  description text
+
+  period_start date
+  period_end date
+
+  author_id bigint [not null, ref: > users.id]
+
+  status varchar(50) [not null, default: 'draft', note: 'draft, generating, ready, reviewing, approved, rejected, published']
+
+  file_name varchar(500)
+  file_path varchar(1000)
+  file_size bigint
+  mime_type varchar(100)
+
+  parameters jsonb [note: 'Параметры генерации']
+  data jsonb [note: 'Агрегированные метрики']
+
+  reviewer_comment text
+  reviewed_by bigint [ref: > users.id]
+  reviewed_at timestamp
+
+  published_at timestamp
+  is_public boolean [not null, default: false]
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    report_type_id
+    author_id
+    status
+    (period_start, period_end)
+    created_at
+  }
+
+  Note: 'Сгенерированные отчёты'
+}
+
+Table report_access {
+  id bigserial [pk, increment]
+  report_id bigint [not null, ref: > reports.id]
+  user_id bigint [ref: > users.id]
+  role varchar(50) [note: 'admin, secretary, methodist, teacher, student']
+  permission varchar(50) [not null, note: 'read, write, approve, publish']
+  granted_by bigint [ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    report_id
+    user_id
+    role
+  }
+
+  Note: 'Права доступа к отчётам'
+}
+
+Table report_comments {
+  id bigserial [pk, increment]
+  report_id bigint [not null, ref: > reports.id]
+  author_id bigint [not null, ref: > users.id]
+  content text [not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    report_id
+    author_id
+  }
+
+  Note: 'Комментарии к отчётам'
+}
+
+Table report_generation_log {
+  id bigserial [pk, increment]
+  report_id bigint [not null, ref: > reports.id]
+  started_at timestamp [not null, default: `now()`]
+  completed_at timestamp
+  status varchar(50) [not null, note: 'started, completed, failed']
+  error_message text
+  duration_seconds int
+  records_processed int
+
+  indexes {
+    report_id
+    status
+  }
+
+  Note: 'Журнал генерации отчётов'
+}
+
+Table report_subscriptions {
+  id bigserial [pk, increment]
+  report_type_id bigint [not null, ref: > report_types.id]
+  user_id bigint [not null, ref: > users.id]
+  delivery_method varchar(50) [not null, default: 'email', note: 'email, notification, both']
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    user_id
+    is_active
+    (report_type_id, user_id) [unique]
+  }
+
+  Note: 'Подписки на отчёты'
+}
+
+Table report_templates {
+  id bigserial [pk, increment]
+  report_type_id bigint [not null, ref: > report_types.id]
+  name varchar(255) [not null]
+  content text [not null, note: 'HTML/LaTeX шаблон']
+  is_default boolean [not null, default: false]
+  created_by bigint [not null, ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    report_type_id
+    is_default
+  }
+
+  Note: 'Шаблоны отчётов'
+}
+
+Table report_history {
+  id bigserial [pk, increment]
+  report_id bigint [not null, ref: > reports.id]
+  user_id bigint [ref: > users.id]
+  action varchar(100) [not null, note: 'created, updated, approved, rejected, published']
+  details jsonb
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    report_id
+    user_id
+    created_at
+  }
+
+  Note: 'История изменений отчётов'
+}
+
+// ============================================================================
+// СЛУЖЕБНАЯ ТАБЛИЦА
+// ============================================================================
+
+Table schema_migrations {
+  version bigint [pk]
+  dirty boolean [not null]
+
+  Note: 'Версии миграций (golang-migrate)'
+}
