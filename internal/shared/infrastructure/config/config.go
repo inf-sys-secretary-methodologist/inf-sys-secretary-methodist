@@ -16,6 +16,7 @@ type Config struct {
 	Redis       RedisConfig
 	Log         LogConfig
 	CORS        CORSConfig
+	JWT         JWTConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -58,6 +59,14 @@ type CORSConfig struct {
 	AllowedHeaders []string
 }
 
+// JWTConfig holds JWT configuration
+type JWTConfig struct {
+	AccessSecret  string
+	RefreshSecret string
+	AccessTTL     time.Duration
+	RefreshTTL    time.Duration
+}
+
 // Load reads configuration from environment variables
 func Load() (*Config, error) {
 	config := &Config{
@@ -93,6 +102,20 @@ func Load() (*Config, error) {
 			AllowedMethods: getEnvAsSlice("CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
 			AllowedHeaders: getEnvAsSlice("CORS_ALLOWED_HEADERS", []string{"Content-Type", "Authorization"}),
 		},
+		JWT: JWTConfig{
+			AccessSecret:  getEnv("JWT_ACCESS_SECRET", "change-this-secret-in-production"),
+			RefreshSecret: getEnv("JWT_REFRESH_SECRET", "change-this-refresh-secret-in-production"),
+			AccessTTL:     getEnvAsDuration("JWT_ACCESS_TTL", 15*time.Minute),
+			RefreshTTL:    getEnvAsDuration("JWT_REFRESH_TTL", 7*24*time.Hour), // 7 days
+		},
+	}
+
+	// Validate JWT secrets in production
+	if config.Environment == "production" {
+		if config.JWT.AccessSecret == "change-this-secret-in-production" ||
+			config.JWT.RefreshSecret == "change-this-refresh-secret-in-production" {
+			return nil, fmt.Errorf("JWT secrets must be set in production environment")
+		}
 	}
 
 	return config, nil
