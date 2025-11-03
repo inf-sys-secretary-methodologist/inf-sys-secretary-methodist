@@ -3,15 +3,10 @@ package persistence
 import (
 	"context"
 	"database/sql"
-	"errors"
-	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
-)
-
-var (
-	ErrUserNotFound = errors.New("user not found")
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
 )
 
 type userRepositoryPG struct {
@@ -39,7 +34,7 @@ func (r *userRepositoryPG) Create(ctx context.Context, user *entities.User) erro
 	).Scan(&user.ID)
 
 	if err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
+		return database.MapPostgresError(err)
 	}
 	return nil
 }
@@ -47,16 +42,16 @@ func (r *userRepositoryPG) Create(ctx context.Context, user *entities.User) erro
 func (r *userRepositoryPG) Delete(ctx context.Context, userID int64) error {
 	result, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, userID)
 	if err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
+		return database.MapPostgresError(err)
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
+		return database.MapPostgresError(err)
 	}
 
 	if rows == 0 {
-		return fmt.Errorf("user not found: %w", ErrUserNotFound)
+		return database.MapPostgresError(sql.ErrNoRows)
 	}
 
 	return nil
@@ -70,11 +65,8 @@ func (r *userRepositoryPG) GetByEmail(ctx context.Context, email string) (*entit
 		email,
 	).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.Role, &user.Status, &user.CreatedAt, &user.UpdatedAt)
 
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("user with email %s not found: %w", email, ErrUserNotFound)
-	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to query user by email: %w", err)
+		return nil, database.MapPostgresError(err)
 	}
 
 	return user, nil
@@ -88,11 +80,8 @@ func (r *userRepositoryPG) GetByID(ctx context.Context, userID int64) (*entities
 		userID,
 	).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.Role, &user.Status, &user.CreatedAt, &user.UpdatedAt)
 
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("user with id %d not found: %w", userID, ErrUserNotFound)
-	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to query user by id: %w", err)
+		return nil, database.MapPostgresError(err)
 	}
 
 	return user, nil
@@ -118,25 +107,21 @@ func (r *userRepositoryPG) List(ctx context.Context, limit, offset int) ([]*enti
 		limit, offset,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query users list: %w", err)
+		return nil, database.MapPostgresError(err)
 	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			err = fmt.Errorf("failed to close rows: %w", closeErr)
-		}
-	}()
+	defer rows.Close()
 
 	users := []*entities.User{}
 	for rows.Next() {
 		user := &entities.User{}
 		if err := rows.Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.Role, &user.Status, &user.CreatedAt, &user.UpdatedAt); err != nil {
-			return nil, fmt.Errorf("failed to scan user: %w", err)
+			return nil, database.MapPostgresError(err)
 		}
 		users = append(users, user)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating user rows: %w", err)
+		return nil, database.MapPostgresError(err)
 	}
 
 	return users, nil
@@ -158,16 +143,16 @@ func (r *userRepositoryPG) Save(ctx context.Context, user *entities.User) error 
 		user.ID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update user: %w", err)
+		return database.MapPostgresError(err)
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
+		return database.MapPostgresError(err)
 	}
 
 	if rows == 0 {
-		return fmt.Errorf("user not found: %w", ErrUserNotFound)
+		return database.MapPostgresError(sql.ErrNoRows)
 	}
 
 	return nil
