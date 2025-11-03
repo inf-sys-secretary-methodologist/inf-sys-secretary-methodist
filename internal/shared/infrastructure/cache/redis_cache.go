@@ -97,6 +97,11 @@ func (rc *RedisCache) Close() error {
 	return rc.client.Close()
 }
 
+// Ping checks if Redis is reachable
+func (rc *RedisCache) Ping(ctx context.Context) error {
+	return rc.client.Ping(ctx).Err()
+}
+
 // UserCache provides user-specific caching with DDD patterns
 type UserCache struct {
 	cache *RedisCache

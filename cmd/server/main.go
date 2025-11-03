@@ -84,6 +84,7 @@ func main() {
 		securityLogger,
 		auditLogger,
 		perfLogger,
+		cfg,
 	)
 
 	// Initialize shared middleware
@@ -104,6 +105,8 @@ func main() {
 		logger,
 		corsMiddleware,
 		loggingMiddleware,
+		db,
+		redisCache,
 	)
 
 	// Create HTTP server
@@ -194,22 +197,26 @@ func initAuthModule(
 	securityLog *logging.SecurityLogger,
 	auditLog *logging.AuditLogger,
 	perfLog *logging.PerformanceLogger,
+	cfg *config.Config,
 ) (*usecases.AuthUseCase, *authHandler.AuthHandler) {
-	// JWT secrets (should be loaded from env in production)
-	jwtSecret := []byte("your-secret-key-change-in-production")
-	refreshSecret := []byte("your-refresh-secret-change-in-production")
+	// JWT secrets from config
+	jwtSecret := []byte(cfg.JWT.AccessSecret)
+	refreshSecret := []byte(cfg.JWT.RefreshSecret)
 
-	// Initialize base repository
-	baseRepo := persistence.NewUserRepositoryPG(db)
+	// Initialize base user repository
+	baseUserRepo := persistence.NewUserRepositoryPG(db)
+
+	// Initialize session repository (will be used in future for refresh token management)
+	_ = persistence.NewSessionRepositoryPG(db)
 
 	// Wrap with caching if Redis is available
-	var userRepo interface{} = baseRepo
+	var userRepo interface{} = baseUserRepo
 	if redisCache != nil {
 		userCache := cache.NewUserCache(redisCache, 5*time.Minute)
-		userRepo = persistence.NewCachedUserRepository(baseRepo, userCache, perfLog)
+		userRepo = persistence.NewCachedUserRepository(baseUserRepo, userCache, perfLog)
 	}
 
-	// Initialize use case with full logging
+	// Initialize use case with full logging and session repository
 	authUseCase := usecases.NewAuthUseCase(
 		userRepo.(repositories.UserRepository),
 		jwtSecret,
@@ -233,6 +240,8 @@ func setupRoutes(
 	logger *logging.Logger,
 	corsMiddleware *appMiddleware.CORSMiddleware,
 	loggingMiddleware *appMiddleware.LoggingMiddleware,
+	db *sql.DB,
+	redisCache *cache.RedisCache,
 ) *gin.Engine {
 	router := gin.New()
 
@@ -245,13 +254,8 @@ func setupRoutes(
 	router.Use(loggingMiddleware.Handler()) // Логирование всех запросов
 	router.Use(performanceMiddleware(perfLog))
 
-	// Health check endpoint
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "OK",
-			"timestamp": time.Now().UTC(),
-		})
-	})
+	// Health check endpoint with dependency checks
+	router.GET("/health", healthCheckHandler(db, redisCache))
 
 	// Public auth routes with rate limiting
 	authGroup := router.Group("/api/auth")
@@ -316,5 +320,59 @@ func rateLimitLogger(securityLog *logging.SecurityLogger) gin.HandlerFunc {
 		if c.Writer.Status() == http.StatusTooManyRequests {
 			securityLog.LogRateLimitExceeded(c.Request.Context(), c.Request.URL.Path)
 		}
+	}
+}
+
+// healthCheckHandler returns a health check endpoint with dependency checks
+func healthCheckHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+
+		status := "OK"
+		checks := make(map[string]interface{})
+
+		// Check database
+		if err := db.PingContext(ctx); err != nil {
+			status = "DEGRADED"
+			checks["database"] = map[string]interface{}{
+				"status": "DOWN",
+				"error":  err.Error(),
+			}
+		} else {
+			checks["database"] = map[string]interface{}{
+				"status": "UP",
+			}
+		}
+
+		// Check Redis if available
+		if redisCache != nil {
+			if err := redisCache.Ping(ctx); err != nil {
+				status = "DEGRADED"
+				checks["redis"] = map[string]interface{}{
+					"status": "DOWN",
+					"error":  err.Error(),
+				}
+			} else {
+				checks["redis"] = map[string]interface{}{
+					"status": "UP",
+				}
+			}
+		} else {
+			checks["redis"] = map[string]interface{}{
+				"status": "DISABLED",
+			}
+		}
+
+		httpStatus := http.StatusOK
+		if status == "DEGRADED" {
+			httpStatus = http.StatusServiceUnavailable
+		}
+
+		c.JSON(httpStatus, gin.H{
+			"status":    status,
+			"timestamp": time.Now().UTC(),
+			"checks":    checks,
+		})
 	}
 }
