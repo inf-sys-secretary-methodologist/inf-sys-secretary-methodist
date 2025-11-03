@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
 type AuthHandler struct {
@@ -20,57 +21,66 @@ func NewAuthHandler(usecase *usecases.AuthUseCase) *AuthHandler {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var input dto.RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		resp := response.BadRequest("Invalid request format")
+		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
 
 	ctx := c.Request.Context()
 	if err := h.usecase.Register(ctx, input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Registration failed"})
+		httpErr := response.MapDomainError(err)
+		c.JSON(httpErr.Status, httpErr.Response)
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
+	resp := response.Success(gin.H{"message": "User registered successfully"})
+	c.JSON(http.StatusCreated, resp)
 }
 
 // Login handles user authentication
 func (h *AuthHandler) Login(c *gin.Context) {
 	var input dto.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		resp := response.BadRequest("Invalid request format")
+		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
 
 	ctx := c.Request.Context()
 	accessToken, refreshToken, err := h.usecase.Login(ctx, input)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication failed"})
+		httpErr := response.MapDomainError(err)
+		c.JSON(httpErr.Status, httpErr.Response)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	resp := response.Success(gin.H{
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 	})
+	c.JSON(http.StatusOK, resp)
 }
 
 // RefreshToken handles token refresh
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var input dto.RefreshTokenInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		resp := response.BadRequest("Invalid request format")
+		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
 
 	ctx := c.Request.Context()
 	accessToken, refreshToken, err := h.usecase.RefreshToken(ctx, input.RefreshToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token refresh failed"})
+		httpErr := response.MapDomainError(err)
+		c.JSON(httpErr.Status, httpErr.Response)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	resp := response.Success(gin.H{
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 	})
+	c.JSON(http.StatusOK, resp)
 }
