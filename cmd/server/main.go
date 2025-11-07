@@ -14,11 +14,11 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 
-	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
-	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure"
+	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
+	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -121,7 +121,7 @@ func main() {
 	// Start server in goroutine
 	go func() {
 		logger.Info("Server starting", map[string]interface{}{
-			"port": cfg.Server.Port,
+			"port":        cfg.Server.Port,
 			"environment": cfg.Environment,
 		})
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -257,10 +257,21 @@ func setupRoutes(
 	// Health check endpoint with dependency checks
 	router.GET("/health", healthCheckHandler(db, redisCache))
 
+	var rateLimiter *middleware.RateLimiter
+	if redisCache != nil {
+		rateLimiter = middleware.NewRateLimiter(
+			redisCache.Client(), // <- прямой доступ к *redis.Client
+			5,                   // 5 запросов
+			15*time.Minute,      // за 15 минут
+		)
+	}
+
 	// Public auth routes with rate limiting
 	authGroup := router.Group("/api/auth")
-	authGroup.Use(authMiddleware.RateLimitMiddleware(5, 15*time.Minute))
-	authGroup.Use(rateLimitLogger(securityLog))
+	if rateLimiter != nil {
+		authGroup.Use(rateLimiter.RateLimitMiddleware())
+		authGroup.Use(rateLimitLogger(securityLog))
+	}
 	{
 		authGroup.POST("/register", authHandlerInstance.Register)
 		authGroup.POST("/login", authHandlerInstance.Login)
