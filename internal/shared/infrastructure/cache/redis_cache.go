@@ -173,3 +173,7 @@ func (tb *TokenBlacklist) IsBlacklisted(ctx context.Context, tokenID string) (bo
 	found, err := tb.cache.Get(ctx, key, &exists)
 	return found && exists, err
 }
+
+func (rc *RedisCache) Client() *redis.Client {
+	return rc.client
+}
