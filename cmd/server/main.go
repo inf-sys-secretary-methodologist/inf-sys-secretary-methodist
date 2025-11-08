@@ -16,7 +16,7 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
-	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure"
+	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure/persistence"
 	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
 	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
@@ -257,19 +257,19 @@ func setupRoutes(
 	// Health check endpoint with dependency checks
 	router.GET("/health", healthCheckHandler(db, redisCache))
 
-	var rateLimiter *middleware.RateLimiter
+	// Загрузка конфигурации rate limiting
+	rateLimitConfig := middleware.LoadRateLimitConfig()
+
+	var publicRateLimiter, authRateLimiter *middleware.RateLimiter
 	if redisCache != nil {
-		rateLimiter = middleware.NewRateLimiter(
-			redisCache.Client(), // <- прямой доступ к *redis.Client
-			5,                   // 5 запросов
-			15*time.Minute,      // за 15 минут
-		)
+		publicRateLimiter = rateLimitConfig.GetPublicRateLimiter(redisCache.Client())
+		authRateLimiter = rateLimitConfig.GetAuthRateLimiter(redisCache.Client())
 	}
 
-	// Public auth routes with rate limiting
+	// Public auth routes with rate limiting (10 req/min + burst 5)
 	authGroup := router.Group("/api/auth")
-	if rateLimiter != nil {
-		authGroup.Use(rateLimiter.RateLimitMiddleware())
+	if publicRateLimiter != nil {
+		authGroup.Use(publicRateLimiter.RateLimitMiddleware())
 		authGroup.Use(rateLimitLogger(securityLog))
 	}
 	{
@@ -278,9 +278,12 @@ func setupRoutes(
 		authGroup.POST("/refresh", authHandlerInstance.RefreshToken)
 	}
 
-	// Protected routes (require JWT)
+	// Protected routes (require JWT) with auth rate limiting (60 req/min + burst 10)
 	protectedGroup := router.Group("/api")
 	protectedGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
+	if authRateLimiter != nil {
+		protectedGroup.Use(authRateLimiter.RateLimitMiddleware())
+	}
 	{
 		protectedGroup.GET("/me", func(c *gin.Context) {
 			userID, _ := c.Get("user_id")

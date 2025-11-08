@@ -55,3 +55,24 @@ logs/
 # Temporary files
 tmp/
 temp/
+
+# Nx
+.nx/installation
+.nx/cache
+.nx/workspace-data
+
+# Playwright MCP
+.playwright-mcp/
+
+# Playwright test results
+frontend/test-results/
+frontend/playwright-report/
+frontend/.playwright/
+
+# Frontend build artifacts
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md

@@ -11,19 +11,21 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// RateLimiter — структура для Redis-based rate limiting
+// RateLimiter — структура для Redis-based rate limiting с поддержкой burst
 type RateLimiter struct {
 	redisClient *redis.Client
-	requests    int
-	window      time.Duration
+	requests    int           // Количество запросов в минуту
+	burst       int           // Дополнительные запросы для кратковременных всплесков
+	window      time.Duration // Временное окно (обычно 1 минута)
 }
 
-// NewRateLimiter создаёт новый rate limiter с Redis
-func NewRateLimiter(redisClient *redis.Client, requests int, window time.Duration) *RateLimiter {
+// NewRateLimiter создаёт новый rate limiter с Redis и поддержкой burst
+func NewRateLimiter(redisClient *redis.Client, requestsPerMinute int, burst int) *RateLimiter {
 	return &RateLimiter{
 		redisClient: redisClient,
-		requests:    requests,
-		window:      window,
+		requests:    requestsPerMinute,
+		burst:       burst,
+		window:      time.Minute, // Фиксированное окно в 1 минуту
 	}
 }
 
@@ -40,9 +42,13 @@ func (rl *RateLimiter) RateLimitMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if count > int64(rl.requests) {
+		// Общий лимит = базовый лимит + burst
+		totalLimit := rl.requests + rl.burst
+
+		if count > int64(totalLimit) {
 			c.Header("Retry-After", strconv.FormatInt(retryAfter, 10))
 			c.Header("X-RateLimit-Limit", strconv.Itoa(rl.requests))
+			c.Header("X-RateLimit-Burst", strconv.Itoa(rl.burst))
 			c.Header("X-RateLimit-Remaining", "0")
 			c.Header("X-RateLimit-Reset", time.Now().Add(time.Duration(retryAfter)*time.Second).Format(time.RFC3339))
 
@@ -50,12 +56,13 @@ func (rl *RateLimiter) RateLimitMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		remaining := rl.requests - int(count)
+		remaining := totalLimit - int(count)
 		if remaining < 0 {
 			remaining = 0
 		}
 
 		c.Header("X-RateLimit-Limit", strconv.Itoa(rl.requests))
+		c.Header("X-RateLimit-Burst", strconv.Itoa(rl.burst))
 		c.Header("X-RateLimit-Remaining", strconv.Itoa(remaining))
 		c.Header("X-RateLimit-Reset", time.Now().Add(rl.window).Format(time.RFC3339))
 
