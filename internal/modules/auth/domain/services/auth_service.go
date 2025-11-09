@@ -1,12 +1,13 @@
 package services
 
 import (
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 )
 
 // AuthService defines authentication domain service
@@ -18,8 +19,8 @@ type AuthService interface {
 
 // AuthorizationService defines authorization domain service
 type AuthorizationService interface {
-	CheckPermission(userCtx *entities.UserContext, resource entities.ResourceType, action entities.ActionType, resourceScope *Scope) bool
-	CheckOwnership(userID string, resourceOwnerID string) bool
+	CheckPermission(userCtx *entities.UserContext, resource domain.ResourceType, action domain.ActionType, resourceScope *Scope) bool
+	CheckOwnership(userID int64, resourceOwnerID int64) bool
 	CanApproveDocument(userCtx *entities.UserContext, documentType string, currentStep int) bool
 }
 
@@ -83,7 +84,7 @@ func (s *JWTService) GenerateTokens(userID int64, role string) (*TokenPair, erro
 	}, nil
 }
 
-func (s *AuthorizationServiceImpl) CheckPermission(userCtx *entities.UserContext, resource entities.ResourceType, action entities.ActionType, resourceScope *Scope) bool {
+func (s *AuthorizationServiceImpl) CheckPermission(userCtx *entities.UserContext, resource domain.ResourceType, action domain.ActionType, resourceScope *Scope) bool {
 	if userCtx == nil {
 		return false
 	}
@@ -96,12 +97,12 @@ func (s *AuthorizationServiceImpl) CheckPermission(userCtx *entities.UserContext
 	accessLevel := userCtx.GetAccessLevel(resource, action)
 
 	switch accessLevel {
-	case entities.AccessFull:
+	case domain.AccessFull:
 		return true
-	case entities.AccessLimited:
+	case domain.AccessLimited:
 		return s.checkLimitedAccess(userCtx, resourceScope)
-	case entities.AccessOwn:
-		return s.checkOwnership(userCtx.UserID, resourceScope)
+	case domain.AccessOwn:
+		return s.checkOwnershipInternal(userCtx.UserID, resourceScope)
 	default:
 		return false
 	}
@@ -125,13 +126,13 @@ func (s *AuthorizationServiceImpl) checkLimitedAccess(userCtx *entities.UserCont
 	return true
 }
 
-func (s *AuthorizationServiceImpl) checkOwnership(userID string, resourceScope *Scope) bool {
+func (s *AuthorizationServiceImpl) checkOwnershipInternal(userID int64, resourceScope *Scope) bool {
 	// В реальной системе здесь была бы проверка владения ресурсом
 	// Для примера возвращаем true
 	return true
 }
 
-func (s *AuthorizationServiceImpl) CheckOwnership(userID string, resourceOwnerID string) bool {
+func (s *AuthorizationServiceImpl) CheckOwnership(userID int64, resourceOwnerID int64) bool {
 	return userID == resourceOwnerID
 }
 
@@ -155,13 +156,13 @@ func (s *AuthorizationServiceImpl) canApproveCurriculum(userCtx *entities.UserCo
 	// Упрощенная логика согласования учебных планов
 	switch currentStep {
 	case 1: // Первичное согласование
-		return userCtx.Role == entities.RoleMethodist || userCtx.Role == entities.RoleTeacher
+		return userCtx.Role == domain.RoleMethodist || userCtx.Role == domain.RoleTeacher
 	case 2: // Методическое согласование
-		return userCtx.Role == entities.RoleMethodist
+		return userCtx.Role == domain.RoleMethodist
 	case 3: // Административное согласование
-		return userCtx.Role == entities.RoleSecretary
+		return userCtx.Role == domain.RoleAcademicSecretary
 	case 4: // Утверждение
-		return userCtx.Role == entities.RoleAdmin || userCtx.Role == entities.RoleMethodist
+		return userCtx.Role == domain.RoleSystemAdmin || userCtx.Role == domain.RoleMethodist
 	default:
 		return false
 	}
@@ -169,7 +170,7 @@ func (s *AuthorizationServiceImpl) canApproveCurriculum(userCtx *entities.UserCo
 
 func (s *AuthorizationServiceImpl) canApproveReport(userCtx *entities.UserContext, currentStep int) bool {
 	// Упрощенная логика для отчетов
-	return userCtx.HasPermission(entities.ResourceReports, entities.ActionApprove)
+	return userCtx.HasPermission(domain.ResourceReports, domain.ActionApprove)
 }
 
 func HashPassword(password string) (string, error) {

@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/dto"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -131,7 +132,7 @@ func (u *AuthUseCase) Register(ctx context.Context, input dto.RegisterInput) err
 		input.Email,
 		string(hashedPassword),
 		"", // Name can be set later
-		entities.UserRole(input.Role),
+		domain.RoleType(input.Role),
 	)
 
 	if err := u.userRepo.Create(ctx, user); err != nil {

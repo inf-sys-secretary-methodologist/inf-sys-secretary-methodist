@@ -6,6 +6,7 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 )
 
@@ -26,7 +27,7 @@ func (m *mockUserRepository) GetByID(ctx context.Context, id int64) (*entities.U
 		ID:       1,
 		Email:    "test@example.com",
 		Password: "$2a$14$test",
-		Role:     entities.RoleAdmin,
+		Role:     domain.RoleSystemAdmin,
 		Status:   entities.UserStatusActive,
 	}, nil
 }
@@ -37,7 +38,7 @@ func (m *mockUserRepository) GetByEmail(ctx context.Context, email string) (*ent
 		ID:       1,
 		Email:    email,
 		Password: "$2a$14$ZKHqFX3vJT8kZY7ZJy.zfOEzBxD8YmBqGqN1xPJvJ1Y1xYJPqJ5qW",
-		Role:     entities.RoleAdmin,
+		Role:     domain.RoleSystemAdmin,
 		Status:   entities.UserStatusActive,
 	}, nil
 }
