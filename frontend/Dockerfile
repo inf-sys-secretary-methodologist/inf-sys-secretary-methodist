@@ -1,7 +1,7 @@
 # frontend/Dockerfile
 
 # Stage 1: Dependencies
-FROM node:25-alpine AS deps
+FROM node:24-alpine AS deps
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --production=false --ignore-scripts
 
 # Stage 2: Builder
-FROM node:25-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # Stage 3: Runner (минимальный production образ)
-FROM node:25-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 
@@ -48,11 +48,12 @@ USER nextjs
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 EXPOSE 3000
 
-# Healthcheck для мониторинга
+# Healthcheck для мониторинга (проверяем на 0.0.0.0 вместо localhost)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
+  CMD node -e "require('http').get('http://0.0.0.0:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
 
 CMD ["node", "server.js"]
