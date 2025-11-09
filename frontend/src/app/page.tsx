@@ -1,10 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { FileText, Users, Calendar, TrendingUp } from "lucide-react"
+import { FileText, Users, Calendar, TrendingUp, Plus, Globe, BarChart3, ArrowUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GlowingEffect } from "@/components/ui/glowing-effect"
 import { ThemeToggleButton } from "@/components/theme-toggle-button"
+import { TubelightNavbar } from "@/components/ui/tubelight-navbar"
+import { navigationItems } from "@/config/navigation"
 
 // Simple Counter Component
 interface CounterProps {
@@ -103,16 +105,58 @@ StatCard.displayName = "StatCard"
 const SecretaryMethodistDashboard = () => {
   return (
     <div className="min-h-screen bg-background p-8">
+      {/* Navigation Bar - Fixed Position at Top */}
+      <TubelightNavbar items={navigationItems} />
+
       {/* Theme Toggle - Fixed Position with isolation */}
       <div className="fixed top-8 right-8 z-50 pointer-events-auto" style={{ isolation: 'isolate' }}>
         <ThemeToggleButton />
       </div>
 
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8 pt-20">
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Информационная система секретаря-методиста</h1>
           <p className="text-sm text-gray-600 dark:text-gray-300">Современная панель управления для учебной части и управления документами</p>
+        </div>
+
+        {/* Search Input Bar */}
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gradient-to-br dark:from-gray-900 dark:to-black border border-gray-200 dark:border-gray-800">
+          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
+          <div className="relative z-10 p-4">
+            <div className="flex items-center gap-3">
+              {/* Plus Button */}
+              <button className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all duration-200 hover:scale-105 active:scale-95">
+                <Plus className="w-5 h-5" />
+              </button>
+
+              {/* Input Field */}
+              <input
+                type="text"
+                placeholder="Попросите создать дашборд для..."
+                className="flex-1 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-base outline-none px-2"
+              />
+
+              {/* Right Side Buttons */}
+              <div className="flex items-center gap-2">
+                {/* Public Badge */}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                  <Globe className="w-4 h-4" />
+                  <span className="text-sm font-medium">Public</span>
+                </div>
+
+                {/* Analytics Button */}
+                <button className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all duration-200 hover:scale-105 active:scale-95">
+                  <BarChart3 className="w-5 h-5" />
+                </button>
+
+                {/* Submit Button */}
+                <button className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all duration-200 hover:scale-105 active:scale-95">
+                  <ArrowUp className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Animated Glowing Cards Grid */}
