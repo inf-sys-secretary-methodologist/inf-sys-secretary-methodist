@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { FloatingInput } from '@/components/ui/floating-input'
 import { Button } from '@/components/ui/button'
 import { useLogin } from '@/hooks/useAuth'
@@ -38,11 +39,18 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
       clearError()
       await login(data, redirectTo)
 
+      toast.success('Вход выполнен успешно!', {
+        description: 'Перенаправление...',
+      })
+
       if (onSuccess) {
         onSuccess()
       }
-    } catch (error) {
-      // Error is handled by authStore and displayed below
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || authError || 'Ошибка входа'
+      toast.error('Ошибка входа', {
+        description: errorMessage,
+      })
       console.error('Login error:', error)
     }
   }

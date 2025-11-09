@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { FloatingInput } from '@/components/ui/floating-input'
 import { Button } from '@/components/ui/button'
 import { useRegister } from '@/hooks/useAuth'
@@ -55,11 +56,18 @@ export function RegisterForm({
         redirectTo
       )
 
+      toast.success('Регистрация успешна!', {
+        description: 'Перенаправление на страницу входа...',
+      })
+
       if (onSuccess) {
         onSuccess()
       }
-    } catch (error) {
-      // Error is handled by authStore and displayed below
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || authError || 'Ошибка регистрации'
+      toast.error('Ошибка регистрации', {
+        description: errorMessage,
+      })
       console.error('Registration error:', error)
     }
   }
