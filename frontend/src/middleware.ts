@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server'
 /**
  * Public routes that don't require authentication
  */
-const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password']
+const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password']
 
 /**
  * Routes that should redirect to home if already authenticated
