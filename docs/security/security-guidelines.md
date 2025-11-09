@@ -388,3 +388,10 @@ kubernetes_security:
 - **Security architecture** review
 - **Disaster recovery** testing
 - **Compliance** audit
+---
+
+**📅 Актуальность документа**  
+**Последнее обновление**: 2025-01-15  
+**Версия проекта**: 0.1.0  
+**Статус**: Актуальный
+

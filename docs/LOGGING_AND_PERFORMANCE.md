@@ -46,7 +46,7 @@ const (
 
 ```json
 {
-  "timestamp": "2025-10-26T01:30:45Z",
+  "timestamp": "2025-01-15T01:30:45Z",
   "level": "WARN",
   "category": "security",
   "event_type": "login_failed",
@@ -77,7 +77,7 @@ const (
 
 ```json
 {
-  "timestamp": "2025-10-26T01:30:45Z",
+  "timestamp": "2025-01-15T01:30:45Z",
   "level": "INFO",
   "category": "audit",
   "action": "login",
@@ -103,7 +103,7 @@ const (
 **HTTP Request Performance:**
 ```json
 {
-  "timestamp": "2025-10-26T01:30:45Z",
+  "timestamp": "2025-01-15T01:30:45Z",
   "level": "INFO",
   "category": "performance",
   "method": "POST",
@@ -117,7 +117,7 @@ const (
 **Database Query Performance:**
 ```json
 {
-  "timestamp": "2025-10-26T01:30:45Z",
+  "timestamp": "2025-01-15T01:30:45Z",
   "level": "DEBUG",
   "category": "performance",
   "query_type": "database",
@@ -130,7 +130,7 @@ const (
 **Cache Operations:**
 ```json
 {
-  "timestamp": "2025-10-26T01:30:45Z",
+  "timestamp": "2025-01-15T01:30:45Z",
   "level": "DEBUG",
   "category": "performance",
   "operation": "get_by_email",
@@ -464,5 +464,13 @@ grep '"category":"performance"' app.log | \
 
 ---
 
-**Документация обновлена**: 2025-10-26
+**Документация обновлена**: 2025-01-15
 **Версия**: 0.1.0
+
+---
+
+**📅 Актуальность документа**  
+**Последнее обновление**: 2025-01-15  
+**Версия проекта**: 0.1.0  
+**Статус**: Актуальный
+

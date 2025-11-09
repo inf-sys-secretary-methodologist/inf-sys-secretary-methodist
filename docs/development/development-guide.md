@@ -148,7 +148,7 @@ make test-coverage
 ```
 frontend/
 ├── src/
-│   ├── app/              # Next.js 14 App Router
+│   ├── app/              # Next.js 15 App Router
 │   ├── components/       # React компоненты
 │   │   ├── ui/          # UI компоненты
 │   │   ├── forms/       # Формы
@@ -576,12 +576,12 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.21
+          go-version: '1.25'
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: '25'
 
       - name: Run backend tests
         run: |
@@ -753,3 +753,10 @@ docker-run:
 - ✅ Автоматизацию рутинных задач
 - ✅ Качественную разработку и тестирование
 - ✅ Эффективное управление проектом
+---
+
+**📅 Актуальность документа**  
+**Последнее обновление**: 2025-01-15  
+**Версия проекта**: 0.1.0  
+**Статус**: Актуальный
+

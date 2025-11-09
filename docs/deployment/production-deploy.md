@@ -648,7 +648,7 @@ variables:
 # Test Stage
 test-backend:
   stage: test
-  image: golang:1.21
+  image: golang:1.25
   script:
     - make test-coverage
     - make lint
@@ -661,7 +661,7 @@ test-backend:
 
 test-frontend:
   stage: test
-  image: node:18
+  image: node:25
   script:
     - cd frontend
     - npm ci
@@ -1019,3 +1019,10 @@ echo "✅ Health check completed"
 ```
 
 Production deployment обеспечивает высокую доступность, безопасность и масштабируемость системы!
+---
+
+**📅 Актуальность документа**  
+**Последнее обновление**: 2025-01-15  
+**Версия проекта**: 0.1.0  
+**Статус**: Актуальный
+
