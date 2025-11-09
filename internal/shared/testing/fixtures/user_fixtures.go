@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,7 +22,7 @@ func NewUserBuilder() *UserBuilder {
 		user: &entities.User{
 			Email:     "test@example.com",
 			Password:  string(hashedPassword),
-			Role:      entities.RoleStudent,
+			Role:      domain.RoleStudent,
 			Status:    entities.UserStatusActive,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -55,7 +56,7 @@ func (b *UserBuilder) WithRawPassword(hashedPassword string) *UserBuilder {
 }
 
 // WithRole sets the user role
-func (b *UserBuilder) WithRole(role entities.UserRole) *UserBuilder {
+func (b *UserBuilder) WithRole(role domain.RoleType) *UserBuilder {
 	b.user.Role = role
 	return b
 }
@@ -94,7 +95,7 @@ func (b *UserBuilder) BuildWithContext(ctx context.Context) *entities.User {
 func AdminUser() *entities.User {
 	return NewUserBuilder().
 		WithEmail("admin@example.com").
-		WithRole(entities.RoleAdmin).
+		WithRole(domain.RoleSystemAdmin).
 		Build()
 }
 
@@ -102,7 +103,7 @@ func AdminUser() *entities.User {
 func SecretaryUser() *entities.User {
 	return NewUserBuilder().
 		WithEmail("secretary@example.com").
-		WithRole(entities.RoleSecretary).
+		WithRole(domain.RoleAcademicSecretary).
 		Build()
 }
 
@@ -110,7 +111,7 @@ func SecretaryUser() *entities.User {
 func MethodistUser() *entities.User {
 	return NewUserBuilder().
 		WithEmail("methodist@example.com").
-		WithRole(entities.RoleMethodist).
+		WithRole(domain.RoleMethodist).
 		Build()
 }
 
@@ -118,7 +119,7 @@ func MethodistUser() *entities.User {
 func TeacherUser() *entities.User {
 	return NewUserBuilder().
 		WithEmail("teacher@example.com").
-		WithRole(entities.RoleTeacher).
+		WithRole(domain.RoleTeacher).
 		Build()
 }
 
@@ -126,7 +127,7 @@ func TeacherUser() *entities.User {
 func StudentUser() *entities.User {
 	return NewUserBuilder().
 		WithEmail("student@example.com").
-		WithRole(entities.RoleStudent).
+		WithRole(domain.RoleStudent).
 		Build()
 }
 
