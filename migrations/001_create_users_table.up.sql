@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     name VARCHAR(255) DEFAULT '',
-    role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'secretary', 'methodist', 'teacher', 'student')),
+    role VARCHAR(50) NOT NULL CHECK (role IN ('system_admin', 'methodist', 'academic_secretary', 'teacher', 'student')),
     status VARCHAR(50) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'blocked')),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -22,5 +22,5 @@ CREATE INDEX idx_users_status ON users(status);
 -- Insert default admin user (password: Admin123456!)
 -- This is for development only, should be changed in production
 INSERT INTO users (email, password, name, role, status)
-VALUES ('admin@inf-sys.local', '$2a$14$ZKHqFX3vJT8kZY7ZJy.zfOEzBxD8YmBqGqN1xPJvJ1Y1xYJPqJ5qW', 'System Administrator', 'admin', 'active')
+VALUES ('admin@inf-sys.local', '$2a$14$ZKHqFX3vJT8kZY7ZJy.zfOEzBxD8YmBqGqN1xPJvJ1Y1xYJPqJ5qW', 'System Administrator', 'system_admin', 'active')
 ON CONFLICT (email) DO NOTHING;
