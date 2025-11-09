@@ -20,7 +20,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Register Form */}
-      <RegisterForm redirectTo="/login" />
+      <RegisterForm redirectTo="/dashboard" />
     </div>
   )
 }

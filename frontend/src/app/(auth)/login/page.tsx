@@ -20,7 +20,7 @@ export default function LoginPage() {
       </div>
 
       {/* Login Form */}
-      <LoginForm redirectTo="/" />
+      <LoginForm redirectTo="/dashboard" />
     </div>
   )
 }
