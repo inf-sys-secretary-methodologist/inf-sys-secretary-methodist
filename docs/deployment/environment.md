@@ -42,6 +42,10 @@ AZURE_CLIENT_SECRET=dev-azure-client-secret
 # Frontend
 NEXT_PUBLIC_API_URL=http://localhost:8080
 NEXT_PUBLIC_ENV=development
+
+# Composio Email Integration
+COMPOSIO_API_KEY=your-dev-composio-api-key
+COMPOSIO_ENTITY_ID=dev-entity-id
 ```
 
 ### Staging (Тестирование)
@@ -80,6 +84,10 @@ AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
 # Frontend
 NEXT_PUBLIC_API_URL=https://staging-api.inf-sys.example.com
 NEXT_PUBLIC_ENV=staging
+
+# Composio Email Integration
+COMPOSIO_API_KEY=${COMPOSIO_API_KEY}
+COMPOSIO_ENTITY_ID=${COMPOSIO_ENTITY_ID}
 ```
 
 ### Production (Продакшн)
@@ -123,6 +131,10 @@ NEXT_PUBLIC_ENV=production
 PROMETHEUS_URL=${PROMETHEUS_URL}
 GRAFANA_URL=${GRAFANA_URL}
 JAEGER_URL=${JAEGER_URL}
+
+# Composio Email Integration
+COMPOSIO_API_KEY=${COMPOSIO_API_KEY}
+COMPOSIO_ENTITY_ID=${COMPOSIO_ENTITY_ID}
 ```
 
 ---
@@ -160,7 +172,9 @@ vault kv put secret/inf-sys/database \
 # External services
 vault kv put secret/inf-sys/integrations \
   one_c_api_key="1c-integration-key" \
-  email_smtp_password="smtp-password"
+  email_smtp_password="smtp-password" \
+  composio_api_key="composio-api-key" \
+  composio_entity_id="composio-entity-id"
 ```
 
 ### Kubernetes Secrets
@@ -189,6 +203,17 @@ data:
   jwt-secret: <base64-encoded-jwt-secret>
   google-client-secret: <base64-encoded-google-secret>
   azure-client-secret: <base64-encoded-azure-secret>
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: inf-sys-composio
+  namespace: inf-sys
+type: Opaque
+data:
+  api-key: <base64-encoded-composio-api-key>
+  entity-id: <base64-encoded-composio-entity-id>
 ```
 
 #### Secret Usage in Pods:
@@ -213,6 +238,16 @@ spec:
             secretKeyRef:
               name: inf-sys-auth
               key: jwt-secret
+        - name: COMPOSIO_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: inf-sys-composio
+              key: api-key
+        - name: COMPOSIO_ENTITY_ID
+          valueFrom:
+            secretKeyRef:
+              name: inf-sys-composio
+              key: entity-id
 ```
 
 ---
