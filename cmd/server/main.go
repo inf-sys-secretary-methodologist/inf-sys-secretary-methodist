@@ -19,6 +19,9 @@ import (
 	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure/persistence"
 	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
 	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
+	emailServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
+	emailDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
+	emailHandlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/interfaces/http/handlers"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -78,7 +81,7 @@ func main() {
 	}
 
 	// Initialize auth module with all optimizations
-	authUseCase, authHandlerInstance := initAuthModule(
+	authUseCase, userRepo := initAuthModule(
 		db,
 		redisCache,
 		securityLogger,
@@ -98,7 +101,6 @@ func main() {
 	// Setup router with all middleware
 	router := setupRoutes(
 		authUseCase,
-		authHandlerInstance,
 		securityLogger,
 		perfLogger,
 		cfg,
@@ -107,6 +109,7 @@ func main() {
 		loggingMiddleware,
 		db,
 		redisCache,
+		userRepo,
 	)
 
 	// Create HTTP server
@@ -198,7 +201,7 @@ func initAuthModule(
 	auditLog *logging.AuditLogger,
 	perfLog *logging.PerformanceLogger,
 	cfg *config.Config,
-) (*usecases.AuthUseCase, *authHandler.AuthHandler) {
+) (*usecases.AuthUseCase, repositories.UserRepository) {
 	// JWT secrets from config
 	jwtSecret := []byte(cfg.JWT.AccessSecret)
 	refreshSecret := []byte(cfg.JWT.RefreshSecret)
@@ -225,15 +228,11 @@ func initAuthModule(
 		auditLog,
 	)
 
-	// Initialize handler
-	authHandlerInstance := authHandler.NewAuthHandler(authUseCase)
-
-	return authUseCase, authHandlerInstance
+	return authUseCase, userRepo.(repositories.UserRepository)
 }
 
 func setupRoutes(
 	authUseCase *usecases.AuthUseCase,
-	authHandlerInstance *authHandler.AuthHandler,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
 	cfg *config.Config,
@@ -242,17 +241,27 @@ func setupRoutes(
 	loggingMiddleware *appMiddleware.LoggingMiddleware,
 	db *sql.DB,
 	redisCache *cache.RedisCache,
+	userRepo repositories.UserRepository,
 ) *gin.Engine {
 	router := gin.New()
 
 	// Global middleware stack (order matters!)
 	router.Use(gin.Recovery())
+	router.Use(corsMiddleware.Handler()) // CORS должен быть первым для обработки OPTIONS
 	router.Use(middleware.RequestIDMiddleware()) // Request ID для трейсинга
 	router.Use(middleware.RequestContextMiddleware())
-	router.Use(corsMiddleware.Handler()) // CORS из конфига
 	router.Use(authMiddleware.SecurityHeadersMiddleware())
 	router.Use(loggingMiddleware.Handler()) // Логирование всех запросов
 	router.Use(performanceMiddleware(perfLog))
+
+	// Handle OPTIONS requests for routes that don't exist (CORS preflight)
+	router.NoRoute(func(c *gin.Context) {
+		if c.Request.Method == "OPTIONS" {
+			c.Status(http.StatusNoContent)
+			return
+		}
+		c.JSON(http.StatusNotFound, gin.H{"error": "route not found"})
+	})
 
 	// Health check endpoint with dependency checks
 	router.GET("/health", healthCheckHandler(db, redisCache))
@@ -266,6 +275,18 @@ func setupRoutes(
 		authRateLimiter = rateLimitConfig.GetAuthRateLimiter(redisCache.Client())
 	}
 
+	// Initialize email service
+	composioAPIKey := cfg.Composio.APIKey
+	composioEntityID := cfg.Composio.EntityID
+	var emailService emailDomain.EmailService
+	if composioAPIKey != "" && composioEntityID != "" {
+		emailService = emailServices.NewComposioEmailService(composioAPIKey, composioEntityID)
+		logger.Info("Email service initialized", nil)
+	}
+
+	// Initialize auth handler with email service
+	authHandlerInstance := authHandler.NewAuthHandler(authUseCase, emailService)
+
 	// Public auth routes with rate limiting (10 req/min + burst 5)
 	authGroup := router.Group("/api/auth")
 	if publicRateLimiter != nil {
@@ -273,9 +294,15 @@ func setupRoutes(
 		authGroup.Use(rateLimitLogger(securityLog))
 	}
 	{
+		// Register POST handlers
 		authGroup.POST("/register", authHandlerInstance.Register)
 		authGroup.POST("/login", authHandlerInstance.Login)
 		authGroup.POST("/refresh", authHandlerInstance.RefreshToken)
+
+		// Register OPTIONS handlers for CORS preflight
+		authGroup.OPTIONS("/register", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+		authGroup.OPTIONS("/login", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+		authGroup.OPTIONS("/refresh", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 	}
 
 	// Protected routes (require JWT) with auth rate limiting (60 req/min + burst 10)
@@ -286,13 +313,43 @@ func setupRoutes(
 	}
 	{
 		protectedGroup.GET("/me", func(c *gin.Context) {
-			userID, _ := c.Get("user_id")
-			role, _ := c.Get("role")
+			userID, exists := c.Get("user_id")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+				return
+			}
+
+			// Get full user data from database
+			user, err := userRepo.GetByID(c.Request.Context(), userID.(int64))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user data"})
+				return
+			}
+
 			c.JSON(http.StatusOK, gin.H{
-				"user_id": userID,
-				"role":    role,
+				"id":    user.ID,
+				"email": user.Email,
+				"name":  user.Name,
+				"role":  user.Role,
 			})
 		})
+		protectedGroup.OPTIONS("/me", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+		// Email notification routes
+		if emailService != nil {
+			emailHandler := emailHandlers.NewEmailHandler(emailService)
+
+			notificationsGroup := protectedGroup.Group("/notifications")
+			{
+				notificationsGroup.POST("/send-email", emailHandler.SendEmail)
+				notificationsGroup.POST("/send-welcome", emailHandler.SendWelcomeEmail)
+				notificationsGroup.OPTIONS("/send-email", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				notificationsGroup.OPTIONS("/send-welcome", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+			logger.Info("Email notification routes registered", nil)
+		} else {
+			logger.Warn("Email notification routes not registered - Composio credentials not configured", nil)
+		}
 
 		// Admin only routes
 		adminGroup := protectedGroup.Group("/admin")
@@ -301,6 +358,7 @@ func setupRoutes(
 			adminGroup.GET("/users", func(c *gin.Context) {
 				c.JSON(http.StatusOK, gin.H{"message": "Admin users list"})
 			})
+			adminGroup.OPTIONS("/users", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 		}
 	}
 

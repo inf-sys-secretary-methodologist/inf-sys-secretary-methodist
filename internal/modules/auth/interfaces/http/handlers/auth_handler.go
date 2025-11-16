@@ -1,27 +1,33 @@
 package http
 
 import (
+	"context"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
+	emailServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
 type AuthHandler struct {
-	usecase   *usecases.AuthUseCase
-	validator *validation.Validator
-	sanitizer *sanitization.Sanitizer
+	usecase      *usecases.AuthUseCase
+	emailService emailServices.EmailService
+	validator    *validation.Validator
+	sanitizer    *sanitization.Sanitizer
 }
 
-func NewAuthHandler(usecase *usecases.AuthUseCase) *AuthHandler {
+func NewAuthHandler(usecase *usecases.AuthUseCase, emailService emailServices.EmailService) *AuthHandler {
 	return &AuthHandler{
-		usecase:   usecase,
-		validator: validation.NewValidator(),
-		sanitizer: sanitization.NewSanitizer(),
+		usecase:      usecase,
+		emailService: emailService,
+		validator:    validation.NewValidator(),
+		sanitizer:    sanitization.NewSanitizer(),
 	}
 }
 
@@ -35,6 +41,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	// Sanitize inputs
+	input.Name = h.sanitizer.SanitizeString(input.Name)
 	input.Email = h.sanitizer.SanitizeEmail(input.Email)
 	input.Role = h.sanitizer.SanitizeString(input.Role)
 
@@ -52,7 +59,44 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	resp := response.Success(gin.H{"message": "User registered successfully"})
+	// Send welcome email if email service is available
+	if h.emailService != nil {
+		// Use background context with timeout for async email sending
+		emailCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		go func() {
+			defer cancel()
+			if err := h.emailService.SendWelcomeEmail(emailCtx, input.Email, input.Name); err != nil {
+				log.Printf("[AuthHandler] Failed to send welcome email to %s: %v", input.Email, err)
+			} else {
+				log.Printf("[AuthHandler] Welcome email sent successfully to %s", input.Email)
+			}
+		}()
+	}
+
+	// Auto-login after successful registration
+	loginInput := dto.LoginInput{
+		Email:    input.Email,
+		Password: input.Password,
+	}
+
+	accessToken, refreshToken, user, err := h.usecase.LoginWithUser(ctx, loginInput)
+	if err != nil {
+		// Registration succeeded but auto-login failed
+		resp := response.Success(gin.H{"message": "User registered successfully. Please login."})
+		c.JSON(http.StatusCreated, resp)
+		return
+	}
+
+	resp := response.Success(gin.H{
+		"token":        accessToken,
+		"refreshToken": refreshToken,
+		"user": gin.H{
+			"id":    user.ID,
+			"email": user.Email,
+			"name":  user.Name,
+			"role":  user.Role,
+		},
+	})
 	c.JSON(http.StatusCreated, resp)
 }
 
@@ -76,7 +120,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	accessToken, refreshToken, err := h.usecase.Login(ctx, input)
+	accessToken, refreshToken, user, err := h.usecase.LoginWithUser(ctx, input)
 	if err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
@@ -84,8 +128,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	resp := response.Success(gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"token":        accessToken,
+		"refreshToken": refreshToken,
+		"user": gin.H{
+			"id":    user.ID,
+			"email": user.Email,
+			"name":  user.Name,
+			"role":  user.Role,
+		},
 	})
 	c.JSON(http.StatusOK, resp)
 }
