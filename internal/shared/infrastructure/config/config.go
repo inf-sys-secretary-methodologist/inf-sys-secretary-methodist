@@ -68,11 +68,11 @@ type JWTConfig struct {
 	RefreshTTL    time.Duration
 }
 
-// ComposioConfig holds Composio API configuration
+// ComposioConfig holds Composio integration configuration
 type ComposioConfig struct {
-	APIKey         string
-	EntityID       string
-	MCPConfigID    string
+	APIKey      string
+	EntityID    string
+	MCPConfigID string
 }
 
 // Load reads configuration from environment variables
