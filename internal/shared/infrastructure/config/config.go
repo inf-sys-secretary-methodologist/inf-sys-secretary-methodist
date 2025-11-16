@@ -17,6 +17,7 @@ type Config struct {
 	Log         LogConfig
 	CORS        CORSConfig
 	JWT         JWTConfig
+	Composio    ComposioConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -67,6 +68,13 @@ type JWTConfig struct {
 	RefreshTTL    time.Duration
 }
 
+// ComposioConfig holds Composio API configuration
+type ComposioConfig struct {
+	APIKey         string
+	EntityID       string
+	MCPConfigID    string
+}
+
 // Load reads configuration from environment variables
 func Load() (*Config, error) {
 	config := &Config{
@@ -107,6 +115,11 @@ func Load() (*Config, error) {
 			RefreshSecret: getEnv("JWT_REFRESH_SECRET", "change-this-refresh-secret-in-production"),
 			AccessTTL:     getEnvAsDuration("JWT_ACCESS_TTL", 15*time.Minute),
 			RefreshTTL:    getEnvAsDuration("JWT_REFRESH_TTL", 7*24*time.Hour), // 7 days
+		},
+		Composio: ComposioConfig{
+			APIKey:      getEnv("COMPOSIO_API_KEY", ""),
+			EntityID:    getEnv("COMPOSIO_ENTITY_ID", ""),
+			MCPConfigID: getEnv("COMPOSIO_MCP_CONFIG_ID", ""),
 		},
 	}
 
