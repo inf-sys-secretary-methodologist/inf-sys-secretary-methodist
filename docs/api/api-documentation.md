@@ -354,13 +354,145 @@ Content-Type: application/json
 
 ## 🔔 Notification Service API
 
-### Base URL: `/notifications`
+### Base URL: `/api/notifications`
 
-#### POST `/notifications/send`
-Отправка уведомления
+> **Новое!** Email уведомления через Composio Gmail Integration
 
-#### GET `/notifications/templates`
-Получение шаблонов уведомлений
+#### POST `/notifications/send-email`
+Отправка email уведомления
+
+**Authentication:** Bearer JWT Token (required)
+
+**Request:**
+```json
+{
+  "to": ["recipient@example.com"],
+  "cc": ["cc@example.com"],
+  "bcc": ["bcc@example.com"],
+  "subject": "Важное уведомление",
+  "body": "<h1>Привет!</h1><p>Текст письма</p>",
+  "is_html": true
+}
+```
+
+**Validation Rules:**
+- `to`: required, минимум 1 адрес, максимум 50 адресов
+- `cc`, `bcc`: optional, максимум 20 адресов каждый
+- `subject`: required, 1-200 символов
+- `body`: required, минимум 1 символ
+- `is_html`: optional, boolean (default: false)
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Email sent successfully"
+  }
+}
+```
+
+**Response (Error):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "EMAIL_SEND_FAILED",
+    "message": "Failed to send email: invalid recipient"
+  }
+}
+```
+
+**Status Codes:**
+- `200`: Email отправлен успешно
+- `400`: Невалидные параметры
+- `401`: Не авторизован
+- `403`: Нет прав на отправку email
+- `500`: Ошибка сервера
+
+**Использование:**
+```bash
+curl -X POST https://api.inf-sys.example.com/api/notifications/send-email \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": ["student@example.com"],
+    "subject": "Напоминание о дедлайне",
+    "body": "Ваше задание должно быть сдано до 20.01.2025",
+    "is_html": false
+  }'
+```
+
+#### POST `/notifications/send-welcome`
+Отправка приветственного email
+
+**Authentication:** Bearer JWT Token (required)
+
+**Request:**
+```json
+{
+  "email": "newuser@example.com",
+  "name": "Иван Петров"
+}
+```
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Welcome email sent successfully"
+  }
+}
+```
+
+**Использование:**
+```bash
+curl -X POST https://api.inf-sys.example.com/api/notifications/send-welcome \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "newuser@example.com",
+    "name": "Иван Петров"
+  }'
+```
+
+#### Автоматические уведомления
+
+**Welcome Email при регистрации:**
+- Автоматически отправляется после успешной регистрации
+- Не требует дополнительного API вызова
+- Отправляется асинхронно (не блокирует регистрацию)
+
+**Шаблон Welcome Email:**
+```html
+Subject: Добро пожаловать в Secretary Methodist System!
+
+Привет, {имя}!
+
+Спасибо за регистрацию в нашей системе.
+
+С уважением,
+Команда Secretary Methodist System
+```
+
+#### Технические детали
+
+**Email отправка через Composio:**
+- **Провайдер:** Gmail API через Composio
+- **От кого:** daniilvdovin4@gmail.com
+- **Лимиты:** 100,000+ писем/день
+- **Latency:** ~1-2 секунды
+- **Retry:** Нет автоматического retry (планируется)
+
+**Мониторинг:**
+- Все email операции логируются
+- Ошибки логируются с полным stack trace
+- Gmail Message ID возвращается в логах
+
+**См. также:**
+- [Composio Gmail Integration Guide](../integrations/composio-gmail.md)
+- [Environment Configuration](../deployment/environment.md)
 
 ---
 
