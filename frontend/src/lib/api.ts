@@ -48,7 +48,7 @@ class ApiClient {
     return null
   }
 
-  private clearAuthToken(): void {
+  public clearAuthToken(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken')
     }

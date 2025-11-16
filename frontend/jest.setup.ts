@@ -22,6 +22,15 @@ jest.mock('next/navigation', () => ({
   },
 }))
 
+// Mock для localStorage
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+}
+global.localStorage = localStorageMock as any
+
 // Мокируем window.matchMedia (для responsive компонентов)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

@@ -126,6 +126,12 @@ func (r *UserRepositoryPG) GetByEmail(ctx context.Context, email string) (*entit
 	return user, nil
 }
 
+// GetByEmailForAuth retrieves a user by email for authentication
+// In PG implementation, this is the same as GetByEmail (no caching at this level)
+func (r *UserRepositoryPG) GetByEmailForAuth(ctx context.Context, email string) (*entities.User, error) {
+	return r.GetByEmail(ctx, email)
+}
+
 // Delete removes a user by ID
 func (r *UserRepositoryPG) Delete(ctx context.Context, userID int64) error {
 	result, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, userID)

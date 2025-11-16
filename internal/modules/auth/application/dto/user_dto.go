@@ -1,16 +1,17 @@
 package dto
 
 type RegisterInput struct {
-	Email    string `json:"email" binding:"required,email,max=255,no_xss,no_sql_injection"`
-	Password string `json:"password" binding:"required,strong_password,max=128"`
-	Role     string `json:"role" binding:"required,oneof=admin secretary methodist teacher student"`
+	Name     string `json:"name" binding:"required,min=2,max=255" validate:"no_xss"`
+	Email    string `json:"email" binding:"required,email,max=255" validate:"no_xss,no_sql_injection"`
+	Password string `json:"password" binding:"required,min=8,max=128" validate:"strong_password"`
+	Role     string `json:"role" binding:"required,oneof=system_admin methodist academic_secretary teacher student" validate:"no_xss,no_sql_injection"`
 }
 
 type LoginInput struct {
-	Email    string `json:"email" binding:"required,email,max=255,no_xss,no_sql_injection"`
+	Email    string `json:"email" binding:"required,email,max=255" validate:"no_xss,no_sql_injection"`
 	Password string `json:"password" binding:"required,min=1,max=128"`
 }
 
 type RefreshTokenInput struct {
-	RefreshToken string `json:"refresh_token" binding:"required,no_xss,no_sql_injection"`
+	RefreshToken string `json:"refresh_token" binding:"required" validate:"no_xss,no_sql_injection"`
 }

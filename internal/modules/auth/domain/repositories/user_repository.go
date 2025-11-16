@@ -12,6 +12,9 @@ type UserRepository interface {
 	Save(ctx context.Context, user *entities.User) error
 	GetByID(ctx context.Context, id int64) (*entities.User, error)
 	GetByEmail(ctx context.Context, email string) (*entities.User, error)
+	// GetByEmailForAuth retrieves user by email for authentication purposes
+	// Always fetches from database (bypasses cache) to ensure password field is populated
+	GetByEmailForAuth(ctx context.Context, email string) (*entities.User, error)
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, limit, offset int) ([]*entities.User, error)
 }

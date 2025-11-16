@@ -2,9 +2,13 @@
 
 import * as React from "react"
 import { FileText, Users, Calendar, TrendingUp } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { GlowingEffect } from "@/components/ui/glowing-effect"
 import { ThemeToggleButton } from "@/components/theme-toggle-button"
+import { UserMenu } from "@/components/UserMenu"
+import { Button } from "@/components/ui/button"
+import { useAuthCheck } from "@/hooks/useAuth"
 
 // Simple Counter Component
 interface CounterProps {
@@ -101,10 +105,24 @@ StatCard.displayName = "StatCard"
 
 // Main Dashboard Component
 const SecretaryMethodistDashboard = () => {
+  const router = useRouter()
+  const { isAuthenticated } = useAuthCheck()
+
   return (
     <div className="min-h-screen bg-background p-8">
-      {/* Theme Toggle - Fixed Position with isolation */}
-      <div className="fixed top-8 right-8 z-50 pointer-events-auto" style={{ isolation: 'isolate' }}>
+      {/* Top Navigation - Fixed Position with isolation */}
+      <div className="fixed top-8 right-8 z-50 pointer-events-auto flex items-center gap-3" style={{ isolation: 'isolate' }}>
+        {isAuthenticated ? (
+          <UserMenu />
+        ) : (
+          <Button
+            onClick={() => router.push('/login')}
+            variant="default"
+            size="default"
+          >
+            Войти
+          </Button>
+        )}
         <ThemeToggleButton />
       </div>
 
