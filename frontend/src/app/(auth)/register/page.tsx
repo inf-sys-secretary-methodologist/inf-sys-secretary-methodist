@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { RegisterForm } from '@/components/auth/RegisterForm'
 
 export const metadata: Metadata = {
@@ -21,6 +22,16 @@ export default function RegisterPage() {
 
       {/* Register Form */}
       <RegisterForm redirectTo="/dashboard" />
+
+      {/* Back to home link */}
+      <div className="text-center text-sm">
+        <Link
+          href="/"
+          className="font-medium text-muted-foreground hover:text-primary transition-colors"
+        >
+          ← Вернуться на главную
+        </Link>
+      </div>
     </div>
   )
 }

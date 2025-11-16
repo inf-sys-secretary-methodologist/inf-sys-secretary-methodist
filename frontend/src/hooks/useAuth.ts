@@ -91,13 +91,14 @@ export function useLogout() {
   const router = useRouter()
   const { logout } = useAuthStore()
 
-  const handleLogout = () => {
+  const handleLogout = (redirectTo: string = '/login') => {
     logout()
-    router.push('/login')
+    router.push(redirectTo)
   }
 
   return {
     logout: handleLogout,
+    isLoading: false,
   }
 }
 
@@ -106,13 +107,14 @@ export function useLogout() {
  * Useful for layout components
  */
 export function useAuthCheck() {
-  const { checkAuth, isAuthenticated, isLoading } = useAuthStore()
+  const { checkAuth, user, isAuthenticated, isLoading } = useAuthStore()
 
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
 
   return {
+    user,
     isAuthenticated,
     isLoading,
   }

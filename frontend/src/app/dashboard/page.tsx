@@ -1,13 +1,20 @@
 'use client'
 
-import { useAuth } from '@/hooks/useAuth'
+import { useAuthCheck } from '@/hooks/useAuth'
 import { UserMenu } from '@/components/UserMenu'
 import { ThemeToggleButton } from '@/components/theme-toggle-button'
 import { GlowingEffect } from '@/components/ui/glowing-effect'
-import { FileText, Users, Calendar, TrendingUp } from 'lucide-react'
+import { NavBar } from '@/components/ui/tubelight-navbar'
+import { FileText, Users, Calendar, TrendingUp, LayoutDashboard } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading } = useAuthCheck()
+
+  const navItems = [
+    { name: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+    { name: 'Студенты', url: '/students', icon: Users },
+    { name: 'Документы', url: '/documents', icon: FileText }
+  ]
 
   if (isLoading) {
     return (
@@ -22,6 +29,9 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background p-8">
+      {/* Navigation Bar */}
+      <NavBar items={navItems} />
+
       {/* Top Navigation */}
       <div className="fixed top-8 right-8 z-50 pointer-events-auto flex items-center gap-3" style={{ isolation: 'isolate' }}>
         <UserMenu />
@@ -30,12 +40,12 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Welcome Header */}
-        <div className="text-center space-y-4 pt-8">
+        <div className="text-center space-y-4 pt-24">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
             Добро пожаловать, {user?.name}!
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            Ваша роль: <span className="font-semibold">{getRoleDisplayName(user?.role || '')}</span>
+            <span className="font-semibold">{getRoleDisplayName(user?.role || '')}</span>
           </p>
         </div>
 
@@ -121,11 +131,11 @@ export default function DashboardPage() {
 
 function getRoleDisplayName(role: string): string {
   const roleMap: Record<string, string> = {
-    ADMIN: 'Администратор',
-    METHODIST: 'Методист',
-    SECRETARY: 'Секретарь',
-    TEACHER: 'Преподаватель',
-    STUDENT: 'Студент',
+    system_admin: 'Администратор',
+    methodist: 'Методист',
+    academic_secretary: 'Секретарь',
+    teacher: 'Преподаватель',
+    student: 'Студент',
   }
   return roleMap[role] || role
 }

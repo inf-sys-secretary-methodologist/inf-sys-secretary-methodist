@@ -60,8 +60,7 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
       {/* Global error message */}
       {authError && (
         <div className="p-4 text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
-          <p className="font-medium">Ошибка входа</p>
-          <p className="mt-1">{authError}</p>
+          <p>{authError}</p>
         </div>
       )}
 

@@ -8,7 +8,7 @@ import { GlowingEffect } from "@/components/ui/glowing-effect"
 import { ThemeToggleButton } from "@/components/theme-toggle-button"
 import { UserMenu } from "@/components/UserMenu"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/hooks/useAuth"
+import { useAuthCheck } from "@/hooks/useAuth"
 
 // Simple Counter Component
 interface CounterProps {
@@ -106,7 +106,7 @@ StatCard.displayName = "StatCard"
 // Main Dashboard Component
 const SecretaryMethodistDashboard = () => {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuthCheck()
 
   return (
     <div className="min-h-screen bg-background p-8">

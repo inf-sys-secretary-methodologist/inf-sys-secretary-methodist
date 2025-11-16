@@ -103,8 +103,7 @@ export function RegisterForm({
       {/* Global error message */}
       {authError && (
         <div className="p-4 text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
-          <p className="font-medium">Ошибка регистрации</p>
-          <p className="mt-1">{authError}</p>
+          <p>{authError}</p>
         </div>
       )}
 
@@ -257,9 +256,9 @@ export function RegisterForm({
         >
           <option value={UserRole.STUDENT}>Студент</option>
           <option value={UserRole.TEACHER}>Преподаватель</option>
-          <option value={UserRole.SECRETARY}>Секретарь</option>
+          <option value={UserRole.ACADEMIC_SECRETARY}>Секретарь</option>
           <option value={UserRole.METHODIST}>Методист</option>
-          <option value={UserRole.ADMIN}>Администратор</option>
+          <option value={UserRole.SYSTEM_ADMIN}>Администратор</option>
         </select>
         {errors.role && (
           <p className="text-sm text-red-600 dark:text-red-400">{errors.role.message}</p>

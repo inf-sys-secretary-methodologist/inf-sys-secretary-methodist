@@ -16,14 +16,16 @@ const authRoutes = ['/login', '/register']
  */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const token = request.cookies.get('auth-storage')?.value
+  const cookieObject = request.cookies.get('auth-storage')
+  const token = cookieObject?.value
 
   // Check if user has auth token
   let isAuthenticated = false
   if (token) {
     try {
       const authData = JSON.parse(token)
-      isAuthenticated = authData.state?.isAuthenticated && authData.state?.token
+      // Fix: ensure we return boolean, not token string
+      isAuthenticated = !!(authData.state?.isAuthenticated && authData.state?.token)
     } catch (error) {
       // Invalid token format
       isAuthenticated = false

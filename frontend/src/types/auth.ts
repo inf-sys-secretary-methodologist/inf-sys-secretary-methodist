@@ -9,11 +9,11 @@ export interface User {
 }
 
 export enum UserRole {
-  ADMIN = 'ADMIN',
-  METHODIST = 'METHODIST',
-  SECRETARY = 'SECRETARY',
-  TEACHER = 'TEACHER',
-  STUDENT = 'STUDENT',
+  SYSTEM_ADMIN = 'system_admin',
+  METHODIST = 'methodist',
+  ACADEMIC_SECRETARY = 'academic_secretary',
+  TEACHER = 'teacher',
+  STUDENT = 'student',
 }
 
 // Auth request types

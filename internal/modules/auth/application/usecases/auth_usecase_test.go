@@ -43,6 +43,11 @@ func (m *mockUserRepository) GetByEmail(ctx context.Context, email string) (*ent
 	}, nil
 }
 
+func (m *mockUserRepository) GetByEmailForAuth(ctx context.Context, email string) (*entities.User, error) {
+	// Same as GetByEmail for mock
+	return m.GetByEmail(ctx, email)
+}
+
 func (m *mockUserRepository) Delete(ctx context.Context, id int64) error {
 	return nil
 }

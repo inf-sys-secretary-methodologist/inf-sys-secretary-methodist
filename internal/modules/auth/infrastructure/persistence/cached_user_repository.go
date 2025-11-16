@@ -115,6 +115,23 @@ func (r *CachedUserRepository) GetByEmail(ctx context.Context, email string) (*e
 	return dbUser, nil
 }
 
+// GetByEmailForAuth gets user by email for authentication purposes
+// ALWAYS bypasses cache and fetches directly from database to ensure password field is populated
+// Password field has json:"-" tag so it's excluded from cache serialization
+func (r *CachedUserRepository) GetByEmailForAuth(ctx context.Context, email string) (*entities.User, error) {
+	start := time.Now()
+	dbUser, err := r.repo.GetByEmail(ctx, email)
+	duration := time.Since(start)
+
+	r.perfLog.LogDatabaseQuery(ctx, "SELECT user BY EMAIL FOR AUTH", duration, 1)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return dbUser, nil
+}
+
 // Delete deletes a user and invalidates cache
 func (r *CachedUserRepository) Delete(ctx context.Context, id int64) error {
 	if err := r.repo.Delete(ctx, id); err != nil {

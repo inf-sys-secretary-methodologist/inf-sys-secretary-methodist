@@ -60,7 +60,8 @@ func NewAuthUseCase(
 func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessToken string, refreshToken string, err error) {
 	startTime := time.Now()
 
-	user, err := u.userRepo.GetByEmail(ctx, input.Email)
+	// Use GetByEmailForAuth to bypass cache and ensure password field is populated
+	user, err := u.userRepo.GetByEmailForAuth(ctx, input.Email)
 
 	// Dummy hash for timing attack prevention
 	dummyHash := "$2a$14$0000000000000000000000000000000000000000000000000000000"
@@ -117,6 +118,68 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 	return accessToken, refreshToken, nil
 }
 
+// LoginWithUser authenticates user and returns JWT tokens with user info
+func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (accessToken string, refreshToken string, user *entities.User, err error) {
+	startTime := time.Now()
+
+	// Use GetByEmailForAuth to bypass cache and ensure password field is populated
+	user, err = u.userRepo.GetByEmailForAuth(ctx, input.Email)
+
+	// Dummy hash for timing attack prevention
+	dummyHash := "$2a$14$0000000000000000000000000000000000000000000000000000000"
+
+	// Always perform password comparison to prevent timing attacks
+	if err != nil || user == nil {
+		// Perform dummy comparison to maintain constant time
+		bcrypt.CompareHashAndPassword([]byte(dummyHash), []byte(input.Password))
+
+		// Log failed login attempt
+		u.securityLog.LogLoginAttempt(ctx, input.Email, false, "user not found or invalid email")
+
+		return "", "", nil, fmt.Errorf("authentication failed: %w", ErrInvalidCredentials)
+	}
+
+	// Check password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+		// Log failed login - invalid password
+		u.securityLog.LogLoginAttempt(ctx, input.Email, false, "invalid password")
+
+		return "", "", nil, fmt.Errorf("authentication failed: %w", ErrInvalidCredentials)
+	}
+
+	// Check if user can login (status checks)
+	if err := user.CanLogin(); err != nil {
+		// Log failed login - account status issue
+		reason := "account not active"
+		if user.Status == entities.UserStatusBlocked {
+			reason = "account blocked"
+		}
+		u.securityLog.LogLoginAttempt(ctx, input.Email, false, reason)
+
+		return "", "", nil, fmt.Errorf("cannot login: %w", err)
+	}
+
+	// Generate tokens
+	accessToken, refreshToken, err = u.generateTokens(ctx, user)
+	if err != nil {
+		u.securityLog.LogLoginAttempt(ctx, input.Email, false, "token generation failed")
+		return "", "", nil, fmt.Errorf("failed to generate tokens: %w", err)
+	}
+
+	// Log successful login
+	u.securityLog.LogLoginAttempt(ctx, input.Email, true, "login successful")
+
+	// Log audit event
+	u.auditLog.LogAuditEvent(ctx, "login", "auth", map[string]interface{}{
+		"user_id":     user.ID,
+		"email":       user.Email,
+		"role":        user.Role,
+		"duration_ms": time.Since(startTime).Milliseconds(),
+	})
+
+	return accessToken, refreshToken, user, nil
+}
+
 // Register creates a new user
 func (u *AuthUseCase) Register(ctx context.Context, input dto.RegisterInput) error {
 	startTime := time.Now()
@@ -131,7 +194,7 @@ func (u *AuthUseCase) Register(ctx context.Context, input dto.RegisterInput) err
 	user := entities.NewUser(
 		input.Email,
 		string(hashedPassword),
-		"", // Name can be set later
+		input.Name,
 		domain.RoleType(input.Role),
 	)
 

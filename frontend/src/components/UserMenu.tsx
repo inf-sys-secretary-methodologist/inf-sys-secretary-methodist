@@ -43,22 +43,27 @@ export function UserMenu({ className }: UserMenuProps) {
   }
 
   // Get user initials for avatar
-  const getInitials = (name: string): string => {
-    const parts = name.trim().split(' ')
+  const getInitials = (name?: string): string => {
+    if (!name) return 'U'
+    const trimmedName = name.trim()
+    if (!trimmedName) return 'U'
+
+    const parts = trimmedName.split(' ')
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
     }
-    return name.slice(0, 2).toUpperCase()
+    return trimmedName.slice(0, 2).toUpperCase()
   }
 
   // Get role display name
-  const getRoleDisplayName = (role: string): string => {
+  const getRoleDisplayName = (role?: string): string => {
+    if (!role) return 'Пользователь'
     const roleMap: Record<string, string> = {
-      ADMIN: 'Администратор',
-      METHODIST: 'Методист',
-      SECRETARY: 'Секретарь',
-      TEACHER: 'Преподаватель',
-      STUDENT: 'Студент',
+      system_admin: 'Администратор',
+      methodist: 'Методист',
+      academic_secretary: 'Секретарь',
+      teacher: 'Преподаватель',
+      student: 'Студент',
     }
     return roleMap[role] || role
   }
@@ -75,14 +80,14 @@ export function UserMenu({ className }: UserMenuProps) {
       >
         <Avatar className="h-9 w-9">
           <AvatarFallback className="bg-primary text-primary-foreground font-medium">
-            {getInitials(user.name)}
+            {getInitials(user?.name)}
           </AvatarFallback>
         </Avatar>
 
         <div className="hidden md:flex md:flex-col md:items-start text-left">
-          <span className="text-sm font-medium text-foreground">{user.name}</span>
+          <span className="text-sm font-medium text-foreground">{user?.name || 'Пользователь'}</span>
           <span className="text-xs text-muted-foreground">
-            {getRoleDisplayName(user.role)}
+            {getRoleDisplayName(user?.role)}
           </span>
         </div>
 
@@ -92,10 +97,10 @@ export function UserMenu({ className }: UserMenuProps) {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium">{user.name}</p>
-            <p className="text-xs text-muted-foreground">{user.email}</p>
+            <p className="text-sm font-medium">{user?.name || 'Пользователь'}</p>
+            <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
             <p className="text-xs text-muted-foreground">
-              {getRoleDisplayName(user.role)}
+              {getRoleDisplayName(user?.role)}
             </p>
           </div>
         </DropdownMenuLabel>
