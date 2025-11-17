@@ -1,64 +1,78 @@
-// User types
-export interface User {
-  id: string
-  email: string
-  name: string
-  role: UserRole
-  createdAt: string
-  updatedAt: string
-}
+/**
+ * Authentication and Authorization Types
+ *
+ * Defines user roles, permissions, and authentication state
+ */
 
 export enum UserRole {
   SYSTEM_ADMIN = 'system_admin',
   METHODIST = 'methodist',
   ACADEMIC_SECRETARY = 'academic_secretary',
   TEACHER = 'teacher',
-  STUDENT = 'student',
+  STUDENT = 'student'
 }
 
-// Auth request types
-export interface LoginRequest {
+export interface User {
+  id: string
+  email: string
+  name: string
+  role: UserRole
+  avatar?: string
+  createdAt?: Date
+  updatedAt?: Date
+}
+
+export interface AuthState {
+  user: User | null
+  token: string | null
+  isAuthenticated: boolean
+  isLoading: boolean
+}
+
+export interface LoginCredentials {
   email: string
   password: string
 }
 
-export interface RegisterRequest {
+export interface RegisterData {
   email: string
   password: string
   name: string
-  role: UserRole
+  role?: UserRole
 }
 
-export interface RefreshTokenRequest {
-  refreshToken: string
-}
-
-// Auth response types
 export interface AuthResponse {
   user: User
   token: string
-  refreshToken: string
-  expiresIn: number
 }
 
-export interface RefreshTokenResponse {
-  token: string
-  refreshToken: string
-  expiresIn: number
+// Role labels for display
+export const UserRoleLabels: Record<UserRole, string> = {
+  [UserRole.SYSTEM_ADMIN]: 'Системный администратор',
+  [UserRole.METHODIST]: 'Методист',
+  [UserRole.ACADEMIC_SECRETARY]: 'Учебный секретарь',
+  [UserRole.TEACHER]: 'Преподаватель',
+  [UserRole.STUDENT]: 'Студент'
 }
 
-// Auth error types
-export interface AuthError {
-  message: string
-  code: AuthErrorCode
+// Permission helpers
+export function hasRole(user: User | null, roles: UserRole[]): boolean {
+  if (!user) return false
+  return roles.includes(user.role)
 }
 
-export enum AuthErrorCode {
-  INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
-  USER_NOT_FOUND = 'USER_NOT_FOUND',
-  EMAIL_ALREADY_EXISTS = 'EMAIL_ALREADY_EXISTS',
-  WEAK_PASSWORD = 'WEAK_PASSWORD',
-  INVALID_TOKEN = 'INVALID_TOKEN',
-  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
-  UNAUTHORIZED = 'UNAUTHORIZED',
+export function isAdmin(user: User | null): boolean {
+  return user?.role === UserRole.SYSTEM_ADMIN
+}
+
+export function canManageDocuments(user: User | null): boolean {
+  return hasRole(user, [
+    UserRole.SYSTEM_ADMIN,
+    UserRole.METHODIST,
+    UserRole.ACADEMIC_SECRETARY
+  ])
+}
+
+export function canManageUsers(user: User | null): boolean {
+  return user?.role === UserRole.SYSTEM_ADMIN
 }

@@ -1,4 +1,4 @@
-# Authentication & Authorization System
+н# Authentication & Authorization System
 
 Система аутентификации и авторизации с поддержкой Role-Based Access Control (RBAC).
 

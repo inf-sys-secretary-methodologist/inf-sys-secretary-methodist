@@ -1,137 +1,129 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useState, useRef, useEffect } from 'react'
+import { User, LogOut, Settings, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
-import { LogOut, Settings, User as UserIcon, ChevronDown } from 'lucide-react'
-import { toast } from 'sonner'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { useAuth, useLogout } from '@/hooks/useAuth'
-import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
+import { UserRoleLabels } from '@/types/auth'
+import { Button } from '@/components/ui/button'
 
-interface UserMenuProps {
-  className?: string
-}
+export function UserMenu() {
+  const { user, logout } = useAuth()
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
-export function UserMenu({ className }: UserMenuProps) {
-  const router = useRouter()
-  const { user, isAuthenticated } = useAuth()
-  const { logout, isLoading } = useLogout()
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
 
-  if (!isAuthenticated || !user) {
-    return null
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  if (!user) {
+    return (
+      <Link href="/login">
+        <Button variant="outline">Войти</Button>
+      </Link>
+    )
   }
 
-  const handleLogout = async () => {
-    try {
-      await logout('/login')
-      toast.success('Выход выполнен успешно', {
-        description: 'До скорой встречи!',
-      })
-    } catch (error) {
-      toast.error('Ошибка выхода', {
-        description: 'Попробуйте еще раз',
-      })
-    }
-  }
-
-  // Get user initials for avatar
-  const getInitials = (name?: string): string => {
-    if (!name) return 'U'
-    const trimmedName = name.trim()
-    if (!trimmedName) return 'U'
-
-    const parts = trimmedName.split(' ')
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-    }
-    return trimmedName.slice(0, 2).toUpperCase()
-  }
-
-  // Get role display name
-  const getRoleDisplayName = (role?: string): string => {
-    if (!role) return 'Пользователь'
-    const roleMap: Record<string, string> = {
-      system_admin: 'Администратор',
-      methodist: 'Методист',
-      academic_secretary: 'Секретарь',
-      teacher: 'Преподаватель',
-      student: 'Студент',
-    }
-    return roleMap[role] || role
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={cn(
-          'flex items-center gap-3 px-3 py-2 rounded-lg',
-          'hover:bg-accent transition-colors',
-          'focus:outline-none focus:ring-2 focus:ring-ring',
-          className
-        )}
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg
+                 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700
+                 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
       >
-        <Avatar className="h-9 w-9">
-          <AvatarFallback className="bg-primary text-primary-foreground font-medium">
-            {getInitials(user?.name)}
-          </AvatarFallback>
-        </Avatar>
-
-        <div className="hidden md:flex md:flex-col md:items-start text-left">
-          <span className="text-sm font-medium text-foreground">{user?.name || 'Пользователь'}</span>
-          <span className="text-xs text-muted-foreground">
-            {getRoleDisplayName(user?.role)}
-          </span>
+        <div className="flex items-center justify-center w-8 h-8 rounded-full
+                      bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-semibold">
+          {user.avatar ? (
+            <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full" />
+          ) : (
+            getInitials(user.name)
+          )}
         </div>
+        <div className="hidden md:block text-left">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {UserRoleLabels[user.role]}
+          </p>
+        </div>
+        <ChevronDown
+          className={`h-4 w-4 text-gray-500 transition-transform ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
 
-        <ChevronDown className="h-4 w-4 text-muted-foreground hidden md:block" />
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium">{user?.name || 'Пользователь'}</p>
-            <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
-            <p className="text-xs text-muted-foreground">
-              {getRoleDisplayName(user?.role)}
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-64 rounded-lg shadow-lg
+                      bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700
+                      py-1 z-50">
+          {/* User Info */}
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
+              {user.name}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {user.email}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {UserRoleLabels[user.role]}
             </p>
           </div>
-        </DropdownMenuLabel>
 
-        <DropdownMenuSeparator />
+          {/* Menu Items */}
+          <div className="py-1">
+            <Link
+              href="/profile"
+              className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300
+                       hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              <User className="h-4 w-4" />
+              Профиль
+            </Link>
+            <Link
+              href="/settings"
+              className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300
+                       hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              <Settings className="h-4 w-4" />
+              Настройки
+            </Link>
+          </div>
 
-        <DropdownMenuItem asChild>
-          <Link href="/profile" className="cursor-pointer">
-            <UserIcon className="mr-2 h-4 w-4" />
-            <span>Профиль</span>
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem asChild>
-          <Link href="/settings" className="cursor-pointer">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Настройки</span>
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          onClick={handleLogout}
-          disabled={isLoading}
-          className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>{isLoading ? 'Выход...' : 'Выйти'}</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          {/* Logout */}
+          <div className="border-t border-gray-200 dark:border-gray-700 py-1">
+            <button
+              onClick={() => {
+                logout()
+                setIsOpen(false)
+              }}
+              className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 dark:text-red-400
+                       hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Выйти
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

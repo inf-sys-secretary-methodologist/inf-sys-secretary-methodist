@@ -1,141 +1,91 @@
-'use client'
+/**
+ * useAuth Hook
+ *
+ * Convenient hook for accessing authentication state and actions
+ */
 
-import { useAuthStore } from '@/stores/authStore'
-import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import type { LoginRequest, RegisterRequest } from '@/types/auth'
+import { useAuthStore, mockUser } from '@/stores/authStore'
+import { User, UserRole } from '@/types/auth'
 
-/**
- * Hook for accessing auth state and actions
- */
 export function useAuth() {
-  const {
-    user,
-    isAuthenticated,
-    isLoading,
-    error,
-    login,
-    register,
-    logout,
-    checkAuth,
-    clearError,
-  } = useAuthStore()
+  const { user, token, isAuthenticated, isLoading, login, logout, setLoading } =
+    useAuthStore()
 
   return {
     user,
+    token,
     isAuthenticated,
     isLoading,
-    error,
     login,
-    register,
     logout,
-    checkAuth,
-    clearError,
+    setLoading
   }
 }
 
 /**
- * Hook for login with redirect
- */
-export function useLogin() {
-  const router = useRouter()
-  const { login, isLoading, error, clearError } = useAuthStore()
-
-  const handleLogin = async (credentials: LoginRequest, redirectTo: string = '/') => {
-    try {
-      await login(credentials)
-      router.push(redirectTo)
-    } catch (error) {
-      // Error is already set in store
-      throw error
-    }
-  }
-
-  return {
-    login: handleLogin,
-    isLoading,
-    error,
-    clearError,
-  }
-}
-
-/**
- * Hook for registration with redirect
- */
-export function useRegister() {
-  const router = useRouter()
-  const { register, isLoading, error, clearError } = useAuthStore()
-
-  const handleRegister = async (data: RegisterRequest, redirectTo: string = '/login') => {
-    try {
-      await register(data)
-      router.push(redirectTo)
-    } catch (error) {
-      // Error is already set in store
-      throw error
-    }
-  }
-
-  return {
-    register: handleRegister,
-    isLoading,
-    error,
-    clearError,
-  }
-}
-
-/**
- * Hook for logout with redirect
- */
-export function useLogout() {
-  const router = useRouter()
-  const { logout } = useAuthStore()
-
-  const handleLogout = (redirectTo: string = '/login') => {
-    logout()
-    router.push(redirectTo)
-  }
-
-  return {
-    logout: handleLogout,
-    isLoading: false,
-  }
-}
-
-/**
- * Hook to check auth status on mount
- * Useful for layout components
+ * useAuthCheck Hook
+ *
+ * Automatically initializes mock user for development
+ * In production, this would validate the token and fetch user data
  */
 export function useAuthCheck() {
-  const { checkAuth, user, isAuthenticated, isLoading } = useAuthStore()
+  const { user, isAuthenticated, login, setLoading } = useAuthStore()
 
   useEffect(() => {
+    // Simulate auth check
+    const checkAuth = async () => {
+      setLoading(true)
+
+      // In development, automatically log in with mock user
+      // In production, this would validate the token from cookies/localStorage
+      if (!isAuthenticated) {
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 500))
+
+        // Auto-login with mock user for development
+        login(mockUser, 'mock-token-' + Date.now())
+      }
+
+      setLoading(false)
+    }
+
     checkAuth()
-  }, [checkAuth])
+  }, [isAuthenticated, login, setLoading])
 
   return {
     user,
-    isAuthenticated,
-    isLoading,
+    isLoading: false, // Set to false to avoid loading screen in development
+    isAuthenticated
   }
 }
 
 /**
- * Hook to require authentication
- * Redirects to login if not authenticated
+ * useRequireAuth Hook
+ *
+ * Requires authentication and optionally specific roles
+ * Redirects to login if not authenticated or forbidden if no permission
  */
-export function useRequireAuth(redirectTo: string = '/login') {
-  const router = useRouter()
-  const { isAuthenticated, isLoading } = useAuthCheck()
+export function useRequireAuth(allowedRoles?: UserRole[]) {
+  const { user, isAuthenticated, isLoading } = useAuth()
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push(redirectTo)
+    if (isLoading) return
+
+    if (!isAuthenticated) {
+      // In production, redirect to login
+      console.warn('User not authenticated')
+    } else if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+      // In production, redirect to forbidden page
+      console.warn('User does not have permission')
     }
-  }, [isAuthenticated, isLoading, router, redirectTo])
+  }, [user, isAuthenticated, isLoading, allowedRoles])
 
   return {
-    isAuthenticated,
+    user,
     isLoading,
+    isAuthenticated,
+    hasPermission:
+      !allowedRoles || (user && allowedRoles.includes(user.role)) || false
   }
 }
