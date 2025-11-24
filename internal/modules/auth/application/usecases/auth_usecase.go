@@ -78,7 +78,7 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 		_ = bcrypt.CompareHashAndPassword([]byte(dummyHash), []byte(input.Password))
 
 		// Log failed login attempt
-		u.securityLog.LogLoginAttempt(ctx, input.Email, false, "user not found or invalid email")
+		u.logLoginAttempt(ctx, input.Email, false, "user not found or invalid email")
 
 		return "", "", fmt.Errorf("authentication failed: %w", ErrInvalidCredentials)
 	}
@@ -86,7 +86,7 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 	// Check password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
 		// Log failed login - invalid password
-		u.securityLog.LogLoginAttempt(ctx, input.Email, false, "invalid password")
+		u.logLoginAttempt(ctx, input.Email, false, "invalid password")
 
 		return "", "", fmt.Errorf("authentication failed: %w", ErrInvalidCredentials)
 	}
@@ -98,7 +98,7 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 		if user.Status == entities.UserStatusBlocked {
 			reason = "account blocked"
 		}
-		u.securityLog.LogLoginAttempt(ctx, input.Email, false, reason)
+		u.logLoginAttempt(ctx, input.Email, false, reason)
 
 		return "", "", fmt.Errorf("cannot login: %w", err)
 	}
@@ -106,15 +106,15 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 	// Generate tokens
 	accessToken, refreshToken, err = u.generateTokens(ctx, user)
 	if err != nil {
-		u.securityLog.LogLoginAttempt(ctx, input.Email, false, "token generation failed")
+		u.logLoginAttempt(ctx, input.Email, false, "token generation failed")
 		return "", "", fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
 	// Log successful login
-	u.securityLog.LogLoginAttempt(ctx, input.Email, true, "login successful")
+	u.logLoginAttempt(ctx, input.Email, true, "login successful")
 
 	// Log audit event
-	u.auditLog.LogAuditEvent(ctx, "login", "auth", map[string]interface{}{
+	u.logAudit(ctx, "login", "auth", map[string]interface{}{
 		"user_id":     user.ID,
 		"email":       user.Email,
 		"role":        user.Role,
@@ -140,7 +140,7 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 		_ = bcrypt.CompareHashAndPassword([]byte(dummyHash), []byte(input.Password))
 
 		// Log failed login attempt
-		u.securityLog.LogLoginAttempt(ctx, input.Email, false, "user not found or invalid email")
+		u.logLoginAttempt(ctx, input.Email, false, "user not found or invalid email")
 
 		return "", "", nil, fmt.Errorf("authentication failed: %w", ErrInvalidCredentials)
 	}
@@ -148,7 +148,7 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 	// Check password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
 		// Log failed login - invalid password
-		u.securityLog.LogLoginAttempt(ctx, input.Email, false, "invalid password")
+		u.logLoginAttempt(ctx, input.Email, false, "invalid password")
 
 		return "", "", nil, fmt.Errorf("authentication failed: %w", ErrInvalidCredentials)
 	}
@@ -160,7 +160,7 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 		if user.Status == entities.UserStatusBlocked {
 			reason = "account blocked"
 		}
-		u.securityLog.LogLoginAttempt(ctx, input.Email, false, reason)
+		u.logLoginAttempt(ctx, input.Email, false, reason)
 
 		return "", "", nil, fmt.Errorf("cannot login: %w", err)
 	}
@@ -168,15 +168,15 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 	// Generate tokens
 	accessToken, refreshToken, err = u.generateTokens(ctx, user)
 	if err != nil {
-		u.securityLog.LogLoginAttempt(ctx, input.Email, false, "token generation failed")
+		u.logLoginAttempt(ctx, input.Email, false, "token generation failed")
 		return "", "", nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
 	// Log successful login
-	u.securityLog.LogLoginAttempt(ctx, input.Email, true, "login successful")
+	u.logLoginAttempt(ctx, input.Email, true, "login successful")
 
 	// Log audit event
-	u.auditLog.LogAuditEvent(ctx, "login", "auth", map[string]interface{}{
+	u.logAudit(ctx, "login", "auth", map[string]interface{}{
 		"user_id":     user.ID,
 		"email":       user.Email,
 		"role":        user.Role,
@@ -193,7 +193,7 @@ func (u *AuthUseCase) Register(ctx context.Context, input dto.RegisterInput) err
 	// Hash password with increased cost
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcryptCost)
 	if err != nil {
-		u.securityLog.LogRegistration(ctx, input.Email, input.Role, false, "password hashing failed")
+		u.logRegistration(ctx, input.Email, input.Role, false, "password hashing failed")
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
@@ -205,15 +205,15 @@ func (u *AuthUseCase) Register(ctx context.Context, input dto.RegisterInput) err
 	)
 
 	if err := u.userRepo.Create(ctx, user); err != nil {
-		u.securityLog.LogRegistration(ctx, input.Email, input.Role, false, "database error")
+		u.logRegistration(ctx, input.Email, input.Role, false, "database error")
 		return fmt.Errorf("failed to create user: %w", err)
 	}
 
 	// Log successful registration
-	u.securityLog.LogRegistration(ctx, input.Email, input.Role, true, "registration successful")
+	u.logRegistration(ctx, input.Email, input.Role, true, "registration successful")
 
 	// Log audit event
-	u.auditLog.LogAuditEvent(ctx, "user_registered", "user", map[string]interface{}{
+	u.logAudit(ctx, "user_registered", "user", map[string]interface{}{
 		"user_id":     user.ID,
 		"email":       user.Email,
 		"role":        user.Role,
@@ -235,20 +235,20 @@ func (u *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString strin
 	})
 
 	if err != nil || !token.Valid {
-		u.securityLog.LogTokenOperation(ctx, "refresh", false, 0)
+		u.logTokenOperation(ctx, "refresh", false, 0)
 		return "", "", fmt.Errorf("invalid refresh token: %w", ErrInvalidToken)
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		u.securityLog.LogTokenOperation(ctx, "refresh", false, 0)
+		u.logTokenOperation(ctx, "refresh", false, 0)
 		return "", "", fmt.Errorf("invalid token claims: %w", ErrInvalidToken)
 	}
 
 	// Extract user ID
 	userIDFloat, ok := claims["user_id"].(float64)
 	if !ok {
-		u.securityLog.LogTokenOperation(ctx, "refresh", false, 0)
+		u.logTokenOperation(ctx, "refresh", false, 0)
 		return "", "", fmt.Errorf("missing user_id in token: %w", ErrInvalidToken)
 	}
 	userID := int64(userIDFloat)
@@ -256,28 +256,28 @@ func (u *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString strin
 	// Get user from database
 	user, err := u.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		u.securityLog.LogTokenOperation(ctx, "refresh", false, userID)
+		u.logTokenOperation(ctx, "refresh", false, userID)
 		return "", "", fmt.Errorf("user not found: %w", err)
 	}
 
 	// Check if user can still login
 	if err := user.CanLogin(); err != nil {
-		u.securityLog.LogTokenOperation(ctx, "refresh", false, userID)
+		u.logTokenOperation(ctx, "refresh", false, userID)
 		return "", "", fmt.Errorf("cannot refresh token: %w", err)
 	}
 
 	// Generate new tokens
 	accessToken, newRefreshToken, err := u.generateTokens(ctx, user)
 	if err != nil {
-		u.securityLog.LogTokenOperation(ctx, "refresh", false, userID)
+		u.logTokenOperation(ctx, "refresh", false, userID)
 		return "", "", fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
 	// Log successful token refresh
-	u.securityLog.LogTokenOperation(ctx, "refresh", true, userID)
+	u.logTokenOperation(ctx, "refresh", true, userID)
 
 	// Log audit event
-	u.auditLog.LogAuditEvent(ctx, "token_refreshed", "auth", map[string]interface{}{
+	u.logAudit(ctx, "token_refreshed", "auth", map[string]interface{}{
 		"user_id": userID,
 	})
 
@@ -342,4 +342,30 @@ func (u *AuthUseCase) generateTokens(_ context.Context, user *entities.User) (st
 	}
 
 	return accessToken, refreshToken, nil
+}
+
+// Safe logging wrapper methods with nil checks
+
+func (u *AuthUseCase) logLoginAttempt(ctx context.Context, email string, success bool, reason string) {
+	if u.securityLog != nil {
+		u.securityLog.LogLoginAttempt(ctx, email, success, reason)
+	}
+}
+
+func (u *AuthUseCase) logRegistration(ctx context.Context, email, role string, success bool, reason string) {
+	if u.securityLog != nil {
+		u.securityLog.LogRegistration(ctx, email, role, success, reason)
+	}
+}
+
+func (u *AuthUseCase) logTokenOperation(ctx context.Context, operation string, success bool, userID int64) {
+	if u.securityLog != nil {
+		u.securityLog.LogTokenOperation(ctx, operation, success, userID)
+	}
+}
+
+func (u *AuthUseCase) logAudit(ctx context.Context, action, resourceType string, details map[string]interface{}) {
+	if u.auditLog != nil {
+		u.auditLog.LogAuditEvent(ctx, action, resourceType, details)
+	}
 }

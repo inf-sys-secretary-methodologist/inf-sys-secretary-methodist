@@ -337,7 +337,7 @@ func TestValidatorValidate(t *testing.T) {
 }
 
 func TestValidationError(t *testing.T) {
-	valErr := &ValidationError{
+	valErr := &Error{
 		Fields: map[string][]string{
 			"email":    {"Invalid email format", "Email is required"},
 			"password": {"Password is too weak"},

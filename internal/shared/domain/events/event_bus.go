@@ -4,12 +4,12 @@ package events
 import (
 	"sync"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/common"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/ddd"
 )
 
 // EventHandler handles domain events
 type EventHandler interface {
-	Handle(event common.DomainEvent) error
+	Handle(event ddd.DomainEvent) error
 	GetHandlerName() string
 }
 
@@ -17,7 +17,7 @@ type EventHandler interface {
 type EventBus interface {
 	Subscribe(eventType string, handler EventHandler) error
 	Unsubscribe(eventType string, handler EventHandler) error
-	Publish(event common.DomainEvent) error
+	Publish(event ddd.DomainEvent) error
 }
 
 // InMemoryEventBus is an in-memory implementation of EventBus
@@ -59,14 +59,14 @@ func (bus *InMemoryEventBus) Unsubscribe(eventType string, handler EventHandler)
 }
 
 // Publish publishes an event to all registered handlers
-func (bus *InMemoryEventBus) Publish(event common.DomainEvent) error {
+func (bus *InMemoryEventBus) Publish(event ddd.DomainEvent) error {
 	bus.mutex.RLock()
 	handlers := bus.handlers[event.GetEventType()]
 	bus.mutex.RUnlock()
 
 	for _, handler := range handlers {
 		// Execute handlers asynchronously
-		go func(h EventHandler, e common.DomainEvent) {
+		go func(h EventHandler, e ddd.DomainEvent) {
 			_ = h.Handle(e) //nolint:errcheck // TODO: Add proper error logging
 		}(handler, event)
 	}

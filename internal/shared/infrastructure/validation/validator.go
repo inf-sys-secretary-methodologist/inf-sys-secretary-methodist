@@ -64,19 +64,19 @@ func (v *Validator) formatValidationError(err error) error {
 			errorMessages[field] = append(errorMessages[field], message)
 		}
 
-		return &ValidationError{
+		return &Error{
 			Fields: errorMessages,
 		}
 	}
 	return err
 }
 
-// ValidationError представляет ошибки валидации
-type ValidationError struct {
+// Error represents validation errors with field-specific messages.
+type Error struct {
 	Fields map[string][]string
 }
 
-func (e *ValidationError) Error() string {
+func (e *Error) Error() string {
 	var messages []string
 	for field, errs := range e.Fields {
 		for _, err := range errs {

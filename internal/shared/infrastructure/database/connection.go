@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	// Import postgres driver for database/sql
 	_ "github.com/lib/pq"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"

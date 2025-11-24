@@ -176,6 +176,7 @@ func (tb *TokenBlacklist) IsBlacklisted(ctx context.Context, tokenID string) (bo
 	return found && exists, err
 }
 
+// Client returns the underlying Redis client for advanced operations.
 func (rc *RedisCache) Client() *redis.Client {
 	return rc.client
 }

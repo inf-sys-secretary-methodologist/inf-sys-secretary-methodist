@@ -13,14 +13,17 @@ import (
 )
 
 const (
-	// Composio API base URL
+	// BaseURL is the Composio API base URL.
 	BaseURL = "https://backend.composio.dev/api"
 
-	// Gmail action IDs
-	ActionGmailSendEmail     = "GMAIL_SEND_EMAIL"
-	ActionGmailCreateDraft   = "GMAIL_CREATE_EMAIL_DRAFT"
+	// ActionGmailSendEmail is the Gmail send email action ID.
+	ActionGmailSendEmail = "GMAIL_SEND_EMAIL"
+	// ActionGmailCreateDraft is the Gmail create draft action ID.
+	ActionGmailCreateDraft = "GMAIL_CREATE_EMAIL_DRAFT"
+	// ActionGmailReplyToThread is the Gmail reply to thread action ID.
 	ActionGmailReplyToThread = "GMAIL_REPLY_TO_EMAIL_THREAD"
-	ActionGmailFetchEmails   = "GMAIL_FETCH_EMAILS"
+	// ActionGmailFetchEmails is the Gmail fetch emails action ID.
+	ActionGmailFetchEmails = "GMAIL_FETCH_EMAILS"
 )
 
 // Client represents a Composio API client

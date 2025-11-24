@@ -13,12 +13,14 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
+// EmailHandler handles HTTP requests for email operations.
 type EmailHandler struct {
 	emailService services.EmailService
 	validator    *validation.Validator
 	sanitizer    *sanitization.Sanitizer
 }
 
+// NewEmailHandler creates a new email handler.
 func NewEmailHandler(emailService services.EmailService) *EmailHandler {
 	return &EmailHandler{
 		emailService: emailService,

@@ -34,10 +34,11 @@ func (m *mockUserRepository) GetByID(_ context.Context, _ int64) (*entities.User
 
 func (m *mockUserRepository) GetByEmail(_ context.Context, email string) (*entities.User, error) {
 	// Password is: Admin123456!
+	// Hash generated with bcrypt cost 14
 	return &entities.User{
 		ID:       1,
 		Email:    email,
-		Password: "$2a$14$ZKHqFX3vJT8kZY7ZJy.zfOEzBxD8YmBqGqN1xPJvJ1Y1xYJPqJ5qW",
+		Password: "$2a$14$dlaPdzfteiUkTlRwHMp/DuuMyviurDbsQnBwQ1MPSuUM4VnpyQJBK",
 		Role:     domain.RoleSystemAdmin,
 		Status:   entities.UserStatusActive,
 	}, nil
