@@ -74,7 +74,7 @@ func TestNotFound(t *testing.T) {
 }
 
 func TestUnauthorized(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		name     string
 		message  string
 		expected string

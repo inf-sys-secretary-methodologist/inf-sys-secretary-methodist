@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // UserBuilder provides a fluent interface for building test users

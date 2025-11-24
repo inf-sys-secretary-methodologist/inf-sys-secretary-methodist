@@ -13,8 +13,8 @@ var (
 	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
 	// passwordRegex для базовой проверки (дополнительная логика в функции)
-	passwordRegex = regexp.MustCompile(`[A-Za-z]`) // contains letter
-	passwordDigitRegex = regexp.MustCompile(`\d`)    // contains digit
+	passwordRegex      = regexp.MustCompile(`[A-Za-z]`) // contains letter
+	passwordDigitRegex = regexp.MustCompile(`\d`)       // contains digit
 
 	// alphanumericRegex для проверки alphanumeric строк
 	alphanumericRegex = regexp.MustCompile(`^[a-zA-Z0-9]+$`)

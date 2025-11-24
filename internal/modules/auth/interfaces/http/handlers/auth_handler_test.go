@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
-	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure/persistence"
-	testSuite "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/testing/suite"
+	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/testing/fixtures"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/testing/helpers"
+	testSuite "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/testing/suite"
 )
 
 // AuthHandlerTestSuite tests auth HTTP handlers
@@ -35,7 +35,7 @@ func (s *AuthHandlerTestSuite) SetupSuite() {
 	jwtSecret := []byte("test-secret")
 	refreshSecret := []byte("test-refresh-secret")
 	s.usecase = usecases.NewAuthUseCase(repo, jwtSecret, refreshSecret, nil, nil)
-	s.handler = authHandler.NewAuthHandler(s.usecase)
+	s.handler = authHandler.NewAuthHandler(s.usecase, nil) // emailService not needed for tests
 
 	// Setup router
 	gin.SetMode(gin.TestMode)

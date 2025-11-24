@@ -247,7 +247,7 @@ func setupRoutes(
 
 	// Global middleware stack (order matters!)
 	router.Use(gin.Recovery())
-	router.Use(corsMiddleware.Handler()) // CORS должен быть первым для обработки OPTIONS
+	router.Use(corsMiddleware.Handler())         // CORS должен быть первым для обработки OPTIONS
 	router.Use(middleware.RequestIDMiddleware()) // Request ID для трейсинга
 	router.Use(middleware.RequestContextMiddleware())
 	router.Use(authMiddleware.SecurityHeadersMiddleware())

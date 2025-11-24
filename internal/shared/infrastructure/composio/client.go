@@ -16,10 +16,10 @@ const (
 	BaseURL = "https://backend.composio.dev/api"
 
 	// Gmail action IDs
-	ActionGmailSendEmail        = "GMAIL_SEND_EMAIL"
-	ActionGmailCreateDraft      = "GMAIL_CREATE_EMAIL_DRAFT"
-	ActionGmailReplyToThread    = "GMAIL_REPLY_TO_EMAIL_THREAD"
-	ActionGmailFetchEmails      = "GMAIL_FETCH_EMAILS"
+	ActionGmailSendEmail     = "GMAIL_SEND_EMAIL"
+	ActionGmailCreateDraft   = "GMAIL_CREATE_EMAIL_DRAFT"
+	ActionGmailReplyToThread = "GMAIL_REPLY_TO_EMAIL_THREAD"
+	ActionGmailFetchEmails   = "GMAIL_FETCH_EMAILS"
 )
 
 // Client represents a Composio API client
@@ -128,8 +128,8 @@ type SendEmailRequest struct {
 func (c *Client) SendEmail(ctx context.Context, entityID string, email *SendEmailRequest) (*ExecuteActionResponse, error) {
 	input := map[string]interface{}{
 		"recipient_email": email.RecipientEmail,
-		"subject":        email.Subject,
-		"body":           email.Body,
+		"subject":         email.Subject,
+		"body":            email.Body,
 	}
 
 	if len(email.CC) > 0 {

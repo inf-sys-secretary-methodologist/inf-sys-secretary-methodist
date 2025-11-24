@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/stretchr/testify/suite"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/testing/helpers"
 )
 
