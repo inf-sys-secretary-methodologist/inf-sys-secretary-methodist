@@ -10,23 +10,26 @@ import (
 // User represents a user entity in the auth domain
 // Aligned with migrations/001_create_users_table.up.sql
 type User struct {
-	ID        int64             `db:"id" json:"id"`
-	Email     string            `db:"email" json:"email"`
-	Password  string            `db:"password" json:"-"` // hashed password, не отдаём в JSON
-	Name      string            `db:"name" json:"name"`
-	Role      domain.RoleType   `db:"role" json:"role"`
-	Status    UserStatus        `db:"status" json:"status"`
-	CreatedAt time.Time         `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time         `db:"updated_at" json:"updated_at"`
+	ID        int64           `db:"id" json:"id"`
+	Email     string          `db:"email" json:"email"`
+	Password  string          `db:"password" json:"-"` // hashed password, не отдаём в JSON
+	Name      string          `db:"name" json:"name"`
+	Role      domain.RoleType `db:"role" json:"role"`
+	Status    UserStatus      `db:"status" json:"status"`
+	CreatedAt time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time       `db:"updated_at" json:"updated_at"`
 }
 
 // UserStatus represents user account status
 type UserStatus string
 
 const (
-	UserStatusActive   UserStatus = "active"
+	// UserStatusActive indicates the user account is active and can log in.
+	UserStatusActive UserStatus = "active"
+	// UserStatusInactive indicates the user account is inactive.
 	UserStatusInactive UserStatus = "inactive"
-	UserStatusBlocked  UserStatus = "blocked"
+	// UserStatusBlocked indicates the user account is blocked and cannot log in.
+	UserStatusBlocked UserStatus = "blocked"
 )
 
 // NewUser creates a new user
@@ -73,8 +76,10 @@ func (u *User) CanLogin() error {
 }
 
 var (
+	// ErrAccountNotActive is returned when attempting to log in with an inactive account.
 	ErrAccountNotActive = fmt.Errorf("account is not active")
-	ErrAccountBlocked   = fmt.Errorf("account is blocked")
+	// ErrAccountBlocked is returned when attempting to log in with a blocked account.
+	ErrAccountBlocked = fmt.Errorf("account is blocked")
 )
 
 // IsActive checks if user is active

@@ -74,17 +74,18 @@ func TestMapPostgresError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := MapPostgresError(tt.err)
 
-			if tt.expectedError != nil {
+			switch {
+			case tt.expectedError != nil:
 				assert.True(t, errors.Is(result, tt.expectedError),
 					"Expected error %v, got %v", tt.expectedError, result)
-			} else if tt.expectedCode != "" {
+			case tt.expectedCode != "":
 				var domainErr *domainErrors.DomainError
 				assert.True(t, errors.As(result, &domainErr),
 					"Expected DomainError, got %T", result)
 				if domainErr != nil {
 					assert.Equal(t, tt.expectedCode, domainErr.Code)
 				}
-			} else {
+			default:
 				assert.Nil(t, result)
 			}
 		})

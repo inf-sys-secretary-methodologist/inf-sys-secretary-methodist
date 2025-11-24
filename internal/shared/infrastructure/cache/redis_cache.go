@@ -1,8 +1,10 @@
+// Package cache provides caching implementations using Redis.
 package cache
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -42,7 +44,7 @@ func NewRedisCache(addr string, password string, db int) (*RedisCache, error) {
 // Get retrieves a value from cache
 func (rc *RedisCache) Get(ctx context.Context, key string, dest interface{}) (bool, error) {
 	val, err := rc.client.Get(ctx, key).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return false, nil // Cache miss
 	}
 	if err != nil {
@@ -174,6 +176,7 @@ func (tb *TokenBlacklist) IsBlacklisted(ctx context.Context, tokenID string) (bo
 	return found && exists, err
 }
 
+// Client returns the underlying Redis client for advanced operations.
 func (rc *RedisCache) Client() *redis.Client {
 	return rc.client
 }

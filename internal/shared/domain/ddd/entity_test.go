@@ -1,4 +1,4 @@
-package common
+package ddd
 
 import (
 	"testing"

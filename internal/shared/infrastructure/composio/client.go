@@ -1,3 +1,4 @@
+// Package composio provides a client for the Composio API.
 package composio
 
 import (
@@ -12,14 +13,17 @@ import (
 )
 
 const (
-	// Composio API base URL
+	// BaseURL is the Composio API base URL.
 	BaseURL = "https://backend.composio.dev/api"
 
-	// Gmail action IDs
-	ActionGmailSendEmail        = "GMAIL_SEND_EMAIL"
-	ActionGmailCreateDraft      = "GMAIL_CREATE_EMAIL_DRAFT"
-	ActionGmailReplyToThread    = "GMAIL_REPLY_TO_EMAIL_THREAD"
-	ActionGmailFetchEmails      = "GMAIL_FETCH_EMAILS"
+	// ActionGmailSendEmail is the Gmail send email action ID.
+	ActionGmailSendEmail = "GMAIL_SEND_EMAIL"
+	// ActionGmailCreateDraft is the Gmail create draft action ID.
+	ActionGmailCreateDraft = "GMAIL_CREATE_EMAIL_DRAFT"
+	// ActionGmailReplyToThread is the Gmail reply to thread action ID.
+	ActionGmailReplyToThread = "GMAIL_REPLY_TO_EMAIL_THREAD"
+	// ActionGmailFetchEmails is the Gmail fetch emails action ID.
+	ActionGmailFetchEmails = "GMAIL_FETCH_EMAILS"
 )
 
 // Client represents a Composio API client
@@ -87,7 +91,11 @@ func (c *Client) ExecuteAction(ctx context.Context, actionID string, req *Execut
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("[Composio] Failed to close response body: %v", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -128,8 +136,8 @@ type SendEmailRequest struct {
 func (c *Client) SendEmail(ctx context.Context, entityID string, email *SendEmailRequest) (*ExecuteActionResponse, error) {
 	input := map[string]interface{}{
 		"recipient_email": email.RecipientEmail,
-		"subject":        email.Subject,
-		"body":           email.Body,
+		"subject":         email.Subject,
+		"body":            email.Body,
 	}
 
 	if len(email.CC) > 0 {

@@ -1,10 +1,12 @@
+// Package mocks provides mock implementations for testing.
 package mocks
 
 import (
 	"context"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 )
 
 // MockUserRepository is a mock implementation of UserRepository

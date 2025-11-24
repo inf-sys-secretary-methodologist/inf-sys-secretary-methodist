@@ -1,12 +1,14 @@
+// Package fixtures provides test fixtures for testing.
 package fixtures
 
 import (
 	"context"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // UserBuilder provides a fluent interface for building test users
@@ -85,7 +87,7 @@ func (b *UserBuilder) Build() *entities.User {
 }
 
 // BuildWithContext builds and returns the user (for consistency with other fixtures)
-func (b *UserBuilder) BuildWithContext(ctx context.Context) *entities.User {
+func (b *UserBuilder) BuildWithContext(_ context.Context) *entities.User {
 	return b.user
 }
 

@@ -1,3 +1,4 @@
+// Package main provides the entry point for the Information System Secretary-Methodologist server.
 package main
 
 import (
@@ -61,7 +62,13 @@ func main() {
 		})
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("Failed to close database connection", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
 
 	logger.Info("Database connected successfully", map[string]interface{}{
 		"max_open_conns": cfg.Database.MaxOpenConns,
@@ -76,7 +83,13 @@ func main() {
 		})
 	}
 	if redisCache != nil {
-		defer redisCache.Close()
+		defer func() {
+			if err := redisCache.Close(); err != nil {
+				logger.Error("Failed to close Redis connection", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}()
 		logger.Info("Redis cache connected successfully", nil)
 	}
 
@@ -154,7 +167,7 @@ func main() {
 	logger.Info("Server stopped", nil)
 }
 
-func initDatabase(cfg *config.Config, logger *logging.Logger) (*sql.DB, error) {
+func initDatabase(cfg *config.Config, _ *logging.Logger) (*sql.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		cfg.Database.Host,
@@ -185,7 +198,7 @@ func initDatabase(cfg *config.Config, logger *logging.Logger) (*sql.DB, error) {
 	return db, nil
 }
 
-func initRedisCache(cfg *config.Config, logger *logging.Logger) (*cache.RedisCache, error) {
+func initRedisCache(cfg *config.Config, _ *logging.Logger) (*cache.RedisCache, error) {
 	redisAddr := fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port)
 	redisCache, err := cache.NewRedisCache(redisAddr, cfg.Redis.Password, cfg.Redis.DB)
 	if err != nil {
@@ -247,7 +260,7 @@ func setupRoutes(
 
 	// Global middleware stack (order matters!)
 	router.Use(gin.Recovery())
-	router.Use(corsMiddleware.Handler()) // CORS должен быть первым для обработки OPTIONS
+	router.Use(corsMiddleware.Handler())         // CORS должен быть первым для обработки OPTIONS
 	router.Use(middleware.RequestIDMiddleware()) // Request ID для трейсинга
 	router.Use(middleware.RequestContextMiddleware())
 	router.Use(authMiddleware.SecurityHeadersMiddleware())
@@ -397,18 +410,23 @@ func rateLimitLogger(securityLog *logging.SecurityLogger) gin.HandlerFunc {
 	}
 }
 
+const (
+	healthStatusOK       = "OK"
+	healthStatusDegraded = "DEGRADED"
+)
+
 // healthCheckHandler returns a health check endpoint with dependency checks
 func healthCheckHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
 		defer cancel()
 
-		status := "OK"
+		status := healthStatusOK
 		checks := make(map[string]interface{})
 
 		// Check database
 		if err := db.PingContext(ctx); err != nil {
-			status = "DEGRADED"
+			status = healthStatusDegraded
 			checks["database"] = map[string]interface{}{
 				"status": "DOWN",
 				"error":  err.Error(),
@@ -422,7 +440,7 @@ func healthCheckHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFun
 		// Check Redis if available
 		if redisCache != nil {
 			if err := redisCache.Ping(ctx); err != nil {
-				status = "DEGRADED"
+				status = healthStatusDegraded
 				checks["redis"] = map[string]interface{}{
 					"status": "DOWN",
 					"error":  err.Error(),
@@ -439,7 +457,7 @@ func healthCheckHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFun
 		}
 
 		httpStatus := http.StatusOK
-		if status == "DEGRADED" {
+		if status == healthStatusDegraded {
 			httpStatus = http.StatusServiceUnavailable
 		}
 

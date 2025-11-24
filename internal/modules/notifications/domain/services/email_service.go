@@ -1,3 +1,4 @@
+// Package services defines domain service interfaces for the notifications module.
 package services
 
 import (

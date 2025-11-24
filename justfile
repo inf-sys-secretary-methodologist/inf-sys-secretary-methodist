@@ -55,7 +55,7 @@ deps:
 
 # Lint код
 lint:
-    golangci-lint run
+    golangci-lint run --config=.github/workflows/golangci.yml
 
 # Форматировать код
 fmt:

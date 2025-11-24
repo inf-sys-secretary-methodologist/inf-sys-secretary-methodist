@@ -1,4 +1,5 @@
-package common
+// Package ddd provides Domain-Driven Design base types and patterns.
+package ddd
 
 // AggregateRoot is the base for all aggregate roots in DDD
 type AggregateRoot struct {

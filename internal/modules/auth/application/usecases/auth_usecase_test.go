@@ -13,16 +13,16 @@ import (
 // Mock repository for testing
 type mockUserRepository struct{}
 
-func (m *mockUserRepository) Create(ctx context.Context, user *entities.User) error {
+func (m *mockUserRepository) Create(_ context.Context, user *entities.User) error {
 	user.ID = 1
 	return nil
 }
 
-func (m *mockUserRepository) Save(ctx context.Context, user *entities.User) error {
+func (m *mockUserRepository) Save(_ context.Context, _ *entities.User) error {
 	return nil
 }
 
-func (m *mockUserRepository) GetByID(ctx context.Context, id int64) (*entities.User, error) {
+func (m *mockUserRepository) GetByID(_ context.Context, _ int64) (*entities.User, error) {
 	return &entities.User{
 		ID:       1,
 		Email:    "test@example.com",
@@ -32,12 +32,13 @@ func (m *mockUserRepository) GetByID(ctx context.Context, id int64) (*entities.U
 	}, nil
 }
 
-func (m *mockUserRepository) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
+func (m *mockUserRepository) GetByEmail(_ context.Context, email string) (*entities.User, error) {
 	// Password is: Admin123456!
+	// Hash generated with bcrypt cost 14
 	return &entities.User{
 		ID:       1,
 		Email:    email,
-		Password: "$2a$14$ZKHqFX3vJT8kZY7ZJy.zfOEzBxD8YmBqGqN1xPJvJ1Y1xYJPqJ5qW",
+		Password: "$2a$14$dlaPdzfteiUkTlRwHMp/DuuMyviurDbsQnBwQ1MPSuUM4VnpyQJBK",
 		Role:     domain.RoleSystemAdmin,
 		Status:   entities.UserStatusActive,
 	}, nil
@@ -48,11 +49,11 @@ func (m *mockUserRepository) GetByEmailForAuth(ctx context.Context, email string
 	return m.GetByEmail(ctx, email)
 }
 
-func (m *mockUserRepository) Delete(ctx context.Context, id int64) error {
+func (m *mockUserRepository) Delete(_ context.Context, _ int64) error {
 	return nil
 }
 
-func (m *mockUserRepository) List(ctx context.Context, limit, offset int) ([]*entities.User, error) {
+func (m *mockUserRepository) List(_ context.Context, _, _ int) ([]*entities.User, error) {
 	return []*entities.User{}, nil
 }
 

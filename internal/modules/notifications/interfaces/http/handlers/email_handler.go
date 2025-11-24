@@ -1,3 +1,4 @@
+// Package http contains HTTP request handlers for the notifications module.
 package http
 
 import (
@@ -5,18 +6,21 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
+// EmailHandler handles HTTP requests for email operations.
 type EmailHandler struct {
 	emailService services.EmailService
 	validator    *validation.Validator
 	sanitizer    *sanitization.Sanitizer
 }
 
+// NewEmailHandler creates a new email handler.
 func NewEmailHandler(emailService services.EmailService) *EmailHandler {
 	return &EmailHandler{
 		emailService: emailService,

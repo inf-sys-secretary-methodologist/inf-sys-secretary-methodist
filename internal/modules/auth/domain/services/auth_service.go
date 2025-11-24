@@ -1,3 +1,4 @@
+// Package services contains domain services for the auth module.
 package services
 
 import (
@@ -24,6 +25,7 @@ type AuthorizationService interface {
 	CanApproveDocument(userCtx *entities.UserContext, documentType string, currentStep int) bool
 }
 
+// JWTService provides JWT token generation and validation.
 type JWTService struct {
 	secretKey       string
 	refreshSecret   string
@@ -31,18 +33,22 @@ type JWTService struct {
 	refreshTokenTTL time.Duration
 }
 
+// AuthorizationServiceImpl implements the AuthorizationService interface.
 type AuthorizationServiceImpl struct{}
 
+// TokenPair represents a pair of access and refresh tokens.
 type TokenPair struct {
 	AccessToken  string
 	RefreshToken string
 }
 
+// Scope represents resource scope for authorization checks.
 type Scope struct {
 	FacultyID *string `json:"faculty_id,omitempty"`
 	GroupID   *string `json:"group_id,omitempty"`
 }
 
+// NewJWTService creates a new JWT service instance.
 func NewJWTService(secret, refreshSecret string, accessTTL, refreshTTL time.Duration) *JWTService {
 	return &JWTService{
 		secretKey:       secret,
@@ -52,10 +58,12 @@ func NewJWTService(secret, refreshSecret string, accessTTL, refreshTTL time.Dura
 	}
 }
 
+// NewAuthorizationService creates a new authorization service instance.
 func NewAuthorizationService() AuthorizationService {
 	return &AuthorizationServiceImpl{}
 }
 
+// GenerateTokens generates access and refresh tokens for a user.
 func (s *JWTService) GenerateTokens(userID int64, role string) (*TokenPair, error) {
 	accessClaims := jwt.MapClaims{
 		"user_id": userID,
@@ -84,6 +92,7 @@ func (s *JWTService) GenerateTokens(userID int64, role string) (*TokenPair, erro
 	}, nil
 }
 
+// CheckPermission checks if user has permission to perform an action on a resource.
 func (s *AuthorizationServiceImpl) CheckPermission(userCtx *entities.UserContext, resource domain.ResourceType, action domain.ActionType, resourceScope *Scope) bool {
 	if userCtx == nil {
 		return false
@@ -126,16 +135,18 @@ func (s *AuthorizationServiceImpl) checkLimitedAccess(userCtx *entities.UserCont
 	return true
 }
 
-func (s *AuthorizationServiceImpl) checkOwnershipInternal(userID int64, resourceScope *Scope) bool {
+func (s *AuthorizationServiceImpl) checkOwnershipInternal(_ int64, _ *Scope) bool {
 	// В реальной системе здесь была бы проверка владения ресурсом
 	// Для примера возвращаем true
 	return true
 }
 
+// CheckOwnership checks if user owns the resource.
 func (s *AuthorizationServiceImpl) CheckOwnership(userID int64, resourceOwnerID int64) bool {
 	return userID == resourceOwnerID
 }
 
+// CanApproveDocument checks if user can approve a document at current step.
 func (s *AuthorizationServiceImpl) CanApproveDocument(userCtx *entities.UserContext, documentType string, currentStep int) bool {
 	if userCtx == nil {
 		return false
@@ -168,16 +179,18 @@ func (s *AuthorizationServiceImpl) canApproveCurriculum(userCtx *entities.UserCo
 	}
 }
 
-func (s *AuthorizationServiceImpl) canApproveReport(userCtx *entities.UserContext, currentStep int) bool {
+func (s *AuthorizationServiceImpl) canApproveReport(userCtx *entities.UserContext, _ int) bool {
 	// Упрощенная логика для отчетов
 	return userCtx.HasPermission(domain.ResourceReports, domain.ActionApprove)
 }
 
+// HashPassword hashes a password using bcrypt.
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(bytes), err
 }
 
+// CheckPasswordHash checks if password matches the hash.
 func CheckPasswordHash(password, hash string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }

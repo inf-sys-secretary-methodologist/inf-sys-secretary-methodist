@@ -1,3 +1,4 @@
+// Package middleware contains shared infrastructure middleware components.
 package middleware
 
 import (
@@ -5,6 +6,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+)
+
+// Context key types for type-safe context values
+type contextKey string
+
+const (
+	contextKeyRequestID  contextKey = "request_id"
+	contextKeyIPAddress  contextKey = "ip_address"
+	contextKeyUserAgent  contextKey = "user_agent"
+	contextKeyHTTPMethod contextKey = "http_method"
+	contextKeyHTTPPath   contextKey = "http_path"
 )
 
 // RequestIDMiddleware adds a unique request ID to each request for distributed tracing
@@ -29,7 +41,7 @@ func RequestIDMiddleware() gin.HandlerFunc {
 		c.Set("request_id", requestID)
 
 		// Add to request context for downstream use
-		ctx := context.WithValue(c.Request.Context(), "request_id", requestID)
+		ctx := context.WithValue(c.Request.Context(), contextKeyRequestID, requestID)
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
@@ -42,14 +54,14 @@ func RequestContextMiddleware() gin.HandlerFunc {
 		ctx := c.Request.Context()
 
 		// Add IP address
-		ctx = context.WithValue(ctx, "ip_address", c.ClientIP())
+		ctx = context.WithValue(ctx, contextKeyIPAddress, c.ClientIP())
 
 		// Add user agent
-		ctx = context.WithValue(ctx, "user_agent", c.Request.UserAgent())
+		ctx = context.WithValue(ctx, contextKeyUserAgent, c.Request.UserAgent())
 
 		// Add request method and path
-		ctx = context.WithValue(ctx, "http_method", c.Request.Method)
-		ctx = context.WithValue(ctx, "http_path", c.Request.URL.Path)
+		ctx = context.WithValue(ctx, contextKeyHTTPMethod, c.Request.Method)
+		ctx = context.WithValue(ctx, contextKeyHTTPPath, c.Request.URL.Path)
 
 		c.Request = c.Request.WithContext(ctx)
 

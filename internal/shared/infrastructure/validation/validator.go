@@ -1,6 +1,8 @@
+// Package validation provides request validation utilities.
 package validation
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -13,8 +15,8 @@ var (
 	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
 	// passwordRegex для базовой проверки (дополнительная логика в функции)
-	passwordRegex = regexp.MustCompile(`[A-Za-z]`) // contains letter
-	passwordDigitRegex = regexp.MustCompile(`\d`)    // contains digit
+	passwordRegex      = regexp.MustCompile(`[A-Za-z]`) // contains letter
+	passwordDigitRegex = regexp.MustCompile(`\d`)       // contains digit
 
 	// alphanumericRegex для проверки alphanumeric строк
 	alphanumericRegex = regexp.MustCompile(`^[a-zA-Z0-9]+$`)
@@ -52,7 +54,8 @@ func (v *Validator) ValidateField(field interface{}, tag string) error {
 
 // formatValidationError форматирует ошибки валидации в читаемый вид
 func (v *Validator) formatValidationError(err error) error {
-	if validationErrors, ok := err.(validator.ValidationErrors); ok {
+	var validationErrors validator.ValidationErrors
+	if errors.As(err, &validationErrors) {
 		errorMessages := make(map[string][]string)
 
 		for _, fieldError := range validationErrors {
@@ -61,19 +64,19 @@ func (v *Validator) formatValidationError(err error) error {
 			errorMessages[field] = append(errorMessages[field], message)
 		}
 
-		return &ValidationError{
+		return &Error{
 			Fields: errorMessages,
 		}
 	}
 	return err
 }
 
-// ValidationError представляет ошибки валидации
-type ValidationError struct {
+// Error represents validation errors with field-specific messages.
+type Error struct {
 	Fields map[string][]string
 }
 
-func (e *ValidationError) Error() string {
+func (e *Error) Error() string {
 	var messages []string
 	for field, errs := range e.Fields {
 		for _, err := range errs {

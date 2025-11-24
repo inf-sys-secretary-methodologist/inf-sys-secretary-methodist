@@ -1,3 +1,4 @@
+// Package persistence contains database persistence implementations for the auth module.
 package persistence
 
 import (

@@ -24,13 +24,17 @@ func TestLoad_Defaults(t *testing.T) {
 }
 
 func TestLoad_FromEnv(t *testing.T) {
-	os.Setenv("ENVIRONMENT", "production")
-	os.Setenv("SERVER_PORT", "9000")
-	os.Setenv("DB_HOST", "db.example.com")
+	_ = os.Setenv("ENVIRONMENT", "production")
+	_ = os.Setenv("SERVER_PORT", "9000")
+	_ = os.Setenv("DB_HOST", "db.example.com")
+	_ = os.Setenv("JWT_ACCESS_SECRET", "test-access-secret-for-production")
+	_ = os.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret-for-production")
 	defer func() {
-		os.Unsetenv("ENVIRONMENT")
-		os.Unsetenv("SERVER_PORT")
-		os.Unsetenv("DB_HOST")
+		_ = os.Unsetenv("ENVIRONMENT")
+		_ = os.Unsetenv("SERVER_PORT")
+		_ = os.Unsetenv("DB_HOST")
+		_ = os.Unsetenv("JWT_ACCESS_SECRET")
+		_ = os.Unsetenv("JWT_REFRESH_SECRET")
 	}()
 
 	cfg, err := Load()
@@ -65,8 +69,10 @@ func TestDatabaseConfig_GetDSN(t *testing.T) {
 }
 
 func TestGetEnv(t *testing.T) {
-	os.Setenv("TEST_KEY", "test_value")
-	defer os.Unsetenv("TEST_KEY")
+	_ = os.Setenv("TEST_KEY", "test_value")
+	defer func() {
+		_ = os.Unsetenv("TEST_KEY")
+	}()
 
 	if got := getEnv("TEST_KEY", "default"); got != "test_value" {
 		t.Errorf("getEnv() = %v, want %v", got, "test_value")
@@ -77,8 +83,10 @@ func TestGetEnv(t *testing.T) {
 }
 
 func TestGetEnvAsInt(t *testing.T) {
-	os.Setenv("TEST_INT", "42")
-	defer os.Unsetenv("TEST_INT")
+	_ = os.Setenv("TEST_INT", "42")
+	defer func() {
+		_ = os.Unsetenv("TEST_INT")
+	}()
 
 	if got := getEnvAsInt("TEST_INT", 0); got != 42 {
 		t.Errorf("getEnvAsInt() = %v, want %v", got, 42)
@@ -89,8 +97,10 @@ func TestGetEnvAsInt(t *testing.T) {
 }
 
 func TestGetEnvAsDuration(t *testing.T) {
-	os.Setenv("TEST_DURATION", "5s")
-	defer os.Unsetenv("TEST_DURATION")
+	_ = os.Setenv("TEST_DURATION", "5s")
+	defer func() {
+		_ = os.Unsetenv("TEST_DURATION")
+	}()
 
 	if got := getEnvAsDuration("TEST_DURATION", 0); got != 5*time.Second {
 		t.Errorf("getEnvAsDuration() = %v, want %v", got, 5*time.Second)

@@ -1,11 +1,14 @@
+// Package database provides database connection and management utilities.
 package database
 
 import (
 	"database/sql"
 	"fmt"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
+	// Import postgres driver for database/sql
 	_ "github.com/lib/pq"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
 )
 
 // NewConnection creates a new database connection

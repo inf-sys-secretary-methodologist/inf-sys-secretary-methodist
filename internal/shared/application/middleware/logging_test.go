@@ -6,21 +6,22 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 func TestLoggingMiddleware_Handler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
-		name           string
-		method         string
-		path           string
-		queryString    string
-		statusCode     int
-		requestID      string
-		expectedLevel  string
+		name          string
+		method        string
+		path          string
+		queryString   string
+		statusCode    int
+		requestID     string
+		expectedLevel string
 	}{
 		{
 			name:          "successful request logs info",

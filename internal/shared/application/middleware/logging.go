@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -53,11 +54,12 @@ func (m *LoggingMiddleware) Handler() gin.HandlerFunc {
 
 		// Логируем с соответствующим уровнем в зависимости от статуса
 		statusCode := c.Writer.Status()
-		if statusCode >= 500 {
+		switch {
+		case statusCode >= 500:
 			m.logger.Error("HTTP request", fields)
-		} else if statusCode >= 400 {
+		case statusCode >= 400:
 			m.logger.Warn("HTTP request", fields)
-		} else {
+		default:
 			m.logger.Info("HTTP request", fields)
 		}
 	}

@@ -174,7 +174,12 @@ func (r *UserRepositoryPG) List(ctx context.Context, limit, offset int) ([]*enti
 	if err != nil {
 		return nil, database.MapPostgresError(err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			// Log error but don't fail the operation
+			_ = err
+		}
+	}()
 
 	users := []*entities.User{}
 	for rows.Next() {

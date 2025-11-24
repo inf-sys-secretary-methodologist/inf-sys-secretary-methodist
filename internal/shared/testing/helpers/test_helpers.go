@@ -1,3 +1,4 @@
+// Package helpers provides test helper utilities.
 package helpers
 
 import (
@@ -32,7 +33,7 @@ func SetupTestDB(t *testing.T) *sql.DB {
 	}
 
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	return db
@@ -43,7 +44,7 @@ func CleanupTestDB(t *testing.T, db *sql.DB, tables ...string) {
 	ctx := TestContext(t)
 
 	for _, table := range tables {
-		query := fmt.Sprintf("DELETE FROM %s", table)
+		query := fmt.Sprintf("DELETE FROM %s", table) //nolint:gosec // G201: table name is from test parameters, not user input
 		_, err := db.ExecContext(ctx, query)
 		require.NoError(t, err, "Failed to cleanup table %s", table)
 	}

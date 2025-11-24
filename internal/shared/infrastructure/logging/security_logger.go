@@ -9,18 +9,30 @@ import (
 type SecurityEvent string
 
 const (
-	EventLoginSuccess         SecurityEvent = "login_success"
-	EventLoginFailed          SecurityEvent = "login_failed"
-	EventRegistrationSuccess  SecurityEvent = "registration_success"
-	EventRegistrationFailed   SecurityEvent = "registration_failed"
-	EventTokenRefreshSuccess  SecurityEvent = "token_refresh_success"
-	EventTokenRefreshFailed   SecurityEvent = "token_refresh_failed"
+	// EventLoginSuccess indicates a successful login attempt.
+	EventLoginSuccess SecurityEvent = "login_success"
+	// EventLoginFailed indicates a failed login attempt.
+	EventLoginFailed SecurityEvent = "login_failed"
+	// EventRegistrationSuccess indicates a successful registration.
+	EventRegistrationSuccess SecurityEvent = "registration_success"
+	// EventRegistrationFailed indicates a failed registration.
+	EventRegistrationFailed SecurityEvent = "registration_failed"
+	// EventTokenRefreshSuccess indicates a successful token refresh.
+	EventTokenRefreshSuccess SecurityEvent = "token_refresh_success"
+	// EventTokenRefreshFailed indicates a failed token refresh.
+	EventTokenRefreshFailed SecurityEvent = "token_refresh_failed"
+	// EventTokenValidationFailed indicates a failed token validation.
 	EventTokenValidationFailed SecurityEvent = "token_validation_failed"
-	EventUnauthorizedAccess   SecurityEvent = "unauthorized_access"
-	EventRateLimitExceeded    SecurityEvent = "rate_limit_exceeded"
-	EventAccountLocked        SecurityEvent = "account_locked"
-	EventPasswordChanged      SecurityEvent = "password_changed"
-	EventPermissionDenied     SecurityEvent = "permission_denied"
+	// EventUnauthorizedAccess indicates an unauthorized access attempt.
+	EventUnauthorizedAccess SecurityEvent = "unauthorized_access"
+	// EventRateLimitExceeded indicates that rate limit was exceeded.
+	EventRateLimitExceeded SecurityEvent = "rate_limit_exceeded"
+	// EventAccountLocked indicates that an account was locked.
+	EventAccountLocked SecurityEvent = "account_locked"
+	// EventPasswordChanged indicates that a password was changed.
+	EventPasswordChanged SecurityEvent = "password_changed"
+	// EventPermissionDenied indicates that permission was denied.
+	EventPermissionDenied SecurityEvent = "permission_denied"
 )
 
 // SecurityLogger provides security event logging with audit trail
@@ -36,9 +48,9 @@ func NewSecurityLogger(logger *Logger) *SecurityLogger {
 // LogSecurityEvent logs a security event with full context
 func (sl *SecurityLogger) LogSecurityEvent(ctx context.Context, event SecurityEvent, fields map[string]interface{}) {
 	enrichedFields := map[string]interface{}{
-		"event_type":  string(event),
-		"timestamp":   time.Now().UTC().Format(time.RFC3339),
-		"category":    "security",
+		"event_type": string(event),
+		"timestamp":  time.Now().UTC().Format(time.RFC3339),
+		"category":   "security",
 	}
 
 	// Extract correlation ID from context if present
@@ -69,7 +81,7 @@ func (sl *SecurityLogger) LogSecurityEvent(ctx context.Context, event SecurityEv
 	// Determine log level based on event type
 	switch event {
 	case EventLoginFailed, EventTokenValidationFailed, EventUnauthorizedAccess,
-		 EventRateLimitExceeded, EventPermissionDenied:
+		EventRateLimitExceeded, EventPermissionDenied:
 		sl.logger.Warn("Security event detected", enrichedFields)
 	case EventAccountLocked:
 		sl.logger.Error("Security event detected", enrichedFields)
@@ -197,7 +209,7 @@ func NewPerformanceLogger(logger *Logger) *PerformanceLogger {
 }
 
 // LogDatabaseQuery logs database query performance
-func (pl *PerformanceLogger) LogDatabaseQuery(ctx context.Context, query string, duration time.Duration, rowsAffected int64) {
+func (pl *PerformanceLogger) LogDatabaseQuery(ctx context.Context, _ string, duration time.Duration, rowsAffected int64) {
 	fields := map[string]interface{}{
 		"query_type":    "database",
 		"duration_ms":   duration.Milliseconds(),

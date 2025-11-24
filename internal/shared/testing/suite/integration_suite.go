@@ -1,9 +1,11 @@
+// Package suite provides base test suite implementations.
 package suite
 
 import (
 	"database/sql"
 
 	"github.com/stretchr/testify/suite"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/testing/helpers"
 )
 
@@ -21,7 +23,7 @@ func (s *IntegrationSuite) SetupSuite() {
 // TearDownSuite runs once after all tests in the suite
 func (s *IntegrationSuite) TearDownSuite() {
 	if s.DB != nil {
-		s.DB.Close()
+		_ = s.DB.Close()
 	}
 }
 

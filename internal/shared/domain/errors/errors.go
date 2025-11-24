@@ -1,3 +1,4 @@
+// Package errors contains shared domain error types and error handling utilities.
 package errors
 
 import "errors"

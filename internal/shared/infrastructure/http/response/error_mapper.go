@@ -1,3 +1,4 @@
+// Package response provides HTTP response utilities and error mapping.
 package response
 
 import (

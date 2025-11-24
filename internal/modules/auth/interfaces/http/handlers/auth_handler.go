@@ -1,3 +1,4 @@
+// Package http contains HTTP request handlers for the auth module.
 package http
 
 import (
@@ -7,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	emailServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
@@ -15,6 +17,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
+// AuthHandler handles HTTP requests for authentication endpoints.
 type AuthHandler struct {
 	usecase      *usecases.AuthUseCase
 	emailService emailServices.EmailService
@@ -22,6 +25,7 @@ type AuthHandler struct {
 	sanitizer    *sanitization.Sanitizer
 }
 
+// NewAuthHandler creates a new authentication handler.
 func NewAuthHandler(usecase *usecases.AuthUseCase, emailService emailServices.EmailService) *AuthHandler {
 	return &AuthHandler{
 		usecase:      usecase,
