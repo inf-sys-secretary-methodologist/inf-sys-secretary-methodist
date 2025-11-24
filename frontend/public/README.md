@@ -5,6 +5,7 @@
 ## Использование
 
 Файлы в этой директории будут доступны по корневому пути:
+
 - `public/logo.svg` → `/logo.svg`
 - `public/images/hero.png` → `/images/hero.png`
 

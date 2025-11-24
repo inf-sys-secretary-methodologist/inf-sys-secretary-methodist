@@ -129,50 +129,40 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex-1 space-y-4">
               {/* Error Title */}
               <div>
-                <h3 className="text-lg font-semibold text-destructive">
-                  Произошла ошибка
-                </h3>
+                <h3 className="text-lg font-semibold text-destructive">Произошла ошибка</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {errorMessage ||
-                    'Этот компонент столкнулся с ошибкой и не может быть отображён.'}
+                  {errorMessage || 'Этот компонент столкнулся с ошибкой и не может быть отображён.'}
                 </p>
               </div>
 
               {/* Error Details (Development only or if showDetails is true) */}
-              {showDetails &&
-                process.env.NODE_ENV === 'development' &&
-                error && (
-                  <div className="space-y-2">
-                    <div className="p-3 rounded bg-destructive/10 border border-destructive/20">
-                      <p className="text-xs font-semibold text-destructive mb-1">
-                        Сообщение об ошибке:
-                      </p>
-                      <p className="text-xs text-destructive/80 font-mono break-words">
-                        {error.message}
-                      </p>
-                    </div>
-
-                    {errorInfo?.componentStack && (
-                      <details className="text-xs">
-                        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                          Показать стек компонентов
-                        </summary>
-                        <pre className="mt-2 p-3 rounded bg-muted overflow-x-auto text-xs">
-                          {errorInfo.componentStack}
-                        </pre>
-                      </details>
-                    )}
+              {showDetails && process.env.NODE_ENV === 'development' && error && (
+                <div className="space-y-2">
+                  <div className="p-3 rounded bg-destructive/10 border border-destructive/20">
+                    <p className="text-xs font-semibold text-destructive mb-1">
+                      Сообщение об ошибке:
+                    </p>
+                    <p className="text-xs text-destructive/80 font-mono break-words">
+                      {error.message}
+                    </p>
                   </div>
-                )}
+
+                  {errorInfo?.componentStack && (
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                        Показать стек компонентов
+                      </summary>
+                      <pre className="mt-2 p-3 rounded bg-muted overflow-x-auto text-xs">
+                        {errorInfo.componentStack}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              )}
 
               {/* Reset Button */}
               <div>
-                <Button
-                  onClick={this.handleReset}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
+                <Button onClick={this.handleReset} variant="outline" size="sm" className="gap-2">
                   <RefreshCw className="h-4 w-4" />
                   Попробовать снова
                 </Button>

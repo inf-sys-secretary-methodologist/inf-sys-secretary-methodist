@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useEffect, ComponentType } from 'react'
 import { useRouter } from 'next/navigation'
@@ -41,21 +41,14 @@ export interface WithAuthOptions {
  * })
  * ```
  */
-export function withAuth<P extends object>(
-  Component: ComponentType<P>,
-  options?: WithAuthOptions
-) {
+export function withAuth<P extends object>(Component: ComponentType<P>, options?: WithAuthOptions) {
   const displayName = Component.displayName || Component.name || 'Component'
 
   const ProtectedComponent = (props: P) => {
     const router = useRouter()
     const { isAuthenticated, user, isLoading } = useAuthStore()
 
-    const {
-      roles,
-      redirectTo = '/login',
-      LoadingComponent,
-    } = options || {}
+    const { roles, redirectTo = '/login', LoadingComponent } = options || {}
 
     useEffect(() => {
       // Wait for auth state to load

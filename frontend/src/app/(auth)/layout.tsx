@@ -9,11 +9,7 @@ export const metadata: Metadata = {
   description: 'Вход и регистрация в системе',
 }
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       {/* Theme Toggle */}

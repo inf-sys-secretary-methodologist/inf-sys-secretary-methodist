@@ -46,7 +46,6 @@ describe('LoginForm', () => {
     render(<LoginForm />)
 
     const emailInput = screen.getByLabelText(/email/i)
-    const submitButton = screen.getByRole('button', { name: /войти/i })
 
     // Blur without entering email
     await user.click(emailInput)
@@ -87,7 +86,7 @@ describe('LoginForm', () => {
 
     const passwordInput = screen.getByLabelText(/пароль/i)
     const buttons = screen.getAllByRole('button')
-    const toggleButton = buttons.find(btn => btn.getAttribute('tabIndex') === '-1')
+    const toggleButton = buttons.find((btn) => btn.getAttribute('tabIndex') === '-1')
 
     expect(passwordInput).toHaveAttribute('type', 'password')
 
@@ -130,7 +129,6 @@ describe('LoginForm', () => {
   })
 
   it('displays error message when login fails', async () => {
-    const user = userEvent.setup()
     const errorMessage = 'Неверный email или пароль'
 
     mockUseLogin.mockReturnValue({

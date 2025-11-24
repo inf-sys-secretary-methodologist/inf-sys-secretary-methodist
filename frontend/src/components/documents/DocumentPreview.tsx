@@ -3,11 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { X, Download, ExternalLink, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Document,
-  DocumentCategoryLabels,
-  DocumentStatusLabels
-} from '@/types/document'
+import { Document, DocumentCategoryLabels, DocumentStatusLabels } from '@/types/document'
 
 interface DocumentPreviewProps {
   document: Document
@@ -20,7 +16,7 @@ export function DocumentPreview({
   document: doc,
   onClose,
   onDownload,
-  className = ''
+  className = '',
 }: DocumentPreviewProps) {
   const modalRef = useRef<HTMLDivElement>(null)
 
@@ -52,7 +48,7 @@ export function DocumentPreview({
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     }).format(new Date(date))
   }
 
@@ -93,21 +89,13 @@ export function DocumentPreview({
 
           <div className="flex items-center gap-2">
             {onDownload && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onDownload}
-              >
+              <Button variant="outline" size="sm" onClick={onDownload}>
                 <Download className="h-4 w-4 mr-2" />
                 Скачать
               </Button>
             )}
             {doc.url && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(doc.url, '_blank')}
-              >
+              <Button variant="outline" size="sm" onClick={() => window.open(doc.url, '_blank')}>
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Открыть
               </Button>
@@ -125,19 +113,11 @@ export function DocumentPreview({
         <div className="flex-1 overflow-auto p-4">
           {isPDF && doc.url ? (
             <div className="h-full min-h-[600px]">
-              <iframe
-                src={doc.url}
-                className="w-full h-full border-0 rounded"
-                title={doc.name}
-              />
+              <iframe src={doc.url} className="w-full h-full border-0 rounded" title={doc.name} />
             </div>
           ) : isImage && doc.url ? (
             <div className="flex items-center justify-center h-full min-h-[400px]">
-              <img
-                src={doc.url}
-                alt={doc.name}
-                className="max-w-full max-h-full object-contain"
-              />
+              <img src={doc.url} alt={doc.name} className="max-w-full max-h-full object-contain" />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
@@ -169,16 +149,12 @@ export function DocumentPreview({
             </div>
             <div>
               <p className="text-gray-500 dark:text-gray-400 mb-1">Загрузил</p>
-              <p className="font-medium text-gray-900 dark:text-white">
-                {doc.metadata.uploadedBy}
-              </p>
+              <p className="font-medium text-gray-900 dark:text-white">{doc.metadata.uploadedBy}</p>
             </div>
             {doc.metadata.version && (
               <div>
                 <p className="text-gray-500 dark:text-gray-400 mb-1">Версия</p>
-                <p className="font-medium text-gray-900 dark:text-white">
-                  {doc.metadata.version}
-                </p>
+                <p className="font-medium text-gray-900 dark:text-white">{doc.metadata.version}</p>
               </div>
             )}
             {doc.metadata.modifiedAt && (
@@ -194,9 +170,7 @@ export function DocumentPreview({
           {doc.description && (
             <div className="mt-4">
               <p className="text-gray-500 dark:text-gray-400 mb-1">Описание</p>
-              <p className="text-gray-900 dark:text-white">
-                {doc.description}
-              </p>
+              <p className="text-gray-900 dark:text-white">{doc.description}</p>
             </div>
           )}
 

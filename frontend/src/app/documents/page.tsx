@@ -17,7 +17,7 @@ import {
   DocumentFilter,
   DocumentSortOptions,
   DocumentUpload,
-  DocumentStatus
+  DocumentStatus,
 } from '@/types/document'
 import { mockDocuments, filterDocuments, sortDocuments } from '@/lib/mock-documents'
 import { getAvailableNavItems } from '@/config/navigation'
@@ -33,7 +33,7 @@ export default function DocumentsPage() {
   const [filters, setFilters] = useState<DocumentFilter>({})
   const [sort, setSort] = useState<DocumentSortOptions>({
     field: 'uploadedAt',
-    order: 'desc'
+    order: 'desc',
   })
 
   // Get navigation items filtered by user role
@@ -50,7 +50,7 @@ export default function DocumentsPage() {
 
     // Simulate upload process
     // In production, this would make actual API calls
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
     // Create mock uploaded documents
     const newDocuments: Document[] = uploads.map((upload, index) => ({
@@ -62,13 +62,13 @@ export default function DocumentsPage() {
         size: upload.file.size,
         mimeType: upload.file.type,
         uploadedBy: user?.name || 'Текущий пользователь',
-        uploadedAt: new Date()
+        uploadedAt: new Date(),
       },
       description: upload.description,
-      tags: upload.tags
+      tags: upload.tags,
     }))
 
-    setDocuments(prev => [...newDocuments, ...prev])
+    setDocuments((prev) => [...newDocuments, ...prev])
     setIsUploading(false)
     setShowUpload(false)
   }
@@ -88,7 +88,7 @@ export default function DocumentsPage() {
   const handleDelete = async (doc: Document) => {
     if (confirm(`Вы уверены, что хотите удалить документ "${doc.name}"?`)) {
       // In production, this would make API call
-      setDocuments(prev => prev.filter(d => d.id !== doc.id))
+      setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
     }
   }
 
@@ -109,7 +109,10 @@ export default function DocumentsPage() {
       <NavBar items={navItems} />
 
       {/* Top Navigation */}
-      <div className="fixed top-8 right-8 z-50 pointer-events-auto flex items-center gap-3" style={{ isolation: 'isolate' }}>
+      <div
+        className="fixed top-8 right-8 z-50 pointer-events-auto flex items-center gap-3"
+        style={{ isolation: 'isolate' }}
+      >
         <UserMenu />
         <ThemeToggleButton />
       </div>
@@ -127,10 +130,7 @@ export default function DocumentsPage() {
 
         {/* Upload Button */}
         <div className="flex justify-end">
-          <Button
-            onClick={() => setShowUpload(!showUpload)}
-            className="flex items-center gap-2"
-          >
+          <Button onClick={() => setShowUpload(!showUpload)} className="flex items-center gap-2">
             {showUpload ? (
               <>
                 <FileText className="h-4 w-4" />
@@ -148,7 +148,14 @@ export default function DocumentsPage() {
         {/* Upload Section */}
         {showUpload ? (
           <div className="relative overflow-hidden rounded-2xl p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
+            <GlowingEffect
+              spread={40}
+              glow={true}
+              disabled={false}
+              proximity={64}
+              inactiveZone={0.01}
+              borderWidth={3}
+            />
             <div className="relative z-10">
               <DocumentUploadComponent
                 onUpload={handleUpload}
@@ -161,7 +168,14 @@ export default function DocumentsPage() {
           <>
             {/* Filters */}
             <div className="relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-              <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
+              <GlowingEffect
+                spread={40}
+                glow={true}
+                disabled={false}
+                proximity={64}
+                inactiveZone={0.01}
+                borderWidth={3}
+              />
               <div className="relative z-10">
                 <DocumentFilters
                   onFilterChange={setFilters}
@@ -174,7 +188,14 @@ export default function DocumentsPage() {
 
             {/* Document List */}
             <div className="relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-              <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
+              <GlowingEffect
+                spread={40}
+                glow={true}
+                disabled={false}
+                proximity={64}
+                inactiveZone={0.01}
+                borderWidth={3}
+              />
               <div className="relative z-10">
                 <DocumentList
                   documents={filteredAndSortedDocuments}

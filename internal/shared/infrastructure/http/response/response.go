@@ -107,7 +107,7 @@ func ErrorWithDetails(code, message string, details interface{}) Response {
 func ValidationErrorResponse(fields map[string][]string) Response {
 	return ErrorWithDetails(
 		"VALIDATION_ERROR",
-		"Validation failed",
+		"Ошибка валидации",
 		ValidationError{Fields: fields},
 	)
 }
@@ -116,14 +116,14 @@ func ValidationErrorResponse(fields map[string][]string) Response {
 func NotFound(entity string) Response {
 	return ErrorResponse(
 		"NOT_FOUND",
-		entity+" not found",
+		entity+" не найден",
 	)
 }
 
 // Unauthorized создает ответ для ошибки "не авторизован"
 func Unauthorized(message string) Response {
 	if message == "" {
-		message = "Unauthorized access"
+		message = "Доступ не авторизован"
 	}
 	return ErrorResponse("UNAUTHORIZED", message)
 }
@@ -131,7 +131,7 @@ func Unauthorized(message string) Response {
 // Forbidden создает ответ для ошибки "доступ запрещен"
 func Forbidden(message string) Response {
 	if message == "" {
-		message = "Access forbidden"
+		message = "Доступ запрещен"
 	}
 	return ErrorResponse("FORBIDDEN", message)
 }
@@ -139,7 +139,7 @@ func Forbidden(message string) Response {
 // InternalError создает ответ для внутренней ошибки сервера
 func InternalError(message string) Response {
 	if message == "" {
-		message = "Internal server error"
+		message = "Внутренняя ошибка сервера"
 	}
 	return ErrorResponse("INTERNAL_ERROR", message)
 }

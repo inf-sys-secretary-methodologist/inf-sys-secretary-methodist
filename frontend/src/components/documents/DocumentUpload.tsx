@@ -9,7 +9,7 @@ import {
   ALLOWED_FILE_TYPES,
   ALLOWED_FILE_EXTENSIONS,
   MAX_FILE_SIZE,
-  type DocumentUpload
+  type DocumentUpload,
 } from '@/types/document'
 
 interface DocumentUploadProps {
@@ -29,7 +29,7 @@ export function DocumentUploadComponent({
   onUpload,
   onCancel,
   isUploading = false,
-  className = ''
+  className = '',
 }: DocumentUploadProps) {
   const [files, setFiles] = useState<FileWithPreview[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -54,23 +54,26 @@ export function DocumentUploadComponent({
 
   const handleFiles = useCallback((newFiles: FileList | File[]) => {
     const fileArray = Array.from(newFiles)
-    const validatedFiles: FileWithPreview[] = fileArray.map(file => {
+    const validatedFiles: FileWithPreview[] = fileArray.map((file) => {
       const error = validateFile(file)
       return { file, error: error || undefined }
     })
 
-    setFiles(prev => [...prev, ...validatedFiles])
+    setFiles((prev) => [...prev, ...validatedFiles])
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragging(false)
 
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFiles(e.dataTransfer.files)
-    }
-  }, [handleFiles])
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFiles(e.dataTransfer.files)
+      }
+    },
+    [handleFiles]
+  )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -94,18 +97,23 @@ export function DocumentUploadComponent({
   )
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index))
+    setFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async () => {
-    const validFiles = files.filter(f => !f.error)
+    const validFiles = files.filter((f) => !f.error)
     if (validFiles.length === 0) return
 
     const uploads: DocumentUpload[] = validFiles.map(({ file }) => ({
       file,
       category,
       description: description || undefined,
-      tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : undefined
+      tags: tags
+        ? tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : undefined,
     }))
 
     await onUpload(uploads)
@@ -114,8 +122,8 @@ export function DocumentUploadComponent({
     setTags('')
   }
 
-  const validFilesCount = files.filter(f => !f.error).length
-  const hasErrors = files.some(f => f.error)
+  const validFilesCount = files.filter((f) => !f.error).length
+  const hasErrors = files.some((f) => f.error)
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -126,9 +134,10 @@ export function DocumentUploadComponent({
         onDragLeave={handleDragLeave}
         className={`
           relative border-2 border-dashed rounded-lg p-12 text-center transition-all
-          ${isDragging
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
-            : 'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600'
+          ${
+            isDragging
+              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+              : 'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600'
           }
           ${isUploading ? 'opacity-50 pointer-events-none' : ''}
         `}
@@ -172,9 +181,10 @@ export function DocumentUploadComponent({
                 key={index}
                 className={`
                   flex items-center justify-between p-3 rounded-lg border
-                  ${fileWithPreview.error
-                    ? 'border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-800'
-                    : 'border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700'
+                  ${
+                    fileWithPreview.error
+                      ? 'border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-800'
+                      : 'border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700'
                   }
                 `}
               >
@@ -270,11 +280,7 @@ export function DocumentUploadComponent({
           {/* Action Buttons */}
           <div className="flex gap-3 justify-end">
             {onCancel && (
-              <Button
-                variant="outline"
-                onClick={onCancel}
-                disabled={isUploading}
-              >
+              <Button variant="outline" onClick={onCancel} disabled={isUploading}>
                 Отмена
               </Button>
             )}

@@ -35,7 +35,7 @@ func NewAuthHandler(usecase *usecases.AuthUseCase, emailService emailServices.Em
 func (h *AuthHandler) Register(c *gin.Context) {
 	var input dto.RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		resp := response.BadRequest("Invalid request format")
+		resp := response.BadRequest("Неверный формат запроса")
 		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
@@ -82,7 +82,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	accessToken, refreshToken, user, err := h.usecase.LoginWithUser(ctx, loginInput)
 	if err != nil {
 		// Registration succeeded but auto-login failed
-		resp := response.Success(gin.H{"message": "User registered successfully. Please login."})
+		resp := response.Success(gin.H{"message": "Пользователь успешно зарегистрирован. Пожалуйста, войдите."})
 		c.JSON(http.StatusCreated, resp)
 		return
 	}
@@ -91,10 +91,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		"token":        accessToken,
 		"refreshToken": refreshToken,
 		"user": gin.H{
-			"id":    user.ID,
-			"email": user.Email,
-			"name":  user.Name,
-			"role":  user.Role,
+			"id":        user.ID,
+			"email":     user.Email,
+			"name":      user.Name,
+			"role":      user.Role,
+			"createdAt": user.CreatedAt,
+			"updatedAt": user.UpdatedAt,
 		},
 	})
 	c.JSON(http.StatusCreated, resp)
@@ -104,7 +106,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var input dto.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		resp := response.BadRequest("Invalid request format")
+		resp := response.BadRequest("Неверный формат запроса")
 		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
@@ -131,10 +133,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		"token":        accessToken,
 		"refreshToken": refreshToken,
 		"user": gin.H{
-			"id":    user.ID,
-			"email": user.Email,
-			"name":  user.Name,
-			"role":  user.Role,
+			"id":        user.ID,
+			"email":     user.Email,
+			"name":      user.Name,
+			"role":      user.Role,
+			"createdAt": user.CreatedAt,
+			"updatedAt": user.UpdatedAt,
 		},
 	})
 	c.JSON(http.StatusOK, resp)
@@ -144,7 +148,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var input dto.RefreshTokenInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		resp := response.BadRequest("Invalid request format")
+		resp := response.BadRequest("Неверный формат запроса")
 		c.JSON(http.StatusBadRequest, resp)
 		return
 	}

@@ -5,16 +5,14 @@ import { UserMenu } from '@/components/UserMenu'
 import { ThemeToggleButton } from '@/components/theme-toggle-button'
 import { GlowingEffect } from '@/components/ui/glowing-effect'
 import { NavBar } from '@/components/ui/tubelight-navbar'
-import { FileText, Users, Calendar, TrendingUp, LayoutDashboard } from 'lucide-react'
+import { FileText, Users, Calendar, TrendingUp } from 'lucide-react'
+import { getAvailableNavItems } from '@/config/navigation'
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuthCheck()
 
-  const navItems = [
-    { name: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-    { name: 'Студенты', url: '/students', icon: Users },
-    { name: 'Документы', url: '/documents', icon: FileText }
-  ]
+  // Get navigation items filtered by user role
+  const navItems = getAvailableNavItems(user?.role)
 
   if (isLoading) {
     return (
@@ -33,7 +31,10 @@ export default function DashboardPage() {
       <NavBar items={navItems} />
 
       {/* Top Navigation */}
-      <div className="fixed top-8 right-8 z-50 pointer-events-auto flex items-center gap-3" style={{ isolation: 'isolate' }}>
+      <div
+        className="fixed top-8 right-8 z-50 pointer-events-auto flex items-center gap-3"
+        style={{ isolation: 'isolate' }}
+      >
         <UserMenu />
         <ThemeToggleButton />
       </div>
@@ -61,7 +62,14 @@ export default function DashboardPage() {
               key={index}
               className="relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:shadow-xl"
             >
-              <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
+              <GlowingEffect
+                spread={40}
+                glow={true}
+                disabled={false}
+                proximity={64}
+                inactiveZone={0.01}
+                borderWidth={3}
+              />
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white">
@@ -73,7 +81,9 @@ export default function DashboardPage() {
                     </span>
                   )}
                 </div>
-                <h3 className="text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">{stat.title}</h3>
+                <h3 className="text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">
+                  {stat.title}
+                </h3>
                 <div className="text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</div>
               </div>
             </div>
@@ -82,9 +92,18 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <div className="relative overflow-hidden rounded-2xl p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
+          <GlowingEffect
+            spread={40}
+            glow={true}
+            disabled={false}
+            proximity={64}
+            inactiveZone={0.01}
+            borderWidth={3}
+          />
           <div className="relative z-10 space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Быстрые действия</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              Быстрые действия
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button className="px-6 py-4 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg">
                 Загрузить документ
@@ -101,14 +120,35 @@ export default function DashboardPage() {
 
         {/* Recent Activity */}
         <div className="relative overflow-hidden rounded-2xl p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
+          <GlowingEffect
+            spread={40}
+            glow={true}
+            disabled={false}
+            proximity={64}
+            inactiveZone={0.01}
+            borderWidth={3}
+          />
           <div className="relative z-10 space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Последние действия</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              Последние действия
+            </h2>
             <div className="space-y-4">
               {[
-                { action: 'Загружен документ', details: 'Отчет за октябрь 2024', time: '2 часа назад' },
-                { action: 'Добавлен студент', details: 'Иванов Иван Иванович', time: '5 часов назад' },
-                { action: 'Создано мероприятие', details: 'Конференция по IT', time: '1 день назад' },
+                {
+                  action: 'Загружен документ',
+                  details: 'Отчет за октябрь 2024',
+                  time: '2 часа назад',
+                },
+                {
+                  action: 'Добавлен студент',
+                  details: 'Иванов Иван Иванович',
+                  time: '5 часов назад',
+                },
+                {
+                  action: 'Создано мероприятие',
+                  details: 'Конференция по IT',
+                  time: '1 день назад',
+                },
               ].map((activity, index) => (
                 <div
                   key={index}

@@ -19,11 +19,7 @@ interface RegisterFormProps {
   className?: string
 }
 
-export function RegisterForm({
-  redirectTo = '/login',
-  onSuccess,
-  className,
-}: RegisterFormProps) {
+export function RegisterForm({ redirectTo = '/login', onSuccess, className }: RegisterFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const { register: registerUser, isLoading, error: authError, clearError } = useRegister()
@@ -64,7 +60,10 @@ export function RegisterForm({
         onSuccess()
       }
     } catch (error: unknown) {
-      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || authError || 'Ошибка регистрации'
+      const errorMessage =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        authError ||
+        'Ошибка регистрации'
       toast.error('Ошибка регистрации', {
         description: errorMessage,
       })
@@ -146,10 +145,7 @@ export function RegisterForm({
             autoComplete="new-password"
             disabled={isSubmitting}
             {...register('password')}
-            className={cn(
-              'pr-10',
-              errors.password && 'border-red-500 focus-visible:ring-red-500'
-            )}
+            className={cn('pr-10', errors.password && 'border-red-500 focus-visible:ring-red-500')}
           />
           <button
             type="button"
@@ -157,11 +153,7 @@ export function RegisterForm({
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
             tabIndex={-1}
           >
-            {showPassword ? (
-              <EyeOff className="w-5 h-5" />
-            ) : (
-              <Eye className="w-5 h-5" />
-            )}
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
         </div>
 
@@ -188,9 +180,7 @@ export function RegisterForm({
 
         {errors.password && (
           <div className="space-y-1">
-            <p className="text-sm font-medium text-red-600 dark:text-red-400">
-              Пароль должен:
-            </p>
+            <p className="text-sm font-medium text-red-600 dark:text-red-400">Пароль должен:</p>
             <ul className="text-sm text-red-600 dark:text-red-400 list-disc list-inside space-y-0.5">
               {errors.password.message?.split('. ').map((msg, i) => (
                 <li key={i}>{msg}</li>
@@ -220,17 +210,11 @@ export function RegisterForm({
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
             tabIndex={-1}
           >
-            {showConfirmPassword ? (
-              <EyeOff className="w-5 h-5" />
-            ) : (
-              <Eye className="w-5 h-5" />
-            )}
+            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
         </div>
         {errors.confirmPassword && (
-          <p className="text-sm text-red-600 dark:text-red-400">
-            {errors.confirmPassword.message}
-          </p>
+          <p className="text-sm text-red-600 dark:text-red-400">{errors.confirmPassword.message}</p>
         )}
       </div>
 
@@ -266,12 +250,7 @@ export function RegisterForm({
       </div>
 
       {/* Submit button */}
-      <Button
-        type="submit"
-        disabled={isSubmitting || isLoading}
-        className="w-full"
-        size="lg"
-      >
+      <Button type="submit" disabled={isSubmitting || isLoading} className="w-full" size="lg">
         {isSubmitting || isLoading ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />

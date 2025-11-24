@@ -327,10 +327,12 @@ func setupRoutes(
 			}
 
 			c.JSON(http.StatusOK, gin.H{
-				"id":    user.ID,
-				"email": user.Email,
-				"name":  user.Name,
-				"role":  user.Role,
+				"id":        user.ID,
+				"email":     user.Email,
+				"name":      user.Name,
+				"role":      user.Role,
+				"createdAt": user.CreatedAt,
+				"updatedAt": user.UpdatedAt,
 			})
 		})
 		protectedGroup.OPTIONS("/me", func(c *gin.Context) { c.Status(http.StatusNoContent) })

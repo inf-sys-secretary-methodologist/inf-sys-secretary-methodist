@@ -9,7 +9,7 @@ import {
   DocumentCategoryLabels,
   DocumentStatusLabels,
   type DocumentFilter,
-  type DocumentSortOptions
+  type DocumentSortOptions,
 } from '@/types/document'
 
 interface DocumentFiltersProps {
@@ -25,7 +25,7 @@ export function DocumentFilters({
   onSortChange,
   currentFilters,
   currentSort,
-  className = ''
+  className = '',
 }: DocumentFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [searchQuery, setSearchQuery] = useState(currentFilters.search || '')
@@ -41,7 +41,7 @@ export function DocumentFilters({
     setSearchQuery(value)
     onFilterChange({
       ...currentFilters,
-      search: value || undefined
+      search: value || undefined,
     })
   }
 
@@ -49,7 +49,7 @@ export function DocumentFilters({
     setSelectedCategory(category)
     onFilterChange({
       ...currentFilters,
-      category: category === 'all' ? undefined : category
+      category: category === 'all' ? undefined : category,
     })
   }
 
@@ -57,7 +57,7 @@ export function DocumentFilters({
     setSelectedStatus(status)
     onFilterChange({
       ...currentFilters,
-      status: status === 'all' ? undefined : status
+      status: status === 'all' ? undefined : status,
     })
   }
 
@@ -65,11 +65,11 @@ export function DocumentFilters({
     setTagInput(value)
     const tags = value
       .split(',')
-      .map(t => t.trim())
+      .map((t) => t.trim())
       .filter(Boolean)
     onFilterChange({
       ...currentFilters,
-      tags: tags.length > 0 ? tags : undefined
+      tags: tags.length > 0 ? tags : undefined,
     })
   }
 
@@ -78,13 +78,13 @@ export function DocumentFilters({
       // Toggle order if same field
       onSortChange({
         field,
-        order: currentSort.order === 'asc' ? 'desc' : 'asc'
+        order: currentSort.order === 'asc' ? 'desc' : 'asc',
       })
     } else {
       // Default to desc for new field
       onSortChange({
         field,
-        order: 'desc'
+        order: 'desc',
       })
     }
   }
@@ -136,11 +136,7 @@ export function DocumentFilters({
         </Button>
 
         {hasActiveFilters && (
-          <Button
-            variant="outline"
-            onClick={clearFilters}
-            className="flex-shrink-0"
-          >
+          <Button variant="outline" onClick={clearFilters} className="flex-shrink-0">
             <X className="h-4 w-4 mr-2" />
             Сбросить
           </Button>
@@ -221,7 +217,7 @@ export function DocumentFilters({
                 { field: 'name' as const, label: 'Название' },
                 { field: 'uploadedAt' as const, label: 'Дата загрузки' },
                 { field: 'modifiedAt' as const, label: 'Дата изменения' },
-                { field: 'size' as const, label: 'Размер' }
+                { field: 'size' as const, label: 'Размер' },
               ].map(({ field, label }) => (
                 <Button
                   key={field}
@@ -232,9 +228,7 @@ export function DocumentFilters({
                 >
                   {label}
                   {currentSort.field === field && (
-                    <span className="ml-2 text-xs">
-                      {currentSort.order === 'asc' ? '↑' : '↓'}
-                    </span>
+                    <span className="ml-2 text-xs">{currentSort.order === 'asc' ? '↑' : '↓'}</span>
                   )}
                 </Button>
               ))}

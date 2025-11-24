@@ -8,12 +8,12 @@ import { NavBar } from '@/components/ui/tubelight-navbar'
 import { FileText, Users, LayoutDashboard } from 'lucide-react'
 
 export default function StudentsPage() {
-  const { user, isLoading } = useAuthCheck()
+  const { isLoading } = useAuthCheck()
 
   const navItems = [
     { name: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
     { name: 'Студенты', url: '/students', icon: Users },
-    { name: 'Документы', url: '/documents', icon: FileText }
+    { name: 'Документы', url: '/documents', icon: FileText },
   ]
 
   if (isLoading) {
@@ -33,7 +33,10 @@ export default function StudentsPage() {
       <NavBar items={navItems} />
 
       {/* Top Navigation */}
-      <div className="fixed top-8 right-8 z-50 pointer-events-auto flex items-center gap-3" style={{ isolation: 'isolate' }}>
+      <div
+        className="fixed top-8 right-8 z-50 pointer-events-auto flex items-center gap-3"
+        style={{ isolation: 'isolate' }}
+      >
         <UserMenu />
         <ThemeToggleButton />
       </div>
@@ -44,14 +47,19 @@ export default function StudentsPage() {
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
             Управление студентами
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
-            Список студентов и их данные
-          </p>
+          <p className="text-lg text-gray-600 dark:text-gray-300">Список студентов и их данные</p>
         </div>
 
         {/* Content Placeholder */}
         <div className="relative overflow-hidden rounded-2xl p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
+          <GlowingEffect
+            spread={40}
+            glow={true}
+            disabled={false}
+            proximity={64}
+            inactiveZone={0.01}
+            borderWidth={3}
+          />
           <div className="relative z-10 space-y-6 text-center">
             <Users className="h-16 w-16 mx-auto text-gray-400" />
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">

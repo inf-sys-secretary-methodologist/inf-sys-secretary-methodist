@@ -6,13 +6,7 @@ import { UserRole } from '@/types/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -29,15 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import {
-  Search,
-  Filter,
-  Users as UsersIcon,
-  Shield,
-  Mail,
-  Calendar,
-  MoreVertical,
-} from 'lucide-react'
+import { Search, Filter, Users as UsersIcon, Mail, Calendar, MoreVertical } from 'lucide-react'
 
 // Mock data - TODO: Replace with API calls
 const mockUsers = [
@@ -122,12 +108,7 @@ function UsersManagementPage() {
     })
   }
 
-  const handleRoleChange = (userId: string, newRole: UserRole) => {
-    // TODO: Implement API call to update user role
-    console.log('Updating user role:', { userId, newRole })
-
-    // TODO: Update users state after successful API call
-  }
+  // TODO: Implement handleRoleChange function for role updates
 
   return (
     <div className="container mx-auto p-6">
@@ -138,9 +119,7 @@ function UsersManagementPage() {
             <UsersIcon className="h-8 w-8" />
             Управление пользователями
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Просмотр и управление пользователями системы
-          </p>
+          <p className="text-muted-foreground mt-1">Просмотр и управление пользователями системы</p>
         </div>
 
         {/* Stats Cards */}
@@ -171,9 +150,7 @@ function UsersManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle>Фильтры</CardTitle>
-            <CardDescription>
-              Поиск и фильтрация пользователей
-            </CardDescription>
+            <CardDescription>Поиск и фильтрация пользователей</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2">
@@ -238,9 +215,7 @@ function UsersManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle>Пользователи</CardTitle>
-            <CardDescription>
-              Список всех зарегистрированных пользователей
-            </CardDescription>
+            <CardDescription>Список всех зарегистрированных пользователей</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
@@ -258,10 +233,7 @@ function UsersManagementPage() {
                 <TableBody>
                   {filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="h-24 text-center text-muted-foreground"
-                      >
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                         Пользователи не найдены
                       </TableCell>
                     </TableRow>
@@ -285,9 +257,7 @@ function UsersManagementPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={roleColors[user.role]}>
-                            {roleLabels[user.role]}
-                          </Badge>
+                          <Badge variant={roleColors[user.role]}>{roleLabels[user.role]}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -64,6 +64,7 @@ npm run test:e2e
 ### Jest Setup (`jest.setup.ts`)
 
 Глобальные моки для:
+
 - `@testing-library/jest-dom` - дополнительные матчеры
 - `next/navigation` - Next.js навигация
 - `window.matchMedia` - media queries
@@ -72,9 +73,11 @@ npm run test:e2e
 ### Test Utils (`src/test-utils/index.tsx`)
 
 Кастомная функция `render` с провайдерами:
+
 - `ThemeProvider` от `next-themes`
 
 Использование:
+
 ```tsx
 import { render, screen } from '@/test-utils'
 
@@ -152,12 +155,14 @@ describe('AsyncComponent', () => {
 ## Coverage
 
 Цели покрытия кода (минимум 70%):
+
 - Branches: 70%
 - Functions: 70%
 - Lines: 70%
 - Statements: 70%
 
 Для просмотра отчета о покрытии:
+
 ```bash
 npm run test:coverage
 ```
@@ -208,4 +213,3 @@ test('homepage has title', async ({ page }) => {
 **Последнее обновление**: 2025-01-15  
 **Версия проекта**: 0.1.0  
 **Статус**: Актуальный
-

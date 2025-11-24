@@ -39,7 +39,7 @@ type SendEmailInput struct {
 func (h *EmailHandler) SendEmail(c *gin.Context) {
 	var input SendEmailInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		resp := response.BadRequest("Invalid request format")
+		resp := response.BadRequest("Неверный формат запроса")
 		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
@@ -86,7 +86,7 @@ func (h *EmailHandler) SendEmail(c *gin.Context) {
 	}
 
 	resp := response.Success(gin.H{
-		"message": "Email sent successfully",
+		"message": "Email отправлен успешно",
 	})
 	c.JSON(http.StatusOK, resp)
 }
@@ -101,7 +101,7 @@ type SendWelcomeEmailInput struct {
 func (h *EmailHandler) SendWelcomeEmail(c *gin.Context) {
 	var input SendWelcomeEmailInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		resp := response.BadRequest("Invalid request format")
+		resp := response.BadRequest("Неверный формат запроса")
 		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
@@ -128,7 +128,7 @@ func (h *EmailHandler) SendWelcomeEmail(c *gin.Context) {
 	}
 
 	resp := response.Success(gin.H{
-		"message": "Welcome email sent successfully",
+		"message": "Приветственное письмо отправлено успешно",
 	})
 	c.JSON(http.StatusOK, resp)
 }
