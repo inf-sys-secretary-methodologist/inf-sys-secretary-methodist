@@ -6,11 +6,11 @@ import { UserRole } from '@/types/auth'
  */
 export const loginSchema = z.object({
   email: z
-    .string({ required_error: 'Email обязателен' })
+    .string({ message: 'Email обязателен' })
     .min(1, 'Email обязателен')
     .email('Неверный формат email'),
   password: z
-    .string({ required_error: 'Пароль обязателен' })
+    .string({ message: 'Пароль обязателен' })
     .min(1, 'Пароль обязателен')
     .min(8, 'Пароль должен содержать минимум 8 символов'),
 })
@@ -23,17 +23,17 @@ export type LoginFormData = z.infer<typeof loginSchema>
 export const registerSchema = z
   .object({
     name: z
-      .string({ required_error: 'Имя обязательно' })
+      .string({ message: 'Имя обязательно' })
       .min(2, 'Имя должно содержать минимум 2 символа')
       .max(50, 'Имя не должно превышать 50 символов')
       .trim(),
     email: z
-      .string({ required_error: 'Email обязателен' })
+      .string({ message: 'Email обязателен' })
       .min(1, 'Email обязателен')
       .email('Неверный формат email')
       .trim(),
     password: z
-      .string({ required_error: 'Пароль обязателен' })
+      .string({ message: 'Пароль обязателен' })
       .min(8, 'Пароль должен содержать минимум 8 символов')
       .regex(/[A-Z]/, 'Пароль должен содержать хотя бы одну заглавную букву')
       .regex(/[a-z]/, 'Пароль должен содержать хотя бы одну строчную букву')
@@ -44,11 +44,10 @@ export const registerSchema = z
       )
       .trim(),
     confirmPassword: z
-      .string({ required_error: 'Подтверждение пароля обязательно' })
+      .string({ message: 'Подтверждение пароля обязательно' })
       .min(1, 'Подтвердите пароль'),
     role: z.nativeEnum(UserRole, {
-      required_error: 'Роль обязательна',
-      invalid_type_error: 'Выберите корректную роль',
+      message: 'Выберите корректную роль',
     }),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -63,7 +62,7 @@ export type RegisterFormData = z.infer<typeof registerSchema>
  */
 export const passwordRecoverySchema = z.object({
   email: z
-    .string({ required_error: 'Email обязателен' })
+    .string({ message: 'Email обязателен' })
     .min(1, 'Email обязателен')
     .email('Неверный формат email')
     .trim(),
@@ -77,7 +76,7 @@ export type PasswordRecoveryFormData = z.infer<typeof passwordRecoverySchema>
 export const passwordResetSchema = z
   .object({
     password: z
-      .string({ required_error: 'Пароль обязателен' })
+      .string({ message: 'Пароль обязателен' })
       .min(8, 'Пароль должен содержать минимум 8 символов')
       .regex(/[A-Z]/, 'Пароль должен содержать хотя бы одну заглавную букву')
       .regex(/[a-z]/, 'Пароль должен содержать хотя бы одну строчную букву')
@@ -88,7 +87,7 @@ export const passwordResetSchema = z
       )
       .trim(),
     confirmPassword: z
-      .string({ required_error: 'Подтверждение пароля обязательно' })
+      .string({ message: 'Подтверждение пароля обязательно' })
       .min(1, 'Подтвердите пароль'),
   })
   .refine((data) => data.password === data.confirmPassword, {

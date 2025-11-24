@@ -46,8 +46,8 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
       if (onSuccess) {
         onSuccess()
       }
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || authError || 'Ошибка входа'
+    } catch (error: unknown) {
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || authError || 'Ошибка входа'
       toast.error('Ошибка входа', {
         description: errorMessage,
       })

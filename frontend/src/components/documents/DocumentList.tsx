@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, Download, Trash2, Eye, MoreVertical, Grid, List } from 'lucide-react'
+import { FileText, Download, Trash2, Eye, Grid, List } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Document,
@@ -30,7 +30,6 @@ export function DocumentList({
   className = ''
 }: DocumentListProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
-  const [selectedDocument, setSelectedDocument] = useState<string | null>(null)
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('ru-RU', {

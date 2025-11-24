@@ -63,8 +63,8 @@ export function RegisterForm({
       if (onSuccess) {
         onSuccess()
       }
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || authError || 'Ошибка регистрации'
+    } catch (error: unknown) {
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || authError || 'Ошибка регистрации'
       toast.error('Ошибка регистрации', {
         description: errorMessage,
       })

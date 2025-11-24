@@ -44,7 +44,7 @@ export const protectedRoutes: RouteConfig[] = [
   // Methodist routes
   {
     path: '/documents',
-    allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+    allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY, UserRole.TEACHER],
   },
   {
     path: '/templates',

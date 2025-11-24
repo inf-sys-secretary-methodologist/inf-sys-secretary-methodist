@@ -7,7 +7,7 @@ import { ThemeToggleButton } from '@/components/theme-toggle-button'
 import { GlowingEffect } from '@/components/ui/glowing-effect'
 import { NavBar } from '@/components/ui/tubelight-navbar'
 import { Button } from '@/components/ui/button'
-import { FileText, Users, LayoutDashboard, Upload, Plus } from 'lucide-react'
+import { Upload, FileText } from 'lucide-react'
 import { DocumentUploadComponent } from '@/components/documents/DocumentUpload'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { DocumentFilters } from '@/components/documents/DocumentFilters'
@@ -20,6 +20,7 @@ import {
   DocumentStatus
 } from '@/types/document'
 import { mockDocuments, filterDocuments, sortDocuments } from '@/lib/mock-documents'
+import { getAvailableNavItems } from '@/config/navigation'
 
 export default function DocumentsPage() {
   const { user, isLoading } = useAuthCheck()
@@ -35,11 +36,8 @@ export default function DocumentsPage() {
     order: 'desc'
   })
 
-  const navItems = [
-    { name: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-    { name: 'Студенты', url: '/students', icon: Users },
-    { name: 'Документы', url: '/documents', icon: FileText }
-  ]
+  // Get navigation items filtered by user role
+  const navItems = getAvailableNavItems(user?.role)
 
   // Apply filters and sorting
   const filteredAndSortedDocuments = useMemo(() => {

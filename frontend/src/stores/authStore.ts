@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist, StateStorage } from 'zustand/middleware'
+import { persist, PersistStorage, StorageValue } from 'zustand/middleware'
 import { authApi } from '@/lib/api/auth'
 import { apiClient } from '@/lib/api'
 import type { User, LoginRequest, RegisterRequest } from '@/types/auth'
@@ -33,29 +33,27 @@ const deleteCookie = (name: string) => {
 }
 
 // Custom cookie storage for Zustand persist
-const cookieStorage: StateStorage = {
-  getItem: (name: string): string | null => {
+const cookieStorage = {
+  getItem: (name: string): StorageValue<unknown> | null => {
     if (typeof window === 'undefined') return null
-    return getCookie(name)
-  },
-  setItem: (name: string, value: string): void => {
-    if (typeof window === 'undefined') return
-
-    // Zustand persist passes an object, we need to serialize it
-    let jsonString: string
-    if (typeof value === 'object') {
-      jsonString = JSON.stringify(value)
-    } else {
-      jsonString = value
+    const value = getCookie(name)
+    if (!value) return null
+    try {
+      return JSON.parse(value) as StorageValue<unknown>
+    } catch {
+      return null
     }
-
+  },
+  setItem: (name: string, value: StorageValue<unknown>): void => {
+    if (typeof window === 'undefined') return
+    const jsonString = JSON.stringify(value)
     setCookie(name, jsonString, 7)
   },
   removeItem: (name: string): void => {
     if (typeof window === 'undefined') return
     deleteCookie(name)
   },
-}
+} satisfies PersistStorage<unknown>
 
 interface AuthState {
   // State
@@ -102,7 +100,7 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.login(credentials)
 
           // Extract data from response wrapper
-          const authData = (response as any).data || response
+          const authData = (response as { data?: { user: User; token: string; refreshToken: string } }).data || response as { user: User; token: string; refreshToken: string }
 
           // Set token in API client
           apiClient.setAuthToken(authData.token)
@@ -115,8 +113,8 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null,
           })
-        } catch (error: any) {
-          const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || 'Ошибка входа'
+        } catch (error: unknown) {
+          const errorMessage = (error as { response?: { data?: { error?: { message?: string }; message?: string } } }).response?.data?.error?.message || (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Ошибка входа'
           set({
             isLoading: false,
             error: errorMessage,
@@ -132,7 +130,7 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.register(data)
 
           // Extract data from response wrapper
-          const authData = (response as any).data || response
+          const authData = (response as { data?: { user: User; token: string; refreshToken: string } }).data || response as { user: User; token: string; refreshToken: string }
 
           // Set token in API client
           apiClient.setAuthToken(authData.token)
@@ -145,8 +143,8 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null,
           })
-        } catch (error: any) {
-          const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || 'Ошибка регистрации'
+        } catch (error: unknown) {
+          const errorMessage = (error as { response?: { data?: { error?: { message?: string }; message?: string } } }).response?.data?.error?.message || (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Ошибка регистрации'
           set({
             isLoading: false,
             error: errorMessage,
