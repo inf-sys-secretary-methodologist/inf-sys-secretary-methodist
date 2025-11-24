@@ -22,10 +22,12 @@ export function NavBar({ items, className = '' }: NavBarProps) {
 
   return (
     <nav className={`fixed top-8 left-1/2 -translate-x-1/2 z-40 ${className}`}>
-      <div className="relative flex items-center gap-2 px-4 py-2 rounded-full
+      <div
+        className="relative flex items-center gap-2 px-4 py-2 rounded-full
                     bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg
                     border border-gray-200 dark:border-gray-700
-                    shadow-lg">
+                    shadow-lg"
+      >
         {items.map((item, index) => {
           const Icon = item.icon
           const isActive = pathname === item.url
@@ -62,9 +64,7 @@ export function NavBar({ items, className = '' }: NavBarProps) {
                       }
                     `}
                     style={{
-                      boxShadow: isActive
-                        ? '0 0 20px rgba(59, 130, 246, 0.5)'
-                        : 'none'
+                      boxShadow: isActive ? '0 0 20px rgba(59, 130, 246, 0.5)' : 'none',
                     }}
                   />
                 )}
@@ -72,9 +72,7 @@ export function NavBar({ items, className = '' }: NavBarProps) {
                 {/* Content */}
                 <div className="relative z-10 flex items-center gap-2">
                   <Icon className="h-4 w-4" />
-                  <span className="text-sm font-medium hidden sm:inline">
-                    {item.name}
-                  </span>
+                  <span className="text-sm font-medium hidden sm:inline">{item.name}</span>
                 </div>
               </div>
             </Link>

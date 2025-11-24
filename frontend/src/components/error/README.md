@@ -11,6 +11,7 @@
 Обрабатывает ошибки в любом сегменте приложения (кроме root layout).
 
 **Функции:**
+
 - ✅ Отображает красивую страницу ошибки
 - ✅ Показывает детали ошибки в dev mode
 - ✅ Логирует ошибки в консоль
@@ -26,6 +27,7 @@
 Обрабатывает критические ошибки в root layout.
 
 **Функции:**
+
 - ✅ Заменяет всю страницу (включая `<html>` и `<body>`)
 - ✅ Обрабатывает ошибки в `layout.tsx` и `template.tsx`
 - ✅ Логирует критические ошибки
@@ -67,9 +69,7 @@ function MyPage() {
   fallback={
     <div className="p-4 text-center">
       <p>Упс! Что-то пошло не так.</p>
-      <button onClick={() => window.location.reload()}>
-        Перезагрузить
-      </button>
+      <button onClick={() => window.location.reload()}>Перезагрузить</button>
     </div>
   }
 >
@@ -103,13 +103,13 @@ function MyPage() {
 
 ## Props
 
-| Prop | Type | Default | Описание |
-|------|------|---------|----------|
-| `children` | `ReactNode` | - | Дочерние компоненты для защиты |
-| `fallback` | `ReactNode` | undefined | Кастомный UI при ошибке |
-| `onError` | `(error, errorInfo) => void` | undefined | Колбэк при возникновении ошибки |
-| `errorMessage` | `string` | undefined | Кастомное сообщение об ошибке |
-| `showDetails` | `boolean` | `true` | Показывать ли детали ошибки в dev mode |
+| Prop           | Type                         | Default   | Описание                               |
+| -------------- | ---------------------------- | --------- | -------------------------------------- |
+| `children`     | `ReactNode`                  | -         | Дочерние компоненты для защиты         |
+| `fallback`     | `ReactNode`                  | undefined | Кастомный UI при ошибке                |
+| `onError`      | `(error, errorInfo) => void` | undefined | Колбэк при возникновении ошибки        |
+| `errorMessage` | `string`                     | undefined | Кастомное сообщение об ошибке          |
+| `showDetails`  | `boolean`                    | `true`    | Показывать ли детали ошибки в dev mode |
 
 ## Примеры использования
 
@@ -320,7 +320,7 @@ function MyComponent() {
 // ❌ Error Boundary НЕ поймает асинхронную ошибку
 function MyComponent() {
   useEffect(() => {
-    fetchData().then(data => {
+    fetchData().then((data) => {
       throw new Error('Async error')
     })
   }, [])
@@ -420,6 +420,7 @@ export function logErrorToAnalytics(
 ## Заключение
 
 Система Error Boundary обеспечивает:
+
 - ✅ Graceful degradation при ошибках
 - ✅ Информативные сообщения об ошибках
 - ✅ Возможность recovery без перезагрузки страницы

@@ -12,14 +12,14 @@ export enum DocumentCategory {
   REPORT = 'report',
   ASSIGNMENT = 'assignment',
   EXAM = 'exam',
-  OTHER = 'other'
+  OTHER = 'other',
 }
 
 export enum DocumentStatus {
   UPLOADING = 'uploading',
   PROCESSING = 'processing',
   READY = 'ready',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 export interface DocumentMetadata {
@@ -72,14 +72,14 @@ export const DocumentCategoryLabels: Record<DocumentCategory, string> = {
   [DocumentCategory.REPORT]: 'Отчет',
   [DocumentCategory.ASSIGNMENT]: 'Задание',
   [DocumentCategory.EXAM]: 'Экзамен',
-  [DocumentCategory.OTHER]: 'Другое'
+  [DocumentCategory.OTHER]: 'Другое',
 }
 
 export const DocumentStatusLabels: Record<DocumentStatus, string> = {
   [DocumentStatus.UPLOADING]: 'Загрузка',
   [DocumentStatus.PROCESSING]: 'Обработка',
   [DocumentStatus.READY]: 'Готов',
-  [DocumentStatus.ERROR]: 'Ошибка'
+  [DocumentStatus.ERROR]: 'Ошибка',
 }
 
 // Allowed file types for upload
@@ -91,7 +91,7 @@ export const ALLOWED_FILE_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'text/plain',
   'image/jpeg',
-  'image/png'
+  'image/png',
 ]
 
 export const ALLOWED_FILE_EXTENSIONS = [
@@ -103,7 +103,7 @@ export const ALLOWED_FILE_EXTENSIONS = [
   '.txt',
   '.jpg',
   '.jpeg',
-  '.png'
+  '.png',
 ]
 
 // Maximum file size in bytes (10MB)

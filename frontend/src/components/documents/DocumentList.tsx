@@ -7,7 +7,7 @@ import {
   Document,
   DocumentCategoryLabels,
   DocumentStatusLabels,
-  DocumentStatus
+  DocumentStatus,
 } from '@/types/document'
 
 interface DocumentListProps {
@@ -27,7 +27,7 @@ export function DocumentList({
   onDownload,
   onDelete,
   isLoading = false,
-  className = ''
+  className = '',
 }: DocumentListProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
@@ -37,7 +37,7 @@ export function DocumentList({
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     }).format(new Date(date))
   }
 
@@ -77,9 +77,7 @@ export function DocumentList({
     return (
       <div className="text-center py-12">
         <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          Нет документов
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Нет документов</h3>
         <p className="text-gray-600 dark:text-gray-400">
           Загрузите документы, чтобы они появились здесь
         </p>
@@ -131,7 +129,10 @@ export function DocumentList({
 
               {/* Document Info */}
               <div className="space-y-2">
-                <h4 className="font-semibold text-gray-900 dark:text-white truncate" title={doc.name}>
+                <h4
+                  className="font-semibold text-gray-900 dark:text-white truncate"
+                  title={doc.name}
+                >
                   {doc.name}
                 </h4>
 
@@ -188,11 +189,7 @@ export function DocumentList({
                   </Button>
                 )}
                 {onDownload && doc.status === DocumentStatus.READY && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onDownload(doc)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => onDownload(doc)}>
                     <Download className="h-4 w-4" />
                   </Button>
                 )}
@@ -241,7 +238,9 @@ export function DocumentList({
                     {doc.name}
                   </h4>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(doc.status)}`}>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(doc.status)}`}
+                    >
                       {DocumentStatusLabels[doc.status]}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -272,21 +271,13 @@ export function DocumentList({
               {/* Actions */}
               <div className="flex items-center gap-2 flex-shrink-0">
                 {onPreview && doc.status === DocumentStatus.READY && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onPreview(doc)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => onPreview(doc)}>
                     <Eye className="h-4 w-4 mr-1" />
                     Просмотр
                   </Button>
                 )}
                 {onDownload && doc.status === DocumentStatus.READY && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onDownload(doc)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => onDownload(doc)}>
                     <Download className="h-4 w-4" />
                   </Button>
                 )}

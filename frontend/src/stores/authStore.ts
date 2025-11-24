@@ -77,7 +77,10 @@ interface AuthState {
 // Initialize by cleaning up broken cookies
 if (typeof window !== 'undefined') {
   const brokenCookie = getCookie('auth-storage')
-  if (brokenCookie && (brokenCookie === '[object Object]' || brokenCookie.includes('[object Object]'))) {
+  if (
+    brokenCookie &&
+    (brokenCookie === '[object Object]' || brokenCookie.includes('[object Object]'))
+  ) {
     deleteCookie('auth-storage')
   }
 }
@@ -100,7 +103,9 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.login(credentials)
 
           // Extract data from response wrapper
-          const authData = (response as { data?: { user: User; token: string; refreshToken: string } }).data || response as { user: User; token: string; refreshToken: string }
+          const authData =
+            (response as { data?: { user: User; token: string; refreshToken: string } }).data ||
+            (response as { user: User; token: string; refreshToken: string })
 
           // Set token in API client
           apiClient.setAuthToken(authData.token)
@@ -114,7 +119,11 @@ export const useAuthStore = create<AuthState>()(
             error: null,
           })
         } catch (error: unknown) {
-          const errorMessage = (error as { response?: { data?: { error?: { message?: string }; message?: string } } }).response?.data?.error?.message || (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Ошибка входа'
+          const errorMessage =
+            (error as { response?: { data?: { error?: { message?: string }; message?: string } } })
+              .response?.data?.error?.message ||
+            (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+            'Ошибка входа'
           set({
             isLoading: false,
             error: errorMessage,
@@ -130,7 +139,9 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.register(data)
 
           // Extract data from response wrapper
-          const authData = (response as { data?: { user: User; token: string; refreshToken: string } }).data || response as { user: User; token: string; refreshToken: string }
+          const authData =
+            (response as { data?: { user: User; token: string; refreshToken: string } }).data ||
+            (response as { user: User; token: string; refreshToken: string })
 
           // Set token in API client
           apiClient.setAuthToken(authData.token)
@@ -144,7 +155,11 @@ export const useAuthStore = create<AuthState>()(
             error: null,
           })
         } catch (error: unknown) {
-          const errorMessage = (error as { response?: { data?: { error?: { message?: string }; message?: string } } }).response?.data?.error?.message || (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Ошибка регистрации'
+          const errorMessage =
+            (error as { response?: { data?: { error?: { message?: string }; message?: string } } })
+              .response?.data?.error?.message ||
+            (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+            'Ошибка регистрации'
           set({
             isLoading: false,
             error: errorMessage,
@@ -208,7 +223,7 @@ export const useAuthStore = create<AuthState>()(
           hasToken: !!state.token,
           hasUser: !!state.user,
           userName: state.user?.name,
-          isAuthenticated: state.isAuthenticated
+          isAuthenticated: state.isAuthenticated,
         })
 
         const { token } = state

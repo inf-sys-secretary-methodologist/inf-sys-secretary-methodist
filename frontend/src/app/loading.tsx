@@ -6,9 +6,7 @@ export default function Loading() {
           <div className="absolute top-0 left-0 w-full h-full border-4 border-gray-200 dark:border-gray-700 rounded-full"></div>
           <div className="absolute top-0 left-0 w-full h-full border-4 border-gray-900 dark:border-white border-t-transparent rounded-full animate-spin"></div>
         </div>
-        <p className="text-gray-600 dark:text-gray-300 font-medium">
-          03@C7:0...
-        </p>
+        <p className="text-gray-600 dark:text-gray-300 font-medium">03@C7:0...</p>
       </div>
     </div>
   )

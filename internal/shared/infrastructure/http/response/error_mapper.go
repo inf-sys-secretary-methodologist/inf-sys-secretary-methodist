@@ -18,7 +18,7 @@ func MapDomainError(err error) HTTPError {
 	if err == nil {
 		return HTTPError{
 			Status:   http.StatusInternalServerError,
-			Response: InternalError("Unknown error"),
+			Response: InternalError("Неизвестная ошибка"),
 		}
 	}
 
@@ -27,25 +27,25 @@ func MapDomainError(err error) HTTPError {
 	case errors.Is(err, domainErrors.ErrNotFound):
 		return HTTPError{
 			Status:   http.StatusNotFound,
-			Response: NotFound("Resource"),
+			Response: NotFound("Ресурс"),
 		}
 
 	case errors.Is(err, domainErrors.ErrAlreadyExists):
 		return HTTPError{
 			Status:   http.StatusConflict,
-			Response: ErrorResponse("ALREADY_EXISTS", "Resource already exists"),
+			Response: ErrorResponse("ALREADY_EXISTS", "Ресурс уже существует"),
 		}
 
 	case errors.Is(err, domainErrors.ErrInvalidInput):
 		return HTTPError{
 			Status:   http.StatusBadRequest,
-			Response: BadRequest("Invalid input provided"),
+			Response: BadRequest("Предоставлены неверные данные"),
 		}
 
 	case errors.Is(err, domainErrors.ErrValidationFailed):
 		return HTTPError{
 			Status:   http.StatusUnprocessableEntity,
-			Response: ErrorResponse("VALIDATION_ERROR", "Validation failed"),
+			Response: ErrorResponse("VALIDATION_ERROR", "Ошибка валидации"),
 		}
 
 	case errors.Is(err, domainErrors.ErrUnauthorized):
@@ -63,19 +63,19 @@ func MapDomainError(err error) HTTPError {
 	case errors.Is(err, domainErrors.ErrRequiredField):
 		return HTTPError{
 			Status:   http.StatusBadRequest,
-			Response: BadRequest("Required field is missing"),
+			Response: BadRequest("Отсутствует обязательное поле"),
 		}
 
 	case errors.Is(err, domainErrors.ErrInvalidFormat):
 		return HTTPError{
 			Status:   http.StatusBadRequest,
-			Response: BadRequest("Invalid format"),
+			Response: BadRequest("Неверный формат"),
 		}
 
 	case errors.Is(err, domainErrors.ErrInvalidLength):
 		return HTTPError{
 			Status:   http.StatusBadRequest,
-			Response: BadRequest("Invalid length"),
+			Response: BadRequest("Неверная длина"),
 		}
 	}
 

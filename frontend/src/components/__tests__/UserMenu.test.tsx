@@ -168,7 +168,7 @@ describe('UserMenu', () => {
 
     roles.forEach(({ role, display }) => {
       mockUseAuth.mockReturnValue({
-        user: { ...mockUser, role: role as any },
+        user: { ...mockUser, role: role as typeof mockUser.role },
         isAuthenticated: true,
         isLoading: false,
         error: null,

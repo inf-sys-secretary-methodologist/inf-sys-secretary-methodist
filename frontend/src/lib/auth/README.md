@@ -44,6 +44,7 @@ console.log(config?.allowedRoles) // [SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETAR
 ```
 
 #### Публичные маршруты
+
 - `/` - главная страница
 - `/login` - вход
 - `/register` - регистрация
@@ -52,25 +53,26 @@ console.log(config?.allowedRoles) // [SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETAR
 
 #### Защищённые маршруты по ролям
 
-| Маршрут | Роли с доступом |
-|---------|-----------------|
-| `/admin` | SYSTEM_ADMIN |
-| `/users` | SYSTEM_ADMIN |
-| `/documents` | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY |
-| `/templates` | SYSTEM_ADMIN, METHODIST |
-| `/reports` | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY |
-| `/schedule` | SYSTEM_ADMIN, ACADEMIC_SECRETARY, METHODIST |
-| `/tasks` | SYSTEM_ADMIN, ACADEMIC_SECRETARY, METHODIST |
-| `/students` | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY, TEACHER |
-| `/dashboard` | Все авторизованные |
-| `/profile` | Все авторизованные |
-| `/settings` | Все авторизованные |
+| Маршрут      | Роли с доступом                                      |
+| ------------ | ---------------------------------------------------- |
+| `/admin`     | SYSTEM_ADMIN                                         |
+| `/users`     | SYSTEM_ADMIN                                         |
+| `/documents` | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY          |
+| `/templates` | SYSTEM_ADMIN, METHODIST                              |
+| `/reports`   | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY          |
+| `/schedule`  | SYSTEM_ADMIN, ACADEMIC_SECRETARY, METHODIST          |
+| `/tasks`     | SYSTEM_ADMIN, ACADEMIC_SECRETARY, METHODIST          |
+| `/students`  | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY, TEACHER |
+| `/dashboard` | Все авторизованные                                   |
+| `/profile`   | Все авторизованные                                   |
+| `/settings`  | Все авторизованные                                   |
 
 ### 3. Middleware (`middleware.ts`)
 
 Next.js middleware для серверной защиты маршрутов:
 
 **Автоматически:**
+
 - ✅ Проверяет аутентификацию
 - ✅ Валидирует JWT токен
 - ✅ Проверяет истечение токена
@@ -81,6 +83,7 @@ Next.js middleware для серверной защиты маршрутов:
 - ✅ Очищает cookie при истечении токена
 
 **Обработка ошибок:**
+
 - Expired token → redirect to `/login?redirect={path}&session_expired=true`
 - Invalid token → redirect to `/login?redirect={path}`
 - No permission → redirect to `/forbidden`
@@ -175,11 +178,11 @@ export default withAuth(MyPage, {
 
 ```typescript
 enum UserRole {
-  SYSTEM_ADMIN = 'system_admin',           // Полный доступ
-  METHODIST = 'methodist',                  // Методист
+  SYSTEM_ADMIN = 'system_admin', // Полный доступ
+  METHODIST = 'methodist', // Методист
   ACADEMIC_SECRETARY = 'academic_secretary', // Секретарь
-  TEACHER = 'teacher',                      // Преподаватель
-  STUDENT = 'student',                      // Студент
+  TEACHER = 'teacher', // Преподаватель
+  STUDENT = 'student', // Студент
 }
 ```
 
@@ -292,7 +295,7 @@ export default MyPage
 ```typescript
 // ✅ Good - четко указаны требуемые роли
 export default withAuth(AdminPage, {
-  roles: [UserRole.SYSTEM_ADMIN]
+  roles: [UserRole.SYSTEM_ADMIN],
 })
 
 // ⚠️ Acceptable - если доступ нужен всем авторизованным
@@ -336,19 +339,25 @@ const handleDeleteUser = async (userId: string) => {
 ## Troubleshooting
 
 ### Infinite redirect loop
+
 Убедитесь, что `/login` и `/forbidden` в `publicRoutes` или не требуют авторизации.
 
 ### "Session expired" не показывается
+
 Проверьте query параметр `session_expired` в URL и покажите уведомление на странице логина.
 
 ### Пользователь видит "403 Forbidden" вместо контента
+
 Проверьте:
+
 1. Правильно ли указана роль в `protectedRoutes`
 2. У пользователя есть правильная роль в токене
 3. Токен не истёк
 
 ### withAuth не работает
+
 Убедитесь, что:
+
 1. Компонент использует `"use client"`
 2. AuthStore корректно настроен
 3. Токен хранится в cookies с именем `auth-storage`

@@ -15,9 +15,7 @@ export default function RegisterPage() {
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
           Создать аккаунт
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Зарегистрируйтесь для доступа к системе
-        </p>
+        <p className="text-sm text-muted-foreground">Зарегистрируйтесь для доступа к системе</p>
       </div>
 
       {/* Register Form */}

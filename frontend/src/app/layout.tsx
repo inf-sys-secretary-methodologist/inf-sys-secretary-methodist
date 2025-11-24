@@ -8,11 +8,7 @@ export const metadata: Metadata = {
   description: 'Academic document management and workflow automation system',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru" suppressHydrationWarning>
       <body>
@@ -23,13 +19,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
-          <Toaster
-            position="top-right"
-            richColors
-            closeButton
-            expand={false}
-            duration={4000}
-          />
+          <Toaster position="top-right" richColors closeButton expand={false} duration={4000} />
         </ThemeProvider>
       </body>
     </html>

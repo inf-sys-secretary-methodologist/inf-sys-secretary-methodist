@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { LogOut, Settings, User as UserIcon, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
@@ -21,7 +20,6 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ className }: UserMenuProps) {
-  const router = useRouter()
   const { user, isAuthenticated } = useAuth()
   const { logout, isLoading } = useLogout()
 
@@ -35,7 +33,7 @@ export function UserMenu({ className }: UserMenuProps) {
       toast.success('Выход выполнен успешно', {
         description: 'До скорой встречи!',
       })
-    } catch (error) {
+    } catch (_error) {
       toast.error('Ошибка выхода', {
         description: 'Попробуйте еще раз',
       })
@@ -85,10 +83,10 @@ export function UserMenu({ className }: UserMenuProps) {
         </Avatar>
 
         <div className="hidden md:flex md:flex-col md:items-start text-left">
-          <span className="text-sm font-medium text-foreground">{user?.name || 'Пользователь'}</span>
-          <span className="text-xs text-muted-foreground">
-            {getRoleDisplayName(user?.role)}
+          <span className="text-sm font-medium text-foreground">
+            {user?.name || 'Пользователь'}
           </span>
+          <span className="text-xs text-muted-foreground">{getRoleDisplayName(user?.role)}</span>
         </div>
 
         <ChevronDown className="h-4 w-4 text-muted-foreground hidden md:block" />
@@ -99,9 +97,7 @@ export function UserMenu({ className }: UserMenuProps) {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium">{user?.name || 'Пользователь'}</p>
             <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
-            <p className="text-xs text-muted-foreground">
-              {getRoleDisplayName(user?.role)}
-            </p>
+            <p className="text-xs text-muted-foreground">{getRoleDisplayName(user?.role)}</p>
           </div>
         </DropdownMenuLabel>
 

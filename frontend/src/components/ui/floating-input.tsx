@@ -1,8 +1,7 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-export interface FloatingInputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface FloatingInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string
 }
 
@@ -31,7 +30,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
       props.onChange?.(e)
     }
 
-    const isActive = isFocused || hasValue || props.value !== undefined && props.value !== ''
+    const isActive = isFocused || hasValue || (props.value !== undefined && props.value !== '')
 
     return (
       <div className="relative">
@@ -58,9 +57,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
           className={cn(
             'absolute left-3 text-muted-foreground pointer-events-none',
             'transition-all duration-200',
-            isActive
-              ? 'top-[-0.5rem] text-xs bg-background px-1'
-              : 'top-3 text-base'
+            isActive ? 'top-[-0.5rem] text-xs bg-background px-1' : 'top-3 text-base'
           )}
           htmlFor={uniqueId}
         >

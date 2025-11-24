@@ -13,13 +13,7 @@ export interface RouteConfig {
 /**
  * Public routes accessible without authentication
  */
-export const publicRoutes = [
-  '/',
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-]
+export const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password']
 
 /**
  * Auth routes that redirect to home if already authenticated
@@ -44,7 +38,12 @@ export const protectedRoutes: RouteConfig[] = [
   // Methodist routes
   {
     path: '/documents',
-    allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY, UserRole.TEACHER],
+    allowedRoles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+    ],
   },
   {
     path: '/templates',
@@ -68,7 +67,12 @@ export const protectedRoutes: RouteConfig[] = [
   // Student routes
   {
     path: '/students',
-    allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY, UserRole.TEACHER],
+    allowedRoles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+    ],
   },
 
   // Common protected routes (all authenticated users)
@@ -103,7 +107,7 @@ export function matchesRoute(pathname: string, routePath: string, exactMatch = f
  */
 export function hasRouteAccess(pathname: string, userRole: UserRole): boolean {
   // Check if it's a public route
-  if (publicRoutes.some(route => matchesRoute(pathname, route, true))) {
+  if (publicRoutes.some((route) => matchesRoute(pathname, route, true))) {
     return true
   }
 

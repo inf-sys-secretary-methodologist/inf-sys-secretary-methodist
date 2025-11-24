@@ -128,7 +128,7 @@ describe('RegisterForm', () => {
     const passwordInput = passwordInputs[0]
     const confirmPasswordInput = screen.getByPlaceholderText(/подтвердите пароль/i)
     const buttons = screen.getAllByRole('button')
-    const toggleButtons = buttons.filter(btn => btn.getAttribute('tabIndex') === '-1')
+    const toggleButtons = buttons.filter((btn) => btn.getAttribute('tabIndex') === '-1')
 
     // Initially hidden
     expect(passwordInput).toHaveAttribute('type', 'password')

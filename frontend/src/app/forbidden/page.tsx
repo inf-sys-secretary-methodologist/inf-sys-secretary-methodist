@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useRouter } from 'next/navigation'
 import { ShieldX, ArrowLeft } from 'lucide-react'
@@ -25,25 +25,17 @@ export default function ForbiddenPage() {
 
         {/* Description */}
         <p className="text-muted-foreground">
-          У вас нет прав доступа к этой странице. Пожалуйста, свяжитесь с
-          администратором, если вы считаете, что это ошибка.
+          У вас нет прав доступа к этой странице. Пожалуйста, свяжитесь с администратором, если вы
+          считаете, что это ошибка.
         </p>
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button
-            onClick={() => router.back()}
-            variant="outline"
-            className="gap-2"
-          >
+          <Button onClick={() => router.back()} variant="outline" className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Назад
           </Button>
-          <Button
-            onClick={() => router.push('/dashboard')}
-          >
-            На главную
-          </Button>
+          <Button onClick={() => router.push('/dashboard')}>На главную</Button>
         </div>
       </div>
     </div>
