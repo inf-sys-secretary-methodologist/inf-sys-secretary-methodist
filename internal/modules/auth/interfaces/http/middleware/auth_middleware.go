@@ -18,7 +18,7 @@ func JWTMiddleware(authUseCase *usecases.AuthUseCase) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			resp := response.Unauthorized("Authorization header required")
+			resp := response.Unauthorized("Требуется заголовок авторизации")
 			c.JSON(http.StatusUnauthorized, resp)
 			c.Abort()
 			return
@@ -26,7 +26,7 @@ func JWTMiddleware(authUseCase *usecases.AuthUseCase) gin.HandlerFunc {
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if tokenString == authHeader {
-			resp := response.Unauthorized("Bearer token required")
+			resp := response.Unauthorized("Требуется Bearer токен")
 			c.JSON(http.StatusUnauthorized, resp)
 			c.Abort()
 			return
@@ -35,7 +35,7 @@ func JWTMiddleware(authUseCase *usecases.AuthUseCase) gin.HandlerFunc {
 		ctx := c.Request.Context()
 		claims, err := authUseCase.ValidateAccessToken(ctx, tokenString)
 		if err != nil {
-			resp := response.Unauthorized("Invalid or expired token")
+			resp := response.Unauthorized("Неверный или истекший токен")
 			c.JSON(http.StatusUnauthorized, resp)
 			c.Abort()
 			return
@@ -61,7 +61,7 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userRole, exists := c.Get("role")
 		if !exists {
-			resp := response.Forbidden("User role not found in context")
+			resp := response.Forbidden("Роль пользователя не найдена")
 			c.JSON(http.StatusForbidden, resp)
 			c.Abort()
 			return
@@ -69,7 +69,7 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 
 		roleStr, ok := userRole.(string)
 		if !ok || !roleMap[roleStr] {
-			resp := response.Forbidden("Insufficient permissions")
+			resp := response.Forbidden("Недостаточно прав доступа")
 			c.JSON(http.StatusForbidden, resp)
 			c.Abort()
 			return
@@ -167,7 +167,7 @@ func RateLimitMiddleware(maxRequests int, window time.Duration) gin.HandlerFunc 
 		key := c.ClientIP()
 
 		if !limiter.Allow(key) {
-			resp := response.ErrorResponse("RATE_LIMIT_EXCEEDED", "Too many requests. Please try again later.")
+			resp := response.ErrorResponse("RATE_LIMIT_EXCEEDED", "Слишком много запросов. Пожалуйста, попробуйте позже.")
 			c.JSON(http.StatusTooManyRequests, resp)
 			c.Abort()
 			return

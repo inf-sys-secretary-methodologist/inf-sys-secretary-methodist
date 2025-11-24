@@ -27,10 +27,14 @@ func TestLoad_FromEnv(t *testing.T) {
 	_ = os.Setenv("ENVIRONMENT", "production")
 	_ = os.Setenv("SERVER_PORT", "9000")
 	_ = os.Setenv("DB_HOST", "db.example.com")
+	_ = os.Setenv("JWT_ACCESS_SECRET", "test-access-secret-for-production")
+	_ = os.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret-for-production")
 	defer func() {
 		_ = os.Unsetenv("ENVIRONMENT")
 		_ = os.Unsetenv("SERVER_PORT")
 		_ = os.Unsetenv("DB_HOST")
+		_ = os.Unsetenv("JWT_ACCESS_SECRET")
+		_ = os.Unsetenv("JWT_REFRESH_SECRET")
 	}()
 
 	cfg, err := Load()
