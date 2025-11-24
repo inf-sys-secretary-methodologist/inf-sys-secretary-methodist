@@ -1,3 +1,4 @@
+// Package entities contains domain entities for the auth module.
 package entities
 
 import "time"

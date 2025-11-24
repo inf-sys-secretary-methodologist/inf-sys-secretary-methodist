@@ -1,3 +1,4 @@
+// Package middleware contains HTTP middleware for the auth module.
 package middleware
 
 import (
@@ -104,6 +105,7 @@ type rateLimitEntry struct {
 	resetTime time.Time
 }
 
+// NewRateLimiter creates a new rate limiter instance.
 func NewRateLimiter(maxRequests int, window time.Duration) *RateLimiter {
 	rl := &RateLimiter{
 		requests: make(map[string]*rateLimitEntry),
@@ -117,6 +119,7 @@ func NewRateLimiter(maxRequests int, window time.Duration) *RateLimiter {
 	return rl
 }
 
+// Allow checks if a request is allowed based on the rate limit.
 func (rl *RateLimiter) Allow(key string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()

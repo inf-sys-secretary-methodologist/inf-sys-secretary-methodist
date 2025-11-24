@@ -1,3 +1,4 @@
+// Package fixtures provides test fixtures for testing.
 package fixtures
 
 import (

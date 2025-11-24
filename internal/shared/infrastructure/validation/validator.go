@@ -1,6 +1,8 @@
+// Package validation provides request validation utilities.
 package validation
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -52,7 +54,8 @@ func (v *Validator) ValidateField(field interface{}, tag string) error {
 
 // formatValidationError форматирует ошибки валидации в читаемый вид
 func (v *Validator) formatValidationError(err error) error {
-	if validationErrors, ok := err.(validator.ValidationErrors); ok {
+	var validationErrors validator.ValidationErrors
+	if errors.As(err, &validationErrors) {
 		errorMessages := make(map[string][]string)
 
 		for _, fieldError := range validationErrors {

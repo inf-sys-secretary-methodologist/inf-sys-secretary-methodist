@@ -1,3 +1,4 @@
+// Package domain contains core domain logic for authentication and authorization.
 package domain
 
 import "time"

@@ -1,3 +1,4 @@
+// Package middleware contains shared infrastructure middleware components.
 package middleware
 
 import (

@@ -1,3 +1,4 @@
+// Package http contains HTTP request handlers for the notifications module.
 package http
 
 import (

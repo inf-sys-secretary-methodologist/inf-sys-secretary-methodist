@@ -1,3 +1,4 @@
+// Package sanitization provides input sanitization utilities for security.
 package sanitization
 
 import (

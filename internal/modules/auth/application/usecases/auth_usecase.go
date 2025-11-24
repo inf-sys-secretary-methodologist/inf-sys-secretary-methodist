@@ -1,3 +1,4 @@
+// Package usecases contains the business logic for authentication operations.
 package usecases
 
 import (
@@ -22,12 +23,17 @@ const (
 )
 
 var (
+	// ErrInvalidCredentials is returned when login credentials are invalid.
 	ErrInvalidCredentials = errors.New("invalid email or password")
-	ErrUserNotActive      = errors.New("user account is not active")
-	ErrUserBlocked        = errors.New("user account is blocked")
-	ErrInvalidToken       = errors.New("invalid token")
+	// ErrUserNotActive is returned when user account is not active.
+	ErrUserNotActive = errors.New("user account is not active")
+	// ErrUserBlocked is returned when user account is blocked.
+	ErrUserBlocked = errors.New("user account is blocked")
+	// ErrInvalidToken is returned when token is invalid or expired.
+	ErrInvalidToken = errors.New("invalid token")
 )
 
+// AuthUseCase handles authentication business logic.
 type AuthUseCase struct {
 	userRepo      repositories.UserRepository
 	jwtSecret     []byte
@@ -69,7 +75,7 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 	// Always perform password comparison to prevent timing attacks
 	if err != nil || user == nil {
 		// Perform dummy comparison to maintain constant time
-		bcrypt.CompareHashAndPassword([]byte(dummyHash), []byte(input.Password))
+		_ = bcrypt.CompareHashAndPassword([]byte(dummyHash), []byte(input.Password))
 
 		// Log failed login attempt
 		u.securityLog.LogLoginAttempt(ctx, input.Email, false, "user not found or invalid email")
@@ -131,7 +137,7 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 	// Always perform password comparison to prevent timing attacks
 	if err != nil || user == nil {
 		// Perform dummy comparison to maintain constant time
-		bcrypt.CompareHashAndPassword([]byte(dummyHash), []byte(input.Password))
+		_ = bcrypt.CompareHashAndPassword([]byte(dummyHash), []byte(input.Password))
 
 		// Log failed login attempt
 		u.securityLog.LogLoginAttempt(ctx, input.Email, false, "user not found or invalid email")
@@ -279,7 +285,7 @@ func (u *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString strin
 }
 
 // ValidateAccessToken validates and parses access token
-func (u *AuthUseCase) ValidateAccessToken(ctx context.Context, tokenString string) (*jwt.MapClaims, error) {
+func (u *AuthUseCase) ValidateAccessToken(_ context.Context, tokenString string) (*jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Validate signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -301,7 +307,7 @@ func (u *AuthUseCase) ValidateAccessToken(ctx context.Context, tokenString strin
 }
 
 // generateTokens creates access and refresh tokens with all security claims
-func (u *AuthUseCase) generateTokens(ctx context.Context, user *entities.User) (string, string, error) {
+func (u *AuthUseCase) generateTokens(_ context.Context, user *entities.User) (string, string, error) {
 	now := time.Now()
 
 	// Access Token with all security claims

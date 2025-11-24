@@ -1,3 +1,4 @@
+// Package helpers provides test helper utilities.
 package helpers
 
 import (
@@ -32,7 +33,7 @@ func SetupTestDB(t *testing.T) *sql.DB {
 	}
 
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	return db

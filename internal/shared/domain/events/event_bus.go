@@ -1,3 +1,4 @@
+// Package events provides event bus implementation for domain events.
 package events
 
 import (

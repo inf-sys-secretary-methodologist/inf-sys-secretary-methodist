@@ -1,3 +1,4 @@
+// Package suite provides base test suite implementations.
 package suite
 
 import (
@@ -22,7 +23,7 @@ func (s *IntegrationSuite) SetupSuite() {
 // TearDownSuite runs once after all tests in the suite
 func (s *IntegrationSuite) TearDownSuite() {
 	if s.DB != nil {
-		s.DB.Close()
+		_ = s.DB.Close()
 	}
 }
 

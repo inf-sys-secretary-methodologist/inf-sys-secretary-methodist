@@ -6,46 +6,68 @@ import "time"
 type RoleType string
 
 const (
-	RoleSystemAdmin       RoleType = "system_admin"
-	RoleMethodist         RoleType = "methodist"
+	// RoleSystemAdmin represents the system administrator role with full access.
+	RoleSystemAdmin RoleType = "system_admin"
+	// RoleMethodist represents the methodist role.
+	RoleMethodist RoleType = "methodist"
+	// RoleAcademicSecretary represents the academic secretary role.
 	RoleAcademicSecretary RoleType = "academic_secretary"
-	RoleTeacher           RoleType = "teacher"
-	RoleStudent           RoleType = "student"
+	// RoleTeacher represents the teacher role.
+	RoleTeacher RoleType = "teacher"
+	// RoleStudent represents the student role.
+	RoleStudent RoleType = "student"
 )
 
 // ResourceType представляет тип ресурса
 type ResourceType string
 
 const (
-	ResourceUsers       ResourceType = "users"
-	ResourceCurriculum  ResourceType = "curriculum"
-	ResourceSchedule    ResourceType = "schedule"
+	// ResourceUsers represents the users resource type.
+	ResourceUsers ResourceType = "users"
+	// ResourceCurriculum represents the curriculum resource type.
+	ResourceCurriculum ResourceType = "curriculum"
+	// ResourceSchedule represents the schedule resource type.
+	ResourceSchedule ResourceType = "schedule"
+	// ResourceAssignments represents the assignments resource type.
 	ResourceAssignments ResourceType = "assignments"
-	ResourceReports     ResourceType = "reports"
+	// ResourceReports represents the reports resource type.
+	ResourceReports ResourceType = "reports"
 )
 
 // ActionType представляет тип действия
 type ActionType string
 
 const (
-	ActionCreate     ActionType = "create"
-	ActionRead       ActionType = "read"
-	ActionUpdate     ActionType = "update"
-	ActionDelete     ActionType = "delete"
+	// ActionCreate represents the create action.
+	ActionCreate ActionType = "create"
+	// ActionRead represents the read action.
+	ActionRead ActionType = "read"
+	// ActionUpdate represents the update action.
+	ActionUpdate ActionType = "update"
+	// ActionDelete represents the delete action.
+	ActionDelete ActionType = "delete"
+	// ActionDeactivate represents the deactivate action.
 	ActionDeactivate ActionType = "deactivate"
-	ActionApprove    ActionType = "approve"
-	ActionExecute    ActionType = "execute"
-	ActionExport     ActionType = "export"
+	// ActionApprove represents the approve action.
+	ActionApprove ActionType = "approve"
+	// ActionExecute represents the execute action.
+	ActionExecute ActionType = "execute"
+	// ActionExport represents the export action.
+	ActionExport ActionType = "export"
 )
 
 // AccessLevel представляет уровень доступа
 type AccessLevel int
 
 const (
-	AccessDenied  AccessLevel = 0
+	// AccessDenied indicates no access to the resource.
+	AccessDenied AccessLevel = 0
+	// AccessLimited indicates limited access to the resource.
 	AccessLimited AccessLevel = 1
-	AccessOwn     AccessLevel = 2
-	AccessFull    AccessLevel = 3
+	// AccessOwn indicates access only to own resources.
+	AccessOwn AccessLevel = 2
+	// AccessFull indicates full access to the resource.
+	AccessFull AccessLevel = 3
 )
 
 // Permission представляет разрешение

@@ -25,7 +25,9 @@ func setupTestRedis(t *testing.T) (*redis.Client, *miniredis.Miniredis) {
 
 func TestRateLimiter_WithinLimit(t *testing.T) {
 	client, _ := setupTestRedis(t)
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	// Создаём rate limiter: 10 req/min + burst 5 = всего 15
 	limiter := NewRateLimiter(client, 10, 5)
@@ -52,7 +54,9 @@ func TestRateLimiter_WithinLimit(t *testing.T) {
 
 func TestRateLimiter_ExceedLimit(t *testing.T) {
 	client, _ := setupTestRedis(t)
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	// Создаём rate limiter: 10 req/min + burst 5 = всего 15
 	limiter := NewRateLimiter(client, 10, 5)
@@ -84,7 +88,9 @@ func TestRateLimiter_ExceedLimit(t *testing.T) {
 
 func TestRateLimiter_BurstSupport(t *testing.T) {
 	client, _ := setupTestRedis(t)
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	// Создаём rate limiter: 10 req/min + burst 5
 	limiter := NewRateLimiter(client, 10, 5)
@@ -123,7 +129,9 @@ func TestRateLimiter_BurstSupport(t *testing.T) {
 
 func TestRateLimiter_DifferentIPs(t *testing.T) {
 	client, _ := setupTestRedis(t)
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	limiter := NewRateLimiter(client, 10, 5)
 
@@ -161,7 +169,9 @@ func TestRateLimiter_DifferentIPs(t *testing.T) {
 
 func TestRateLimiter_RetryAfterHeader(t *testing.T) {
 	client, _ := setupTestRedis(t)
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	limiter := NewRateLimiter(client, 10, 5)
 
@@ -200,7 +210,9 @@ func TestRateLimiter_RetryAfterHeader(t *testing.T) {
 
 func TestRateLimiter_HeadersPresent(t *testing.T) {
 	client, _ := setupTestRedis(t)
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	limiter := NewRateLimiter(client, 10, 5)
 
@@ -281,7 +293,9 @@ func TestRateLimitConfig_DefaultValues(t *testing.T) {
 
 func TestRateLimitConfig_GetLimiters(t *testing.T) {
 	client, _ := setupTestRedis(t)
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	config := &RateLimitConfig{
 		PublicRequestsPerMinute: 15,

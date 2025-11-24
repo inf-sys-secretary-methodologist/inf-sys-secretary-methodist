@@ -129,7 +129,12 @@ func (r *SessionRepositoryPG) GetActiveByUserID(ctx context.Context, userID int6
 	if err != nil {
 		return nil, database.MapPostgresError(err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			// Log error but don't fail the operation
+			_ = err
+		}
+	}()
 
 	sessions := []*entities.Session{}
 	for rows.Next() {

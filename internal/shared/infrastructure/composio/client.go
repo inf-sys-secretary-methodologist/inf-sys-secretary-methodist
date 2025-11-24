@@ -1,3 +1,4 @@
+// Package composio provides a client for the Composio API.
 package composio
 
 import (
@@ -87,7 +88,11 @@ func (c *Client) ExecuteAction(ctx context.Context, actionID string, req *Execut
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("[Composio] Failed to close response body: %v", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

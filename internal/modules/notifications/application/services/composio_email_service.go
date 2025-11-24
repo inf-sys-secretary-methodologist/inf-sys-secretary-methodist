@@ -1,3 +1,4 @@
+// Package services contains application services for the notifications module.
 package services
 
 import (

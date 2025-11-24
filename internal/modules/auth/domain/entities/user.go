@@ -24,9 +24,12 @@ type User struct {
 type UserStatus string
 
 const (
-	UserStatusActive   UserStatus = "active"
+	// UserStatusActive indicates the user account is active and can log in.
+	UserStatusActive UserStatus = "active"
+	// UserStatusInactive indicates the user account is inactive.
 	UserStatusInactive UserStatus = "inactive"
-	UserStatusBlocked  UserStatus = "blocked"
+	// UserStatusBlocked indicates the user account is blocked and cannot log in.
+	UserStatusBlocked UserStatus = "blocked"
 )
 
 // NewUser creates a new user
@@ -73,8 +76,10 @@ func (u *User) CanLogin() error {
 }
 
 var (
+	// ErrAccountNotActive is returned when attempting to log in with an inactive account.
 	ErrAccountNotActive = fmt.Errorf("account is not active")
-	ErrAccountBlocked   = fmt.Errorf("account is blocked")
+	// ErrAccountBlocked is returned when attempting to log in with a blocked account.
+	ErrAccountBlocked = fmt.Errorf("account is blocked")
 )
 
 // IsActive checks if user is active
