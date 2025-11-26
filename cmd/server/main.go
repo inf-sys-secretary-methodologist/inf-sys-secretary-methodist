@@ -20,9 +20,13 @@ import (
 	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure/persistence"
 	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
 	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
+	docUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
+	docPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/infrastructure/persistence"
+	docHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
 	emailServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	emailDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	emailHandlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/interfaces/http/handlers"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -93,6 +97,28 @@ func main() {
 		logger.Info("Redis cache connected successfully", nil)
 	}
 
+	// Initialize S3 client for document storage
+	var s3Client *storage.S3Client
+	if cfg.S3.Endpoint != "" {
+		s3Client, err = storage.NewS3Client(cfg.S3)
+		if err != nil {
+			logger.Warn("S3 storage not available, document uploads disabled", map[string]interface{}{
+				"error": err.Error(),
+			})
+		} else {
+			// Ensure bucket exists
+			if err := s3Client.EnsureBucket(context.Background()); err != nil {
+				logger.Warn("Failed to ensure S3 bucket exists", map[string]interface{}{
+					"error": err.Error(),
+				})
+			} else {
+				logger.Info("S3 storage connected successfully", map[string]interface{}{
+					"bucket": cfg.S3.BucketName,
+				})
+			}
+		}
+	}
+
 	// Initialize auth module with all optimizations
 	authUseCase, userRepo := initAuthModule(
 		db,
@@ -102,6 +128,18 @@ func main() {
 		perfLogger,
 		cfg,
 	)
+
+	// Initialize documents module
+	var docUseCase *docUsecases.DocumentUseCase
+	if s3Client != nil {
+		docRepo := docPersistence.NewDocumentRepositoryPG(db)
+		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
+		docCategoryRepo := docPersistence.NewDocumentCategoryRepositoryPG(db)
+		docUseCase = docUsecases.NewDocumentUseCase(docRepo, docTypeRepo, docCategoryRepo, s3Client)
+		logger.Info("Documents module initialized", nil)
+	} else {
+		logger.Warn("Documents module not initialized - S3 storage not available", nil)
+	}
 
 	// Initialize shared middleware
 	corsMiddleware := appMiddleware.NewCORSMiddleware(
@@ -114,6 +152,7 @@ func main() {
 	// Setup router with all middleware
 	router := setupRoutes(
 		authUseCase,
+		docUseCase,
 		securityLogger,
 		perfLogger,
 		cfg,
@@ -246,6 +285,7 @@ func initAuthModule(
 
 func setupRoutes(
 	authUseCase *usecases.AuthUseCase,
+	docUseCase *docUsecases.DocumentUseCase,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
 	cfg *config.Config,
@@ -364,6 +404,38 @@ func setupRoutes(
 			logger.Info("Email notification routes registered", nil)
 		} else {
 			logger.Warn("Email notification routes not registered - Composio credentials not configured", nil)
+		}
+
+		// Document management routes
+		if docUseCase != nil {
+			docHandlerInstance := docHandler.NewDocumentHandler(docUseCase)
+
+			documentsGroup := protectedGroup.Group("/documents")
+			{
+				documentsGroup.POST("", docHandlerInstance.Create)
+				documentsGroup.GET("", docHandlerInstance.List)
+				documentsGroup.GET("/:id", docHandlerInstance.GetByID)
+				documentsGroup.PUT("/:id", docHandlerInstance.Update)
+				documentsGroup.DELETE("/:id", docHandlerInstance.Delete)
+				documentsGroup.POST("/:id/file", docHandlerInstance.UploadFile)
+				documentsGroup.GET("/:id/file", docHandlerInstance.DownloadFile)
+				documentsGroup.DELETE("/:id/file", docHandlerInstance.DeleteFile)
+
+				// CORS preflight handlers
+				documentsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				documentsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				documentsGroup.OPTIONS("/:id/file", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			// Document types and categories (reference data)
+			protectedGroup.GET("/document-types", docHandlerInstance.GetDocumentTypes)
+			protectedGroup.GET("/document-categories", docHandlerInstance.GetCategories)
+			protectedGroup.OPTIONS("/document-types", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			protectedGroup.OPTIONS("/document-categories", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+			logger.Info("Documents module routes registered", nil)
+		} else {
+			logger.Warn("Documents module routes not registered - S3 storage not available", nil)
 		}
 
 		// Admin only routes
