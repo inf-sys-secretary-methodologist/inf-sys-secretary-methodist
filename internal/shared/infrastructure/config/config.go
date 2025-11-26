@@ -15,6 +15,7 @@ type Config struct {
 	Server      ServerConfig
 	Database    DatabaseConfig
 	Redis       RedisConfig
+	S3          S3Config
 	Log         LogConfig
 	CORS        CORSConfig
 	JWT         JWTConfig
@@ -76,6 +77,17 @@ type ComposioConfig struct {
 	MCPConfigID string
 }
 
+// S3Config holds S3/MinIO storage configuration
+type S3Config struct {
+	Endpoint        string
+	AccessKeyID     string
+	SecretAccessKey string
+	BucketName      string
+	Region          string
+	UseSSL          bool
+	MaxFileSize     int64 // max file size in bytes
+}
+
 // Load reads configuration from environment variables
 func Load() (*Config, error) {
 	config := &Config{
@@ -122,6 +134,15 @@ func Load() (*Config, error) {
 			EntityID:    getEnv("COMPOSIO_ENTITY_ID", ""),
 			MCPConfigID: getEnv("COMPOSIO_MCP_CONFIG_ID", ""),
 		},
+		S3: S3Config{
+			Endpoint:        getEnv("S3_ENDPOINT", "localhost:9000"),
+			AccessKeyID:     getEnv("S3_ACCESS_KEY_ID", "minioadmin"),
+			SecretAccessKey: getEnv("S3_SECRET_ACCESS_KEY", "minioadmin"),
+			BucketName:      getEnv("S3_BUCKET_NAME", "documents"),
+			Region:          getEnv("S3_REGION", "us-east-1"),
+			UseSSL:          getEnvAsBool("S3_USE_SSL", false),
+			MaxFileSize:     getEnvAsInt64("S3_MAX_FILE_SIZE", 50*1024*1024), // 50MB default
+		},
 	}
 
 	// Validate JWT secrets in production
@@ -155,6 +176,22 @@ func getEnv(key, defaultValue string) string {
 func getEnvAsInt(key string, defaultValue int) int {
 	valueStr := os.Getenv(key)
 	if value, err := strconv.Atoi(valueStr); err == nil {
+		return value
+	}
+	return defaultValue
+}
+
+func getEnvAsInt64(key string, defaultValue int64) int64 {
+	valueStr := os.Getenv(key)
+	if value, err := strconv.ParseInt(valueStr, 10, 64); err == nil {
+		return value
+	}
+	return defaultValue
+}
+
+func getEnvAsBool(key string, defaultValue bool) bool {
+	valueStr := os.Getenv(key)
+	if value, err := strconv.ParseBool(valueStr); err == nil {
 		return value
 	}
 	return defaultValue

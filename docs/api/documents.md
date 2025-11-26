@@ -542,7 +542,203 @@ https://api.inf-sys.example.com/documents
 
 ---
 
-## 📁 Управление файлами
+## 📁 Управление файлами (File Storage API)
+
+> **Реализовано в Issue #9**: API для загрузки и хранения файлов документов с использованием MinIO/S3.
+
+### Конфигурация S3 Storage
+
+Переменные окружения для настройки хранилища:
+```bash
+S3_ENDPOINT=localhost:9000        # MinIO/S3 endpoint
+S3_ACCESS_KEY_ID=minioadmin       # Access key
+S3_SECRET_ACCESS_KEY=minioadmin   # Secret key
+S3_BUCKET_NAME=documents          # Bucket name
+S3_REGION=us-east-1               # Region
+S3_USE_SSL=false                  # Use SSL
+S3_MAX_FILE_SIZE=52428800         # Max file size (50MB)
+```
+
+### POST `/api/documents`
+Создание документа с файлом (multipart/form-data)
+
+**Request (multipart/form-data):**
+```
+title: "Учебный план"
+document_type_id: 1
+category_id: 2
+subject: "Математика"
+content: "Описание документа"
+importance: "high"
+is_public: true
+file: <binary data>
+```
+
+**Request (JSON без файла):**
+```json
+{
+  "title": "Учебный план",
+  "document_type_id": 1,
+  "category_id": 2,
+  "subject": "Математика",
+  "content": "Описание документа",
+  "importance": "high",
+  "is_public": true
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "document_type_id": 1,
+    "document_type_name": "Учебный план",
+    "title": "Учебный план",
+    "author_id": 123,
+    "status": "draft",
+    "has_file": true,
+    "file_name": "document.pdf",
+    "file_size": 1048576,
+    "mime_type": "application/pdf",
+    "version": 1,
+    "importance": "high",
+    "is_public": true,
+    "created_at": "2025-01-15T16:00:00Z",
+    "updated_at": "2025-01-15T16:00:00Z"
+  }
+}
+```
+
+### POST `/api/documents/{id}/file`
+Загрузка файла к существующему документу
+
+**Request (multipart/form-data):**
+```
+file: <binary data>
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "has_file": true,
+    "file_name": "updated_document.pdf",
+    "file_size": 2097152,
+    "mime_type": "application/pdf",
+    "version": 2
+  }
+}
+```
+
+**Валидация файлов:**
+- Максимальный размер: 50MB
+- Разрешенные MIME-типы: PDF, Word, Excel, PowerPoint, изображения, текст, архивы
+- Разрешенные расширения: .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .jpg, .png, .gif, .txt, .csv, .zip, .rar, .7z
+- Проверка magic bytes для верификации содержимого
+
+**Ошибки валидации (400):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Размер файла (52428801 байт) превышает максимально допустимый (52428800 байт)"
+  }
+}
+```
+
+### GET `/api/documents/{id}/file`
+Скачивание файла документа
+
+**Response:**
+- Content-Type: соответствует типу файла
+- Content-Disposition: attachment; filename="document.pdf"
+- Content-Length: размер файла в байтах
+- Body: бинарные данные файла
+
+**Ошибки (404):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Ресурс not found"
+  }
+}
+```
+
+### DELETE `/api/documents/{id}/file`
+Удаление файла из документа
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Файл успешно удален"
+  }
+}
+```
+
+### GET `/api/document-types`
+Получение списка типов документов
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Учебный план",
+      "code": "curriculum",
+      "description": "Учебный план образовательной программы",
+      "requires_approval": true,
+      "requires_registration": true
+    },
+    {
+      "id": 2,
+      "name": "Силлабус",
+      "code": "syllabus",
+      "description": "Программа учебной дисциплины",
+      "requires_approval": true,
+      "requires_registration": false
+    }
+  ]
+}
+```
+
+### GET `/api/document-categories`
+Получение списка категорий документов
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Входящие",
+      "description": "Входящие документы",
+      "parent_id": null
+    },
+    {
+      "id": 2,
+      "name": "Исходящие",
+      "description": "Исходящие документы",
+      "parent_id": null
+    }
+  ]
+}
+```
+
+---
+
+## 📎 Legacy Attachments API
 
 ### POST `/documents/{id}/attachments`
 Добавление вложения к документу
@@ -789,6 +985,234 @@ func TestCreateDocument(t *testing.T) {
 
 ---
 
+## 📁 Category Management API (Issue #10)
+
+Система категоризации документов с поддержкой иерархической структуры (папки).
+
+### GET `/api/categories`
+Получение списка всех категорий.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Учебная деятельность",
+      "description": "Документы, связанные с учебным процессом",
+      "parent_id": null,
+      "document_count": 15,
+      "has_children": true,
+      "created_at": "2025-01-15T10:00:00Z",
+      "updated_at": "2025-01-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+### GET `/api/categories/tree`
+Получение полного дерева категорий.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Учебная деятельность",
+      "description": "Документы, связанные с учебным процессом",
+      "document_count": 15,
+      "children": [
+        {
+          "id": 4,
+          "name": "Расписание",
+          "parent_id": 1,
+          "document_count": 8,
+          "children": []
+        }
+      ]
+    }
+  ]
+}
+```
+
+### GET `/api/categories/root`
+Получение корневых категорий (без родителя).
+
+### GET `/api/categories/:id`
+Получение категории по ID.
+
+### GET `/api/categories/:id/children`
+Получение дочерних категорий.
+
+### GET `/api/categories/:id/breadcrumb`
+Получение категории с хлебными крошками (путь от корня).
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "category": {
+      "id": 4,
+      "name": "Расписание"
+    },
+    "breadcrumbs": [
+      {"id": 1, "name": "Учебная деятельность"}
+    ]
+  }
+}
+```
+
+### POST `/api/categories`
+Создание новой категории.
+
+**Request Body:**
+```json
+{
+  "name": "Новая категория",
+  "description": "Описание категории",
+  "parent_id": 1
+}
+```
+
+### PUT `/api/categories/:id`
+Обновление категории.
+
+**Request Body:**
+```json
+{
+  "name": "Обновленное имя",
+  "description": "Новое описание",
+  "parent_id": 2
+}
+```
+
+**Примечание:** При перемещении категории проверяется защита от циклических ссылок.
+
+### DELETE `/api/categories/:id`
+Удаление категории. Дочерние категории становятся корневыми, документы в категории открепляются.
+
+---
+
+## 🏷️ Tag Management API (Issue #10)
+
+Система тегирования документов для гибкой организации.
+
+### GET `/api/tags`
+Получение списка всех тегов.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Важное",
+      "color": "#FF0000",
+      "usage_count": 25,
+      "created_at": "2025-01-10T12:00:00Z"
+    }
+  ]
+}
+```
+
+### GET `/api/tags/search?q=...&limit=10`
+Поиск тегов по имени (prefix match, case-insensitive).
+
+### GET `/api/tags/:id`
+Получение тега по ID.
+
+### GET `/api/tags/:id/documents?page=1&page_size=20`
+Получение документов с определенным тегом.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "tag": {
+      "id": 1,
+      "name": "Важное",
+      "usage_count": 25
+    },
+    "document_ids": [1, 5, 12, 23],
+    "total": 25,
+    "page": 1,
+    "page_size": 20
+  }
+}
+```
+
+### POST `/api/tags`
+Создание нового тега.
+
+**Request Body:**
+```json
+{
+  "name": "Новый тег",
+  "color": "#00FF00"
+}
+```
+
+### PUT `/api/tags/:id`
+Обновление тега.
+
+**Request Body:**
+```json
+{
+  "name": "Обновленный тег",
+  "color": "#0000FF"
+}
+```
+
+### DELETE `/api/tags/:id`
+Удаление тега. Связи с документами удаляются автоматически (CASCADE).
+
+---
+
+## 🔗 Document-Tag Relations API (Issue #10)
+
+Управление связями между документами и тегами.
+
+### GET `/api/documents/:document_id/tags`
+Получение тегов документа.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "document_id": 1,
+    "tags": [
+      {"id": 1, "name": "Важное", "color": "#FF0000", "usage_count": 25},
+      {"id": 3, "name": "Срочное", "color": "#FFA500", "usage_count": 10}
+    ]
+  }
+}
+```
+
+### PUT `/api/documents/:document_id/tags`
+Замена всех тегов документа.
+
+**Request Body:**
+```json
+{
+  "tag_ids": [1, 3, 5]
+}
+```
+
+### POST `/api/documents/:document_id/tags/:tag_id`
+Добавление тега к документу.
+
+### DELETE `/api/documents/:document_id/tags/:tag_id`
+Удаление тега из документа.
+
+---
+
 ## 🚨 Error Codes
 
 | Code | Message | Description |
@@ -803,8 +1227,10 @@ func TestCreateDocument(t *testing.T) {
 | DOC_008 | Insufficient permissions | Недостаточно прав для операции |
 ---
 
-**📅 Актуальность документа**  
-**Последнее обновление**: 2025-01-15  
-**Версия проекта**: 0.1.0  
+**📅 Актуальность документа**
+**Последнее обновление**: 2025-11-27
+**Версия проекта**: 0.1.0
 **Статус**: Актуальный
+**Issue #9**: Реализовано API для загрузки файлов (MinIO/S3)
+**Issue #10**: Реализована система категоризации и тегирования документов
 
