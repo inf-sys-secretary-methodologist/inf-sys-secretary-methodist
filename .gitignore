@@ -21,6 +21,11 @@ vendor/
 .env
 .env.local
 .env.*.local
+.env.deploy
+
+# Database backups
+backups/
+*.sql.gz
 
 # Docker Compose override (local development settings)
 compose.override.yml

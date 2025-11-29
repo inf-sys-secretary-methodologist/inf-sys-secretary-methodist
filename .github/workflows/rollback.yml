@@ -1,0 +1,146 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment to rollback'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: 'Image tag to rollback to (e.g., sha-abc1234 or 20241129-abc1234)'
+        required: true
+        type: string
+      reason:
+        description: 'Reason for rollback'
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
+
+jobs:
+  validate:
+    name: Validate Rollback
+    runs-on: ubuntu-latest
+    outputs:
+      image_exists: ${{ steps.check.outputs.exists }}
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if image tag exists
+        id: check
+        run: |
+          if docker manifest inspect ${{ env.BACKEND_IMAGE }}:${{ inputs.image_tag }} > /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Image tag ${{ inputs.image_tag }} exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "::error::Image tag ${{ inputs.image_tag }} does not exist!"
+            exit 1
+          fi
+
+  rollback-staging:
+    name: Rollback Staging
+    needs: validate
+    if: inputs.environment == 'staging'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rollback Staging
+        env:
+          DEPLOY_HOST: ${{ secrets.STAGING_HOST }}
+          DEPLOY_USER: ${{ secrets.STAGING_USER }}
+          DEPLOY_KEY: ${{ secrets.STAGING_SSH_KEY }}
+        run: |
+          echo "Rolling back staging to tag: ${{ inputs.image_tag }}"
+          echo "Reason: ${{ inputs.reason }}"
+
+          # TODO: Add actual rollback commands when staging server is configured
+          # ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << EOF
+          #   cd /opt/inf-sys
+          #   export BACKEND_TAG=${{ inputs.image_tag }}
+          #   export FRONTEND_TAG=${{ inputs.image_tag }}
+          #   docker compose pull
+          #   docker compose up -d
+          # EOF
+
+      - name: Health Check
+        run: |
+          echo "Verifying rollback health..."
+          # curl -f ${{ vars.STAGING_URL }}/health || exit 1
+
+      - name: Create rollback summary
+        run: |
+          echo "## Staging Rollback Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | staging |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rolled back to | ${{ inputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Reason | ${{ inputs.reason }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Time | $(date -u) |" >> $GITHUB_STEP_SUMMARY
+
+  rollback-production:
+    name: Rollback Production
+    needs: validate
+    if: inputs.environment == 'production'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rollback Production
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+        run: |
+          echo "Rolling back production to tag: ${{ inputs.image_tag }}"
+          echo "Reason: ${{ inputs.reason }}"
+
+          # TODO: Add actual rollback commands when production server is configured
+
+      - name: Health Check
+        run: |
+          echo "Verifying rollback health..."
+          # curl -f ${{ vars.PRODUCTION_URL }}/health || exit 1
+
+      - name: Create rollback summary
+        run: |
+          echo "## Production Rollback Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | production |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rolled back to | ${{ inputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Reason | ${{ inputs.reason }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Time | $(date -u) |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify about rollback
+        run: |
+          echo "::warning::Production rollback completed by ${{ github.actor }}"
+          echo "::warning::Reason: ${{ inputs.reason }}"

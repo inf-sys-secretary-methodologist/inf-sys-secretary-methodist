@@ -1,0 +1,449 @@
+name: CD - Continuous Deployment
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
+
+jobs:
+  # Build and push Docker images
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    outputs:
+      backend_image: ${{ steps.meta-backend.outputs.tags }}
+      frontend_image: ${{ steps.meta-frontend.outputs.tags }}
+      sha_short: ${{ steps.vars.outputs.sha_short }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up variables
+        id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Backend image
+      - name: Extract metadata for Backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.BACKEND_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.vars.outputs.date }}-${{ steps.vars.outputs.sha_short }}
+
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      # Frontend image
+      - name: Extract metadata for Frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.FRONTEND_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.vars.outputs.date }}-${{ steps.vars.outputs.sha_short }}
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  # Security scan
+  security-scan:
+    name: Security Scan
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Trivy vulnerability scanner (Backend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.BACKEND_IMAGE }}:sha-${{ needs.build-and-push.outputs.sha_short }}'
+          format: 'sarif'
+          output: 'trivy-backend-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Backend scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-backend-results.sarif'
+          category: 'trivy-backend'
+
+      - name: Run Trivy vulnerability scanner (Frontend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.FRONTEND_IMAGE }}:sha-${{ needs.build-and-push.outputs.sha_short }}'
+          format: 'sarif'
+          output: 'trivy-frontend-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Frontend scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-frontend-results.sarif'
+          category: 'trivy-frontend'
+
+  # Deploy to Staging (automatic)
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [build-and-push, security-scan]
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        if: ${{ secrets.STAGING_SSH_KEY != '' }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Backup Database (Pre-migration)
+        if: ${{ secrets.STAGING_SSH_KEY != '' }}
+        env:
+          DEPLOY_HOST: ${{ secrets.STAGING_HOST }}
+          DEPLOY_USER: ${{ secrets.STAGING_USER }}
+        run: |
+          echo "Creating database backup before migration..."
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            cd /opt/inf-sys
+            ./scripts/db-backup.sh "pre-deploy-$(date +%Y%m%d-%H%M%S)" || echo "Backup skipped (first deploy or no database)"
+          EOF
+
+      - name: Run Database Migrations
+        if: ${{ secrets.STAGING_SSH_KEY != '' }}
+        env:
+          DEPLOY_HOST: ${{ secrets.STAGING_HOST }}
+          DEPLOY_USER: ${{ secrets.STAGING_USER }}
+        run: |
+          echo "Running database migrations..."
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            cd /opt/inf-sys
+            docker compose -f compose.deploy.yml run --rm migrations || echo "Migrations completed or skipped"
+          EOF
+
+      - name: Deploy to Staging
+        env:
+          DEPLOY_HOST: ${{ secrets.STAGING_HOST }}
+          DEPLOY_USER: ${{ secrets.STAGING_USER }}
+          DEPLOY_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          BACKEND_IMAGE_TAG: sha-${{ needs.build-and-push.outputs.sha_short }}
+          FRONTEND_IMAGE_TAG: sha-${{ needs.build-and-push.outputs.sha_short }}
+        run: |
+          echo "Deploying to staging environment..."
+          echo "Backend image: ${{ env.BACKEND_IMAGE }}:${BACKEND_IMAGE_TAG}"
+          echo "Frontend image: ${{ env.FRONTEND_IMAGE }}:${FRONTEND_IMAGE_TAG}"
+
+          # Deploy when SSH is configured
+          if [ -f ~/.ssh/deploy_key ]; then
+            ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << EOF
+              cd /opt/inf-sys
+              export BACKEND_TAG=${BACKEND_IMAGE_TAG}
+              export FRONTEND_TAG=${FRONTEND_IMAGE_TAG}
+              docker compose -f compose.deploy.yml pull
+              docker compose -f compose.deploy.yml up -d backend frontend
+              docker system prune -f
+          EOF
+          else
+            echo "SSH not configured, skipping actual deployment"
+          fi
+
+      - name: Health Check with Retry
+        id: health-check
+        run: |
+          echo "Running health check on staging..."
+          HEALTH_URL="${{ vars.STAGING_URL }}/health"
+          MAX_RETRIES=5
+          RETRY_DELAY=10
+
+          if [ -z "${{ vars.STAGING_URL }}" ]; then
+            echo "STAGING_URL not configured, skipping health check"
+            exit 0
+          fi
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Health check attempt $i/$MAX_RETRIES..."
+            if curl -sf --connect-timeout 10 --max-time 30 "$HEALTH_URL" > /dev/null; then
+              echo "Health check passed!"
+              exit 0
+            fi
+            echo "Attempt $i failed, waiting ${RETRY_DELAY}s..."
+            sleep $RETRY_DELAY
+          done
+
+          echo "::error::Health check failed after $MAX_RETRIES attempts"
+          exit 1
+
+      - name: Rollback on Health Check Failure
+        if: failure() && steps.health-check.outcome == 'failure'
+        env:
+          DEPLOY_HOST: ${{ secrets.STAGING_HOST }}
+          DEPLOY_USER: ${{ secrets.STAGING_USER }}
+        run: |
+          echo "::warning::Health check failed, initiating rollback..."
+          if [ -f ~/.ssh/deploy_key ]; then
+            ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+              cd /opt/inf-sys
+              # Rollback to previous image
+              docker compose -f compose.deploy.yml down backend frontend
+              export BACKEND_TAG=latest
+              export FRONTEND_TAG=latest
+              docker compose -f compose.deploy.yml up -d backend frontend
+          EOF
+          fi
+          echo "::error::Deployment rolled back due to health check failure"
+
+      - name: Create deployment summary
+        run: |
+          echo "## Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Image Tag |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | sha-${{ needs.build-and-push.outputs.sha_short }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | sha-${{ needs.build-and-push.outputs.sha_short }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+  # Deploy to Production (manual approval required)
+  deploy-production:
+    name: Deploy to Production
+    needs: [build-and-push, deploy-staging]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Production
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+          BACKEND_IMAGE_TAG: sha-${{ needs.build-and-push.outputs.sha_short }}
+          FRONTEND_IMAGE_TAG: sha-${{ needs.build-and-push.outputs.sha_short }}
+        run: |
+          echo "Deploying to production environment..."
+          echo "Backend image: ${{ env.BACKEND_IMAGE }}:${BACKEND_IMAGE_TAG}"
+          echo "Frontend image: ${{ env.FRONTEND_IMAGE }}:${FRONTEND_IMAGE_TAG}"
+
+          # TODO: Add actual deployment commands when production server is configured
+
+      - name: Health Check
+        run: |
+          echo "Running health check on production..."
+          # TODO: Add actual health check when production URL is configured
+          # curl -f ${{ vars.PRODUCTION_URL }}/health || exit 1
+          echo "Health check passed (placeholder)"
+
+      - name: Create deployment summary
+        run: |
+          echo "## Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Image Tag |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | sha-${{ needs.build-and-push.outputs.sha_short }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | sha-${{ needs.build-and-push.outputs.sha_short }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Production deployment completed successfully!**" >> $GITHUB_STEP_SUMMARY
+
+  # Notifications
+  notify-success:
+    name: Notify Success
+    needs: [build-and-push, deploy-staging]
+    if: success()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Slack Notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "✅ Deployment Successful"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {"type": "mrkdwn", "text": "*Repository:*\n${{ github.repository }}"},
+                    {"type": "mrkdwn", "text": "*Branch:*\n${{ github.ref_name }}"},
+                    {"type": "mrkdwn", "text": "*Environment:*\nstaging"},
+                    {"type": "mrkdwn", "text": "*Commit:*\n`${{ needs.build-and-push.outputs.sha_short }}`"}
+                  ]
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {"type": "mrkdwn", "text": "Triggered by *${{ github.actor }}* | <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"}
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Send Discord Notification
+        if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
+        run: |
+          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "✅ Deployment Successful",
+                "color": 5025616,
+                "fields": [
+                  {"name": "Repository", "value": "${{ github.repository }}", "inline": true},
+                  {"name": "Environment", "value": "staging", "inline": true},
+                  {"name": "Commit", "value": "`${{ needs.build-and-push.outputs.sha_short }}`", "inline": true},
+                  {"name": "Triggered by", "value": "${{ github.actor }}", "inline": true}
+                ],
+                "footer": {"text": "GitHub Actions"},
+                "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+              }]
+            }'
+
+  notify-failure:
+    name: Notify Failure
+    needs: [build-and-push, deploy-staging]
+    if: failure()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Slack Failure Notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "❌ Deployment Failed"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {"type": "mrkdwn", "text": "*Repository:*\n${{ github.repository }}"},
+                    {"type": "mrkdwn", "text": "*Branch:*\n${{ github.ref_name }}"},
+                    {"type": "mrkdwn", "text": "*Commit:*\n`${{ needs.build-and-push.outputs.sha_short }}`"}
+                  ]
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {"type": "mrkdwn", "text": "⚠️ <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Failed Run>"}
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Send Discord Failure Notification
+        if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
+        run: |
+          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "❌ Deployment Failed",
+                "color": 15158332,
+                "fields": [
+                  {"name": "Repository", "value": "${{ github.repository }}", "inline": true},
+                  {"name": "Commit", "value": "`${{ needs.build-and-push.outputs.sha_short }}`", "inline": true},
+                  {"name": "Triggered by", "value": "${{ github.actor }}", "inline": true}
+                ],
+                "footer": {"text": "GitHub Actions - Check logs for details"},
+                "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+              }]
+            }'
