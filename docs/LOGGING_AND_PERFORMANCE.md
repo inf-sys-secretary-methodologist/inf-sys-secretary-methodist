@@ -492,6 +492,171 @@ grep '"category":"performance"' app.log | \
 
 ---
 
+## 📡 Мониторинг и Observability
+
+### Стек мониторинга
+
+Проект использует современный стек observability:
+
+| Компонент | Версия | Назначение | Порт |
+|-----------|--------|------------|------|
+| **Prometheus** | v2.48.0 | Сбор и хранение метрик | 9090 |
+| **Grafana** | v10.2.2 | Визуализация метрик и логов | 3001 |
+| **Loki** | v2.9.2 | Агрегация и хранение логов | 3100 |
+| **Promtail** | v2.9.2 | Сбор логов из Docker | - |
+
+### Запуск мониторинга
+
+```bash
+# Запуск с мониторингом
+docker compose -f compose.yml -f compose.monitoring.yml up -d
+
+# Только основные сервисы (без мониторинга)
+docker compose up -d
+```
+
+### Health Check Endpoints
+
+Приложение предоставляет endpoints для Kubernetes probes:
+
+| Endpoint | Назначение | Проверки |
+|----------|------------|----------|
+| `/health` | Полная проверка здоровья | Database, Redis |
+| `/live` | Liveness probe | Только процесс |
+| `/ready` | Readiness probe | Database (required), Redis (optional) |
+
+```bash
+# Примеры запросов
+curl http://localhost:8080/health
+curl http://localhost:8080/live
+curl http://localhost:8080/ready
+```
+
+### Prometheus Metrics
+
+**Расположение**: `internal/shared/infrastructure/metrics/prometheus.go`
+
+#### Доступные метрики:
+
+| Метрика | Тип | Описание |
+|---------|-----|----------|
+| `http_requests_total` | Counter | Общее количество HTTP запросов |
+| `http_request_duration_seconds` | Histogram | Время обработки HTTP запросов |
+| `http_requests_in_flight` | Gauge | Текущие запросы в обработке |
+| `database_queries_total` | Counter | Количество запросов к БД |
+| `database_query_duration_seconds` | Histogram | Время выполнения запросов к БД |
+| `cache_operations_total` | Counter | Операции с кешем (hit/miss) |
+| `auth_events_total` | Counter | События аутентификации |
+| `business_operations_total` | Counter | Бизнес-операции по модулям |
+| `active_connections` | Gauge | Активные соединения |
+
+#### Endpoint метрик:
+
+```bash
+curl http://localhost:8080/metrics
+```
+
+### Grafana Dashboards
+
+Предустановленные дашборды:
+
+1. **HTTP Metrics** (`http-metrics`)
+   - Request Rate (req/s)
+   - P95 Response Time
+   - Request Rate by Endpoint
+   - Response Time Percentiles (p50, p95, p99)
+   - Status Code Distribution
+   - In-Flight Requests
+   - Success Rate
+   - Error Rate (5xx)
+
+2. **Application Logs** (`app-logs`)
+   - Log Volume by Level
+   - Error/Warning Count
+   - Security Events Count
+   - Audit Events Count
+   - Errors and Warnings Stream
+   - Security Logs Stream
+   - Audit Logs Stream
+   - All Logs Stream
+
+#### Доступ к Grafana:
+
+```
+URL: http://localhost:3001
+User: admin
+Password: admin (по умолчанию)
+```
+
+### Loki для централизованного сбора логов
+
+#### Конфигурация:
+
+- **Retention**: 7 дней
+- **Storage**: TSDB на файловой системе
+- **Max line size**: 256KB
+
+#### Querying логов в Grafana:
+
+```logql
+# Все логи backend
+{container="backend-dev"}
+
+# Только ошибки
+{container="backend-dev"} | json | level = "ERROR"
+
+# Security события
+{container="backend-dev"} | json | category = "security"
+
+# Audit события
+{container="backend-dev"} | json | category = "audit"
+
+# Поиск по correlation_id
+{container="backend-dev"} | json | correlation_id = "550e8400-e29b-41d4-a716-446655440000"
+
+# Логи с duration > 500ms
+{container="backend-dev"} | json | duration_ms > 500
+```
+
+### Структура файлов мониторинга
+
+```
+monitoring/
+├── grafana/
+│   ├── dashboards/
+│   │   ├── http-metrics.json
+│   │   └── application-logs.json
+│   └── provisioning/
+│       ├── dashboards/
+│       │   └── dashboards.yml
+│       └── datasources/
+│           └── datasources.yml
+├── loki/
+│   └── loki-config.yml
+├── prometheus/
+│   └── prometheus.yml
+└── promtail/
+    └── promtail-config.yml
+```
+
+### Environment Variables для мониторинга
+
+```bash
+# Prometheus
+PROMETHEUS_PORT=9090
+
+# Grafana
+GRAFANA_PORT=3001
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=admin
+GRAFANA_ROOT_URL=http://localhost:3001
+
+# Loki
+LOKI_PORT=3100
+```
+
+---
+
 **Документация обновлена**: 2025-11-29
 **Версия**: 0.1.0
 

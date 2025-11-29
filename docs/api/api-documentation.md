@@ -1,367 +1,296 @@
-# 📖 REST API Документация
+# REST API Документация
 
-## 📋 Обзор API
+## Обзор API
 
-Микросервисная архитектура с RESTful API для всех компонентов системы. Каждый сервис предоставляет собственный API с единообразной структурой ответов и обработкой ошибок.
+Модульная монолитная архитектура с RESTful API. Единый бэкенд на Go предоставляет API для всех модулей системы.
 
-## 🌐 Базовая информация
+## Базовая информация
 
-### API Gateway:
-- **Base URL**: `https://api.inf-sys.example.com`
-- **API Version**: `v1`
-- **Protocol**: HTTPS only
+- **Base URL**: `http://localhost:8080` (development)
+- **API Prefix**: `/api`
+- **Protocol**: HTTP/HTTPS
 - **Content-Type**: `application/json`
 
 ### Аутентификация:
 ```http
 Authorization: Bearer <JWT_TOKEN>
-X-API-Version: v1
 Content-Type: application/json
 ```
 
 ---
 
-## 🔐 Authentication Service API
+## Health & Monitoring Endpoints
 
-### Base URL: `/auth`
+Доступны без аутентификации.
 
-#### POST `/auth/login`
-Аутентификация пользователя
-
-**Request:**
-```json
-{
-  "provider": "google|azure|local",
-  "code": "oauth_authorization_code",
-  "redirect_uri": "https://app.inf-sys.example.com/callback"
-}
-```
+### GET `/health`
+Полная проверка состояния системы (DB + Redis).
 
 **Response:**
 ```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "refresh_token_here",
-  "expires_in": 900,
-  "token_type": "Bearer",
-  "user": {
-    "id": "12345",
+  "status": "OK",
+  "timestamp": "2025-11-29T10:00:00Z",
+  "database": {
+    "status": "UP",
+    "latency_ms": 1.23
+  },
+  "redis": {
+    "status": "UP"
+  }
+}
+```
+
+### GET `/live`
+Kubernetes liveness probe.
+
+**Response:**
+```json
+{
+  "status": "UP",
+  "timestamp": "2025-11-29T10:00:00Z"
+}
+```
+
+### GET `/ready`
+Kubernetes readiness probe.
+
+**Response:**
+```json
+{
+  "ready": true,
+  "timestamp": "2025-11-29T10:00:00Z",
+  "checks": {
+    "database": {"status": "UP"},
+    "redis": {"status": "UP"}
+  }
+}
+```
+
+### GET `/metrics`
+Prometheus метрики в формате OpenMetrics.
+
+**Response:** Text/plain с Prometheus метриками.
+
+---
+
+## Authentication API
+
+### Base URL: `/api/auth`
+
+Публичные endpoints с rate limiting (10 req/min + burst 5).
+
+### POST `/api/auth/register`
+Регистрация нового пользователя.
+
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "password": "securePassword123",
+  "name": "Иван Петров"
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
     "email": "user@example.com",
-    "roles": ["методист"],
-    "permissions": ["documents:create", "documents:read"]
+    "name": "Иван Петров",
+    "role": "user",
+    "createdAt": "2025-11-29T10:00:00Z"
   }
 }
 ```
 
-#### POST `/auth/refresh`
-Обновление токена
+**Validation:**
+- `email`: required, valid email format
+- `password`: required, минимум 8 символов
+- `name`: required, 2-100 символов
 
-#### POST `/auth/logout`
-Завершение сессии
-
-#### GET `/auth/me`
-Информация о текущем пользователе
-
----
-
-## 👥 User Service API
-
-### Base URL: `/users`
-
-#### GET `/users`
-Получение списка пользователей
-
-**Query Parameters:**
-```
-?role=методист&department=ИТ&page=1&limit=20&sort=created_at&order=desc
-```
-
-**Response:**
-```json
-{
-  "users": [
-    {
-      "id": "12345",
-      "email": "metodist@example.com",
-      "first_name": "Иван",
-      "last_name": "Петров",
-      "roles": ["методист"],
-      "department": "ИТ",
-      "position": "Старший методист",
-      "created_at": "2025-01-01T10:00:00Z",
-      "last_login": "2025-01-15T14:30:00Z",
-      "is_active": true
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 150,
-    "pages": 8
-  }
-}
-```
-
-#### GET `/users/{id}`
-Получение пользователя по ID
-
-#### POST `/users`
-Создание нового пользователя
-
-#### PUT `/users/{id}`
-Обновление пользователя
-
-#### DELETE `/users/{id}`
-Деактивация пользователя
-
----
-
-## 📄 Document Service API
-
-### Base URL: `/documents`
-
-#### GET `/documents`
-Получение списка документов
-
-**Query Parameters:**
-```
-?type=curriculum&status=published&author_id=123&created_after=2025-01-01&search=математика
-```
-
-**Response:**
-```json
-{
-  "documents": [
-    {
-      "id": "doc-12345",
-      "title": "Учебный план по математике",
-      "type": "curriculum",
-      "status": "published",
-      "author": {
-        "id": "user-123",
-        "name": "Иван Петров"
-      },
-      "version": "1.2",
-      "created_at": "2025-01-01T10:00:00Z",
-      "updated_at": "2025-01-10T15:30:00Z",
-      "tags": ["математика", "базовый_курс"],
-      "metadata": {
-        "department": "Математический факультет",
-        "academic_year": "2024-2025",
-        "semester": 1
-      }
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 89,
-    "pages": 5
-  }
-}
-```
-
-#### POST `/documents`
-Создание нового документа
+### POST `/api/auth/login`
+Аутентификация пользователя.
 
 **Request:**
 ```json
 {
-  "title": "Новый учебный план",
-  "type": "curriculum",
-  "content": {
-    "subjects": [
+  "email": "user@example.com",
+  "password": "securePassword123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expires_in": 900
+  }
+}
+```
+
+### POST `/api/auth/refresh`
+Обновление access token.
+
+**Request:**
+```json
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expires_in": 900
+  }
+}
+```
+
+---
+
+## User API
+
+### Base URL: `/api`
+
+Требует JWT аутентификации.
+
+### GET `/api/me`
+Получение информации о текущем пользователе.
+
+**Response (200):**
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "name": "Иван Петров",
+  "role": "user",
+  "createdAt": "2025-11-29T10:00:00Z",
+  "updatedAt": "2025-11-29T10:00:00Z"
+}
+```
+
+---
+
+## Documents API
+
+### Base URL: `/api/documents`
+
+Требует JWT аутентификации. Доступен только при настроенном S3 хранилище.
+
+### POST `/api/documents`
+Создание нового документа.
+
+**Request:**
+```json
+{
+  "name": "Учебный план по математике",
+  "description": "Учебный план на 2024-2025 год",
+  "type_id": 1,
+  "category_id": 2
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Учебный план по математике",
+    "description": "Учебный план на 2024-2025 год",
+    "type_id": 1,
+    "category_id": 2,
+    "author_id": 1,
+    "created_at": "2025-11-29T10:00:00Z"
+  }
+}
+```
+
+### GET `/api/documents`
+Получение списка документов с фильтрацией.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `type_id` | int | Фильтр по типу документа |
+| `category_id` | int | Фильтр по категории |
+| `author_id` | int | Фильтр по автору |
+| `search` | string | Поиск по названию |
+| `page` | int | Номер страницы (default: 1) |
+| `page_size` | int | Размер страницы (default: 20) |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
       {
-        "name": "Математический анализ",
-        "hours": 120,
-        "credits": 4
+        "id": 1,
+        "name": "Учебный план по математике",
+        "description": "...",
+        "type_id": 1,
+        "category_id": 2,
+        "author_id": 1,
+        "file_path": "documents/123/file.pdf",
+        "created_at": "2025-11-29T10:00:00Z",
+        "updated_at": "2025-11-29T10:00:00Z"
       }
-    ]
-  },
-  "metadata": {
-    "department": "Математический факультет",
-    "academic_year": "2024-2025"
-  },
-  "tags": ["математика", "анализ"]
-}
-```
-
-#### GET `/documents/{id}`
-Получение документа по ID
-
-#### PUT `/documents/{id}`
-Обновление документа
-
-#### GET `/documents/{id}/versions`
-История версий документа
-
-#### POST `/documents/{id}/versions`
-Создание новой версии
-
----
-
-## 🔄 Workflow Service API
-
-### Base URL: `/workflow`
-
-#### GET `/workflow/processes`
-Получение списка процессов
-
-#### POST `/workflow/processes`
-Создание нового процесса
-
-#### GET `/workflow/instances`
-Активные экземпляры процессов
-
-**Response:**
-```json
-{
-  "instances": [
-    {
-      "id": "wf-12345",
-      "process_id": "curriculum_approval",
-      "document_id": "doc-12345",
-      "status": "in_progress",
-      "current_step": "methodical_review",
-      "assignees": ["user-456"],
-      "started_at": "2025-01-10T09:00:00Z",
-      "deadline": "2025-01-20T17:00:00Z",
-      "steps_completed": ["creation", "internal_review"],
-      "steps_remaining": ["methodical_review", "final_approval"]
-    }
-  ]
-}
-```
-
-#### POST `/workflow/instances/{id}/advance`
-Продвижение процесса к следующему этапу
-
-#### POST `/workflow/instances/{id}/reject`
-Отклонение и возврат на предыдущий этап
-
----
-
-## 📅 Schedule Service API
-
-### Base URL: `/schedule`
-
-#### GET `/schedule/events`
-Получение событий расписания
-
-**Query Parameters:**
-```
-?start_date=2025-01-01&end_date=2025-01-31&type=class&group_id=123&teacher_id=456
-```
-
-**Response:**
-```json
-{
-  "events": [
-    {
-      "id": "evt-12345",
-      "title": "Математический анализ",
-      "type": "class",
-      "start_time": "2025-01-15T10:00:00Z",
-      "end_time": "2025-01-15T11:30:00Z",
-      "location": "Аудитория 101",
-      "teacher": {
-        "id": "teacher-123",
-        "name": "Профессор Иванов"
-      },
-      "group": {
-        "id": "group-456",
-        "name": "МТ-21-1"
-      },
-      "subject": {
-        "id": "subj-789",
-        "name": "Математический анализ"
-      }
-    }
-  ]
-}
-```
-
-#### POST `/schedule/events`
-Создание нового события
-
-#### PUT `/schedule/events/{id}`
-Обновление события
-
-#### DELETE `/schedule/events/{id}`
-Удаление события
-
----
-
-## ✅ Task Service API
-
-### Base URL: `/tasks`
-
-#### GET `/tasks`
-Получение списка задач
-
-#### POST `/tasks`
-Создание новой задачи
-
-**Request:**
-```json
-{
-  "title": "Подготовить отчет по методической работе",
-  "description": "Квартальный отчет с анализом эффективности",
-  "type": "report",
-  "priority": "high",
-  "deadline": "2025-02-01T17:00:00Z",
-  "assignees": ["user-123", "user-456"],
-  "metadata": {
-    "quarter": "Q1",
-    "year": 2025,
-    "department": "Методический отдел"
+    ],
+    "total": 150,
+    "page": 1,
+    "page_size": 20
   }
 }
 ```
 
-#### PUT `/tasks/{id}/status`
-Изменение статуса задачи
+### GET `/api/documents/:id`
+Получение документа по ID.
+
+### PUT `/api/documents/:id`
+Обновление документа.
+
+### DELETE `/api/documents/:id`
+Удаление документа.
+
+### POST `/api/documents/:id/file`
+Загрузка файла к документу.
+
+**Request:** `multipart/form-data`
+- `file`: binary
+
+### GET `/api/documents/:id/file`
+Скачивание файла документа.
+
+### DELETE `/api/documents/:id/file`
+Удаление файла документа.
+
+### GET `/api/document-types`
+Получение списка типов документов.
+
+### GET `/api/document-categories`
+Получение списка категорий документов.
 
 ---
 
-## 📊 Reporting Service API
-
-### Base URL: `/reports`
-
-#### GET `/reports/templates`
-Получение шаблонов отчетов
-
-#### POST `/reports/generate`
-Генерация отчета
-
-**Request:**
-```json
-{
-  "template_id": "monthly_methodical_report",
-  "parameters": {
-    "month": "2025-01",
-    "department": "ИТ",
-    "include_charts": true
-  },
-  "format": "pdf"
-}
-```
-
-#### GET `/reports/{id}/download`
-Скачивание сгенерированного отчета
-
----
-
-## 🔔 Notification Service API
+## Notifications API
 
 ### Base URL: `/api/notifications`
 
-> **Новое!** Email уведомления через Composio Gmail Integration
+Требует JWT аутентификации. Доступен только при настроенной интеграции с Composio.
 
-#### POST `/notifications/send-email`
-Отправка email уведомления
-
-**Authentication:** Bearer JWT Token (required)
+### POST `/api/notifications/send-email`
+Отправка email уведомления.
 
 **Request:**
 ```json
@@ -375,14 +304,13 @@ Content-Type: application/json
 }
 ```
 
-**Validation Rules:**
-- `to`: required, минимум 1 адрес, максимум 50 адресов
-- `cc`, `bcc`: optional, максимум 20 адресов каждый
+**Validation:**
+- `to`: required, 1-50 адресов
+- `cc`, `bcc`: optional, до 20 адресов
 - `subject`: required, 1-200 символов
 - `body`: required, минимум 1 символ
-- `is_html`: optional, boolean (default: false)
 
-**Response (Success):**
+**Response (200):**
 ```json
 {
   "success": true,
@@ -392,41 +320,8 @@ Content-Type: application/json
 }
 ```
 
-**Response (Error):**
-```json
-{
-  "success": false,
-  "error": {
-    "code": "EMAIL_SEND_FAILED",
-    "message": "Failed to send email: invalid recipient"
-  }
-}
-```
-
-**Status Codes:**
-- `200`: Email отправлен успешно
-- `400`: Невалидные параметры
-- `401`: Не авторизован
-- `403`: Нет прав на отправку email
-- `500`: Ошибка сервера
-
-**Использование:**
-```bash
-curl -X POST https://api.inf-sys.example.com/api/notifications/send-email \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": ["student@example.com"],
-    "subject": "Напоминание о дедлайне",
-    "body": "Ваше задание должно быть сдано до 20.01.2025",
-    "is_html": false
-  }'
-```
-
-#### POST `/notifications/send-welcome`
-Отправка приветственного email
-
-**Authentication:** Bearer JWT Token (required)
+### POST `/api/notifications/send-welcome`
+Отправка приветственного email.
 
 **Request:**
 ```json
@@ -436,217 +331,140 @@ curl -X POST https://api.inf-sys.example.com/api/notifications/send-email \
 }
 ```
 
-**Response (Success):**
+---
+
+## Admin API
+
+### Base URL: `/api/admin`
+
+Требует JWT аутентификации и роль `admin`.
+
+### GET `/api/admin/users`
+Получение списка пользователей (placeholder).
+
+---
+
+## Schedule API (Планируется)
+
+Модуль расписания событий готов, но ещё не подключен к API.
+
+Планируемые endpoints:
+- `POST /api/events` - Создание события
+- `GET /api/events` - Список событий
+- `GET /api/events/:id` - Получение события
+- `PUT /api/events/:id` - Обновление события
+- `DELETE /api/events/:id` - Удаление события
+- `POST /api/events/:id/cancel` - Отмена события
+- `POST /api/events/:id/reschedule` - Перенос события
+- `POST /api/events/:id/participants` - Добавление участников
+- `DELETE /api/events/:id/participants/:user_id` - Удаление участника
+- `POST /api/events/:id/respond` - Ответ на приглашение
+- `GET /api/events/upcoming` - Предстоящие события
+- `GET /api/events/invitations` - Приглашения
+- `GET /api/events/range` - События по диапазону дат
+
+---
+
+## Обработка ошибок
+
+### Структура ответа об ошибке:
 ```json
 {
-  "success": true,
-  "data": {
-    "message": "Welcome email sent successfully"
-  }
-}
-```
-
-**Использование:**
-```bash
-curl -X POST https://api.inf-sys.example.com/api/notifications/send-welcome \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "newuser@example.com",
-    "name": "Иван Петров"
-  }'
-```
-
-#### Автоматические уведомления
-
-**Welcome Email при регистрации:**
-- Автоматически отправляется после успешной регистрации
-- Не требует дополнительного API вызова
-- Отправляется асинхронно (не блокирует регистрацию)
-
-**Шаблон Welcome Email:**
-```html
-Subject: Добро пожаловать в Secretary Methodist System!
-
-Привет, {имя}!
-
-Спасибо за регистрацию в нашей системе.
-
-С уважением,
-Команда Secretary Methodist System
-```
-
-#### Технические детали
-
-**Email отправка через Composio:**
-- **Провайдер:** Gmail API через Composio
-- **От кого:** daniilvdovin4@gmail.com
-- **Лимиты:** 100,000+ писем/день
-- **Latency:** ~1-2 секунды
-- **Retry:** Нет автоматического retry (планируется)
-
-**Мониторинг:**
-- Все email операции логируются
-- Ошибки логируются с полным stack trace
-- Gmail Message ID возвращается в логах
-
-**См. также:**
-- [Composio Gmail Integration Guide](../integrations/composio-gmail.md)
-- [Environment Configuration](../deployment/environment.md)
-
----
-
-## 📁 File Service API
-
-### Base URL: `/files`
-
-#### POST `/files/upload`
-Загрузка файла
-
-**Request (multipart/form-data):**
-```
-file: <binary data>
-metadata: {"type": "document", "tags": ["curriculum"]}
-```
-
-#### GET `/files/{id}/download`
-Скачивание файла
-
-#### GET `/files/{id}/preview`
-Предварительный просмотр файла
-
----
-
-## 🔗 Integration Service API
-
-### Base URL: `/integrations`
-
-#### POST `/integrations/1c/sync`
-Синхронизация с 1С
-
-#### GET `/integrations/1c/status`
-Статус интеграции с 1С
-
----
-
-## ❌ Обработка ошибок
-
-### Стандартная структура ошибки:
-```json
-{
+  "success": false,
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "Validation failed for request",
+    "message": "Ошибка валидации",
     "details": [
       {
         "field": "email",
-        "message": "Invalid email format",
-        "code": "INVALID_FORMAT"
+        "message": "Неверный формат email"
       }
-    ],
-    "request_id": "req-12345-67890",
-    "timestamp": "2025-01-15T14:30:00Z"
+    ]
   }
 }
 ```
 
 ### HTTP Status Codes:
-| Code | Meaning | Usage |
-|------|---------|-------|
+| Code | Значение | Использование |
+|------|----------|---------------|
 | 200 | OK | Успешная операция |
 | 201 | Created | Ресурс создан |
 | 400 | Bad Request | Ошибка валидации |
 | 401 | Unauthorized | Не авторизован |
 | 403 | Forbidden | Нет прав доступа |
 | 404 | Not Found | Ресурс не найден |
-| 409 | Conflict | Конфликт данных |
-| 422 | Unprocessable Entity | Семантическая ошибка |
 | 429 | Too Many Requests | Rate limit превышен |
-| 500 | Internal Server Error | Внутренняя ошибка сервера |
+| 500 | Internal Server Error | Внутренняя ошибка |
 
 ---
 
-## 📄 Pagination и Filtering
+## Rate Limiting
 
-### Стандартные параметры пагинации:
-```
-?page=1&limit=20&sort=created_at&order=desc
-```
+### Публичные endpoints (`/api/auth/*`):
+- 10 запросов/минуту
+- Burst: 5 запросов
 
-### Поиск и фильтрация:
-```
-?search=keyword&filter[status]=published&filter[type]=curriculum&date_from=2025-01-01
-```
+### Защищённые endpoints (`/api/*`):
+- 60 запросов/минуту
+- Burst: 10 запросов
 
-### Response structure:
-```json
-{
-  "data": [...],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 150,
-    "pages": 8,
-    "has_next": true,
-    "has_prev": false
-  },
-  "filters_applied": {
-    "status": "published",
-    "type": "curriculum"
-  }
-}
-```
-
----
-
-## 🚦 Rate Limiting
-
-### Лимиты по ролям:
-| Роль | Requests/minute | Burst |
-|------|----------------|-------|
-| Студент | 30 | 5 |
-| Преподаватель | 60 | 10 |
-| Секретарь | 90 | 15 |
-| Методист | 120 | 20 |
-| Админ | 300 | 50 |
-
-### Headers:
+### Headers ответа:
 ```http
 X-RateLimit-Limit: 60
 X-RateLimit-Remaining: 45
-X-RateLimit-Reset: 1642694400
+X-RateLimit-Reset: 1732878000
 ```
 
 ---
 
-## 🔗 Webhook API
+## CORS
 
-### Регистрация webhook:
-```json
-{
-  "url": "https://external-system.com/webhook",
-  "events": ["document.created", "workflow.completed"],
-  "secret": "webhook_secret_key"
-}
-```
+Настроен через переменные окружения:
+- `CORS_ALLOWED_ORIGINS`: Разрешённые origins (default: `http://localhost:3000`)
+- `CORS_ALLOWED_METHODS`: Разрешённые методы (default: `GET,POST,PUT,DELETE,OPTIONS`)
+- `CORS_ALLOWED_HEADERS`: Разрешённые заголовки (default: `Content-Type,Authorization`)
 
-### Payload формат:
-```json
-{
-  "event": "document.created",
-  "timestamp": "2025-01-15T14:30:00Z",
-  "data": {
-    "document_id": "doc-12345",
-    "author_id": "user-123",
-    "type": "curriculum"
-  },
-  "signature": "sha256=abcdef123456..."
-}
-```
 ---
 
-**📅 Актуальность документа**  
-**Последнее обновление**: 2025-01-15  
-**Версия проекта**: 0.1.0  
+## Примеры использования
+
+### Регистрация и вход:
+```bash
+# Регистрация
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password123","name":"Иван"}'
+
+# Вход
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password123"}'
+
+# Получение профиля
+curl http://localhost:8080/api/me \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+### Работа с документами:
+```bash
+# Список документов
+curl http://localhost:8080/api/documents?page=1&page_size=10 \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Создание документа
+curl -X POST http://localhost:8080/api/documents \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Новый документ","type_id":1,"category_id":1}'
+
+# Загрузка файла
+curl -X POST http://localhost:8080/api/documents/1/file \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "file=@document.pdf"
+```
+
+---
+
+**Последнее обновление**: 2025-11-29
+**Версия проекта**: 0.1.0
 **Статус**: Актуальный
-

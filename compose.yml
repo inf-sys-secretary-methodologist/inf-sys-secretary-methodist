@@ -57,6 +57,9 @@ services:
     container_name: backend-dev
     ports:
       - "${BACKEND_PORT:-8080}:8080"
+    labels:
+      - "logging=promtail"
+      - "service=backend"
     environment:
       # Server
       SERVER_PORT: 8080
