@@ -1,0 +1,114 @@
+# Promtail Configuration
+# Documentation: https://grafana.com/docs/loki/latest/clients/promtail/configuration/
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Scrape logs from Docker containers
+  - job_name: containers
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: containerlogs
+          __path__: /var/lib/docker/containers/*/*log
+
+    pipeline_stages:
+      # Parse Docker JSON log format
+      - json:
+          expressions:
+            output: log
+            stream: stream
+            timestamp: time
+
+      # Set the timestamp from the log
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+
+      # Extract container name from filename
+      - regex:
+          source: filename
+          expression: '/var/lib/docker/containers/(?P<container_id>[^/]+)/.*'
+
+      # Parse JSON logs from our application
+      - match:
+          selector: '{job="containerlogs"}'
+          stages:
+            - json:
+                expressions:
+                  level: level
+                  msg: msg
+                  category: category
+                  correlation_id: correlation_id
+                  timestamp: timestamp
+            - labels:
+                level:
+                category:
+
+  # Scrape logs directly from backend container
+  - job_name: backend
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: name
+            values: ["backend-dev"]
+
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      - source_labels: ['__meta_docker_container_id']
+        target_label: 'container_id'
+
+    pipeline_stages:
+      # Parse JSON structured logs
+      - json:
+          expressions:
+            level: level
+            msg: msg
+            category: category
+            correlation_id: correlation_id
+            event_type: event_type
+            user_id: user_id
+            email: email
+            method: method
+            path: path
+            status_code: status_code
+            duration_ms: duration_ms
+
+      - labels:
+          level:
+          category:
+          event_type:
+          method:
+          path:
+
+      # Drop debug logs in production (optional)
+      # - match:
+      #     selector: '{level="DEBUG"}'
+      #     action: drop
+
+  # Scrape logs from all services
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      - source_labels: ['__meta_docker_container_id']
+        target_label: 'container_id'
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'service'

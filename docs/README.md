@@ -29,7 +29,10 @@ docs/
 ├── 📊 api/                   # Документация API
 │   ├── api-documentation.md
 │   ├── authentication.md
-│   └── documents.md
+│   ├── documents.md
+│   └── schedule.md
+├── 🔗 integrations/          # Внешние интеграции
+│   └── composio-gmail.md
 ├── 👥 users/                 # Управление пользователями
 │   └── roles-and-permissions.md
 ├── 🔄 workflows/             # Бизнес-процессы
@@ -64,6 +67,33 @@ docs/
 1. [🐳 Настройка Docker](deployment/docker-setup.md) - Контейнеризация
 2. [☁️ Инфраструктура](deployment/infrastructure.md) - Облачная архитектура
 3. [🔄 CI/CD Workflows](development/ci-cd-workflows.md) - Автоматизация
+4. [⚙️ Переменные окружения](deployment/environment.md) - Конфигурация
+
+### Мониторинг стек
+
+Проект включает полный стек мониторинга (запускается через `compose.monitoring.yml`):
+
+| Сервис | Порт | Назначение |
+|--------|------|------------|
+| Prometheus | 9090 | Сбор метрик |
+| Grafana | 3001 | Визуализация (admin/admin) |
+| Loki | 3100 | Агрегация логов |
+| Promtail | - | Сбор логов из контейнеров |
+
+**Запуск с мониторингом:**
+```bash
+docker compose -f compose.yml -f compose.monitoring.yml up -d
+```
+
+**Health endpoints:**
+- `/health` - Полный health check (DB + Redis)
+- `/live` - Kubernetes liveness probe
+- `/ready` - Kubernetes readiness probe
+- `/metrics` - Prometheus метрики
+
+### Интеграции
+
+1. [📧 Composio Gmail](integrations/composio-gmail.md) - Интеграция с Gmail для email уведомлений
 
 ### Оптимизация и мониторинг
 
@@ -80,7 +110,7 @@ docs/
 ## 📖 Новые подробные руководства
 
 ### 🏛️ [DDD Domain Modeling Guide](architecture/ddd-domain-modeling.md)
-**12,000+ строк** | Дата актуальности: 2025-11-09
+**12,000+ строк** | Дата актуальности: 2025-11-29
 
 Полное руководство по Domain-Driven Design:
 - **Почему DDD?** - Обоснование выбора с trade-offs
@@ -92,7 +122,7 @@ docs/
 - **Event Storming** - Процесс моделирования домена
 
 ### 🧪 [TDD Process Guide](development/tdd-guide.md)
-**7,000+ строк** | Дата актуальности: 2025-11-09
+**7,000+ строк** | Дата актуальности: 2025-11-29
 
 Полное руководство по Test-Driven Development:
 - **Почему TDD?** - Обоснование выбора с trade-offs
@@ -104,7 +134,7 @@ docs/
 - **Frontend TDD** - Тестирование React компонентов
 
 ### ⚙️ [Tech Stack Rationale](architecture/tech-stack-rationale.md)
-**1,800+ строк** | Дата актуальности: 2025-11-09
+**1,800+ строк** | Дата актуальности: 2025-11-29
 
 Детальное обоснование выбора технологий:
 - **Backend**: Go 1.25+ (vs Python/Java/Rust) - с benchmarks
@@ -117,7 +147,7 @@ docs/
 - **Infrastructure**: Docker, Kafka, Prometheus, Grafana
 
 ### 🔄 [Module Interaction Guide](architecture/module-interaction-guide.md)
-**2,500+ строк** | Дата актуальности: 2025-11-09
+**2,500+ строк** | Дата актуальности: 2025-11-29
 
 Взаимодействие модулей в модульном монолите:
 - **Event-Driven Architecture** - Асинхронная коммуникация через события
@@ -157,7 +187,7 @@ docs/
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-11-09
+**Последнее обновление**: 2025-11-29
 **Версия проекта**: 0.1.0
 **Статус**: Актуальный
 

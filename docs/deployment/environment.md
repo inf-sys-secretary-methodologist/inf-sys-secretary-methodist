@@ -1,735 +1,375 @@
-# 🔧 Environment Configuration
+# Environment Configuration
 
-## 📋 Обзор конфигурации окружений
+## Обзор
 
-Управление конфигурацией для различных окружений с использованием переменных среды, секретов и файлов конфигурации.
+Управление конфигурацией для различных окружений с использованием переменных среды и Docker Compose.
 
-## 🌍 Окружения
+## Переменные окружения
 
-### Development (Разработка)
+### Server
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `SERVER_PORT` | Порт HTTP сервера | `8080` | Нет |
+| `SERVER_READ_TIMEOUT` | Таймаут чтения запроса | `10s` | Нет |
+| `SERVER_WRITE_TIMEOUT` | Таймаут записи ответа | `10s` | Нет |
+| `SERVER_IDLE_TIMEOUT` | Таймаут простоя соединения | `120s` | Нет |
+| `ENVIRONMENT` | Окружение (development/staging/production) | `development` | Нет |
+| `VERSION` | Версия приложения | `0.1.0` | Нет |
+
+### Database (PostgreSQL)
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `DB_HOST` | Хост PostgreSQL | - | **Да** |
+| `DB_PORT` | Порт PostgreSQL | `5432` | Нет |
+| `DB_USER` | Пользователь БД | - | **Да** |
+| `DB_PASSWORD` | Пароль БД | - | **Да** |
+| `DB_NAME` | Имя базы данных | - | **Да** |
+| `DB_SSL_MODE` | SSL режим | `disable` | Нет |
+| `DB_MAX_OPEN_CONNS` | Макс. открытых соединений | `25` | Нет |
+| `DB_MAX_IDLE_CONNS` | Макс. idle соединений | `5` | Нет |
+| `DB_CONN_MAX_LIFETIME` | Макс. время жизни соединения | `5m` | Нет |
+
+### Redis
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `REDIS_HOST` | Хост Redis | - | **Да** |
+| `REDIS_PORT` | Порт Redis | `6379` | Нет |
+| `REDIS_PASSWORD` | Пароль Redis | ` ` (пустой) | Нет |
+| `REDIS_DB` | Номер базы Redis | `0` | Нет |
+| `REDIS_POOL_SIZE` | Размер пула соединений | `10` | Нет |
+
+### Authentication (JWT)
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `JWT_ACCESS_SECRET` | Секрет для access токенов | - | **Да** |
+| `JWT_REFRESH_SECRET` | Секрет для refresh токенов | - | **Да** |
+| `JWT_ACCESS_TTL` | Время жизни access токена | `15m` | Нет |
+| `JWT_REFRESH_TTL` | Время жизни refresh токена | `168h` (7 дней) | Нет |
+
+### CORS
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `CORS_ALLOWED_ORIGINS` | Разрешённые origins | `http://localhost:3000` | Нет |
+| `CORS_ALLOWED_METHODS` | Разрешённые методы | `GET,POST,PUT,DELETE,OPTIONS` | Нет |
+| `CORS_ALLOWED_HEADERS` | Разрешённые заголовки | `Content-Type,Authorization` | Нет |
+
+### Logging
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `LOG_LEVEL` | Уровень логирования | `info` | Нет |
+| `LOG_FORMAT` | Формат логов (json/text) | `json` | Нет |
+
+### S3/MinIO Storage
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `S3_ENDPOINT` | Endpoint S3/MinIO | - | Для документов |
+| `S3_ACCESS_KEY_ID` | Access Key | - | Для документов |
+| `S3_SECRET_ACCESS_KEY` | Secret Key | - | Для документов |
+| `S3_BUCKET_NAME` | Имя bucket | - | Для документов |
+| `S3_REGION` | Регион | `us-east-1` | Нет |
+| `S3_USE_SSL` | Использовать SSL | `true` | Нет |
+
+### Composio (Gmail Integration)
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `COMPOSIO_API_KEY` | API ключ Composio | - | Для email |
+| `COMPOSIO_ENTITY_ID` | Entity ID Composio | - | Для email |
+| `COMPOSIO_MCP_CONFIG_ID` | MCP Config ID | - | Нет |
+
+### Frontend (Next.js)
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `NEXT_PUBLIC_API_URL` | URL бэкенда | `http://localhost:8080` | Нет |
+| `NODE_ENV` | Окружение Node.js | `development` | Нет |
+
+### Monitoring
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `BACKEND_PORT` | Порт backend на хосте | `8080` | Нет |
+| `FRONTEND_PORT` | Порт frontend на хосте | `3000` | Нет |
+| `PROMETHEUS_PORT` | Порт Prometheus на хосте | `9090` | Нет |
+| `GRAFANA_PORT` | Порт Grafana на хосте | `3001` | Нет |
+| `LOKI_PORT` | Порт Loki на хосте | `3100` | Нет |
+| `GRAFANA_ADMIN_USER` | Админ Grafana | `admin` | Нет |
+| `GRAFANA_ADMIN_PASSWORD` | Пароль админа Grafana | `admin` | Нет |
+
+---
+
+## Примеры конфигурации
+
+### Development (.env)
+
 ```bash
-# .env.development
-APP_ENV=development
-LOG_LEVEL=debug
-DEBUG=true
+# .env
+
+# Server
+ENVIRONMENT=development
+VERSION=0.1.0
 
 # Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=inf_sys_dev
-DB_USER=dev_user
-DB_PASSWORD=dev_password
+POSTGRES_DB=inf_sys_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_secure_password
 
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
+# Redis (optional password)
 REDIS_PASSWORD=
 
-# Kafka
-KAFKA_BROKERS=localhost:9092
+# JWT (обязательно!)
+JWT_ACCESS_SECRET=your_32_char_access_secret_key_here
+JWT_REFRESH_SECRET=your_32_char_refresh_secret_key_here
 
-# Authentication
-JWT_SECRET=your-dev-jwt-secret-key
-JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
+# CORS
+CORS_ALLOWED_ORIGINS=http://localhost:3000
 
-# OAuth
-GOOGLE_CLIENT_ID=dev-google-client-id
-GOOGLE_CLIENT_SECRET=dev-google-client-secret
-AZURE_CLIENT_ID=dev-azure-client-id
-AZURE_CLIENT_SECRET=dev-azure-client-secret
+# Logging
+LOG_LEVEL=debug
+LOG_FORMAT=json
 
-# Frontend
-NEXT_PUBLIC_API_URL=http://localhost:8080
-NEXT_PUBLIC_ENV=development
+# Composio (optional)
+# COMPOSIO_API_KEY=your_composio_api_key
+# COMPOSIO_ENTITY_ID=your_entity_id
 
-# Composio Email Integration
-COMPOSIO_API_KEY=your-dev-composio-api-key
-COMPOSIO_ENTITY_ID=dev-entity-id
+# S3/MinIO (optional, for documents)
+# S3_ENDPOINT=localhost:9000
+# S3_ACCESS_KEY_ID=minioadmin
+# S3_SECRET_ACCESS_KEY=minioadmin
+# S3_BUCKET_NAME=documents
 ```
 
-### Staging (Тестирование)
-```bash
-# .env.staging
-APP_ENV=staging
-LOG_LEVEL=info
-DEBUG=false
+### compose.override.yml
 
-# Database
-DB_HOST=staging-db.example.com
-DB_PORT=5432
-DB_NAME=inf_sys_staging
-DB_USER=staging_user
-DB_PASSWORD=${DB_PASSWORD}  # From secrets
-
-# Redis
-REDIS_HOST=staging-redis.example.com
-REDIS_PORT=6379
-REDIS_PASSWORD=${REDIS_PASSWORD}
-
-# Kafka
-KAFKA_BROKERS=staging-kafka.example.com:9092
-
-# Authentication
-JWT_SECRET=${JWT_SECRET}
-JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
-
-# OAuth
-GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
-AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
-
-# Frontend
-NEXT_PUBLIC_API_URL=https://staging-api.inf-sys.example.com
-NEXT_PUBLIC_ENV=staging
-
-# Composio Email Integration
-COMPOSIO_API_KEY=${COMPOSIO_API_KEY}
-COMPOSIO_ENTITY_ID=${COMPOSIO_ENTITY_ID}
-```
-
-### Production (Продакшн)
-```bash
-# .env.production
-APP_ENV=production
-LOG_LEVEL=warn
-DEBUG=false
-
-# Database
-DB_HOST=${DB_HOST}
-DB_PORT=5432
-DB_NAME=${DB_NAME}
-DB_USER=${DB_USER}
-DB_PASSWORD=${DB_PASSWORD}
-
-# Redis
-REDIS_HOST=${REDIS_HOST}
-REDIS_PORT=6379
-REDIS_PASSWORD=${REDIS_PASSWORD}
-
-# Kafka
-KAFKA_BROKERS=${KAFKA_BROKERS}
-
-# Authentication
-JWT_SECRET=${JWT_SECRET}
-JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
-
-# OAuth
-GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
-AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
-
-# Frontend
-NEXT_PUBLIC_API_URL=https://api.inf-sys.example.com
-NEXT_PUBLIC_ENV=production
-
-# Monitoring
-PROMETHEUS_URL=${PROMETHEUS_URL}
-GRAFANA_URL=${GRAFANA_URL}
-JAEGER_URL=${JAEGER_URL}
-
-# Composio Email Integration
-COMPOSIO_API_KEY=${COMPOSIO_API_KEY}
-COMPOSIO_ENTITY_ID=${COMPOSIO_ENTITY_ID}
-```
-
----
-
-## 🔐 Secrets Management
-
-### HashiCorp Vault Configuration
-
-#### Vault Setup:
-```bash
-# Install Vault
-wget https://releases.hashicorp.com/vault/1.15.0/vault_1.15.0_linux_amd64.zip
-unzip vault_1.15.0_linux_amd64.zip
-sudo mv vault /usr/local/bin/
-
-# Initialize Vault
-vault server -dev
-export VAULT_ADDR='http://127.0.0.1:8200'
-vault auth -method=userpass
-```
-
-#### Secrets Structure:
-```bash
-# Authentication secrets
-vault kv put secret/inf-sys/auth \
-  jwt_secret="your-production-jwt-secret" \
-  google_client_secret="google-oauth-secret" \
-  azure_client_secret="azure-oauth-secret"
-
-# Database secrets
-vault kv put secret/inf-sys/database \
-  postgres_password="secure-db-password" \
-  redis_password="secure-redis-password"
-
-# External services
-vault kv put secret/inf-sys/integrations \
-  one_c_api_key="1c-integration-key" \
-  email_smtp_password="smtp-password" \
-  composio_api_key="composio-api-key" \
-  composio_entity_id="composio-entity-id"
-```
-
-### Kubernetes Secrets
-
-#### Secret Creation:
 ```yaml
-# k8s-secrets.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: inf-sys-database
-  namespace: inf-sys
-type: Opaque
-data:
-  postgres-password: <base64-encoded-password>
-  redis-password: <base64-encoded-password>
-
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: inf-sys-auth
-  namespace: inf-sys
-type: Opaque
-data:
-  jwt-secret: <base64-encoded-jwt-secret>
-  google-client-secret: <base64-encoded-google-secret>
-  azure-client-secret: <base64-encoded-azure-secret>
-
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: inf-sys-composio
-  namespace: inf-sys
-type: Opaque
-data:
-  api-key: <base64-encoded-composio-api-key>
-  entity-id: <base64-encoded-composio-entity-id>
-```
-
-#### Secret Usage in Pods:
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: auth-service
-spec:
-  template:
-    spec:
-      containers:
-      - name: auth-service
-        env:
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: inf-sys-database
-              key: postgres-password
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: inf-sys-auth
-              key: jwt-secret
-        - name: COMPOSIO_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: inf-sys-composio
-              key: api-key
-        - name: COMPOSIO_ENTITY_ID
-          valueFrom:
-            secretKeyRef:
-              name: inf-sys-composio
-              key: entity-id
-```
-
----
-
-## 📄 Configuration Files
-
-### Service Configuration Templates
-
-#### Auth Service Config:
-```yaml
-# configs/auth-service.yaml
-server:
-  port: 8080
-  host: "0.0.0.0"
-  read_timeout: 30s
-  write_timeout: 30s
-
-database:
-  host: ${DB_HOST}
-  port: ${DB_PORT}
-  name: ${DB_NAME}
-  user: ${DB_USER}
-  password: ${DB_PASSWORD}
-  pool_size: 20
-  max_idle: 5
-  max_lifetime: 1h
-
-redis:
-  host: ${REDIS_HOST}
-  port: ${REDIS_PORT}
-  password: ${REDIS_PASSWORD}
-  db: 0
-  pool_size: 10
-
-jwt:
-  secret: ${JWT_SECRET}
-  expires_in: ${JWT_EXPIRES_IN}
-  refresh_expires_in: ${REFRESH_TOKEN_EXPIRES_IN}
-
-oauth:
-  google:
-    client_id: ${GOOGLE_CLIENT_ID}
-    client_secret: ${GOOGLE_CLIENT_SECRET}
-    redirect_url: ${GOOGLE_REDIRECT_URL}
-  azure:
-    client_id: ${AZURE_CLIENT_ID}
-    client_secret: ${AZURE_CLIENT_SECRET}
-    tenant_id: ${AZURE_TENANT_ID}
-
-logging:
-  level: ${LOG_LEVEL}
-  format: json
-  output: stdout
-```
-
-#### Document Service Config:
-```yaml
-# configs/document-service.yaml
-server:
-  port: 8080
-  host: "0.0.0.0"
-
-database:
-  host: ${DB_HOST}
-  port: ${DB_PORT}
-  name: ${DOCS_DB_NAME}
-  user: ${DOCS_DB_USER}
-  password: ${DOCS_DB_PASSWORD}
-
-kafka:
-  brokers: ${KAFKA_BROKERS}
-  topics:
-    document_events: "document-events"
-    workflow_events: "workflow-events"
-
-storage:
-  type: ${STORAGE_TYPE}  # local, s3, gcs
-  local:
-    path: "/app/storage"
-  s3:
-    bucket: ${S3_BUCKET}
-    region: ${S3_REGION}
-    access_key: ${S3_ACCESS_KEY}
-    secret_key: ${S3_SECRET_KEY}
-
-search:
-  elasticsearch:
-    url: ${ELASTICSEARCH_URL}
-    index: "documents"
-```
-
----
-
-## 🐳 Docker Environment Configuration
-
-### Development docker-compose.override.yml:
-```yaml
-version: '3.8'
-
+# compose.override.yml (НЕ коммитить!)
 services:
-  auth-service:
-    environment:
-      - APP_ENV=development
-      - LOG_LEVEL=debug
-      - DEBUG=true
-      - DB_PASSWORD=dev_password
-    volumes:
-      - ./configs/development:/app/configs
-
   postgres:
     environment:
-      - POSTGRES_PASSWORD=dev_password
+      POSTGRES_PASSWORD: your_secure_password
     ports:
-      - "5432:5432"  # Expose for local development
+      - "5432:5432"
+
+  redis:
+    environment:
+      REDIS_PASSWORD: optional_redis_password
+    ports:
+      - "6379:6379"
 ```
 
-### Production docker-compose.yml:
+---
+
+## Генерация секретов
+
+### JWT секреты:
+```bash
+# Генерация безопасных секретов
+openssl rand -base64 32
+
+# Или через /dev/urandom
+head -c 32 /dev/urandom | base64
+```
+
+### Пример для .env:
+```bash
+JWT_ACCESS_SECRET=$(openssl rand -base64 32)
+JWT_REFRESH_SECRET=$(openssl rand -base64 32)
+```
+
+---
+
+## Docker Compose конфигурация
+
+### Основные сервисы (compose.yml):
+
 ```yaml
-version: '3.8'
-
 services:
-  auth-service:
+  backend:
     environment:
-      - APP_ENV=production
-      - LOG_LEVEL=warn
-      - DEBUG=false
-    env_file:
-      - .env.production
-    secrets:
-      - db_password
-      - jwt_secret
-    configs:
-      - source: auth_config
-        target: /app/configs/config.yaml
+      # Server
+      SERVER_PORT: 8080
 
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB:-inf_sys_db}
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+
+      # JWT
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+
+      # Composio
+      COMPOSIO_API_KEY: ${COMPOSIO_API_KEY:-}
+      COMPOSIO_ENTITY_ID: ${COMPOSIO_ENTITY_ID:-}
+
+      # CORS
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+```
+
+### Мониторинг (compose.monitoring.yml):
+
+```yaml
+services:
+  grafana:
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+
+  prometheus:
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+
+  loki:
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+```
+
+---
+
+## Валидация конфигурации
+
+### Обязательные переменные:
+
+При запуске backend требуются:
+- `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- `REDIS_HOST`
+- `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
+
+### Опциональные модули:
+
+- **Documents**: Требуются `S3_*` переменные
+- **Email**: Требуются `COMPOSIO_*` переменные
+
+### Проверка перед запуском:
+```bash
+# Проверка обязательных переменных
+if [ -z "$JWT_ACCESS_SECRET" ]; then
+    echo "ERROR: JWT_ACCESS_SECRET not set"
+    exit 1
+fi
+```
+
+---
+
+## Безопасность
+
+### Рекомендации:
+
+1. **Никогда не коммитьте** файлы с секретами:
+   - `.env`
+   - `compose.override.yml`
+   - Любые файлы с паролями
+
+2. **Добавьте в .gitignore**:
+   ```
+   .env
+   .env.*
+   compose.override.yml
+   !.env.example
+   ```
+
+3. **Используйте сильные секреты**:
+   - JWT секреты: минимум 32 символа
+   - Пароли БД: минимум 16 символов
+
+4. **В production**:
+   - Используйте Docker secrets
+   - Не открывайте порты БД наружу
+   - Установите `LOG_LEVEL=warn` или `info`
+
+### Docker secrets (production):
+```yaml
 secrets:
   db_password:
-    external: true
-  jwt_secret:
-    external: true
+    file: ./secrets/db_password.txt
+  jwt_access_secret:
+    file: ./secrets/jwt_access_secret.txt
+  jwt_refresh_secret:
+    file: ./secrets/jwt_refresh_secret.txt
 
-configs:
-  auth_config:
-    file: ./configs/production/auth-service.yaml
+services:
+  backend:
+    secrets:
+      - db_password
+      - jwt_access_secret
+      - jwt_refresh_secret
+    environment:
+      DB_PASSWORD_FILE: /run/secrets/db_password
 ```
 
 ---
 
-## ☁️ Kubernetes ConfigMaps
+## Окружения
 
-### Service Configuration:
-```yaml
-# configmap-auth-service.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: auth-service-config
-  namespace: inf-sys
-data:
-  config.yaml: |
-    server:
-      port: 8080
-      host: "0.0.0.0"
-
-    database:
-      host: postgres-service
-      port: 5432
-      name: auth_db
-      pool_size: 20
-
-    logging:
-      level: info
-      format: json
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: app-environment
-  namespace: inf-sys
-data:
-  APP_ENV: "production"
-  LOG_LEVEL: "info"
-  DB_HOST: "postgres-service"
-  REDIS_HOST: "redis-service"
-  KAFKA_BROKERS: "kafka-service:9092"
-```
-
-### ConfigMap Usage:
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: auth-service
-spec:
-  template:
-    spec:
-      containers:
-      - name: auth-service
-        envFrom:
-        - configMapRef:
-            name: app-environment
-        volumeMounts:
-        - name: config-volume
-          mountPath: /app/configs
-      volumes:
-      - name: config-volume
-        configMap:
-          name: auth-service-config
-```
-
----
-
-## 🔄 Environment Variables Loading
-
-### Go Configuration Loading:
-```go
-package config
-
-import (
-    "os"
-    "time"
-    "github.com/joho/godotenv"
-    "github.com/kelseyhightower/envconfig"
-)
-
-type Config struct {
-    // Server
-    Port     string `envconfig:"PORT" default:"8080"`
-    Host     string `envconfig:"HOST" default:"0.0.0.0"`
-    AppEnv   string `envconfig:"APP_ENV" default:"development"`
-    Debug    bool   `envconfig:"DEBUG" default:"false"`
-    LogLevel string `envconfig:"LOG_LEVEL" default:"info"`
-
-    // Database
-    DBHost     string `envconfig:"DB_HOST" required:"true"`
-    DBPort     string `envconfig:"DB_PORT" default:"5432"`
-    DBName     string `envconfig:"DB_NAME" required:"true"`
-    DBUser     string `envconfig:"DB_USER" required:"true"`
-    DBPassword string `envconfig:"DB_PASSWORD" required:"true"`
-
-    // Redis
-    RedisHost     string `envconfig:"REDIS_HOST" required:"true"`
-    RedisPort     string `envconfig:"REDIS_PORT" default:"6379"`
-    RedisPassword string `envconfig:"REDIS_PASSWORD"`
-
-    // JWT
-    JWTSecret         string        `envconfig:"JWT_SECRET" required:"true"`
-    JWTExpiresIn      time.Duration `envconfig:"JWT_EXPIRES_IN" default:"15m"`
-    RefreshExpiresIn  time.Duration `envconfig:"REFRESH_TOKEN_EXPIRES_IN" default:"168h"`
-
-    // OAuth
-    GoogleClientID     string `envconfig:"GOOGLE_CLIENT_ID"`
-    GoogleClientSecret string `envconfig:"GOOGLE_CLIENT_SECRET"`
-    AzureClientID      string `envconfig:"AZURE_CLIENT_ID"`
-    AzureClientSecret  string `envconfig:"AZURE_CLIENT_SECRET"`
-}
-
-func Load() (*Config, error) {
-    // Load .env file if exists
-    if _, err := os.Stat(".env"); err == nil {
-        if err := godotenv.Load(); err != nil {
-            return nil, err
-        }
-    }
-
-    // Load environment-specific .env file
-    env := os.Getenv("APP_ENV")
-    if env == "" {
-        env = "development"
-    }
-
-    envFile := fmt.Sprintf(".env.%s", env)
-    if _, err := os.Stat(envFile); err == nil {
-        if err := godotenv.Load(envFile); err != nil {
-            return nil, err
-        }
-    }
-
-    var cfg Config
-    if err := envconfig.Process("", &cfg); err != nil {
-        return nil, err
-    }
-
-    return &cfg, nil
-}
-```
-
-### Next.js Environment Configuration:
-```javascript
-// next.config.js
-const { PHASE_DEVELOPMENT_SERVER } = require('next/constants')
-
-module.exports = (phase, { defaultConfig }) => {
-  const isDev = phase === PHASE_DEVELOPMENT_SERVER
-
-  return {
-    env: {
-      CUSTOM_KEY: process.env.CUSTOM_KEY,
-    },
-    publicRuntimeConfig: {
-      apiUrl: process.env.NEXT_PUBLIC_API_URL,
-      environment: process.env.NEXT_PUBLIC_ENV,
-    },
-    serverRuntimeConfig: {
-      apiSecret: process.env.API_SECRET,
-    },
-  }
-}
-```
-
----
-
-## 🔍 Environment Validation
-
-### Environment Validation Script:
+### Development
 ```bash
-#!/bin/bash
-# scripts/validate-env.sh
-
-echo "🔍 Validating environment configuration..."
-
-# Required variables check
-required_vars=(
-    "APP_ENV"
-    "DB_HOST"
-    "DB_NAME"
-    "DB_USER"
-    "DB_PASSWORD"
-    "REDIS_HOST"
-    "JWT_SECRET"
-)
-
-missing_vars=()
-
-for var in "${required_vars[@]}"; do
-    if [[ -z "${!var}" ]]; then
-        missing_vars+=("$var")
-    fi
-done
-
-if [[ ${#missing_vars[@]} -gt 0 ]]; then
-    echo "❌ Missing required environment variables:"
-    printf '   %s\n' "${missing_vars[@]}"
-    exit 1
-fi
-
-# Validate JWT secret strength
-if [[ ${#JWT_SECRET} -lt 32 ]]; then
-    echo "❌ JWT_SECRET must be at least 32 characters"
-    exit 1
-fi
-
-# Validate database connection
-if ! pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; then
-    echo "❌ Cannot connect to database"
-    exit 1
-fi
-
-# Validate Redis connection
-if ! redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping > /dev/null; then
-    echo "❌ Cannot connect to Redis"
-    exit 1
-fi
-
-echo "✅ Environment validation passed"
+ENVIRONMENT=development
+LOG_LEVEL=debug
+DEBUG=true
 ```
 
-### Go Environment Validation:
-```go
-func (cfg *Config) Validate() error {
-    if cfg.AppEnv == "production" {
-        if len(cfg.JWTSecret) < 32 {
-            return errors.New("JWT secret must be at least 32 characters in production")
-        }
-
-        if cfg.Debug {
-            return errors.New("debug mode must be disabled in production")
-        }
-
-        if cfg.LogLevel == "debug" {
-            return errors.New("log level should not be debug in production")
-        }
-    }
-
-    return nil
-}
-```
-
----
-
-## 📊 Environment Monitoring
-
-### Health Check Endpoints:
-```go
-func (h *HealthHandler) Check(c *gin.Context) {
-    status := map[string]interface{}{
-        "status": "healthy",
-        "environment": os.Getenv("APP_ENV"),
-        "version": os.Getenv("APP_VERSION"),
-        "timestamp": time.Now().UTC(),
-        "checks": map[string]interface{}{
-            "database": h.checkDatabase(),
-            "redis": h.checkRedis(),
-            "kafka": h.checkKafka(),
-        },
-    }
-
-    c.JSON(http.StatusOK, status)
-}
-```
-
-### Environment Info Endpoint:
-```go
-func (h *InfoHandler) GetInfo(c *gin.Context) {
-    info := map[string]interface{}{
-        "environment": os.Getenv("APP_ENV"),
-        "version": os.Getenv("APP_VERSION"),
-        "build_time": os.Getenv("BUILD_TIME"),
-        "commit_hash": os.Getenv("COMMIT_HASH"),
-        "go_version": runtime.Version(),
-    }
-
-    c.JSON(http.StatusOK, info)
-}
-```
-
----
-
-## 🚀 Deployment Scripts
-
-### Environment Setup Script:
+### Staging
 ```bash
-#!/bin/bash
-# scripts/setup-environment.sh
-
-set -e
-
-ENVIRONMENT=${1:-development}
-
-echo "🚀 Setting up $ENVIRONMENT environment..."
-
-# Create necessary directories
-mkdir -p logs storage temp
-
-# Copy environment file
-if [[ -f ".env.$ENVIRONMENT" ]]; then
-    cp ".env.$ENVIRONMENT" ".env"
-    echo "✅ Environment file copied"
-else
-    echo "❌ Environment file .env.$ENVIRONMENT not found"
-    exit 1
-fi
-
-# Validate environment
-if [[ -x "scripts/validate-env.sh" ]]; then
-    ./scripts/validate-env.sh
-fi
-
-# Run migrations
-if [[ "$ENVIRONMENT" != "production" ]]; then
-    echo "🔄 Running database migrations..."
-    make migrate-up
-fi
-
-# Start services
-if [[ "$ENVIRONMENT" == "development" ]]; then
-    echo "🔄 Starting development services..."
-    docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-else
-    echo "🔄 Starting services..."
-    docker-compose up -d
-fi
-
-echo "✅ Environment setup complete"
+ENVIRONMENT=staging
+LOG_LEVEL=info
+DEBUG=false
 ```
 
-Правильная конфигурация окружений обеспечивает безопасность и надежность системы!
+### Production
+```bash
+ENVIRONMENT=production
+LOG_LEVEL=warn
+DEBUG=false
+```
+
 ---
 
-**📅 Актуальность документа**  
-**Последнее обновление**: 2025-01-15  
-**Версия проекта**: 0.1.0  
+## Quick Start
+
+```bash
+# 1. Создать файл с переменными
+cp .env.example .env
+
+# 2. Установить обязательные переменные
+nano .env
+
+# 3. Создать compose.override.yml
+cat > compose.override.yml << EOF
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: your_password
+EOF
+
+# 4. Запустить
+docker compose up -d
+
+# 5. Проверить
+curl http://localhost:8080/health
+```
+
+---
+
+**Последнее обновление**: 2025-11-29
+**Версия проекта**: 0.1.0
 **Статус**: Актуальный
-

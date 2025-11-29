@@ -1,0 +1,16 @@
+# Grafana Dashboards Provisioning
+# Documentation: https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards
+
+apiVersion: 1
+
+providers:
+  - name: 'default'
+    orgId: 1
+    folder: 'Inf-Sys Secretary Methodist'
+    folderUid: 'inf-sys'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

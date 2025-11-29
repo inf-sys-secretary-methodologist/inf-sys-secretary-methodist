@@ -26,9 +26,24 @@
 
 ## 🧩 Модульная структура
 
+> **Статус реализации**: На данный момент реализованы 4 модуля из 10. Остальные существуют как placeholder'ы для будущей разработки.
+
+| Модуль | Статус | Файлов |
+|--------|--------|--------|
+| auth | ✅ Реализован | 18 |
+| documents | ✅ Реализован | 18 |
+| notifications | ✅ Реализован | 3 |
+| schedule | ✅ Реализован | 7 |
+| users | 📋 Планируется | 0 |
+| workflow | 📋 Планируется | 0 |
+| tasks | 📋 Планируется | 0 |
+| reporting | 📋 Планируется | 0 |
+| files | 📋 Планируется | 0 |
+| integration | 📋 Планируется | 0 |
+
 ### Core Modules (Основные модули)
 
-#### 1. **Authentication Module** 🔐
+#### 1. **Authentication Module** 🔐 ✅ Реализован
 **Bounded Context**: Identity & Access Management
 ```
 internal/modules/auth/
@@ -78,12 +93,12 @@ internal/modules/auth/
 ```
 
 **Ответственности**:
-- OAuth 2.0 / OpenID Connect
-- JWT токены и refresh tokens
-- Управление сессиями и ролями
-- Интеграция с внешними провайдерами
+- Локальная аутентификация email/password
+- JWT токены (access + refresh)
+- Управление сессиями через Redis
+- Базовые роли (user, admin)
 
-#### 2. **User Management Module** 👥
+#### 2. **User Management Module** 👥 📋 Планируется
 **Bounded Context**: User Profile & Organization
 ```
 internal/modules/users/
@@ -116,7 +131,7 @@ internal/modules/users/
         └── user_events.go
 ```
 
-#### 3. **Document Management Module** 📄
+#### 3. **Document Management Module** 📄 ✅ Реализован
 **Bounded Context**: Document Lifecycle & Content
 ```
 internal/modules/documents/
@@ -167,7 +182,7 @@ internal/modules/documents/
         └── document_events.go
 ```
 
-#### 4. **Workflow Module** 🔄
+#### 4. **Workflow Module** 🔄 📋 Планируется
 **Bounded Context**: Business Process & Approval
 ```
 internal/modules/workflow/
@@ -209,7 +224,7 @@ internal/modules/workflow/
 
 ### Business Modules (Бизнес-модули)
 
-#### 5. **Schedule Module** 📅
+#### 5. **Schedule Module** 📅 ✅ Реализован
 **Bounded Context**: Academic Planning & Resources
 ```
 internal/modules/schedule/
@@ -249,7 +264,7 @@ internal/modules/schedule/
     └── events/
 ```
 
-#### 6. **Reporting Module** 📊
+#### 6. **Reporting Module** 📊 📋 Планируется
 **Bounded Context**: Analytics & Business Intelligence
 ```
 internal/modules/reporting/
@@ -288,7 +303,7 @@ internal/modules/reporting/
         └── report_scheduler.go
 ```
 
-#### 7. **Task Management Module** ✅
+#### 7. **Task Management Module** ☑️ 📋 Планируется
 **Bounded Context**: Task Tracking & Assignment
 ```
 internal/modules/tasks/
@@ -327,7 +342,7 @@ internal/modules/tasks/
 
 ### Supporting Modules (Поддерживающие модули)
 
-#### 8. **Notification Module** 📧
+#### 8. **Notification Module** 📧 ✅ Реализован
 **Bounded Context**: Communication & Alerts
 ```
 internal/modules/notifications/
@@ -369,7 +384,7 @@ internal/modules/notifications/
         └── message_processor.go
 ```
 
-#### 9. **File Storage Module** 📁
+#### 9. **File Storage Module** 📁 📋 Планируется
 **Bounded Context**: File Management & Processing
 ```
 internal/modules/files/
@@ -413,7 +428,7 @@ internal/modules/files/
         └── storage_api.go
 ```
 
-#### 10. **Integration Module** 🔗
+#### 10. **Integration Module** 🔗 📋 Планируется
 **Bounded Context**: External System Integration
 ```
 internal/modules/integration/
@@ -937,8 +952,8 @@ func SecurityMiddleware(next http.Handler) http.Handler {
 - ✅ Соответствие принципам SOLID и DDD
 ---
 
-**📅 Актуальность документа**  
-**Последнее обновление**: 2025-01-15  
-**Версия проекта**: 0.1.0  
+**📅 Актуальность документа**
+**Последнее обновление**: 2025-11-29
+**Версия проекта**: 0.1.0
 **Статус**: Актуальный
 

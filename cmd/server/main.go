@@ -31,6 +31,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/metrics"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/middleware"
 )
 
@@ -306,7 +307,8 @@ func setupRoutes(
 	router.Use(middleware.RequestIDMiddleware()) // Request ID для трейсинга
 	router.Use(middleware.RequestContextMiddleware())
 	router.Use(authMiddleware.SecurityHeadersMiddleware())
-	router.Use(loggingMiddleware.Handler()) // Логирование всех запросов
+	router.Use(metrics.PrometheusMiddleware()) // Prometheus метрики
+	router.Use(loggingMiddleware.Handler())    // Логирование всех запросов
 	router.Use(performanceMiddleware(perfLog))
 
 	// Handle OPTIONS requests for routes that don't exist (CORS preflight)
@@ -318,8 +320,13 @@ func setupRoutes(
 		c.JSON(http.StatusNotFound, gin.H{"error": "route not found"})
 	})
 
-	// Health check endpoint with dependency checks
+	// Health check endpoints for Kubernetes probes
 	router.GET("/health", healthCheckHandler(db, redisCache))
+	router.GET("/live", livenessHandler())
+	router.GET("/ready", readinessHandler(db, redisCache))
+
+	// Prometheus metrics endpoint
+	router.GET("/metrics", metrics.MetricsHandler())
 
 	// Загрузка конфигурации rate limiting
 	rateLimitConfig := middleware.LoadRateLimitConfig()
@@ -488,6 +495,72 @@ const (
 	healthStatusOK       = "OK"
 	healthStatusDegraded = "DEGRADED"
 )
+
+// livenessHandler returns a simple liveness probe endpoint for Kubernetes.
+// It only checks if the application process is running.
+func livenessHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "UP",
+			"timestamp": time.Now().UTC(),
+		})
+	}
+}
+
+// readinessHandler returns a readiness probe endpoint for Kubernetes.
+// It checks if all dependencies are available and the service is ready to accept traffic.
+func readinessHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+
+		ready := true
+		checks := make(map[string]any)
+
+		// Check database - required dependency
+		if err := db.PingContext(ctx); err != nil {
+			ready = false
+			checks["database"] = map[string]any{
+				"status": "DOWN",
+				"error":  err.Error(),
+			}
+		} else {
+			checks["database"] = map[string]any{
+				"status": "UP",
+			}
+		}
+
+		// Check Redis if available (optional dependency)
+		if redisCache != nil {
+			if err := redisCache.Ping(ctx); err != nil {
+				// Redis is optional, so we don't set ready=false
+				checks["redis"] = map[string]any{
+					"status": "DOWN",
+					"error":  err.Error(),
+				}
+			} else {
+				checks["redis"] = map[string]any{
+					"status": "UP",
+				}
+			}
+		} else {
+			checks["redis"] = map[string]any{
+				"status": "DISABLED",
+			}
+		}
+
+		httpStatus := http.StatusOK
+		if !ready {
+			httpStatus = http.StatusServiceUnavailable
+		}
+
+		c.JSON(httpStatus, gin.H{
+			"ready":     ready,
+			"timestamp": time.Now().UTC(),
+			"checks":    checks,
+		})
+	}
+}
 
 // healthCheckHandler returns a health check endpoint with dependency checks
 func healthCheckHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFunc {
