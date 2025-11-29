@@ -8,19 +8,22 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // TagUseCase handles business logic for document tags
 type TagUseCase struct {
-	tagRepo repositories.DocumentTagRepository
-	docRepo repositories.DocumentRepository
+	tagRepo  repositories.DocumentTagRepository
+	docRepo  repositories.DocumentRepository
+	auditLog *logging.AuditLogger
 }
 
 // NewTagUseCase creates a new tag use case
-func NewTagUseCase(tagRepo repositories.DocumentTagRepository, docRepo repositories.DocumentRepository) *TagUseCase {
+func NewTagUseCase(tagRepo repositories.DocumentTagRepository, docRepo repositories.DocumentRepository, auditLog *logging.AuditLogger) *TagUseCase {
 	return &TagUseCase{
-		tagRepo: tagRepo,
-		docRepo: docRepo,
+		tagRepo:  tagRepo,
+		docRepo:  docRepo,
+		auditLog: auditLog,
 	}
 }
 
@@ -40,6 +43,12 @@ func (uc *TagUseCase) Create(ctx context.Context, input dto.CreateTagInput) (*dt
 	if err := uc.tagRepo.Create(ctx, tag); err != nil {
 		return nil, err
 	}
+
+	// Log audit event
+	uc.logAudit(ctx, "tag_created", "tag", map[string]interface{}{
+		"tag_id": tag.ID,
+		"name":   tag.Name,
+	})
 
 	output := dto.TagFromEntity(tag)
 	output.UsageCount = 0
@@ -71,6 +80,12 @@ func (uc *TagUseCase) Update(ctx context.Context, id int64, input dto.UpdateTagI
 		return nil, err
 	}
 
+	// Log audit event
+	uc.logAudit(ctx, "tag_updated", "tag", map[string]interface{}{
+		"tag_id": tag.ID,
+		"name":   tag.Name,
+	})
+
 	output := dto.TagFromEntity(tag)
 	usageCount, _ := uc.tagRepo.GetTagUsageCount(ctx, id)
 	output.UsageCount = usageCount
@@ -80,12 +95,22 @@ func (uc *TagUseCase) Update(ctx context.Context, id int64, input dto.UpdateTagI
 
 // Delete deletes a tag
 func (uc *TagUseCase) Delete(ctx context.Context, id int64) error {
-	_, err := uc.tagRepo.GetByID(ctx, id)
+	tag, err := uc.tagRepo.GetByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("тег не найден")
 	}
 
-	return uc.tagRepo.Delete(ctx, id)
+	if err := uc.tagRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	// Log audit event
+	uc.logAudit(ctx, "tag_deleted", "tag", map[string]interface{}{
+		"tag_id": id,
+		"name":   tag.Name,
+	})
+
+	return nil
 }
 
 // GetByID retrieves a tag by ID
@@ -152,12 +177,32 @@ func (uc *TagUseCase) AddTagToDocument(ctx context.Context, documentID, tagID in
 		return fmt.Errorf("тег не найден")
 	}
 
-	return uc.tagRepo.AddTagToDocument(ctx, documentID, tagID)
+	if err := uc.tagRepo.AddTagToDocument(ctx, documentID, tagID); err != nil {
+		return err
+	}
+
+	// Log audit event
+	uc.logAudit(ctx, "tag_added_to_document", "document_tag", map[string]interface{}{
+		"document_id": documentID,
+		"tag_id":      tagID,
+	})
+
+	return nil
 }
 
 // RemoveTagFromDocument removes a tag from a document
 func (uc *TagUseCase) RemoveTagFromDocument(ctx context.Context, documentID, tagID int64) error {
-	return uc.tagRepo.RemoveTagFromDocument(ctx, documentID, tagID)
+	if err := uc.tagRepo.RemoveTagFromDocument(ctx, documentID, tagID); err != nil {
+		return err
+	}
+
+	// Log audit event
+	uc.logAudit(ctx, "tag_removed_from_document", "document_tag", map[string]interface{}{
+		"document_id": documentID,
+		"tag_id":      tagID,
+	})
+
+	return nil
 }
 
 // GetDocumentTags retrieves all tags for a document
@@ -207,6 +252,13 @@ func (uc *TagUseCase) SetDocumentTags(ctx context.Context, documentID int64, tag
 		return nil, err
 	}
 
+	// Log audit event
+	uc.logAudit(ctx, "document_tags_set", "document_tag", map[string]interface{}{
+		"document_id": documentID,
+		"tag_ids":     tagIDs,
+		"tag_count":   len(tagIDs),
+	})
+
 	return uc.GetDocumentTags(ctx, documentID)
 }
 
@@ -240,4 +292,11 @@ func (uc *TagUseCase) GetDocumentsByTag(ctx context.Context, tagID int64, page, 
 		Page:        page,
 		PageSize:    pageSize,
 	}, nil
+}
+
+// logAudit safely logs an audit event with nil check
+func (uc *TagUseCase) logAudit(ctx context.Context, action, resourceType string, details map[string]interface{}) {
+	if uc.auditLog != nil {
+		uc.auditLog.LogAuditEvent(ctx, action, resourceType, details)
+	}
 }

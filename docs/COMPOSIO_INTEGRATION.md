@@ -82,7 +82,7 @@ import (
 // Создание email service
 apiKey := os.Getenv("COMPOSIO_API_KEY")
 entityID := "user-id-from-composio-oauth" // Получается после OAuth
-emailService := emailServices.NewComposioEmailService(apiKey, entityID)
+emailService := emailServices.NewComposioEmailService(apiKey, entityID, auditLogger) // auditLogger для аудит-логов (можно nil)
 
 // Отправка welcome email
 err := emailService.SendWelcomeEmail(
@@ -129,6 +129,7 @@ internal/
 emailService := emailServices.NewComposioEmailService(
 	os.Getenv("COMPOSIO_API_KEY"),
 	os.Getenv("COMPOSIO_ENTITY_ID"),
+	auditLogger, // для аудит-логирования отправки email
 )
 emailHandler := emailHandlers.NewEmailHandler(emailService)
 
@@ -164,3 +165,10 @@ docker-compose up -d
 - [Composio Dashboard](https://platform.composio.dev/daniilvdovin4_workspace/daniilvdovin4_workspace_first_project)
 - [Composio Docs](https://docs.composio.dev/)
 - [Gmail API Docs](https://docs.composio.dev/toolkits/gmail)
+
+---
+
+**📅 Актуальность документа**
+**Последнее обновление**: 2025-11-29
+**Версия проекта**: 0.1.0
+**Статус**: Актуальный

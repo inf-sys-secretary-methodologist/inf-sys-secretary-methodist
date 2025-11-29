@@ -7,19 +7,22 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/composio"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // ComposioEmailService implements EmailService using Composio
 type ComposioEmailService struct {
 	client   *composio.Client
 	entityID string // User ID for Composio authentication
+	auditLog *logging.AuditLogger
 }
 
 // NewComposioEmailService creates a new email service using Composio
-func NewComposioEmailService(apiKey, entityID string) services.EmailService {
+func NewComposioEmailService(apiKey, entityID string, auditLog *logging.AuditLogger) services.EmailService {
 	return &ComposioEmailService{
 		client:   composio.NewClient(apiKey),
 		entityID: entityID,
+		auditLog: auditLog,
 	}
 }
 
@@ -50,6 +53,16 @@ func (s *ComposioEmailService) SendEmail(ctx context.Context, req *services.Send
 	if err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
+
+	// Log audit event
+	s.logAudit(ctx, "email_sent", "email", map[string]interface{}{
+		"recipient":       recipientEmail,
+		"subject":         req.Subject,
+		"recipient_count": len(req.To),
+		"cc_count":        len(req.CC),
+		"bcc_count":       len(req.BCC),
+		"is_html":         req.IsHTML,
+	})
 
 	return nil
 }
@@ -120,4 +133,11 @@ func (s *ComposioEmailService) SendNotification(ctx context.Context, recipientEm
 	}
 
 	return s.SendEmail(ctx, req)
+}
+
+// logAudit safely logs an audit event with nil check
+func (s *ComposioEmailService) logAudit(ctx context.Context, action, resourceType string, details map[string]interface{}) {
+	if s.auditLog != nil {
+		s.auditLog.LogAuditEvent(ctx, action, resourceType, details)
+	}
 }

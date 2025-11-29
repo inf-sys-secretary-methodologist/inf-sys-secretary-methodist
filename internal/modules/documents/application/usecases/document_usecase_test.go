@@ -224,7 +224,7 @@ func TestDocumentUseCase_GetByID(t *testing.T) {
 	mockTypeRepo := new(MockDocumentTypeRepository)
 	mockCategoryRepo := new(MockDocumentCategoryRepository)
 
-	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil)
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -268,7 +268,7 @@ func TestDocumentUseCase_List(t *testing.T) {
 	mockTypeRepo := new(MockDocumentTypeRepository)
 	mockCategoryRepo := new(MockDocumentCategoryRepository)
 
-	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil)
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -321,7 +321,7 @@ func TestDocumentUseCase_Delete(t *testing.T) {
 	mockTypeRepo := new(MockDocumentTypeRepository)
 	mockCategoryRepo := new(MockDocumentCategoryRepository)
 
-	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil)
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -353,7 +353,7 @@ func TestDocumentUseCase_GetDocumentTypes(t *testing.T) {
 	mockTypeRepo := new(MockDocumentTypeRepository)
 	mockCategoryRepo := new(MockDocumentCategoryRepository)
 
-	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil)
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -380,7 +380,7 @@ func TestDocumentUseCase_GetCategories(t *testing.T) {
 	mockTypeRepo := new(MockDocumentTypeRepository)
 	mockCategoryRepo := new(MockDocumentCategoryRepository)
 
-	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil)
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -407,7 +407,7 @@ func TestDocumentUseCase_Update(t *testing.T) {
 	mockTypeRepo := new(MockDocumentTypeRepository)
 	mockCategoryRepo := new(MockDocumentCategoryRepository)
 
-	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil)
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
 
 	ctx := context.Background()
 

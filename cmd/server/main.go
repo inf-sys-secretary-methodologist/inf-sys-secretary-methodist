@@ -135,7 +135,7 @@ func main() {
 		docRepo := docPersistence.NewDocumentRepositoryPG(db)
 		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
 		docCategoryRepo := docPersistence.NewDocumentCategoryRepositoryPG(db)
-		docUseCase = docUsecases.NewDocumentUseCase(docRepo, docTypeRepo, docCategoryRepo, s3Client)
+		docUseCase = docUsecases.NewDocumentUseCase(docRepo, docTypeRepo, docCategoryRepo, s3Client, auditLogger)
 		logger.Info("Documents module initialized", nil)
 	} else {
 		logger.Warn("Documents module not initialized - S3 storage not available", nil)
@@ -155,6 +155,7 @@ func main() {
 		docUseCase,
 		securityLogger,
 		perfLogger,
+		auditLogger,
 		cfg,
 		logger,
 		corsMiddleware,
@@ -288,6 +289,7 @@ func setupRoutes(
 	docUseCase *docUsecases.DocumentUseCase,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
+	auditLogger *logging.AuditLogger,
 	cfg *config.Config,
 	logger *logging.Logger,
 	corsMiddleware *appMiddleware.CORSMiddleware,
@@ -333,7 +335,7 @@ func setupRoutes(
 	composioEntityID := cfg.Composio.EntityID
 	var emailService emailDomain.EmailService
 	if composioAPIKey != "" && composioEntityID != "" {
-		emailService = emailServices.NewComposioEmailService(composioAPIKey, composioEntityID)
+		emailService = emailServices.NewComposioEmailService(composioAPIKey, composioEntityID, auditLogger)
 		logger.Info("Email service initialized", nil)
 	}
 

@@ -498,7 +498,7 @@ COMPOSIO_ENTITY_ID=your-entity-id
 func TestComposioEmailService_SendWelcomeEmail(t *testing.T) {
     // Mock Composio client
     mockClient := &MockComposioClient{}
-    service := NewComposioEmailService(mockClient, "test-entity-id")
+    service := NewComposioEmailService(mockClient, "test-entity-id", nil) // nil auditLogger для тестов
 
     // Test
     err := service.SendWelcomeEmail(context.Background(), "test@example.com", "Test User")
@@ -773,7 +773,7 @@ for job := range emailQueue.Dequeue() {
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-01-15
+**Последнее обновление**: 2025-11-29
 **Версия проекта**: 0.1.0
 **Статус**: Актуальный
 
