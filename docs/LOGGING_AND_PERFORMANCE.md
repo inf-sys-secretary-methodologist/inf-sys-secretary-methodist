@@ -62,16 +62,44 @@ const (
 
 ### 2. Audit Logging (Audit trail)
 
-**Расположение**: `internal/shared/infrastructure/logging/security_logger.go`
+**Расположение**: `internal/shared/infrastructure/logging/audit_logger.go`
 
 #### Что логируется:
 
 - ✅ **Критические операции** (регистрация, логин, обновление токенов)
+- ✅ **CRUD операции** (документы, категории, теги)
+- ✅ **Email уведомления** (отправка писем)
 - ✅ **Кто выполнил** (user ID, IP)
 - ✅ **Когда** (timestamp)
 - ✅ **Что изменено** (resource)
 - ✅ **Результат** (success/failure)
-- ✅ **Время выполнения** (duration_ms)
+
+#### Аудит-события по модулям:
+
+| Модуль | Событие | Описание |
+|--------|---------|----------|
+| **Auth** | `login_success` | Успешный вход |
+| **Auth** | `login_failed` | Неудачная попытка входа |
+| **Auth** | `registration_success` | Успешная регистрация |
+| **Auth** | `token_refresh` | Обновление токена |
+| **Documents** | `document_created` | Создание документа |
+| **Documents** | `document_updated` | Обновление документа |
+| **Documents** | `document_deleted` | Удаление документа |
+| **Documents** | `document_file_uploaded` | Загрузка файла |
+| **Documents** | `document_file_deleted` | Удаление файла |
+| **Categories** | `category_created` | Создание категории |
+| **Categories** | `category_updated` | Обновление категории |
+| **Categories** | `category_deleted` | Удаление категории |
+| **Tags** | `tag_created` | Создание тега |
+| **Tags** | `tag_updated` | Обновление тега |
+| **Tags** | `tag_deleted` | Удаление тега |
+| **Tags** | `tag_added_to_document` | Добавление тега к документу |
+| **Tags** | `tag_removed_from_document` | Удаление тега с документа |
+| **Tags** | `document_tags_set` | Массовая установка тегов |
+| **Notifications** | `email_sent` | Отправка email |
+| **Schedule** | `schedule_created` | Создание расписания |
+| **Schedule** | `schedule_updated` | Обновление расписания |
+| **Schedule** | `schedule_deleted` | Удаление расписания |
 
 #### Пример audit log:
 
@@ -464,13 +492,13 @@ grep '"category":"performance"' app.log | \
 
 ---
 
-**Документация обновлена**: 2025-01-15
+**Документация обновлена**: 2025-11-29
 **Версия**: 0.1.0
 
 ---
 
-**📅 Актуальность документа**  
-**Последнее обновление**: 2025-01-15  
-**Версия проекта**: 0.1.0  
+**📅 Актуальность документа**
+**Последнее обновление**: 2025-11-29
+**Версия проекта**: 0.1.0
 **Статус**: Актуальный
 

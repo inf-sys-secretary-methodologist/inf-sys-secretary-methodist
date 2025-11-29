@@ -97,7 +97,7 @@ func (m *MockCategoryRepository) GetDocumentCount(ctx context.Context, id int64,
 
 func TestCategoryUseCase_Create(t *testing.T) {
 	mockRepo := new(MockCategoryRepository)
-	usecase := NewCategoryUseCase(mockRepo)
+	usecase := NewCategoryUseCase(mockRepo, nil)
 	ctx := context.Background()
 
 	t.Run("create category without parent", func(t *testing.T) {
@@ -158,7 +158,7 @@ func TestCategoryUseCase_Create(t *testing.T) {
 
 func TestCategoryUseCase_Update(t *testing.T) {
 	mockRepo := new(MockCategoryRepository)
-	usecase := NewCategoryUseCase(mockRepo)
+	usecase := NewCategoryUseCase(mockRepo, nil)
 	ctx := context.Background()
 
 	t.Run("update category name", func(t *testing.T) {
@@ -219,7 +219,7 @@ func TestCategoryUseCase_Update(t *testing.T) {
 
 func TestCategoryUseCase_Delete(t *testing.T) {
 	mockRepo := new(MockCategoryRepository)
-	usecase := NewCategoryUseCase(mockRepo)
+	usecase := NewCategoryUseCase(mockRepo, nil)
 	ctx := context.Background()
 
 	t.Run("delete existing category", func(t *testing.T) {
@@ -245,7 +245,7 @@ func TestCategoryUseCase_Delete(t *testing.T) {
 
 func TestCategoryUseCase_GetTree(t *testing.T) {
 	mockRepo := new(MockCategoryRepository)
-	usecase := NewCategoryUseCase(mockRepo)
+	usecase := NewCategoryUseCase(mockRepo, nil)
 	ctx := context.Background()
 
 	t.Run("get category tree", func(t *testing.T) {
@@ -273,7 +273,7 @@ func TestCategoryUseCase_GetTree(t *testing.T) {
 
 func TestCategoryUseCase_GetWithBreadcrumb(t *testing.T) {
 	mockRepo := new(MockCategoryRepository)
-	usecase := NewCategoryUseCase(mockRepo)
+	usecase := NewCategoryUseCase(mockRepo, nil)
 	ctx := context.Background()
 
 	t.Run("get category with breadcrumb", func(t *testing.T) {

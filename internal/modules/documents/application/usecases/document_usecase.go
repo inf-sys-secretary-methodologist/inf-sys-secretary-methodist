@@ -13,6 +13,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
 
@@ -22,6 +23,7 @@ type DocumentUseCase struct {
 	documentTypeRepo repositories.DocumentTypeRepository
 	categoryRepo     repositories.DocumentCategoryRepository
 	s3Client         *storage.S3Client
+	auditLog         *logging.AuditLogger
 }
 
 // NewDocumentUseCase creates a new document use case
@@ -30,12 +32,14 @@ func NewDocumentUseCase(
 	documentTypeRepo repositories.DocumentTypeRepository,
 	categoryRepo repositories.DocumentCategoryRepository,
 	s3Client *storage.S3Client,
+	auditLog *logging.AuditLogger,
 ) *DocumentUseCase {
 	return &DocumentUseCase{
 		documentRepo:     documentRepo,
 		documentTypeRepo: documentTypeRepo,
 		categoryRepo:     categoryRepo,
 		s3Client:         s3Client,
+		auditLog:         auditLog,
 	}
 }
 
@@ -83,6 +87,15 @@ func (uc *DocumentUseCase) Create(ctx context.Context, input dto.CreateDocumentI
 		DocumentID: doc.ID,
 		UserID:     &authorID,
 		Action:     "created",
+	})
+
+	// Log audit event
+	uc.logAudit(ctx, "document_created", "document", map[string]interface{}{
+		"document_id":      doc.ID,
+		"title":            doc.Title,
+		"document_type_id": doc.DocumentTypeID,
+		"author_id":        authorID,
+		"has_file":         doc.HasFile(),
 	})
 
 	output := dto.ToDocumentOutput(doc)
@@ -144,6 +157,12 @@ func (uc *DocumentUseCase) Update(ctx context.Context, id int64, input dto.Updat
 		Action:     "updated",
 	})
 
+	// Log audit event
+	uc.logAudit(ctx, "document_updated", "document", map[string]interface{}{
+		"document_id": doc.ID,
+		"user_id":     userID,
+	})
+
 	return dto.ToDocumentOutput(doc), nil
 }
 
@@ -163,6 +182,13 @@ func (uc *DocumentUseCase) Delete(ctx context.Context, id int64, userID int64) e
 		DocumentID: doc.ID,
 		UserID:     &userID,
 		Action:     "deleted",
+	})
+
+	// Log audit event
+	uc.logAudit(ctx, "document_deleted", "document", map[string]interface{}{
+		"document_id": id,
+		"user_id":     userID,
+		"title":       doc.Title,
 	})
 
 	return nil
@@ -271,6 +297,15 @@ func (uc *DocumentUseCase) UploadFile(ctx context.Context, documentID int64, fil
 		Action:     "file_uploaded",
 	})
 
+	// Log audit event
+	uc.logAudit(ctx, "document_file_uploaded", "document", map[string]interface{}{
+		"document_id": documentID,
+		"user_id":     userID,
+		"file_name":   fileName,
+		"file_size":   fileSize,
+		"version":     doc.Version,
+	})
+
 	return dto.ToDocumentOutput(doc), nil
 }
 
@@ -324,6 +359,12 @@ func (uc *DocumentUseCase) DeleteFile(ctx context.Context, documentID int64, use
 		DocumentID: doc.ID,
 		UserID:     &userID,
 		Action:     "file_deleted",
+	})
+
+	// Log audit event
+	uc.logAudit(ctx, "document_file_deleted", "document", map[string]interface{}{
+		"document_id": documentID,
+		"user_id":     userID,
 	})
 
 	return nil
@@ -409,4 +450,11 @@ func detectContentType(filename string) string {
 
 func strPtr(s string) *string {
 	return &s
+}
+
+// logAudit safely logs an audit event with nil check
+func (uc *DocumentUseCase) logAudit(ctx context.Context, action, resourceType string, details map[string]interface{}) {
+	if uc.auditLog != nil {
+		uc.auditLog.LogAuditEvent(ctx, action, resourceType, details)
+	}
 }

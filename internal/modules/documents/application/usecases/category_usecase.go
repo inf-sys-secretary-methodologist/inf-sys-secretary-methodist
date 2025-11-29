@@ -8,17 +8,20 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // CategoryUseCase handles business logic for document categories
 type CategoryUseCase struct {
 	categoryRepo repositories.DocumentCategoryRepository
+	auditLog     *logging.AuditLogger
 }
 
 // NewCategoryUseCase creates a new category use case
-func NewCategoryUseCase(categoryRepo repositories.DocumentCategoryRepository) *CategoryUseCase {
+func NewCategoryUseCase(categoryRepo repositories.DocumentCategoryRepository, auditLog *logging.AuditLogger) *CategoryUseCase {
 	return &CategoryUseCase{
 		categoryRepo: categoryRepo,
+		auditLog:     auditLog,
 	}
 }
 
@@ -44,6 +47,13 @@ func (uc *CategoryUseCase) Create(ctx context.Context, input dto.CreateCategoryI
 	if err := uc.categoryRepo.Create(ctx, category); err != nil {
 		return nil, err
 	}
+
+	// Log audit event
+	uc.logAudit(ctx, "category_created", "category", map[string]interface{}{
+		"category_id": category.ID,
+		"name":        category.Name,
+		"parent_id":   category.ParentID,
+	})
 
 	output := dto.CategoryFromEntity(category)
 
@@ -100,6 +110,12 @@ func (uc *CategoryUseCase) Update(ctx context.Context, id int64, input dto.Updat
 		return nil, err
 	}
 
+	// Log audit event
+	uc.logAudit(ctx, "category_updated", "category", map[string]interface{}{
+		"category_id": category.ID,
+		"name":        category.Name,
+	})
+
 	output := dto.CategoryFromEntity(category)
 
 	// Get additional info
@@ -122,12 +138,22 @@ func (uc *CategoryUseCase) Update(ctx context.Context, id int64, input dto.Updat
 // Delete deletes a category
 func (uc *CategoryUseCase) Delete(ctx context.Context, id int64) error {
 	// Check if category exists
-	_, err := uc.categoryRepo.GetByID(ctx, id)
+	category, err := uc.categoryRepo.GetByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("категория не найдена")
 	}
 
-	return uc.categoryRepo.Delete(ctx, id)
+	if err := uc.categoryRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	// Log audit event
+	uc.logAudit(ctx, "category_deleted", "category", map[string]interface{}{
+		"category_id": id,
+		"name":        category.Name,
+	})
+
+	return nil
 }
 
 // GetByID retrieves a category by ID
@@ -260,4 +286,11 @@ func (uc *CategoryUseCase) GetWithBreadcrumb(ctx context.Context, id int64) (*dt
 // GetDocumentCount returns document count for a category
 func (uc *CategoryUseCase) GetDocumentCount(ctx context.Context, id int64, includeSubcategories bool) (int64, error) {
 	return uc.categoryRepo.GetDocumentCount(ctx, id, includeSubcategories)
+}
+
+// logAudit safely logs an audit event with nil check
+func (uc *CategoryUseCase) logAudit(ctx context.Context, action, resourceType string, details map[string]interface{}) {
+	if uc.auditLog != nil {
+		uc.auditLog.LogAuditEvent(ctx, action, resourceType, details)
+	}
 }

@@ -107,7 +107,7 @@ func (m *MockTagRepository) GetTagUsageCount(ctx context.Context, tagID int64) (
 func TestTagUseCase_Create(t *testing.T) {
 	mockTagRepo := new(MockTagRepository)
 	mockDocRepo := new(MockDocumentRepository)
-	usecase := NewTagUseCase(mockTagRepo, mockDocRepo)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
 	ctx := context.Background()
 
 	t.Run("create tag", func(t *testing.T) {
@@ -149,7 +149,7 @@ func TestTagUseCase_Create(t *testing.T) {
 func TestTagUseCase_Update(t *testing.T) {
 	mockTagRepo := new(MockTagRepository)
 	mockDocRepo := new(MockDocumentRepository)
-	usecase := NewTagUseCase(mockTagRepo, mockDocRepo)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
 	ctx := context.Background()
 
 	t.Run("update tag name", func(t *testing.T) {
@@ -190,7 +190,7 @@ func TestTagUseCase_Update(t *testing.T) {
 func TestTagUseCase_Delete(t *testing.T) {
 	mockTagRepo := new(MockTagRepository)
 	mockDocRepo := new(MockDocumentRepository)
-	usecase := NewTagUseCase(mockTagRepo, mockDocRepo)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
 	ctx := context.Background()
 
 	t.Run("delete existing tag", func(t *testing.T) {
@@ -217,7 +217,7 @@ func TestTagUseCase_Delete(t *testing.T) {
 func TestTagUseCase_GetAll(t *testing.T) {
 	mockTagRepo := new(MockTagRepository)
 	mockDocRepo := new(MockDocumentRepository)
-	usecase := NewTagUseCase(mockTagRepo, mockDocRepo)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
 	ctx := context.Background()
 
 	t.Run("get all tags", func(t *testing.T) {
@@ -243,7 +243,7 @@ func TestTagUseCase_GetAll(t *testing.T) {
 func TestTagUseCase_Search(t *testing.T) {
 	mockTagRepo := new(MockTagRepository)
 	mockDocRepo := new(MockDocumentRepository)
-	usecase := NewTagUseCase(mockTagRepo, mockDocRepo)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
 	ctx := context.Background()
 
 	t.Run("search tags", func(t *testing.T) {
@@ -267,7 +267,7 @@ func TestTagUseCase_Search(t *testing.T) {
 func TestTagUseCase_AddTagToDocument(t *testing.T) {
 	mockTagRepo := new(MockTagRepository)
 	mockDocRepo := new(MockDocumentRepository)
-	usecase := NewTagUseCase(mockTagRepo, mockDocRepo)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
 	ctx := context.Background()
 
 	t.Run("add tag to document", func(t *testing.T) {
@@ -299,7 +299,7 @@ func TestTagUseCase_AddTagToDocument(t *testing.T) {
 func TestTagUseCase_GetDocumentTags(t *testing.T) {
 	mockTagRepo := new(MockTagRepository)
 	mockDocRepo := new(MockDocumentRepository)
-	usecase := NewTagUseCase(mockTagRepo, mockDocRepo)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
 	ctx := context.Background()
 
 	t.Run("get document tags", func(t *testing.T) {
@@ -328,7 +328,7 @@ func TestTagUseCase_GetDocumentTags(t *testing.T) {
 func TestTagUseCase_SetDocumentTags(t *testing.T) {
 	mockTagRepo := new(MockTagRepository)
 	mockDocRepo := new(MockDocumentRepository)
-	usecase := NewTagUseCase(mockTagRepo, mockDocRepo)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
 	ctx := context.Background()
 
 	t.Run("set document tags", func(t *testing.T) {
@@ -358,7 +358,7 @@ func TestTagUseCase_SetDocumentTags(t *testing.T) {
 func TestTagUseCase_GetDocumentsByTag(t *testing.T) {
 	mockTagRepo := new(MockTagRepository)
 	mockDocRepo := new(MockDocumentRepository)
-	usecase := NewTagUseCase(mockTagRepo, mockDocRepo)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
 	ctx := context.Background()
 
 	t.Run("get documents by tag", func(t *testing.T) {
