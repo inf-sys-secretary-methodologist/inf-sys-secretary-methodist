@@ -10,17 +10,17 @@ import (
 // ReportType represents a type/template of report
 // Aligned with migrations/006_create_reports_schema.up.sql - report_types table
 type ReportType struct {
-	ID           int64                 `db:"id" json:"id"`
-	Name         string                `db:"name" json:"name"`
-	Code         string                `db:"code" json:"code"`
-	Description  *string               `db:"description" json:"description,omitempty"`
+	ID           int64                  `db:"id" json:"id"`
+	Name         string                 `db:"name" json:"name"`
+	Code         string                 `db:"code" json:"code"`
+	Description  *string                `db:"description" json:"description,omitempty"`
 	Category     *domain.ReportCategory `db:"category" json:"category,omitempty"`
-	TemplatePath *string               `db:"template_path" json:"template_path,omitempty"`
-	OutputFormat domain.OutputFormat   `db:"output_format" json:"output_format"`
-	IsPeriodic   bool                  `db:"is_periodic" json:"is_periodic"`
-	PeriodType   *domain.PeriodType    `db:"period_type" json:"period_type,omitempty"`
-	CreatedAt    time.Time             `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time             `db:"updated_at" json:"updated_at"`
+	TemplatePath *string                `db:"template_path" json:"template_path,omitempty"`
+	OutputFormat domain.OutputFormat    `db:"output_format" json:"output_format"`
+	IsPeriodic   bool                   `db:"is_periodic" json:"is_periodic"`
+	PeriodType   *domain.PeriodType     `db:"period_type" json:"period_type,omitempty"`
+	CreatedAt    time.Time              `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time              `db:"updated_at" json:"updated_at"`
 
 	// Associations (not stored in DB, loaded separately)
 	Parameters []ReportParameter `db:"-" json:"parameters,omitempty"`
