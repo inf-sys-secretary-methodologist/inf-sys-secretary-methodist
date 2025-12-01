@@ -29,6 +29,9 @@ import (
 	reportUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
 	reportPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/infrastructure/persistence"
 	reportHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/interfaces/http/handlers"
+	taskUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
+	taskPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/infrastructure/persistence"
+	taskHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/interfaces/http/handlers"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -151,6 +154,13 @@ func main() {
 	reportUseCase := reportUsecases.NewReportUseCase(reportRepo, reportTypeRepo, s3Client, auditLogger)
 	logger.Info("Reporting module initialized", nil)
 
+	// Initialize tasks module
+	taskRepo := taskPersistence.NewTaskRepositoryPG(db)
+	projectRepo := taskPersistence.NewProjectRepositoryPG(db)
+	taskUseCase := taskUsecases.NewTaskUseCase(taskRepo, projectRepo, auditLogger)
+	projectUseCase := taskUsecases.NewProjectUseCase(projectRepo, auditLogger)
+	logger.Info("Tasks module initialized", nil)
+
 	// Initialize shared middleware
 	corsMiddleware := appMiddleware.NewCORSMiddleware(
 		cfg.CORS.AllowedOrigins,
@@ -164,6 +174,8 @@ func main() {
 		authUseCase,
 		docUseCase,
 		reportUseCase,
+		taskUseCase,
+		projectUseCase,
 		securityLogger,
 		perfLogger,
 		auditLogger,
@@ -299,6 +311,8 @@ func setupRoutes(
 	authUseCase *usecases.AuthUseCase,
 	docUseCase *docUsecases.DocumentUseCase,
 	reportUseCase *reportUsecases.ReportUseCase,
+	taskUseCase *taskUsecases.TaskUseCase,
+	projectUseCase *taskUsecases.ProjectUseCase,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
 	auditLogger *logging.AuditLogger,
@@ -509,6 +523,97 @@ func setupRoutes(
 			}
 
 			logger.Info("Reporting module routes registered", nil)
+		}
+
+		// Tasks module routes
+		if taskUseCase != nil {
+			taskHandlerInstance := taskHandler.NewTaskHandler(taskUseCase)
+			projectHandlerInstance := taskHandler.NewProjectHandler(projectUseCase)
+
+			// Projects routes
+			projectsGroup := protectedGroup.Group("/projects")
+			{
+				projectsGroup.POST("", projectHandlerInstance.Create)
+				projectsGroup.GET("", projectHandlerInstance.List)
+				projectsGroup.GET("/:id", projectHandlerInstance.GetByID)
+				projectsGroup.PUT("/:id", projectHandlerInstance.Update)
+				projectsGroup.DELETE("/:id", projectHandlerInstance.Delete)
+				projectsGroup.POST("/:id/activate", projectHandlerInstance.Activate)
+				projectsGroup.POST("/:id/hold", projectHandlerInstance.PutOnHold)
+				projectsGroup.POST("/:id/complete", projectHandlerInstance.Complete)
+				projectsGroup.POST("/:id/cancel", projectHandlerInstance.Cancel)
+
+				// CORS preflight handlers
+				projectsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				projectsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				projectsGroup.OPTIONS("/:id/activate", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				projectsGroup.OPTIONS("/:id/hold", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				projectsGroup.OPTIONS("/:id/complete", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				projectsGroup.OPTIONS("/:id/cancel", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			// Tasks routes
+			tasksGroup := protectedGroup.Group("/tasks")
+			{
+				// CRUD operations
+				tasksGroup.POST("", taskHandlerInstance.Create)
+				tasksGroup.GET("", taskHandlerInstance.List)
+				tasksGroup.GET("/:id", taskHandlerInstance.GetByID)
+				tasksGroup.PUT("/:id", taskHandlerInstance.Update)
+				tasksGroup.DELETE("/:id", taskHandlerInstance.Delete)
+
+				// Task workflow
+				tasksGroup.POST("/:id/assign", taskHandlerInstance.Assign)
+				tasksGroup.POST("/:id/unassign", taskHandlerInstance.Unassign)
+				tasksGroup.POST("/:id/start", taskHandlerInstance.StartWork)
+				tasksGroup.POST("/:id/review", taskHandlerInstance.SubmitForReview)
+				tasksGroup.POST("/:id/complete", taskHandlerInstance.Complete)
+				tasksGroup.POST("/:id/cancel", taskHandlerInstance.Cancel)
+				tasksGroup.POST("/:id/reopen", taskHandlerInstance.Reopen)
+
+				// Watchers
+				tasksGroup.GET("/:id/watchers", taskHandlerInstance.GetWatchers)
+				tasksGroup.POST("/:id/watchers", taskHandlerInstance.AddWatcher)
+				tasksGroup.DELETE("/:id/watchers/:watcher_id", taskHandlerInstance.RemoveWatcher)
+
+				// Comments
+				tasksGroup.GET("/:id/comments", taskHandlerInstance.GetComments)
+				tasksGroup.POST("/:id/comments", taskHandlerInstance.AddComment)
+				tasksGroup.PUT("/comments/:comment_id", taskHandlerInstance.UpdateComment)
+				tasksGroup.DELETE("/comments/:comment_id", taskHandlerInstance.DeleteComment)
+
+				// Checklists
+				tasksGroup.GET("/:id/checklists", taskHandlerInstance.GetChecklists)
+				tasksGroup.POST("/:id/checklists", taskHandlerInstance.AddChecklist)
+				tasksGroup.DELETE("/checklists/:checklist_id", taskHandlerInstance.DeleteChecklist)
+				tasksGroup.POST("/checklists/:checklist_id/items", taskHandlerInstance.AddChecklistItem)
+				tasksGroup.DELETE("/checklists/items/:item_id", taskHandlerInstance.DeleteChecklistItem)
+
+				// History
+				tasksGroup.GET("/:id/history", taskHandlerInstance.GetHistory)
+
+				// CORS preflight handlers
+				tasksGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/assign", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/unassign", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/start", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/review", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/complete", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/cancel", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/reopen", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/watchers", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/watchers/:watcher_id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/comments", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/comments/:comment_id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/checklists", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/checklists/:checklist_id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/checklists/:checklist_id/items", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/checklists/items/:item_id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				tasksGroup.OPTIONS("/:id/history", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			logger.Info("Tasks module routes registered", nil)
 		}
 
 		// Admin only routes
