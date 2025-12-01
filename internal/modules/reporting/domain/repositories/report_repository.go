@@ -16,6 +16,7 @@ type ReportFilter struct {
 	PeriodStart  *time.Time
 	PeriodEnd    *time.Time
 	IsPublic     *bool
+	Search       *string
 }
 
 // ReportRepository defines the interface for report persistence

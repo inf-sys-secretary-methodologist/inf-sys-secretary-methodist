@@ -26,13 +26,16 @@ import (
 	emailServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	emailDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	emailHandlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/interfaces/http/handlers"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
+	reportUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
+	reportPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/infrastructure/persistence"
+	reportHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/interfaces/http/handlers"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/metrics"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/middleware"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
 
 func main() {
@@ -142,6 +145,12 @@ func main() {
 		logger.Warn("Documents module not initialized - S3 storage not available", nil)
 	}
 
+	// Initialize reporting module
+	reportRepo := reportPersistence.NewReportRepositoryPG(db)
+	reportTypeRepo := reportPersistence.NewReportTypeRepositoryPG(db)
+	reportUseCase := reportUsecases.NewReportUseCase(reportRepo, reportTypeRepo, s3Client, auditLogger)
+	logger.Info("Reporting module initialized", nil)
+
 	// Initialize shared middleware
 	corsMiddleware := appMiddleware.NewCORSMiddleware(
 		cfg.CORS.AllowedOrigins,
@@ -154,6 +163,7 @@ func main() {
 	router := setupRoutes(
 		authUseCase,
 		docUseCase,
+		reportUseCase,
 		securityLogger,
 		perfLogger,
 		auditLogger,
@@ -288,6 +298,7 @@ func initAuthModule(
 func setupRoutes(
 	authUseCase *usecases.AuthUseCase,
 	docUseCase *docUsecases.DocumentUseCase,
+	reportUseCase *reportUsecases.ReportUseCase,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
 	auditLogger *logging.AuditLogger,
@@ -445,6 +456,59 @@ func setupRoutes(
 			logger.Info("Documents module routes registered", nil)
 		} else {
 			logger.Warn("Documents module routes not registered - S3 storage not available", nil)
+		}
+
+		// Reporting module routes
+		if reportUseCase != nil {
+			reportHandlerInstance := reportHandler.NewReportHandler(reportUseCase)
+
+			// Report types (reference data)
+			protectedGroup.GET("/report-types", reportHandlerInstance.GetReportTypes)
+			protectedGroup.GET("/report-types/:id", reportHandlerInstance.GetReportTypeByID)
+			protectedGroup.OPTIONS("/report-types", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			protectedGroup.OPTIONS("/report-types/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+			reportsGroup := protectedGroup.Group("/reports")
+			{
+				// CRUD operations
+				reportsGroup.POST("", reportHandlerInstance.Create)
+				reportsGroup.GET("", reportHandlerInstance.List)
+				reportsGroup.GET("/:id", reportHandlerInstance.GetByID)
+				reportsGroup.PUT("/:id", reportHandlerInstance.Update)
+				reportsGroup.DELETE("/:id", reportHandlerInstance.Delete)
+
+				// Report generation and workflow
+				reportsGroup.POST("/:id/generate", reportHandlerInstance.Generate)
+				reportsGroup.POST("/:id/submit", reportHandlerInstance.SubmitForReview)
+				reportsGroup.POST("/:id/review", reportHandlerInstance.Review)
+				reportsGroup.POST("/:id/publish", reportHandlerInstance.Publish)
+
+				// Access management
+				reportsGroup.GET("/:id/access", reportHandlerInstance.GetAccess)
+				reportsGroup.POST("/:id/access", reportHandlerInstance.AddAccess)
+				reportsGroup.DELETE("/:id/access/:access_id", reportHandlerInstance.RemoveAccess)
+
+				// Comments
+				reportsGroup.GET("/:id/comments", reportHandlerInstance.GetComments)
+				reportsGroup.POST("/:id/comments", reportHandlerInstance.AddComment)
+
+				// History
+				reportsGroup.GET("/:id/history", reportHandlerInstance.GetHistory)
+
+				// CORS preflight handlers
+				reportsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				reportsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				reportsGroup.OPTIONS("/:id/generate", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				reportsGroup.OPTIONS("/:id/submit", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				reportsGroup.OPTIONS("/:id/review", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				reportsGroup.OPTIONS("/:id/publish", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				reportsGroup.OPTIONS("/:id/access", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				reportsGroup.OPTIONS("/:id/access/:access_id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				reportsGroup.OPTIONS("/:id/comments", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				reportsGroup.OPTIONS("/:id/history", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			logger.Info("Reporting module routes registered", nil)
 		}
 
 		// Admin only routes
