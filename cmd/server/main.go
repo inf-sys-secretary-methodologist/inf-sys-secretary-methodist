@@ -35,6 +35,9 @@ import (
 	taskUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
 	taskPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/infrastructure/persistence"
 	taskHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/interfaces/http/handlers"
+	announcementUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
+	announcementPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/infrastructure/persistence"
+	announcementHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/handlers"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -171,6 +174,11 @@ func main() {
 	eventUseCase := scheduleUsecases.NewEventUseCase(eventRepo, participantRepo, reminderRepo, auditLogger)
 	logger.Info("Schedule module initialized", nil)
 
+	// Initialize announcements module
+	announcementRepo := announcementPersistence.NewAnnouncementRepositoryPG(db)
+	announcementUseCase := announcementUsecases.NewAnnouncementUseCase(announcementRepo, auditLogger)
+	logger.Info("Announcements module initialized", nil)
+
 	// Initialize shared middleware
 	corsMiddleware := appMiddleware.NewCORSMiddleware(
 		cfg.CORS.AllowedOrigins,
@@ -187,6 +195,7 @@ func main() {
 		taskUseCase,
 		projectUseCase,
 		eventUseCase,
+		announcementUseCase,
 		securityLogger,
 		perfLogger,
 		auditLogger,
@@ -325,6 +334,7 @@ func setupRoutes(
 	taskUseCase *taskUsecases.TaskUseCase,
 	projectUseCase *taskUsecases.ProjectUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
+	announcementUseCase *announcementUsecases.AnnouncementUseCase,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
 	auditLogger *logging.AuditLogger,
@@ -669,6 +679,43 @@ func setupRoutes(
 			}
 
 			logger.Info("Schedule module routes registered", nil)
+		}
+
+		// Announcements module routes
+		if announcementUseCase != nil {
+			announcementHandlerInstance := announcementHandler.NewAnnouncementHandler(announcementUseCase)
+
+			announcementsGroup := protectedGroup.Group("/announcements")
+			{
+				// CRUD operations
+				announcementsGroup.POST("", announcementHandlerInstance.Create)
+				announcementsGroup.GET("", announcementHandlerInstance.List)
+				announcementsGroup.GET("/:id", announcementHandlerInstance.GetByID)
+				announcementsGroup.PUT("/:id", announcementHandlerInstance.Update)
+				announcementsGroup.DELETE("/:id", announcementHandlerInstance.Delete)
+
+				// Special queries
+				announcementsGroup.GET("/published", announcementHandlerInstance.GetPublished)
+				announcementsGroup.GET("/pinned", announcementHandlerInstance.GetPinned)
+				announcementsGroup.GET("/recent", announcementHandlerInstance.GetRecent)
+
+				// Announcement actions
+				announcementsGroup.POST("/:id/publish", announcementHandlerInstance.Publish)
+				announcementsGroup.POST("/:id/unpublish", announcementHandlerInstance.Unpublish)
+				announcementsGroup.POST("/:id/archive", announcementHandlerInstance.Archive)
+
+				// CORS preflight handlers
+				announcementsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				announcementsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				announcementsGroup.OPTIONS("/published", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				announcementsGroup.OPTIONS("/pinned", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				announcementsGroup.OPTIONS("/recent", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				announcementsGroup.OPTIONS("/:id/publish", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				announcementsGroup.OPTIONS("/:id/unpublish", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				announcementsGroup.OPTIONS("/:id/archive", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			logger.Info("Announcements module routes registered", nil)
 		}
 
 		// Admin only routes
