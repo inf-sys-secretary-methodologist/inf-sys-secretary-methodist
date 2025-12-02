@@ -29,6 +29,9 @@ import (
 	reportUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
 	reportPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/infrastructure/persistence"
 	reportHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/interfaces/http/handlers"
+	scheduleUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
+	schedulePersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/infrastructure/persistence"
+	scheduleHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/interfaces/http/handlers"
 	taskUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
 	taskPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/infrastructure/persistence"
 	taskHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/interfaces/http/handlers"
@@ -161,6 +164,13 @@ func main() {
 	projectUseCase := taskUsecases.NewProjectUseCase(projectRepo, auditLogger)
 	logger.Info("Tasks module initialized", nil)
 
+	// Initialize schedule module
+	eventRepo := schedulePersistence.NewEventRepositoryPG(db)
+	participantRepo := schedulePersistence.NewEventParticipantRepositoryPG(db)
+	reminderRepo := schedulePersistence.NewEventReminderRepositoryPG(db)
+	eventUseCase := scheduleUsecases.NewEventUseCase(eventRepo, participantRepo, reminderRepo, auditLogger)
+	logger.Info("Schedule module initialized", nil)
+
 	// Initialize shared middleware
 	corsMiddleware := appMiddleware.NewCORSMiddleware(
 		cfg.CORS.AllowedOrigins,
@@ -176,6 +186,7 @@ func main() {
 		reportUseCase,
 		taskUseCase,
 		projectUseCase,
+		eventUseCase,
 		securityLogger,
 		perfLogger,
 		auditLogger,
@@ -313,6 +324,7 @@ func setupRoutes(
 	reportUseCase *reportUsecases.ReportUseCase,
 	taskUseCase *taskUsecases.TaskUseCase,
 	projectUseCase *taskUsecases.ProjectUseCase,
+	eventUseCase *scheduleUsecases.EventUseCase,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
 	auditLogger *logging.AuditLogger,
@@ -418,8 +430,8 @@ func setupRoutes(
 				"email":     user.Email,
 				"name":      user.Name,
 				"role":      user.Role,
-				"createdAt": user.CreatedAt,
-				"updatedAt": user.UpdatedAt,
+				"created_at": user.CreatedAt,
+				"updated_at": user.UpdatedAt,
 			})
 		})
 		protectedGroup.OPTIONS("/me", func(c *gin.Context) { c.Status(http.StatusNoContent) })
@@ -614,6 +626,49 @@ func setupRoutes(
 			}
 
 			logger.Info("Tasks module routes registered", nil)
+		}
+
+		// Schedule/Events module routes
+		if eventUseCase != nil {
+			eventHandlerInstance := scheduleHandler.NewEventHandler(eventUseCase)
+
+			eventsGroup := protectedGroup.Group("/events")
+			{
+				// CRUD operations
+				eventsGroup.POST("", eventHandlerInstance.Create)
+				eventsGroup.GET("", eventHandlerInstance.List)
+				eventsGroup.GET("/:id", eventHandlerInstance.GetByID)
+				eventsGroup.PUT("/:id", eventHandlerInstance.Update)
+				eventsGroup.DELETE("/:id", eventHandlerInstance.Delete)
+
+				// Special queries
+				eventsGroup.GET("/range", eventHandlerInstance.GetByDateRange)
+				eventsGroup.GET("/upcoming", eventHandlerInstance.GetUpcoming)
+				eventsGroup.GET("/invitations", eventHandlerInstance.GetPendingInvitations)
+
+				// Event actions
+				eventsGroup.POST("/:id/cancel", eventHandlerInstance.Cancel)
+				eventsGroup.POST("/:id/reschedule", eventHandlerInstance.Reschedule)
+
+				// Participants
+				eventsGroup.POST("/:id/participants", eventHandlerInstance.AddParticipants)
+				eventsGroup.DELETE("/:id/participants/:user_id", eventHandlerInstance.RemoveParticipant)
+				eventsGroup.POST("/:id/respond", eventHandlerInstance.UpdateParticipantStatus)
+
+				// CORS preflight handlers
+				eventsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				eventsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				eventsGroup.OPTIONS("/range", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				eventsGroup.OPTIONS("/upcoming", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				eventsGroup.OPTIONS("/invitations", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				eventsGroup.OPTIONS("/:id/cancel", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				eventsGroup.OPTIONS("/:id/reschedule", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				eventsGroup.OPTIONS("/:id/participants", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				eventsGroup.OPTIONS("/:id/participants/:user_id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				eventsGroup.OPTIONS("/:id/respond", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			logger.Info("Schedule module routes registered", nil)
 		}
 
 		// Admin only routes

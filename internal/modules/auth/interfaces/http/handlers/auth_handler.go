@@ -99,8 +99,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			"email":     user.Email,
 			"name":      user.Name,
 			"role":      user.Role,
-			"createdAt": user.CreatedAt,
-			"updatedAt": user.UpdatedAt,
+			"created_at": user.CreatedAt,
+			"updated_at": user.UpdatedAt,
 		},
 	})
 	c.JSON(http.StatusCreated, resp)
@@ -141,8 +141,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			"email":     user.Email,
 			"name":      user.Name,
 			"role":      user.Role,
-			"createdAt": user.CreatedAt,
-			"updatedAt": user.UpdatedAt,
+			"created_at": user.CreatedAt,
+			"updated_at": user.UpdatedAt,
 		},
 	})
 	c.JSON(http.StatusOK, resp)
