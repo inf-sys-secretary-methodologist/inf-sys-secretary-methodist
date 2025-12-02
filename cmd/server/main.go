@@ -38,6 +38,9 @@ import (
 	announcementUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
 	announcementPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/infrastructure/persistence"
 	announcementHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/handlers"
+	dashboardUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/application/usecases"
+	dashboardPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/infrastructure/persistence"
+	dashboardHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/interfaces/http/handlers"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -179,6 +182,11 @@ func main() {
 	announcementUseCase := announcementUsecases.NewAnnouncementUseCase(announcementRepo, auditLogger)
 	logger.Info("Announcements module initialized", nil)
 
+	// Initialize dashboard module
+	dashboardRepo := dashboardPersistence.NewDashboardRepositoryPG(db)
+	dashboardUseCase := dashboardUsecases.NewDashboardUseCase(dashboardRepo)
+	logger.Info("Dashboard module initialized", nil)
+
 	// Initialize shared middleware
 	corsMiddleware := appMiddleware.NewCORSMiddleware(
 		cfg.CORS.AllowedOrigins,
@@ -196,6 +204,7 @@ func main() {
 		projectUseCase,
 		eventUseCase,
 		announcementUseCase,
+		dashboardUseCase,
 		securityLogger,
 		perfLogger,
 		auditLogger,
@@ -335,6 +344,7 @@ func setupRoutes(
 	projectUseCase *taskUsecases.ProjectUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
+	dashboardUseCase *dashboardUsecases.DashboardUseCase,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
 	auditLogger *logging.AuditLogger,
@@ -716,6 +726,27 @@ func setupRoutes(
 			}
 
 			logger.Info("Announcements module routes registered", nil)
+		}
+
+		// Dashboard module routes
+		if dashboardUseCase != nil {
+			dashboardHandlerInstance := dashboardHandler.NewDashboardHandler(dashboardUseCase)
+
+			dashboardGroup := protectedGroup.Group("/dashboard")
+			{
+				dashboardGroup.GET("/stats", dashboardHandlerInstance.GetStats)
+				dashboardGroup.GET("/trends", dashboardHandlerInstance.GetTrends)
+				dashboardGroup.GET("/activity", dashboardHandlerInstance.GetActivity)
+				dashboardGroup.POST("/export", dashboardHandlerInstance.Export)
+
+				// CORS preflight handlers
+				dashboardGroup.OPTIONS("/stats", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				dashboardGroup.OPTIONS("/trends", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				dashboardGroup.OPTIONS("/activity", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				dashboardGroup.OPTIONS("/export", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			logger.Info("Dashboard module routes registered", nil)
 		}
 
 		// Admin only routes

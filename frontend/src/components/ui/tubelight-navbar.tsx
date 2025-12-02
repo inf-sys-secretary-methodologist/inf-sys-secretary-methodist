@@ -72,7 +72,7 @@ export function NavBar({ items, className = '' }: NavBarProps) {
                 {/* Content */}
                 <div className="relative z-10 flex items-center gap-2">
                   <Icon className="h-4 w-4" />
-                  <span className="text-sm font-medium hidden sm:inline">{item.name}</span>
+                  <span className="text-sm font-medium hidden lg:inline">{item.name}</span>
                 </div>
               </div>
             </Link>
