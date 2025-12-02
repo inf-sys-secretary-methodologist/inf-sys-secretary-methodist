@@ -5,16 +5,14 @@ import { UserMenu } from '@/components/UserMenu'
 import { ThemeToggleButton } from '@/components/theme-toggle-button'
 import { GlowingEffect } from '@/components/ui/glowing-effect'
 import { NavBar } from '@/components/ui/tubelight-navbar'
-import { FileText, Users, LayoutDashboard } from 'lucide-react'
+import { Users } from 'lucide-react'
+import { getAvailableNavItems } from '@/config/navigation'
 
 export default function StudentsPage() {
-  const { isLoading } = useAuthCheck()
+  const { user, isLoading } = useAuthCheck()
 
-  const navItems = [
-    { name: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-    { name: 'Студенты', url: '/students', icon: Users },
-    { name: 'Документы', url: '/documents', icon: FileText },
-  ]
+  // Get navigation items filtered by user role
+  const navItems = getAvailableNavItems(user?.role)
 
   if (isLoading) {
     return (

@@ -51,7 +51,7 @@ func (h *EventHandler) Create(c *gin.Context) {
 
 	var input dto.CreateEventInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		resp := response.BadRequest("Неверный формат запроса")
+		resp := response.BadRequest("Неверный формат запроса: " + err.Error())
 		c.JSON(http.StatusBadRequest, resp)
 		return
 	}

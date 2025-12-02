@@ -67,7 +67,11 @@ export default function Error({
             <RefreshCw className="h-4 w-4" />
             Попробовать снова
           </Button>
-          <Button onClick={() => (window.location.href = '/')} variant="outline" className="gap-2">
+          <Button
+            onClick={() => (window.location.href = '/dashboard')}
+            variant="outline"
+            className="gap-2"
+          >
             <Home className="h-4 w-4" />
             На главную
           </Button>

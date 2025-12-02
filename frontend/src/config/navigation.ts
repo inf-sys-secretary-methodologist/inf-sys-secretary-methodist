@@ -1,4 +1,4 @@
-import { LucideIcon, LayoutDashboard, Users, FileText } from 'lucide-react'
+import { LucideIcon, LayoutDashboard, Users, FileText, Calendar } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
 export interface NavItem {
@@ -11,7 +11,7 @@ export interface NavItem {
 // Define which roles can access which pages
 export const navigationConfig: NavItem[] = [
   {
-    name: 'Dashboard',
+    name: 'Главная',
     url: '/dashboard',
     icon: LayoutDashboard,
     // Available to all authenticated users
@@ -31,6 +31,17 @@ export const navigationConfig: NavItem[] = [
     name: 'Документы',
     url: '/documents',
     icon: FileText,
+    roles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+    ],
+  },
+  {
+    name: 'Календарь',
+    url: '/calendar',
+    icon: Calendar,
     roles: [
       UserRole.SYSTEM_ADMIN,
       UserRole.METHODIST,

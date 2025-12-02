@@ -62,8 +62,11 @@ function ProfilePage() {
     setIsEditing(false)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ru-RU', {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Не указано'
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Не указано'
+    return date.toLocaleDateString('ru-RU', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -187,7 +190,7 @@ function ProfilePage() {
                   <Calendar className="h-4 w-4" />
                   <span>Дата создания</span>
                 </div>
-                <p className="text-sm font-medium">{formatDate(user.createdAt)}</p>
+                <p className="text-sm font-medium">{formatDate(user.created_at)}</p>
               </div>
 
               {/* Updated At */}
@@ -196,7 +199,7 @@ function ProfilePage() {
                   <Calendar className="h-4 w-4" />
                   <span>Последнее обновление</span>
                 </div>
-                <p className="text-sm font-medium">{formatDate(user.updatedAt)}</p>
+                <p className="text-sm font-medium">{formatDate(user.updated_at)}</p>
               </div>
 
               {/* User ID */}

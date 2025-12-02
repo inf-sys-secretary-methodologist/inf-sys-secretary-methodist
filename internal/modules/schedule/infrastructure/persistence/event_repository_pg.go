@@ -26,21 +26,23 @@ func NewEventRepositoryPG(db *sql.DB) *EventRepositoryPG {
 
 // Create inserts a new event
 func (r *EventRepositoryPG) Create(ctx context.Context, event *entities.Event) error {
-	var recurrenceJSON, metadataJSON []byte
-	var err error
+	// Use interface{} to properly handle NULL values for JSONB columns
+	var recurrenceJSON, metadataJSON interface{}
 
 	if event.RecurrenceRule != nil {
-		recurrenceJSON, err = json.Marshal(event.RecurrenceRule)
+		jsonBytes, err := json.Marshal(event.RecurrenceRule)
 		if err != nil {
 			return fmt.Errorf("failed to marshal recurrence rule: %w", err)
 		}
+		recurrenceJSON = jsonBytes
 	}
 
 	if event.Metadata != nil {
-		metadataJSON, err = json.Marshal(event.Metadata)
+		jsonBytes, err := json.Marshal(event.Metadata)
 		if err != nil {
 			return fmt.Errorf("failed to marshal metadata: %w", err)
 		}
+		metadataJSON = jsonBytes
 	}
 
 	query := `
@@ -54,7 +56,7 @@ func (r *EventRepositoryPG) Create(ctx context.Context, event *entities.Event) e
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
 		) RETURNING id`
 
-	err = r.db.QueryRowContext(ctx, query,
+	err := r.db.QueryRowContext(ctx, query,
 		event.Title, event.Description, event.EventType, event.Status,
 		event.StartTime, event.EndTime, event.AllDay, event.Timezone, event.Location,
 		event.OrganizerID, event.IsRecurring, recurrenceJSON,
@@ -72,21 +74,23 @@ func (r *EventRepositoryPG) Create(ctx context.Context, event *entities.Event) e
 func (r *EventRepositoryPG) Update(ctx context.Context, event *entities.Event) error {
 	event.UpdatedAt = time.Now()
 
-	var recurrenceJSON, metadataJSON []byte
-	var err error
+	// Use interface{} to properly handle NULL values for JSONB columns
+	var recurrenceJSON, metadataJSON interface{}
 
 	if event.RecurrenceRule != nil {
-		recurrenceJSON, err = json.Marshal(event.RecurrenceRule)
+		jsonBytes, err := json.Marshal(event.RecurrenceRule)
 		if err != nil {
 			return fmt.Errorf("failed to marshal recurrence rule: %w", err)
 		}
+		recurrenceJSON = jsonBytes
 	}
 
 	if event.Metadata != nil {
-		metadataJSON, err = json.Marshal(event.Metadata)
+		jsonBytes, err := json.Marshal(event.Metadata)
 		if err != nil {
 			return fmt.Errorf("failed to marshal metadata: %w", err)
 		}
+		metadataJSON = jsonBytes
 	}
 
 	query := `

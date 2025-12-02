@@ -1,11 +1,12 @@
 // User types
 export interface User {
-  id: string
+  id: number
   email: string
   name: string
   role: UserRole
-  createdAt: string
-  updatedAt: string
+  status?: string
+  created_at?: string
+  updated_at?: string
 }
 
 export enum UserRole {
