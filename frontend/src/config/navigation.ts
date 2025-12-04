@@ -1,69 +1,88 @@
-import { LucideIcon, LayoutDashboard, Users, FileText, Calendar } from 'lucide-react'
+/**
+ * Navigation Configuration
+ * Uses permissions from config/permissions.ts for role-based filtering
+ */
+
+import {
+  LucideIcon,
+  LayoutDashboard,
+  Users,
+  FileText,
+  Calendar,
+  ListTodo,
+  Megaphone,
+} from 'lucide-react'
 import { UserRole } from '@/types/auth'
+import { Resource, Action, hasPermission } from './permissions'
 
 export interface NavItem {
   name: string
   url: string
   icon: LucideIcon
-  roles?: UserRole[] // If undefined, available to all authenticated users
+  resource?: Resource // If defined, will check permission
+  action?: Action // Action to check (defaults to READ)
+  roles?: UserRole[] // Legacy: direct role check (deprecated, use resource/action instead)
 }
 
-// Define which roles can access which pages
+// Navigation items with permission-based access
 export const navigationConfig: NavItem[] = [
   {
     name: 'Главная',
     url: '/dashboard',
     icon: LayoutDashboard,
-    // Available to all authenticated users
+    // Available to all authenticated users - no resource check
   },
   {
     name: 'Студенты',
     url: '/students',
     icon: Users,
-    roles: [
-      UserRole.SYSTEM_ADMIN,
-      UserRole.METHODIST,
-      UserRole.ACADEMIC_SECRETARY,
-      UserRole.TEACHER,
-    ],
+    resource: Resource.STUDENTS,
+    action: Action.READ,
   },
   {
     name: 'Документы',
     url: '/documents',
     icon: FileText,
-    roles: [
-      UserRole.SYSTEM_ADMIN,
-      UserRole.METHODIST,
-      UserRole.ACADEMIC_SECRETARY,
-      UserRole.TEACHER,
-    ],
+    resource: Resource.DOCUMENTS,
+    action: Action.READ,
   },
   {
     name: 'Календарь',
     url: '/calendar',
     icon: Calendar,
-    roles: [
-      UserRole.SYSTEM_ADMIN,
-      UserRole.METHODIST,
-      UserRole.ACADEMIC_SECRETARY,
-      UserRole.TEACHER,
-    ],
+    resource: Resource.EVENTS,
+    action: Action.READ,
+  },
+  {
+    name: 'Задачи',
+    url: '/tasks',
+    icon: ListTodo,
+    resource: Resource.TASKS,
+    action: Action.READ,
+  },
+  {
+    name: 'Объявления',
+    url: '/announcements',
+    icon: Megaphone,
+    resource: Resource.ANNOUNCEMENTS,
+    action: Action.READ,
   },
 ]
 
 /**
- * Filter navigation items based on user role
+ * Filter navigation items based on user role and permissions
  */
 export function getAvailableNavItems(userRole?: UserRole | string): NavItem[] {
   if (!userRole) return []
 
   return navigationConfig.filter((item) => {
-    // If no roles specified, item is available to all authenticated users
-    if (!item.roles || item.roles.length === 0) {
+    // If no resource specified, item is available to all authenticated users
+    if (!item.resource) {
       return true
     }
 
-    // Check if user's role is in the allowed roles
-    return item.roles.includes(userRole as UserRole)
+    // Check permission using the new permission system
+    const action = item.action || Action.READ
+    return hasPermission(userRole, item.resource, action)
   })
 }
