@@ -32,6 +32,16 @@ const (
 	ResourceAssignments ResourceType = "assignments"
 	// ResourceReports represents the reports resource type.
 	ResourceReports ResourceType = "reports"
+	// ResourceDocuments represents the documents resource type.
+	ResourceDocuments ResourceType = "documents"
+	// ResourceStudents represents the students resource type.
+	ResourceStudents ResourceType = "students"
+	// ResourceEvents represents the events resource type.
+	ResourceEvents ResourceType = "events"
+	// ResourceTasks represents the tasks resource type.
+	ResourceTasks ResourceType = "tasks"
+	// ResourceAnnouncements represents the announcements resource type.
+	ResourceAnnouncements ResourceType = "announcements"
 )
 
 // ActionType представляет тип действия
@@ -54,6 +64,8 @@ const (
 	ActionExecute ActionType = "execute"
 	// ActionExport represents the export action.
 	ActionExport ActionType = "export"
+	// ActionUpload represents the upload action.
+	ActionUpload ActionType = "upload"
 )
 
 // AccessLevel представляет уровень доступа

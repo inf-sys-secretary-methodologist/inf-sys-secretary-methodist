@@ -4,12 +4,37 @@ package domain
 import "time"
 
 // PermissionMatrix определяет матрицу разрешений для 5 основных ролей
+//
+// БИЗНЕС-ЛОГИКА РОЛЕЙ:
+//
+// RoleSystemAdmin - Системный администратор
+//   Полное управление системой, пользователями, всеми ресурсами
+//
+// RoleMethodist - Методист
+//   Методическое обеспечение: документы, учебные планы, мероприятия
+//   Может создавать объявления, работать с задачами
+//
+// RoleAcademicSecretary - Академический секретарь
+//   Административное сопровождение: студенты, расписание, отчёты
+//   Полное управление студентами и расписанием
+//
+// RoleTeacher - Преподаватель
+//   Реализация учебного процесса: просмотр студентов, задания
+//   Загрузка своих документов, работа со своими задачами
+//
+// RoleStudent - Студент
+//   Участие в учебном процессе: просмотр расписания, задач, событий
+//   Выполнение заданий, просмотр объявлений
 var PermissionMatrix = map[RoleType]map[ResourceType]map[ActionType]AccessLevel{
+	// =========================================================================
+	// RoleSystemAdmin - Полный доступ ко всему
+	// =========================================================================
 	RoleSystemAdmin: {
 		ResourceUsers: {
 			ActionCreate:     AccessFull,
 			ActionRead:       AccessFull,
 			ActionUpdate:     AccessFull,
+			ActionDelete:     AccessFull,
 			ActionDeactivate: AccessFull,
 		},
 		ResourceCurriculum: {
@@ -18,137 +43,253 @@ var PermissionMatrix = map[RoleType]map[ResourceType]map[ActionType]AccessLevel{
 			ActionUpdate:  AccessFull,
 			ActionApprove: AccessFull,
 		},
-		ResourceSchedule: {
+		ResourceDocuments: {
 			ActionCreate: AccessFull,
 			ActionRead:   AccessFull,
 			ActionUpdate: AccessFull,
+			ActionDelete: AccessFull,
+			ActionUpload: AccessFull,
+			ActionExport: AccessFull,
+		},
+		ResourceStudents: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+			ActionDelete: AccessFull,
+		},
+		ResourceEvents: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+			ActionDelete: AccessFull,
+		},
+		ResourceTasks: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+			ActionDelete: AccessFull,
 		},
 		ResourceAssignments: {
 			ActionCreate: AccessFull,
 			ActionRead:   AccessFull,
 			ActionUpdate: AccessFull,
+			ActionDelete: AccessFull,
 		},
-		ResourceReports: {
+		ResourceSchedule: {
 			ActionCreate: AccessFull,
 			ActionRead:   AccessFull,
-			ActionExport: AccessFull,
+			ActionUpdate: AccessFull,
 		},
-	},
-	RoleMethodist: {
-		ResourceUsers: {
-			ActionCreate:     AccessDenied,
-			ActionRead:       AccessLimited,
-			ActionUpdate:     AccessDenied,
-			ActionDeactivate: AccessDenied,
-		},
-		ResourceCurriculum: {
+		ResourceReports: {
 			ActionCreate:  AccessFull,
 			ActionRead:    AccessFull,
-			ActionUpdate:  AccessFull,
-			ActionApprove: AccessDenied,
+			ActionExport:  AccessFull,
+			ActionApprove: AccessFull,
 		},
-		ResourceSchedule: {
-			ActionCreate: AccessDenied,
-			ActionRead:   AccessFull,
-			ActionUpdate: AccessLimited,
-		},
-		ResourceAssignments: {
+		ResourceAnnouncements: {
 			ActionCreate: AccessFull,
 			ActionRead:   AccessFull,
-			ActionUpdate: AccessLimited,
-		},
-		ResourceReports: {
-			ActionCreate: AccessFull,
-			ActionRead:   AccessFull,
-			ActionExport: AccessFull,
+			ActionUpdate: AccessFull,
+			ActionDelete: AccessFull,
 		},
 	},
-	RoleAcademicSecretary: {
+
+	// =========================================================================
+	// RoleMethodist - Методическое обеспечение учебного процесса
+	// =========================================================================
+	RoleMethodist: {
 		ResourceUsers: {
-			ActionCreate:     AccessDenied,
-			ActionRead:       AccessLimited,
-			ActionUpdate:     AccessDenied,
-			ActionDeactivate: AccessDenied,
+			ActionRead: AccessLimited, // Только базовая информация
 		},
 		ResourceCurriculum: {
-			ActionCreate:  AccessDenied,
-			ActionRead:    AccessFull,
-			ActionUpdate:  AccessDenied,
-			ActionApprove: AccessDenied,
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+			// Нет ActionApprove - утверждает только админ
 		},
-		ResourceSchedule: {
+		ResourceDocuments: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+			ActionUpload: AccessFull,
+			ActionExport: AccessFull,
+		},
+		ResourceStudents: {
+			ActionRead:   AccessFull,    // Просмотр всех студентов
+			ActionUpdate: AccessLimited, // Ограниченное редактирование
+		},
+		ResourceEvents: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+		},
+		ResourceTasks: {
 			ActionCreate: AccessFull,
 			ActionRead:   AccessFull,
 			ActionUpdate: AccessFull,
 		},
 		ResourceAssignments: {
-			ActionCreate: AccessDenied,
+			ActionCreate: AccessFull,
 			ActionRead:   AccessFull,
-			ActionUpdate: AccessDenied,
+			ActionUpdate: AccessLimited,
+		},
+		ResourceSchedule: {
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessLimited, // Может предлагать изменения
 		},
 		ResourceReports: {
 			ActionCreate: AccessFull,
 			ActionRead:   AccessFull,
 			ActionExport: AccessFull,
 		},
+		ResourceAnnouncements: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessOwn, // Только свои объявления
+			ActionDelete: AccessOwn,
+		},
 	},
-	RoleTeacher: {
+
+	// =========================================================================
+	// RoleAcademicSecretary - Административное сопровождение
+	// =========================================================================
+	RoleAcademicSecretary: {
 		ResourceUsers: {
-			ActionCreate:     AccessDenied,
-			ActionRead:       AccessLimited,
-			ActionUpdate:     AccessDenied,
-			ActionDeactivate: AccessDenied,
+			ActionRead: AccessLimited,
 		},
 		ResourceCurriculum: {
-			ActionCreate:  AccessDenied,
-			ActionRead:    AccessFull,
-			ActionUpdate:  AccessLimited,
-			ActionApprove: AccessDenied,
+			ActionRead: AccessFull,
+			// Не создаёт и не редактирует учебные планы
 		},
-		ResourceSchedule: {
-			ActionCreate: AccessDenied,
+		ResourceDocuments: {
+			ActionCreate: AccessFull,
 			ActionRead:   AccessFull,
-			ActionUpdate: AccessDenied,
+			ActionUpdate: AccessFull,
+			ActionUpload: AccessFull,
+			ActionExport: AccessFull,
+		},
+		ResourceStudents: {
+			ActionCreate: AccessFull, // Полное управление студентами
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+			ActionDelete: AccessFull,
+		},
+		ResourceEvents: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+			ActionDelete: AccessFull,
+		},
+		ResourceTasks: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
 		},
 		ResourceAssignments: {
+			ActionRead: AccessFull,
+			// Не создаёт задания
+		},
+		ResourceSchedule: {
+			ActionCreate: AccessFull, // Полное управление расписанием
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+		},
+		ResourceReports: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionExport: AccessFull,
+		},
+		ResourceAnnouncements: {
 			ActionCreate: AccessFull,
 			ActionRead:   AccessFull,
 			ActionUpdate: AccessOwn,
 		},
-		ResourceReports: {
-			ActionCreate: AccessFull,
-			ActionRead:   AccessLimited,
-			ActionExport: AccessLimited,
-		},
 	},
-	RoleStudent: {
+
+	// =========================================================================
+	// RoleTeacher - Преподаватель
+	// =========================================================================
+	RoleTeacher: {
 		ResourceUsers: {
-			ActionCreate:     AccessDenied,
-			ActionRead:       AccessDenied,
-			ActionUpdate:     AccessOwn,
-			ActionDeactivate: AccessDenied,
+			ActionRead: AccessLimited, // Базовая информация коллег
 		},
 		ResourceCurriculum: {
-			ActionCreate:  AccessDenied,
-			ActionRead:    AccessLimited,
-			ActionUpdate:  AccessDenied,
-			ActionApprove: AccessDenied,
-		},
-		ResourceSchedule: {
-			ActionCreate: AccessDenied,
 			ActionRead:   AccessFull,
-			ActionUpdate: AccessDenied,
+			ActionUpdate: AccessLimited, // Может предлагать изменения
+		},
+		ResourceDocuments: {
+			ActionRead:   AccessFull,
+			ActionUpload: AccessOwn, // Только свои документы
+			ActionExport: AccessLimited,
+		},
+		ResourceStudents: {
+			ActionRead: AccessFull, // Просмотр студентов для выставления оценок
+		},
+		ResourceEvents: {
+			ActionRead:   AccessFull,
+			ActionCreate: AccessOwn, // Может создавать свои мероприятия
+		},
+		ResourceTasks: {
+			ActionRead:   AccessFull, // Просмотр всех задач
+			ActionUpdate: AccessOwn,  // Редактирование своих
+			ActionCreate: AccessOwn,  // Создание задач для студентов
 		},
 		ResourceAssignments: {
-			ActionCreate:  AccessDenied,
-			ActionRead:    AccessOwn,
-			ActionUpdate:  AccessDenied,
-			ActionExecute: AccessFull,
+			ActionCreate: AccessFull, // Создание заданий
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessOwn, // Редактирование своих
+		},
+		ResourceSchedule: {
+			ActionRead: AccessFull,
 		},
 		ResourceReports: {
-			ActionCreate: AccessDenied,
-			ActionRead:   AccessDenied,
-			ActionExport: AccessDenied,
+			ActionCreate: AccessFull,    // Отчёты по своим предметам
+			ActionRead:   AccessLimited, // Только свои отчёты
+			ActionExport: AccessLimited,
+		},
+		ResourceAnnouncements: {
+			ActionRead:   AccessFull,
+			ActionCreate: AccessOwn, // Может создавать для своих групп
+		},
+	},
+
+	// =========================================================================
+	// RoleStudent - Студент (ВАЖНО: видит задачи в режиме просмотра!)
+	// =========================================================================
+	RoleStudent: {
+		ResourceUsers: {
+			ActionRead:   AccessOwn, // Только свой профиль
+			ActionUpdate: AccessOwn, // Редактирование профиля
+		},
+		ResourceCurriculum: {
+			ActionRead: AccessLimited, // Свой учебный план
+		},
+		ResourceDocuments: {
+			ActionRead: AccessLimited, // Доступные документы
+		},
+		ResourceStudents: {
+			ActionRead:   AccessOwn, // Только свои данные
+			ActionUpdate: AccessOwn, // Редактирование профиля
+		},
+		ResourceEvents: {
+			ActionRead: AccessFull, // Все мероприятия
+		},
+		ResourceTasks: {
+			ActionRead:    AccessFull, // ВАЖНО: Видит все задачи (только просмотр!)
+			ActionExecute: AccessFull, // Может выполнять задачи
+		},
+		ResourceAssignments: {
+			ActionRead:    AccessOwn,  // Свои задания
+			ActionExecute: AccessFull, // Выполнение заданий
+		},
+		ResourceSchedule: {
+			ActionRead: AccessFull, // Всё расписание
+		},
+		ResourceReports: {
+			ActionRead: AccessOwn, // Свои отчёты/оценки
+		},
+		ResourceAnnouncements: {
+			ActionRead: AccessFull, // Все объявления
 		},
 	},
 }
