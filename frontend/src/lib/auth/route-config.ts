@@ -59,9 +59,23 @@ export const protectedRoutes: RouteConfig[] = [
     path: '/schedule',
     allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.ACADEMIC_SECRETARY, UserRole.METHODIST],
   },
+
+  // Tasks - доступно всем (студенты могут просматривать!)
   {
     path: '/tasks',
-    allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.ACADEMIC_SECRETARY, UserRole.METHODIST],
+    allowedRoles: Object.values(UserRole),
+  },
+
+  // Calendar - доступно всем
+  {
+    path: '/calendar',
+    allowedRoles: Object.values(UserRole),
+  },
+
+  // Announcements - доступно всем
+  {
+    path: '/announcements',
+    allowedRoles: Object.values(UserRole),
   },
 
   // Student routes
