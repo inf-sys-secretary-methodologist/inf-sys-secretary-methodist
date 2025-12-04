@@ -49,3 +49,6 @@ next-env.d.ts
 .idea/
 *.swp
 *.swo
+
+*storybook.log
+storybook-static
