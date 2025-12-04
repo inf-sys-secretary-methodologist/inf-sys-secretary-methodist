@@ -1,7 +1,6 @@
 'use client'
 
 import { FileText, ClipboardList, Calendar, Megaphone, User } from 'lucide-react'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
 import type { ActivityItem } from '@/types/dashboard'
 
 interface ActivityFeedProps {
@@ -97,14 +96,6 @@ export function ActivityFeed({
     <div
       className={`relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 ${className}`}
     >
-      <GlowingEffect
-        spread={40}
-        glow={true}
-        disabled={false}
-        proximity={64}
-        inactiveZone={0.01}
-        borderWidth={3}
-      />
       <div className="relative z-10">
         <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{title}</h3>
         <div className="space-y-3 max-h-96 overflow-y-auto">

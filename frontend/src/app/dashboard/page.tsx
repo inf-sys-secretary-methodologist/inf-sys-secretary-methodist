@@ -1,15 +1,31 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { useDashboardStats, useDashboardTrends, useDashboardActivity } from '@/hooks/useDashboard'
 import { UserMenu } from '@/components/UserMenu'
 import { ThemeToggleButton } from '@/components/theme-toggle-button'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
 import { NavBar } from '@/components/ui/tubelight-navbar'
 import { StatsCard, TrendChart, ActivityFeed, ExportButton } from '@/components/dashboard'
-import { FileText, Users, Calendar, TrendingUp, ClipboardList } from 'lucide-react'
+import {
+  FileText,
+  Users,
+  Calendar,
+  TrendingUp,
+  ClipboardList,
+  Upload,
+  UserPlus,
+  CalendarPlus,
+  ListTodo,
+  type LucideIcon,
+} from 'lucide-react'
 import { getAvailableNavItems } from '@/config/navigation'
+import {
+  getAvailableQuickActions,
+  getRoleDisplayName,
+  type QuickAction,
+} from '@/config/permissions'
 
 type Period = 'week' | 'month' | 'quarter' | 'year'
 
@@ -20,7 +36,16 @@ const periodLabels: Record<Period, string> = {
   year: 'год',
 }
 
+// Icon mapping for quick actions
+const iconMap: Record<string, LucideIcon> = {
+  Upload,
+  UserPlus,
+  CalendarPlus,
+  ListTodo,
+}
+
 export default function DashboardPage() {
+  const router = useRouter()
   const { user, isLoading: authLoading } = useAuthCheck()
   const [period, setPeriod] = useState<Period>('month')
 
@@ -31,6 +56,14 @@ export default function DashboardPage() {
 
   // Get navigation items filtered by user role
   const navItems = getAvailableNavItems(user?.role)
+
+  // Get available quick actions based on user permissions
+  const quickActions = getAvailableQuickActions(user?.role)
+
+  // Handle quick action click
+  const handleQuickAction = (action: QuickAction) => {
+    router.push(action.path)
+  }
 
   if (authLoading) {
     return (
@@ -64,21 +97,13 @@ export default function DashboardPage() {
             Добро пожаловать, {user?.name}!
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            <span className="font-semibold">{getRoleDisplayName(user?.role || '')}</span>
+            <span className="font-semibold">{getRoleDisplayName(user?.role)}</span>
           </p>
         </div>
 
         {/* Period Selector & Export */}
         <div className="flex items-center justify-between">
           <div className="relative overflow-hidden rounded-xl p-1 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-            <GlowingEffect
-              spread={40}
-              glow={true}
-              disabled={false}
-              proximity={64}
-              inactiveZone={0.01}
-              borderWidth={2}
-            />
             <div className="relative z-10 flex gap-1">
               {(['week', 'month', 'quarter', 'year'] as Period[]).map((p) => (
                 <button
@@ -208,31 +233,30 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Actions */}
           <div className="relative overflow-hidden rounded-2xl p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-            <GlowingEffect
-              spread={40}
-              glow={true}
-              disabled={false}
-              proximity={64}
-              inactiveZone={0.01}
-              borderWidth={3}
-            />
             <div className="relative z-10 space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 Быстрые действия
               </h2>
               <div className="space-y-3">
-                <button className="w-full px-4 py-3 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg text-left">
-                  Загрузить документ
-                </button>
-                <button className="w-full px-4 py-3 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg text-left">
-                  Добавить студента
-                </button>
-                <button className="w-full px-4 py-3 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg text-left">
-                  Создать мероприятие
-                </button>
-                <button className="w-full px-4 py-3 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg text-left">
-                  Создать задачу
-                </button>
+                {quickActions.length > 0 ? (
+                  quickActions.map((action) => {
+                    const Icon = iconMap[action.icon] || FileText
+                    return (
+                      <button
+                        key={action.id}
+                        onClick={() => handleQuickAction(action)}
+                        className="w-full px-4 py-3 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg text-left flex items-center gap-3"
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span>{action.label}</span>
+                      </button>
+                    )
+                  })
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    Нет доступных действий для вашей роли
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -251,15 +275,4 @@ export default function DashboardPage() {
       </div>
     </div>
   )
-}
-
-function getRoleDisplayName(role: string): string {
-  const roleMap: Record<string, string> = {
-    system_admin: 'Администратор',
-    methodist: 'Методист',
-    academic_secretary: 'Секретарь',
-    teacher: 'Преподаватель',
-    student: 'Студент',
-  }
-  return roleMap[role] || role
 }

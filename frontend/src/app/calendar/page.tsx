@@ -14,7 +14,6 @@ import {
 import { FullCalendar } from '@/components/calendar'
 import { UserMenu } from '@/components/UserMenu'
 import { ThemeToggleButton } from '@/components/theme-toggle-button'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
 import { NavBar } from '@/components/ui/tubelight-navbar'
 import { getAvailableNavItems } from '@/config/navigation'
 import type { CreateEventInput } from '@/types/calendar'
@@ -100,14 +99,6 @@ export default function CalendarPage() {
       <main className="flex-1 pt-24 pb-8">
         <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 h-[calc(100vh-8rem)]">
           <div className="relative h-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-black/95 overflow-hidden">
-            <GlowingEffect
-              spread={40}
-              glow={true}
-              disabled={false}
-              proximity={64}
-              inactiveZone={0.01}
-              borderWidth={3}
-            />
             <div className="relative z-10 h-full">
               <FullCalendar
                 events={events}

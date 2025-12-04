@@ -3,7 +3,6 @@
 import { useAuthCheck } from '@/hooks/useAuth'
 import { UserMenu } from '@/components/UserMenu'
 import { ThemeToggleButton } from '@/components/theme-toggle-button'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
 import { NavBar } from '@/components/ui/tubelight-navbar'
 import { Users } from 'lucide-react'
 import { getAvailableNavItems } from '@/config/navigation'
@@ -50,14 +49,6 @@ export default function StudentsPage() {
 
         {/* Content Placeholder */}
         <div className="relative overflow-hidden rounded-2xl p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-          <GlowingEffect
-            spread={40}
-            glow={true}
-            disabled={false}
-            proximity={64}
-            inactiveZone={0.01}
-            borderWidth={3}
-          />
           <div className="relative z-10 space-y-6 text-center">
             <Users className="h-16 w-16 mx-auto text-gray-400" />
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">

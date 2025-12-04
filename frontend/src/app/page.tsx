@@ -1,14 +1,23 @@
 'use client'
 
 import * as React from 'react'
-import { FileText, Users, Calendar, TrendingUp } from 'lucide-react'
+import {
+  FileText,
+  Users,
+  Calendar,
+  TrendingUp,
+  Upload,
+  UserPlus,
+  CalendarPlus,
+  type LucideIcon,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
 import { ThemeToggleButton } from '@/components/theme-toggle-button'
 import { UserMenu } from '@/components/UserMenu'
 import { Button } from '@/components/ui/button'
 import { useAuthCheck } from '@/hooks/useAuth'
+import { getAvailableQuickActions, type QuickAction } from '@/config/permissions'
 
 // Simple Counter Component
 interface CounterProps {
@@ -45,14 +54,6 @@ const FeatureCard = React.forwardRef<HTMLDivElement, FeatureCardProps>(
         )}
         {...props}
       >
-        <GlowingEffect
-          spread={40}
-          glow={true}
-          disabled={false}
-          proximity={64}
-          inactiveZone={0.01}
-          borderWidth={3}
-        />
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 bg-[#D79922] text-white border-[#D79922] dark:bg-[#c4b5fd] dark:text-[#1e1b4b] dark:border-[#c4b5fd]">
           {icon}
         </div>
@@ -86,14 +87,6 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
         )}
         {...props}
       >
-        <GlowingEffect
-          spread={40}
-          glow={true}
-          disabled={false}
-          proximity={64}
-          inactiveZone={0.01}
-          borderWidth={3}
-        />
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg border-2 bg-[#D79922]/30 text-[#D79922] border-[#D79922] dark:bg-[#818cf8] dark:text-white dark:border-[#818cf8]">
@@ -117,10 +110,29 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
 
 StatCard.displayName = 'StatCard'
 
+// Icon mapping for quick actions
+const iconMap: Record<string, LucideIcon> = {
+  Upload,
+  UserPlus,
+  CalendarPlus,
+}
+
 // Main Dashboard Component
 const SecretaryMethodistDashboard = () => {
   const router = useRouter()
-  const { isAuthenticated } = useAuthCheck()
+  const { isAuthenticated, user } = useAuthCheck()
+
+  // Get available quick actions based on user permissions
+  const quickActions = getAvailableQuickActions(user?.role)
+
+  // Handle quick action click
+  const handleQuickAction = (action: QuickAction) => {
+    if (!isAuthenticated) {
+      router.push('/login')
+      return
+    }
+    router.push(action.path)
+  }
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -193,14 +205,6 @@ const SecretaryMethodistDashboard = () => {
                 key={index}
                 className="group relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:bg-gray-50 dark:hover:bg-black cursor-pointer"
               >
-                <GlowingEffect
-                  spread={40}
-                  glow={true}
-                  disabled={false}
-                  proximity={64}
-                  inactiveZone={0.01}
-                  borderWidth={3}
-                />
                 <div className="relative z-10 space-y-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white transition-all duration-300 group-hover:scale-110 group-hover:bg-gray-200 dark:group-hover:bg-white/20">
                     {item.icon}
@@ -221,28 +225,50 @@ const SecretaryMethodistDashboard = () => {
 
         {/* Quick Actions */}
         <div className="relative overflow-hidden rounded-2xl p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-          <GlowingEffect
-            spread={40}
-            glow={true}
-            disabled={false}
-            proximity={64}
-            inactiveZone={0.01}
-            borderWidth={3}
-          />
           <div className="relative z-10 space-y-6">
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
               Быстрые действия
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button className="px-6 py-4 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg">
-                Загрузить документ
-              </button>
-              <button className="px-6 py-4 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg">
-                Добавить студента
-              </button>
-              <button className="px-6 py-4 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg">
-                Создать мероприятие
-              </button>
+              {isAuthenticated && quickActions.length > 0 ? (
+                quickActions.slice(0, 3).map((action) => {
+                  const Icon = iconMap[action.icon] || FileText
+                  return (
+                    <button
+                      key={action.id}
+                      onClick={() => handleQuickAction(action)}
+                      className="px-6 py-4 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg flex items-center justify-center gap-3"
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span>{action.label}</span>
+                    </button>
+                  )
+                })
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="px-6 py-4 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg flex items-center justify-center gap-3"
+                  >
+                    <Upload className="h-5 w-5" />
+                    <span>Загрузить документ</span>
+                  </button>
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="px-6 py-4 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg flex items-center justify-center gap-3"
+                  >
+                    <UserPlus className="h-5 w-5" />
+                    <span>Добавить студента</span>
+                  </button>
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="px-6 py-4 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg flex items-center justify-center gap-3"
+                  >
+                    <CalendarPlus className="h-5 w-5" />
+                    <span>Создать мероприятие</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

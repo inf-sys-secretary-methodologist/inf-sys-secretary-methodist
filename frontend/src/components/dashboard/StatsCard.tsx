@@ -1,7 +1,6 @@
 'use client'
 
 import { LucideIcon } from 'lucide-react'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
 import { NumberTicker } from '@/components/ui/number-ticker'
 import { cn } from '@/lib/utils'
 
@@ -25,14 +24,6 @@ export function StatsCard({ icon: Icon, title, value, change, period, className 
         className
       )}
     >
-      <GlowingEffect
-        spread={40}
-        glow={true}
-        disabled={false}
-        proximity={64}
-        inactiveZone={0.01}
-        borderWidth={3}
-      />
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white">

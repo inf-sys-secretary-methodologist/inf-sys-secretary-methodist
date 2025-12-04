@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { UserMenu } from '@/components/UserMenu'
 import { ThemeToggleButton } from '@/components/theme-toggle-button'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
 import { NavBar } from '@/components/ui/tubelight-navbar'
 import { Button } from '@/components/ui/button'
 import { Upload, FileText } from 'lucide-react'
@@ -148,14 +147,6 @@ export default function DocumentsPage() {
         {/* Upload Section */}
         {showUpload ? (
           <div className="relative overflow-hidden rounded-2xl p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-            <GlowingEffect
-              spread={40}
-              glow={true}
-              disabled={false}
-              proximity={64}
-              inactiveZone={0.01}
-              borderWidth={3}
-            />
             <div className="relative z-10">
               <DocumentUploadComponent
                 onUpload={handleUpload}
@@ -168,14 +159,6 @@ export default function DocumentsPage() {
           <>
             {/* Filters */}
             <div className="relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-              <GlowingEffect
-                spread={40}
-                glow={true}
-                disabled={false}
-                proximity={64}
-                inactiveZone={0.01}
-                borderWidth={3}
-              />
               <div className="relative z-10">
                 <DocumentFilters
                   onFilterChange={setFilters}
@@ -188,14 +171,6 @@ export default function DocumentsPage() {
 
             {/* Document List */}
             <div className="relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-              <GlowingEffect
-                spread={40}
-                glow={true}
-                disabled={false}
-                proximity={64}
-                inactiveZone={0.01}
-                borderWidth={3}
-              />
               <div className="relative z-10">
                 <DocumentList
                   documents={filteredAndSortedDocuments}
