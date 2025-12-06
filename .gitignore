@@ -81,3 +81,12 @@ frontend/.jest-cache/
 
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
+
+# Serena
+.serena/
+
+# Storybook build
+frontend/storybook-static/
+
+# Runtime state
+runtime-state/

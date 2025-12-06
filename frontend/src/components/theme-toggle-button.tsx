@@ -16,10 +16,10 @@ export function ThemeToggleButton() {
   if (!mounted) {
     return (
       <div
-        className="inline-flex items-center justify-center rounded-2xl p-4 border-2 border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 shadow-lg opacity-50"
+        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 shadow-md opacity-50"
         aria-hidden="true"
       >
-        <Sun className="h-6 w-6 text-gray-400" />
+        <Sun className="h-5 w-5 text-muted-foreground" />
       </div>
     )
   }
@@ -30,15 +30,11 @@ export function ThemeToggleButton() {
         const newTheme = theme === 'dark' ? 'light' : 'dark'
         setTheme(newTheme)
       }}
-      className="inline-flex items-center justify-center rounded-2xl p-4 transition-all duration-200 border-2 border-gray-300 bg-white text-gray-900 hover:bg-gray-100 hover:scale-105 active:scale-95 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800 shadow-lg hover:shadow-xl"
+      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-gray-300 bg-white text-gray-900 transition-all duration-200 hover:bg-gray-100 hover:scale-105 active:scale-95 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800 shadow-md hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
       type="button"
     >
-      {theme === 'dark' ? (
-        <Sun className="h-6 w-6 transition-transform duration-200" />
-      ) : (
-        <Moon className="h-6 w-6 transition-transform duration-200" />
-      )}
+      {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
     </button>
   )
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { withAuth } from '@/components/auth/withAuth'
 import { UserRole } from '@/types/auth'
+import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -88,7 +89,7 @@ const roleColors: Record<UserRole, 'default' | 'secondary' | 'destructive' | 'ou
 function UsersManagementPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
-  const [users] = useState(mockUsers) // TODO: Fetch from API
+  const [users] = useState(mockUsers)
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -108,26 +109,26 @@ function UsersManagementPage() {
     })
   }
 
-  // TODO: Implement handleRoleChange function for role updates
-
   return (
-    <div className="container mx-auto p-6">
-      <div className="space-y-6">
+    <AppLayout>
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <UsersIcon className="h-8 w-8" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <UsersIcon className="h-6 w-6 sm:h-8 sm:w-8" />
             Управление пользователями
           </h1>
-          <p className="text-muted-foreground mt-1">Просмотр и управление пользователями системы</p>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            Просмотр и управление пользователями системы
+          </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Всего пользователей</CardDescription>
-              <CardTitle className="text-3xl">{users.length}</CardTitle>
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardDescription className="text-xs sm:text-sm">Всего</CardDescription>
+              <CardTitle className="text-2xl sm:text-3xl">{users.length}</CardTitle>
             </CardHeader>
           </Card>
 
@@ -137,9 +138,11 @@ function UsersManagementPage() {
 
             return (
               <Card key={key}>
-                <CardHeader className="pb-3">
-                  <CardDescription>{roleLabels[value]}</CardDescription>
-                  <CardTitle className="text-3xl">{count}</CardTitle>
+                <CardHeader className="pb-2 sm:pb-3">
+                  <CardDescription className="text-xs sm:text-sm truncate">
+                    {roleLabels[value]}
+                  </CardDescription>
+                  <CardTitle className="text-2xl sm:text-3xl">{count}</CardTitle>
                 </CardHeader>
               </Card>
             )
@@ -149,14 +152,16 @@ function UsersManagementPage() {
         {/* Filters Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Фильтры</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Фильтры</CardTitle>
             <CardDescription>Поиск и фильтрация пользователей</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               {/* Search */}
               <div className="space-y-2">
-                <Label htmlFor="search">Поиск</Label>
+                <Label htmlFor="search" className="text-sm">
+                  Поиск
+                </Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -171,7 +176,9 @@ function UsersManagementPage() {
 
               {/* Role Filter */}
               <div className="space-y-2">
-                <Label htmlFor="role-filter">Роль</Label>
+                <Label htmlFor="role-filter" className="text-sm">
+                  Роль
+                </Label>
                 <div className="relative">
                   <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
                   <Select value={roleFilter} onValueChange={setRoleFilter}>
@@ -192,7 +199,7 @@ function UsersManagementPage() {
             </div>
 
             {searchQuery || roleFilter !== 'all' ? (
-              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 text-sm text-muted-foreground">
                 <span>Найдено пользователей: {filteredUsers.length}</span>
                 {(searchQuery || roleFilter !== 'all') && (
                   <Button
@@ -214,19 +221,56 @@ function UsersManagementPage() {
         {/* Users Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Пользователи</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Пользователи</CardTitle>
             <CardDescription>Список всех зарегистрированных пользователей</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
+            {/* Mobile Cards View */}
+            <div className="block sm:hidden space-y-4">
+              {filteredUsers.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">Пользователи не найдены</p>
+              ) : (
+                filteredUsers.map((user) => (
+                  <div key={user.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-primary">
+                            {user.name.charAt(0)}
+                          </span>
+                        </div>
+                        <span className="font-medium">{user.name}</span>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="h-4 w-4" />
+                      <span className="break-all">{user.email}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Badge variant={roleColors[user.role]}>{roleLabels[user.role]}</Badge>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {formatDate(user.createdAt)}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden sm:block rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Пользователь</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Роль</TableHead>
-                    <TableHead>Дата создания</TableHead>
-                    <TableHead>Посл. обновление</TableHead>
+                    <TableHead className="hidden lg:table-cell">Дата создания</TableHead>
+                    <TableHead className="hidden lg:table-cell">Посл. обновление</TableHead>
                     <TableHead className="text-right">Действия</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -247,25 +291,25 @@ function UsersManagementPage() {
                                 {user.name.charAt(0)}
                               </span>
                             </div>
-                            <span>{user.name}</span>
+                            <span className="truncate max-w-[150px]">{user.name}</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Mail className="h-4 w-4" />
-                            {user.email}
+                            <Mail className="h-4 w-4 flex-shrink-0" />
+                            <span className="truncate max-w-[150px]">{user.email}</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant={roleColors[user.role]}>{roleLabels[user.role]}</Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
                             {formatDate(user.createdAt)}
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
                           {formatDate(user.updatedAt)}
                         </TableCell>
                         <TableCell className="text-right">
@@ -282,7 +326,7 @@ function UsersManagementPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AppLayout>
   )
 }
 

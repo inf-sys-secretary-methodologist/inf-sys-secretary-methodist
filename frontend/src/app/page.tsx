@@ -123,26 +123,25 @@ const SecretaryMethodistDashboard = () => {
   const { isAuthenticated } = useAuthCheck()
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      {/* Top Navigation - Fixed Position with isolation */}
-      <div
-        className="fixed top-8 right-8 z-50 pointer-events-auto flex items-center gap-3"
-        style={{ isolation: 'isolate' }}
-      >
-        {isAuthenticated ? (
-          <UserMenu />
-        ) : (
-          <Button onClick={() => router.push('/login')} variant="default" size="default">
-            Войти
-          </Button>
-        )}
-        <ThemeToggleButton />
+    <div className="min-h-screen bg-background p-4 sm:p-8">
+      {/* Top Navigation - Fixed Position with blur */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md">
+        <div className="flex items-center justify-end gap-3 px-4 py-3 sm:px-8 sm:py-4">
+          {isAuthenticated ? (
+            <UserMenu />
+          ) : (
+            <Button onClick={() => router.push('/login')} variant="default" size="default">
+              Войти
+            </Button>
+          )}
+          <ThemeToggleButton />
+        </div>
       </div>
 
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8 pt-16 sm:pt-20">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
             Информационная система секретаря-методиста
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-300">
