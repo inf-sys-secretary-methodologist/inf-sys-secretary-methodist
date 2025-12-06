@@ -15,9 +15,11 @@ import { FullCalendar } from '@/components/calendar'
 import { AppLayout } from '@/components/layout'
 import { GlowingEffect } from '@/components/ui/glowing-effect'
 import type { CreateEventInput } from '@/types/calendar'
+import { canEdit } from '@/lib/auth/permissions'
 
 export default function CalendarPage() {
-  useAuthCheck()
+  const { user } = useAuthCheck()
+  const userCanEdit = canEdit(user?.role)
   const [currentMonth] = React.useState(new Date())
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
@@ -82,9 +84,9 @@ export default function CalendarPage() {
             <FullCalendar
               events={events}
               isLoading={eventsLoading || isSubmitting}
-              onCreateEvent={handleCreateEvent}
-              onUpdateEvent={handleUpdateEvent}
-              onDeleteEvent={handleDeleteEvent}
+              onCreateEvent={userCanEdit ? handleCreateEvent : undefined}
+              onUpdateEvent={userCanEdit ? handleUpdateEvent : undefined}
+              onDeleteEvent={userCanEdit ? handleDeleteEvent : undefined}
             />
           </div>
         </div>

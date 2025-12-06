@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuthCheck } from '@/hooks/useAuth'
+import { canEdit } from '@/lib/auth/permissions'
 import { useDashboardStats, useDashboardTrends, useDashboardActivity } from '@/hooks/useDashboard'
 import { AppLayout } from '@/components/layout'
 import { GlowingEffect } from '@/components/ui/glowing-effect'
@@ -18,7 +20,9 @@ const periodLabels: Record<Period, string> = {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const { user } = useAuthCheck()
+  const userCanEdit = canEdit(user?.role)
   const [period, setPeriod] = useState<Period>('month')
 
   // Fetch dashboard data
@@ -177,40 +181,54 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions & Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Quick Actions */}
-          <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-6 sm:p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-            <GlowingEffect
-              spread={40}
-              glow={true}
-              disabled={false}
-              proximity={64}
-              inactiveZone={0.01}
-              borderWidth={3}
-            />
-            <div className="relative z-10 space-y-4 sm:space-y-6">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                Быстрые действия
-              </h2>
-              <div className="space-y-2 sm:space-y-3">
-                <button className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left">
-                  Загрузить документ
-                </button>
-                <button className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left">
-                  Добавить студента
-                </button>
-                <button className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left">
-                  Создать мероприятие
-                </button>
-                <button className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left">
-                  Создать задачу
-                </button>
+        <div className={`grid grid-cols-1 ${userCanEdit ? 'lg:grid-cols-3' : ''} gap-4 sm:gap-6`}>
+          {/* Quick Actions - only for users with edit permissions */}
+          {userCanEdit && (
+            <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-6 sm:p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
+              <GlowingEffect
+                spread={40}
+                glow={true}
+                disabled={false}
+                proximity={64}
+                inactiveZone={0.01}
+                borderWidth={3}
+              />
+              <div className="relative z-10 space-y-4 sm:space-y-6">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                  Быстрые действия
+                </h2>
+                <div className="space-y-2 sm:space-y-3">
+                  <button
+                    onClick={() => router.push('/documents')}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
+                  >
+                    Загрузить документ
+                  </button>
+                  <button
+                    onClick={() => router.push('/students')}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
+                  >
+                    Добавить студента
+                  </button>
+                  <button
+                    onClick={() => router.push('/calendar')}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
+                  >
+                    Создать мероприятие
+                  </button>
+                  <button
+                    onClick={() => router.push('/calendar')}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
+                  >
+                    Создать задачу
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Recent Activity */}
-          <div className="lg:col-span-2">
+          <div className={userCanEdit ? 'lg:col-span-2' : ''}>
             {activityLoading ? (
               <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
                 <div className="h-72 sm:h-96 bg-gray-200 dark:bg-gray-700 rounded" />

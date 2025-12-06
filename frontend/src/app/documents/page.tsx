@@ -18,9 +18,11 @@ import {
   DocumentStatus,
 } from '@/types/document'
 import { mockDocuments, filterDocuments, sortDocuments } from '@/lib/mock-documents'
+import { canEdit } from '@/lib/auth/permissions'
 
 export default function DocumentsPage() {
   const { user } = useAuthCheck()
+  const userCanEdit = canEdit(user?.role)
   const [showUpload, setShowUpload] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
   const [documents, setDocuments] = useState<Document[]>(mockDocuments)
@@ -96,27 +98,29 @@ export default function DocumentsPage() {
           </p>
         </div>
 
-        {/* Upload Button */}
-        <div className="flex justify-end">
-          <Button onClick={() => setShowUpload(!showUpload)} className="flex items-center gap-2">
-            {showUpload ? (
-              <>
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Показать документы</span>
-                <span className="sm:hidden">Документы</span>
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4" />
-                <span className="hidden sm:inline">Загрузить документы</span>
-                <span className="sm:hidden">Загрузить</span>
-              </>
-            )}
-          </Button>
-        </div>
+        {/* Upload Button - only for users with edit permissions */}
+        {userCanEdit && (
+          <div className="flex justify-end">
+            <Button onClick={() => setShowUpload(!showUpload)} className="flex items-center gap-2">
+              {showUpload ? (
+                <>
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Показать документы</span>
+                  <span className="sm:hidden">Документы</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  <span className="hidden sm:inline">Загрузить документы</span>
+                  <span className="sm:hidden">Загрузить</span>
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
-        {/* Upload Section */}
-        {showUpload ? (
+        {/* Upload Section - only for users with edit permissions */}
+        {showUpload && userCanEdit ? (
           <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
             <GlowingEffect
               spread={40}
@@ -171,7 +175,7 @@ export default function DocumentsPage() {
                   documents={filteredAndSortedDocuments}
                   onPreview={handlePreview}
                   onDownload={handleDownload}
-                  onDelete={handleDelete}
+                  onDelete={userCanEdit ? handleDelete : undefined}
                 />
               </div>
             </div>
