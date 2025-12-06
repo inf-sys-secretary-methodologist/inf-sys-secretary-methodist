@@ -32,7 +32,13 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) {
+        // Only redirect on 401 if NOT on login/register endpoints
+        // Login 401 means wrong credentials, not session expiration
+        const requestUrl = error.config?.url || ''
+        const isAuthEndpoint =
+          requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register')
+
+        if (error.response?.status === 401 && !isAuthEndpoint) {
           this.clearAuthToken()
           window.location.href = '/login'
         }

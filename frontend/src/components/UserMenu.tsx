@@ -82,14 +82,14 @@ export function UserMenu({ className }: UserMenuProps) {
           </AvatarFallback>
         </Avatar>
 
-        <div className="hidden lg:flex lg:flex-col lg:items-start text-left">
+        <div className="hidden xl:flex xl:flex-col xl:items-start text-left">
           <span className="text-sm font-medium text-foreground">
             {user?.name || 'Пользователь'}
           </span>
           <span className="text-xs text-muted-foreground">{getRoleDisplayName(user?.role)}</span>
         </div>
 
-        <ChevronDown className="h-4 w-4 text-muted-foreground hidden lg:block" />
+        <ChevronDown className="h-4 w-4 text-muted-foreground hidden xl:block" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-56">

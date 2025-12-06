@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/components/providers/theme-provider'
-import { Toaster } from 'sonner'
+import { ToasterProvider } from '@/components/providers/toaster-provider'
 
 export const metadata: Metadata = {
   title: 'Information System - Secretary/Methodologist',
@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           {children}
-          <Toaster position="top-right" richColors closeButton expand={false} duration={4000} />
+          <ToasterProvider />
         </ThemeProvider>
       </body>
     </html>

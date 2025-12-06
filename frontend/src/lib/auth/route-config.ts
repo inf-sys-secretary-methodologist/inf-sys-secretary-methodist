@@ -13,7 +13,14 @@ export interface RouteConfig {
 /**
  * Public routes accessible without authentication
  */
-export const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password']
+export const publicRoutes = [
+  '/',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/forbidden',
+]
 
 /**
  * Auth routes that redirect to home if already authenticated
@@ -43,6 +50,7 @@ export const protectedRoutes: RouteConfig[] = [
       UserRole.METHODIST,
       UserRole.ACADEMIC_SECRETARY,
       UserRole.TEACHER,
+      UserRole.STUDENT, // view only
     ],
   },
   {
@@ -72,6 +80,19 @@ export const protectedRoutes: RouteConfig[] = [
       UserRole.METHODIST,
       UserRole.ACADEMIC_SECRETARY,
       UserRole.TEACHER,
+      UserRole.STUDENT, // view only
+    ],
+  },
+
+  // Calendar routes
+  {
+    path: '/calendar',
+    allowedRoles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+      UserRole.STUDENT, // view only
     ],
   },
 

@@ -2,10 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import { useAuthCheck } from '@/hooks/useAuth'
-import { UserMenu } from '@/components/UserMenu'
-import { ThemeToggleButton } from '@/components/theme-toggle-button'
+import { AppLayout } from '@/components/layout'
 import { GlowingEffect } from '@/components/ui/glowing-effect'
-import { NavBar } from '@/components/ui/tubelight-navbar'
 import { Button } from '@/components/ui/button'
 import { Upload, FileText } from 'lucide-react'
 import { DocumentUploadComponent } from '@/components/documents/DocumentUpload'
@@ -20,10 +18,11 @@ import {
   DocumentStatus,
 } from '@/types/document'
 import { mockDocuments, filterDocuments, sortDocuments } from '@/lib/mock-documents'
-import { getAvailableNavItems } from '@/config/navigation'
+import { canEdit } from '@/lib/auth/permissions'
 
 export default function DocumentsPage() {
-  const { user, isLoading } = useAuthCheck()
+  const { user } = useAuthCheck()
+  const userCanEdit = canEdit(user?.role)
   const [showUpload, setShowUpload] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
   const [documents, setDocuments] = useState<Document[]>(mockDocuments)
@@ -36,9 +35,6 @@ export default function DocumentsPage() {
     order: 'desc',
   })
 
-  // Get navigation items filtered by user role
-  const navItems = getAvailableNavItems(user?.role)
-
   // Apply filters and sorting
   const filteredAndSortedDocuments = useMemo(() => {
     const filtered = filterDocuments(documents, filters)
@@ -49,7 +45,6 @@ export default function DocumentsPage() {
     setIsUploading(true)
 
     // Simulate upload process
-    // In production, this would make actual API calls
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
     // Create mock uploaded documents
@@ -78,7 +73,6 @@ export default function DocumentsPage() {
   }
 
   const handleDownload = (doc: Document) => {
-    // In production, this would trigger actual download
     console.log('Downloading document:', doc.name)
     if (doc.url) {
       window.open(doc.url, '_blank')
@@ -87,67 +81,47 @@ export default function DocumentsPage() {
 
   const handleDelete = async (doc: Document) => {
     if (confirm(`Вы уверены, что хотите удалить документ "${doc.name}"?`)) {
-      // In production, this would make API call
       setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="text-muted-foreground">Загрузка...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-background p-8">
-      {/* Navigation Bar */}
-      <NavBar items={navItems} />
-
-      {/* Top Navigation */}
-      <div
-        className="fixed top-8 right-8 z-50 pointer-events-auto flex items-center gap-3"
-        style={{ isolation: 'isolate' }}
-      >
-        <UserMenu />
-        <ThemeToggleButton />
-      </div>
-
-      <div className="max-w-7xl mx-auto space-y-8">
+    <AppLayout>
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         {/* Page Header */}
-        <div className="text-center space-y-4 pt-24">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+        <div className="text-center space-y-2 sm:space-y-4">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
             Управление документами
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
             Загрузка, поиск и управление документами
           </p>
         </div>
 
-        {/* Upload Button */}
-        <div className="flex justify-end">
-          <Button onClick={() => setShowUpload(!showUpload)} className="flex items-center gap-2">
-            {showUpload ? (
-              <>
-                <FileText className="h-4 w-4" />
-                Показать документы
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4" />
-                Загрузить документы
-              </>
-            )}
-          </Button>
-        </div>
+        {/* Upload Button - only for users with edit permissions */}
+        {userCanEdit && (
+          <div className="flex justify-end">
+            <Button onClick={() => setShowUpload(!showUpload)} className="flex items-center gap-2">
+              {showUpload ? (
+                <>
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Показать документы</span>
+                  <span className="sm:hidden">Документы</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  <span className="hidden sm:inline">Загрузить документы</span>
+                  <span className="sm:hidden">Загрузить</span>
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
-        {/* Upload Section */}
-        {showUpload ? (
-          <div className="relative overflow-hidden rounded-2xl p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
+        {/* Upload Section - only for users with edit permissions */}
+        {showUpload && userCanEdit ? (
+          <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
             <GlowingEffect
               spread={40}
               glow={true}
@@ -167,7 +141,7 @@ export default function DocumentsPage() {
         ) : (
           <>
             {/* Filters */}
-            <div className="relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
+            <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
               <GlowingEffect
                 spread={40}
                 glow={true}
@@ -187,7 +161,7 @@ export default function DocumentsPage() {
             </div>
 
             {/* Document List */}
-            <div className="relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
+            <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
               <GlowingEffect
                 spread={40}
                 glow={true}
@@ -201,7 +175,7 @@ export default function DocumentsPage() {
                   documents={filteredAndSortedDocuments}
                   onPreview={handlePreview}
                   onDownload={handleDownload}
-                  onDelete={handleDelete}
+                  onDelete={userCanEdit ? handleDelete : undefined}
                 />
               </div>
             </div>
@@ -217,6 +191,6 @@ export default function DocumentsPage() {
           onDownload={() => handleDownload(selectedDocument)}
         />
       )}
-    </div>
+    </AppLayout>
   )
 }

@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/components/providers/toaster-provider'
 import { FloatingInput } from '@/components/ui/floating-input'
 import { Button } from '@/components/ui/button'
 import { useLogin } from '@/hooks/useAuth'
@@ -20,6 +20,7 @@ interface LoginFormProps {
 
 export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
   const { login, isLoading, error: authError, clearError } = useLogin()
 
   const {
@@ -34,6 +35,7 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
   const onSubmit = async (data: LoginFormData) => {
     try {
       clearError()
+      setLocalError(null)
       await login(data, redirectTo)
 
       toast.success('Вход выполнен успешно!', {
@@ -44,23 +46,36 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
         onSuccess()
       }
     } catch (error: unknown) {
-      const errorMessage =
+      const rawMessage =
+        (error as { response?: { data?: { error?: { message?: string }; message?: string } } })
+          ?.response?.data?.error?.message ||
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        authError ||
-        'Ошибка входа'
+        ''
+
+      // Translate common error messages to Russian
+      const errorMessage =
+        rawMessage === 'Unauthorized access' || rawMessage === ''
+          ? 'Неверный email или пароль'
+          : rawMessage
+
+      // Set local error state for immediate feedback
+      setLocalError(errorMessage)
+
+      // Show toast with unique ID and longer duration to prevent auto-dismissal
       toast.error('Ошибка входа', {
+        id: 'login-error',
         description: errorMessage,
+        duration: 10000, // 10 seconds
       })
-      console.error('Login error:', error)
     }
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className={cn('space-y-6', className)}>
       {/* Global error message */}
-      {authError && (
+      {(localError || authError) && (
         <div className="p-4 text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
-          <p>{authError}</p>
+          <p>{localError || authError}</p>
         </div>
       )}
 

@@ -1,8 +1,16 @@
-н# Authentication & Authorization System
+# Authentication & Authorization System
 
 Система аутентификации и авторизации с поддержкой Role-Based Access Control (RBAC).
 
 ## Компоненты системы
+
+1. **JWT Utilities** (`jwt.ts`) - Работа с JWT токенами
+2. **Route Configuration** (`route-config.ts`) - Конфигурация маршрутов с RBAC
+3. **Permissions Helper** (`permissions.ts`) - Проверка прав (view vs edit)
+4. **Middleware** (`middleware.ts`) - Серверная защита маршрутов
+5. **withAuth HOC** (`components/auth/withAuth.tsx`) - Client-side защита
+
+---
 
 ### 1. JWT Utilities (`jwt.ts`)
 
@@ -50,24 +58,81 @@ console.log(config?.allowedRoles) // [SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETAR
 - `/register` - регистрация
 - `/forgot-password` - восстановление пароля
 - `/reset-password` - сброс пароля
+- `/forbidden` - страница "Доступ запрещён"
 
 #### Защищённые маршруты по ролям
 
-| Маршрут      | Роли с доступом                                      |
-| ------------ | ---------------------------------------------------- |
-| `/admin`     | SYSTEM_ADMIN                                         |
-| `/users`     | SYSTEM_ADMIN                                         |
-| `/documents` | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY          |
-| `/templates` | SYSTEM_ADMIN, METHODIST                              |
-| `/reports`   | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY          |
-| `/schedule`  | SYSTEM_ADMIN, ACADEMIC_SECRETARY, METHODIST          |
-| `/tasks`     | SYSTEM_ADMIN, ACADEMIC_SECRETARY, METHODIST          |
-| `/students`  | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY, TEACHER |
-| `/dashboard` | Все авторизованные                                   |
-| `/profile`   | Все авторизованные                                   |
-| `/settings`  | Все авторизованные                                   |
+| Маршрут      | Роли с доступом                                               | Примечание         |
+| ------------ | ------------------------------------------------------------- | ------------------ |
+| `/admin`     | SYSTEM_ADMIN                                                  |                    |
+| `/users`     | SYSTEM_ADMIN                                                  |                    |
+| `/documents` | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY, TEACHER, STUDENT | STUDENT: view-only |
+| `/templates` | SYSTEM_ADMIN, METHODIST                                       |                    |
+| `/reports`   | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY                   |                    |
+| `/schedule`  | SYSTEM_ADMIN, ACADEMIC_SECRETARY, METHODIST                   |                    |
+| `/tasks`     | SYSTEM_ADMIN, ACADEMIC_SECRETARY, METHODIST                   |                    |
+| `/students`  | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY, TEACHER, STUDENT | STUDENT: view-only |
+| `/calendar`  | SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY, TEACHER, STUDENT | STUDENT: view-only |
+| `/dashboard` | Все авторизованные                                            |                    |
+| `/profile`   | Все авторизованные                                            |                    |
+| `/settings`  | Все авторизованные                                            |                    |
 
-### 3. Middleware (`middleware.ts`)
+> **Примечание**: STUDENT имеет доступ только для просмотра (view-only) на страницах `/documents`, `/students`, `/calendar`. Кнопки создания, редактирования и удаления скрыты.
+
+### 3. Permissions Helper (`permissions.ts`)
+
+Утилиты для проверки прав на редактирование (view vs edit):
+
+```typescript
+import { canEdit, canCreate, canDelete, isViewOnly, isAdmin } from '@/lib/auth/permissions'
+
+// Проверить право на редактирование
+const userCanEdit = canEdit(user?.role) // true для SYSTEM_ADMIN, METHODIST, ACADEMIC_SECRETARY, TEACHER
+
+// Проверить только просмотр
+const viewOnly = isViewOnly(user?.role) // true только для STUDENT
+
+// Проверить админа
+const admin = isAdmin(user?.role) // true только для SYSTEM_ADMIN
+```
+
+#### Роли с правами редактирования (EDIT_ROLES)
+
+- `SYSTEM_ADMIN`
+- `METHODIST`
+- `ACADEMIC_SECRETARY`
+- `TEACHER`
+
+#### Роли только для просмотра (VIEW_ONLY_ROLES)
+
+- `STUDENT`
+
+#### Пример использования в компонентах
+
+```typescript
+'use client'
+
+import { useAuthCheck } from '@/hooks/useAuth'
+import { canEdit } from '@/lib/auth/permissions'
+
+export function DocumentActions() {
+  const { user } = useAuthCheck()
+  const userCanEdit = canEdit(user?.role)
+
+  return (
+    <div>
+      {userCanEdit && (
+        <Button onClick={handleCreate}>Создать документ</Button>
+      )}
+      {userCanEdit && (
+        <Button onClick={handleDelete}>Удалить</Button>
+      )}
+    </div>
+  )
+}
+```
+
+### 4. Middleware (`middleware.ts`)
 
 Next.js middleware для серверной защиты маршрутов:
 
@@ -88,7 +153,7 @@ Next.js middleware для серверной защиты маршрутов:
 - Invalid token → redirect to `/login?redirect={path}`
 - No permission → redirect to `/forbidden`
 
-### 4. withAuth HOC (`components/auth/withAuth.tsx`)
+### 5. withAuth HOC (`components/auth/withAuth.tsx`)
 
 Higher-Order Component для client-side защиты:
 
@@ -372,3 +437,9 @@ const handleDeleteUser = async (userId: string) => {
 4. ✅ Не храните секреты в client-side коде
 
 Middleware обеспечивает серверную защиту, withAuth - улучшает UX.
+
+---
+
+**📅 Актуальность документа**
+**Последнее обновление**: 2025-12-06
+**Статус**: Актуальный

@@ -15,6 +15,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
+	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -80,7 +81,7 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 		// Log failed login attempt
 		u.logLoginAttempt(ctx, input.Email, false, "user not found or invalid email")
 
-		return "", "", fmt.Errorf("authentication failed: %w", ErrInvalidCredentials)
+		return "", "", fmt.Errorf("authentication failed: %w", domainErrors.ErrUnauthorized)
 	}
 
 	// Check password
@@ -88,7 +89,7 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 		// Log failed login - invalid password
 		u.logLoginAttempt(ctx, input.Email, false, "invalid password")
 
-		return "", "", fmt.Errorf("authentication failed: %w", ErrInvalidCredentials)
+		return "", "", fmt.Errorf("authentication failed: %w", domainErrors.ErrUnauthorized)
 	}
 
 	// Check if user can login (status checks)
@@ -142,7 +143,7 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 		// Log failed login attempt
 		u.logLoginAttempt(ctx, input.Email, false, "user not found or invalid email")
 
-		return "", "", nil, fmt.Errorf("authentication failed: %w", ErrInvalidCredentials)
+		return "", "", nil, fmt.Errorf("authentication failed: %w", domainErrors.ErrUnauthorized)
 	}
 
 	// Check password
@@ -150,7 +151,7 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 		// Log failed login - invalid password
 		u.logLoginAttempt(ctx, input.Email, false, "invalid password")
 
-		return "", "", nil, fmt.Errorf("authentication failed: %w", ErrInvalidCredentials)
+		return "", "", nil, fmt.Errorf("authentication failed: %w", domainErrors.ErrUnauthorized)
 	}
 
 	// Check if user can login (status checks)

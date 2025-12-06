@@ -1,15 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuthCheck } from '@/hooks/useAuth'
+import { canEdit } from '@/lib/auth/permissions'
 import { useDashboardStats, useDashboardTrends, useDashboardActivity } from '@/hooks/useDashboard'
-import { UserMenu } from '@/components/UserMenu'
-import { ThemeToggleButton } from '@/components/theme-toggle-button'
+import { AppLayout } from '@/components/layout'
 import { GlowingEffect } from '@/components/ui/glowing-effect'
-import { NavBar } from '@/components/ui/tubelight-navbar'
 import { StatsCard, TrendChart, ActivityFeed, ExportButton } from '@/components/dashboard'
 import { FileText, Users, Calendar, TrendingUp, ClipboardList } from 'lucide-react'
-import { getAvailableNavItems } from '@/config/navigation'
 
 type Period = 'week' | 'month' | 'quarter' | 'year'
 
@@ -21,7 +20,9 @@ const periodLabels: Record<Period, string> = {
 }
 
 export default function DashboardPage() {
-  const { user, isLoading: authLoading } = useAuthCheck()
+  const router = useRouter()
+  const { user } = useAuthCheck()
+  const userCanEdit = canEdit(user?.role)
   const [period, setPeriod] = useState<Period>('month')
 
   // Fetch dashboard data
@@ -29,47 +30,21 @@ export default function DashboardPage() {
   const { trends, isLoading: trendsLoading } = useDashboardTrends(period)
   const { activities, isLoading: activityLoading } = useDashboardActivity(10)
 
-  // Get navigation items filtered by user role
-  const navItems = getAvailableNavItems(user?.role)
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="text-muted-foreground">Загрузка...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-background p-8">
-      {/* Navigation Bar */}
-      <NavBar items={navItems} />
-
-      {/* Top Navigation */}
-      <div
-        className="fixed top-8 right-8 z-50 pointer-events-auto flex items-center gap-3"
-        style={{ isolation: 'isolate' }}
-      >
-        <UserMenu />
-        <ThemeToggleButton />
-      </div>
-
-      <div className="max-w-7xl mx-auto space-y-8">
+    <AppLayout>
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         {/* Welcome Header */}
-        <div className="text-center space-y-4 pt-24">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+        <div className="text-center space-y-2 sm:space-y-4">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
             Добро пожаловать, {user?.name}!
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
             <span className="font-semibold">{getRoleDisplayName(user?.role || '')}</span>
           </p>
         </div>
 
         {/* Period Selector & Export */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div className="relative overflow-hidden rounded-xl p-1 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
             <GlowingEffect
               spread={40}
@@ -79,12 +54,12 @@ export default function DashboardPage() {
               inactiveZone={0.01}
               borderWidth={2}
             />
-            <div className="relative z-10 flex gap-1">
+            <div className="relative z-10 flex flex-wrap gap-1">
               {(['week', 'month', 'quarter', 'year'] as Period[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                     period === p
                       ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10'
@@ -103,17 +78,17 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
           {statsLoading ? (
             // Loading skeletons
             Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                className="relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse"
+                className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse"
               >
-                <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4" />
-                <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-                <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-8 sm:h-12 w-8 sm:w-12 bg-gray-200 dark:bg-gray-700 rounded-lg mb-3 sm:mb-4" />
+                <div className="h-3 sm:h-4 w-16 sm:w-20 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
+                <div className="h-6 sm:h-8 w-12 sm:w-16 bg-gray-200 dark:bg-gray-700 rounded" />
               </div>
             ))
           ) : (
@@ -152,20 +127,21 @@ export default function DashboardPage() {
                 value={stats?.tasks.total || 0}
                 change={stats?.tasks.change || 0}
                 period={periodLabels[period]}
+                className="col-span-2 sm:col-span-1"
               />
             </>
           )}
         </div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {trendsLoading ? (
             <>
-              <div className="relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
-                <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
+                <div className="h-48 sm:h-64 bg-gray-200 dark:bg-gray-700 rounded" />
               </div>
-              <div className="relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
-                <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
+                <div className="h-48 sm:h-64 bg-gray-200 dark:bg-gray-700 rounded" />
               </div>
             </>
           ) : (
@@ -205,43 +181,57 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions & Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Quick Actions */}
-          <div className="relative overflow-hidden rounded-2xl p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
-            <GlowingEffect
-              spread={40}
-              glow={true}
-              disabled={false}
-              proximity={64}
-              inactiveZone={0.01}
-              borderWidth={3}
-            />
-            <div className="relative z-10 space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Быстрые действия
-              </h2>
-              <div className="space-y-3">
-                <button className="w-full px-4 py-3 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg text-left">
-                  Загрузить документ
-                </button>
-                <button className="w-full px-4 py-3 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg text-left">
-                  Добавить студента
-                </button>
-                <button className="w-full px-4 py-3 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg text-left">
-                  Создать мероприятие
-                </button>
-                <button className="w-full px-4 py-3 rounded-lg font-medium transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-105 active:scale-95 hover:shadow-lg text-left">
-                  Создать задачу
-                </button>
+        <div className={`grid grid-cols-1 ${userCanEdit ? 'lg:grid-cols-3' : ''} gap-4 sm:gap-6`}>
+          {/* Quick Actions - only for users with edit permissions */}
+          {userCanEdit && (
+            <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-6 sm:p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
+              <GlowingEffect
+                spread={40}
+                glow={true}
+                disabled={false}
+                proximity={64}
+                inactiveZone={0.01}
+                borderWidth={3}
+              />
+              <div className="relative z-10 space-y-4 sm:space-y-6">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                  Быстрые действия
+                </h2>
+                <div className="space-y-2 sm:space-y-3">
+                  <button
+                    onClick={() => router.push('/documents')}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
+                  >
+                    Загрузить документ
+                  </button>
+                  <button
+                    onClick={() => router.push('/students')}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
+                  >
+                    Добавить студента
+                  </button>
+                  <button
+                    onClick={() => router.push('/calendar')}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
+                  >
+                    Создать мероприятие
+                  </button>
+                  <button
+                    onClick={() => router.push('/calendar')}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
+                  >
+                    Создать задачу
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Recent Activity */}
-          <div className="lg:col-span-2">
+          <div className={userCanEdit ? 'lg:col-span-2' : ''}>
             {activityLoading ? (
-              <div className="relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
-                <div className="h-96 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
+                <div className="h-72 sm:h-96 bg-gray-200 dark:bg-gray-700 rounded" />
               </div>
             ) : (
               <ActivityFeed activities={activities} />
@@ -249,7 +239,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   )
 }
 
