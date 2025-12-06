@@ -55,7 +55,7 @@ interface EventModalProps {
   onOpenChange: (open: boolean) => void
   event?: CalendarEvent | null
   initialDate?: Date
-  onSubmit: (data: CreateEventInput) => Promise<void>
+  onSubmit?: (data: CreateEventInput) => Promise<void>
   onDelete?: (id: number) => Promise<void>
   isLoading?: boolean
 }
@@ -134,6 +134,8 @@ export function EventModal({
   const endDate = watch('end_date')
 
   const handleFormSubmit = async (data: EventFormData) => {
+    if (!onSubmit) return
+
     const startDateTime = new Date(data.start_date)
     if (!data.all_day) {
       const [hours, minutes] = data.start_time.split(':').map(Number)
@@ -171,6 +173,9 @@ export function EventModal({
     onOpenChange(false)
   }
 
+  // View-only mode when onSubmit is not provided
+  const isViewOnly = !onSubmit
+
   const handleDelete = async () => {
     if (event && onDelete) {
       await onDelete(event.id)
@@ -182,17 +187,32 @@ export function EventModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Редактировать событие' : 'Новое событие'}</DialogTitle>
+          <DialogTitle>
+            {isViewOnly
+              ? 'Просмотр события'
+              : isEditing
+                ? 'Редактировать событие'
+                : 'Новое событие'}
+          </DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Измените детали события' : 'Заполните информацию о новом событии'}
+            {isViewOnly
+              ? 'Детали события'
+              : isEditing
+                ? 'Измените детали события'
+                : 'Заполните информацию о новом событии'}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">Название *</Label>
-            <Input id="title" placeholder="Введите название события" {...register('title')} />
+            <Label htmlFor="title">Название {!isViewOnly && '*'}</Label>
+            <Input
+              id="title"
+              placeholder="Введите название события"
+              disabled={isViewOnly}
+              {...register('title')}
+            />
             {errors.title && <p className="text-sm text-destructive">{errors.title.message}</p>}
           </div>
 
@@ -202,6 +222,7 @@ export function EventModal({
             <Select
               value={watch('event_type')}
               onValueChange={(v) => setValue('event_type', v as EventType)}
+              disabled={isViewOnly}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Выберите тип" />
@@ -221,6 +242,7 @@ export function EventModal({
             <input
               type="checkbox"
               id="all_day"
+              disabled={isViewOnly}
               {...register('all_day')}
               className="h-4 w-4 rounded border-gray-300"
             />
@@ -231,11 +253,12 @@ export function EventModal({
           <div className="grid gap-4 sm:grid-cols-2">
             {/* Start Date */}
             <div className="space-y-2">
-              <Label>Дата начала *</Label>
+              <Label>Дата начала {!isViewOnly && '*'}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    disabled={isViewOnly}
                     className={cn(
                       'w-full justify-start text-left font-normal',
                       !startDate && 'text-muted-foreground'
@@ -259,10 +282,16 @@ export function EventModal({
             {/* Start Time */}
             {!allDay && (
               <div className="space-y-2">
-                <Label htmlFor="start_time">Время начала *</Label>
+                <Label htmlFor="start_time">Время начала {!isViewOnly && '*'}</Label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input id="start_time" type="time" className="pl-9" {...register('start_time')} />
+                  <Input
+                    id="start_time"
+                    type="time"
+                    className="pl-9"
+                    disabled={isViewOnly}
+                    {...register('start_time')}
+                  />
                 </div>
               </div>
             )}
@@ -277,6 +306,7 @@ export function EventModal({
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    disabled={isViewOnly}
                     className={cn(
                       'w-full justify-start text-left font-normal',
                       !endDate && 'text-muted-foreground'
@@ -303,7 +333,13 @@ export function EventModal({
                 <Label htmlFor="end_time">Время окончания</Label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input id="end_time" type="time" className="pl-9" {...register('end_time')} />
+                  <Input
+                    id="end_time"
+                    type="time"
+                    className="pl-9"
+                    disabled={isViewOnly}
+                    {...register('end_time')}
+                  />
                 </div>
               </div>
             )}
@@ -318,6 +354,7 @@ export function EventModal({
                 id="location"
                 placeholder="Введите место проведения"
                 className="pl-9"
+                disabled={isViewOnly}
                 {...register('location')}
               />
             </div>
@@ -329,6 +366,7 @@ export function EventModal({
             <Select
               value={watch('color') || 'default'}
               onValueChange={(v) => setValue('color', v === 'default' ? '' : v)}
+              disabled={isViewOnly}
             >
               <SelectTrigger>
                 <SelectValue placeholder="По умолчанию" />
@@ -357,13 +395,14 @@ export function EventModal({
             <textarea
               id="description"
               placeholder="Добавьте описание события"
+              disabled={isViewOnly}
               className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               {...register('description')}
             />
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            {isEditing && onDelete && (
+            {!isViewOnly && isEditing && onDelete && (
               <Button
                 type="button"
                 variant="destructive"
@@ -374,11 +413,13 @@ export function EventModal({
               </Button>
             )}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Отмена
+              {isViewOnly ? 'Закрыть' : 'Отмена'}
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Сохранение...' : isEditing ? 'Сохранить' : 'Создать'}
-            </Button>
+            {!isViewOnly && (
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Сохранение...' : isEditing ? 'Сохранить' : 'Создать'}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

@@ -101,11 +101,13 @@ export function FullCalendar({
     }
   }
 
-  const handleTimeSlotClick = (date: Date) => {
-    setSelectedEvent(null)
-    setInitialDate(date)
-    setModalOpen(true)
-  }
+  const handleTimeSlotClick = onCreateEvent
+    ? (date: Date) => {
+        setSelectedEvent(null)
+        setInitialDate(date)
+        setModalOpen(true)
+      }
+    : undefined
 
   const handleSubmit = async (data: CreateEventInput) => {
     if (selectedEvent && onUpdateEvent) {
@@ -200,8 +202,8 @@ export function FullCalendar({
         onOpenChange={setModalOpen}
         event={selectedEvent}
         initialDate={initialDate}
-        onSubmit={handleSubmit}
-        onDelete={selectedEvent ? handleDelete : undefined}
+        onSubmit={onCreateEvent || onUpdateEvent ? handleSubmit : undefined}
+        onDelete={selectedEvent && onDeleteEvent ? handleDelete : undefined}
         isLoading={isLoading}
       />
 
