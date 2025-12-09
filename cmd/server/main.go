@@ -545,6 +545,8 @@ func setupRoutes(
 			{
 				documentsGroup.POST("", docHandlerInstance.Create)
 				documentsGroup.GET("", docHandlerInstance.List)
+				// Search route must be before /:id to avoid route conflict
+				documentsGroup.GET("/search", docHandlerInstance.Search)
 				documentsGroup.GET("/:id", docHandlerInstance.GetByID)
 				documentsGroup.PUT("/:id", docHandlerInstance.Update)
 				documentsGroup.DELETE("/:id", docHandlerInstance.Delete)
@@ -554,6 +556,7 @@ func setupRoutes(
 
 				// CORS preflight handlers
 				documentsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				documentsGroup.OPTIONS("/search", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				documentsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				documentsGroup.OPTIONS("/:id/file", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}

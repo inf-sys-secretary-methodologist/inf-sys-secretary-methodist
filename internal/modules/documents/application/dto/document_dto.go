@@ -158,3 +158,36 @@ type DocumentCategoryOutput struct {
 	Description *string `json:"description,omitempty"`
 	ParentID    *int64  `json:"parent_id,omitempty"`
 }
+
+// SearchInput represents input for full-text search
+type SearchInput struct {
+	Query          string  `form:"q" validate:"required,min=1,max=500"`
+	DocumentTypeID *int64  `form:"document_type_id"`
+	CategoryID     *int64  `form:"category_id"`
+	AuthorID       *int64  `form:"author_id"`
+	Status         *string `form:"status"`
+	Importance     *string `form:"importance"`
+	FromDate       *string `form:"from_date"`
+	ToDate         *string `form:"to_date"`
+	Page           int     `form:"page,default=1"`
+	PageSize       int     `form:"page_size,default=20"`
+}
+
+// SearchResultOutput represents a single search result with highlighted matches
+type SearchResultOutput struct {
+	Document           *DocumentOutput `json:"document"`
+	Rank               float64         `json:"rank"`
+	HighlightedTitle   string          `json:"highlighted_title"`
+	HighlightedSubject string          `json:"highlighted_subject"`
+	HighlightedContent string          `json:"highlighted_content"`
+}
+
+// SearchOutput represents paginated search results
+type SearchOutput struct {
+	Results    []*SearchResultOutput `json:"results"`
+	Query      string                `json:"query"`
+	Total      int64                 `json:"total"`
+	Page       int                   `json:"page"`
+	PageSize   int                   `json:"page_size"`
+	TotalPages int                   `json:"total_pages"`
+}

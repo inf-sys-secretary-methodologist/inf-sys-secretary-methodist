@@ -68,6 +68,45 @@ export interface DocumentsListResponse {
   }
 }
 
+// Search types
+export interface SearchParams {
+  q: string
+  document_type_id?: number
+  category_id?: number
+  author_id?: number
+  status?: string
+  importance?: string
+  from_date?: string
+  to_date?: string
+  page?: number
+  page_size?: number
+}
+
+export interface SearchResultItem {
+  document: DocumentInfo
+  rank: number
+  highlighted_title: string
+  highlighted_subject: string
+  highlighted_content: string
+}
+
+export interface SearchOutput {
+  results: SearchResultItem[]
+  query: string
+  total: number
+  page: number
+  page_size: number
+  total_pages: number
+}
+
+export interface SearchResponse {
+  success: boolean
+  data: SearchOutput
+  meta?: {
+    timestamp: string
+  }
+}
+
 export interface DocumentResponse {
   success: boolean
   data: DocumentInfo
@@ -154,5 +193,13 @@ export const documentsApi = {
    */
   async deleteFile(documentId: number | string): Promise<void> {
     await apiClient.delete(`/api/documents/${documentId}/file`)
+  },
+
+  /**
+   * Full-text search documents
+   */
+  async search(params: SearchParams): Promise<SearchOutput> {
+    const response = await apiClient.get<SearchResponse>('/api/documents/search', { params })
+    return response.data
   },
 }

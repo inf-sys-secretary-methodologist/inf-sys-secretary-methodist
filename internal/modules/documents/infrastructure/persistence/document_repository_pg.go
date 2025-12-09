@@ -408,3 +408,192 @@ func (r *DocumentRepositoryPG) GetHistory(ctx context.Context, documentID int64)
 	}
 	return history, nil
 }
+
+// sanitizeForTsquery sanitizes user input and converts it to a prefix-enabled tsquery format.
+// For example: "со" -> "со:*", "собака документ" -> "собака:* & документ:*"
+// This enables autocomplete-style prefix matching in PostgreSQL full-text search.
+func sanitizeForTsquery(query string) string {
+	// First, replace all special tsquery characters with spaces
+	// This handles cases like "test&query" -> "test query"
+	replacer := strings.NewReplacer(
+		"&", " ",
+		"|", " ",
+		"!", " ",
+		"(", " ",
+		")", " ",
+		":", " ",
+		"'", " ",
+		"*", " ",
+		"\\", " ",
+		"<", " ",
+		">", " ",
+	)
+	sanitized := replacer.Replace(query)
+
+	// Now split into words
+	words := strings.Fields(sanitized)
+	if len(words) == 0 {
+		return ""
+	}
+
+	// Add prefix operator to each word
+	var parts []string
+	for _, word := range words {
+		if word != "" {
+			parts = append(parts, word+":*")
+		}
+	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	// Join with AND operator for multi-word search
+	return strings.Join(parts, " & ")
+}
+
+// Search performs full-text search on documents with ranking and highlighting
+func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.SearchFilter) ([]*repositories.SearchResult, int64, error) {
+	if filter.Query == "" {
+		return nil, 0, fmt.Errorf("search query cannot be empty")
+	}
+
+	// Convert user query to prefix-enabled tsquery format
+	tsqueryStr := sanitizeForTsquery(filter.Query)
+	if tsqueryStr == "" {
+		return []*repositories.SearchResult{}, 0, nil
+	}
+
+	var conditions []string
+	var args []interface{}
+	argIndex := 1
+
+	// Add the sanitized search query as first argument (for to_tsquery)
+	args = append(args, tsqueryStr)
+	// Use to_tsquery instead of plainto_tsquery to support prefix matching with :*
+	searchCondition := fmt.Sprintf("d.search_vector @@ to_tsquery('russian', $%d)", argIndex)
+	conditions = append(conditions, searchCondition)
+	argIndex++
+
+	// Add deleted filter
+	if !filter.IncludeDeleted {
+		conditions = append(conditions, "d.deleted_at IS NULL")
+	}
+
+	// Add optional filters
+	if filter.DocumentTypeID != nil {
+		conditions = append(conditions, fmt.Sprintf("d.document_type_id = $%d", argIndex))
+		args = append(args, *filter.DocumentTypeID)
+		argIndex++
+	}
+	if filter.CategoryID != nil {
+		conditions = append(conditions, fmt.Sprintf("d.category_id = $%d", argIndex))
+		args = append(args, *filter.CategoryID)
+		argIndex++
+	}
+	if filter.AuthorID != nil {
+		conditions = append(conditions, fmt.Sprintf("d.author_id = $%d", argIndex))
+		args = append(args, *filter.AuthorID)
+		argIndex++
+	}
+	if filter.Status != nil {
+		conditions = append(conditions, fmt.Sprintf("d.status = $%d", argIndex))
+		args = append(args, *filter.Status)
+		argIndex++
+	}
+	if filter.Importance != nil {
+		conditions = append(conditions, fmt.Sprintf("d.importance = $%d", argIndex))
+		args = append(args, *filter.Importance)
+		argIndex++
+	}
+	if filter.FromDate != nil {
+		conditions = append(conditions, fmt.Sprintf("d.created_at >= $%d", argIndex))
+		args = append(args, *filter.FromDate)
+		argIndex++
+	}
+	if filter.ToDate != nil {
+		conditions = append(conditions, fmt.Sprintf("d.created_at <= $%d", argIndex))
+		args = append(args, *filter.ToDate)
+		argIndex++
+	}
+
+	whereClause := "WHERE " + strings.Join(conditions, " AND ")
+
+	// Count total results
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM documents d %s", whereClause)
+	var total int64
+	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count search results: %w", err)
+	}
+
+	if total == 0 {
+		return []*repositories.SearchResult{}, 0, nil
+	}
+
+	// Get search results with ranking and highlighting
+	// We need to pass the query again for ts_headline functions
+	// Using to_tsquery to support prefix matching with :*
+	query := fmt.Sprintf(`
+		SELECT
+			d.id, d.document_type_id, d.category_id, d.registration_number, d.registration_date,
+			d.title, d.subject, d.content, d.author_id, d.author_department, d.author_position,
+			d.recipient_id, d.recipient_department, d.recipient_position, d.recipient_external,
+			d.status, d.file_name, d.file_path, d.file_size, d.mime_type, d.version,
+			d.parent_document_id, d.deadline, d.execution_date, d.metadata, d.is_public, d.importance,
+			d.created_at, d.updated_at, d.deleted_at,
+			author.name as author_name, recipient.name as recipient_name,
+			ts_rank(d.search_vector, to_tsquery('russian', $1)) as rank,
+			ts_headline('russian', coalesce(d.title, ''), to_tsquery('russian', $1),
+				'StartSel=<mark>, StopSel=</mark>, MaxWords=50, MinWords=10, MaxFragments=1') as highlighted_title,
+			ts_headline('russian', coalesce(d.subject, ''), to_tsquery('russian', $1),
+				'StartSel=<mark>, StopSel=</mark>, MaxWords=50, MinWords=10, MaxFragments=1') as highlighted_subject,
+			ts_headline('russian', coalesce(d.content, ''), to_tsquery('russian', $1),
+				'StartSel=<mark>, StopSel=</mark>, MaxWords=100, MinWords=25, MaxFragments=3') as highlighted_content
+		FROM documents d
+		LEFT JOIN users author ON d.author_id = author.id
+		LEFT JOIN users recipient ON d.recipient_id = recipient.id
+		%s
+		ORDER BY rank DESC, d.created_at DESC
+		LIMIT $%d OFFSET $%d`,
+		whereClause, argIndex, argIndex+1)
+
+	args = append(args, filter.Limit, filter.Offset)
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to search documents: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*repositories.SearchResult
+	for rows.Next() {
+		doc := &entities.Document{}
+		result := &repositories.SearchResult{Document: doc}
+		var metadataJSON []byte
+
+		err := rows.Scan(
+			&doc.ID, &doc.DocumentTypeID, &doc.CategoryID, &doc.RegistrationNumber, &doc.RegistrationDate,
+			&doc.Title, &doc.Subject, &doc.Content, &doc.AuthorID, &doc.AuthorDepartment, &doc.AuthorPosition,
+			&doc.RecipientID, &doc.RecipientDepartment, &doc.RecipientPosition, &doc.RecipientExternal,
+			&doc.Status, &doc.FileName, &doc.FilePath, &doc.FileSize, &doc.MimeType, &doc.Version,
+			&doc.ParentDocumentID, &doc.Deadline, &doc.ExecutionDate, &metadataJSON, &doc.IsPublic, &doc.Importance,
+			&doc.CreatedAt, &doc.UpdatedAt, &doc.DeletedAt,
+			&doc.AuthorName, &doc.RecipientName,
+			&result.Rank,
+			&result.HighlightedTitle, &result.HighlightedSubject, &result.HighlightedContent,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan search result: %w", err)
+		}
+
+		if metadataJSON != nil {
+			if err := json.Unmarshal(metadataJSON, &doc.Metadata); err != nil {
+				return nil, 0, fmt.Errorf("failed to unmarshal metadata: %w", err)
+			}
+		}
+
+		results = append(results, result)
+	}
+
+	return results, total, nil
+}
