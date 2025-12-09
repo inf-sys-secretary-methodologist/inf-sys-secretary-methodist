@@ -30,7 +30,18 @@ interface ApiResponse<T> {
 // Fetcher for SWR - extracts data from wrapped response
 const fetcher = async <T>(url: string): Promise<T> => {
   const response = await apiClient.get<ApiResponse<T>>(url)
-  return response.data
+
+  // Check if response is the API wrapper format
+  if (response && typeof response === 'object' && 'success' in response) {
+    if (response.success && response.data !== undefined) {
+      return response.data
+    } else {
+      throw new Error(response.error?.message || 'API returned error')
+    }
+  }
+
+  // Response is already the data (shouldn't happen but handle it)
+  return response as T
 }
 
 // Hook for fetching dashboard stats
@@ -59,8 +70,12 @@ export function useDashboardTrends(period: string = 'month', startDate?: string,
   const url = `${DASHBOARD_BASE_URL}/trends?${params.toString()}`
 
   const { data, error, isLoading, mutate } = useSWR<DashboardTrends>(url, fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 30000,
+    revalidateOnFocus: true,
+    revalidateOnMount: true,
+    dedupingInterval: 5000,
+    refreshInterval: 60000, // Auto-refresh every minute
+    shouldRetryOnError: true,
+    errorRetryCount: 3,
   })
 
   return {

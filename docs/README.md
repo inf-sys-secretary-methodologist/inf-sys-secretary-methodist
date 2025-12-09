@@ -110,7 +110,7 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 ## 📖 Новые подробные руководства
 
 ### 🏛️ [DDD Domain Modeling Guide](architecture/ddd-domain-modeling.md)
-**12,000+ строк** | Дата актуальности: 2025-11-29
+**12,000+ строк** | Дата актуальности: 2025-12-09
 
 Полное руководство по Domain-Driven Design:
 - **Почему DDD?** - Обоснование выбора с trade-offs
@@ -122,7 +122,7 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 - **Event Storming** - Процесс моделирования домена
 
 ### 🧪 [TDD Process Guide](development/tdd-guide.md)
-**7,000+ строк** | Дата актуальности: 2025-11-29
+**7,000+ строк** | Дата актуальности: 2025-12-09
 
 Полное руководство по Test-Driven Development:
 - **Почему TDD?** - Обоснование выбора с trade-offs
@@ -134,7 +134,7 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 - **Frontend TDD** - Тестирование React компонентов
 
 ### ⚙️ [Tech Stack Rationale](architecture/tech-stack-rationale.md)
-**1,800+ строк** | Дата актуальности: 2025-11-29
+**1,800+ строк** | Дата актуальности: 2025-12-09
 
 Детальное обоснование выбора технологий:
 - **Backend**: Go 1.25+ (vs Python/Java/Rust) - с benchmarks
@@ -147,7 +147,7 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 - **Infrastructure**: Docker, Kafka, Prometheus, Grafana
 
 ### 🔄 [Module Interaction Guide](architecture/module-interaction-guide.md)
-**2,500+ строк** | Дата актуальности: 2025-11-29
+**2,500+ строк** | Дата актуальности: 2025-12-09
 
 Взаимодействие модулей в модульном монолите:
 - **Event-Driven Architecture** - Асинхронная коммуникация через события
@@ -187,7 +187,7 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-11-29
-**Версия проекта**: 0.1.0
+**Последнее обновление**: 2025-12-09
+**Версия проекта**: 0.2.0
 **Статус**: Актуальный
 

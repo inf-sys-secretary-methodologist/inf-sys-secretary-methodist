@@ -48,11 +48,13 @@ type Document struct {
 
 	// Author details
 	AuthorID         int64   `db:"author_id" json:"author_id"`
+	AuthorName       *string `db:"-" json:"author_name,omitempty"` // Populated via JOIN, not stored in documents table
 	AuthorDepartment *string `db:"author_department" json:"author_department,omitempty"`
 	AuthorPosition   *string `db:"author_position" json:"author_position,omitempty"`
 
 	// Recipient details
 	RecipientID         *int64  `db:"recipient_id" json:"recipient_id,omitempty"`
+	RecipientName       *string `db:"-" json:"recipient_name,omitempty"` // Populated via JOIN, not stored in documents table
 	RecipientDepartment *string `db:"recipient_department" json:"recipient_department,omitempty"`
 	RecipientPosition   *string `db:"recipient_position" json:"recipient_position,omitempty"`
 	RecipientExternal   *string `db:"recipient_external" json:"recipient_external,omitempty"`

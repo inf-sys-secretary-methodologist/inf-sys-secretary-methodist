@@ -44,6 +44,9 @@ import (
 	usersUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	usersPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/infrastructure/persistence"
 	usersHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/handlers"
+	filesUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
+	filesPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/infrastructure/persistence"
+	filesHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/interfaces/http/handlers"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -199,6 +202,46 @@ func main() {
 	positionUseCase := usersUsecases.NewPositionUseCase(positionRepo, auditLogger)
 	logger.Info("Users module initialized", nil)
 
+	// Initialize files module
+	var fileUseCase *filesUsecases.FileUseCase
+	var versionUseCase *filesUsecases.VersionUseCase
+	if s3Client != nil {
+		fileMetadataRepo := filesPersistence.NewFileMetadataRepositoryPG(db)
+		fileVersionRepo := filesPersistence.NewFileVersionRepositoryPG(db)
+		// Настройки валидатора файлов по умолчанию
+		fileValidatorConfig := storage.FileValidatorConfig{
+			MaxFileSize: 100 * 1024 * 1024, // 100 MB
+			AllowedMimeTypes: []string{
+				"application/pdf",
+				"application/msword",
+				"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+				"application/vnd.ms-excel",
+				"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+				"application/vnd.ms-powerpoint",
+				"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+				"text/plain",
+				"text/csv",
+				"image/jpeg",
+				"image/png",
+				"image/gif",
+				"image/webp",
+				"application/zip",
+				"application/x-rar-compressed",
+			},
+			AllowedExtensions: []string{
+				".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+				".txt", ".csv", ".jpg", ".jpeg", ".png", ".gif", ".webp",
+				".zip", ".rar",
+			},
+		}
+		fileValidator := storage.NewFileValidator(fileValidatorConfig)
+		fileUseCase = filesUsecases.NewFileUseCase(fileMetadataRepo, fileVersionRepo, s3Client, fileValidator, auditLogger)
+		versionUseCase = filesUsecases.NewVersionUseCase(fileMetadataRepo, fileVersionRepo, s3Client, auditLogger)
+		logger.Info("Files module initialized", nil)
+	} else {
+		logger.Warn("Files module not initialized - S3 storage not available", nil)
+	}
+
 	// Initialize shared middleware
 	corsMiddleware := appMiddleware.NewCORSMiddleware(
 		cfg.CORS.AllowedOrigins,
@@ -220,6 +263,8 @@ func main() {
 		userUseCase,
 		departmentUseCase,
 		positionUseCase,
+		fileUseCase,
+		versionUseCase,
 		securityLogger,
 		perfLogger,
 		auditLogger,
@@ -363,6 +408,8 @@ func setupRoutes(
 	userUseCase *usersUsecases.UserUseCase,
 	departmentUseCase *usersUsecases.DepartmentUseCase,
 	positionUseCase *usersUsecases.PositionUseCase,
+	fileUseCase *filesUsecases.FileUseCase,
+	versionUseCase *filesUsecases.VersionUseCase,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
 	auditLogger *logging.AuditLogger,
@@ -830,6 +877,52 @@ func setupRoutes(
 			}
 
 			logger.Info("Users module routes registered", nil)
+		}
+
+		// Files module routes
+		if fileUseCase != nil && versionUseCase != nil {
+			fileHandlerInstance := filesHandler.NewFileHandler(fileUseCase, versionUseCase)
+
+			// Files management routes
+			filesGroup := protectedGroup.Group("/files")
+			{
+				filesGroup.POST("/upload", fileHandlerInstance.Upload)
+				filesGroup.GET("", fileHandlerInstance.List)
+				filesGroup.GET("/:id", fileHandlerInstance.GetByID)
+				filesGroup.GET("/:id/download", fileHandlerInstance.Download)
+				filesGroup.POST("/:id/attach", fileHandlerInstance.Attach)
+				filesGroup.DELETE("/:id", fileHandlerInstance.Delete)
+
+				// Versioning routes
+				filesGroup.POST("/:id/versions", fileHandlerInstance.CreateVersion)
+				filesGroup.GET("/:id/versions", fileHandlerInstance.GetVersions)
+				filesGroup.GET("/:id/versions/:version", fileHandlerInstance.DownloadVersion)
+
+				// Cleanup route (admin only)
+				filesGroup.POST("/cleanup", fileHandlerInstance.CleanupExpired)
+
+				// CORS preflight handlers
+				filesGroup.OPTIONS("/upload", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				filesGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				filesGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				filesGroup.OPTIONS("/:id/download", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				filesGroup.OPTIONS("/:id/attach", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				filesGroup.OPTIONS("/:id/versions", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				filesGroup.OPTIONS("/:id/versions/:version", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				filesGroup.OPTIONS("/cleanup", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			// Routes for getting files by entity (under /api/files to avoid route conflicts)
+			filesGroup.GET("/by-document/:document_id", fileHandlerInstance.GetByDocument)
+			filesGroup.GET("/by-task/:task_id", fileHandlerInstance.GetByTask)
+			filesGroup.GET("/by-announcement/:announcement_id", fileHandlerInstance.GetByAnnouncement)
+			filesGroup.OPTIONS("/by-document/:document_id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			filesGroup.OPTIONS("/by-task/:task_id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			filesGroup.OPTIONS("/by-announcement/:announcement_id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+			logger.Info("Files module routes registered", nil)
+		} else {
+			logger.Warn("Files module routes not registered - S3 storage not available", nil)
 		}
 
 		// Admin only routes

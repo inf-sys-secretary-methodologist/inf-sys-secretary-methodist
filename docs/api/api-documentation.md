@@ -344,6 +344,263 @@ Prometheus метрики в формате OpenMetrics.
 
 ---
 
+## Files API
+
+### Base URL: `/api/files`
+
+Требует JWT аутентификации. Модуль управления файлами с поддержкой версионирования. Доступен только при настроенном MinIO/S3 хранилище.
+
+### POST `/api/files/upload`
+Загрузка нового файла.
+
+**Request:** `multipart/form-data`
+- `file`: binary (обязательно)
+
+**Ограничения:**
+- Максимальный размер: 100 MB
+- Разрешённые типы: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, JPG, JPEG, PNG, GIF, WEBP, ZIP, RAR
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "file_id": 1,
+    "original_name": "document.pdf",
+    "size": 1048576,
+    "mime_type": "application/pdf",
+    "checksum": "sha256:abc123..."
+  }
+}
+```
+
+### GET `/api/files`
+Получение списка файлов с пагинацией.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `page` | int | Номер страницы (default: 1) |
+| `limit` | int | Размер страницы (default: 20, max: 100) |
+| `uploaded_by` | int | Фильтр по автору загрузки |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "files": [
+      {
+        "id": 1,
+        "original_name": "document.pdf",
+        "size": 1048576,
+        "mime_type": "application/pdf",
+        "checksum": "sha256:abc123...",
+        "uploaded_by": 1,
+        "document_id": 5,
+        "is_temporary": false,
+        "created_at": "2025-12-09T10:00:00Z",
+        "updated_at": "2025-12-09T10:00:00Z"
+      }
+    ],
+    "total": 50,
+    "page": 1,
+    "limit": 20,
+    "total_pages": 3
+  }
+}
+```
+
+### GET `/api/files/:id`
+Получение информации о файле по ID.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "original_name": "document.pdf",
+    "size": 1048576,
+    "mime_type": "application/pdf",
+    "checksum": "sha256:abc123...",
+    "uploaded_by": 1,
+    "document_id": 5,
+    "is_temporary": false,
+    "created_at": "2025-12-09T10:00:00Z",
+    "updated_at": "2025-12-09T10:00:00Z"
+  }
+}
+```
+
+### GET `/api/files/:id/download`
+Получение presigned URL для скачивания файла.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "presigned_url": "https://minio.example.com/bucket/file?...",
+    "file_name": "document.pdf",
+    "mime_type": "application/pdf",
+    "size": 1048576
+  }
+}
+```
+
+### POST `/api/files/:id/attach`
+Прикрепление файла к документу, задаче или объявлению.
+
+**Request:**
+```json
+{
+  "document_id": 5
+}
+```
+или
+```json
+{
+  "task_id": 10
+}
+```
+или
+```json
+{
+  "announcement_id": 3
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "original_name": "document.pdf",
+    "document_id": 5,
+    "is_temporary": false
+  }
+}
+```
+
+### DELETE `/api/files/:id`
+Удаление файла (только автор загрузки).
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Файл успешно удалён"
+}
+```
+
+---
+
+### Версии файлов
+
+### POST `/api/files/:id/versions`
+Создание новой версии файла.
+
+**Request:** `multipart/form-data`
+- `file`: binary (обязательно)
+- `comment`: string (опционально, max 500 символов)
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 3,
+    "version_number": 2,
+    "size": 1048576,
+    "checksum": "sha256:def456...",
+    "comment": "Исправлены опечатки",
+    "created_by": 1,
+    "created_at": "2025-12-09T11:00:00Z"
+  }
+}
+```
+
+### GET `/api/files/:id/versions`
+Получение всех версий файла.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "version_number": 1,
+      "size": 1000000,
+      "checksum": "sha256:abc123...",
+      "comment": "Первая версия",
+      "created_by": 1,
+      "created_at": "2025-12-09T10:00:00Z"
+    },
+    {
+      "id": 3,
+      "version_number": 2,
+      "size": 1048576,
+      "checksum": "sha256:def456...",
+      "comment": "Исправлены опечатки",
+      "created_by": 1,
+      "created_at": "2025-12-09T11:00:00Z"
+    }
+  ]
+}
+```
+
+### GET `/api/files/:id/versions/:version`
+Скачивание конкретной версии файла.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "presigned_url": "https://minio.example.com/bucket/file/v2?...",
+    "file_name": "document_v2.pdf",
+    "mime_type": "application/pdf",
+    "size": 1048576
+  }
+}
+```
+
+---
+
+### Файлы по сущностям
+
+### GET `/api/files/by-document/:document_id`
+Получение всех файлов, прикреплённых к документу.
+
+### GET `/api/files/by-task/:task_id`
+Получение всех файлов, прикреплённых к задаче.
+
+### GET `/api/files/by-announcement/:announcement_id`
+Получение всех файлов, прикреплённых к объявлению.
+
+---
+
+### Администрирование файлов
+
+### POST `/api/files/cleanup`
+Очистка устаревших временных файлов (только admin).
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "deleted_count": 15,
+    "message": "Временные файлы очищены"
+  }
+}
+```
+
+---
+
 ## Schedule API (Планируется)
 
 Модуль расписания событий готов, но ещё не подключен к API.
@@ -465,6 +722,6 @@ curl -X POST http://localhost:8080/api/documents/1/file \
 
 ---
 
-**Последнее обновление**: 2025-11-29
-**Версия проекта**: 0.1.0
+**Последнее обновление**: 2025-12-09
+**Версия проекта**: 0.2.0
 **Статус**: Актуальный

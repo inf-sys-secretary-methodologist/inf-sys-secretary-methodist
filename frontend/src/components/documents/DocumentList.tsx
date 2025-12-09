@@ -1,7 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, Download, Trash2, Eye, Grid, List } from 'lucide-react'
+import {
+  FileText,
+  Download,
+  Trash2,
+  Eye,
+  Grid,
+  List,
+  FileImage,
+  FileSpreadsheet,
+  File,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Document,
@@ -20,6 +30,35 @@ interface DocumentListProps {
 }
 
 type ViewMode = 'grid' | 'list'
+
+// Helper to add auth token to URL for file access
+const getAuthenticatedUrl = (url: string) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+  return token ? `${url}?token=${token}&inline=true` : `${url}?inline=true`
+}
+
+// Get file type icon based on mime type
+const getFileIcon = (mimeType: string, size: 'sm' | 'lg' = 'lg') => {
+  const sizeClass = size === 'sm' ? 'h-8 w-8' : 'h-16 w-16'
+
+  if (mimeType.startsWith('image/')) {
+    return <FileImage className={`${sizeClass} text-blue-400`} />
+  }
+  if (mimeType === 'application/pdf') {
+    return <FileText className={`${sizeClass} text-red-400`} />
+  }
+  if (
+    mimeType.includes('spreadsheet') ||
+    mimeType.includes('excel') ||
+    mimeType === 'application/vnd.ms-excel'
+  ) {
+    return <FileSpreadsheet className={`${sizeClass} text-green-400`} />
+  }
+  if (mimeType.includes('word') || mimeType.includes('document')) {
+    return <FileText className={`${sizeClass} text-blue-500`} />
+  }
+  return <File className={`${sizeClass} text-gray-400`} />
+}
 
 export function DocumentList({
   documents,
@@ -115,16 +154,22 @@ export function DocumentList({
                        bg-white dark:bg-gray-900 hover:shadow-lg transition-all"
             >
               {/* Document Icon/Thumbnail */}
-              <div className="mb-4 flex items-center justify-center h-32 bg-gray-100 dark:bg-gray-800 rounded-lg">
+              <div className="mb-4 flex items-center justify-center h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
                 {doc.thumbnailUrl ? (
                   <img
-                    src={doc.thumbnailUrl}
+                    src={getAuthenticatedUrl(doc.thumbnailUrl)}
                     alt={doc.name}
                     className="max-h-full max-w-full object-contain"
+                    onError={(e) => {
+                      // Hide broken image and show icon instead
+                      e.currentTarget.style.display = 'none'
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                    }}
                   />
-                ) : (
-                  <FileText className="h-16 w-16 text-gray-400" />
-                )}
+                ) : null}
+                <div className={doc.thumbnailUrl ? 'hidden' : ''}>
+                  {getFileIcon(doc.metadata.mimeType)}
+                </div>
               </div>
 
               {/* Document Info */}
@@ -220,16 +265,23 @@ export function DocumentList({
             >
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 {/* Icon */}
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 h-12 w-12 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded overflow-hidden">
                   {doc.thumbnailUrl ? (
                     <img
-                      src={doc.thumbnailUrl}
+                      src={getAuthenticatedUrl(doc.thumbnailUrl)}
                       alt={doc.name}
-                      className="h-12 w-12 object-cover rounded"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                      }}
                     />
-                  ) : (
-                    <FileText className="h-12 w-12 text-gray-400" />
-                  )}
+                  ) : null}
+                  <div
+                    className={`flex items-center justify-center ${doc.thumbnailUrl ? 'hidden' : ''}`}
+                  >
+                    {getFileIcon(doc.metadata.mimeType, 'sm')}
+                  </div>
                 </div>
 
                 {/* Info */}

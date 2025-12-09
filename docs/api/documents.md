@@ -597,7 +597,10 @@ file: <binary data>
     "document_type_name": "Учебный план",
     "title": "Учебный план",
     "author_id": 123,
-    "status": "draft",
+    "author_name": "Анна Петрова",
+    "recipient_id": 456,
+    "recipient_name": "Иван Сидоров",
+    "status": "registered",
     "has_file": true,
     "file_name": "document.pdf",
     "file_size": 1048576,
@@ -610,6 +613,8 @@ file: <binary data>
   }
 }
 ```
+
+> **Примечание:** Поля `author_name` и `recipient_name` заполняются автоматически из таблицы `users` при запросе документа (via JOIN), не хранятся в таблице `documents`.
 
 ### POST `/api/documents/{id}/file`
 Загрузка файла к существующему документу
@@ -1228,8 +1233,8 @@ func TestCreateDocument(t *testing.T) {
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-11-27
-**Версия проекта**: 0.1.0
+**Последнее обновление**: 2025-12-09
+**Версия проекта**: 0.2.0
 **Статус**: Актуальный
 **Issue #9**: Реализовано API для загрузки файлов (MinIO/S3)
 **Issue #10**: Реализована система категоризации и тегирования документов

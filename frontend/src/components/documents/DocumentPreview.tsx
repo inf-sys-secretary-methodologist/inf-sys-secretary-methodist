@@ -61,6 +61,17 @@ export function DocumentPreview({
   const isPDF = doc.metadata.mimeType === 'application/pdf'
   const isImage = doc.metadata.mimeType.startsWith('image/')
 
+  // Helper to add auth token to URL for file access
+  // inline=true tells backend to use Content-Disposition: inline for preview
+  const getAuthenticatedUrl = (url: string, inline: boolean = false) => {
+    const token = localStorage.getItem('authToken')
+    const params = new URLSearchParams()
+    if (token) params.set('token', token)
+    if (inline) params.set('inline', 'true')
+    const queryString = params.toString()
+    return queryString ? `${url}?${queryString}` : url
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div
@@ -95,7 +106,11 @@ export function DocumentPreview({
               </Button>
             )}
             {doc.url && (
-              <Button variant="outline" size="sm" onClick={() => window.open(doc.url, '_blank')}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(getAuthenticatedUrl(doc.url!, true), '_blank')}
+              >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Открыть
               </Button>
@@ -112,12 +127,20 @@ export function DocumentPreview({
         {/* Content */}
         <div className="flex-1 overflow-auto p-4">
           {isPDF && doc.url ? (
-            <div className="h-full min-h-[600px]">
-              <iframe src={doc.url} className="w-full h-full border-0 rounded" title={doc.name} />
+            <div className="h-[500px]">
+              <iframe
+                src={getAuthenticatedUrl(doc.url, true)}
+                className="w-full h-full border-0 rounded bg-white"
+                title={doc.name}
+              />
             </div>
           ) : isImage && doc.url ? (
-            <div className="flex items-center justify-center h-full min-h-[400px]">
-              <img src={doc.url} alt={doc.name} className="max-w-full max-h-full object-contain" />
+            <div className="flex items-center justify-center">
+              <img
+                src={getAuthenticatedUrl(doc.url, true)}
+                alt={doc.name}
+                className="max-w-[600px] max-h-[400px] object-contain rounded shadow-lg"
+              />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
