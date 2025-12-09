@@ -148,6 +148,7 @@ export default function DashboardPage() {
             <>
               <TrendChart
                 title="Документы и отчеты"
+                period={period}
                 datasets={[
                   {
                     name: 'Документы',
@@ -163,6 +164,7 @@ export default function DashboardPage() {
               />
               <TrendChart
                 title="Задачи и мероприятия"
+                period={period}
                 datasets={[
                   {
                     name: 'Задачи',

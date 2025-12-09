@@ -159,11 +159,14 @@ export function DocumentUploadComponent({
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           или нажмите кнопку ниже для выбора файлов
         </p>
-        <label htmlFor="file-upload">
-          <Button variant="outline" className="cursor-pointer" disabled={isUploading}>
-            Выбрать файлы
-          </Button>
-        </label>
+        <Button
+          variant="outline"
+          className="cursor-pointer"
+          disabled={isUploading}
+          onClick={() => document.getElementById('file-upload')?.click()}
+        >
+          Выбрать файлы
+        </Button>
         <p className="text-xs text-gray-500 dark:text-gray-500 mt-4">
           Поддерживаемые форматы: PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG (макс. 10МБ)
         </p>

@@ -25,7 +25,7 @@ func NewDocumentRepositoryPG(db *sql.DB) *DocumentRepositoryPG {
 
 // Create inserts a new document
 func (r *DocumentRepositoryPG) Create(ctx context.Context, doc *entities.Document) error {
-	var metadataJSON []byte
+	var metadataJSON interface{} = nil // Use interface{} to properly pass NULL to jsonb
 	var err error
 	if doc.Metadata != nil {
 		metadataJSON, err = json.Marshal(doc.Metadata)
@@ -65,7 +65,7 @@ func (r *DocumentRepositoryPG) Create(ctx context.Context, doc *entities.Documen
 func (r *DocumentRepositoryPG) Update(ctx context.Context, doc *entities.Document) error {
 	doc.UpdatedAt = time.Now()
 
-	var metadataJSON []byte
+	var metadataJSON interface{} = nil // Use interface{} to properly pass NULL to jsonb
 	var err error
 	if doc.Metadata != nil {
 		metadataJSON, err = json.Marshal(doc.Metadata)
@@ -106,13 +106,17 @@ func (r *DocumentRepositoryPG) Update(ctx context.Context, doc *entities.Documen
 // GetByID retrieves a document by ID
 func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.Document, error) {
 	query := `
-		SELECT id, document_type_id, category_id, registration_number, registration_date,
-			title, subject, content, author_id, author_department, author_position,
-			recipient_id, recipient_department, recipient_position, recipient_external,
-			status, file_name, file_path, file_size, mime_type, version,
-			parent_document_id, deadline, execution_date, metadata, is_public, importance,
-			created_at, updated_at, deleted_at
-		FROM documents WHERE id = $1 AND deleted_at IS NULL`
+		SELECT d.id, d.document_type_id, d.category_id, d.registration_number, d.registration_date,
+			d.title, d.subject, d.content, d.author_id, d.author_department, d.author_position,
+			d.recipient_id, d.recipient_department, d.recipient_position, d.recipient_external,
+			d.status, d.file_name, d.file_path, d.file_size, d.mime_type, d.version,
+			d.parent_document_id, d.deadline, d.execution_date, d.metadata, d.is_public, d.importance,
+			d.created_at, d.updated_at, d.deleted_at,
+			author.name as author_name, recipient.name as recipient_name
+		FROM documents d
+		LEFT JOIN users author ON d.author_id = author.id
+		LEFT JOIN users recipient ON d.recipient_id = recipient.id
+		WHERE d.id = $1 AND d.deleted_at IS NULL`
 
 	doc := &entities.Document{}
 	var metadataJSON []byte
@@ -124,6 +128,7 @@ func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities
 		&doc.Status, &doc.FileName, &doc.FilePath, &doc.FileSize, &doc.MimeType, &doc.Version,
 		&doc.ParentDocumentID, &doc.Deadline, &doc.ExecutionDate, &metadataJSON, &doc.IsPublic, &doc.Importance,
 		&doc.CreatedAt, &doc.UpdatedAt, &doc.DeletedAt,
+		&doc.AuthorName, &doc.RecipientName,
 	)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("document not found")
@@ -169,46 +174,46 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 	argIndex := 1
 
 	if !filter.IncludeDeleted {
-		conditions = append(conditions, "deleted_at IS NULL")
+		conditions = append(conditions, "d.deleted_at IS NULL")
 	}
 
 	if filter.AuthorID != nil {
-		conditions = append(conditions, fmt.Sprintf("author_id = $%d", argIndex))
+		conditions = append(conditions, fmt.Sprintf("d.author_id = $%d", argIndex))
 		args = append(args, *filter.AuthorID)
 		argIndex++
 	}
 	if filter.RecipientID != nil {
-		conditions = append(conditions, fmt.Sprintf("recipient_id = $%d", argIndex))
+		conditions = append(conditions, fmt.Sprintf("d.recipient_id = $%d", argIndex))
 		args = append(args, *filter.RecipientID)
 		argIndex++
 	}
 	if filter.DocumentTypeID != nil {
-		conditions = append(conditions, fmt.Sprintf("document_type_id = $%d", argIndex))
+		conditions = append(conditions, fmt.Sprintf("d.document_type_id = $%d", argIndex))
 		args = append(args, *filter.DocumentTypeID)
 		argIndex++
 	}
 	if filter.CategoryID != nil {
-		conditions = append(conditions, fmt.Sprintf("category_id = $%d", argIndex))
+		conditions = append(conditions, fmt.Sprintf("d.category_id = $%d", argIndex))
 		args = append(args, *filter.CategoryID)
 		argIndex++
 	}
 	if filter.Status != nil {
-		conditions = append(conditions, fmt.Sprintf("status = $%d", argIndex))
+		conditions = append(conditions, fmt.Sprintf("d.status = $%d", argIndex))
 		args = append(args, *filter.Status)
 		argIndex++
 	}
 	if filter.Importance != nil {
-		conditions = append(conditions, fmt.Sprintf("importance = $%d", argIndex))
+		conditions = append(conditions, fmt.Sprintf("d.importance = $%d", argIndex))
 		args = append(args, *filter.Importance)
 		argIndex++
 	}
 	if filter.IsPublic != nil {
-		conditions = append(conditions, fmt.Sprintf("is_public = $%d", argIndex))
+		conditions = append(conditions, fmt.Sprintf("d.is_public = $%d", argIndex))
 		args = append(args, *filter.IsPublic)
 		argIndex++
 	}
 	if filter.SearchQuery != nil && *filter.SearchQuery != "" {
-		conditions = append(conditions, fmt.Sprintf("(title ILIKE $%d OR subject ILIKE $%d)", argIndex, argIndex))
+		conditions = append(conditions, fmt.Sprintf("(d.title ILIKE $%d OR d.subject ILIKE $%d)", argIndex, argIndex))
 		args = append(args, "%"+*filter.SearchQuery+"%")
 		argIndex++
 	}
@@ -219,7 +224,7 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 	}
 
 	// Count total
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM documents %s", whereClause)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM documents d %s", whereClause)
 	var total int64
 	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count documents: %w", err)
@@ -232,13 +237,17 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, document_type_id, category_id, registration_number, registration_date,
-			title, subject, content, author_id, author_department, author_position,
-			recipient_id, recipient_department, recipient_position, recipient_external,
-			status, file_name, file_path, file_size, mime_type, version,
-			parent_document_id, deadline, execution_date, metadata, is_public, importance,
-			created_at, updated_at, deleted_at
-		FROM documents %s ORDER BY %s LIMIT $%d OFFSET $%d`,
+		SELECT d.id, d.document_type_id, d.category_id, d.registration_number, d.registration_date,
+			d.title, d.subject, d.content, d.author_id, d.author_department, d.author_position,
+			d.recipient_id, d.recipient_department, d.recipient_position, d.recipient_external,
+			d.status, d.file_name, d.file_path, d.file_size, d.mime_type, d.version,
+			d.parent_document_id, d.deadline, d.execution_date, d.metadata, d.is_public, d.importance,
+			d.created_at, d.updated_at, d.deleted_at,
+			author.name as author_name, recipient.name as recipient_name
+		FROM documents d
+		LEFT JOIN users author ON d.author_id = author.id
+		LEFT JOIN users recipient ON d.recipient_id = recipient.id
+		%s ORDER BY d.%s LIMIT $%d OFFSET $%d`,
 		whereClause, orderBy, argIndex, argIndex+1)
 
 	args = append(args, filter.Limit, filter.Offset)
@@ -261,6 +270,7 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 			&doc.Status, &doc.FileName, &doc.FilePath, &doc.FileSize, &doc.MimeType, &doc.Version,
 			&doc.ParentDocumentID, &doc.Deadline, &doc.ExecutionDate, &metadataJSON, &doc.IsPublic, &doc.Importance,
 			&doc.CreatedAt, &doc.UpdatedAt, &doc.DeletedAt,
+			&doc.AuthorName, &doc.RecipientName,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan document: %w", err)

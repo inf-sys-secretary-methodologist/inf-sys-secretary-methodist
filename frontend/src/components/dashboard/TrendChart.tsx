@@ -22,6 +22,7 @@ interface TrendDataset {
 interface TrendChartProps {
   title: string
   datasets: TrendDataset[]
+  period?: 'week' | 'month' | 'quarter' | 'year'
   className?: string
 }
 
@@ -30,35 +31,62 @@ interface ChartDataPoint {
   [key: string]: string | number
 }
 
-export function TrendChart({ title, datasets, className }: TrendChartProps) {
-  // Merge all datasets into a single array for recharts
-  const chartData: ChartDataPoint[] = []
-  const dateMap = new Map<string, ChartDataPoint>()
+// Generate date range for the last N days
+function generateDateRange(days: number): Date[] {
+  const dates: Date[] = []
+  const today = new Date()
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(today)
+    date.setDate(date.getDate() - i)
+    dates.push(date)
+  }
+  return dates
+}
+
+export function TrendChart({ title, datasets, period = 'month', className }: TrendChartProps) {
+  // Generate date range based on period
+  const getDaysForPeriod = (p: string): number => {
+    switch (p) {
+      case 'week':
+        return 7
+      case 'month':
+        return 30
+      case 'quarter':
+        return 90
+      case 'year':
+        return 365
+      default:
+        return 30
+    }
+  }
+  const dateRange = generateDateRange(getDaysForPeriod(period))
+
+  // Create map for quick lookup of data points
+  const dataByDate = new Map<string, Map<string, number>>()
 
   datasets.forEach((dataset) => {
     dataset.data.forEach((point) => {
-      const dateStr = new Date(point.date).toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-      })
-      if (!dateMap.has(dateStr)) {
-        dateMap.set(dateStr, { date: dateStr })
+      const dateKey = new Date(point.date).toISOString().split('T')[0]
+      if (!dataByDate.has(dateKey)) {
+        dataByDate.set(dateKey, new Map())
       }
-      const existing = dateMap.get(dateStr)!
-      existing[dataset.name] = point.value
+      dataByDate.get(dateKey)!.set(dataset.name, point.value)
     })
   })
 
-  // Sort by date
-  const sortedDates = Array.from(dateMap.keys()).sort((a, b) => {
-    const [dayA, monthA] = a.split('.').map(Number)
-    const [dayB, monthB] = b.split('.').map(Number)
-    if (monthA !== monthB) return monthA - monthB
-    return dayA - dayB
-  })
+  // Build chart data with all dates in range, filling missing with 0
+  const chartData: ChartDataPoint[] = dateRange.map((date) => {
+    const dateKey = date.toISOString().split('T')[0]
+    const dateStr = date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+    })
 
-  sortedDates.forEach((date) => {
-    chartData.push(dateMap.get(date)!)
+    const dataPoint: ChartDataPoint = { date: dateStr }
+    datasets.forEach((dataset) => {
+      dataPoint[dataset.name] = dataByDate.get(dateKey)?.get(dataset.name) || 0
+    })
+    return dataPoint
   })
 
   return (
@@ -77,7 +105,7 @@ export function TrendChart({ title, datasets, className }: TrendChartProps) {
         <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{title}</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 {datasets.map((dataset, index) => (
                   <linearGradient
@@ -101,7 +129,14 @@ export function TrendChart({ title, datasets, className }: TrendChartProps) {
                 tickLine={false}
                 axisLine={false}
               />
-              <YAxis stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis
+                stroke="#9CA3AF"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.1) || 1]}
+                allowDecimals={false}
+              />
               <Tooltip
                 contentStyle={{
                   backgroundColor: 'rgba(0, 0, 0, 0.8)',

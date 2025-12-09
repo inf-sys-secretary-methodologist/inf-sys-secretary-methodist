@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { AppLayout } from '@/components/layout'
 import { GlowingEffect } from '@/components/ui/glowing-effect'
@@ -12,21 +12,68 @@ import { DocumentFilters } from '@/components/documents/DocumentFilters'
 import { DocumentPreview } from '@/components/documents/DocumentPreview'
 import {
   Document,
+  DocumentCategory,
   DocumentFilter,
   DocumentSortOptions,
   DocumentUpload,
   DocumentStatus,
 } from '@/types/document'
-import { mockDocuments, filterDocuments, sortDocuments } from '@/lib/mock-documents'
+import { filterDocuments, sortDocuments } from '@/lib/mock-documents'
 import { canEdit } from '@/lib/auth/permissions'
+import { documentsApi, DocumentInfo } from '@/lib/api/documents'
+
+// Map backend status to frontend status
+const mapBackendStatus = (status: string): DocumentStatus => {
+  const statusMap: Record<string, DocumentStatus> = {
+    draft: DocumentStatus.PROCESSING,
+    registered: DocumentStatus.READY,
+    routing: DocumentStatus.PROCESSING,
+    approval: DocumentStatus.PROCESSING,
+    approved: DocumentStatus.READY,
+    rejected: DocumentStatus.ERROR,
+    execution: DocumentStatus.PROCESSING,
+    executed: DocumentStatus.READY,
+    archived: DocumentStatus.READY,
+  }
+  return statusMap[status] || DocumentStatus.PROCESSING
+}
+
+// Helper to convert API DocumentInfo to frontend Document type
+const mapDocumentInfoToDocument = (doc: DocumentInfo): Document => {
+  const fileUrl = doc.has_file ? documentsApi.getFileDownloadUrl(doc.id) : undefined
+  const mimeType = doc.mime_type || 'application/octet-stream'
+
+  // For images, use the file URL as thumbnail
+  const isImage = mimeType.startsWith('image/')
+  const thumbnailUrl = isImage && fileUrl ? fileUrl : undefined
+
+  return {
+    id: String(doc.id),
+    name: doc.title,
+    category: DocumentCategory.OTHER, // Backend uses category_id, we default to OTHER
+    status: mapBackendStatus(doc.status),
+    description: doc.subject || undefined,
+    tags: undefined,
+    url: fileUrl,
+    thumbnailUrl,
+    metadata: {
+      size: doc.file_size || 0,
+      mimeType,
+      uploadedBy: doc.author_name || 'Неизвестно',
+      uploadedAt: new Date(doc.created_at),
+    },
+  }
+}
 
 export default function DocumentsPage() {
   const { user } = useAuthCheck()
   const userCanEdit = canEdit(user?.role)
   const [showUpload, setShowUpload] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
-  const [documents, setDocuments] = useState<Document[]>(mockDocuments)
+  const [documents, setDocuments] = useState<Document[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [_isLoading, setIsLoading] = useState(true)
+  const [_error, setError] = useState<string | null>(null)
 
   // Filter and sort state
   const [filters, setFilters] = useState<DocumentFilter>({})
@@ -34,6 +81,27 @@ export default function DocumentsPage() {
     field: 'uploadedAt',
     order: 'desc',
   })
+
+  // Fetch documents from API
+  const fetchDocuments = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const response = await documentsApi.list()
+      const mappedDocs = response.data.map(mapDocumentInfoToDocument)
+      setDocuments(mappedDocs)
+    } catch (err) {
+      console.error('Failed to fetch documents:', err)
+      setError('Не удалось загрузить документы')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  // Load documents on mount
+  useEffect(() => {
+    fetchDocuments()
+  }, [fetchDocuments])
 
   // Apply filters and sorting
   const filteredAndSortedDocuments = useMemo(() => {
@@ -43,29 +111,32 @@ export default function DocumentsPage() {
 
   const handleUpload = async (uploads: DocumentUpload[]) => {
     setIsUploading(true)
+    setError(null)
 
-    // Simulate upload process
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      for (const upload of uploads) {
+        // 1. Create document record
+        const docInfo = await documentsApi.create({
+          title: upload.file.name,
+          document_type_id: 1, // Default document type (Входящий документ)
+          subject: upload.description,
+          importance: 'normal',
+          is_public: false,
+        })
 
-    // Create mock uploaded documents
-    const newDocuments: Document[] = uploads.map((upload, index) => ({
-      id: `new-${Date.now()}-${index}`,
-      name: upload.file.name,
-      category: upload.category,
-      status: DocumentStatus.READY,
-      metadata: {
-        size: upload.file.size,
-        mimeType: upload.file.type,
-        uploadedBy: user?.name || 'Текущий пользователь',
-        uploadedAt: new Date(),
-      },
-      description: upload.description,
-      tags: upload.tags,
-    }))
+        // 2. Upload file to the document
+        await documentsApi.uploadFile(docInfo.id, upload.file)
+      }
 
-    setDocuments((prev) => [...newDocuments, ...prev])
-    setIsUploading(false)
-    setShowUpload(false)
+      // Refresh documents list
+      await fetchDocuments()
+      setShowUpload(false)
+    } catch (err) {
+      console.error('Failed to upload documents:', err)
+      setError('Не удалось загрузить документы')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handlePreview = (doc: Document) => {
@@ -73,15 +144,25 @@ export default function DocumentsPage() {
   }
 
   const handleDownload = (doc: Document) => {
-    console.log('Downloading document:', doc.name)
-    if (doc.url) {
-      window.open(doc.url, '_blank')
+    const downloadUrl = documentsApi.getFileDownloadUrl(doc.id)
+    // Open in new tab with auth token
+    const token = localStorage.getItem('authToken')
+    if (token) {
+      window.open(`${downloadUrl}?token=${token}`, '_blank')
+    } else {
+      window.open(downloadUrl, '_blank')
     }
   }
 
   const handleDelete = async (doc: Document) => {
     if (confirm(`Вы уверены, что хотите удалить документ "${doc.name}"?`)) {
-      setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
+      try {
+        await documentsApi.delete(doc.id)
+        await fetchDocuments()
+      } catch (err) {
+        console.error('Failed to delete document:', err)
+        setError('Не удалось удалить документ')
+      }
     }
   }
 

@@ -99,7 +99,7 @@ type DocumentFilterInput struct {
 
 // ToDocumentOutput converts entity to output DTO
 func ToDocumentOutput(doc *entities.Document) *DocumentOutput {
-	return &DocumentOutput{
+	output := &DocumentOutput{
 		ID:                 doc.ID,
 		DocumentTypeID:     doc.DocumentTypeID,
 		CategoryID:         doc.CategoryID,
@@ -124,6 +124,14 @@ func ToDocumentOutput(doc *entities.Document) *DocumentOutput {
 		CreatedAt:          doc.CreatedAt,
 		UpdatedAt:          doc.UpdatedAt,
 	}
+	// Add author and recipient names if populated
+	if doc.AuthorName != nil {
+		output.AuthorName = *doc.AuthorName
+	}
+	if doc.RecipientName != nil {
+		output.RecipientName = doc.RecipientName
+	}
+	return output
 }
 
 // FileDownloadOutput represents output for file download

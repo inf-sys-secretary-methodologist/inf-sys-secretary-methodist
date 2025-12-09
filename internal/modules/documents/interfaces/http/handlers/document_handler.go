@@ -359,6 +359,8 @@ func (h *DocumentHandler) UploadFile(c *gin.Context) {
 }
 
 // DownloadFile handles file download from a document
+// Query params:
+//   - inline=true: display file in browser instead of downloading (for preview)
 func (h *DocumentHandler) DownloadFile(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -376,7 +378,19 @@ func (h *DocumentHandler) DownloadFile(c *gin.Context) {
 	}
 	defer reader.Close()
 
-	c.Header("Content-Disposition", "attachment; filename=\""+fileInfo.FileName+"\"")
+	// Check if inline viewing is requested (for preview in browser)
+	isInline := c.Query("inline") == "true"
+	if isInline {
+		c.Header("Content-Disposition", "inline; filename=\""+fileInfo.FileName+"\"")
+		// Delete X-Frame-Options header set by security middleware to allow cross-origin iframe
+		// In development, frontend (3000) and backend (8080) are on different ports
+		c.Writer.Header().Del("X-Frame-Options")
+		c.Writer.Header().Del("Content-Security-Policy")
+		// Allow framing from any origin for preview functionality
+		c.Header("Content-Security-Policy", "frame-ancestors *")
+	} else {
+		c.Header("Content-Disposition", "attachment; filename=\""+fileInfo.FileName+"\"")
+	}
 	c.Header("Content-Type", fileInfo.ContentType)
 	c.Header("Content-Length", strconv.FormatInt(fileInfo.Size, 10))
 

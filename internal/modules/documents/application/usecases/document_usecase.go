@@ -273,6 +273,11 @@ func (uc *DocumentUseCase) UploadFile(ctx context.Context, documentID int64, fil
 	doc.SetFile(fileName, fileInfo.Key, fileInfo.ContentType, fileInfo.Size)
 	doc.Version++
 
+	// Auto-register document when file is uploaded (if still in draft)
+	if doc.Status == entities.DocumentStatusDraft {
+		doc.Status = entities.DocumentStatusRegistered
+	}
+
 	if err := uc.documentRepo.Update(ctx, doc); err != nil {
 		// Rollback
 		_ = uc.s3Client.Delete(ctx, key)

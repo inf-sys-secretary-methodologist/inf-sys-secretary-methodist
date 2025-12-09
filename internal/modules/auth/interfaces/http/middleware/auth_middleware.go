@@ -14,19 +14,29 @@ import (
 )
 
 // JWTMiddleware validates JWT tokens
+// Supports token from Authorization header (Bearer token) or query parameter (?token=xxx)
+// Query parameter is useful for file downloads where browser can't set headers
 func JWTMiddleware(authUseCase *usecases.AuthUseCase) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var tokenString string
+
+		// First try Authorization header
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			resp := response.Unauthorized("Требуется заголовок авторизации")
-			c.JSON(http.StatusUnauthorized, resp)
-			c.Abort()
-			return
+		if authHeader != "" {
+			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+			if tokenString == authHeader {
+				resp := response.Unauthorized("Требуется Bearer токен")
+				c.JSON(http.StatusUnauthorized, resp)
+				c.Abort()
+				return
+			}
+		} else {
+			// Fallback to query parameter for file downloads
+			tokenString = c.Query("token")
 		}
 
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenString == authHeader {
-			resp := response.Unauthorized("Требуется Bearer токен")
+		if tokenString == "" {
+			resp := response.Unauthorized("Требуется токен авторизации")
 			c.JSON(http.StatusUnauthorized, resp)
 			c.Abort()
 			return
