@@ -455,3 +455,61 @@ func (h *DocumentHandler) GetCategories(c *gin.Context) {
 	resp := response.Success(categories)
 	c.JSON(http.StatusOK, resp)
 }
+
+// Search handles full-text search for documents
+// @Summary Search documents
+// @Description Perform full-text search on documents with ranking and highlighting
+// @Tags documents
+// @Accept json
+// @Produce json
+// @Param q query string true "Search query"
+// @Param document_type_id query int false "Filter by document type ID"
+// @Param category_id query int false "Filter by category ID"
+// @Param author_id query int false "Filter by author ID"
+// @Param status query string false "Filter by status"
+// @Param importance query string false "Filter by importance"
+// @Param from_date query string false "Filter by creation date from (YYYY-MM-DD)"
+// @Param to_date query string false "Filter by creation date to (YYYY-MM-DD)"
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int false "Results per page" default(20)
+// @Success 200 {object} dto.SearchOutput
+// @Router /documents/search [get]
+func (h *DocumentHandler) Search(c *gin.Context) {
+	var input dto.SearchInput
+	if err := c.ShouldBindQuery(&input); err != nil {
+		resp := response.BadRequest("Неверные параметры поиска")
+		c.JSON(http.StatusBadRequest, resp)
+		return
+	}
+
+	// Validate search query
+	if input.Query == "" {
+		resp := response.BadRequest("Параметр поиска (q) обязателен")
+		c.JSON(http.StatusBadRequest, resp)
+		return
+	}
+
+	// Sanitize search query
+	input.Query = h.sanitizer.SanitizeString(input.Query)
+
+	// Set defaults
+	if input.Page <= 0 {
+		input.Page = 1
+	}
+	if input.PageSize <= 0 {
+		input.PageSize = 20
+	}
+	if input.PageSize > 100 {
+		input.PageSize = 100
+	}
+
+	ctx := c.Request.Context()
+	result, err := h.usecase.Search(ctx, input)
+	if err != nil {
+		httpErr := response.MapDomainError(err)
+		c.JSON(httpErr.Status, httpErr.Response)
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(result))
+}

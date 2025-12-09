@@ -415,6 +415,83 @@ func (uc *DocumentUseCase) GetCategories(ctx context.Context) ([]*dto.DocumentCa
 	return outputs, nil
 }
 
+// Search performs full-text search on documents with ranking and highlighting
+func (uc *DocumentUseCase) Search(ctx context.Context, input dto.SearchInput) (*dto.SearchOutput, error) {
+	// Validate input
+	if input.Query == "" {
+		return nil, fmt.Errorf("search query is required: %w", errors.ErrValidationFailed)
+	}
+
+	// Set default pagination
+	if input.Page < 1 {
+		input.Page = 1
+	}
+	if input.PageSize < 1 || input.PageSize > 100 {
+		input.PageSize = 20
+	}
+
+	// Convert DTO to repository filter
+	filter := repositories.SearchFilter{
+		Query:          input.Query,
+		DocumentTypeID: input.DocumentTypeID,
+		CategoryID:     input.CategoryID,
+		AuthorID:       input.AuthorID,
+		FromDate:       input.FromDate,
+		ToDate:         input.ToDate,
+		IncludeDeleted: false,
+		Limit:          input.PageSize,
+		Offset:         (input.Page - 1) * input.PageSize,
+	}
+
+	if input.Status != nil {
+		status := entities.DocumentStatus(*input.Status)
+		filter.Status = &status
+	}
+	if input.Importance != nil {
+		importance := entities.DocumentImportance(*input.Importance)
+		filter.Importance = &importance
+	}
+
+	// Perform search
+	results, total, err := uc.documentRepo.Search(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search documents: %w", err)
+	}
+
+	// Convert to output DTOs
+	outputs := make([]*dto.SearchResultOutput, len(results))
+	for i, result := range results {
+		outputs[i] = &dto.SearchResultOutput{
+			Document:           dto.ToDocumentOutput(result.Document),
+			Rank:               result.Rank,
+			HighlightedTitle:   result.HighlightedTitle,
+			HighlightedSubject: result.HighlightedSubject,
+			HighlightedContent: result.HighlightedContent,
+		}
+	}
+
+	// Calculate total pages
+	totalPages := int(total) / input.PageSize
+	if int(total)%input.PageSize > 0 {
+		totalPages++
+	}
+
+	// Log audit event
+	uc.logAudit(ctx, "document_search", "document", map[string]interface{}{
+		"query":         input.Query,
+		"results_count": total,
+	})
+
+	return &dto.SearchOutput{
+		Results:    outputs,
+		Query:      input.Query,
+		Total:      total,
+		Page:       input.Page,
+		PageSize:   input.PageSize,
+		TotalPages: totalPages,
+	}, nil
+}
+
 // Helper methods
 
 func (uc *DocumentUseCase) uploadFileFromMultipart(ctx context.Context, doc *entities.Document, file *multipart.FileHeader) (*storage.FileInfo, error) {

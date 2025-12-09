@@ -21,6 +21,9 @@ type DocumentRepository interface {
 	GetByAuthorID(ctx context.Context, authorID int64, limit, offset int) ([]*entities.Document, error)
 	GetByStatus(ctx context.Context, status entities.DocumentStatus, limit, offset int) ([]*entities.Document, error)
 
+	// Full-text search operations
+	Search(ctx context.Context, filter SearchFilter) ([]*SearchResult, int64, error)
+
 	// Version operations
 	CreateVersion(ctx context.Context, version *entities.DocumentVersion) error
 	GetVersions(ctx context.Context, documentID int64) ([]*entities.DocumentVersion, error)
@@ -47,6 +50,30 @@ type DocumentFilter struct {
 	Limit          int
 	Offset         int
 	OrderBy        string // e.g., "created_at DESC"
+}
+
+// SearchFilter contains options for full-text search
+type SearchFilter struct {
+	Query          string                       // search query text
+	DocumentTypeID *int64                       // filter by document type
+	CategoryID     *int64                       // filter by category
+	AuthorID       *int64                       // filter by author
+	Status         *entities.DocumentStatus     // filter by status
+	Importance     *entities.DocumentImportance // filter by importance
+	FromDate       *string                      // created_at >= from_date
+	ToDate         *string                      // created_at <= to_date
+	IncludeDeleted bool                         // include soft-deleted documents
+	Limit          int                          // pagination limit
+	Offset         int                          // pagination offset
+}
+
+// SearchResult represents a document search result with highlighted matches
+type SearchResult struct {
+	Document           *entities.Document `json:"document"`
+	Rank               float64            `json:"rank"`                 // relevance score
+	HighlightedTitle   string             `json:"highlighted_title"`    // title with highlighted matches
+	HighlightedSubject string             `json:"highlighted_subject"`  // subject with highlighted matches
+	HighlightedContent string             `json:"highlighted_content"`  // content snippet with highlighted matches
 }
 
 // DocumentTypeRepository defines the interface for document type persistence
