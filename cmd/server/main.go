@@ -41,6 +41,9 @@ import (
 	dashboardUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/application/usecases"
 	dashboardPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/infrastructure/persistence"
 	dashboardHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/interfaces/http/handlers"
+	usersUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
+	usersPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/infrastructure/persistence"
+	usersHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/handlers"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -187,6 +190,15 @@ func main() {
 	dashboardUseCase := dashboardUsecases.NewDashboardUseCase(dashboardRepo)
 	logger.Info("Dashboard module initialized", nil)
 
+	// Initialize users module
+	departmentRepo := usersPersistence.NewDepartmentRepositoryPG(db)
+	positionRepo := usersPersistence.NewPositionRepositoryPG(db)
+	userProfileRepo := usersPersistence.NewUserProfileRepositoryPG(db)
+	userUseCase := usersUsecases.NewUserUseCase(userRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger)
+	departmentUseCase := usersUsecases.NewDepartmentUseCase(departmentRepo, auditLogger)
+	positionUseCase := usersUsecases.NewPositionUseCase(positionRepo, auditLogger)
+	logger.Info("Users module initialized", nil)
+
 	// Initialize shared middleware
 	corsMiddleware := appMiddleware.NewCORSMiddleware(
 		cfg.CORS.AllowedOrigins,
@@ -205,6 +217,9 @@ func main() {
 		eventUseCase,
 		announcementUseCase,
 		dashboardUseCase,
+		userUseCase,
+		departmentUseCase,
+		positionUseCase,
 		securityLogger,
 		perfLogger,
 		auditLogger,
@@ -345,6 +360,9 @@ func setupRoutes(
 	eventUseCase *scheduleUsecases.EventUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
 	dashboardUseCase *dashboardUsecases.DashboardUseCase,
+	userUseCase *usersUsecases.UserUseCase,
+	departmentUseCase *usersUsecases.DepartmentUseCase,
+	positionUseCase *usersUsecases.PositionUseCase,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
 	auditLogger *logging.AuditLogger,
@@ -747,6 +765,71 @@ func setupRoutes(
 			}
 
 			logger.Info("Dashboard module routes registered", nil)
+		}
+
+		// Users module routes (system admin only for management)
+		if userUseCase != nil {
+			userHandlerInstance := usersHandler.NewUserHandler(userUseCase)
+			departmentHandlerInstance := usersHandler.NewDepartmentHandler(departmentUseCase)
+			positionHandlerInstance := usersHandler.NewPositionHandler(positionUseCase)
+
+			// Users management routes
+			usersGroup := protectedGroup.Group("/users")
+			{
+				usersGroup.GET("", userHandlerInstance.List)
+				usersGroup.GET("/:id", userHandlerInstance.GetByID)
+				usersGroup.PUT("/:id/profile", userHandlerInstance.UpdateProfile)
+				usersGroup.PUT("/:id/role", userHandlerInstance.UpdateRole)
+				usersGroup.PUT("/:id/status", userHandlerInstance.UpdateStatus)
+				usersGroup.DELETE("/:id", userHandlerInstance.Delete)
+				usersGroup.POST("/bulk/department", userHandlerInstance.BulkUpdateDepartment)
+				usersGroup.POST("/bulk/position", userHandlerInstance.BulkUpdatePosition)
+				usersGroup.GET("/by-department/:id", userHandlerInstance.GetByDepartment)
+				usersGroup.GET("/by-position/:id", userHandlerInstance.GetByPosition)
+
+				// CORS preflight handlers
+				usersGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				usersGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				usersGroup.OPTIONS("/:id/profile", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				usersGroup.OPTIONS("/:id/role", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				usersGroup.OPTIONS("/:id/status", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				usersGroup.OPTIONS("/bulk/department", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				usersGroup.OPTIONS("/bulk/position", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				usersGroup.OPTIONS("/by-department/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				usersGroup.OPTIONS("/by-position/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			// Departments routes
+			departmentsGroup := protectedGroup.Group("/departments")
+			{
+				departmentsGroup.POST("", departmentHandlerInstance.Create)
+				departmentsGroup.GET("", departmentHandlerInstance.List)
+				departmentsGroup.GET("/:id", departmentHandlerInstance.GetByID)
+				departmentsGroup.PUT("/:id", departmentHandlerInstance.Update)
+				departmentsGroup.DELETE("/:id", departmentHandlerInstance.Delete)
+				departmentsGroup.GET("/:id/children", departmentHandlerInstance.GetChildren)
+
+				// CORS preflight handlers
+				departmentsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				departmentsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				departmentsGroup.OPTIONS("/:id/children", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			// Positions routes
+			positionsGroup := protectedGroup.Group("/positions")
+			{
+				positionsGroup.POST("", positionHandlerInstance.Create)
+				positionsGroup.GET("", positionHandlerInstance.List)
+				positionsGroup.GET("/:id", positionHandlerInstance.GetByID)
+				positionsGroup.PUT("/:id", positionHandlerInstance.Update)
+				positionsGroup.DELETE("/:id", positionHandlerInstance.Delete)
+
+				// CORS preflight handlers
+				positionsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				positionsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			logger.Info("Users module routes registered", nil)
 		}
 
 		// Admin only routes

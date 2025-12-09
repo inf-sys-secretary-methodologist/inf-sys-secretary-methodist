@@ -5,54 +5,115 @@ Project inf_sys_secretary_methodist {
   database_type: 'PostgreSQL'
   Note: '''
     Информационная система секретаря-методиста
-    Всего: 46 таблиц (45 + schema_migrations)
+    Всего: 54 таблицы (53 + schema_migrations)
   '''
 }
 
 // ============================================================================
-// CORE MODULE - Пользователи и сессии (2 таблицы)
+// AUTH MODULE - Аутентификация (2 таблицы)
 // ============================================================================
 
 Table users {
   id bigserial [pk, increment]
-  username varchar(100) [unique, not null]
   email varchar(255) [unique, not null]
-  password_hash varchar(255) [not null]
-  first_name varchar(100) [not null]
-  last_name varchar(100) [not null]
-  middle_name varchar(100)
-  role varchar(50) [not null, note: 'admin, secretary, methodist, teacher, student']
-  status varchar(50) [not null, default: 'active', note: 'active, inactive, suspended']
-  avatar_url varchar(500)
-  phone varchar(20)
-  position varchar(255)
-  department varchar(255)
+  password varchar(255) [not null, note: 'bcrypt hash']
+  name varchar(255) [default: '']
+  role varchar(50) [not null, note: 'system_admin, methodist, academic_secretary, teacher, student']
+  status varchar(50) [not null, default: 'active', note: 'active, inactive, blocked']
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [not null, default: `now()`]
 
   indexes {
+    email
     role
     status
-    email
   }
 
-  Note: 'Пользователи системы'
+  Note: 'Пользователи системы (аутентификация)'
 }
 
 Table sessions {
   id bigserial [pk, increment]
   user_id bigint [not null, ref: > users.id]
-  token_hash varchar(255) [unique, not null]
+  refresh_token_hash varchar(255) [unique, not null]
+  user_agent varchar(500)
+  ip_address varchar(45)
   expires_at timestamp [not null]
   created_at timestamp [not null, default: `now()`]
 
   indexes {
     user_id
-    token_hash
+    refresh_token_hash
     expires_at
   }
 
-  Note: 'JWT refresh token сессии'
+  Note: 'Сессии пользователей (refresh tokens)'
+}
+
+// ============================================================================
+// USERS MODULE - Организационная структура (3 таблицы)
+// ============================================================================
+
+Table org_departments {
+  id bigserial [pk, increment]
+  name varchar(100) [not null]
+  code varchar(20) [unique, not null]
+  description varchar(500)
+  parent_id bigint [ref: > org_departments.id, note: 'Иерархия подразделений']
+  head_id bigint [ref: > users.id]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    code
+    parent_id
+    head_id
+    is_active
+    name
+  }
+
+  Note: 'Организационные подразделения (отличается от академических кафедр)'
+}
+
+Table positions {
+  id bigserial [pk, increment]
+  name varchar(100) [not null]
+  code varchar(20) [unique, not null]
+  description varchar(500)
+  level int [not null, default: 0, note: '0-100, для иерархии']
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    code
+    level
+    is_active
+    name
+  }
+
+  Note: 'Должности в организации'
+}
+
+Table user_profiles {
+  id bigserial [pk, increment]
+  user_id bigint [unique, not null, ref: > users.id]
+  department_id bigint [ref: > org_departments.id]
+  position_id bigint [ref: > positions.id]
+  phone varchar(20)
+  avatar varchar(500)
+  bio varchar(500)
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    user_id
+    department_id
+    position_id
+  }
+
+  Note: 'Расширенные профили пользователей'
 }
 
 // ============================================================================
@@ -320,7 +381,7 @@ Table departments {
     faculty_id
   }
 
-  Note: 'Кафедры'
+  Note: 'Академические кафедры (привязаны к факультетам)'
 }
 
 Table specialties {
@@ -889,6 +950,169 @@ Table report_history {
   }
 
   Note: 'История изменений отчётов'
+}
+
+// ============================================================================
+// EVENTS MODULE - Календарь и события (4 таблицы)
+// ============================================================================
+
+Table events {
+  id bigserial [pk, increment]
+  title varchar(500) [not null]
+  description text
+  event_type varchar(50) [not null, note: 'meeting, deadline, task, reminder, holiday, personal']
+  status varchar(50) [not null, default: 'scheduled', note: 'scheduled, ongoing, completed, cancelled']
+
+  start_time timestamp [not null]
+  end_time timestamp
+  all_day boolean [not null, default: false]
+  timezone varchar(50) [not null, default: 'Europe/Moscow']
+
+  location varchar(500)
+  organizer_id bigint [not null, ref: > users.id]
+
+  is_recurring boolean [not null, default: false]
+  recurrence_rule jsonb [note: '{"frequency": "weekly", "interval": 1, "byDay": ["MO", "WE"]}']
+  parent_event_id bigint [ref: > events.id]
+  recurrence_id varchar(100)
+
+  color varchar(20)
+  priority int [not null, default: 0, note: '0-3']
+
+  metadata jsonb
+  external_id varchar(255)
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+  deleted_at timestamp
+
+  indexes {
+    organizer_id
+    start_time
+    end_time
+    event_type
+    status
+    is_recurring
+    parent_event_id
+    deleted_at
+    (start_time, end_time)
+  }
+
+  Note: 'События календаря'
+}
+
+Table event_participants {
+  id bigserial [pk, increment]
+  event_id bigint [not null, ref: > events.id]
+  user_id bigint [not null, ref: > users.id]
+  response_status varchar(50) [not null, default: 'pending', note: 'pending, accepted, declined, tentative']
+  role varchar(50) [not null, default: 'required', note: 'required, optional, organizer']
+  notified_at timestamp
+  responded_at timestamp
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    event_id
+    user_id
+    response_status
+    (event_id, user_id) [unique]
+  }
+
+  Note: 'Участники событий'
+}
+
+Table event_reminders {
+  id bigserial [pk, increment]
+  event_id bigint [not null, ref: > events.id]
+  user_id bigint [not null, ref: > users.id]
+  reminder_type varchar(50) [not null, default: 'in_app', note: 'email, push, in_app']
+  minutes_before int [not null, default: 15]
+  is_sent boolean [not null, default: false]
+  sent_at timestamp
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    event_id
+    user_id
+    is_sent
+  }
+
+  Note: 'Напоминания о событиях'
+}
+
+Table event_recurrence_exceptions {
+  id bigserial [pk, increment]
+  event_id bigint [not null, ref: > events.id]
+  exception_date date [not null]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    event_id
+    exception_date
+    (event_id, exception_date) [unique]
+  }
+
+  Note: 'Исключения из повторяющихся событий'
+}
+
+// ============================================================================
+// ANNOUNCEMENTS MODULE - Объявления (2 таблицы)
+// ============================================================================
+
+Table announcements {
+  id bigserial [pk, increment]
+  title varchar(500) [not null]
+  content text [not null]
+  summary varchar(1000)
+
+  author_id bigint [not null, ref: > users.id]
+
+  status varchar(50) [not null, default: 'draft', note: 'draft, published, archived']
+  priority varchar(50) [not null, default: 'normal', note: 'low, normal, high, urgent']
+
+  target_audience varchar(50) [not null, default: 'all', note: 'all, students, teachers, staff, admins']
+
+  publish_at timestamp
+  expire_at timestamp
+
+  is_pinned boolean [not null, default: false]
+  view_count bigint [not null, default: 0]
+
+  tags text[]
+  metadata jsonb
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    author_id
+    status
+    priority
+    target_audience
+    publish_at
+    expire_at
+    is_pinned
+    created_at
+  }
+
+  Note: 'Объявления и новости'
+}
+
+Table announcement_attachments {
+  id bigserial [pk, increment]
+  announcement_id bigint [not null, ref: > announcements.id]
+  file_name varchar(500) [not null]
+  file_path varchar(1000) [not null]
+  file_size bigint [not null]
+  mime_type varchar(100)
+  uploaded_by bigint [not null, ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    announcement_id
+  }
+
+  Note: 'Вложения к объявлениям'
 }
 
 // ============================================================================
