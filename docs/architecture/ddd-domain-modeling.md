@@ -164,6 +164,89 @@ DocumentStatusChanged {
     ChangedBy    string
     Timestamp    time.Time
 }
+
+// Sharing Events (Issue #13)
+DocumentShared {
+    DocumentID   string
+    TargetUserID string    // nullable - если шаринг по роли
+    TargetRole   string    // nullable - если шаринг по пользователю
+    Permission   string    // read, write, delete, admin
+    SharedBy     string
+    ExpiresAt    time.Time // nullable
+    Timestamp    time.Time
+}
+
+DocumentPermissionRevoked {
+    DocumentID   string
+    PermissionID string
+    RevokedBy    string
+    Timestamp    time.Time
+}
+
+PublicLinkCreated {
+    DocumentID   string
+    Token        string
+    Permission   string    // read, download
+    CreatedBy    string
+    ExpiresAt    time.Time // nullable
+    MaxUses      int       // nullable
+    HasPassword  bool
+    Timestamp    time.Time
+}
+
+PublicLinkDeactivated {
+    DocumentID   string
+    Token        string
+    DeactivatedBy string
+    Reason       string    // manual, expired, max_uses_reached
+    Timestamp    time.Time
+}
+```
+
+**Sharing Entities (Issue #13)**:
+```go
+// DocumentPermission - права доступа к документу
+type DocumentPermission struct {
+    ID          PermissionID
+    DocumentID  DocumentID
+    UserID      UserID       // nullable - если шаринг по роли
+    Role        string       // nullable - если шаринг по пользователю
+    Permission  PermissionType // read, write, delete, admin
+    GrantedBy   UserID
+    ExpiresAt   time.Time    // nullable - бессрочно
+    CreatedAt   time.Time
+}
+
+// PermissionType - типы прав доступа
+type PermissionType string
+const (
+    PermissionRead   PermissionType = "read"
+    PermissionWrite  PermissionType = "write"
+    PermissionDelete PermissionType = "delete"
+    PermissionAdmin  PermissionType = "admin"
+)
+
+// PublicLink - публичная ссылка на документ
+type PublicLink struct {
+    ID           PublicLinkID
+    DocumentID   DocumentID
+    Token        string       // уникальный токен для доступа
+    Permission   PermissionType // read, download
+    CreatedBy    UserID
+    ExpiresAt    time.Time    // nullable
+    MaxUses      int          // nullable - неограничено
+    UseCount     int
+    PasswordHash string       // nullable - опциональный пароль
+    IsActive     bool
+    CreatedAt    time.Time
+    UpdatedAt    time.Time
+}
+
+// Invariants:
+// - UserID или Role обязательно (одно из двух)
+// - Token должен быть уникальным
+// - UseCount не может превышать MaxUses
+// - Нельзя создать публичную ссылку на Draft документ
 ```
 
 **Business Rules**:
@@ -171,6 +254,13 @@ DocumentStatusChanged {
 2. **Валидация по типу**: Curriculum требует полей "Program", "Credits", "Duration"
 3. **Права доступа**: Только автор или Admin может удалить Draft
 4. **Template consistency**: Нельзя изменить TemplateID после создания
+5. **Шаринг документов** (Issue #13):
+   - Автор документа может шарить свой документ любому пользователю/роли
+   - Admin может шарить любой документ
+   - Публичные ссылки могут создавать только пользователи с правами на документ
+   - Публичная ссылка не может быть создана для документа в статусе Draft
+   - При истечении срока действия права автоматически отзываются
+   - При достижении лимита использований публичная ссылка деактивируется
 
 ---
 
@@ -1078,6 +1168,6 @@ func (t *OneCDocumentTranslator) translateDocType(oneCType int) (DocumentType, e
 ---
 
 📅 **Актуальность документа**
-**Последнее обновление**: 2025-01-15
+**Последнее обновление**: 2025-12-11
 **Версия проекта**: 0.1.0
 **Статус**: Актуальный

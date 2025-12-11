@@ -281,6 +281,17 @@ Prometheus метрики в формате OpenMetrics.
 ### GET `/api/document-categories`
 Получение списка категорий документов.
 
+### Document Sharing API
+Подробная документация по API шаринга документов: [documents.md](documents.md#-document-sharing-api-issue-13)
+
+- `POST /api/documents/:id/share` - Шаринг документа пользователю/роли
+- `GET /api/documents/:id/permissions` - Получение прав доступа
+- `DELETE /api/documents/:id/permissions/:permissionId` - Удаление прав
+- `GET /api/documents/shared` - Документы, к которым у меня есть доступ
+- `GET /api/documents/my-shared` - Мои документы, которыми я поделился
+- `POST /api/documents/:id/public-links` - Создание публичной ссылки
+- `GET /api/public/documents/:token` - Доступ по публичной ссылке
+
 ---
 
 ## Notifications API
@@ -722,6 +733,6 @@ curl -X POST http://localhost:8080/api/documents/1/file \
 
 ---
 
-**Последнее обновление**: 2025-12-09
+**Последнее обновление**: 2025-12-11
 **Версия проекта**: 0.2.0
 **Статус**: Актуальный
