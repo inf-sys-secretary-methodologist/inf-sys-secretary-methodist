@@ -1,14 +1,18 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { X, Download, ExternalLink, FileText } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { X, Download, ExternalLink, FileText, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Document, DocumentCategoryLabels, DocumentStatusLabels } from '@/types/document'
+import { DocumentVersionHistory } from './DocumentVersionHistory'
+
+type TabType = 'preview' | 'versions'
 
 interface DocumentPreviewProps {
   document: Document
   onClose: () => void
   onDownload?: () => void
+  onDocumentUpdated?: () => void
   className?: string
 }
 
@@ -16,9 +20,11 @@ export function DocumentPreview({
   document: doc,
   onClose,
   onDownload,
+  onDocumentUpdated,
   className = '',
 }: DocumentPreviewProps) {
   const modalRef = useRef<HTMLDivElement>(null)
+  const [activeTab, setActiveTab] = useState<TabType>('preview')
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -124,40 +130,82 @@ export function DocumentPreview({
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 dark:border-gray-700 px-4">
+          <button
+            onClick={() => setActiveTab('preview')}
+            className={`
+              px-4 py-3 text-sm font-medium border-b-2 transition-colors
+              ${
+                activeTab === 'preview'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              }
+            `}
+          >
+            <FileText className="h-4 w-4 inline-block mr-2" />
+            Просмотр
+          </button>
+          <button
+            onClick={() => setActiveTab('versions')}
+            className={`
+              px-4 py-3 text-sm font-medium border-b-2 transition-colors
+              ${
+                activeTab === 'versions'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              }
+            `}
+          >
+            <History className="h-4 w-4 inline-block mr-2" />
+            История версий
+          </button>
+        </div>
+
         {/* Content */}
         <div className="flex-1 overflow-auto p-4">
-          {isPDF && doc.url ? (
-            <div className="h-[500px]">
-              <iframe
-                src={getAuthenticatedUrl(doc.url, true)}
-                className="w-full h-full border-0 rounded bg-white"
-                title={doc.name}
-              />
-            </div>
-          ) : isImage && doc.url ? (
-            <div className="flex items-center justify-center">
-              <img
-                src={getAuthenticatedUrl(doc.url, true)}
-                alt={doc.name}
-                className="max-w-[600px] max-h-[400px] object-contain rounded shadow-lg"
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-              <FileText className="h-24 w-24 text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Предварительный просмотр недоступен
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Этот тип файла не поддерживает предварительный просмотр.
-              </p>
-              {onDownload && (
-                <Button onClick={onDownload}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Скачать для просмотра
-                </Button>
+          {activeTab === 'preview' ? (
+            <>
+              {isPDF && doc.url ? (
+                <div className="h-[500px]">
+                  <iframe
+                    src={getAuthenticatedUrl(doc.url, true)}
+                    className="w-full h-full border-0 rounded bg-white"
+                    title={doc.name}
+                  />
+                </div>
+              ) : isImage && doc.url ? (
+                <div className="flex items-center justify-center">
+                  <img
+                    src={getAuthenticatedUrl(doc.url, true)}
+                    alt={doc.name}
+                    className="max-w-[600px] max-h-[400px] object-contain rounded shadow-lg"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+                  <FileText className="h-24 w-24 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Предварительный просмотр недоступен
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    Этот тип файла не поддерживает предварительный просмотр.
+                  </p>
+                  {onDownload && (
+                    <Button onClick={onDownload}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Скачать для просмотра
+                    </Button>
+                  )}
+                </div>
               )}
-            </div>
+            </>
+          ) : (
+            <DocumentVersionHistory
+              documentId={Number(doc.id)}
+              currentVersion={doc.metadata.version}
+              onVersionRestored={onDocumentUpdated}
+            />
           )}
         </div>
 

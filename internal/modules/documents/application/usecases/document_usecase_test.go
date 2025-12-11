@@ -120,6 +120,45 @@ func (m *MockDocumentRepository) Search(ctx context.Context, filter repositories
 	return args.Get(0).([]*repositories.SearchResult), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockDocumentRepository) GetLatestVersion(ctx context.Context, documentID int64) (*entities.DocumentVersion, error) {
+	args := m.Called(ctx, documentID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.DocumentVersion), args.Error(1)
+}
+
+func (m *MockDocumentRepository) RestoreVersion(ctx context.Context, documentID int64, version int, userID int64) error {
+	args := m.Called(ctx, documentID, version, userID)
+	return args.Error(0)
+}
+
+func (m *MockDocumentRepository) DeleteVersion(ctx context.Context, documentID int64, version int) error {
+	args := m.Called(ctx, documentID, version)
+	return args.Error(0)
+}
+
+func (m *MockDocumentRepository) CompareVersions(ctx context.Context, documentID int64, fromVersion, toVersion int) (*entities.DocumentVersionDiff, error) {
+	args := m.Called(ctx, documentID, fromVersion, toVersion)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.DocumentVersionDiff), args.Error(1)
+}
+
+func (m *MockDocumentRepository) CreateVersionDiff(ctx context.Context, diff *entities.DocumentVersionDiff) error {
+	args := m.Called(ctx, diff)
+	return args.Error(0)
+}
+
+func (m *MockDocumentRepository) GetVersionDiff(ctx context.Context, documentID int64, fromVersion, toVersion int) (*entities.DocumentVersionDiff, error) {
+	args := m.Called(ctx, documentID, fromVersion, toVersion)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.DocumentVersionDiff), args.Error(1)
+}
+
 // MockDocumentTypeRepository is a mock implementation of DocumentTypeRepository
 type MockDocumentTypeRepository struct {
 	mock.Mock

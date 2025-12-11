@@ -43,18 +43,65 @@ type CategoryTreeNode struct {
 	UpdatedAt     time.Time           `json:"updated_at"`
 }
 
-// DocumentVersion represents a version of a document
+// DocumentVersion represents a version of a document with full snapshot
 type DocumentVersion struct {
-	ID                int64     `db:"id" json:"id"`
-	DocumentID        int64     `db:"document_id" json:"document_id"`
-	Version           int       `db:"version" json:"version"`
-	Content           *string   `db:"content" json:"content,omitempty"`
-	FileName          *string   `db:"file_name" json:"file_name,omitempty"`
-	FilePath          *string   `db:"file_path" json:"file_path,omitempty"`
-	FileSize          *int64    `db:"file_size" json:"file_size,omitempty"`
-	ChangedBy         int64     `db:"changed_by" json:"changed_by"`
-	ChangeDescription *string   `db:"change_description" json:"change_description,omitempty"`
-	CreatedAt         time.Time `db:"created_at" json:"created_at"`
+	ID                int64                  `db:"id" json:"id"`
+	DocumentID        int64                  `db:"document_id" json:"document_id"`
+	Version           int                    `db:"version" json:"version"`
+	Title             *string                `db:"title" json:"title,omitempty"`
+	Subject           *string                `db:"subject" json:"subject,omitempty"`
+	Content           *string                `db:"content" json:"content,omitempty"`
+	Status            *string                `db:"status" json:"status,omitempty"`
+	FileName          *string                `db:"file_name" json:"file_name,omitempty"`
+	FilePath          *string                `db:"file_path" json:"file_path,omitempty"`
+	FileSize          *int64                 `db:"file_size" json:"file_size,omitempty"`
+	MimeType          *string                `db:"mime_type" json:"mime_type,omitempty"`
+	StorageKey        *string                `db:"storage_key" json:"storage_key,omitempty"`
+	Metadata          map[string]interface{} `db:"metadata" json:"metadata,omitempty"`
+	ChangedBy         int64                  `db:"changed_by" json:"changed_by"`
+	ChangedByName     *string                `db:"-" json:"changed_by_name,omitempty"` // Populated via JOIN
+	ChangeDescription *string                `db:"change_description" json:"change_description,omitempty"`
+	CreatedAt         time.Time              `db:"created_at" json:"created_at"`
+}
+
+// DocumentVersionDiff represents a comparison between two document versions
+type DocumentVersionDiff struct {
+	ID            int64                  `db:"id" json:"id"`
+	DocumentID    int64                  `db:"document_id" json:"document_id"`
+	FromVersion   int                    `db:"from_version" json:"from_version"`
+	ToVersion     int                    `db:"to_version" json:"to_version"`
+	ChangedFields []string               `db:"changed_fields" json:"changed_fields"`
+	DiffData      map[string]interface{} `db:"diff_data" json:"diff_data,omitempty"`
+	CreatedAt     time.Time              `db:"created_at" json:"created_at"`
+}
+
+// FieldDiff represents a single field difference between versions
+type FieldDiff struct {
+	Field    string      `json:"field"`
+	OldValue interface{} `json:"old_value"`
+	NewValue interface{} `json:"new_value"`
+}
+
+// NewDocumentVersion creates a new document version from a document
+func NewDocumentVersion(doc *Document, changedBy int64, description string) *DocumentVersion {
+	status := string(doc.Status)
+	return &DocumentVersion{
+		DocumentID:        doc.ID,
+		Version:           doc.Version,
+		Title:             &doc.Title,
+		Subject:           doc.Subject,
+		Content:           doc.Content,
+		Status:            &status,
+		FileName:          doc.FileName,
+		FilePath:          doc.FilePath,
+		FileSize:          doc.FileSize,
+		MimeType:          doc.MimeType,
+		StorageKey:        doc.FilePath,
+		Metadata:          doc.Metadata,
+		ChangedBy:         changedBy,
+		ChangeDescription: &description,
+		CreatedAt:         time.Now(),
+	}
 }
 
 // DocumentTag represents a tag for documents

@@ -11,6 +11,7 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
+	"github.com/lib/pq"
 )
 
 // DocumentRepositoryPG implements DocumentRepository using PostgreSQL
@@ -329,35 +330,66 @@ func (r *DocumentRepositoryPG) GetByStatus(ctx context.Context, status entities.
 	return docs, err
 }
 
-// CreateVersion creates a new document version
+// CreateVersion creates a new document version with full snapshot
 func (r *DocumentRepositoryPG) CreateVersion(ctx context.Context, version *entities.DocumentVersion) error {
+	var metadataJSON interface{} = nil
+	var err error
+	if version.Metadata != nil {
+		metadataJSON, err = json.Marshal(version.Metadata)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata: %w", err)
+		}
+	}
+
 	query := `
-		INSERT INTO document_versions (document_id, version, content, file_name, file_path, file_size, changed_by, change_description, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`
+		INSERT INTO document_versions (
+			document_id, version, title, subject, content, status,
+			file_name, file_path, file_size, mime_type, storage_key,
+			metadata, changed_by, change_description, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		RETURNING id`
 
 	return r.db.QueryRowContext(ctx, query,
-		version.DocumentID, version.Version, version.Content, version.FileName,
-		version.FilePath, version.FileSize, version.ChangedBy, version.ChangeDescription, time.Now(),
+		version.DocumentID, version.Version, version.Title, version.Subject, version.Content, version.Status,
+		version.FileName, version.FilePath, version.FileSize, version.MimeType, version.StorageKey,
+		metadataJSON, version.ChangedBy, version.ChangeDescription, time.Now(),
 	).Scan(&version.ID)
 }
 
-// GetVersions retrieves all versions of a document
+// GetVersions retrieves all versions of a document with user names
 func (r *DocumentRepositoryPG) GetVersions(ctx context.Context, documentID int64) ([]*entities.DocumentVersion, error) {
 	query := `
-		SELECT id, document_id, version, content, file_name, file_path, file_size, changed_by, change_description, created_at
-		FROM document_versions WHERE document_id = $1 ORDER BY version DESC`
+		SELECT dv.id, dv.document_id, dv.version, dv.title, dv.subject, dv.content, dv.status,
+			dv.file_name, dv.file_path, dv.file_size, dv.mime_type, dv.storage_key,
+			dv.metadata, dv.changed_by, dv.change_description, dv.created_at,
+			u.name as changed_by_name
+		FROM document_versions dv
+		LEFT JOIN users u ON dv.changed_by = u.id
+		WHERE dv.document_id = $1
+		ORDER BY dv.version DESC`
 
 	rows, err := r.db.QueryContext(ctx, query, documentID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get versions: %w", err)
 	}
 	defer rows.Close()
 
 	var versions []*entities.DocumentVersion
 	for rows.Next() {
 		v := &entities.DocumentVersion{}
-		if err := rows.Scan(&v.ID, &v.DocumentID, &v.Version, &v.Content, &v.FileName, &v.FilePath, &v.FileSize, &v.ChangedBy, &v.ChangeDescription, &v.CreatedAt); err != nil {
-			return nil, err
+		var metadataJSON []byte
+		if err := rows.Scan(
+			&v.ID, &v.DocumentID, &v.Version, &v.Title, &v.Subject, &v.Content, &v.Status,
+			&v.FileName, &v.FilePath, &v.FileSize, &v.MimeType, &v.StorageKey,
+			&metadataJSON, &v.ChangedBy, &v.ChangeDescription, &v.CreatedAt,
+			&v.ChangedByName,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan version: %w", err)
+		}
+		if metadataJSON != nil {
+			if err := json.Unmarshal(metadataJSON, &v.Metadata); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+			}
 		}
 		versions = append(versions, v)
 	}
@@ -367,17 +399,328 @@ func (r *DocumentRepositoryPG) GetVersions(ctx context.Context, documentID int64
 // GetVersion retrieves a specific version of a document
 func (r *DocumentRepositoryPG) GetVersion(ctx context.Context, documentID int64, version int) (*entities.DocumentVersion, error) {
 	query := `
-		SELECT id, document_id, version, content, file_name, file_path, file_size, changed_by, change_description, created_at
-		FROM document_versions WHERE document_id = $1 AND version = $2`
+		SELECT dv.id, dv.document_id, dv.version, dv.title, dv.subject, dv.content, dv.status,
+			dv.file_name, dv.file_path, dv.file_size, dv.mime_type, dv.storage_key,
+			dv.metadata, dv.changed_by, dv.change_description, dv.created_at,
+			u.name as changed_by_name
+		FROM document_versions dv
+		LEFT JOIN users u ON dv.changed_by = u.id
+		WHERE dv.document_id = $1 AND dv.version = $2`
 
 	v := &entities.DocumentVersion{}
+	var metadataJSON []byte
 	err := r.db.QueryRowContext(ctx, query, documentID, version).Scan(
-		&v.ID, &v.DocumentID, &v.Version, &v.Content, &v.FileName, &v.FilePath, &v.FileSize, &v.ChangedBy, &v.ChangeDescription, &v.CreatedAt,
+		&v.ID, &v.DocumentID, &v.Version, &v.Title, &v.Subject, &v.Content, &v.Status,
+		&v.FileName, &v.FilePath, &v.FileSize, &v.MimeType, &v.StorageKey,
+		&metadataJSON, &v.ChangedBy, &v.ChangeDescription, &v.CreatedAt,
+		&v.ChangedByName,
 	)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("version not found")
 	}
-	return v, err
+	if err != nil {
+		return nil, fmt.Errorf("failed to get version: %w", err)
+	}
+	if metadataJSON != nil {
+		if err := json.Unmarshal(metadataJSON, &v.Metadata); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+		}
+	}
+	return v, nil
+}
+
+// GetLatestVersion retrieves the most recent version of a document
+func (r *DocumentRepositoryPG) GetLatestVersion(ctx context.Context, documentID int64) (*entities.DocumentVersion, error) {
+	query := `
+		SELECT dv.id, dv.document_id, dv.version, dv.title, dv.subject, dv.content, dv.status,
+			dv.file_name, dv.file_path, dv.file_size, dv.mime_type, dv.storage_key,
+			dv.metadata, dv.changed_by, dv.change_description, dv.created_at,
+			u.name as changed_by_name
+		FROM document_versions dv
+		LEFT JOIN users u ON dv.changed_by = u.id
+		WHERE dv.document_id = $1
+		ORDER BY dv.version DESC
+		LIMIT 1`
+
+	v := &entities.DocumentVersion{}
+	var metadataJSON []byte
+	err := r.db.QueryRowContext(ctx, query, documentID).Scan(
+		&v.ID, &v.DocumentID, &v.Version, &v.Title, &v.Subject, &v.Content, &v.Status,
+		&v.FileName, &v.FilePath, &v.FileSize, &v.MimeType, &v.StorageKey,
+		&metadataJSON, &v.ChangedBy, &v.ChangeDescription, &v.CreatedAt,
+		&v.ChangedByName,
+	)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("no versions found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest version: %w", err)
+	}
+	if metadataJSON != nil {
+		if err := json.Unmarshal(metadataJSON, &v.Metadata); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+		}
+	}
+	return v, nil
+}
+
+// RestoreVersion restores a document to a specific version
+func (r *DocumentRepositoryPG) RestoreVersion(ctx context.Context, documentID int64, version int, userID int64) error {
+	// Get the version to restore
+	v, err := r.GetVersion(ctx, documentID, version)
+	if err != nil {
+		return fmt.Errorf("failed to get version to restore: %w", err)
+	}
+
+	// Get current document to create a backup version
+	doc, err := r.GetByID(ctx, documentID)
+	if err != nil {
+		return fmt.Errorf("failed to get current document: %w", err)
+	}
+
+	// Create a backup version of current state
+	backupDescription := fmt.Sprintf("Резервная копия перед восстановлением версии %d", version)
+	backupVersion := entities.NewDocumentVersion(doc, userID, backupDescription)
+	if err := r.CreateVersion(ctx, backupVersion); err != nil {
+		return fmt.Errorf("failed to create backup version: %w", err)
+	}
+
+	// Update document with version data
+	var metadataJSON interface{} = nil
+	if v.Metadata != nil {
+		metadataJSON, err = json.Marshal(v.Metadata)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata: %w", err)
+		}
+	}
+
+	query := `
+		UPDATE documents SET
+			title = COALESCE($1, title),
+			subject = $2,
+			content = $3,
+			file_name = $4,
+			file_path = $5,
+			file_size = $6,
+			mime_type = $7,
+			metadata = $8,
+			version = version + 1,
+			updated_at = NOW()
+		WHERE id = $9 AND deleted_at IS NULL`
+
+	result, err := r.db.ExecContext(ctx, query,
+		v.Title, v.Subject, v.Content, v.FileName, v.FilePath, v.FileSize, v.MimeType,
+		metadataJSON, documentID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to restore version: %w", err)
+	}
+
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("document not found")
+	}
+
+	return nil
+}
+
+// DeleteVersion deletes a specific version (cannot delete current version)
+func (r *DocumentRepositoryPG) DeleteVersion(ctx context.Context, documentID int64, version int) error {
+	// Get current document version
+	doc, err := r.GetByID(ctx, documentID)
+	if err != nil {
+		return fmt.Errorf("failed to get document: %w", err)
+	}
+
+	// Cannot delete current version
+	if doc.Version == version {
+		return fmt.Errorf("cannot delete current version")
+	}
+
+	query := `DELETE FROM document_versions WHERE document_id = $1 AND version = $2`
+	result, err := r.db.ExecContext(ctx, query, documentID, version)
+	if err != nil {
+		return fmt.Errorf("failed to delete version: %w", err)
+	}
+
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("version not found")
+	}
+
+	return nil
+}
+
+// CreateVersionDiff creates a cached diff between two versions
+func (r *DocumentRepositoryPG) CreateVersionDiff(ctx context.Context, diff *entities.DocumentVersionDiff) error {
+	var diffDataJSON interface{} = nil
+	var err error
+	if diff.DiffData != nil {
+		diffDataJSON, err = json.Marshal(diff.DiffData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal diff data: %w", err)
+		}
+	}
+
+	query := `
+		INSERT INTO document_version_diffs (document_id, from_version, to_version, changed_fields, diff_data, created_at)
+		VALUES ($1, $2, $3, $4, $5, NOW())
+		ON CONFLICT (document_id, from_version, to_version) DO UPDATE SET
+			changed_fields = EXCLUDED.changed_fields,
+			diff_data = EXCLUDED.diff_data,
+			created_at = NOW()
+		RETURNING id`
+
+	return r.db.QueryRowContext(ctx, query,
+		diff.DocumentID, diff.FromVersion, diff.ToVersion, pq.Array(diff.ChangedFields), diffDataJSON,
+	).Scan(&diff.ID)
+}
+
+// GetVersionDiff retrieves a cached diff between two versions
+func (r *DocumentRepositoryPG) GetVersionDiff(ctx context.Context, documentID int64, fromVersion, toVersion int) (*entities.DocumentVersionDiff, error) {
+	query := `
+		SELECT id, document_id, from_version, to_version, changed_fields, diff_data, created_at
+		FROM document_version_diffs
+		WHERE document_id = $1 AND from_version = $2 AND to_version = $3`
+
+	diff := &entities.DocumentVersionDiff{}
+	var diffDataJSON []byte
+	err := r.db.QueryRowContext(ctx, query, documentID, fromVersion, toVersion).Scan(
+		&diff.ID, &diff.DocumentID, &diff.FromVersion, &diff.ToVersion,
+		pq.Array(&diff.ChangedFields), &diffDataJSON, &diff.CreatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil // Not found, will need to compute
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get version diff: %w", err)
+	}
+	if diffDataJSON != nil {
+		if err := json.Unmarshal(diffDataJSON, &diff.DiffData); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal diff data: %w", err)
+		}
+	}
+	return diff, nil
+}
+
+// CompareVersions computes the difference between two versions
+func (r *DocumentRepositoryPG) CompareVersions(ctx context.Context, documentID int64, fromVersion, toVersion int) (*entities.DocumentVersionDiff, error) {
+	// Check if we have a cached diff
+	cachedDiff, err := r.GetVersionDiff(ctx, documentID, fromVersion, toVersion)
+	if err != nil {
+		return nil, err
+	}
+	if cachedDiff != nil {
+		return cachedDiff, nil
+	}
+
+	// Get both versions
+	v1, err := r.GetVersion(ctx, documentID, fromVersion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get from version: %w", err)
+	}
+	v2, err := r.GetVersion(ctx, documentID, toVersion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get to version: %w", err)
+	}
+
+	// Compute differences
+	changedFields := []string{}
+	diffData := make(map[string]interface{})
+
+	// Compare title
+	if !strPtrEqual(v1.Title, v2.Title) {
+		changedFields = append(changedFields, "title")
+		diffData["title"] = map[string]interface{}{"from": ptrToStr(v1.Title), "to": ptrToStr(v2.Title)}
+	}
+
+	// Compare subject
+	if !strPtrEqual(v1.Subject, v2.Subject) {
+		changedFields = append(changedFields, "subject")
+		diffData["subject"] = map[string]interface{}{"from": ptrToStr(v1.Subject), "to": ptrToStr(v2.Subject)}
+	}
+
+	// Compare content
+	if !strPtrEqual(v1.Content, v2.Content) {
+		changedFields = append(changedFields, "content")
+		diffData["content"] = map[string]interface{}{"from": ptrToStr(v1.Content), "to": ptrToStr(v2.Content)}
+	}
+
+	// Compare status
+	if !strPtrEqual(v1.Status, v2.Status) {
+		changedFields = append(changedFields, "status")
+		diffData["status"] = map[string]interface{}{"from": ptrToStr(v1.Status), "to": ptrToStr(v2.Status)}
+	}
+
+	// Compare file_name
+	if !strPtrEqual(v1.FileName, v2.FileName) {
+		changedFields = append(changedFields, "file_name")
+		diffData["file_name"] = map[string]interface{}{"from": ptrToStr(v1.FileName), "to": ptrToStr(v2.FileName)}
+	}
+
+	// Compare file_path
+	if !strPtrEqual(v1.FilePath, v2.FilePath) {
+		changedFields = append(changedFields, "file_path")
+		diffData["file_path"] = map[string]interface{}{"from": ptrToStr(v1.FilePath), "to": ptrToStr(v2.FilePath)}
+	}
+
+	// Compare file_size
+	if !int64PtrEqual(v1.FileSize, v2.FileSize) {
+		changedFields = append(changedFields, "file_size")
+		diffData["file_size"] = map[string]interface{}{"from": ptrToInt64(v1.FileSize), "to": ptrToInt64(v2.FileSize)}
+	}
+
+	diff := &entities.DocumentVersionDiff{
+		DocumentID:    documentID,
+		FromVersion:   fromVersion,
+		ToVersion:     toVersion,
+		ChangedFields: changedFields,
+		DiffData:      diffData,
+		CreatedAt:     time.Now(),
+	}
+
+	// Cache the diff for future use
+	if err := r.CreateVersionDiff(ctx, diff); err != nil {
+		// Log but don't fail - caching is optional
+		fmt.Printf("Warning: failed to cache version diff: %v\n", err)
+	}
+
+	return diff, nil
+}
+
+// Helper functions for comparison
+func strPtrEqual(a, b *string) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+
+func int64PtrEqual(a, b *int64) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+
+func ptrToStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func ptrToInt64(i *int64) int64 {
+	if i == nil {
+		return 0
+	}
+	return *i
 }
 
 // AddHistory adds a history entry

@@ -155,6 +155,7 @@ func main() {
 	// Initialize documents module
 	var docUseCase *docUsecases.DocumentUseCase
 	var sharingUseCase *docUsecases.SharingUseCase
+	var docVersionUseCase *docUsecases.DocumentVersionUseCase
 	if s3Client != nil {
 		docRepo := docPersistence.NewDocumentRepositoryPG(db)
 		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
@@ -163,6 +164,7 @@ func main() {
 		publicLinkRepo := docPersistence.NewPublicLinkRepositoryPG(db)
 		docUseCase = docUsecases.NewDocumentUseCase(docRepo, docTypeRepo, docCategoryRepo, s3Client, auditLogger)
 		sharingUseCase = docUsecases.NewSharingUseCase(docRepo, permissionRepo, publicLinkRepo, auditLogger, cfg.Server.BaseURL)
+		docVersionUseCase = docUsecases.NewDocumentVersionUseCase(docRepo, s3Client, auditLogger)
 		logger.Info("Documents module initialized", nil)
 	} else {
 		logger.Warn("Documents module not initialized - S3 storage not available", nil)
@@ -263,6 +265,7 @@ func main() {
 		authUseCase,
 		docUseCase,
 		sharingUseCase,
+		docVersionUseCase,
 		reportUseCase,
 		taskUseCase,
 		projectUseCase,
@@ -410,6 +413,7 @@ func setupRoutes(
 	authUseCase *usecases.AuthUseCase,
 	docUseCase *docUsecases.DocumentUseCase,
 	sharingUseCase *docUsecases.SharingUseCase,
+	docVersionUseCase *docUsecases.DocumentVersionUseCase,
 	reportUseCase *reportUsecases.ReportUseCase,
 	taskUseCase *taskUsecases.TaskUseCase,
 	projectUseCase *taskUsecases.ProjectUseCase,
@@ -619,6 +623,29 @@ func setupRoutes(
 				protectedGroup.OPTIONS("/documents/:id/public-links/:linkId/deactivate", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 
 				logger.Info("Document sharing routes registered", nil)
+			}
+
+			// Document version control routes
+			if docVersionUseCase != nil {
+				versionHandlerInstance := docHandler.NewVersionHandler(docVersionUseCase)
+
+				// Version routes - must be before /:id to avoid route conflicts
+				documentsGroup.GET("/:id/versions/compare", versionHandlerInstance.CompareVersions)
+				documentsGroup.GET("/:id/versions", versionHandlerInstance.GetVersions)
+				documentsGroup.POST("/:id/versions", versionHandlerInstance.CreateVersion)
+				documentsGroup.GET("/:id/versions/:version", versionHandlerInstance.GetVersion)
+				documentsGroup.DELETE("/:id/versions/:version", versionHandlerInstance.DeleteVersion)
+				documentsGroup.POST("/:id/versions/:version/restore", versionHandlerInstance.RestoreVersion)
+				documentsGroup.GET("/:id/versions/:version/file", versionHandlerInstance.GetVersionFile)
+
+				// CORS preflight handlers for version routes
+				documentsGroup.OPTIONS("/:id/versions", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				documentsGroup.OPTIONS("/:id/versions/compare", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				documentsGroup.OPTIONS("/:id/versions/:version", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				documentsGroup.OPTIONS("/:id/versions/:version/restore", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				documentsGroup.OPTIONS("/:id/versions/:version/file", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+				logger.Info("Document version control routes registered", nil)
 			}
 
 			// Document types and categories (reference data)

@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   File,
   Share2,
+  Pencil,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,8 +28,10 @@ interface DocumentListProps {
   onDownload?: (document: Document) => void
   onDelete?: (document: Document) => void
   onShare?: (document: Document) => void
+  onEdit?: (document: Document) => void
   canDelete?: (document: Document) => boolean
   canShare?: (document: Document) => boolean
+  canEdit?: (document: Document) => boolean
   isLoading?: boolean
   className?: string
 }
@@ -70,8 +73,10 @@ export function DocumentList({
   onDownload,
   onDelete,
   onShare,
+  onEdit,
   canDelete,
   canShare,
+  canEdit,
   isLoading = false,
   className = '',
 }: DocumentListProps) {
@@ -240,6 +245,16 @@ export function DocumentList({
                     Просмотр
                   </Button>
                 )}
+                {onEdit && doc.status === DocumentStatus.READY && (!canEdit || canEdit(doc)) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onEdit(doc)}
+                    title="Редактировать"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
                 {onShare && doc.status === DocumentStatus.READY && (!canShare || canShare(doc)) && (
                   <Button
                     variant="outline"
@@ -343,6 +358,16 @@ export function DocumentList({
                   <Button variant="outline" size="sm" onClick={() => onPreview(doc)}>
                     <Eye className="h-4 w-4 mr-1" />
                     Просмотр
+                  </Button>
+                )}
+                {onEdit && doc.status === DocumentStatus.READY && (!canEdit || canEdit(doc)) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onEdit(doc)}
+                    title="Редактировать"
+                  >
+                    <Pencil className="h-4 w-4" />
                   </Button>
                 )}
                 {onShare && doc.status === DocumentStatus.READY && (!canShare || canShare(doc)) && (
