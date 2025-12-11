@@ -2,14 +2,17 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useAuthCheck } from '@/hooks/useAuth'
+import { UserRole } from '@/types/auth'
 import { AppLayout } from '@/components/layout'
 import { GlowingEffect } from '@/components/ui/glowing-effect'
 import { Button } from '@/components/ui/button'
-import { Upload, FileText } from 'lucide-react'
+import { Upload, FileText, Users } from 'lucide-react'
+import Link from 'next/link'
 import { DocumentUploadComponent } from '@/components/documents/DocumentUpload'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { DocumentFilters } from '@/components/documents/DocumentFilters'
 import { DocumentPreview } from '@/components/documents/DocumentPreview'
+import { ShareDocumentDialog } from '@/components/documents/ShareDocumentDialog'
 import {
   Document,
   DocumentCategory,
@@ -62,6 +65,7 @@ const mapDocumentInfoToDocument = (doc: DocumentInfo): Document => {
       uploadedBy: doc.author_name || 'Неизвестно',
       uploadedAt: new Date(doc.created_at),
     },
+    authorId: doc.author_id,
   }
 }
 
@@ -94,6 +98,7 @@ const mapSearchResultToDocument = (result: SearchResultItem): DocumentWithHighli
       uploadedBy: doc.author_name || 'Неизвестно',
       uploadedAt: new Date(doc.created_at),
     },
+    authorId: doc.author_id,
     highlighted: {
       title: result.highlighted_title,
       subject: result.highlighted_subject,
@@ -108,6 +113,7 @@ export default function DocumentsPage() {
   const userCanEdit = canEdit(user?.role)
   const [showUpload, setShowUpload] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
+  const [sharingDocument, setSharingDocument] = useState<Document | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [_isLoading, setIsLoading] = useState(true)
@@ -269,6 +275,10 @@ export default function DocumentsPage() {
     }
   }
 
+  const handleShare = (doc: Document) => {
+    setSharingDocument(doc)
+  }
+
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
@@ -282,29 +292,34 @@ export default function DocumentsPage() {
           </p>
         </div>
 
-        {/* Upload Button - only for users with edit permissions */}
-        {userCanEdit && (
-          <div className="flex justify-end">
-            <Button onClick={() => setShowUpload(!showUpload)} className="flex items-center gap-2">
-              {showUpload ? (
-                <>
-                  <FileText className="h-4 w-4" />
-                  <span className="hidden sm:inline">Показать документы</span>
-                  <span className="sm:hidden">Документы</span>
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4" />
-                  <span className="hidden sm:inline">Загрузить документы</span>
-                  <span className="sm:hidden">Загрузить</span>
-                </>
-              )}
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-2">
+          <Link href="/documents/shared">
+            <Button variant="outline" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Общие документы</span>
+              <span className="sm:hidden">Общие</span>
             </Button>
-          </div>
-        )}
+          </Link>
+          <Button onClick={() => setShowUpload(!showUpload)} className="flex items-center gap-2">
+            {showUpload ? (
+              <>
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Показать документы</span>
+                <span className="sm:hidden">Документы</span>
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4" />
+                <span className="hidden sm:inline">Загрузить документы</span>
+                <span className="sm:hidden">Загрузить</span>
+              </>
+            )}
+          </Button>
+        </div>
 
-        {/* Upload Section - only for users with edit permissions */}
-        {showUpload && userCanEdit ? (
+        {/* Upload Section */}
+        {showUpload ? (
           <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
             <GlowingEffect
               spread={40}
@@ -385,7 +400,12 @@ export default function DocumentsPage() {
                   documents={filteredAndSortedDocuments}
                   onPreview={handlePreview}
                   onDownload={handleDownload}
-                  onDelete={userCanEdit ? handleDelete : undefined}
+                  onDelete={handleDelete}
+                  onShare={userCanEdit ? handleShare : undefined}
+                  canDelete={(doc) =>
+                    user?.role === UserRole.SYSTEM_ADMIN || doc.authorId === user?.id
+                  }
+                  canShare={() => userCanEdit}
                 />
               </div>
             </div>
@@ -401,6 +421,14 @@ export default function DocumentsPage() {
           onDownload={() => handleDownload(selectedDocument)}
         />
       )}
+
+      {/* Share Document Dialog */}
+      <ShareDocumentDialog
+        open={sharingDocument !== null}
+        onOpenChange={(open) => !open && setSharingDocument(null)}
+        documentId={sharingDocument?.id ? Number(sharingDocument.id) : 0}
+        documentTitle={sharingDocument?.name || ''}
+      />
     </AppLayout>
   )
 }

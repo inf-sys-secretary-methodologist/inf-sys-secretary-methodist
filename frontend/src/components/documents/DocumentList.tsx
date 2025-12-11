@@ -11,6 +11,7 @@ import {
   FileImage,
   FileSpreadsheet,
   File,
+  Share2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,6 +26,9 @@ interface DocumentListProps {
   onPreview?: (document: Document) => void
   onDownload?: (document: Document) => void
   onDelete?: (document: Document) => void
+  onShare?: (document: Document) => void
+  canDelete?: (document: Document) => boolean
+  canShare?: (document: Document) => boolean
   isLoading?: boolean
   className?: string
 }
@@ -65,6 +69,9 @@ export function DocumentList({
   onPreview,
   onDownload,
   onDelete,
+  onShare,
+  canDelete,
+  canShare,
   isLoading = false,
   className = '',
 }: DocumentListProps) {
@@ -233,12 +240,22 @@ export function DocumentList({
                     Просмотр
                   </Button>
                 )}
+                {onShare && doc.status === DocumentStatus.READY && (!canShare || canShare(doc)) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onShare(doc)}
+                    title="Поделиться"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                )}
                 {onDownload && doc.status === DocumentStatus.READY && (
                   <Button variant="outline" size="sm" onClick={() => onDownload(doc)}>
                     <Download className="h-4 w-4" />
                   </Button>
                 )}
-                {onDelete && (
+                {onDelete && (!canDelete || canDelete(doc)) && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -328,12 +345,22 @@ export function DocumentList({
                     Просмотр
                   </Button>
                 )}
+                {onShare && doc.status === DocumentStatus.READY && (!canShare || canShare(doc)) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onShare(doc)}
+                    title="Поделиться"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                )}
                 {onDownload && doc.status === DocumentStatus.READY && (
                   <Button variant="outline" size="sm" onClick={() => onDownload(doc)}>
                     <Download className="h-4 w-4" />
                   </Button>
                 )}
-                {onDelete && (
+                {onDelete && (!canDelete || canDelete(doc)) && (
                   <Button
                     variant="outline"
                     size="sm"

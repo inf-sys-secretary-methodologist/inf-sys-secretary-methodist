@@ -269,6 +269,14 @@ func (h *DocumentHandler) List(c *gin.Context) {
 		filter.PageSize = 100
 	}
 
+	// Extract user context for access control
+	if userID, exists := c.Get("user_id"); exists {
+		filter.CurrentUserID = userID.(int64)
+	}
+	if userRole, exists := c.Get("role"); exists {
+		filter.CurrentUserRole = userRole.(string)
+	}
+
 	ctx := c.Request.Context()
 	result, err := h.usecase.List(ctx, filter)
 	if err != nil {
@@ -501,6 +509,14 @@ func (h *DocumentHandler) Search(c *gin.Context) {
 	}
 	if input.PageSize > 100 {
 		input.PageSize = 100
+	}
+
+	// Extract user context for access control
+	if userID, exists := c.Get("user_id"); exists {
+		input.CurrentUserID = userID.(int64)
+	}
+	if userRole, exists := c.Get("role"); exists {
+		input.CurrentUserRole = userRole.(string)
 	}
 
 	ctx := c.Request.Context()

@@ -1,0 +1,732 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Модуль Workflow - Согласование документов",
+        "description": "Реализация полноценного workflow согласования документов с поддержкой параллельного и последовательного согласования",
+        "details": "Модуль должен включать: настраиваемые маршруты согласования, историю согласований, уведомления участникам, делегирование полномочий, отклонение с комментариями, таймауты и напоминания. Следовать паттернам Clean Architecture проекта.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "2"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Domain entities для Workflow",
+            "description": "Создать entities: WorkflowTemplate, WorkflowInstance, ApprovalStep, ApprovalAction",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 2,
+            "title": "Repository interfaces для Workflow",
+            "description": "Определить интерфейсы WorkflowTemplateRepository, WorkflowInstanceRepository",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 3,
+            "title": "PostgreSQL реализация репозиториев Workflow",
+            "description": "Реализовать репозитории с PostgreSQL, создать миграции БД",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 4,
+            "title": "Use cases для Workflow",
+            "description": "Реализовать use cases: CreateWorkflow, StartApproval, ApproveStep, RejectStep, DelegateApproval",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 5,
+            "title": "HTTP handlers для Workflow API",
+            "description": "Реализовать REST API endpoints для управления workflow",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 6,
+            "title": "Интеграция с уведомлениями",
+            "description": "Интегрировать Workflow с модулем notifications для отправки уведомлений",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 7,
+            "title": "Unit и integration тесты Workflow",
+            "description": "Написать тесты для use cases и handlers модуля Workflow",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Модуль Users - Управление пользователями",
+        "description": "Расширенное управление пользователями: CRUD операции, управление ролями и организационной структурой",
+        "details": "Включает: CRUD операции для администраторов, управление ролями и правами, организационную структуру (подразделения, должности), импорт/экспорт пользователей, деактивацию учётных записей, историю изменений профиля.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Domain entities для Users",
+            "description": "Создать entities: Department, Position, UserProfile с организационной структурой",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 2
+          },
+          {
+            "id": 2,
+            "title": "Repository и PostgreSQL реализация Users",
+            "description": "Определить интерфейсы и реализовать репозитории для Department, Position",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 2
+          },
+          {
+            "id": 3,
+            "title": "CRUD use cases для Users",
+            "description": "Реализовать use cases для управления пользователями, подразделениями, должностями",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 2
+          },
+          {
+            "id": 4,
+            "title": "Импорт/экспорт пользователей CSV",
+            "description": "Реализовать функционал импорта и экспорта пользователей в формате CSV",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 2
+          },
+          {
+            "id": 5,
+            "title": "HTTP handlers и тесты Users",
+            "description": "Реализовать REST API endpoints и написать тесты",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 2
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Модуль Files - Файловое хранилище MinIO",
+        "description": "Интеграция с MinIO для хранения файлов документов",
+        "details": "Включает: загрузку/скачивание файлов, привязку к документам, версионирование файлов, превью документов, сканирование на вирусы, квоты хранилища. Использовать S3-совместимый API.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "MinIO client и конфигурация",
+            "description": "Настроить MinIO client, добавить конфигурацию в shared/config",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 2,
+            "title": "Domain entities для Files",
+            "description": "Создать entities: FileMetadata, FileVersion с привязкой к документам",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 3,
+            "title": "Repository и PostgreSQL реализация Files",
+            "description": "Реализовать репозитории для метаданных файлов, создать миграции",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 4,
+            "title": "Use cases для Files",
+            "description": "Реализовать use cases: UploadFile, DownloadFile, DeleteFile, GetFileVersions",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 5,
+            "title": "HTTP handlers и тесты Files",
+            "description": "Реализовать REST API для upload/download файлов, написать тесты",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Модуль Integration - Интеграция с 1С",
+        "description": "Обмен данными с системой 1С: синхронизация справочников и финансовых данных",
+        "details": "Включает: синхронизацию справочников сотрудников и студентов, обмен финансовыми данными, API для двустороннего обмена, логирование операций, обработку конфликтов. Использовать REST API 1С.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "2"
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Domain entities для Integration",
+            "description": "Создать entities: SyncLog, ExternalEmployee, ExternalStudent, SyncConflict",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 4
+          },
+          {
+            "id": 2,
+            "title": "1С REST API клиент",
+            "description": "Реализовать HTTP клиент для взаимодействия с REST API 1С",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 4
+          },
+          {
+            "id": 3,
+            "title": "Синхронизация сотрудников и студентов",
+            "description": "Реализовать use cases синхронизации справочников с 1С",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 4
+          },
+          {
+            "id": 4,
+            "title": "Обработка конфликтов синхронизации",
+            "description": "Реализовать механизм обнаружения и разрешения конфликтов данных",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 4
+          },
+          {
+            "id": 5,
+            "title": "Логирование и мониторинг интеграции",
+            "description": "Добавить детальное логирование операций синхронизации",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 4
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Полнотекстовый поиск документов",
+        "description": "Добавление полнотекстового поиска по содержимому документов",
+        "details": "Включает: индексацию содержимого документов, поиск по тексту и метаданным, фильтрацию результатов, подсветку найденного текста. Использовать PostgreSQL Full-Text Search.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Настройка PostgreSQL Full-Text Search",
+            "description": "Создать tsvector колонки и GIN индексы для документов",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 5
+          },
+          {
+            "id": 2,
+            "title": "Search use case и repository",
+            "description": "Реализовать SearchDocuments use case с фильтрацией и пагинацией",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 5
+          },
+          {
+            "id": 3,
+            "title": "Search API endpoint и подсветка",
+            "description": "Реализовать REST API поиска с подсветкой найденного текста",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 5
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Версионирование документов",
+        "description": "Отслеживание истории изменений документов с возможностью сравнения и отката",
+        "details": "Включает: сохранение версий документа, сравнение версий (diff), откат к предыдущей версии, метаданные изменений (автор, дата, комментарий).",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "3"
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Domain entity DocumentVersion",
+            "description": "Создать entity DocumentVersion с метаданными изменений",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 6
+          },
+          {
+            "id": 2,
+            "title": "Version repository и миграции",
+            "description": "Реализовать репозиторий версий и создать миграции БД",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 6
+          },
+          {
+            "id": 3,
+            "title": "Use cases версионирования",
+            "description": "Реализовать CreateVersion, GetVersions, RestoreVersion, CompareVersions",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 6
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Шаблоны документов",
+        "description": "Система шаблонов для быстрого создания типовых документов",
+        "details": "Включает: создание и редактирование шаблонов, подстановку полей из базы данных, категоризацию шаблонов, клонирование документа из шаблона.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "6"
+        ],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Расширение системы уведомлений",
+        "description": "Дополнительные каналы уведомлений: in-app и push-уведомления",
+        "details": "Включает: in-app уведомления через WebSocket, push-уведомления, настройки предпочтений пользователя, историю уведомлений. Интеграция с существующим модулем notifications.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Автоматическое составление расписания",
+        "description": "Алгоритм оптимизации расписания с учётом ограничений",
+        "details": "Включает: учёт ограничений (аудитории, преподаватели, группы), оптимизацию по критериям, выявление и разрешение коллизий, предложения по замене.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Электронная подпись документов",
+        "description": "Интеграция электронной подписи для юридически значимых документов",
+        "details": "Включает: поддержку УКЭП/УНЭП, подписание документов, проверку подписи, хранение сертификатов. Интеграция с КриптоПро или другими СКЗИ.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Multi-language support (i18n)",
+        "description": "Добавить поддержку мультиязычности в приложение (GitHub #42)",
+        "details": "Включает: настройку i18n библиотеки, перевод UI на несколько языков, переключатель языков, локализацию дат и чисел.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Integration with external calendars",
+        "description": "Интеграция с внешними календарями Google Calendar, Outlook (GitHub #40)",
+        "details": "Включает: OAuth интеграцию с календарями, синхронизацию событий, экспорт расписания в iCal формат.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Mobile-responsive PWA",
+        "description": "Создание Progressive Web App с мобильной адаптивностью (GitHub #39)",
+        "details": "Включает: service worker, manifest.json, offline режим, push-уведомления, установка на устройство.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Data backup strategy",
+        "description": "Реализация стратегии резервного копирования данных (GitHub #38)",
+        "details": "Включает: автоматическое резервное копирование PostgreSQL, бэкапы MinIO, восстановление данных, ротацию бэкапов.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "E2E testing with Playwright",
+        "description": "Добавление E2E тестирования с Playwright (GitHub #33)",
+        "details": "Включает: настройку Playwright, написание E2E тестов для критичных сценариев, интеграцию с CI/CD.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Improve accessibility (a11y)",
+        "description": "Улучшение доступности приложения (GitHub #30)",
+        "details": "Включает: ARIA атрибуты, клавиатурную навигацию, контрастность, скринридер совместимость, WCAG 2.1 AA.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Dark/light theme support",
+        "description": "Добавить поддержку тёмной и светлой темы (GitHub #29)",
+        "details": "Включает: переключатель темы, сохранение предпочтений пользователя, CSS переменные для цветов, системные настройки темы.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Advanced filtering system",
+        "description": "Создание продвинутой системы фильтрации (GitHub #26)",
+        "details": "Включает: множественные фильтры, сохранение фильтров, комбинирование условий AND/OR, быстрые фильтры.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Communication UI",
+        "description": "Создание UI для системы коммуникаций (GitHub #24)",
+        "details": "Включает: интерфейс чата, список диалогов, уведомления о новых сообщениях, индикаторы онлайн-статуса.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Internal messaging system",
+        "description": "Реализация внутренней системы сообщений (GitHub #22)",
+        "details": "Включает: отправку/получение сообщений, групповые чаты, вложения файлов, прочитанные/непрочитанные, WebSocket для реального времени.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Custom report builder",
+        "description": "Добавление конструктора пользовательских отчётов (GitHub #21)",
+        "details": "Включает: drag-and-drop конструктор, выбор полей и фильтров, экспорт в PDF/Excel, сохранение шаблонов отчётов.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 22,
+        "title": "Document sharing and permissions",
+        "description": "Добавление функционала шаринга документов и разграничения прав (GitHub #13)",
+        "details": "Включает: шаринг с конкретными пользователями, уровни доступа (просмотр/редактирование), публичные ссылки, отзыв доступа.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-12-07T21:22:42.131Z",
+      "description": "Default tasks context",
+      "updated": "2025-12-08T06:40:40.392Z"
+    }
+  },
+  "mvp": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "Users module - Управление пользователями",
+        "description": "GitHub #136 - Реализация модуля управления пользователями",
+        "details": "CRUD операции, организационная структура (подразделения, должности), импорт/экспорт CSV. Базовая зависимость для Workflow и Integration.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2025-12-09T10:22:16.950Z"
+      },
+      {
+        "id": "2",
+        "title": "Files module - MinIO хранилище",
+        "description": "GitHub #137 - Интеграция файлового хранилища MinIO",
+        "details": "Upload/download файлов, привязка к документам, S3-совместимый API. Базовая зависимость для Version control.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2025-12-09T10:55:10.200Z"
+      },
+      {
+        "id": "3",
+        "title": "Full-text search - Полнотекстовый поиск",
+        "description": "GitHub #25 - Полнотекстовый поиск документов",
+        "details": "PostgreSQL Full-Text Search, индексация, фильтрация, подсветка результатов.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2025-12-09T17:22:35.815Z"
+      },
+      {
+        "id": "4",
+        "title": "Workflow automation - Согласование документов",
+        "description": "GitHub #41 - Автоматизация workflow согласования",
+        "details": "Маршруты согласования, история, уведомления, делегирование. Зависит от Users module.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "1"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "5",
+        "title": "Version control - Версионирование документов",
+        "description": "GitHub #12 - Версионирование документов",
+        "details": "Сохранение версий, сравнение (diff), откат, метаданные изменений. Зависит от Files module.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "2"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "6",
+        "title": "Document sharing - Шаринг и права доступа",
+        "description": "GitHub #13 - Шаринг документов и разграничение прав",
+        "details": "Шаринг с пользователями, уровни доступа, публичные ссылки.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2025-12-11T11:57:48.749Z"
+      },
+      {
+        "id": "7",
+        "title": "Integration 1C - Интеграция с 1С",
+        "description": "GitHub #138 - Обмен данными с системой 1С",
+        "details": "Синхронизация справочников сотрудников/студентов, REST API клиент. Зависит от Users module.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "1"
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": "8",
+        "title": "Notifications - Уведомления и напоминания",
+        "description": "GitHub #17 - Система уведомлений и напоминаний",
+        "details": "In-app уведомления, напоминания о сроках, настройки предпочтений.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": "9",
+        "title": "E2E testing - Тестирование Playwright",
+        "description": "GitHub #33 - E2E тестирование с Playwright",
+        "details": "Настройка Playwright, E2E тесты критичных сценариев, CI/CD интеграция.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": "10",
+        "title": "Backup strategy - Резервное копирование",
+        "description": "GitHub #38 - Стратегия резервного копирования",
+        "details": "Автоматический бэкап PostgreSQL и MinIO, восстановление, ротация.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": "11",
+        "title": "Document templates - Шаблоны документов",
+        "description": "GitHub #75 - Система шаблонов документов",
+        "details": "Создание шаблонов, подстановка полей, категоризация. Зависит от Version control.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "5"
+        ],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": "12",
+        "title": "Auto schedule - Автоматическое расписание",
+        "description": "GitHub #139 - Алгоритм автоматического составления расписания",
+        "details": "CSP алгоритм, учёт ограничений, оптимизация, разрешение коллизий.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": "13",
+        "title": "Electronic signature - Электронная подпись",
+        "description": "GitHub #140 - Интеграция электронной подписи",
+        "details": "УКЭП/УНЭП, подписание документов, интеграция с КриптоПро.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": "14",
+        "title": "Market analysis - Анализ рынка",
+        "description": "GitHub #80 - Анализ рынка и ценообразование",
+        "details": "Документация по анализу аналогичных систем и ценообразованию.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": "15",
+        "title": "Advanced filtering - Расширенная фильтрация",
+        "description": "GitHub #26 - Создание системы расширенной фильтрации",
+        "details": "Расширенная система фильтрации для поиска документов. Frontend задача.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": "16",
+        "title": "Dark/Light theme - Поддержка тем оформления",
+        "description": "GitHub #29 - Добавление поддержки тёмной/светлой темы",
+        "details": "Переключение между тёмной и светлой темой интерфейса. Frontend задача.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": "17",
+        "title": "Fix document access control - filter documents by user permissions",
+        "description": "Currently the GET /api/documents endpoint returns ALL documents from the database to every authenticated user. This is a security issue. Documents should only be visible to: 1) The author/owner, 2) Users with explicit permissions via document_permissions table, 3) Public documents (is_public=true), 4) Admin users can see all",
+        "details": "The fix requires changes to:\n\n1. DocumentHandler.List - extract user_id and user_role from context\n2. DocumentFilterInput DTO - add UserID field for access control\n3. DocumentFilter in repository - add UserID and UserRole fields  \n4. DocumentRepositoryPG.List - modify SQL query to filter by access:\n   - WHERE (d.author_id = $userID OR d.is_public = true OR EXISTS (SELECT 1 FROM document_permissions dp WHERE dp.document_id = d.id AND (dp.user_id = $userID OR dp.role = $userRole)))\n\n5. DocumentUseCase.List - pass user context to repository\n\nSimilar fix needed for Search endpoint.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2025-12-11T11:04:03.447Z"
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2025-12-11T11:57:48.750Z",
+      "taskCount": 17,
+      "completedCount": 5,
+      "tags": [
+        "mvp"
+      ]
+    }
+  }
+}

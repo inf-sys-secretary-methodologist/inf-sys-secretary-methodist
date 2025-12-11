@@ -167,7 +167,7 @@ func (r *DocumentRepositoryPG) SoftDelete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// List retrieves documents with filters
+// List retrieves documents with filters and access control
 func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.DocumentFilter) ([]*entities.Document, int64, error) {
 	var conditions []string
 	var args []interface{}
@@ -175,6 +175,27 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 
 	if !filter.IncludeDeleted {
 		conditions = append(conditions, "d.deleted_at IS NULL")
+	}
+
+	// Access control: user can see documents if:
+	// 1. They are the author
+	// 2. Document is public
+	// 3. They have explicit permission via document_permissions
+	// 4. They are admin (can see all)
+	if filter.CurrentUserID > 0 && filter.CurrentUserRole != "admin" {
+		accessCondition := fmt.Sprintf(`(
+			d.author_id = $%d
+			OR d.is_public = true
+			OR EXISTS (
+				SELECT 1 FROM document_permissions dp
+				WHERE dp.document_id = d.id
+				AND (dp.expires_at IS NULL OR dp.expires_at > NOW())
+				AND (dp.user_id = $%d OR dp.role = $%d)
+			)
+		)`, argIndex, argIndex, argIndex+1)
+		conditions = append(conditions, accessCondition)
+		args = append(args, filter.CurrentUserID, filter.CurrentUserRole)
+		argIndex += 2
 	}
 
 	if filter.AuthorID != nil {
@@ -478,6 +499,27 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 	// Add deleted filter
 	if !filter.IncludeDeleted {
 		conditions = append(conditions, "d.deleted_at IS NULL")
+	}
+
+	// Access control: user can see documents if:
+	// 1. They are the author
+	// 2. Document is public
+	// 3. They have explicit permission via document_permissions
+	// 4. They are admin (can see all)
+	if filter.CurrentUserID > 0 && filter.CurrentUserRole != "admin" {
+		accessCondition := fmt.Sprintf(`(
+			d.author_id = $%d
+			OR d.is_public = true
+			OR EXISTS (
+				SELECT 1 FROM document_permissions dp
+				WHERE dp.document_id = d.id
+				AND (dp.expires_at IS NULL OR dp.expires_at > NOW())
+				AND (dp.user_id = $%d OR dp.role = $%d)
+			)
+		)`, argIndex, argIndex, argIndex+1)
+		conditions = append(conditions, accessCondition)
+		args = append(args, filter.CurrentUserID, filter.CurrentUserRole)
+		argIndex += 2
 	}
 
 	// Add optional filters
