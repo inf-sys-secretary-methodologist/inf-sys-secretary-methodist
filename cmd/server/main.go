@@ -54,6 +54,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/metrics"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
 func main() {
@@ -153,11 +154,15 @@ func main() {
 
 	// Initialize documents module
 	var docUseCase *docUsecases.DocumentUseCase
+	var sharingUseCase *docUsecases.SharingUseCase
 	if s3Client != nil {
 		docRepo := docPersistence.NewDocumentRepositoryPG(db)
 		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
 		docCategoryRepo := docPersistence.NewDocumentCategoryRepositoryPG(db)
+		permissionRepo := docPersistence.NewPermissionRepositoryPG(db)
+		publicLinkRepo := docPersistence.NewPublicLinkRepositoryPG(db)
 		docUseCase = docUsecases.NewDocumentUseCase(docRepo, docTypeRepo, docCategoryRepo, s3Client, auditLogger)
+		sharingUseCase = docUsecases.NewSharingUseCase(docRepo, permissionRepo, publicLinkRepo, auditLogger, cfg.Server.BaseURL)
 		logger.Info("Documents module initialized", nil)
 	} else {
 		logger.Warn("Documents module not initialized - S3 storage not available", nil)
@@ -250,10 +255,14 @@ func main() {
 	)
 	loggingMiddleware := appMiddleware.NewLoggingMiddleware(logger)
 
+	// Initialize validator
+	validator := validation.NewValidator()
+
 	// Setup router with all middleware
 	router := setupRoutes(
 		authUseCase,
 		docUseCase,
+		sharingUseCase,
 		reportUseCase,
 		taskUseCase,
 		projectUseCase,
@@ -275,6 +284,7 @@ func main() {
 		db,
 		redisCache,
 		userRepo,
+		validator,
 	)
 
 	// Create HTTP server
@@ -399,6 +409,7 @@ func initAuthModule(
 func setupRoutes(
 	authUseCase *usecases.AuthUseCase,
 	docUseCase *docUsecases.DocumentUseCase,
+	sharingUseCase *docUsecases.SharingUseCase,
 	reportUseCase *reportUsecases.ReportUseCase,
 	taskUseCase *taskUsecases.TaskUseCase,
 	projectUseCase *taskUsecases.ProjectUseCase,
@@ -420,6 +431,7 @@ func setupRoutes(
 	db *sql.DB,
 	redisCache *cache.RedisCache,
 	userRepo repositories.UserRepository,
+	validator *validation.Validator,
 ) *gin.Engine {
 	router := gin.New()
 
@@ -487,6 +499,20 @@ func setupRoutes(
 		authGroup.OPTIONS("/register", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 		authGroup.OPTIONS("/login", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 		authGroup.OPTIONS("/refresh", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+	}
+
+	// Public document access routes (no authentication required)
+	if sharingUseCase != nil {
+		publicSharingHandler := docHandler.NewSharingHandler(sharingUseCase, validator)
+		publicGroup := router.Group("/api/public")
+		if publicRateLimiter != nil {
+			publicGroup.Use(publicRateLimiter.RateLimitMiddleware())
+		}
+		{
+			publicGroup.POST("/documents/:token", publicSharingHandler.AccessPublicDocument)
+			publicGroup.OPTIONS("/documents/:token", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+		}
+		logger.Info("Public document access routes registered", nil)
 	}
 
 	// Protected routes (require JWT) with auth rate limiting (60 req/min + burst 10)
@@ -559,6 +585,40 @@ func setupRoutes(
 				documentsGroup.OPTIONS("/search", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				documentsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				documentsGroup.OPTIONS("/:id/file", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			// Document sharing routes
+			if sharingUseCase != nil {
+				sharingHandlerInstance := docHandler.NewSharingHandler(sharingUseCase, validator)
+
+				// Shared documents list
+				protectedGroup.GET("/documents/shared", sharingHandlerInstance.GetSharedDocuments)
+				protectedGroup.OPTIONS("/documents/shared", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+				// My shared documents (documents I shared with others)
+				protectedGroup.GET("/documents/my-shared", sharingHandlerInstance.GetMySharedDocuments)
+				protectedGroup.OPTIONS("/documents/my-shared", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+				// Document permissions routes
+				documentsGroup.POST("/:id/share", sharingHandlerInstance.ShareDocument)
+				documentsGroup.GET("/:id/permissions", sharingHandlerInstance.GetDocumentPermissions)
+				documentsGroup.DELETE("/:id/permissions/:permissionId", sharingHandlerInstance.RevokePermission)
+
+				// Public links routes
+				documentsGroup.POST("/:id/public-links", sharingHandlerInstance.CreatePublicLink)
+				documentsGroup.GET("/:id/public-links", sharingHandlerInstance.GetDocumentPublicLinks)
+				documentsGroup.POST("/:id/public-links/:linkId/deactivate", sharingHandlerInstance.DeactivatePublicLink)
+				documentsGroup.DELETE("/:id/public-links/:linkId", sharingHandlerInstance.DeletePublicLink)
+
+				// CORS preflight handlers for sharing routes
+				protectedGroup.OPTIONS("/documents/:id/share", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				protectedGroup.OPTIONS("/documents/:id/permissions", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				protectedGroup.OPTIONS("/documents/:id/permissions/:permissionId", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				protectedGroup.OPTIONS("/documents/:id/public-links", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				protectedGroup.OPTIONS("/documents/:id/public-links/:linkId", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				protectedGroup.OPTIONS("/documents/:id/public-links/:linkId/deactivate", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+				logger.Info("Document sharing routes registered", nil)
 			}
 
 			// Document types and categories (reference data)

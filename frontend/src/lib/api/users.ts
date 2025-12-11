@@ -66,8 +66,17 @@ export interface ApiResponse<T> {
   data: T
 }
 
+// Alias for simpler usage
+export type User = UserWithOrg
+
 // Users API
 export const usersApi = {
+  // Get all users (simple list for dropdowns)
+  getAll: async (): Promise<User[]> => {
+    const response = await apiClient.get<PaginatedResponse<UserWithOrg>>('/api/users?limit=1000')
+    return response.data.users || []
+  },
+
   // List users with filters
   list: async (filter?: UserListFilter): Promise<PaginatedResponse<UserWithOrg>> => {
     const params = new URLSearchParams()

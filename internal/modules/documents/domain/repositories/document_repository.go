@@ -50,6 +50,9 @@ type DocumentFilter struct {
 	Limit          int
 	Offset         int
 	OrderBy        string // e.g., "created_at DESC"
+	// Access control fields
+	CurrentUserID   int64  // Required for access control
+	CurrentUserRole string // User role for role-based permissions
 }
 
 // SearchFilter contains options for full-text search
@@ -65,6 +68,9 @@ type SearchFilter struct {
 	IncludeDeleted bool                         // include soft-deleted documents
 	Limit          int                          // pagination limit
 	Offset         int                          // pagination offset
+	// Access control fields
+	CurrentUserID   int64  // Required for access control
+	CurrentUserRole string // User role for role-based permissions
 }
 
 // SearchResult represents a document search result with highlighted matches

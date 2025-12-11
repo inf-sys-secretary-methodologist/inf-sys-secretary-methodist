@@ -95,6 +95,9 @@ type DocumentFilterInput struct {
 	Page           int     `form:"page,default=1"`
 	PageSize       int     `form:"page_size,default=20"`
 	OrderBy        *string `form:"order_by"`
+	// Access control fields (set by handler, not from form)
+	CurrentUserID   int64  `form:"-"`
+	CurrentUserRole string `form:"-"`
 }
 
 // ToDocumentOutput converts entity to output DTO
@@ -171,6 +174,9 @@ type SearchInput struct {
 	ToDate         *string `form:"to_date"`
 	Page           int     `form:"page,default=1"`
 	PageSize       int     `form:"page_size,default=20"`
+	// Access control fields (set by handler, not from form)
+	CurrentUserID   int64  `form:"-"`
+	CurrentUserRole string `form:"-"`
 }
 
 // SearchResultOutput represents a single search result with highlighted matches

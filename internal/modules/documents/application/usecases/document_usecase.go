@@ -198,16 +198,18 @@ func (uc *DocumentUseCase) Delete(ctx context.Context, id int64, userID int64) e
 func (uc *DocumentUseCase) List(ctx context.Context, filter dto.DocumentFilterInput) (*dto.DocumentListOutput, error) {
 	// Convert DTO filter to repository filter
 	repoFilter := repositories.DocumentFilter{
-		AuthorID:       filter.AuthorID,
-		RecipientID:    filter.RecipientID,
-		DocumentTypeID: filter.DocumentTypeID,
-		CategoryID:     filter.CategoryID,
-		IsPublic:       filter.IsPublic,
-		SearchQuery:    filter.Search,
-		FromDate:       filter.FromDate,
-		ToDate:         filter.ToDate,
-		Limit:          filter.PageSize,
-		Offset:         (filter.Page - 1) * filter.PageSize,
+		AuthorID:        filter.AuthorID,
+		RecipientID:     filter.RecipientID,
+		DocumentTypeID:  filter.DocumentTypeID,
+		CategoryID:      filter.CategoryID,
+		IsPublic:        filter.IsPublic,
+		SearchQuery:     filter.Search,
+		FromDate:        filter.FromDate,
+		ToDate:          filter.ToDate,
+		Limit:           filter.PageSize,
+		Offset:          (filter.Page - 1) * filter.PageSize,
+		CurrentUserID:   filter.CurrentUserID,
+		CurrentUserRole: filter.CurrentUserRole,
 	}
 
 	if filter.Status != nil {
@@ -432,15 +434,17 @@ func (uc *DocumentUseCase) Search(ctx context.Context, input dto.SearchInput) (*
 
 	// Convert DTO to repository filter
 	filter := repositories.SearchFilter{
-		Query:          input.Query,
-		DocumentTypeID: input.DocumentTypeID,
-		CategoryID:     input.CategoryID,
-		AuthorID:       input.AuthorID,
-		FromDate:       input.FromDate,
-		ToDate:         input.ToDate,
-		IncludeDeleted: false,
-		Limit:          input.PageSize,
-		Offset:         (input.Page - 1) * input.PageSize,
+		Query:           input.Query,
+		DocumentTypeID:  input.DocumentTypeID,
+		CategoryID:      input.CategoryID,
+		AuthorID:        input.AuthorID,
+		FromDate:        input.FromDate,
+		ToDate:          input.ToDate,
+		IncludeDeleted:  false,
+		Limit:           input.PageSize,
+		Offset:          (input.Page - 1) * input.PageSize,
+		CurrentUserID:   input.CurrentUserID,
+		CurrentUserRole: input.CurrentUserRole,
 	}
 
 	if input.Status != nil {

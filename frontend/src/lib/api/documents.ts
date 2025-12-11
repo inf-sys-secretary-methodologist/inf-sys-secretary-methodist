@@ -202,4 +202,227 @@ export const documentsApi = {
     const response = await apiClient.get<SearchResponse>('/api/documents/search', { params })
     return response.data
   },
+
+  // ============== Sharing API ==============
+
+  /**
+   * Share document with a user or role
+   */
+  async shareDocument(
+    documentId: number | string,
+    params: ShareDocumentParams
+  ): Promise<PermissionInfo> {
+    const response = await apiClient.post<PermissionResponse>(
+      `/api/documents/${documentId}/share`,
+      params
+    )
+    return response.data
+  },
+
+  /**
+   * Get document permissions
+   */
+  async getPermissions(documentId: number | string): Promise<PermissionInfo[]> {
+    const response = await apiClient.get<PermissionsListResponse>(
+      `/api/documents/${documentId}/permissions`
+    )
+    return response.data
+  },
+
+  /**
+   * Revoke permission
+   */
+  async revokePermission(documentId: number | string, permissionId: number): Promise<void> {
+    await apiClient.delete(`/api/documents/${documentId}/permissions/${permissionId}`)
+  },
+
+  /**
+   * Create public link
+   */
+  async createPublicLink(
+    documentId: number | string,
+    params: CreatePublicLinkParams
+  ): Promise<PublicLinkInfo> {
+    const response = await apiClient.post<PublicLinkResponse>(
+      `/api/documents/${documentId}/public-links`,
+      params
+    )
+    return response.data
+  },
+
+  /**
+   * Get document public links
+   */
+  async getPublicLinks(documentId: number | string): Promise<PublicLinkInfo[]> {
+    const response = await apiClient.get<PublicLinksListResponse>(
+      `/api/documents/${documentId}/public-links`
+    )
+    return response.data
+  },
+
+  /**
+   * Deactivate public link
+   */
+  async deactivatePublicLink(documentId: number | string, linkId: number): Promise<void> {
+    await apiClient.post(`/api/documents/${documentId}/public-links/${linkId}/deactivate`)
+  },
+
+  /**
+   * Delete public link
+   */
+  async deletePublicLink(documentId: number | string, linkId: number): Promise<void> {
+    await apiClient.delete(`/api/documents/${documentId}/public-links/${linkId}`)
+  },
+
+  /**
+   * Get documents shared with current user
+   */
+  async getSharedDocuments(params?: {
+    permission?: string
+    limit?: number
+    offset?: number
+  }): Promise<DocumentInfo[]> {
+    const response = await apiClient.get<DocumentsListResponse>('/api/documents/shared', { params })
+    return response.data || []
+  },
+
+  /**
+   * Get documents that current user has shared with others
+   */
+  async getMySharedDocuments(params?: {
+    limit?: number
+    offset?: number
+  }): Promise<MySharedDocumentOutput[]> {
+    const response = await apiClient.get<MySharedDocumentsResponse>('/api/documents/my-shared', {
+      params,
+    })
+    return response.data || []
+  },
+
+  /**
+   * Access document via public link (no auth required)
+   */
+  async accessPublicDocument(token: string, password?: string): Promise<PublicDocumentAccess> {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+    const response = await fetch(`${baseUrl}/api/public/documents/${token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    })
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to access document')
+    }
+    const result = await response.json()
+    return result.data
+  },
+}
+
+// ============== Sharing Types ==============
+
+export type PermissionLevel = 'read' | 'write' | 'delete' | 'admin'
+export type UserRole = 'admin' | 'secretary' | 'methodist' | 'teacher' | 'student'
+
+export interface ShareDocumentParams {
+  user_id?: number
+  role?: UserRole
+  permission: PermissionLevel
+  expires_at?: string
+}
+
+export interface PermissionInfo {
+  id: number
+  document_id: number
+  user_id?: number
+  user_name?: string
+  user_email?: string
+  role?: string
+  permission: PermissionLevel
+  granted_by?: number
+  granted_by_name?: string
+  expires_at?: string
+  created_at: string
+}
+
+export interface PermissionResponse {
+  success: boolean
+  data: PermissionInfo
+}
+
+export interface PermissionsListResponse {
+  success: boolean
+  data: PermissionInfo[]
+}
+
+export interface CreatePublicLinkParams {
+  permission: 'read' | 'download'
+  expires_at?: string
+  max_uses?: number
+  password?: string
+}
+
+export interface PublicLinkInfo {
+  id: number
+  document_id: number
+  document_title?: string
+  token: string
+  url: string
+  permission: 'read' | 'download'
+  created_by: number
+  created_by_name?: string
+  expires_at?: string
+  max_uses?: number
+  use_count: number
+  has_password: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface PublicLinkResponse {
+  success: boolean
+  data: PublicLinkInfo
+}
+
+export interface PublicLinksListResponse {
+  success: boolean
+  data: PublicLinkInfo[]
+}
+
+export interface PublicDocumentAccess {
+  id: number
+  title: string
+  subject?: string
+  content?: string
+  author_name?: string
+  registration_number?: string
+  registration_date?: string
+  file_name?: string
+  file_size?: number
+  mime_type?: string
+  can_download: boolean
+  created_at: string
+}
+
+// Types for "My Shared Documents" feature
+export interface SharedWithInfo {
+  permission_id: number
+  user_id?: number
+  user_name?: string
+  user_email?: string
+  role?: string
+  permission: PermissionLevel
+  granted_at: string
+  expires_at?: string
+}
+
+export interface MySharedDocumentOutput {
+  document_id: number
+  document_title: string
+  shared_with: SharedWithInfo[]
+}
+
+export interface MySharedDocumentsResponse {
+  success: boolean
+  data: MySharedDocumentOutput[]
 }

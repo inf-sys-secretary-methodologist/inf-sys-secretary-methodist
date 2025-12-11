@@ -41,6 +41,7 @@ export interface Document {
   thumbnailUrl?: string
   description?: string
   tags?: string[]
+  authorId?: number
 }
 
 export interface DocumentUpload {
