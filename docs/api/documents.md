@@ -295,69 +295,223 @@ https://api.inf-sys.example.com/documents
 
 ---
 
-## 📝 Версионирование
+## 📝 Версионирование документов (Issue #12)
 
-### GET `/documents/{id}/versions`
-Получение истории версий документа
+> **Реализовано в Issue #12**: Полная система версионирования документов с автоматическим созданием версий, сравнением и восстановлением.
+
+### Ключевые возможности
+
+- **Автоматическое версионирование**: PostgreSQL триггер автоматически создаёт версию при изменении ключевых полей документа (title, subject, content, file_path, status)
+- **Полный снимок**: Каждая версия хранит полное состояние документа на момент создания
+- **Сравнение версий**: Три режима визуализации diff (line-by-line, side-by-side, inline)
+- **Восстановление**: Возможность восстановить документ до любой предыдущей версии
+- **Файлы версий**: Каждая версия может иметь свой файл в MinIO хранилище
+
+### GET `/api/documents/{id}/versions`
+Получение списка всех версий документа
+
+**Query Parameters:**
+- `limit` - количество версий (по умолчанию 50)
+- `offset` - смещение для пагинации
 
 **Response (200):**
 ```json
 {
-  "versions": [
-    {
-      "version": "2.1",
-      "created_at": "2025-01-15T14:30:00Z",
-      "author": "user-123",
-      "status": "published",
-      "changes_summary": "Добавлены новые темы и обновлены часы",
-      "is_current": true
-    },
-    {
-      "version": "2.0",
-      "created_at": "2025-01-10T12:00:00Z",
-      "author": "user-123",
-      "status": "published",
-      "changes_summary": "Крупное обновление структуры курса",
-      "is_current": false
-    },
-    {
-      "version": "1.0",
-      "created_at": "2025-01-01T10:00:00Z",
-      "author": "user-123",
-      "status": "archived",
-      "changes_summary": "Первоначальная версия",
-      "is_current": false
-    }
-  ],
-  "pagination": {
-    "page": 1,
+  "success": true,
+  "data": {
+    "versions": [
+      {
+        "id": 15,
+        "document_id": 42,
+        "version": 3,
+        "title": "Учебный план v3",
+        "subject": "Обновленный план",
+        "content": "Содержимое документа...",
+        "file_name": "plan_v3.pdf",
+        "file_size": 1048576,
+        "mime_type": "application/pdf",
+        "status": "published",
+        "changed_by": 1,
+        "changed_by_name": "Анна Петрова",
+        "change_description": "Добавлены новые дисциплины",
+        "created_at": "2025-12-11T14:30:00Z"
+      },
+      {
+        "id": 12,
+        "document_id": 42,
+        "version": 2,
+        "title": "Учебный план v2",
+        "changed_by_name": "Иван Иванов",
+        "change_description": "Автоматическая версия при обновлении",
+        "created_at": "2025-12-10T10:00:00Z"
+      }
+    ],
     "total": 3
   }
 }
 ```
 
-### POST `/documents/{id}/versions`
-Создание новой версии документа
+### GET `/api/documents/{id}/versions/{version}`
+Получение конкретной версии документа по номеру
 
-**Request:**
+**Response (200):**
 ```json
 {
-  "changes_summary": "Обновлена программа практических занятий",
-  "auto_increment": true
+  "success": true,
+  "data": {
+    "id": 12,
+    "document_id": 42,
+    "version": 2,
+    "title": "Учебный план по математике",
+    "subject": "Математический анализ",
+    "content": "Полное содержимое версии...",
+    "file_name": "plan.pdf",
+    "file_path": "documents/42/versions/2/plan.pdf",
+    "file_size": 2097152,
+    "mime_type": "application/pdf",
+    "status": "draft",
+    "metadata": {
+      "department": "Математика",
+      "credits": 6
+    },
+    "changed_by": 1,
+    "changed_by_name": "Анна Петрова",
+    "change_description": "Обновлена структура курса",
+    "created_at": "2025-12-10T10:00:00Z"
+  }
+}
+```
+
+### POST `/api/documents/{id}/versions`
+Создание новой версии документа вручную
+
+**Request Body:**
+```json
+{
+  "change_description": "Обновлена программа практических занятий"
 }
 ```
 
 **Response (201):**
 ```json
 {
-  "version": "2.2",
-  "created_at": "2025-01-15T18:00:00Z",
-  "status": "draft"
+  "success": true,
+  "data": {
+    "id": 16,
+    "document_id": 42,
+    "version": 4,
+    "title": "Учебный план",
+    "changed_by": 1,
+    "change_description": "Обновлена программа практических занятий",
+    "created_at": "2025-12-11T18:00:00Z"
+  }
 }
 ```
 
-### GET `/documents/{id}/versions/{version}`
-Получение конкретной версии документа
+### GET `/api/documents/{id}/versions/compare`
+Сравнение двух версий документа (diff)
+
+**Query Parameters:**
+- `from` (required) - номер первой версии для сравнения
+- `to` (required) - номер второй версии для сравнения
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "document_id": 42,
+    "from_version": 2,
+    "to_version": 3,
+    "changed_fields": ["title", "content", "status"],
+    "changes": {
+      "title": {
+        "from": "Учебный план v2",
+        "to": "Учебный план v3"
+      },
+      "content": {
+        "from": "Старое содержимое...",
+        "to": "Новое содержимое..."
+      },
+      "status": {
+        "from": "draft",
+        "to": "published"
+      }
+    },
+    "from_version_data": {
+      "version": 2,
+      "created_at": "2025-12-10T10:00:00Z",
+      "changed_by_name": "Иван Иванов"
+    },
+    "to_version_data": {
+      "version": 3,
+      "created_at": "2025-12-11T14:30:00Z",
+      "changed_by_name": "Анна Петрова"
+    }
+  }
+}
+```
+
+### POST `/api/documents/{id}/versions/{version}/restore`
+Восстановление документа до указанной версии
+
+**Request Body (опционально):**
+```json
+{
+  "change_description": "Восстановлено до версии 2"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Документ восстановлен до версии 2",
+    "new_version": 5,
+    "restored_from_version": 2
+  }
+}
+```
+
+### DELETE `/api/documents/{id}/versions/{version}`
+Удаление конкретной версии документа
+
+> **Примечание:** Текущая версия документа не может быть удалена.
+
+**Response:** `204 No Content`
+
+**Ошибки:**
+- `400` - Попытка удалить текущую версию
+- `404` - Версия не найдена
+
+### GET `/api/documents/{id}/versions/{version}/file`
+Скачивание файла конкретной версии
+
+**Response:**
+- Content-Type: соответствует MIME типу файла версии
+- Content-Disposition: attachment; filename="document_v2.pdf"
+- Body: бинарные данные файла
+
+**Ошибки:**
+- `404` - Версия или файл не найден
+
+---
+
+### Frontend компоненты версионирования
+
+Для работы с версиями реализованы следующие React компоненты:
+
+| Компонент | Описание |
+|-----------|----------|
+| `DocumentVersionHistory` | История версий с возможностью сравнения и восстановления |
+| `DocumentEditDialog` | Диалог редактирования с автоматическим созданием версий |
+| `TextDiff` | Компонент визуализации различий (3 режима) |
+
+**Режимы TextDiff:**
+- `line` - построчное сравнение (добавленные/удалённые строки)
+- `side-by-side` - два столбца рядом
+- `inline` - изменения в одном потоке с подсветкой
 
 ---
 
@@ -1484,9 +1638,11 @@ func TestCreateDocument(t *testing.T) {
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-12-11
+**Последнее обновление**: 2025-12-12
 **Версия проекта**: 0.2.0
 **Статус**: Актуальный
 **Issue #9**: Реализовано API для загрузки файлов (MinIO/S3)
 **Issue #10**: Реализована система категоризации и тегирования документов
+**Issue #12**: Реализована полная система версионирования документов
+**Issue #13**: Реализована система шаринга документов и публичных ссылок
 
