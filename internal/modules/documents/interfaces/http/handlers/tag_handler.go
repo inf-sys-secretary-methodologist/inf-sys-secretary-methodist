@@ -187,7 +187,7 @@ func (h *TagHandler) Search(c *gin.Context) {
 
 // GetDocumentTags handles getting tags for a document
 func (h *TagHandler) GetDocumentTags(c *gin.Context) {
-	documentID, err := strconv.ParseInt(c.Param("document_id"), 10, 64)
+	documentID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		resp := response.BadRequest("Неверный ID документа")
 		c.JSON(http.StatusBadRequest, resp)
@@ -208,7 +208,7 @@ func (h *TagHandler) GetDocumentTags(c *gin.Context) {
 
 // SetDocumentTags handles setting tags for a document
 func (h *TagHandler) SetDocumentTags(c *gin.Context) {
-	documentID, err := strconv.ParseInt(c.Param("document_id"), 10, 64)
+	documentID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		resp := response.BadRequest("Неверный ID документа")
 		c.JSON(http.StatusBadRequest, resp)
@@ -236,7 +236,7 @@ func (h *TagHandler) SetDocumentTags(c *gin.Context) {
 
 // AddTagToDocument handles adding a tag to a document
 func (h *TagHandler) AddTagToDocument(c *gin.Context) {
-	documentID, err := strconv.ParseInt(c.Param("document_id"), 10, 64)
+	documentID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		resp := response.BadRequest("Неверный ID документа")
 		c.JSON(http.StatusBadRequest, resp)
@@ -263,7 +263,7 @@ func (h *TagHandler) AddTagToDocument(c *gin.Context) {
 
 // RemoveTagFromDocument handles removing a tag from a document
 func (h *TagHandler) RemoveTagFromDocument(c *gin.Context) {
-	documentID, err := strconv.ParseInt(c.Param("document_id"), 10, 64)
+	documentID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		resp := response.BadRequest("Неверный ID документа")
 		c.JSON(http.StatusBadRequest, resp)

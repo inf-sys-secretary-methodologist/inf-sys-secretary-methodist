@@ -90,3 +90,6 @@ frontend/storybook-static/
 
 # Runtime state
 runtime-state/
+
+# Taskmaster
+.taskmaster/

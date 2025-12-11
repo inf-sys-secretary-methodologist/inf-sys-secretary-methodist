@@ -55,7 +55,7 @@ describe('ThemeToggleButton', () => {
     await waitFor(() => {
       const button = screen.getByRole('button')
       expect(button).toHaveClass('inline-flex')
-      expect(button).toHaveClass('rounded-2xl')
+      expect(button).toHaveClass('rounded-xl')
     })
   })
 })

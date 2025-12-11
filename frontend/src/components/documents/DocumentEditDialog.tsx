@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Save, Loader2, Upload, FileText, Trash2 } from 'lucide-react'
+import { X, Save, Loader2, Upload, FileText, Trash2, Tag, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Document } from '@/types/document'
-import { documentsApi, UpdateDocumentParams } from '@/lib/api/documents'
+import { documentsApi, UpdateDocumentParams, tagsApi, TagInfo } from '@/lib/api/documents'
 
 interface DocumentEditDialogProps {
   document: Document | null
@@ -30,6 +30,12 @@ export function DocumentEditDialog({
   const [newFile, setNewFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Tags state
+  const [documentTags, setDocumentTags] = useState<TagInfo[]>([])
+  const [allTags, setAllTags] = useState<TagInfo[]>([])
+  const [tagSearch, setTagSearch] = useState('')
+  const [showTagDropdown, setShowTagDropdown] = useState(false)
+
   // Reset form when document changes
   useEffect(() => {
     if (document) {
@@ -39,6 +45,9 @@ export function DocumentEditDialog({
       setError(null)
       setSuccess(null)
       setNewFile(null)
+      setDocumentTags([])
+      setTagSearch('')
+      setShowTagDropdown(false)
     }
   }, [document])
 
@@ -52,11 +61,17 @@ export function DocumentEditDialog({
   const loadDocumentDetails = async () => {
     if (!document) return
     try {
-      const fullDoc = await documentsApi.getById(document.id)
+      const [fullDoc, tags, availableTags] = await Promise.all([
+        documentsApi.getById(document.id),
+        tagsApi.getDocumentTags(document.id),
+        tagsApi.getAll(),
+      ])
       setTitle(fullDoc.title || '')
       setSubject(fullDoc.subject || '')
       setContent(fullDoc.content || '')
       setCurrentFileName(fullDoc.file_name || null)
+      setDocumentTags(tags)
+      setAllTags(availableTags)
     } catch (err) {
       console.error('Failed to load document details:', err)
     }
@@ -92,6 +107,40 @@ export function DocumentEditDialog({
       setIsUploading(false)
     }
   }
+
+  // Tag management functions
+  const handleAddTag = async (tag: TagInfo) => {
+    if (!document) return
+    if (documentTags.some((t) => t.id === tag.id)) return
+
+    try {
+      await tagsApi.addTagToDocument(document.id, tag.id)
+      setDocumentTags([...documentTags, tag])
+      setTagSearch('')
+      setShowTagDropdown(false)
+    } catch (err) {
+      console.error('Failed to add tag:', err)
+      setError('Не удалось добавить тег')
+    }
+  }
+
+  const handleRemoveTag = async (tagId: number) => {
+    if (!document) return
+
+    try {
+      await tagsApi.removeTagFromDocument(document.id, tagId)
+      setDocumentTags(documentTags.filter((t) => t.id !== tagId))
+    } catch (err) {
+      console.error('Failed to remove tag:', err)
+      setError('Не удалось удалить тег')
+    }
+  }
+
+  const filteredTags = allTags.filter(
+    (tag) =>
+      tag.name.toLowerCase().includes(tagSearch.toLowerCase()) &&
+      !documentTags.some((t) => t.id === tag.id)
+  )
 
   const handleSave = async () => {
     if (!document) return
@@ -265,6 +314,97 @@ export function DocumentEditDialog({
                        focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               placeholder="Текстовое содержание документа (опционально)"
             />
+          </div>
+
+          {/* Tags Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Tag className="h-4 w-4 inline-block mr-1" />
+              Теги
+            </label>
+
+            {/* Current tags */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {documentTags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30
+                           text-blue-800 dark:text-blue-300 rounded-full text-sm"
+                  style={tag.color ? { backgroundColor: `${tag.color}20`, color: tag.color } : {}}
+                >
+                  {tag.name}
+                  <button
+                    onClick={() => handleRemoveTag(tag.id)}
+                    className="ml-1 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+              {documentTags.length === 0 && (
+                <span className="text-sm text-gray-500 dark:text-gray-400">Нет тегов</span>
+              )}
+            </div>
+
+            {/* Add tag input */}
+            <div className="relative">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={tagSearch}
+                  onChange={(e) => {
+                    setTagSearch(e.target.value)
+                    setShowTagDropdown(true)
+                  }}
+                  onFocus={() => setShowTagDropdown(true)}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                           bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                           focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  placeholder="Поиск тегов..."
+                />
+              </div>
+
+              {/* Dropdown with available tags */}
+              {showTagDropdown && filteredTags.length > 0 && (
+                <div
+                  className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200
+                              dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                >
+                  {filteredTags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => handleAddTag(tag)}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                               flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4 text-gray-400" />
+                      <span
+                        className="px-2 py-0.5 rounded text-sm"
+                        style={
+                          tag.color ? { backgroundColor: `${tag.color}20`, color: tag.color } : {}
+                        }
+                      >
+                        {tag.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {showTagDropdown && filteredTags.length === 0 && tagSearch && (
+                <div
+                  className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200
+                              dark:border-gray-700 rounded-lg shadow-lg p-3 text-sm text-gray-500"
+                >
+                  Тег не найден
+                </div>
+              )}
+            </div>
+
+            {/* Click outside to close dropdown */}
+            {showTagDropdown && (
+              <div className="fixed inset-0 z-0" onClick={() => setShowTagDropdown(false)} />
+            )}
           </div>
 
           <p className="text-xs text-gray-500 dark:text-gray-400">

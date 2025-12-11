@@ -156,15 +156,18 @@ func main() {
 	var docUseCase *docUsecases.DocumentUseCase
 	var sharingUseCase *docUsecases.SharingUseCase
 	var docVersionUseCase *docUsecases.DocumentVersionUseCase
+	var tagUseCase *docUsecases.TagUseCase
 	if s3Client != nil {
 		docRepo := docPersistence.NewDocumentRepositoryPG(db)
 		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
 		docCategoryRepo := docPersistence.NewDocumentCategoryRepositoryPG(db)
 		permissionRepo := docPersistence.NewPermissionRepositoryPG(db)
 		publicLinkRepo := docPersistence.NewPublicLinkRepositoryPG(db)
+		docTagRepo := docPersistence.NewDocumentTagRepositoryPG(db)
 		docUseCase = docUsecases.NewDocumentUseCase(docRepo, docTypeRepo, docCategoryRepo, s3Client, auditLogger)
 		sharingUseCase = docUsecases.NewSharingUseCase(docRepo, permissionRepo, publicLinkRepo, auditLogger, cfg.Server.BaseURL)
 		docVersionUseCase = docUsecases.NewDocumentVersionUseCase(docRepo, s3Client, auditLogger)
+		tagUseCase = docUsecases.NewTagUseCase(docTagRepo, docRepo, auditLogger)
 		logger.Info("Documents module initialized", nil)
 	} else {
 		logger.Warn("Documents module not initialized - S3 storage not available", nil)
@@ -266,6 +269,7 @@ func main() {
 		docUseCase,
 		sharingUseCase,
 		docVersionUseCase,
+		tagUseCase,
 		reportUseCase,
 		taskUseCase,
 		projectUseCase,
@@ -414,6 +418,7 @@ func setupRoutes(
 	docUseCase *docUsecases.DocumentUseCase,
 	sharingUseCase *docUsecases.SharingUseCase,
 	docVersionUseCase *docUsecases.DocumentVersionUseCase,
+	tagUseCase *docUsecases.TagUseCase,
 	reportUseCase *reportUsecases.ReportUseCase,
 	taskUseCase *taskUsecases.TaskUseCase,
 	projectUseCase *taskUsecases.ProjectUseCase,
@@ -646,6 +651,41 @@ func setupRoutes(
 				documentsGroup.OPTIONS("/:id/versions/:version/file", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 
 				logger.Info("Document version control routes registered", nil)
+			}
+
+			// Document tags routes
+			if tagUseCase != nil {
+				tagHandlerInstance := docHandler.NewTagHandler(tagUseCase)
+
+				// Tags CRUD routes
+				tagsGroup := protectedGroup.Group("/tags")
+				{
+					tagsGroup.POST("", tagHandlerInstance.Create)
+					tagsGroup.GET("", tagHandlerInstance.GetAll)
+					tagsGroup.GET("/search", tagHandlerInstance.Search)
+					tagsGroup.GET("/:id", tagHandlerInstance.GetByID)
+					tagsGroup.PUT("/:id", tagHandlerInstance.Update)
+					tagsGroup.DELETE("/:id", tagHandlerInstance.Delete)
+					tagsGroup.GET("/:id/documents", tagHandlerInstance.GetDocumentsByTag)
+
+					// CORS preflight handlers
+					tagsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					tagsGroup.OPTIONS("/search", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					tagsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					tagsGroup.OPTIONS("/:id/documents", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				}
+
+				// Document-specific tag routes
+				documentsGroup.GET("/:id/tags", tagHandlerInstance.GetDocumentTags)
+				documentsGroup.PUT("/:id/tags", tagHandlerInstance.SetDocumentTags)
+				documentsGroup.POST("/:id/tags/:tag_id", tagHandlerInstance.AddTagToDocument)
+				documentsGroup.DELETE("/:id/tags/:tag_id", tagHandlerInstance.RemoveTagFromDocument)
+
+				// CORS preflight handlers for document tag routes
+				documentsGroup.OPTIONS("/:id/tags", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				documentsGroup.OPTIONS("/:id/tags/:tag_id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+				logger.Info("Document tags routes registered", nil)
 			}
 
 			// Document types and categories (reference data)

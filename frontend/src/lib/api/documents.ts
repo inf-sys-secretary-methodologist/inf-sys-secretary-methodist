@@ -126,7 +126,7 @@ export const documentsApi = {
   },
 
   /**
-   * Get list of documents
+   * Get list of documents with advanced filtering
    */
   async list(params?: {
     page?: number
@@ -134,6 +134,12 @@ export const documentsApi = {
     category_id?: number
     status?: string
     search?: string
+    author_id?: number
+    from_date?: string
+    to_date?: string
+    document_type_id?: number
+    importance?: string
+    order_by?: string
   }): Promise<DocumentsListResponse> {
     const response = await apiClient.get<DocumentsListResponse>('/api/documents', { params })
     return response
@@ -576,4 +582,78 @@ export interface VersionDiffResponse {
 export interface VersionFileResponse {
   success: boolean
   data: VersionFileDownloadOutput
+}
+
+// ============== Tags Types ==============
+
+export interface TagInfo {
+  id: number
+  name: string
+  color?: string
+  usage_count?: number
+  created_at: string
+}
+
+export interface DocumentTagsOutput {
+  document_id: number
+  tags: TagInfo[]
+}
+
+export interface TagsListResponse {
+  success: boolean
+  data: TagInfo[]
+}
+
+export interface DocumentTagsResponse {
+  success: boolean
+  data: DocumentTagsOutput
+}
+
+export const tagsApi = {
+  /**
+   * Get all available tags
+   */
+  async getAll(): Promise<TagInfo[]> {
+    const response = await apiClient.get<TagsListResponse>('/api/tags')
+    return response.data || []
+  },
+
+  /**
+   * Search tags by name
+   */
+  async search(query: string, limit: number = 10): Promise<TagInfo[]> {
+    const response = await apiClient.get<TagsListResponse>('/api/tags/search', {
+      params: { q: query, limit },
+    })
+    return response.data || []
+  },
+
+  /**
+   * Get tags for a specific document
+   */
+  async getDocumentTags(documentId: number | string): Promise<TagInfo[]> {
+    const response = await apiClient.get<DocumentTagsResponse>(`/api/documents/${documentId}/tags`)
+    return response.data?.tags || []
+  },
+
+  /**
+   * Set tags for a document (replaces all existing tags)
+   */
+  async setDocumentTags(documentId: number | string, tagIds: number[]): Promise<void> {
+    await apiClient.put(`/api/documents/${documentId}/tags`, { tag_ids: tagIds })
+  },
+
+  /**
+   * Add a tag to a document
+   */
+  async addTagToDocument(documentId: number | string, tagId: number): Promise<void> {
+    await apiClient.post(`/api/documents/${documentId}/tags/${tagId}`)
+  },
+
+  /**
+   * Remove a tag from a document
+   */
+  async removeTagFromDocument(documentId: number | string, tagId: number): Promise<void> {
+    await apiClient.delete(`/api/documents/${documentId}/tags/${tagId}`)
+  },
 }
