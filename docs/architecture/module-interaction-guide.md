@@ -387,6 +387,10 @@ func (m *NotificationModule) RegisterEventHandlers(eventBus *eventbus.EventBus) 
 | `document.deleted` | Документ удален | `{ doc_id, deleted_by, reason }` | Files, Notifications, Audit |
 | `document.published` | Документ опубликован | `{ doc_id, published_by }` | Notifications, Reporting |
 | `document.archived` | Документ архивирован | `{ doc_id, archived_by }` | Notifications |
+| `document.shared` | Документ расшарен (Issue #13) | `{ doc_id, target_user_id, target_role, permission, shared_by, expires_at }` | Notifications, Audit |
+| `document.permission_revoked` | Права отозваны (Issue #13) | `{ doc_id, permission_id, revoked_by }` | Notifications, Audit |
+| `document.public_link_created` | Создана публичная ссылка (Issue #13) | `{ doc_id, token, permission, created_by, expires_at, max_uses }` | Audit |
+| `document.public_link_deactivated` | Ссылка деактивирована (Issue #13) | `{ doc_id, token, deactivated_by, reason }` | Audit |
 
 #### Workflow Context Events
 

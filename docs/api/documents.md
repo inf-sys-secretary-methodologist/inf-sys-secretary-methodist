@@ -1218,6 +1218,253 @@ func TestCreateDocument(t *testing.T) {
 
 ---
 
+## 🔗 Document Sharing API (Issue #13)
+
+Система шаринга документов с пользователями и ролями, включая публичные ссылки.
+
+### Контроль доступа к документам
+
+Пользователи видят только:
+- Свои документы (author_id = user_id)
+- Документы, к которым им дали доступ через `document_permissions`
+- Публичные документы (is_public = true)
+- Администраторы видят все документы
+
+### POST `/api/documents/{id}/share`
+Поделиться документом с пользователем или ролью.
+
+**Request Body:**
+```json
+{
+  "user_id": 123,
+  "permission": "read",
+  "expires_at": "2025-12-31T23:59:59Z"
+}
+```
+
+Или шаринг по роли (доступ для всех пользователей с этой ролью):
+```json
+{
+  "role": "student",
+  "permission": "read"
+}
+```
+
+**Уровни доступа (permission):**
+- `read` - только чтение
+- `write` - чтение и редактирование
+- `delete` - чтение, редактирование и удаление
+- `admin` - полный доступ, включая управление правами
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "document_id": 42,
+    "user_id": 123,
+    "user_name": "Иван Иванов",
+    "user_email": "ivan@example.com",
+    "permission": "read",
+    "granted_by": 1,
+    "granted_by_name": "Админ",
+    "expires_at": "2025-12-31T23:59:59Z",
+    "created_at": "2025-12-11T10:00:00Z"
+  }
+}
+```
+
+### GET `/api/documents/{id}/permissions`
+Получение списка прав доступа к документу.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "document_id": 42,
+      "user_id": 123,
+      "user_name": "Иван Иванов",
+      "permission": "read",
+      "granted_by_name": "Админ",
+      "expires_at": null,
+      "created_at": "2025-12-11T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "document_id": 42,
+      "role": "student",
+      "permission": "read",
+      "granted_by_name": "Админ",
+      "created_at": "2025-12-11T11:00:00Z"
+    }
+  ]
+}
+```
+
+### DELETE `/api/documents/{id}/permissions/{permissionId}`
+Отзыв прав доступа.
+
+**Response:** `204 No Content`
+
+### GET `/api/documents/shared`
+Получение документов, к которым текущему пользователю дали доступ.
+
+**Query Parameters:**
+- `permission` - фильтр по уровню доступа
+- `limit` - лимит (по умолчанию 20)
+- `offset` - смещение
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 42,
+      "title": "Документ",
+      "author_name": "Автор",
+      "has_file": true,
+      "file_size": 1048576,
+      "mime_type": "application/pdf",
+      "created_at": "2025-12-10T10:00:00Z"
+    }
+  ]
+}
+```
+
+### GET `/api/documents/my-shared`
+Получение документов, которыми текущий пользователь поделился с другими.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "document_id": 42,
+      "document_title": "Мой документ",
+      "shared_with": [
+        {
+          "permission_id": 1,
+          "user_id": 123,
+          "user_name": "Иван Иванов",
+          "user_email": "ivan@example.com",
+          "permission": "read",
+          "granted_at": "2025-12-11T10:00:00Z",
+          "expires_at": null
+        },
+        {
+          "permission_id": 2,
+          "role": "student",
+          "permission": "read",
+          "granted_at": "2025-12-11T11:00:00Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 🔗 Public Links API (Issue #13)
+
+Создание публичных ссылок для доступа к документам без авторизации.
+
+### POST `/api/documents/{id}/public-links`
+Создание публичной ссылки.
+
+**Request Body:**
+```json
+{
+  "permission": "read",
+  "expires_at": "2025-12-31T23:59:59Z",
+  "max_uses": 100,
+  "password": "secret123"
+}
+```
+
+**Параметры:**
+- `permission` - `read` (только просмотр) или `download` (скачивание)
+- `expires_at` - срок действия (опционально)
+- `max_uses` - максимальное количество использований (опционально)
+- `password` - пароль для доступа (опционально)
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "document_id": 42,
+    "token": "abc123xyz789",
+    "url": "https://example.com/public/documents/abc123xyz789",
+    "permission": "read",
+    "created_by": 1,
+    "created_by_name": "Админ",
+    "expires_at": "2025-12-31T23:59:59Z",
+    "max_uses": 100,
+    "use_count": 0,
+    "has_password": true,
+    "is_active": true,
+    "created_at": "2025-12-11T10:00:00Z"
+  }
+}
+```
+
+### GET `/api/documents/{id}/public-links`
+Получение списка публичных ссылок документа.
+
+### POST `/api/documents/{id}/public-links/{linkId}/deactivate`
+Деактивация публичной ссылки (без удаления).
+
+**Response:** `204 No Content`
+
+### DELETE `/api/documents/{id}/public-links/{linkId}`
+Удаление публичной ссылки.
+
+**Response:** `204 No Content`
+
+### POST `/api/public/documents/{token}`
+Доступ к документу по публичной ссылке (без авторизации).
+
+**Request Body (если требуется пароль):**
+```json
+{
+  "password": "secret123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 42,
+    "title": "Публичный документ",
+    "subject": "Описание",
+    "author_name": "Автор",
+    "file_name": "document.pdf",
+    "file_size": 1048576,
+    "mime_type": "application/pdf",
+    "can_download": true,
+    "created_at": "2025-12-10T10:00:00Z"
+  }
+}
+```
+
+**Ошибки:**
+- `401` - Требуется пароль
+- `403` - Неверный пароль
+- `404` - Ссылка не найдена или истекла
+- `410` - Исчерпан лимит использований
+
+---
+
 ## 🚨 Error Codes
 
 | Code | Message | Description |
@@ -1230,10 +1477,14 @@ func TestCreateDocument(t *testing.T) {
 | DOC_006 | File too large | Файл слишком большой |
 | DOC_007 | Invalid format | Недопустимый формат |
 | DOC_008 | Insufficient permissions | Недостаточно прав для операции |
+| DOC_009 | Permission not found | Право доступа не найдено |
+| DOC_010 | Public link expired | Публичная ссылка истекла |
+| DOC_011 | Invalid password | Неверный пароль для публичной ссылки |
+| DOC_012 | Link usage limit exceeded | Исчерпан лимит использований ссылки |
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-12-09
+**Последнее обновление**: 2025-12-11
 **Версия проекта**: 0.2.0
 **Статус**: Актуальный
 **Issue #9**: Реализовано API для загрузки файлов (MinIO/S3)

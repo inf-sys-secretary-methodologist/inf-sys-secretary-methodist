@@ -5,7 +5,7 @@ Project inf_sys_secretary_methodist {
   database_type: 'PostgreSQL'
   Note: '''
     Информационная система секретаря-методиста
-    Всего: 56 таблиц (55 + schema_migrations)
+    Всего: 57 таблиц (56 + schema_migrations)
   '''
 }
 
@@ -117,7 +117,7 @@ Table user_profiles {
 }
 
 // ============================================================================
-// DOCUMENTS MODULE - Документооборот (10 таблиц)
+// DOCUMENTS MODULE - Документооборот (11 таблиц)
 // ============================================================================
 
 Table document_types {
@@ -250,8 +250,9 @@ Table document_permissions {
   document_id bigint [not null, ref: > documents.id]
   user_id bigint [ref: > users.id]
   role varchar(50) [note: 'admin, secretary, methodist, teacher, student']
-  permission varchar(50) [not null, note: 'read, write, approve, delete']
+  permission varchar(50) [not null, note: 'read, write, delete, admin']
   granted_by bigint [ref: > users.id]
+  expires_at timestamp [note: 'Срок действия прав (NULL = бессрочно)']
   created_at timestamp [not null, default: `now()`]
 
   indexes {
@@ -260,7 +261,32 @@ Table document_permissions {
     role
   }
 
-  Note: 'Права доступа к документам'
+  Note: 'Права доступа к документам (user_id или role обязательно)'
+}
+
+Table document_public_links {
+  id bigserial [pk, increment]
+  document_id bigint [not null, ref: > documents.id]
+  token varchar(64) [unique, not null, note: 'Уникальный токен для доступа']
+  permission varchar(50) [not null, default: 'read', note: 'read, download']
+  created_by bigint [not null, ref: > users.id]
+  expires_at timestamp [note: 'Срок действия ссылки (NULL = бессрочно)']
+  max_uses int [note: 'Максимальное количество использований (NULL = неограничено)']
+  use_count int [not null, default: 0, note: 'Счётчик использований']
+  password_hash varchar(255) [note: 'Опциональный пароль для доступа']
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    document_id
+    token
+    created_by
+    expires_at
+    is_active
+  }
+
+  Note: 'Публичные ссылки для документов'
 }
 
 Table document_relations {
