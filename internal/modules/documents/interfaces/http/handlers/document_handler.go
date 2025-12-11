@@ -202,6 +202,10 @@ func (h *DocumentHandler) Update(c *gin.Context) {
 		sanitized := h.sanitizer.SanitizeString(*input.Subject)
 		input.Subject = &sanitized
 	}
+	if input.FileName != nil {
+		sanitized := h.sanitizer.SanitizeString(*input.FileName)
+		input.FileName = &sanitized
+	}
 
 	// Validate
 	if err := h.validator.Validate(input); err != nil {

@@ -28,6 +28,14 @@ type DocumentRepository interface {
 	CreateVersion(ctx context.Context, version *entities.DocumentVersion) error
 	GetVersions(ctx context.Context, documentID int64) ([]*entities.DocumentVersion, error)
 	GetVersion(ctx context.Context, documentID int64, version int) (*entities.DocumentVersion, error)
+	GetLatestVersion(ctx context.Context, documentID int64) (*entities.DocumentVersion, error)
+	RestoreVersion(ctx context.Context, documentID int64, version int, userID int64) error
+	DeleteVersion(ctx context.Context, documentID int64, version int) error
+
+	// Version diff operations
+	CreateVersionDiff(ctx context.Context, diff *entities.DocumentVersionDiff) error
+	GetVersionDiff(ctx context.Context, documentID int64, fromVersion, toVersion int) (*entities.DocumentVersionDiff, error)
+	CompareVersions(ctx context.Context, documentID int64, fromVersion, toVersion int) (*entities.DocumentVersionDiff, error)
 
 	// History operations
 	AddHistory(ctx context.Context, history *entities.DocumentHistory) error

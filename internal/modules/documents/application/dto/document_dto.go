@@ -27,6 +27,7 @@ type UpdateDocumentInput struct {
 	Title       *string    `json:"title,omitempty" validate:"omitempty,min=1,max=500"`
 	Subject     *string    `json:"subject,omitempty"`
 	Content     *string    `json:"content,omitempty"`
+	FileName    *string    `json:"file_name,omitempty" validate:"omitempty,max=500"`
 	CategoryID  *int64     `json:"category_id,omitempty"`
 	RecipientID *int64     `json:"recipient_id,omitempty"`
 	Deadline    *time.Time `json:"deadline,omitempty"`

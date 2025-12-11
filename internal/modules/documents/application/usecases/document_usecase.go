@@ -145,6 +145,9 @@ func (uc *DocumentUseCase) Update(ctx context.Context, id int64, input dto.Updat
 	if input.IsPublic != nil {
 		doc.IsPublic = *input.IsPublic
 	}
+	if input.FileName != nil {
+		doc.FileName = input.FileName
+	}
 
 	if err := uc.documentRepo.Update(ctx, doc); err != nil {
 		return nil, fmt.Errorf("failed to update document: %w", err)

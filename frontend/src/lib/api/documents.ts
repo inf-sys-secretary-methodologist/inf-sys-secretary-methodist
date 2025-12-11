@@ -47,6 +47,7 @@ export interface UpdateDocumentParams {
   title?: string
   subject?: string
   content?: string
+  file_name?: string
   category_id?: number
   recipient_id?: number
   deadline?: string
@@ -316,6 +317,87 @@ export const documentsApi = {
     const result = await response.json()
     return result.data
   },
+
+  // ============== Versioning API ==============
+
+  /**
+   * Get all versions of a document
+   */
+  async getVersions(documentId: number | string): Promise<DocumentVersionListOutput> {
+    const response = await apiClient.get<VersionListResponse>(
+      `/api/documents/${documentId}/versions`
+    )
+    return response.data
+  },
+
+  /**
+   * Get a specific version
+   */
+  async getVersion(documentId: number | string, version: number): Promise<DocumentVersionInfo> {
+    const response = await apiClient.get<VersionResponse>(
+      `/api/documents/${documentId}/versions/${version}`
+    )
+    return response.data
+  },
+
+  /**
+   * Create a manual version snapshot
+   */
+  async createVersion(
+    documentId: number | string,
+    params?: CreateVersionParams
+  ): Promise<DocumentVersionInfo> {
+    const response = await apiClient.post<VersionResponse>(
+      `/api/documents/${documentId}/versions`,
+      params || {}
+    )
+    return response.data
+  },
+
+  /**
+   * Restore document to a previous version
+   */
+  async restoreVersion(documentId: number | string, version: number): Promise<DocumentInfo> {
+    const response = await apiClient.post<DocumentResponse>(
+      `/api/documents/${documentId}/versions/${version}/restore`
+    )
+    return response.data
+  },
+
+  /**
+   * Compare two versions
+   */
+  async compareVersions(
+    documentId: number | string,
+    fromVersion: number,
+    toVersion: number
+  ): Promise<VersionDiffOutput> {
+    const response = await apiClient.get<VersionDiffResponse>(
+      `/api/documents/${documentId}/versions/compare`,
+      { params: { from: fromVersion, to: toVersion } }
+    )
+    return response.data
+  },
+
+  /**
+   * Delete a specific version (cannot delete current version)
+   */
+  async deleteVersion(documentId: number | string, version: number): Promise<void> {
+    await apiClient.delete(`/api/documents/${documentId}/versions/${version}`)
+  },
+
+  /**
+   * Get file from a specific version
+   */
+  async getVersionFile(
+    documentId: number | string,
+    version: number
+  ): Promise<VersionFileDownloadOutput> {
+    const response = await apiClient.get<VersionFileResponse>(
+      `/api/documents/${documentId}/versions/${version}/file`
+    )
+    return response.data
+  },
 }
 
 // ============== Sharing Types ==============
@@ -425,4 +507,73 @@ export interface MySharedDocumentOutput {
 export interface MySharedDocumentsResponse {
   success: boolean
   data: MySharedDocumentOutput[]
+}
+
+// ============== Versioning Types ==============
+
+export interface DocumentVersionInfo {
+  id: number
+  document_id: number
+  version: number
+  title?: string
+  subject?: string
+  content?: string
+  status?: string
+  file_name?: string
+  file_path?: string
+  file_size?: number
+  mime_type?: string
+  metadata?: Record<string, unknown>
+  changed_by: number
+  changed_by_name?: string
+  change_description?: string
+  created_at: string
+}
+
+export interface DocumentVersionListOutput {
+  versions: DocumentVersionInfo[]
+  total: number
+  document_id: number
+  latest_version: number
+}
+
+export interface VersionDiffOutput {
+  document_id: number
+  from_version: number
+  to_version: number
+  changed_fields: string[]
+  diff_data?: Record<string, { from: unknown; to: unknown }>
+  created_at: string
+}
+
+export interface VersionFileDownloadOutput {
+  file_name: string
+  file_path: string
+  file_size: number
+  mime_type: string
+  download_url?: string
+}
+
+export interface CreateVersionParams {
+  change_description?: string
+}
+
+export interface VersionResponse {
+  success: boolean
+  data: DocumentVersionInfo
+}
+
+export interface VersionListResponse {
+  success: boolean
+  data: DocumentVersionListOutput
+}
+
+export interface VersionDiffResponse {
+  success: boolean
+  data: VersionDiffOutput
+}
+
+export interface VersionFileResponse {
+  success: boolean
+  data: VersionFileDownloadOutput
 }

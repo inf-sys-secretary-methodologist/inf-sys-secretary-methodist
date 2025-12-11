@@ -16,8 +16,15 @@
 | `004_create_schedule_schema` | Система расписания учебного заведения (13 таблиц) |
 | `005_create_tasks_schema` | Управление задачами и поручениями (11 таблиц) |
 | `006_create_reports_schema` | Система отчётности и аналитики (9 таблиц) |
+| `007_create_events_schema` | Система мероприятий и событий |
+| `008_create_announcements_schema` | Система объявлений |
+| `009_create_users_module_schema` | Расширение модуля пользователей (подразделения, должности) |
+| `010_create_files_schema` | Интеграция с MinIO хранилищем |
+| `011_add_fulltext_search` | Полнотекстовый поиск документов (PostgreSQL FTS) |
+| `012_create_document_public_links` | Публичные ссылки для документов |
+| `013_enhance_document_versioning` | Расширенное версионирование документов (Issue #12) |
 
-**Итого**: 45 таблиц + 1 служебная таблица `schema_migrations` = **46 таблиц**
+**Итого**: 50+ таблиц + 1 служебная таблица `schema_migrations`
 
 ## Предварительные требования
 
@@ -162,10 +169,20 @@ docker run --rm -v "$(pwd)/migrations:/migrations" --network host \
 **Ключевые возможности**:
 - Движок workflow с многоэтапным согласованием
 - Мягкое удаление (deleted_at)
-- JSONB для гибких метаданных
+- JSONB для гибких метаданные
 - Шаблоны нумерации документов (например, "ПР-{YYYY}-{###}")
 - Политики хранения
 - Полный аудит-трейл
+
+### Расширенное версионирование (013)
+
+Миграция `013_enhance_document_versioning` добавляет:
+
+- **Расширение `document_versions`**: Новые колонки для хранения полного снимка документа (title, subject, status, mime_type, metadata, storage_key)
+- **Таблица `document_version_diffs`**: Кэш сравнений между версиями для ускорения diff-операций
+- **Триггер `create_document_version_on_update`**: Автоматическое создание версий при изменении ключевых полей документа
+
+**Автоматическое версионирование**: При обновлении документа PostgreSQL триггер автоматически сохраняет предыдущее состояние в `document_versions`, если изменились поля: title, subject, content, file_path, status.
 
 ### Модуль Schedule (004)
 

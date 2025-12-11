@@ -13,6 +13,7 @@ import { DocumentList } from '@/components/documents/DocumentList'
 import { DocumentFilters } from '@/components/documents/DocumentFilters'
 import { DocumentPreview } from '@/components/documents/DocumentPreview'
 import { ShareDocumentDialog } from '@/components/documents/ShareDocumentDialog'
+import { DocumentEditDialog } from '@/components/documents/DocumentEditDialog'
 import {
   Document,
   DocumentCategory,
@@ -114,6 +115,7 @@ export default function DocumentsPage() {
   const [showUpload, setShowUpload] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
   const [sharingDocument, setSharingDocument] = useState<Document | null>(null)
+  const [editingDocument, setEditingDocument] = useState<Document | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [_isLoading, setIsLoading] = useState(true)
@@ -279,6 +281,14 @@ export default function DocumentsPage() {
     setSharingDocument(doc)
   }
 
+  const handleEdit = (doc: Document) => {
+    setEditingDocument(doc)
+  }
+
+  const handleEditSaved = async () => {
+    await fetchDocuments()
+  }
+
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
@@ -402,10 +412,14 @@ export default function DocumentsPage() {
                   onDownload={handleDownload}
                   onDelete={handleDelete}
                   onShare={userCanEdit ? handleShare : undefined}
+                  onEdit={handleEdit}
                   canDelete={(doc) =>
                     user?.role === UserRole.SYSTEM_ADMIN || doc.authorId === user?.id
                   }
                   canShare={() => userCanEdit}
+                  canEdit={(doc) =>
+                    user?.role === UserRole.SYSTEM_ADMIN || doc.authorId === user?.id
+                  }
                 />
               </div>
             </div>
@@ -428,6 +442,14 @@ export default function DocumentsPage() {
         onOpenChange={(open) => !open && setSharingDocument(null)}
         documentId={sharingDocument?.id ? Number(sharingDocument.id) : 0}
         documentTitle={sharingDocument?.name || ''}
+      />
+
+      {/* Edit Document Dialog */}
+      <DocumentEditDialog
+        document={editingDocument}
+        open={editingDocument !== null}
+        onOpenChange={(open) => !open && setEditingDocument(null)}
+        onSaved={handleEditSaved}
       />
     </AppLayout>
   )
