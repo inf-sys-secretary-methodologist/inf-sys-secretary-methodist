@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useState } from 'react'
-import { Upload, X, FileText, AlertCircle } from 'lucide-react'
+import { useCallback, useState, useEffect } from 'react'
+import { Upload, X, FileText, AlertCircle, Tag, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DocumentCategory,
@@ -11,6 +11,7 @@ import {
   MAX_FILE_SIZE,
   type DocumentUpload,
 } from '@/types/document'
+import { tagsApi, TagInfo } from '@/lib/api/documents'
 
 interface DocumentUploadProps {
   onUpload: (uploads: DocumentUpload[]) => Promise<void>
@@ -33,9 +34,27 @@ export function DocumentUploadComponent({
 }: DocumentUploadProps) {
   const [files, setFiles] = useState<FileWithPreview[]>([])
   const [isDragging, setIsDragging] = useState(false)
-  const [category, setCategory] = useState<DocumentCategory>(DocumentCategory.OTHER)
+  const [category, setCategory] = useState<DocumentCategory>(DocumentCategory.EDUCATIONAL)
   const [description, setDescription] = useState('')
-  const [tags, setTags] = useState('')
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+  const [availableTags, setAvailableTags] = useState<TagInfo[]>([])
+  const [isLoadingTags, setIsLoadingTags] = useState(false)
+
+  // Load available tags on mount
+  useEffect(() => {
+    const loadTags = async () => {
+      setIsLoadingTags(true)
+      try {
+        const tags = await tagsApi.getAll()
+        setAvailableTags(tags)
+      } catch (err) {
+        console.error('Failed to load tags:', err)
+      } finally {
+        setIsLoadingTags(false)
+      }
+    }
+    loadTags()
+  }, [])
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {
@@ -104,22 +123,28 @@ export function DocumentUploadComponent({
     const validFiles = files.filter((f) => !f.error)
     if (validFiles.length === 0) return
 
+    // Get tag names from selected IDs
+    const selectedTagNames = selectedTagIds
+      .map((id) => availableTags.find((t) => t.id === id)?.name)
+      .filter(Boolean) as string[]
+
     const uploads: DocumentUpload[] = validFiles.map(({ file }) => ({
       file,
       category,
       description: description || undefined,
-      tags: tags
-        ? tags
-            .split(',')
-            .map((t) => t.trim())
-            .filter(Boolean)
-        : undefined,
+      tags: selectedTagNames.length > 0 ? selectedTagNames : undefined,
     }))
 
     await onUpload(uploads)
     setFiles([])
     setDescription('')
-    setTags('')
+    setSelectedTagIds([])
+  }
+
+  const toggleTag = (tagId: number) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    )
   }
 
   const validFilesCount = files.filter((f) => !f.error).length
@@ -266,18 +291,53 @@ export function DocumentUploadComponent({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Tag className="h-4 w-4 inline-block mr-1" />
               Теги (опционально)
             </label>
-            <input
-              type="text"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
-                       bg-white dark:bg-gray-900 text-gray-900 dark:text-white
-                       focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Введите теги через запятую..."
-              disabled={isUploading}
-            />
+            {isLoadingTags ? (
+              <p className="text-sm text-gray-500">Загрузка тегов...</p>
+            ) : availableTags.length === 0 ? (
+              <p className="text-sm text-gray-500">Нет доступных тегов</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {availableTags.map((tag) => {
+                  const isSelected = selectedTagIds.includes(tag.id)
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTag(tag.id)}
+                      disabled={isUploading}
+                      className={`
+                        inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
+                        transition-all duration-150 border
+                        ${
+                          isSelected
+                            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }
+                        ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      `}
+                      style={
+                        tag.color && isSelected
+                          ? {
+                              backgroundColor: `${tag.color}20`,
+                              color: tag.color,
+                              borderColor: tag.color,
+                            }
+                          : {}
+                      }
+                    >
+                      {isSelected && <Check className="h-3.5 w-3.5" />}
+                      {tag.name}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {selectedTagIds.length > 0 && (
+              <p className="text-xs text-gray-500 mt-2">Выбрано тегов: {selectedTagIds.length}</p>
+            )}
           </div>
 
           {/* Action Buttons */}

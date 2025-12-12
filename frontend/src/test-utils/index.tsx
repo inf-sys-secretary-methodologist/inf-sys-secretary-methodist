@@ -1,6 +1,7 @@
 import React, { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { ThemeProvider } from 'next-themes'
+import { UserRole, User } from '@/types/auth'
 
 interface AllTheProvidersProps {
   children: React.ReactNode
@@ -21,13 +22,13 @@ export * from '@testing-library/react'
 export { customRender as render }
 
 // Mock data helpers for tests
-export const mockUser = {
-  id: '1',
+export const mockUser: User = {
+  id: 1,
   email: 'test@example.com',
   name: 'Test User',
-  role: 'STUDENT' as const,
-  createdAt: '2025-01-01T00:00:00.000Z',
-  updatedAt: '2025-01-01T00:00:00.000Z',
+  role: UserRole.STUDENT,
+  created_at: '2025-01-01T00:00:00.000Z',
+  updated_at: '2025-01-01T00:00:00.000Z',
 }
 
 export const mockAuthResponse = {

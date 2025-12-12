@@ -11,7 +11,7 @@ export const mockDocuments: Document[] = [
   {
     id: '1',
     name: 'Учебный план 2024-2025.pdf',
-    category: DocumentCategory.SYLLABUS,
+    category: DocumentCategory.EDUCATIONAL,
     status: DocumentStatus.READY,
     metadata: {
       size: 2457600,
@@ -28,7 +28,7 @@ export const mockDocuments: Document[] = [
   {
     id: '2',
     name: 'Посещаемость январь.xlsx',
-    category: DocumentCategory.ATTENDANCE,
+    category: DocumentCategory.EDUCATIONAL,
     status: DocumentStatus.READY,
     metadata: {
       size: 524288,
@@ -42,7 +42,7 @@ export const mockDocuments: Document[] = [
   {
     id: '3',
     name: 'Оценки за семестр.xlsx',
-    category: DocumentCategory.GRADES,
+    category: DocumentCategory.EDUCATIONAL,
     status: DocumentStatus.READY,
     metadata: {
       size: 1048576,
@@ -58,7 +58,7 @@ export const mockDocuments: Document[] = [
   {
     id: '4',
     name: 'Отчет о практике.docx',
-    category: DocumentCategory.REPORT,
+    category: DocumentCategory.METHODICAL,
     status: DocumentStatus.PROCESSING,
     metadata: {
       size: 786432,
@@ -72,7 +72,7 @@ export const mockDocuments: Document[] = [
   {
     id: '5',
     name: 'Задание на курсовую работу.pdf',
-    category: DocumentCategory.ASSIGNMENT,
+    category: DocumentCategory.METHODICAL,
     status: DocumentStatus.READY,
     metadata: {
       size: 327680,
@@ -87,7 +87,7 @@ export const mockDocuments: Document[] = [
   {
     id: '6',
     name: 'Экзаменационные билеты.docx',
-    category: DocumentCategory.EXAM,
+    category: DocumentCategory.EDUCATIONAL,
     status: DocumentStatus.READY,
     metadata: {
       size: 458752,
@@ -102,7 +102,7 @@ export const mockDocuments: Document[] = [
   {
     id: '7',
     name: 'График защиты дипломов.pdf',
-    category: DocumentCategory.OTHER,
+    category: DocumentCategory.ADMINISTRATIVE,
     status: DocumentStatus.READY,
     metadata: {
       size: 204800,
@@ -117,7 +117,7 @@ export const mockDocuments: Document[] = [
   {
     id: '8',
     name: 'Список студентов.xlsx',
-    category: DocumentCategory.OTHER,
+    category: DocumentCategory.HR,
     status: DocumentStatus.UPLOADING,
     metadata: {
       size: 163840,
@@ -131,7 +131,7 @@ export const mockDocuments: Document[] = [
   {
     id: '9',
     name: 'Протокол заседания.docx',
-    category: DocumentCategory.REPORT,
+    category: DocumentCategory.ADMINISTRATIVE,
     status: DocumentStatus.ERROR,
     metadata: {
       size: 245760,
@@ -145,7 +145,7 @@ export const mockDocuments: Document[] = [
   {
     id: '10',
     name: 'Учебные материалы.zip',
-    category: DocumentCategory.OTHER,
+    category: DocumentCategory.ARCHIVE,
     status: DocumentStatus.READY,
     metadata: {
       size: 15728640,
@@ -166,6 +166,9 @@ export function filterDocuments(
     category?: DocumentCategory
     status?: DocumentStatus
     tags?: string[]
+    dateFrom?: Date
+    dateTo?: Date
+    authorId?: number
   }
 ): Document[] {
   let filtered = [...documents]
@@ -194,6 +197,31 @@ export function filterDocuments(
         doc.tags?.some((docTag) => docTag.toLowerCase().includes(filterTag.toLowerCase()))
       )
     )
+  }
+
+  // Filter by date range
+  if (filters.dateFrom) {
+    const fromDate = new Date(filters.dateFrom)
+    fromDate.setHours(0, 0, 0, 0)
+    filtered = filtered.filter((doc) => {
+      const docDate = new Date(doc.metadata.uploadedAt)
+      docDate.setHours(0, 0, 0, 0)
+      return docDate >= fromDate
+    })
+  }
+
+  if (filters.dateTo) {
+    const toDate = new Date(filters.dateTo)
+    toDate.setHours(23, 59, 59, 999)
+    filtered = filtered.filter((doc) => {
+      const docDate = new Date(doc.metadata.uploadedAt)
+      return docDate <= toDate
+    })
+  }
+
+  // Filter by author
+  if (filters.authorId) {
+    filtered = filtered.filter((doc) => doc.authorId === filters.authorId)
   }
 
   return filtered

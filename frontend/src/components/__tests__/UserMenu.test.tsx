@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { UserMenu } from '../UserMenu'
 import { useAuth, useLogout } from '@/hooks/useAuth'
 import { mockUser } from '@/test-utils'
+import { UserRole } from '@/types/auth'
 
 // Mock dependencies
 jest.mock('@/hooks/useAuth')
@@ -18,6 +19,11 @@ const mockUseLogout = useLogout as jest.MockedFunction<typeof useLogout>
 
 describe('UserMenu', () => {
   const mockLogout = jest.fn()
+  const mockLogin = jest.fn()
+  const mockRegister = jest.fn()
+  const mockCheckAuth = jest.fn()
+  const mockClearError = jest.fn()
+  const mockLogoutAuth = jest.fn()
 
   beforeEach(() => {
     mockUseAuth.mockReturnValue({
@@ -25,6 +31,11 @@ describe('UserMenu', () => {
       isAuthenticated: true,
       isLoading: false,
       error: null,
+      login: mockLogin,
+      register: mockRegister,
+      logout: mockLogoutAuth,
+      checkAuth: mockCheckAuth,
+      clearError: mockClearError,
     })
 
     mockUseLogout.mockReturnValue({
@@ -43,6 +54,11 @@ describe('UserMenu', () => {
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      login: mockLogin,
+      register: mockRegister,
+      logout: mockLogoutAuth,
+      checkAuth: mockCheckAuth,
+      clearError: mockClearError,
     })
 
     render(<UserMenu />)
@@ -159,19 +175,24 @@ describe('UserMenu', () => {
 
   it('displays different role names correctly', () => {
     const roles = [
-      { role: 'ADMIN', display: 'Администратор' },
-      { role: 'METHODIST', display: 'Методист' },
-      { role: 'SECRETARY', display: 'Секретарь' },
-      { role: 'TEACHER', display: 'Преподаватель' },
-      { role: 'STUDENT', display: 'Студент' },
+      { role: UserRole.SYSTEM_ADMIN, display: 'Администратор' },
+      { role: UserRole.METHODIST, display: 'Методист' },
+      { role: UserRole.ACADEMIC_SECRETARY, display: 'Секретарь' },
+      { role: UserRole.TEACHER, display: 'Преподаватель' },
+      { role: UserRole.STUDENT, display: 'Студент' },
     ]
 
     roles.forEach(({ role, display }) => {
       mockUseAuth.mockReturnValue({
-        user: { ...mockUser, role: role as typeof mockUser.role },
+        user: { ...mockUser, role },
         isAuthenticated: true,
         isLoading: false,
         error: null,
+        login: mockLogin,
+        register: mockRegister,
+        logout: mockLogoutAuth,
+        checkAuth: mockCheckAuth,
+        clearError: mockClearError,
       })
 
       const { unmount } = render(<UserMenu />)
@@ -186,6 +207,11 @@ describe('UserMenu', () => {
       isAuthenticated: true,
       isLoading: false,
       error: null,
+      login: mockLogin,
+      register: mockRegister,
+      logout: mockLogoutAuth,
+      checkAuth: mockCheckAuth,
+      clearError: mockClearError,
     })
 
     render(<UserMenu />)
@@ -199,6 +225,11 @@ describe('UserMenu', () => {
       isAuthenticated: true,
       isLoading: false,
       error: null,
+      login: mockLogin,
+      register: mockRegister,
+      logout: mockLogoutAuth,
+      checkAuth: mockCheckAuth,
+      clearError: mockClearError,
     })
 
     render(<UserMenu />)

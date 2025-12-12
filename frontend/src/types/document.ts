@@ -6,13 +6,22 @@
  */
 
 export enum DocumentCategory {
-  SYLLABUS = 'syllabus',
-  ATTENDANCE = 'attendance',
-  GRADES = 'grades',
-  REPORT = 'report',
-  ASSIGNMENT = 'assignment',
-  EXAM = 'exam',
-  OTHER = 'other',
+  EDUCATIONAL = 'educational', // Учебная деятельность - ID: 1
+  HR = 'hr', // Кадровые вопросы - ID: 2
+  ADMINISTRATIVE = 'administrative', // Административные - ID: 3
+  METHODICAL = 'methodical', // Методическая работа - ID: 4
+  FINANCIAL = 'financial', // Финансовые - ID: 5
+  ARCHIVE = 'archive', // Архив - ID: 6
+}
+
+// Mapping frontend category to backend category_id
+export const DocumentCategoryToId: Record<DocumentCategory, number> = {
+  [DocumentCategory.EDUCATIONAL]: 1,
+  [DocumentCategory.HR]: 2,
+  [DocumentCategory.ADMINISTRATIVE]: 3,
+  [DocumentCategory.METHODICAL]: 4,
+  [DocumentCategory.FINANCIAL]: 5,
+  [DocumentCategory.ARCHIVE]: 6,
 }
 
 export enum DocumentStatus {
@@ -58,6 +67,7 @@ export interface DocumentFilter {
   tags?: string[]
   dateFrom?: Date
   dateTo?: Date
+  authorId?: number
 }
 
 export interface DocumentSortOptions {
@@ -67,13 +77,12 @@ export interface DocumentSortOptions {
 
 // Mapping for display purposes
 export const DocumentCategoryLabels: Record<DocumentCategory, string> = {
-  [DocumentCategory.SYLLABUS]: 'Учебный план',
-  [DocumentCategory.ATTENDANCE]: 'Посещаемость',
-  [DocumentCategory.GRADES]: 'Оценки',
-  [DocumentCategory.REPORT]: 'Отчет',
-  [DocumentCategory.ASSIGNMENT]: 'Задание',
-  [DocumentCategory.EXAM]: 'Экзамен',
-  [DocumentCategory.OTHER]: 'Другое',
+  [DocumentCategory.EDUCATIONAL]: 'Учебная деятельность',
+  [DocumentCategory.HR]: 'Кадровые вопросы',
+  [DocumentCategory.ADMINISTRATIVE]: 'Административные',
+  [DocumentCategory.METHODICAL]: 'Методическая работа',
+  [DocumentCategory.FINANCIAL]: 'Финансовые',
+  [DocumentCategory.ARCHIVE]: 'Архив',
 }
 
 export const DocumentStatusLabels: Record<DocumentStatus, string> = {

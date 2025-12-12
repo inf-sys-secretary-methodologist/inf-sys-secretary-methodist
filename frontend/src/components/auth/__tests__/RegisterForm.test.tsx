@@ -224,9 +224,9 @@ describe('RegisterForm', () => {
     expect(roleSelect.options).toHaveLength(5)
     expect(roleSelect.options[0]).toHaveValue(UserRole.STUDENT)
     expect(roleSelect.options[1]).toHaveValue(UserRole.TEACHER)
-    expect(roleSelect.options[2]).toHaveValue(UserRole.SECRETARY)
+    expect(roleSelect.options[2]).toHaveValue(UserRole.ACADEMIC_SECRETARY)
     expect(roleSelect.options[3]).toHaveValue(UserRole.METHODIST)
-    expect(roleSelect.options[4]).toHaveValue(UserRole.ADMIN)
+    expect(roleSelect.options[4]).toHaveValue(UserRole.SYSTEM_ADMIN)
   })
 
   it('defaults to STUDENT role', () => {

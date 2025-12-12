@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { format } from 'date-fns'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { UserRole } from '@/types/auth'
 import { AppLayout } from '@/components/layout'
@@ -17,6 +18,7 @@ import { DocumentEditDialog } from '@/components/documents/DocumentEditDialog'
 import {
   Document,
   DocumentCategory,
+  DocumentCategoryToId,
   DocumentFilter,
   DocumentSortOptions,
   DocumentUpload,
@@ -24,7 +26,7 @@ import {
 } from '@/types/document'
 import { filterDocuments, sortDocuments } from '@/lib/mock-documents'
 import { canEdit } from '@/lib/auth/permissions'
-import { documentsApi, DocumentInfo, SearchResultItem } from '@/lib/api/documents'
+import { documentsApi, DocumentInfo, SearchResultItem, tagsApi, TagInfo } from '@/lib/api/documents'
 
 // Map backend status to frontend status
 const mapBackendStatus = (status: string): DocumentStatus => {
@@ -42,8 +44,21 @@ const mapBackendStatus = (status: string): DocumentStatus => {
   return statusMap[status] || DocumentStatus.PROCESSING
 }
 
+// Map backend category_id to frontend DocumentCategory
+const mapCategoryIdToCategory = (categoryId?: number): DocumentCategory => {
+  const categoryMap: Record<number, DocumentCategory> = {
+    1: DocumentCategory.EDUCATIONAL,
+    2: DocumentCategory.HR,
+    3: DocumentCategory.ADMINISTRATIVE,
+    4: DocumentCategory.METHODICAL,
+    5: DocumentCategory.FINANCIAL,
+    6: DocumentCategory.ARCHIVE,
+  }
+  return categoryMap[categoryId || 1] || DocumentCategory.EDUCATIONAL
+}
+
 // Helper to convert API DocumentInfo to frontend Document type
-const mapDocumentInfoToDocument = (doc: DocumentInfo): Document => {
+const mapDocumentInfoToDocument = (doc: DocumentInfo, tags?: TagInfo[]): Document => {
   const fileUrl = doc.has_file ? documentsApi.getFileDownloadUrl(doc.id) : undefined
   const mimeType = doc.mime_type || 'application/octet-stream'
 
@@ -54,10 +69,10 @@ const mapDocumentInfoToDocument = (doc: DocumentInfo): Document => {
   return {
     id: String(doc.id),
     name: doc.title,
-    category: DocumentCategory.OTHER, // Backend uses category_id, we default to OTHER
+    category: mapCategoryIdToCategory(doc.category_id),
     status: mapBackendStatus(doc.status),
     description: doc.subject || undefined,
-    tags: undefined,
+    tags: tags?.map((t) => t.name),
     url: fileUrl,
     thumbnailUrl,
     metadata: {
@@ -77,7 +92,10 @@ type DocumentWithHighlighting = Document & {
 }
 
 // Helper to convert search result to frontend Document with highlighting
-const mapSearchResultToDocument = (result: SearchResultItem): DocumentWithHighlighting => {
+const mapSearchResultToDocument = (
+  result: SearchResultItem,
+  tags?: TagInfo[]
+): DocumentWithHighlighting => {
   const doc = result.document
   const fileUrl = doc.has_file ? documentsApi.getFileDownloadUrl(doc.id) : undefined
   const mimeType = doc.mime_type || 'application/octet-stream'
@@ -87,10 +105,10 @@ const mapSearchResultToDocument = (result: SearchResultItem): DocumentWithHighli
   return {
     id: String(doc.id),
     name: doc.title,
-    category: DocumentCategory.OTHER,
+    category: mapCategoryIdToCategory(doc.category_id),
     status: mapBackendStatus(doc.status),
     description: doc.subject || undefined,
-    tags: undefined,
+    tags: tags?.map((t) => t.name),
     url: fileUrl,
     thumbnailUrl,
     metadata: {
@@ -134,13 +152,40 @@ export default function DocumentsPage() {
     order: 'desc',
   })
 
-  // Fetch documents from API
-  const fetchDocuments = useCallback(async () => {
+  // Fetch documents from API with filters
+  const fetchDocuments = useCallback(async (currentFilters?: DocumentFilter) => {
     try {
       setIsLoading(true)
       setError(null)
-      const response = await documentsApi.list()
-      const mappedDocs = response.data.map(mapDocumentInfoToDocument)
+
+      // Build API params from filters
+      const params: Parameters<typeof documentsApi.list>[0] = {}
+
+      if (currentFilters?.status) {
+        params.status = currentFilters.status
+      }
+      if (currentFilters?.authorId) {
+        params.author_id = currentFilters.authorId
+      }
+      if (currentFilters?.dateFrom) {
+        params.from_date = format(currentFilters.dateFrom, 'yyyy-MM-dd')
+      }
+      if (currentFilters?.dateTo) {
+        params.to_date = format(currentFilters.dateTo, 'yyyy-MM-dd')
+      }
+
+      const response = await documentsApi.list(params)
+
+      // Fetch tags for all documents in parallel
+      const tagsPromises = response.data.map((doc) =>
+        tagsApi.getDocumentTags(doc.id).catch(() => [])
+      )
+      const allTags = await Promise.all(tagsPromises)
+
+      // Map documents with their tags
+      const mappedDocs = response.data.map((doc, index) =>
+        mapDocumentInfoToDocument(doc, allTags[index])
+      )
       setDocuments(mappedDocs)
     } catch (err) {
       console.error('Failed to fetch documents:', err)
@@ -150,12 +195,16 @@ export default function DocumentsPage() {
     }
   }, [])
 
-  // Load documents on mount
+  // Load documents on mount and when filters change (except search which is handled separately)
   useEffect(() => {
-    fetchDocuments()
-  }, [fetchDocuments])
+    // Skip if we're in search mode - search has its own effect
+    const isSearchMode = filters.search && filters.search.trim().length >= 2
+    if (!isSearchMode) {
+      fetchDocuments(filters)
+    }
+  }, [fetchDocuments, filters.status, filters.authorId, filters.dateFrom, filters.dateTo])
 
-  // Debounced search effect
+  // Debounced search effect with filters
   useEffect(() => {
     // Clear previous timeout
     if (searchTimeoutRef.current) {
@@ -178,12 +227,38 @@ export default function DocumentsPage() {
     // Debounce the actual search call
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const result = await documentsApi.search({
+        const searchParams: Parameters<typeof documentsApi.search>[0] = {
           q: searchQuery,
           page: 1,
           page_size: 50,
-        })
-        const mappedResults = result.results.map(mapSearchResultToDocument)
+        }
+
+        // Add other filters to search
+        if (filters.authorId) {
+          searchParams.author_id = filters.authorId
+        }
+        if (filters.status) {
+          searchParams.status = filters.status
+        }
+        if (filters.dateFrom) {
+          searchParams.from_date = format(filters.dateFrom, 'yyyy-MM-dd')
+        }
+        if (filters.dateTo) {
+          searchParams.to_date = format(filters.dateTo, 'yyyy-MM-dd')
+        }
+
+        const result = await documentsApi.search(searchParams)
+
+        // Fetch tags for all search results in parallel
+        const tagsPromises = result.results.map((r) =>
+          tagsApi.getDocumentTags(r.document.id).catch(() => [])
+        )
+        const allTags = await Promise.all(tagsPromises)
+
+        // Map results with their tags
+        const mappedResults = result.results.map((r, index) =>
+          mapSearchResultToDocument(r, allTags[index])
+        )
         setSearchResults(mappedResults)
         setSearchTotal(result.total)
       } catch (err) {
@@ -201,7 +276,7 @@ export default function DocumentsPage() {
         clearTimeout(searchTimeoutRef.current)
       }
     }
-  }, [filters.search])
+  }, [filters.search, filters.authorId, filters.status, filters.dateFrom, filters.dateTo])
 
   // Determine which documents to show
   const isInSearchMode = Boolean(filters.search?.trim() && filters.search.trim().length >= 2)
@@ -226,10 +301,12 @@ export default function DocumentsPage() {
 
     try {
       for (const upload of uploads) {
-        // 1. Create document record
+        // 1. Create document record with proper category
+        const categoryId = DocumentCategoryToId[upload.category] || 1
         const docInfo = await documentsApi.create({
           title: upload.file.name,
           document_type_id: 1, // Default document type (Входящий документ)
+          category_id: categoryId,
           subject: upload.description,
           importance: 'normal',
           is_public: false,
@@ -237,6 +314,35 @@ export default function DocumentsPage() {
 
         // 2. Upload file to the document
         await documentsApi.uploadFile(docInfo.id, upload.file)
+
+        // 3. Save tags if provided
+        if (upload.tags && upload.tags.length > 0) {
+          console.log('Upload tags:', upload.tags)
+          // Get all available tags to match by name
+          const availableTags = await tagsApi.getAll()
+          console.log('Available tags:', availableTags)
+          const tagIds: number[] = []
+
+          for (const tagName of upload.tags) {
+            const matchingTag = availableTags.find(
+              (t) => t.name.toLowerCase() === tagName.toLowerCase()
+            )
+            console.log(`Matching tag "${tagName}":`, matchingTag)
+            if (matchingTag) {
+              tagIds.push(matchingTag.id)
+            }
+          }
+
+          console.log('Tag IDs to save:', tagIds)
+          // Add matched tags to document
+          if (tagIds.length > 0) {
+            console.log(`Saving tags to document ${docInfo.id}:`, tagIds)
+            await tagsApi.setDocumentTags(docInfo.id, tagIds)
+            console.log('Tags saved successfully')
+          }
+        } else {
+          console.log('No tags provided in upload:', upload)
+        }
       }
 
       // Refresh documents list

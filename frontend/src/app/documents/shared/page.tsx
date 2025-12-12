@@ -12,6 +12,19 @@ import Link from 'next/link'
 import { DocumentList } from '@/components/documents/DocumentList'
 import { DocumentPreview } from '@/components/documents/DocumentPreview'
 import { Document, DocumentCategory, DocumentStatus } from '@/types/document'
+
+// Map backend category_id to frontend DocumentCategory
+const mapCategoryIdToCategory = (categoryId?: number): DocumentCategory => {
+  const categoryMap: Record<number, DocumentCategory> = {
+    1: DocumentCategory.EDUCATIONAL,
+    2: DocumentCategory.HR,
+    3: DocumentCategory.ADMINISTRATIVE,
+    4: DocumentCategory.METHODICAL,
+    5: DocumentCategory.FINANCIAL,
+    6: DocumentCategory.ARCHIVE,
+  }
+  return categoryMap[categoryId || 1] || DocumentCategory.EDUCATIONAL
+}
 import {
   documentsApi,
   DocumentInfo,
@@ -46,7 +59,7 @@ const mapDocumentInfoToDocument = (doc: DocumentInfo): Document => {
   return {
     id: String(doc.id),
     name: doc.title,
-    category: DocumentCategory.OTHER,
+    category: mapCategoryIdToCategory(doc.category_id),
     status: mapBackendStatus(doc.status),
     description: doc.subject || undefined,
     tags: undefined,

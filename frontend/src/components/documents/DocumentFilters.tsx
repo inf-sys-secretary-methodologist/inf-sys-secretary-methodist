@@ -1,8 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { Search, Filter, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, Filter, X, Calendar as CalendarIcon } from 'lucide-react'
+import { format } from 'date-fns'
+import { ru } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   DocumentCategory,
   DocumentStatus,
@@ -11,6 +15,13 @@ import {
   type DocumentFilter,
   type DocumentSortOptions,
 } from '@/types/document'
+import { usersApi } from '@/lib/api/users'
+import { cn } from '@/lib/utils'
+
+interface Author {
+  id: number
+  name: string
+}
 
 interface DocumentFiltersProps {
   onFilterChange: (filters: DocumentFilter) => void
@@ -36,6 +47,29 @@ export function DocumentFilters({
     currentFilters.status || 'all'
   )
   const [tagInput, setTagInput] = useState(currentFilters.tags?.join(', ') || '')
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(currentFilters.dateFrom)
+  const [dateTo, setDateTo] = useState<Date | undefined>(currentFilters.dateTo)
+  const [selectedAuthorId, setSelectedAuthorId] = useState<number | 'all'>(
+    currentFilters.authorId || 'all'
+  )
+  const [authors, setAuthors] = useState<Author[]>([])
+  const [isLoadingAuthors, setIsLoadingAuthors] = useState(false)
+
+  // Load authors list
+  useEffect(() => {
+    const loadAuthors = async () => {
+      setIsLoadingAuthors(true)
+      try {
+        const users = await usersApi.getAll()
+        setAuthors(users.map((u) => ({ id: u.id, name: u.name })))
+      } catch (err) {
+        console.error('Failed to load authors:', err)
+      } finally {
+        setIsLoadingAuthors(false)
+      }
+    }
+    loadAuthors()
+  }, [])
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)
@@ -73,6 +107,30 @@ export function DocumentFilters({
     })
   }
 
+  const handleDateFromChange = (date: Date | undefined) => {
+    setDateFrom(date)
+    onFilterChange({
+      ...currentFilters,
+      dateFrom: date,
+    })
+  }
+
+  const handleDateToChange = (date: Date | undefined) => {
+    setDateTo(date)
+    onFilterChange({
+      ...currentFilters,
+      dateTo: date,
+    })
+  }
+
+  const handleAuthorChange = (authorId: number | 'all') => {
+    setSelectedAuthorId(authorId)
+    onFilterChange({
+      ...currentFilters,
+      authorId: authorId === 'all' ? undefined : authorId,
+    })
+  }
+
   const handleSortChange = (field: DocumentSortOptions['field']) => {
     if (currentSort.field === field) {
       // Toggle order if same field
@@ -94,6 +152,9 @@ export function DocumentFilters({
     setSelectedCategory('all')
     setSelectedStatus('all')
     setTagInput('')
+    setDateFrom(undefined)
+    setDateTo(undefined)
+    setSelectedAuthorId('all')
     onFilterChange({})
   }
 
@@ -101,7 +162,15 @@ export function DocumentFilters({
     currentFilters.search ||
     currentFilters.category ||
     currentFilters.status ||
-    currentFilters.tags?.length
+    currentFilters.tags?.length ||
+    currentFilters.dateFrom ||
+    currentFilters.dateTo ||
+    currentFilters.authorId
+
+  const getAuthorName = (id: number) => {
+    const author = authors.find((a) => a.id === id)
+    return author?.name || `Автор #${id}`
+  }
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -130,7 +199,10 @@ export function DocumentFilters({
           Фильтры
           {hasActiveFilters && !isExpanded && (
             <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
-              {Object.keys(currentFilters).length}
+              {
+                Object.keys(currentFilters).filter((k) => currentFilters[k as keyof DocumentFilter])
+                  .length
+              }
             </span>
           )}
         </Button>
@@ -187,6 +259,117 @@ export function DocumentFilters({
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Author Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Автор
+              </label>
+              <select
+                value={selectedAuthorId}
+                onChange={(e) =>
+                  handleAuthorChange(e.target.value === 'all' ? 'all' : Number(e.target.value))
+                }
+                disabled={isLoadingAuthors}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                         bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                         focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="all">{isLoadingAuthors ? 'Загрузка...' : 'Все авторы'}</option>
+                {authors.map((author) => (
+                  <option key={author.id} value={author.id}>
+                    {author.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date From Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Дата от
+              </label>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'flex-1 justify-start text-left font-normal',
+                        !dateFrom && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateFrom ? format(dateFrom, 'dd.MM.yyyy', { locale: ru }) : 'Выберите дату'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateFrom}
+                      onSelect={handleDateFromChange}
+                      disabled={(date) => (dateTo ? date > dateTo : false)}
+                      locale={ru}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {dateFrom && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDateFromChange(undefined)}
+                    className="flex-shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    title="Сбросить дату"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Date To Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Дата до
+              </label>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'flex-1 justify-start text-left font-normal',
+                        !dateTo && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateTo ? format(dateTo, 'dd.MM.yyyy', { locale: ru }) : 'Выберите дату'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateTo}
+                      onSelect={handleDateToChange}
+                      disabled={(date) => (dateFrom ? date < dateFrom : false)}
+                      locale={ru}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {dateTo && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDateToChange(undefined)}
+                    className="flex-shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    title="Сбросить дату"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Tags Filter */}
@@ -268,6 +451,39 @@ export function DocumentFilters({
               <button
                 onClick={() => handleStatusChange('all')}
                 className="hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-full p-0.5"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {currentFilters.authorId && (
+            <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full text-sm flex items-center gap-2">
+              Автор: {getAuthorName(currentFilters.authorId)}
+              <button
+                onClick={() => handleAuthorChange('all')}
+                className="hover:bg-green-200 dark:hover:bg-green-800/50 rounded-full p-0.5"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {currentFilters.dateFrom && (
+            <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 rounded-full text-sm flex items-center gap-2">
+              От: {format(currentFilters.dateFrom, 'dd.MM.yyyy', { locale: ru })}
+              <button
+                onClick={() => handleDateFromChange(undefined)}
+                className="hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded-full p-0.5"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {currentFilters.dateTo && (
+            <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 rounded-full text-sm flex items-center gap-2">
+              До: {format(currentFilters.dateTo, 'dd.MM.yyyy', { locale: ru })}
+              <button
+                onClick={() => handleDateToChange(undefined)}
+                className="hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded-full p-0.5"
               >
                 <X className="h-3 w-3" />
               </button>
