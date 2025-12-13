@@ -298,7 +298,100 @@ Prometheus метрики в формате OpenMetrics.
 
 ### Base URL: `/api/notifications`
 
-Требует JWT аутентификации. Доступен только при настроенной интеграции с Composio.
+Требует JWT аутентификации. Модуль управления уведомлениями с поддержкой in-app уведомлений, email (Composio Gmail) и Telegram.
+
+### In-App Notifications
+
+### GET `/api/notifications`
+Получение списка уведомлений текущего пользователя с пагинацией.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `page` | int | Номер страницы (default: 1) |
+| `limit` | int | Размер страницы (default: 20, max: 100) |
+| `type` | string | Фильтр по типу: system, reminder, task, document, announcement, event |
+| `is_read` | bool | Фильтр по статусу прочтения |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "notifications": [
+      {
+        "id": 1,
+        "user_id": 5,
+        "type": "task",
+        "title": "Новая задача",
+        "message": "Вам назначена новая задача",
+        "is_read": false,
+        "created_at": "2025-12-13T10:00:00Z"
+      }
+    ],
+    "total": 50,
+    "page": 1,
+    "limit": 20,
+    "unread_count": 5
+  }
+}
+```
+
+### GET `/api/notifications/unread-count`
+Получение количества непрочитанных уведомлений.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "count": 5
+  }
+}
+```
+
+### PUT `/api/notifications/:id/read`
+Отметить уведомление как прочитанное.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Notification marked as read"
+  }
+}
+```
+
+### PUT `/api/notifications/read-all`
+Отметить все уведомления как прочитанные.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "All notifications marked as read"
+  }
+}
+```
+
+### DELETE `/api/notifications/:id`
+Удаление уведомления.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Notification deleted"
+  }
+}
+```
+
+### Email Notifications (Composio Gmail)
+
+Доступен только при настроенной интеграции с Composio.
 
 ### POST `/api/notifications/send-email`
 Отправка email уведомления.
@@ -341,6 +434,57 @@ Prometheus метрики в формате OpenMetrics.
   "name": "Иван Петров"
 }
 ```
+
+### Telegram Integration
+
+Интеграция с Telegram для push-уведомлений. Подробнее: [Telegram Bot Integration](../integrations/telegram-bot.md)
+
+### GET `/api/notifications/telegram/status`
+Получить статус подключения Telegram.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "connected": true,
+    "username": "john_doe",
+    "first_name": "John",
+    "connected_at": "2025-12-13T10:00:00Z"
+  }
+}
+```
+
+### POST `/api/notifications/telegram/generate-code`
+Сгенерировать код для привязки Telegram аккаунта.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "code": "ABC123",
+    "expires_at": "2025-12-13T10:05:00Z",
+    "bot_link": "https://t.me/your_bot?start=ABC123"
+  }
+}
+```
+
+### DELETE `/api/notifications/telegram/disconnect`
+Отключить Telegram аккаунт.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Telegram disconnected"
+  }
+}
+```
+
+### POST `/api/notifications/telegram/webhook`
+Webhook для входящих сообщений от Telegram (только для режима webhook).
 
 ---
 

@@ -26,20 +26,20 @@
 
 ## 🧩 Модульная структура
 
-> **Статус реализации**: На данный момент реализованы 4 модуля из 10. Остальные существуют как placeholder'ы для будущей разработки.
+> **Статус реализации**: На данный момент реализованы 6 модулей из 10. Остальные существуют как placeholder'ы для будущей разработки.
 
-| Модуль | Статус | Файлов |
-|--------|--------|--------|
-| auth | ✅ Реализован | 18 |
-| documents | ✅ Реализован | 18 |
-| notifications | ✅ Реализован | 3 |
-| schedule | ✅ Реализован | 7 |
-| users | 📋 Планируется | 0 |
-| workflow | 📋 Планируется | 0 |
-| tasks | 📋 Планируется | 0 |
-| reporting | 📋 Планируется | 0 |
-| files | 📋 Планируется | 0 |
-| integration | 📋 Планируется | 0 |
+| Модуль | Статус | Файлов | Описание |
+|--------|--------|--------|----------|
+| auth | ✅ Реализован | 18 | JWT аутентификация, регистрация, роли |
+| documents | ✅ Реализован | 30 | CRUD документов, версии, шаринг, теги |
+| notifications | ✅ Реализован | 27 | In-app, Email (Composio), Telegram |
+| schedule | ✅ Реализован | 7 | Расписание занятий |
+| users | ✅ Реализован | 20 | CRUD пользователей, профили, аватары |
+| files | ✅ Реализован | 12 | MinIO/S3 хранилище файлов |
+| workflow | 📋 Планируется | 0 | Согласование документов |
+| tasks | 📋 Планируется | 0 | Задания для студентов |
+| reporting | 📋 Планируется | 0 | Аналитика и отчёты |
+| integration | 📋 Планируется | 0 | Интеграция с 1С |
 
 ### Core Modules (Основные модули)
 
@@ -98,37 +98,48 @@ internal/modules/auth/
 - Управление сессиями через Redis
 - Базовые роли (user, admin)
 
-#### 2. **User Management Module** 👥 📋 Планируется
+#### 2. **User Management Module** 👥 ✅ Реализован
 **Bounded Context**: User Profile & Organization
+
+Модуль управления пользователями:
+- CRUD операции для профилей, подразделений, должностей
+- Загрузка и кадрирование аватаров
+- Импорт/экспорт пользователей через CSV
+- Организационная структура
+
 ```
 internal/modules/users/
 ├── domain/
 │   ├── entities/
-│   │   ├── profile.go
+│   │   ├── user_profile.go
 │   │   ├── department.go
 │   │   └── position.go
-│   ├── repositories/
-│   │   └── profile_repository.go
-│   └── services/
-│       └── user_service.go
+│   └── repositories/
+│       ├── user_profile_repository.go
+│       ├── department_repository.go
+│       └── position_repository.go
 ├── application/
-│   ├── usecases/
-│   │   ├── create_profile.go
-│   │   ├── update_profile.go
-│   │   └── sync_with_1c.go
-│   └── handlers/
-│       └── profile_handler.go
+│   ├── dto/
+│   │   ├── user_dto.go
+│   │   ├── department_dto.go
+│   │   ├── position_dto.go
+│   │   └── csv_dto.go
+│   └── usecases/
+│       ├── user_usecase.go
+│       ├── department_usecase.go
+│       └── position_usecase.go
 ├── infrastructure/
-│   ├── persistence/
-│   │   └── postgres/
-│   │       └── profile_repository.go
-│   └── external/
-│       └── onec_client.go
+│   └── persistence/
+│       ├── user_profile_repository.go
+│       ├── department_repository.go
+│       └── position_repository.go
 └── interfaces/
-    ├── http/
-    │   └── handlers/
-    └── events/
-        └── user_events.go
+    └── http/
+        └── handlers/
+            ├── user_handler.go
+            ├── avatar_handler.go
+            ├── department_handler.go
+            └── position_handler.go
 ```
 
 #### 3. **Document Management Module** 📄 ✅ Реализован
@@ -344,50 +355,93 @@ internal/modules/tasks/
 
 #### 8. **Notification Module** 📧 ✅ Реализован
 **Bounded Context**: Communication & Alerts
+
+Модуль поддерживает три канала уведомлений:
+- **In-app**: Уведомления внутри приложения с фильтрацией по типам
+- **Email**: Интеграция с Gmail через Composio API
+- **Telegram**: Push-уведомления через Telegram Bot (polling/webhook)
+
 ```
 internal/modules/notifications/
 ├── domain/
 │   ├── entities/
-│   │   ├── notification.go
-│   │   ├── template.go
-│   │   └── subscription.go
+│   │   ├── notification.go          # In-app уведомления
+│   │   ├── preferences.go           # Настройки пользователя
+│   │   └── telegram_verification.go # Коды верификации Telegram
 │   ├── repositories/
-│   │   └── notification_repository.go
-│   ├── services/
-│   │   ├── email_service.go
-│   │   ├── sms_service.go
-│   │   ├── push_service.go
-│   │   └── template_service.go
-│   └── value_objects/
-│       ├── channel.go
-│       └── priority.go
+│   │   ├── notification_repository.go
+│   │   ├── preferences_repository.go
+│   │   └── telegram_repository.go
+│   └── services/
+│       ├── email_service.go         # Interface
+│       ├── telegram_service.go      # Interface
+│       └── slack_service.go         # Interface (planned)
 ├── application/
-│   ├── usecases/
-│   │   ├── send_notification.go
-│   │   ├── manage_subscriptions.go
-│   │   └── process_templates.go
-│   └── handlers/
-│       └── notification_handler.go
+│   ├── dto/
+│   │   ├── notification_dto.go
+│   │   └── preferences_dto.go
+│   ├── services/
+│   │   ├── composio_email_service.go
+│   │   ├── composio_telegram_service.go
+│   │   ├── composio_slack_service.go
+│   │   └── telegram_verification_service.go
+│   └── usecases/
+│       ├── notification_usecase.go
+│       ├── notification_usecase_test.go
+│       └── preferences_usecase.go
 ├── infrastructure/
 │   ├── persistence/
-│   │   ├── postgres/
-│   │   └── redis/
-│   │       └── queue_manager.go
-│   └── external/
-│       ├── smtp_client.go
-│       ├── sms_provider.go
-│       └── websocket_manager.go
+│   │   ├── notification_repository_pg.go
+│   │   ├── preferences_repository_pg.go
+│   │   └── telegram_repository_pg.go
+│   └── scheduler/
+│       └── reminder_scheduler.go
 └── interfaces/
-    ├── http/
-    ├── websocket/
-    └── queue/
-        └── message_processor.go
+    └── http/
+        ├── handlers/
+        │   └── email_handler.go
+        ├── notification_handler.go
+        ├── preferences_handler.go
+        ├── telegram_handler.go
+        └── telegram_webhook_handler.go
 ```
 
-#### 9. **File Storage Module** 📁 📋 Планируется
+**Telegram Integration**: См. [Telegram Bot Integration](../../integrations/telegram-bot.md)
+
+#### 9. **File Storage Module** 📁 ✅ Реализован
 **Bounded Context**: File Management & Processing
+
+Модуль управления файлами с поддержкой MinIO/S3 хранилища:
+- Upload/Download файлов
+- Привязка файлов к документам
+- Версионирование файлов
+- Проверка MIME-типов и размера
+
 ```
 internal/modules/files/
+├── domain/
+│   ├── entities/
+│   │   └── file.go
+│   └── repositories/
+│       └── file_repository.go
+├── application/
+│   ├── dto/
+│   │   └── file_dto.go
+│   ├── services/
+│   │   └── minio_storage_service.go
+│   └── usecases/
+│       └── file_usecase.go
+├── infrastructure/
+│   └── persistence/
+│       └── file_repository_pg.go
+└── interfaces/
+    └── http/
+        └── file_handler.go
+```
+
+**Старая планируемая структура (для справки):**
+```
+internal/modules/files/ (planned)
 ├── domain/
 │   ├── entities/
 │   │   ├── file.go
