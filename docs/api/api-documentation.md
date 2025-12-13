@@ -300,17 +300,41 @@ Prometheus метрики в формате OpenMetrics.
 
 Требует JWT аутентификации. Модуль управления уведомлениями с поддержкой in-app уведомлений, email (Composio Gmail) и Telegram.
 
+### Типы уведомлений
+
+| Тип | Описание |
+|-----|----------|
+| `info` | Информационное уведомление |
+| `success` | Успешное выполнение операции |
+| `warning` | Предупреждение |
+| `error` | Ошибка |
+| `reminder` | Напоминание о событии |
+| `task` | Уведомление о задаче |
+| `document` | Уведомление о документе |
+| `event` | Уведомление о событии |
+| `system` | Системное уведомление |
+
+### Приоритеты
+
+| Приоритет | Описание |
+|-----------|----------|
+| `low` | Низкий приоритет |
+| `normal` | Обычный приоритет (по умолчанию) |
+| `high` | Высокий приоритет |
+| `urgent` | Срочное уведомление |
+
 ### In-App Notifications
 
 ### GET `/api/notifications`
-Получение списка уведомлений текущего пользователя с пагинацией.
+Получение списка уведомлений текущего пользователя с пагинацией и фильтрацией.
 
 **Query Parameters:**
 | Параметр | Тип | Описание |
 |----------|-----|----------|
-| `page` | int | Номер страницы (default: 1) |
 | `limit` | int | Размер страницы (default: 20, max: 100) |
-| `type` | string | Фильтр по типу: system, reminder, task, document, announcement, event |
+| `offset` | int | Смещение для пагинации (default: 0) |
+| `type` | string | Фильтр по типу: info, success, warning, error, reminder, task, document, event, system |
+| `priority` | string | Фильтр по приоритету: low, normal, high, urgent |
 | `is_read` | bool | Фильтр по статусу прочтения |
 
 **Response (200):**
@@ -323,16 +347,43 @@ Prometheus метрики в формате OpenMetrics.
         "id": 1,
         "user_id": 5,
         "type": "task",
+        "priority": "normal",
         "title": "Новая задача",
         "message": "Вам назначена новая задача",
+        "link": "/tasks/123",
+        "image_url": null,
         "is_read": false,
-        "created_at": "2025-12-13T10:00:00Z"
+        "read_at": null,
+        "expires_at": null,
+        "metadata": {},
+        "created_at": "2025-12-13T10:00:00Z",
+        "updated_at": "2025-12-13T10:00:00Z"
       }
     ],
     "total": 50,
-    "page": 1,
     "limit": 20,
-    "unread_count": 5
+    "offset": 0
+  }
+}
+```
+
+### GET `/api/notifications/:id`
+Получение уведомления по ID.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "user_id": 5,
+    "type": "task",
+    "priority": "normal",
+    "title": "Новая задача",
+    "message": "Вам назначена новая задача",
+    "link": "/tasks/123",
+    "is_read": false,
+    "created_at": "2025-12-13T10:00:00Z"
   }
 }
 ```
@@ -346,6 +397,23 @@ Prometheus метрики в формате OpenMetrics.
   "success": true,
   "data": {
     "count": 5
+  }
+}
+```
+
+### GET `/api/notifications/stats`
+Получение статистики уведомлений пользователя.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "total_count": 150,
+    "unread_count": 5,
+    "today_count": 12,
+    "urgent_count": 2,
+    "expired_count": 3
   }
 }
 ```
@@ -388,6 +456,182 @@ Prometheus метрики в формате OpenMetrics.
   }
 }
 ```
+
+### DELETE `/api/notifications`
+Удаление всех уведомлений пользователя.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "All notifications deleted"
+  }
+}
+```
+
+### Admin Endpoints
+
+### POST `/api/admin/notifications`
+Создание уведомления (только для админов).
+
+**Request:**
+```json
+{
+  "user_id": 5,
+  "type": "task",
+  "priority": "normal",
+  "title": "Новая задача",
+  "message": "Вам назначена новая задача",
+  "link": "/tasks/123",
+  "expires_at": "2025-12-20T23:59:59Z",
+  "metadata": {
+    "task_id": 123
+  }
+}
+```
+
+**Validation:**
+- `user_id`: required
+- `type`: required, одно из: info, success, warning, error, reminder, task, document, event, system
+- `priority`: optional (default: normal)
+- `title`: required, до 500 символов
+- `message`: required
+- `link`: optional, до 1000 символов
+- `expires_at`: optional, ISO 8601 datetime
+
+### POST `/api/admin/notifications/bulk`
+Массовое создание уведомлений для нескольких пользователей.
+
+**Request:**
+```json
+{
+  "user_ids": [1, 2, 3, 4, 5],
+  "type": "system",
+  "priority": "high",
+  "title": "Системное обновление",
+  "message": "Запланировано техническое обслуживание"
+}
+```
+
+---
+
+### Notification Preferences
+
+### GET `/api/notifications/preferences`
+Получение настроек уведомлений пользователя.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "user_id": 5,
+    "email_enabled": true,
+    "push_enabled": true,
+    "in_app_enabled": true,
+    "telegram_enabled": true,
+    "slack_enabled": false,
+    "quiet_hours_enabled": true,
+    "quiet_hours_start": "22:00",
+    "quiet_hours_end": "07:00",
+    "timezone": "Europe/Moscow",
+    "digest_enabled": false,
+    "digest_frequency": "daily",
+    "digest_time": "09:00",
+    "type_preferences": {
+      "task": {
+        "enabled": true,
+        "channels": ["email", "telegram", "in_app"],
+        "priority": "normal"
+      }
+    }
+  }
+}
+```
+
+### PUT `/api/notifications/preferences`
+Обновление настроек уведомлений.
+
+**Request:**
+```json
+{
+  "email_enabled": true,
+  "telegram_enabled": true,
+  "quiet_hours_enabled": true,
+  "quiet_hours_start": "23:00",
+  "quiet_hours_end": "08:00",
+  "timezone": "Europe/Moscow"
+}
+```
+
+### PUT `/api/notifications/preferences/channel`
+Включение/отключение канала уведомлений.
+
+**Request:**
+```json
+{
+  "channel": "telegram",
+  "enabled": true
+}
+```
+
+**Доступные каналы:** `email`, `push`, `in_app`, `telegram`, `slack`
+
+### PUT `/api/notifications/preferences/quiet-hours`
+Обновление тихих часов.
+
+**Request:**
+```json
+{
+  "enabled": true,
+  "start": "22:00",
+  "end": "07:00",
+  "timezone": "Europe/Moscow"
+}
+```
+
+### POST `/api/notifications/preferences/reset`
+Сброс настроек уведомлений к значениям по умолчанию.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Preferences reset to defaults"
+  }
+}
+```
+
+### GET `/api/notifications/timezones`
+Получение списка доступных таймзон.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "timezones": [
+      "UTC",
+      "Europe/Kaliningrad",
+      "Europe/Moscow",
+      "Europe/Samara",
+      "Asia/Yekaterinburg",
+      "Asia/Omsk",
+      "Asia/Krasnoyarsk",
+      "Asia/Irkutsk",
+      "Asia/Yakutsk",
+      "Asia/Vladivostok",
+      "Asia/Magadan",
+      "Asia/Kamchatka"
+    ]
+  }
+}
+```
+
+---
 
 ### Email Notifications (Composio Gmail)
 
