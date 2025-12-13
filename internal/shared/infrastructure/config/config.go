@@ -81,6 +81,7 @@ type ComposioConfig struct {
 // S3Config holds S3/MinIO storage configuration
 type S3Config struct {
 	Endpoint        string
+	PublicEndpoint  string // External endpoint for presigned URLs (e.g., localhost:9000)
 	AccessKeyID     string
 	SecretAccessKey string
 	BucketName      string
@@ -138,6 +139,7 @@ func Load() (*Config, error) {
 		},
 		S3: S3Config{
 			Endpoint:        getEnv("S3_ENDPOINT", "localhost:9000"),
+			PublicEndpoint:  getEnv("S3_PUBLIC_ENDPOINT", getEnv("S3_ENDPOINT", "localhost:9000")),
 			AccessKeyID:     getEnv("S3_ACCESS_KEY_ID", "minioadmin"),
 			SecretAccessKey: getEnv("S3_SECRET_ACCESS_KEY", "minioadmin"),
 			BucketName:      getEnv("S3_BUCKET_NAME", "documents"),
