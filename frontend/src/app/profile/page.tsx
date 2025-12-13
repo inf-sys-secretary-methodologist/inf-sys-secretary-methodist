@@ -1,13 +1,27 @@
 'use client'
 
-import { useState } from 'react'
-import { useAuthCheck } from '@/hooks/useAuth'
+import { useState, useEffect } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { User, Mail, Calendar, Shield, Edit2, X, Check } from 'lucide-react'
+import { AvatarUpload } from '@/components/profile/AvatarUpload'
+import { usersApi } from '@/lib/api/users'
+import {
+  User,
+  Mail,
+  Calendar,
+  Shield,
+  Edit2,
+  X,
+  Check,
+  Phone,
+  FileText,
+  Loader2,
+} from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
 const roleLabels: Record<UserRole, string> = {
@@ -19,25 +33,92 @@ const roleLabels: Record<UserRole, string> = {
 }
 
 function ProfilePage() {
-  const { user } = useAuthCheck()
+  const { user, checkAuth } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
-  const [editedName, setEditedName] = useState(user?.name || '')
-  const [editedEmail, setEditedEmail] = useState(user?.email || '')
+  const [isSaving, setIsSaving] = useState(false)
+  const [editedPhone, setEditedPhone] = useState('')
+  const [editedBio, setEditedBio] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (user) {
+      setEditedPhone((user as unknown as { phone?: string }).phone || '')
+      setEditedBio((user as unknown as { bio?: string }).bio || '')
+      // Avatar URL is now returned directly from /api/me as presigned URL
+      const avatar = (user as unknown as { avatar?: string }).avatar
+      if (avatar) {
+        setAvatarUrl(avatar)
+      }
+    }
+  }, [user])
 
   if (!user) {
     return null
   }
 
   const handleSave = async () => {
-    // TODO: Implement API call to update user profile
-    console.log('Saving profile:', { name: editedName, email: editedEmail })
-    setIsEditing(false)
+    setIsSaving(true)
+    setError(null)
+    try {
+      await usersApi.updateProfile(user.id, {
+        phone: editedPhone,
+        bio: editedBio,
+      })
+      await checkAuth()
+      setIsEditing(false)
+    } catch (err: unknown) {
+      // Extract error message from API response
+      const apiError = err as { response?: { data?: { message?: string; error?: string } } }
+      const errorMessage =
+        apiError?.response?.data?.message ||
+        apiError?.response?.data?.error ||
+        'Ошибка при сохранении профиля'
+
+      // Translate common validation errors
+      let userFriendlyError = errorMessage
+      if (errorMessage.includes('e164') || errorMessage.includes('phone')) {
+        userFriendlyError = 'Телефон должен быть в международном формате (например, +79991234567)'
+      } else if (errorMessage.includes('bio') || errorMessage.includes('max=500')) {
+        userFriendlyError = 'Описание не должно превышать 500 символов'
+      }
+
+      setError(userFriendlyError)
+      console.error('Failed to save profile:', err)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleCancel = () => {
-    setEditedName(user.name)
-    setEditedEmail(user.email)
+    setEditedPhone((user as unknown as { phone?: string }).phone || '')
+    setEditedBio((user as unknown as { bio?: string }).bio || '')
     setIsEditing(false)
+    setError(null)
+  }
+
+  const handleAvatarUpload = async (file: File) => {
+    try {
+      const response = await usersApi.uploadAvatar(user.id, file)
+      if (response.data?.avatar_url) {
+        setAvatarUrl(response.data.avatar_url)
+      }
+      await checkAuth()
+    } catch (err) {
+      console.error('Failed to upload avatar:', err)
+      throw err
+    }
+  }
+
+  const handleAvatarRemove = async () => {
+    try {
+      await usersApi.deleteAvatar(user.id)
+      setAvatarUrl(null)
+      await checkAuth()
+    } catch (err) {
+      console.error('Failed to delete avatar:', err)
+      throw err
+    }
   }
 
   const formatDate = (dateString?: string) => {
@@ -71,6 +152,23 @@ function ProfilePage() {
           )}
         </div>
 
+        {/* Avatar Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg sm:text-xl">Фото профиля</CardTitle>
+            <CardDescription>Загрузите фотографию для вашего профиля</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AvatarUpload
+              currentAvatar={avatarUrl}
+              userName={user.name}
+              onUpload={handleAvatarUpload}
+              onRemove={handleAvatarRemove}
+              disabled={isSaving}
+            />
+          </CardContent>
+        </Card>
+
         {/* Profile Information Card */}
         <Card>
           <CardHeader>
@@ -78,22 +176,21 @@ function ProfilePage() {
             <CardDescription>Ваши основные данные учётной записи</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 sm:space-y-6">
+            {error && (
+              <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-md">
+                {error}
+              </div>
+            )}
+
             {/* Name Field */}
             <div className="space-y-2">
               <Label htmlFor="name" className="flex items-center gap-2 text-sm">
                 <User className="h-4 w-4 text-muted-foreground" />
                 Имя
               </Label>
-              {isEditing ? (
-                <Input
-                  id="name"
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
-                  placeholder="Введите ваше имя"
-                />
-              ) : (
-                <p className="text-sm text-foreground bg-muted p-3 rounded-md">{user.name}</p>
-              )}
+              <p className="text-sm text-foreground bg-secondary/50 dark:bg-secondary/30 p-3 rounded-md border border-border/50">
+                {user.name}
+              </p>
             </div>
 
             {/* Email Field */}
@@ -102,17 +199,48 @@ function ProfilePage() {
                 <Mail className="h-4 w-4 text-muted-foreground" />
                 Email
               </Label>
+              <p className="text-sm text-foreground bg-secondary/50 dark:bg-secondary/30 p-3 rounded-md border border-border/50 break-all">
+                {user.email}
+              </p>
+            </div>
+
+            {/* Phone Field */}
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2 text-sm">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                Телефон
+              </Label>
               {isEditing ? (
                 <Input
-                  id="email"
-                  type="email"
-                  value={editedEmail}
-                  onChange={(e) => setEditedEmail(e.target.value)}
-                  placeholder="Введите ваш email"
+                  id="phone"
+                  type="tel"
+                  value={editedPhone}
+                  onChange={(e) => setEditedPhone(e.target.value)}
+                  placeholder="+7 (999) 123-45-67"
                 />
               ) : (
-                <p className="text-sm text-foreground bg-muted p-3 rounded-md break-all">
-                  {user.email}
+                <p className="text-sm text-foreground bg-secondary/50 dark:bg-secondary/30 p-3 rounded-md border border-border/50">
+                  {(user as unknown as { phone?: string }).phone || 'Не указан'}
+                </p>
+              )}
+            </div>
+
+            {/* Bio Field */}
+            <div className="space-y-2">
+              <Label htmlFor="bio" className="flex items-center gap-2 text-sm">
+                <FileText className="h-4 w-4 text-muted-foreground" />О себе
+              </Label>
+              {isEditing ? (
+                <Textarea
+                  id="bio"
+                  value={editedBio}
+                  onChange={(e) => setEditedBio(e.target.value)}
+                  placeholder="Расскажите немного о себе..."
+                  rows={3}
+                />
+              ) : (
+                <p className="text-sm text-foreground bg-secondary/50 dark:bg-secondary/30 p-3 rounded-md border border-border/50 min-h-[60px]">
+                  {(user as unknown as { bio?: string }).bio || 'Не указано'}
                 </p>
               )}
             </div>
@@ -123,7 +251,7 @@ function ProfilePage() {
                 <Shield className="h-4 w-4 text-muted-foreground" />
                 Роль
               </Label>
-              <p className="text-sm text-foreground bg-muted p-3 rounded-md">
+              <p className="text-sm text-foreground bg-secondary/50 dark:bg-secondary/30 p-3 rounded-md border border-border/50">
                 {roleLabels[user.role]}
               </p>
             </div>
@@ -131,11 +259,20 @@ function ProfilePage() {
             {/* Edit Actions */}
             {isEditing && (
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button onClick={handleSave} className="gap-2 w-full sm:w-auto">
-                  <Check className="h-4 w-4" />
+                <Button onClick={handleSave} disabled={isSaving} className="gap-2 w-full sm:w-auto">
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
                   Сохранить
                 </Button>
-                <Button onClick={handleCancel} variant="outline" className="gap-2 w-full sm:w-auto">
+                <Button
+                  onClick={handleCancel}
+                  variant="outline"
+                  disabled={isSaving}
+                  className="gap-2 w-full sm:w-auto"
+                >
                   <X className="h-4 w-4" />
                   Отмена
                 </Button>
@@ -175,7 +312,9 @@ function ProfilePage() {
                 <User className="h-4 w-4" />
                 <span>ID пользователя</span>
               </div>
-              <p className="text-xs font-mono bg-muted px-2 py-1 rounded break-all">{user.id}</p>
+              <p className="text-xs font-mono bg-secondary/50 dark:bg-secondary/30 px-2 py-1 rounded border border-border/50 break-all">
+                {user.id}
+              </p>
             </div>
           </CardContent>
         </Card>

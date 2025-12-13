@@ -16,9 +16,12 @@ import (
 
 // S3Client provides methods for interacting with S3/MinIO storage
 type S3Client struct {
-	client     *minio.Client
-	bucketName string
-	maxSize    int64
+	client         *minio.Client
+	publicClient   *minio.Client // Client configured with public endpoint for presigned URLs
+	bucketName     string
+	maxSize        int64
+	publicEndpoint string // External endpoint for presigned URLs
+	useSSL         bool
 }
 
 // FileInfo contains metadata about uploaded file
@@ -41,10 +44,28 @@ func NewS3Client(cfg config.S3Config) (*S3Client, error) {
 		return nil, fmt.Errorf("failed to create S3 client: %w", err)
 	}
 
+	// Create a second client for public endpoint (used for presigned URLs)
+	// This is needed because presigned URLs include the host in the signature
+	var publicClient *minio.Client
+	if cfg.PublicEndpoint != "" && cfg.PublicEndpoint != cfg.Endpoint {
+		publicClient, err = minio.New(cfg.PublicEndpoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(cfg.AccessKeyID, cfg.SecretAccessKey, ""),
+			Secure: cfg.UseSSL,
+			Region: cfg.Region,
+		})
+		if err != nil {
+			// If public client fails, we'll fall back to internal client
+			publicClient = nil
+		}
+	}
+
 	return &S3Client{
-		client:     client,
-		bucketName: cfg.BucketName,
-		maxSize:    cfg.MaxFileSize,
+		client:         client,
+		publicClient:   publicClient,
+		bucketName:     cfg.BucketName,
+		maxSize:        cfg.MaxFileSize,
+		publicEndpoint: cfg.PublicEndpoint,
+		useSSL:         cfg.UseSSL,
 	}, nil
 }
 
@@ -133,11 +154,18 @@ func (s *S3Client) Exists(ctx context.Context, key string) (bool, error) {
 
 // GetPresignedURL generates a presigned URL for downloading a file
 func (s *S3Client) GetPresignedURL(ctx context.Context, key string, expires time.Duration) (string, error) {
-	url, err := s.client.PresignedGetObject(ctx, s.bucketName, key, expires, nil)
+	// Use public client if available (generates URLs with correct host signature)
+	clientToUse := s.client
+	if s.publicClient != nil {
+		clientToUse = s.publicClient
+	}
+
+	presignedURL, err := clientToUse.PresignedGetObject(ctx, s.bucketName, key, expires, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
-	return url.String(), nil
+
+	return presignedURL.String(), nil
 }
 
 // GenerateKey generates a unique storage key for a document

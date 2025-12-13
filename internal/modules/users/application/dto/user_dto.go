@@ -6,7 +6,7 @@ type UpdateUserProfileInput struct {
 	DepartmentID *int64 `json:"department_id"`
 	PositionID   *int64 `json:"position_id"`
 	Phone        string `json:"phone" validate:"omitempty,e164"`
-	Avatar       string `json:"avatar" validate:"omitempty,url"`
+	Avatar       string `json:"avatar"`
 	Bio          string `json:"bio" validate:"omitempty,max=500"`
 }
 

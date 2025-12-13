@@ -187,9 +187,9 @@ func (uc *FileUseCase) AttachFile(ctx context.Context, input *dto.AttachFileInpu
 
 	if uc.auditLogger != nil {
 		uc.auditLogger.LogAuditEvent(ctx, "attach", "file", map[string]interface{}{
-			"file_id":        input.FileID,
-			"document_id":    input.DocumentID,
-			"task_id":        input.TaskID,
+			"file_id":         input.FileID,
+			"document_id":     input.DocumentID,
+			"task_id":         input.TaskID,
 			"announcement_id": input.AnnouncementID,
 		})
 	}

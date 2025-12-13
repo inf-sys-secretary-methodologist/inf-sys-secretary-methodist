@@ -11,10 +11,10 @@ import (
 
 // FileValidator validates uploaded files
 type FileValidator struct {
-	maxFileSize      int64
-	allowedMimeTypes map[string]bool
+	maxFileSize       int64
+	allowedMimeTypes  map[string]bool
 	allowedExtensions map[string]bool
-	magicBytes       map[string][]byte
+	magicBytes        map[string][]byte
 }
 
 // FileValidatorConfig contains configuration for file validation
@@ -78,20 +78,20 @@ func NewFileValidator(cfg FileValidatorConfig) *FileValidator {
 // initMagicBytes initializes magic bytes for common file types
 func initMagicBytes() map[string][]byte {
 	return map[string][]byte{
-		"application/pdf":  {0x25, 0x50, 0x44, 0x46}, // %PDF
-		"image/jpeg":       {0xFF, 0xD8, 0xFF},
-		"image/png":        {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A},
-		"image/gif":        {0x47, 0x49, 0x46, 0x38}, // GIF8
-		"application/zip":  {0x50, 0x4B, 0x03, 0x04}, // PK..
+		"application/pdf":              {0x25, 0x50, 0x44, 0x46}, // %PDF
+		"image/jpeg":                   {0xFF, 0xD8, 0xFF},
+		"image/png":                    {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A},
+		"image/gif":                    {0x47, 0x49, 0x46, 0x38}, // GIF8
+		"application/zip":              {0x50, 0x4B, 0x03, 0x04}, // PK..
 		"application/x-rar-compressed": {0x52, 0x61, 0x72, 0x21}, // Rar!
 	}
 }
 
 // ValidationResult contains the result of file validation
 type ValidationResult struct {
-	Valid        bool
-	Errors       []string
-	DetectedType string
+	Valid         bool
+	Errors        []string
+	DetectedType  string
 	SanitizedName string
 }
 
