@@ -29,10 +29,10 @@ type DocumentVersionOutput struct {
 
 // DocumentVersionListOutput represents output for listing document versions
 type DocumentVersionListOutput struct {
-	Versions     []*DocumentVersionOutput `json:"versions"`
-	Total        int64                    `json:"total"`
-	DocumentID   int64                    `json:"document_id"`
-	LatestVersion int                     `json:"latest_version"`
+	Versions      []*DocumentVersionOutput `json:"versions"`
+	Total         int64                    `json:"total"`
+	DocumentID    int64                    `json:"document_id"`
+	LatestVersion int                      `json:"latest_version"`
 }
 
 // CreateVersionInput represents input for creating a new version manually

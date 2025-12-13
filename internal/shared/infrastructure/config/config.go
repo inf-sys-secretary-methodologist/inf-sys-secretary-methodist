@@ -20,6 +20,7 @@ type Config struct {
 	CORS        CORSConfig
 	JWT         JWTConfig
 	Composio    ComposioConfig
+	Telegram    TelegramConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -78,9 +79,18 @@ type ComposioConfig struct {
 	MCPConfigID string
 }
 
+// TelegramConfig holds Telegram bot configuration
+type TelegramConfig struct {
+	BotToken      string
+	BotUsername   string
+	WebhookURL    string
+	WebhookSecret string
+}
+
 // S3Config holds S3/MinIO storage configuration
 type S3Config struct {
 	Endpoint        string
+	PublicEndpoint  string // External endpoint for presigned URLs (e.g., localhost:9000)
 	AccessKeyID     string
 	SecretAccessKey string
 	BucketName      string
@@ -138,12 +148,19 @@ func Load() (*Config, error) {
 		},
 		S3: S3Config{
 			Endpoint:        getEnv("S3_ENDPOINT", "localhost:9000"),
+			PublicEndpoint:  getEnv("S3_PUBLIC_ENDPOINT", getEnv("S3_ENDPOINT", "localhost:9000")),
 			AccessKeyID:     getEnv("S3_ACCESS_KEY_ID", "minioadmin"),
 			SecretAccessKey: getEnv("S3_SECRET_ACCESS_KEY", "minioadmin"),
 			BucketName:      getEnv("S3_BUCKET_NAME", "documents"),
 			Region:          getEnv("S3_REGION", "us-east-1"),
 			UseSSL:          getEnvAsBool("S3_USE_SSL", false),
 			MaxFileSize:     getEnvAsInt64("S3_MAX_FILE_SIZE", 50*1024*1024), // 50MB default
+		},
+		Telegram: TelegramConfig{
+			BotToken:      getEnv("TELEGRAM_BOT_TOKEN", ""),
+			BotUsername:   getEnv("TELEGRAM_BOT_USERNAME", ""),
+			WebhookURL:    getEnv("TELEGRAM_WEBHOOK_URL", ""),
+			WebhookSecret: getEnv("TELEGRAM_WEBHOOK_SECRET", ""),
 		},
 	}
 

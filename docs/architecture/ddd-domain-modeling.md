@@ -1169,5 +1169,5 @@ func (t *OneCDocumentTranslator) translateDocType(oneCType int) (DocumentType, e
 
 📅 **Актуальность документа**
 **Последнее обновление**: 2025-12-11
-**Версия проекта**: 0.1.0
+**Версия проекта**: 0.2.0
 **Статус**: Актуальный

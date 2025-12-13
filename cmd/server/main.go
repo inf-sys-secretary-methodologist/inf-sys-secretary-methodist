@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,16 +16,29 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 
+	announcementUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
+	announcementPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/infrastructure/persistence"
+	announcementHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/handlers"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure/persistence"
 	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
 	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
+	dashboardUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/application/usecases"
+	dashboardPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/infrastructure/persistence"
+	dashboardHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/interfaces/http/handlers"
 	docUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	docPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/infrastructure/persistence"
 	docHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
-	emailServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
+	filesUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
+	filesPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/infrastructure/persistence"
+	filesHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/interfaces/http/handlers"
+	notifServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
+	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	emailDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
+	notifPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/infrastructure/persistence"
+	notifScheduler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/infrastructure/scheduler"
+	notifHttp "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/interfaces/http"
 	emailHandlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/interfaces/http/handlers"
 	reportUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
 	reportPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/infrastructure/persistence"
@@ -35,18 +49,10 @@ import (
 	taskUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
 	taskPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/infrastructure/persistence"
 	taskHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/interfaces/http/handlers"
-	announcementUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
-	announcementPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/infrastructure/persistence"
-	announcementHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/handlers"
-	dashboardUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/application/usecases"
-	dashboardPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/infrastructure/persistence"
-	dashboardHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/interfaces/http/handlers"
 	usersUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
+	usersRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	usersPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/infrastructure/persistence"
 	usersHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/handlers"
-	filesUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
-	filesPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/infrastructure/persistence"
-	filesHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/interfaces/http/handlers"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -54,6 +60,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/metrics"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/telegram"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
@@ -193,6 +200,67 @@ func main() {
 	eventUseCase := scheduleUsecases.NewEventUseCase(eventRepo, participantRepo, reminderRepo, auditLogger)
 	logger.Info("Schedule module initialized", nil)
 
+	// Initialize notifications module
+	notificationRepo := notifPersistence.NewNotificationRepositoryPG(db)
+	preferencesRepo := notifPersistence.NewPreferencesRepositoryPG(db)
+
+	// Initialize email service for notifications (will be used if Composio is configured)
+	composioAPIKey := cfg.Composio.APIKey
+	composioEntityID := cfg.Composio.EntityID
+	var notifEmailService emailDomain.EmailService
+	if composioAPIKey != "" && composioEntityID != "" {
+		notifEmailService = notifServices.NewComposioEmailService(composioAPIKey, composioEntityID, auditLogger)
+	}
+
+	// Initialize Telegram service (Composio) for sending messages
+	telegramRepo := notifPersistence.NewTelegramRepositoryPG(db)
+	var telegramService emailDomain.TelegramService
+	var telegramVerificationService *notifServices.TelegramVerificationService
+	if composioAPIKey != "" && composioEntityID != "" {
+		telegramService = notifServices.NewComposioTelegramService(composioAPIKey, composioEntityID, auditLogger)
+		telegramVerificationService = notifServices.NewTelegramVerificationService(
+			telegramRepo,
+			preferencesRepo,
+			telegramService,
+			auditLogger,
+			cfg.Telegram.BotUsername,
+		)
+		logger.Info("Telegram service initialized via Composio", map[string]interface{}{
+			"bot_username": cfg.Telegram.BotUsername,
+		})
+	} else {
+		logger.Warn("Telegram service not configured - COMPOSIO_API_KEY or COMPOSIO_ENTITY_ID not set", nil)
+	}
+
+	notificationUseCase := notifUsecases.NewNotificationUseCase(notificationRepo, preferencesRepo, telegramRepo, notifEmailService, telegramService)
+	preferencesUseCase := notifUsecases.NewPreferencesUseCase(preferencesRepo)
+	logger.Info("Notifications module initialized", nil)
+
+	// Initialize reminder scheduler
+	var reminderScheduler *notifScheduler.ReminderScheduler
+	reminderScheduler, err = notifScheduler.NewReminderScheduler(
+		db,
+		reminderRepo,
+		eventRepo,
+		notificationRepo,
+		preferencesRepo,
+		notifEmailService,
+		nil, // Use default config
+	)
+	if err != nil {
+		logger.Error("Failed to initialize reminder scheduler", map[string]interface{}{
+			"error": err.Error(),
+		})
+	} else {
+		if err := reminderScheduler.Start(); err != nil {
+			logger.Error("Failed to start reminder scheduler", map[string]interface{}{
+				"error": err.Error(),
+			})
+		} else {
+			logger.Info("Reminder scheduler started", nil)
+		}
+	}
+
 	// Initialize announcements module
 	announcementRepo := announcementPersistence.NewAnnouncementRepositoryPG(db)
 	announcementUseCase := announcementUsecases.NewAnnouncementUseCase(announcementRepo, auditLogger)
@@ -264,7 +332,7 @@ func main() {
 	validator := validation.NewValidator()
 
 	// Setup router with all middleware
-	router := setupRoutes(
+	router, telegramPollingService := setupRoutes(
 		authUseCase,
 		docUseCase,
 		sharingUseCase,
@@ -281,6 +349,11 @@ func main() {
 		positionUseCase,
 		fileUseCase,
 		versionUseCase,
+		notificationUseCase,
+		preferencesUseCase,
+		telegramVerificationService,
+		telegramService,
+		s3Client,
 		securityLogger,
 		perfLogger,
 		auditLogger,
@@ -291,6 +364,7 @@ func main() {
 		db,
 		redisCache,
 		userRepo,
+		userProfileRepo,
 		validator,
 	)
 
@@ -323,6 +397,23 @@ func main() {
 	<-quit
 
 	logger.Info("Server shutting down...", nil)
+
+	// Stop Telegram polling if running
+	if telegramPollingService != nil {
+		telegramPollingService.Stop()
+		logger.Info("Telegram polling service stopped", nil)
+	}
+
+	// Stop reminder scheduler
+	if reminderScheduler != nil {
+		if err := reminderScheduler.Stop(); err != nil {
+			logger.Error("Failed to stop reminder scheduler", map[string]interface{}{
+				"error": err.Error(),
+			})
+		} else {
+			logger.Info("Reminder scheduler stopped", nil)
+		}
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -430,6 +521,11 @@ func setupRoutes(
 	positionUseCase *usersUsecases.PositionUseCase,
 	fileUseCase *filesUsecases.FileUseCase,
 	versionUseCase *filesUsecases.VersionUseCase,
+	notificationUseCase *notifUsecases.NotificationUseCase,
+	preferencesUseCase *notifUsecases.PreferencesUseCase,
+	telegramVerificationService *notifServices.TelegramVerificationService,
+	telegramService emailDomain.TelegramService,
+	s3Client *storage.S3Client,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
 	auditLogger *logging.AuditLogger,
@@ -440,9 +536,11 @@ func setupRoutes(
 	db *sql.DB,
 	redisCache *cache.RedisCache,
 	userRepo repositories.UserRepository,
+	userProfileRepo usersRepositories.UserProfileRepository,
 	validator *validation.Validator,
-) *gin.Engine {
+) (*gin.Engine, *telegram.PollingService) {
 	router := gin.New()
+	var telegramPollingService *telegram.PollingService
 
 	// Global middleware stack (order matters!)
 	router.Use(gin.Recovery())
@@ -485,7 +583,7 @@ func setupRoutes(
 	composioEntityID := cfg.Composio.EntityID
 	var emailService emailDomain.EmailService
 	if composioAPIKey != "" && composioEntityID != "" {
-		emailService = emailServices.NewComposioEmailService(composioAPIKey, composioEntityID, auditLogger)
+		emailService = notifServices.NewComposioEmailService(composioAPIKey, composioEntityID, auditLogger)
 		logger.Info("Email service initialized", nil)
 	}
 
@@ -524,6 +622,29 @@ func setupRoutes(
 		logger.Info("Public document access routes registered", nil)
 	}
 
+	// Telegram webhook (public - receives updates from Telegram servers)
+	if telegramVerificationService != nil && telegramService != nil {
+		webhookHandler := notifHttp.NewTelegramWebhookHandler(
+			telegramVerificationService,
+			telegramService,
+			cfg.Telegram.WebhookSecret,
+			slog.Default(),
+		)
+		router.POST("/api/telegram/webhook", webhookHandler.HandleWebhook)
+		logger.Info("Telegram webhook route registered", nil)
+
+		// If no webhook URL is configured, use polling mode for local development
+		if cfg.Telegram.WebhookURL == "" && cfg.Telegram.BotToken != "" {
+			telegramPollingService = telegram.NewPollingService(cfg.Telegram.BotToken, slog.Default())
+			telegramPollingService.SetHandler(webhookHandler.ProcessUpdate)
+			if err := telegramPollingService.Start(context.Background()); err != nil {
+				logger.Warn("Failed to start Telegram polling", map[string]interface{}{"error": err.Error()})
+			} else {
+				logger.Info("Telegram polling mode started (no webhook URL configured)", nil)
+			}
+		}
+	}
+
 	// Protected routes (require JWT) with auth rate limiting (60 req/min + burst 10)
 	protectedGroup := router.Group("/api")
 	protectedGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
@@ -538,34 +659,115 @@ func setupRoutes(
 				return
 			}
 
-			// Get full user data from database
-			user, err := userRepo.GetByID(c.Request.Context(), userID.(int64))
+			// Get full user data with profile from database
+			user, err := userProfileRepo.GetProfileByID(c.Request.Context(), userID.(int64))
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user data"})
 				return
 			}
 
+			// Generate presigned URL for avatar if it exists
+			avatarURL := ""
+			if user.Avatar != "" && s3Client != nil {
+				var err error
+				avatarURL, err = s3Client.GetPresignedURL(c.Request.Context(), user.Avatar, 7*24*time.Hour)
+				if err != nil {
+					logger.Warn("Failed to generate presigned URL for avatar", map[string]interface{}{
+						"user_id": user.ID,
+						"avatar":  user.Avatar,
+						"error":   err.Error(),
+					})
+				} else {
+					logger.Info("Generated avatar URL", map[string]interface{}{
+						"user_id":    user.ID,
+						"avatar_key": user.Avatar,
+						"avatar_url": avatarURL,
+					})
+				}
+			}
+
 			c.JSON(http.StatusOK, gin.H{
-				"id":        user.ID,
-				"email":     user.Email,
-				"name":      user.Name,
-				"role":      user.Role,
+				"id":         user.ID,
+				"email":      user.Email,
+				"name":       user.Name,
+				"role":       user.Role,
+				"phone":      user.Phone,
+				"bio":        user.Bio,
+				"avatar":     avatarURL,
 				"created_at": user.CreatedAt,
 				"updated_at": user.UpdatedAt,
 			})
 		})
 		protectedGroup.OPTIONS("/me", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 
-		// Email notification routes
-		if emailService != nil {
-			emailHandler := emailHandlers.NewEmailHandler(emailService)
+		// Notifications module routes
+		if notificationUseCase != nil {
+			notificationHandler := notifHttp.NewNotificationHandler(notificationUseCase)
+			preferencesHandler := notifHttp.NewPreferencesHandler(preferencesUseCase)
 
 			notificationsGroup := protectedGroup.Group("/notifications")
 			{
-				notificationsGroup.POST("/send-email", emailHandler.SendEmail)
-				notificationsGroup.POST("/send-welcome", emailHandler.SendWelcomeEmail)
-				notificationsGroup.OPTIONS("/send-email", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-				notificationsGroup.OPTIONS("/send-welcome", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				// Notification CRUD and management
+				notificationsGroup.GET("", notificationHandler.List)
+				notificationsGroup.GET("/:id", notificationHandler.GetByID)
+				notificationsGroup.PUT("/:id/read", notificationHandler.MarkAsRead)
+				notificationsGroup.PUT("/read-all", notificationHandler.MarkAllAsRead)
+				notificationsGroup.DELETE("/:id", notificationHandler.Delete)
+				notificationsGroup.DELETE("", notificationHandler.DeleteAll)
+				notificationsGroup.GET("/unread-count", notificationHandler.GetUnreadCount)
+				notificationsGroup.GET("/stats", notificationHandler.GetStats)
+
+				// Preferences routes
+				notificationsGroup.GET("/preferences", preferencesHandler.Get)
+				notificationsGroup.PUT("/preferences", preferencesHandler.Update)
+				notificationsGroup.PUT("/preferences/channel", preferencesHandler.ToggleChannel)
+				notificationsGroup.PUT("/preferences/quiet-hours", preferencesHandler.UpdateQuietHours)
+				notificationsGroup.POST("/preferences/reset", preferencesHandler.Reset)
+				notificationsGroup.GET("/timezones", preferencesHandler.GetTimezones)
+
+				// CORS preflight handlers
+				notificationsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				notificationsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				notificationsGroup.OPTIONS("/:id/read", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				notificationsGroup.OPTIONS("/read-all", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				notificationsGroup.OPTIONS("/unread-count", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				notificationsGroup.OPTIONS("/stats", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				notificationsGroup.OPTIONS("/preferences", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				notificationsGroup.OPTIONS("/preferences/channel", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				notificationsGroup.OPTIONS("/preferences/quiet-hours", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				notificationsGroup.OPTIONS("/preferences/reset", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				notificationsGroup.OPTIONS("/timezones", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+			logger.Info("Notifications module routes registered", nil)
+
+			// Telegram routes (protected - for linking accounts)
+			if telegramVerificationService != nil {
+				telegramHandler := notifHttp.NewTelegramHandler(telegramVerificationService)
+				telegramGroup := protectedGroup.Group("/telegram")
+				{
+					telegramGroup.POST("/verification-code", telegramHandler.GenerateVerificationCode)
+					telegramGroup.GET("/status", telegramHandler.GetConnectionStatus)
+					telegramGroup.POST("/disconnect", telegramHandler.DisconnectTelegram)
+
+					// CORS preflight handlers
+					telegramGroup.OPTIONS("/verification-code", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					telegramGroup.OPTIONS("/status", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					telegramGroup.OPTIONS("/disconnect", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				}
+				logger.Info("Telegram API routes registered", nil)
+			}
+		}
+
+		// Email notification routes (legacy - for direct email sending)
+		if emailService != nil {
+			emailHandler := emailHandlers.NewEmailHandler(emailService)
+
+			emailGroup := protectedGroup.Group("/email")
+			{
+				emailGroup.POST("/send", emailHandler.SendEmail)
+				emailGroup.POST("/send-welcome", emailHandler.SendWelcomeEmail)
+				emailGroup.OPTIONS("/send", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				emailGroup.OPTIONS("/send-welcome", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 			logger.Info("Email notification routes registered", nil)
 		} else {
@@ -949,6 +1151,7 @@ func setupRoutes(
 			userHandlerInstance := usersHandler.NewUserHandler(userUseCase)
 			departmentHandlerInstance := usersHandler.NewDepartmentHandler(departmentUseCase)
 			positionHandlerInstance := usersHandler.NewPositionHandler(positionUseCase)
+			avatarHandlerInstance := usersHandler.NewAvatarHandler(userUseCase, s3Client)
 
 			// Users management routes
 			usersGroup := protectedGroup.Group("/users")
@@ -964,12 +1167,18 @@ func setupRoutes(
 				usersGroup.GET("/by-department/:id", userHandlerInstance.GetByDepartment)
 				usersGroup.GET("/by-position/:id", userHandlerInstance.GetByPosition)
 
+				// Avatar routes
+				usersGroup.POST("/:id/avatar", avatarHandlerInstance.Upload)
+				usersGroup.DELETE("/:id/avatar", avatarHandlerInstance.Delete)
+				usersGroup.GET("/:id/avatar", avatarHandlerInstance.GetAvatarURL)
+
 				// CORS preflight handlers
 				usersGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				usersGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				usersGroup.OPTIONS("/:id/profile", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				usersGroup.OPTIONS("/:id/role", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				usersGroup.OPTIONS("/:id/status", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				usersGroup.OPTIONS("/:id/avatar", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				usersGroup.OPTIONS("/bulk/department", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				usersGroup.OPTIONS("/bulk/position", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				usersGroup.OPTIONS("/by-department/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
@@ -1063,10 +1272,20 @@ func setupRoutes(
 				c.JSON(http.StatusOK, gin.H{"message": "Admin users list"})
 			})
 			adminGroup.OPTIONS("/users", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+			// Admin notification routes (create and broadcast notifications)
+			if notificationUseCase != nil {
+				notificationHandler := notifHttp.NewNotificationHandler(notificationUseCase)
+				adminGroup.POST("/notifications", notificationHandler.Create)
+				adminGroup.POST("/notifications/bulk", notificationHandler.CreateBulk)
+				adminGroup.OPTIONS("/notifications", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				adminGroup.OPTIONS("/notifications/bulk", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				logger.Info("Admin notification routes registered", nil)
+			}
 		}
 	}
 
-	return router
+	return router, telegramPollingService
 }
 
 // performanceMiddleware logs HTTP request performance

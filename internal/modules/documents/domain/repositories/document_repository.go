@@ -84,10 +84,10 @@ type SearchFilter struct {
 // SearchResult represents a document search result with highlighted matches
 type SearchResult struct {
 	Document           *entities.Document `json:"document"`
-	Rank               float64            `json:"rank"`                 // relevance score
-	HighlightedTitle   string             `json:"highlighted_title"`    // title with highlighted matches
-	HighlightedSubject string             `json:"highlighted_subject"`  // subject with highlighted matches
-	HighlightedContent string             `json:"highlighted_content"`  // content snippet with highlighted matches
+	Rank               float64            `json:"rank"`                // relevance score
+	HighlightedTitle   string             `json:"highlighted_title"`   // title with highlighted matches
+	HighlightedSubject string             `json:"highlighted_subject"` // subject with highlighted matches
+	HighlightedContent string             `json:"highlighted_content"` // content snippet with highlighted matches
 }
 
 // DocumentTypeRepository defines the interface for document type persistence

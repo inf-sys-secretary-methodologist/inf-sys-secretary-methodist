@@ -34,18 +34,18 @@ type EventRepository interface {
 
 // EventFilter contains filter options for listing events
 type EventFilter struct {
-	OrganizerID   *int64
-	ParticipantID *int64
-	EventType     *entities.EventType
-	Status        *entities.EventStatus
-	StartFrom     *time.Time
-	StartTo       *time.Time
-	SearchQuery   *string // search in title and description
-	IsRecurring   *bool
+	OrganizerID    *int64
+	ParticipantID  *int64
+	EventType      *entities.EventType
+	Status         *entities.EventStatus
+	StartFrom      *time.Time
+	StartTo        *time.Time
+	SearchQuery    *string // search in title and description
+	IsRecurring    *bool
 	IncludeDeleted bool
-	Limit         int
-	Offset        int
-	OrderBy       string // e.g., "start_time ASC"
+	Limit          int
+	Offset         int
+	OrderBy        string // e.g., "start_time ASC"
 }
 
 // EventParticipantRepository defines the interface for event participant persistence

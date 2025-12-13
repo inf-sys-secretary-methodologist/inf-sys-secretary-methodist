@@ -7,7 +7,7 @@ import "time"
 type Department struct {
 	ID          int64     `db:"id" json:"id"`
 	Name        string    `db:"name" json:"name"`
-	Code        string    `db:"code" json:"code"`           // Краткий код подразделения (например, "IT", "HR")
+	Code        string    `db:"code" json:"code"` // Краткий код подразделения (например, "IT", "HR")
 	Description string    `db:"description" json:"description,omitempty"`
 	ParentID    *int64    `db:"parent_id" json:"parent_id,omitempty"` // Для иерархии подразделений
 	HeadID      *int64    `db:"head_id" json:"head_id,omitempty"`     // ID руководителя подразделения

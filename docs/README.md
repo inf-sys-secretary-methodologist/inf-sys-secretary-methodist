@@ -32,7 +32,8 @@ docs/
 │   ├── documents.md
 │   └── schedule.md
 ├── 🔗 integrations/          # Внешние интеграции
-│   └── composio-gmail.md
+│   ├── composio-gmail.md
+│   └── telegram-bot.md
 ├── 👥 users/                 # Управление пользователями
 │   └── roles-and-permissions.md
 ├── 🔄 workflows/             # Бизнес-процессы
@@ -94,6 +95,7 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 ### Интеграции
 
 1. [📧 Composio Gmail](integrations/composio-gmail.md) - Интеграция с Gmail для email уведомлений
+2. [📱 Telegram Bot](integrations/telegram-bot.md) - Интеграция с Telegram для push-уведомлений
 
 ### Оптимизация и мониторинг
 
@@ -187,7 +189,7 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-12-12
+**Последнее обновление**: 2025-12-13
 **Версия проекта**: 0.2.0
 **Статус**: Актуальный
 

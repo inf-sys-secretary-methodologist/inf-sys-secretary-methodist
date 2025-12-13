@@ -24,6 +24,18 @@ const (
 	ActionGmailReplyToThread = "GMAIL_REPLY_TO_EMAIL_THREAD"
 	// ActionGmailFetchEmails is the Gmail fetch emails action ID.
 	ActionGmailFetchEmails = "GMAIL_FETCH_EMAILS"
+
+	// ActionTelegramSendMessage is the Telegram send message action ID.
+	ActionTelegramSendMessage = "TELEGRAM_SEND_MESSAGE"
+	// ActionTelegramSendPhoto is the Telegram send photo action ID.
+	ActionTelegramSendPhoto = "TELEGRAM_SEND_PHOTO"
+	// ActionTelegramSendDocument is the Telegram send document action ID.
+	ActionTelegramSendDocument = "TELEGRAM_SEND_DOCUMENT"
+
+	// ActionSlackSendMessage is the Slack send message action ID.
+	ActionSlackSendMessage = "SLACK_SENDS_A_MESSAGE_TO_A_SLACK_CHANNEL"
+	// ActionSlackSendDirectMessage is the Slack send direct message action ID.
+	ActionSlackSendDirectMessage = "SLACK_SEND_DIRECT_MESSAGE"
 )
 
 // Client represents a Composio API client
@@ -157,4 +169,75 @@ func (c *Client) SendEmail(ctx context.Context, entityID string, email *SendEmai
 	}
 
 	return c.ExecuteAction(ctx, ActionGmailSendEmail, req)
+}
+
+// SendTelegramMessageRequest represents a request to send a Telegram message
+type SendTelegramMessageRequest struct {
+	ChatID    string `json:"chat_id"`
+	Text      string `json:"text"`
+	ParseMode string `json:"parse_mode,omitempty"` // "HTML" or "Markdown"
+}
+
+// SendTelegramMessage sends a message via Telegram using Composio
+func (c *Client) SendTelegramMessage(ctx context.Context, entityID string, msg *SendTelegramMessageRequest) (*ExecuteActionResponse, error) {
+	input := map[string]any{
+		"chat_id": msg.ChatID,
+		"text":    msg.Text,
+	}
+
+	if msg.ParseMode != "" {
+		input["parse_mode"] = msg.ParseMode
+	}
+
+	req := &ExecuteActionRequest{
+		EntityID: entityID,
+		AppName:  "telegram",
+		Input:    input,
+	}
+
+	return c.ExecuteAction(ctx, ActionTelegramSendMessage, req)
+}
+
+// SendSlackMessageRequest represents a request to send a Slack message
+type SendSlackMessageRequest struct {
+	Channel string `json:"channel"`
+	Text    string `json:"text"`
+}
+
+// SendSlackMessage sends a message to a Slack channel using Composio
+func (c *Client) SendSlackMessage(ctx context.Context, entityID string, msg *SendSlackMessageRequest) (*ExecuteActionResponse, error) {
+	input := map[string]any{
+		"channel": msg.Channel,
+		"text":    msg.Text,
+	}
+
+	req := &ExecuteActionRequest{
+		EntityID: entityID,
+		AppName:  "slack",
+		Input:    input,
+	}
+
+	return c.ExecuteAction(ctx, ActionSlackSendMessage, req)
+}
+
+// SendSlackDirectMessageRequest represents a request to send a Slack direct message
+type SendSlackDirectMessageRequest struct {
+	UserID string `json:"user_id"`
+	Text   string `json:"text"`
+}
+
+// SendSlackDirectMessage sends a direct message to a Slack user using Composio
+func (c *Client) SendSlackDirectMessage(ctx context.Context, entityID string, msg *SendSlackDirectMessageRequest) (*ExecuteActionResponse, error) {
+	input := map[string]any{
+		"user_id": msg.UserID,
+		"text":    msg.Text,
+	}
+
+	req := &ExecuteActionRequest{
+		EntityID: entityID,
+		AppName:  "slack",
+		Input:    input,
+	}
+
+	return c.ExecuteAction(ctx, ActionSlackSendDirectMessage, req)
 }

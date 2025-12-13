@@ -602,6 +602,6 @@ As the project evolves from modular monolith to microservices, the workflows wil
 
 **📅 Актуальность документа**  
 **Последнее обновление**: 2025-01-15  
-**Версия проекта**: 0.1.0  
+**Версия проекта**: 0.2.0  
 **Статус**: Актуальный
 

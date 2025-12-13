@@ -111,6 +111,23 @@ export const usersApi = {
     return apiClient.put(`/api/users/${id}/profile`, data)
   },
 
+  // Upload avatar
+  uploadAvatar: async (id: number, file: File): Promise<ApiResponse<{ avatar_url: string }>> => {
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    return apiClient.post(`/api/users/${id}/avatar`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+
+  // Delete avatar
+  deleteAvatar: async (id: number): Promise<ApiResponse<{ message: string }>> => {
+    return apiClient.delete(`/api/users/${id}/avatar`)
+  },
+
   // Update user role
   updateRole: async (id: number, role: string): Promise<ApiResponse<{ message: string }>> => {
     return apiClient.put(`/api/users/${id}/role`, { role })

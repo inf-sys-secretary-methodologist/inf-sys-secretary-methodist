@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth, useLogout } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
@@ -77,6 +77,12 @@ export function UserMenu({ className }: UserMenuProps) {
         )}
       >
         <Avatar className="h-9 w-9">
+          {(user as unknown as { avatar?: string }).avatar && (
+            <AvatarImage
+              src={(user as unknown as { avatar?: string }).avatar}
+              alt={user?.name || 'Аватар'}
+            />
+          )}
           <AvatarFallback className="bg-primary text-primary-foreground font-medium">
             {getInitials(user?.name)}
           </AvatarFallback>

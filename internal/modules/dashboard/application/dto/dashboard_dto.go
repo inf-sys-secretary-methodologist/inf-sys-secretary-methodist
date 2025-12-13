@@ -43,8 +43,8 @@ type DashboardTrendsOutput struct {
 // ActivityItem represents a single activity entry
 type ActivityItem struct {
 	ID          int64     `json:"id"`
-	Type        string    `json:"type"`    // "document", "report", "task", "event", "announcement"
-	Action      string    `json:"action"`  // "created", "updated", "deleted", "completed", etc.
+	Type        string    `json:"type"`   // "document", "report", "task", "event", "announcement"
+	Action      string    `json:"action"` // "created", "updated", "deleted", "completed", etc.
 	Title       string    `json:"title"`
 	Description string    `json:"description,omitempty"`
 	UserID      int64     `json:"user_id"`
@@ -60,9 +60,9 @@ type DashboardActivityOutput struct {
 
 // ExportDashboardInput represents input for exporting dashboard data
 type ExportDashboardInput struct {
-	Format    string `json:"format" validate:"required,oneof=pdf xlsx"`
-	StartDate string `json:"start_date,omitempty"`
-	EndDate   string `json:"end_date,omitempty"`
+	Format    string   `json:"format" validate:"required,oneof=pdf xlsx"`
+	StartDate string   `json:"start_date,omitempty"`
+	EndDate   string   `json:"end_date,omitempty"`
 	Sections  []string `json:"sections,omitempty"` // "stats", "trends", "activity"
 }
 

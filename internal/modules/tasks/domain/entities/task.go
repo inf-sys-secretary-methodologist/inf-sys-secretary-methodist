@@ -18,25 +18,25 @@ var (
 
 // Task represents a task entity.
 type Task struct {
-	ID          int64               `db:"id" json:"id"`
-	ProjectID   *int64              `db:"project_id" json:"project_id,omitempty"`
-	Title       string              `db:"title" json:"title"`
-	Description *string             `db:"description" json:"description,omitempty"`
-	DocumentID  *int64              `db:"document_id" json:"document_id,omitempty"`
-	AuthorID    int64               `db:"author_id" json:"author_id"`
-	AssigneeID  *int64              `db:"assignee_id" json:"assignee_id,omitempty"`
-	Status      domain.TaskStatus   `db:"status" json:"status"`
-	Priority    domain.TaskPriority `db:"priority" json:"priority"`
-	DueDate     *time.Time          `db:"due_date" json:"due_date,omitempty"`
-	StartDate   *time.Time          `db:"start_date" json:"start_date,omitempty"`
-	CompletedAt *time.Time          `db:"completed_at" json:"completed_at,omitempty"`
-	Progress    int                 `db:"progress" json:"progress"`
-	EstimatedHours *float64         `db:"estimated_hours" json:"estimated_hours,omitempty"`
-	ActualHours    *float64         `db:"actual_hours" json:"actual_hours,omitempty"`
-	Tags        []string            `db:"tags" json:"tags,omitempty"`
-	Metadata    json.RawMessage     `db:"metadata" json:"metadata,omitempty"`
-	CreatedAt   time.Time           `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time           `db:"updated_at" json:"updated_at"`
+	ID             int64               `db:"id" json:"id"`
+	ProjectID      *int64              `db:"project_id" json:"project_id,omitempty"`
+	Title          string              `db:"title" json:"title"`
+	Description    *string             `db:"description" json:"description,omitempty"`
+	DocumentID     *int64              `db:"document_id" json:"document_id,omitempty"`
+	AuthorID       int64               `db:"author_id" json:"author_id"`
+	AssigneeID     *int64              `db:"assignee_id" json:"assignee_id,omitempty"`
+	Status         domain.TaskStatus   `db:"status" json:"status"`
+	Priority       domain.TaskPriority `db:"priority" json:"priority"`
+	DueDate        *time.Time          `db:"due_date" json:"due_date,omitempty"`
+	StartDate      *time.Time          `db:"start_date" json:"start_date,omitempty"`
+	CompletedAt    *time.Time          `db:"completed_at" json:"completed_at,omitempty"`
+	Progress       int                 `db:"progress" json:"progress"`
+	EstimatedHours *float64            `db:"estimated_hours" json:"estimated_hours,omitempty"`
+	ActualHours    *float64            `db:"actual_hours" json:"actual_hours,omitempty"`
+	Tags           []string            `db:"tags" json:"tags,omitempty"`
+	Metadata       json.RawMessage     `db:"metadata" json:"metadata,omitempty"`
+	CreatedAt      time.Time           `db:"created_at" json:"created_at"`
+	UpdatedAt      time.Time           `db:"updated_at" json:"updated_at"`
 
 	// Associations (not stored in DB, loaded separately)
 	Project     *Project         `db:"-" json:"project,omitempty"`

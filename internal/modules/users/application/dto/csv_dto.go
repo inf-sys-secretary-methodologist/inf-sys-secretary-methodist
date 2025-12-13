@@ -14,11 +14,11 @@ type UserCSVRow struct {
 
 // DepartmentCSVRow represents a single department row in CSV format.
 type DepartmentCSVRow struct {
-	Code           string `csv:"code"`
-	Name           string `csv:"name"`
-	Description    string `csv:"description"`
-	ParentCode     string `csv:"parent_code"`
-	IsActive       bool   `csv:"is_active"`
+	Code        string `csv:"code"`
+	Name        string `csv:"name"`
+	Description string `csv:"description"`
+	ParentCode  string `csv:"parent_code"`
+	IsActive    bool   `csv:"is_active"`
 }
 
 // PositionCSVRow represents a single position row in CSV format.
