@@ -8,15 +8,15 @@ import (
 // DocumentType represents a type of document (memo, order, letter, etc.)
 // Aligned with migrations/003_create_documents_schema.up.sql
 type DocumentType struct {
-	ID                   int64   `db:"id" json:"id"`
-	Name                 string  `db:"name" json:"name"`
-	Code                 string  `db:"code" json:"code"`
-	Description          *string `db:"description" json:"description,omitempty"`
-	TemplatePath         *string `db:"template_path" json:"template_path,omitempty"`
-	RequiresApproval     bool    `db:"requires_approval" json:"requires_approval"`
-	RequiresRegistration bool    `db:"requires_registration" json:"requires_registration"`
-	NumberingPattern     *string `db:"numbering_pattern" json:"numbering_pattern,omitempty"`
-	RetentionPeriod      *int    `db:"retention_period" json:"retention_period,omitempty"` // months
+	ID                   int64     `db:"id" json:"id"`
+	Name                 string    `db:"name" json:"name"`
+	Code                 string    `db:"code" json:"code"`
+	Description          *string   `db:"description" json:"description,omitempty"`
+	TemplatePath         *string   `db:"template_path" json:"template_path,omitempty"`
+	RequiresApproval     bool      `db:"requires_approval" json:"requires_approval"`
+	RequiresRegistration bool      `db:"requires_registration" json:"requires_registration"`
+	NumberingPattern     *string   `db:"numbering_pattern" json:"numbering_pattern,omitempty"`
+	RetentionPeriod      *int      `db:"retention_period" json:"retention_period,omitempty"` // months
 	CreatedAt            time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt            time.Time `db:"updated_at" json:"updated_at"`
 }

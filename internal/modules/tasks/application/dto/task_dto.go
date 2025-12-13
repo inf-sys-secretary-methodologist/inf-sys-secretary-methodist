@@ -11,33 +11,33 @@ import (
 
 // CreateTaskInput represents input for creating a task.
 type CreateTaskInput struct {
-	ProjectID      *int64            `json:"project_id,omitempty"`
-	Title          string            `json:"title" validate:"required,min=1,max=500"`
-	Description    *string           `json:"description,omitempty"`
-	DocumentID     *int64            `json:"document_id,omitempty"`
-	AssigneeID     *int64            `json:"assignee_id,omitempty"`
-	Priority       *string           `json:"priority,omitempty"`
-	DueDate        *time.Time        `json:"due_date,omitempty"`
-	StartDate      *time.Time        `json:"start_date,omitempty"`
-	EstimatedHours *float64          `json:"estimated_hours,omitempty"`
-	Tags           []string          `json:"tags,omitempty"`
-	Metadata       map[string]any    `json:"metadata,omitempty"`
+	ProjectID      *int64         `json:"project_id,omitempty"`
+	Title          string         `json:"title" validate:"required,min=1,max=500"`
+	Description    *string        `json:"description,omitempty"`
+	DocumentID     *int64         `json:"document_id,omitempty"`
+	AssigneeID     *int64         `json:"assignee_id,omitempty"`
+	Priority       *string        `json:"priority,omitempty"`
+	DueDate        *time.Time     `json:"due_date,omitempty"`
+	StartDate      *time.Time     `json:"start_date,omitempty"`
+	EstimatedHours *float64       `json:"estimated_hours,omitempty"`
+	Tags           []string       `json:"tags,omitempty"`
+	Metadata       map[string]any `json:"metadata,omitempty"`
 }
 
 // UpdateTaskInput represents input for updating a task.
 type UpdateTaskInput struct {
-	Title          *string           `json:"title,omitempty" validate:"omitempty,min=1,max=500"`
-	Description    *string           `json:"description,omitempty"`
-	ProjectID      *int64            `json:"project_id,omitempty"`
-	AssigneeID     *int64            `json:"assignee_id,omitempty"`
-	Priority       *string           `json:"priority,omitempty"`
-	DueDate        *time.Time        `json:"due_date,omitempty"`
-	StartDate      *time.Time        `json:"start_date,omitempty"`
-	Progress       *int              `json:"progress,omitempty" validate:"omitempty,min=0,max=100"`
-	EstimatedHours *float64          `json:"estimated_hours,omitempty"`
-	ActualHours    *float64          `json:"actual_hours,omitempty"`
-	Tags           []string          `json:"tags,omitempty"`
-	Metadata       map[string]any    `json:"metadata,omitempty"`
+	Title          *string        `json:"title,omitempty" validate:"omitempty,min=1,max=500"`
+	Description    *string        `json:"description,omitempty"`
+	ProjectID      *int64         `json:"project_id,omitempty"`
+	AssigneeID     *int64         `json:"assignee_id,omitempty"`
+	Priority       *string        `json:"priority,omitempty"`
+	DueDate        *time.Time     `json:"due_date,omitempty"`
+	StartDate      *time.Time     `json:"start_date,omitempty"`
+	Progress       *int           `json:"progress,omitempty" validate:"omitempty,min=0,max=100"`
+	EstimatedHours *float64       `json:"estimated_hours,omitempty"`
+	ActualHours    *float64       `json:"actual_hours,omitempty"`
+	Tags           []string       `json:"tags,omitempty"`
+	Metadata       map[string]any `json:"metadata,omitempty"`
 }
 
 // AssignTaskInput represents input for assigning a task.
@@ -47,16 +47,16 @@ type AssignTaskInput struct {
 
 // TaskFilterInput represents input for filtering tasks.
 type TaskFilterInput struct {
-	ProjectID  *int64  `form:"project_id"`
-	AuthorID   *int64  `form:"author_id"`
-	AssigneeID *int64  `form:"assignee_id"`
-	Status     *string `form:"status"`
-	Priority   *string `form:"priority"`
-	IsOverdue  *bool   `form:"is_overdue"`
-	Search     *string `form:"search"`
+	ProjectID  *int64   `form:"project_id"`
+	AuthorID   *int64   `form:"author_id"`
+	AssigneeID *int64   `form:"assignee_id"`
+	Status     *string  `form:"status"`
+	Priority   *string  `form:"priority"`
+	IsOverdue  *bool    `form:"is_overdue"`
+	Search     *string  `form:"search"`
 	Tags       []string `form:"tags"`
-	Limit      int     `form:"limit,default=20"`
-	Offset     int     `form:"offset,default=0"`
+	Limit      int      `form:"limit,default=20"`
+	Offset     int      `form:"offset,default=0"`
 }
 
 // ToTaskFilter converts TaskFilterInput to domain TaskFilter.
@@ -82,38 +82,38 @@ func (f *TaskFilterInput) ToTaskFilter() repositories.TaskFilter {
 
 // TaskOutput represents the output for a task.
 type TaskOutput struct {
-	ID             int64                  `json:"id"`
-	ProjectID      *int64                 `json:"project_id,omitempty"`
-	Title          string                 `json:"title"`
-	Description    *string                `json:"description,omitempty"`
-	DocumentID     *int64                 `json:"document_id,omitempty"`
-	AuthorID       int64                  `json:"author_id"`
-	AssigneeID     *int64                 `json:"assignee_id,omitempty"`
-	Status         string                 `json:"status"`
-	Priority       string                 `json:"priority"`
-	DueDate        *time.Time             `json:"due_date,omitempty"`
-	StartDate      *time.Time             `json:"start_date,omitempty"`
-	CompletedAt    *time.Time             `json:"completed_at,omitempty"`
-	Progress       int                    `json:"progress"`
-	EstimatedHours *float64               `json:"estimated_hours,omitempty"`
-	ActualHours    *float64               `json:"actual_hours,omitempty"`
-	Tags           []string               `json:"tags,omitempty"`
-	Metadata       map[string]any         `json:"metadata,omitempty"`
-	IsOverdue      bool                   `json:"is_overdue"`
-	CreatedAt      time.Time              `json:"created_at"`
-	UpdatedAt      time.Time              `json:"updated_at"`
-	Project        *ProjectOutput         `json:"project,omitempty"`
-	Assignee       *UserOutput            `json:"assignee,omitempty"`
-	Watchers       []UserOutput           `json:"watchers,omitempty"`
-	Checklists     []TaskChecklistOutput  `json:"checklists,omitempty"`
+	ID             int64                 `json:"id"`
+	ProjectID      *int64                `json:"project_id,omitempty"`
+	Title          string                `json:"title"`
+	Description    *string               `json:"description,omitempty"`
+	DocumentID     *int64                `json:"document_id,omitempty"`
+	AuthorID       int64                 `json:"author_id"`
+	AssigneeID     *int64                `json:"assignee_id,omitempty"`
+	Status         string                `json:"status"`
+	Priority       string                `json:"priority"`
+	DueDate        *time.Time            `json:"due_date,omitempty"`
+	StartDate      *time.Time            `json:"start_date,omitempty"`
+	CompletedAt    *time.Time            `json:"completed_at,omitempty"`
+	Progress       int                   `json:"progress"`
+	EstimatedHours *float64              `json:"estimated_hours,omitempty"`
+	ActualHours    *float64              `json:"actual_hours,omitempty"`
+	Tags           []string              `json:"tags,omitempty"`
+	Metadata       map[string]any        `json:"metadata,omitempty"`
+	IsOverdue      bool                  `json:"is_overdue"`
+	CreatedAt      time.Time             `json:"created_at"`
+	UpdatedAt      time.Time             `json:"updated_at"`
+	Project        *ProjectOutput        `json:"project,omitempty"`
+	Assignee       *UserOutput           `json:"assignee,omitempty"`
+	Watchers       []UserOutput          `json:"watchers,omitempty"`
+	Checklists     []TaskChecklistOutput `json:"checklists,omitempty"`
 }
 
 // TaskListOutput represents the output for a list of tasks.
 type TaskListOutput struct {
-	Tasks      []TaskOutput `json:"tasks"`
-	Total      int64        `json:"total"`
-	Limit      int          `json:"limit"`
-	Offset     int          `json:"offset"`
+	Tasks  []TaskOutput `json:"tasks"`
+	Total  int64        `json:"total"`
+	Limit  int          `json:"limit"`
+	Offset int          `json:"offset"`
 }
 
 // UserOutput represents basic user info in responses.

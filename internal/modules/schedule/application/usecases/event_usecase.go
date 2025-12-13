@@ -93,11 +93,11 @@ func (uc *EventUseCase) Create(ctx context.Context, input dto.CreateEventInput, 
 
 	// Log audit event
 	uc.logAudit(ctx, "event_created", "event", map[string]interface{}{
-		"event_id":       event.ID,
-		"title":          event.Title,
-		"event_type":     string(event.EventType),
-		"organizer_id":   organizerID,
-		"is_recurring":   event.IsRecurring,
+		"event_id":          event.ID,
+		"title":             event.Title,
+		"event_type":        string(event.EventType),
+		"organizer_id":      organizerID,
+		"is_recurring":      event.IsRecurring,
 		"participant_count": len(input.ParticipantIDs),
 	})
 

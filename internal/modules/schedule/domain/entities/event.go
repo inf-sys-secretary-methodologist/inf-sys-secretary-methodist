@@ -53,14 +53,14 @@ const (
 
 // RecurrenceRule represents recurrence pattern for events (RFC 5545 RRULE)
 type RecurrenceRule struct {
-	Frequency  RecurrenceFrequency `json:"frequency" db:"frequency"`              // FREQ: daily, weekly, monthly, yearly
-	Interval   int                 `json:"interval" db:"interval"`                // INTERVAL: every N frequency units
-	Count      *int                `json:"count,omitempty" db:"count"`            // COUNT: number of occurrences
-	Until      *time.Time          `json:"until,omitempty" db:"until"`            // UNTIL: end date for recurrence
-	ByWeekday  []Weekday           `json:"by_weekday,omitempty" db:"by_weekday"`  // BYDAY: specific days of week
+	Frequency  RecurrenceFrequency `json:"frequency" db:"frequency"`               // FREQ: daily, weekly, monthly, yearly
+	Interval   int                 `json:"interval" db:"interval"`                 // INTERVAL: every N frequency units
+	Count      *int                `json:"count,omitempty" db:"count"`             // COUNT: number of occurrences
+	Until      *time.Time          `json:"until,omitempty" db:"until"`             // UNTIL: end date for recurrence
+	ByWeekday  []Weekday           `json:"by_weekday,omitempty" db:"by_weekday"`   // BYDAY: specific days of week
 	ByMonthDay []int               `json:"by_monthday,omitempty" db:"by_monthday"` // BYMONTHDAY: specific days of month
-	ByMonth    []int               `json:"by_month,omitempty" db:"by_month"`      // BYMONTH: specific months
-	WeekStart  Weekday             `json:"week_start" db:"week_start"`            // WKST: week start day
+	ByMonth    []int               `json:"by_month,omitempty" db:"by_month"`       // BYMONTH: specific months
+	WeekStart  Weekday             `json:"week_start" db:"week_start"`             // WKST: week start day
 }
 
 // Event represents a calendar event entity
@@ -81,7 +81,7 @@ type Event struct {
 	Location *string `db:"location" json:"location,omitempty"`
 
 	// Participants
-	OrganizerID  int64   `db:"organizer_id" json:"organizer_id"`
+	OrganizerID    int64   `db:"organizer_id" json:"organizer_id"`
 	ParticipantIDs []int64 `db:"-" json:"participant_ids,omitempty"` // loaded separately
 
 	// Recurrence
@@ -91,8 +91,8 @@ type Event struct {
 	RecurrenceID   *time.Time      `db:"recurrence_id" json:"recurrence_id,omitempty"`     // original start time of instance
 
 	// Categorization
-	Color    *string `db:"color" json:"color,omitempty"`       // hex color for UI
-	Priority int     `db:"priority" json:"priority"`           // 1-5, higher = more important
+	Color    *string `db:"color" json:"color,omitempty"` // hex color for UI
+	Priority int     `db:"priority" json:"priority"`     // 1-5, higher = more important
 
 	// Metadata
 	Metadata   map[string]interface{} `db:"metadata" json:"metadata,omitempty"`
@@ -196,23 +196,23 @@ func (e *Event) Duration() time.Duration {
 
 // EventParticipant represents a participant in an event
 type EventParticipant struct {
-	ID             int64              `db:"id" json:"id"`
-	EventID        int64              `db:"event_id" json:"event_id"`
-	UserID         int64              `db:"user_id" json:"user_id"`
-	ResponseStatus ParticipantStatus  `db:"response_status" json:"response_status"`
-	Role           ParticipantRole    `db:"role" json:"role"`
-	NotifiedAt     *time.Time         `db:"notified_at" json:"notified_at,omitempty"`
-	RespondedAt    *time.Time         `db:"responded_at" json:"responded_at,omitempty"`
-	CreatedAt      time.Time          `db:"created_at" json:"created_at"`
+	ID             int64             `db:"id" json:"id"`
+	EventID        int64             `db:"event_id" json:"event_id"`
+	UserID         int64             `db:"user_id" json:"user_id"`
+	ResponseStatus ParticipantStatus `db:"response_status" json:"response_status"`
+	Role           ParticipantRole   `db:"role" json:"role"`
+	NotifiedAt     *time.Time        `db:"notified_at" json:"notified_at,omitempty"`
+	RespondedAt    *time.Time        `db:"responded_at" json:"responded_at,omitempty"`
+	CreatedAt      time.Time         `db:"created_at" json:"created_at"`
 }
 
 // ParticipantStatus represents the response status of a participant
 type ParticipantStatus string
 
 const (
-	ParticipantStatusPending  ParticipantStatus = "pending"  // Ожидает ответа
-	ParticipantStatusAccepted ParticipantStatus = "accepted" // Принял
-	ParticipantStatusDeclined ParticipantStatus = "declined" // Отклонил
+	ParticipantStatusPending   ParticipantStatus = "pending"   // Ожидает ответа
+	ParticipantStatusAccepted  ParticipantStatus = "accepted"  // Принял
+	ParticipantStatusDeclined  ParticipantStatus = "declined"  // Отклонил
 	ParticipantStatusTentative ParticipantStatus = "tentative" // Возможно
 )
 
@@ -227,14 +227,14 @@ const (
 
 // EventReminder represents a reminder for an event
 type EventReminder struct {
-	ID            int64          `db:"id" json:"id"`
-	EventID       int64          `db:"event_id" json:"event_id"`
-	UserID        int64          `db:"user_id" json:"user_id"`
-	ReminderType  ReminderType   `db:"reminder_type" json:"reminder_type"`
-	MinutesBefore int            `db:"minutes_before" json:"minutes_before"` // minutes before event
-	IsSent        bool           `db:"is_sent" json:"is_sent"`
-	SentAt        *time.Time     `db:"sent_at" json:"sent_at,omitempty"`
-	CreatedAt     time.Time      `db:"created_at" json:"created_at"`
+	ID            int64        `db:"id" json:"id"`
+	EventID       int64        `db:"event_id" json:"event_id"`
+	UserID        int64        `db:"user_id" json:"user_id"`
+	ReminderType  ReminderType `db:"reminder_type" json:"reminder_type"`
+	MinutesBefore int          `db:"minutes_before" json:"minutes_before"` // minutes before event
+	IsSent        bool         `db:"is_sent" json:"is_sent"`
+	SentAt        *time.Time   `db:"sent_at" json:"sent_at,omitempty"`
+	CreatedAt     time.Time    `db:"created_at" json:"created_at"`
 }
 
 // ReminderType represents the type of reminder notification

@@ -8,16 +8,16 @@ import (
 
 // ShareDocumentInput represents input for sharing a document with a user
 type ShareDocumentInput struct {
-	DocumentID int64  `json:"-"`
-	UserID     *int64 `json:"user_id,omitempty" validate:"required_without=Role"`
-	Role       *string `json:"role,omitempty" validate:"required_without=UserID,omitempty,oneof=admin secretary methodist teacher student"`
-	Permission string `json:"permission" validate:"required,oneof=read write delete admin"`
+	DocumentID int64      `json:"-"`
+	UserID     *int64     `json:"user_id,omitempty" validate:"required_without=Role"`
+	Role       *string    `json:"role,omitempty" validate:"required_without=UserID,omitempty,oneof=admin secretary methodist teacher student"`
+	Permission string     `json:"permission" validate:"required,oneof=read write delete admin"`
 	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
 }
 
 // UpdatePermissionInput represents input for updating a permission
 type UpdatePermissionInput struct {
-	Permission string `json:"permission" validate:"required,oneof=read write delete admin"`
+	Permission string     `json:"permission" validate:"required,oneof=read write delete admin"`
 	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
 }
 
@@ -69,20 +69,20 @@ func ToPermissionOutputList(permissions []*entities.DocumentPermission) []*Permi
 
 // CreatePublicLinkInput represents input for creating a public link
 type CreatePublicLinkInput struct {
-	DocumentID int64  `json:"-"`
-	Permission string `json:"permission" validate:"required,oneof=read download"`
+	DocumentID int64      `json:"-"`
+	Permission string     `json:"permission" validate:"required,oneof=read download"`
 	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
-	MaxUses    *int   `json:"max_uses,omitempty" validate:"omitempty,min=1"`
-	Password   *string `json:"password,omitempty" validate:"omitempty,min=4"`
+	MaxUses    *int       `json:"max_uses,omitempty" validate:"omitempty,min=1"`
+	Password   *string    `json:"password,omitempty" validate:"omitempty,min=4"`
 }
 
 // UpdatePublicLinkInput represents input for updating a public link
 type UpdatePublicLinkInput struct {
-	Permission *string `json:"permission,omitempty" validate:"omitempty,oneof=read download"`
+	Permission *string    `json:"permission,omitempty" validate:"omitempty,oneof=read download"`
 	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
-	MaxUses    *int   `json:"max_uses,omitempty" validate:"omitempty,min=1"`
-	Password   *string `json:"password,omitempty" validate:"omitempty,min=4"`
-	IsActive   *bool  `json:"is_active,omitempty"`
+	MaxUses    *int       `json:"max_uses,omitempty" validate:"omitempty,min=1"`
+	Password   *string    `json:"password,omitempty" validate:"omitempty,min=4"`
+	IsActive   *bool      `json:"is_active,omitempty"`
 }
 
 // PublicLinkOutput represents output for a public link

@@ -22,7 +22,7 @@ type CreateEventInput struct {
 	Priority       *int       `json:"priority,omitempty" validate:"omitempty,min=1,max=5"`
 
 	// Recurrence
-	IsRecurring    bool                `json:"is_recurring"`
+	IsRecurring    bool                 `json:"is_recurring"`
 	RecurrenceRule *RecurrenceRuleInput `json:"recurrence_rule,omitempty"`
 
 	// Reminders
@@ -31,17 +31,17 @@ type CreateEventInput struct {
 
 // UpdateEventInput represents input for updating an event
 type UpdateEventInput struct {
-	Title          *string    `json:"title,omitempty" validate:"omitempty,min=1,max=500"`
-	Description    *string    `json:"description,omitempty" validate:"omitempty,max=5000"`
-	EventType      *string    `json:"event_type,omitempty" validate:"omitempty,oneof=meeting deadline task reminder holiday personal"`
-	Status         *string    `json:"status,omitempty" validate:"omitempty,oneof=scheduled ongoing completed cancelled postponed"`
-	StartTime      *time.Time `json:"start_time,omitempty"`
-	EndTime        *time.Time `json:"end_time,omitempty"`
-	AllDay         *bool      `json:"all_day,omitempty"`
-	Timezone       *string    `json:"timezone,omitempty" validate:"omitempty,max=50"`
-	Location       *string    `json:"location,omitempty" validate:"omitempty,max=500"`
-	Color          *string    `json:"color,omitempty" validate:"omitempty,hexcolor"`
-	Priority       *int       `json:"priority,omitempty" validate:"omitempty,min=1,max=5"`
+	Title       *string    `json:"title,omitempty" validate:"omitempty,min=1,max=500"`
+	Description *string    `json:"description,omitempty" validate:"omitempty,max=5000"`
+	EventType   *string    `json:"event_type,omitempty" validate:"omitempty,oneof=meeting deadline task reminder holiday personal"`
+	Status      *string    `json:"status,omitempty" validate:"omitempty,oneof=scheduled ongoing completed cancelled postponed"`
+	StartTime   *time.Time `json:"start_time,omitempty"`
+	EndTime     *time.Time `json:"end_time,omitempty"`
+	AllDay      *bool      `json:"all_day,omitempty"`
+	Timezone    *string    `json:"timezone,omitempty" validate:"omitempty,max=50"`
+	Location    *string    `json:"location,omitempty" validate:"omitempty,max=500"`
+	Color       *string    `json:"color,omitempty" validate:"omitempty,hexcolor"`
+	Priority    *int       `json:"priority,omitempty" validate:"omitempty,min=1,max=5"`
 
 	// Recurrence update
 	IsRecurring    *bool                `json:"is_recurring,omitempty"`

@@ -28,19 +28,19 @@ type CreateVersionInput struct {
 
 // FileResponse представляет ответ с информацией о файле.
 type FileResponse struct {
-	ID             int64      `json:"id"`
-	OriginalName   string     `json:"original_name"`
-	Size           int64      `json:"size"`
-	MimeType       string     `json:"mime_type"`
-	Checksum       string     `json:"checksum"`
-	UploadedBy     int64      `json:"uploaded_by"`
-	DocumentID     *int64     `json:"document_id,omitempty"`
-	TaskID         *int64     `json:"task_id,omitempty"`
-	AnnouncementID *int64     `json:"announcement_id,omitempty"`
-	IsTemporary    bool       `json:"is_temporary"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
-	DownloadURL    string     `json:"download_url,omitempty"`
+	ID             int64     `json:"id"`
+	OriginalName   string    `json:"original_name"`
+	Size           int64     `json:"size"`
+	MimeType       string    `json:"mime_type"`
+	Checksum       string    `json:"checksum"`
+	UploadedBy     int64     `json:"uploaded_by"`
+	DocumentID     *int64    `json:"document_id,omitempty"`
+	TaskID         *int64    `json:"task_id,omitempty"`
+	AnnouncementID *int64    `json:"announcement_id,omitempty"`
+	IsTemporary    bool      `json:"is_temporary"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+	DownloadURL    string    `json:"download_url,omitempty"`
 }
 
 // FileVersionResponse представляет ответ с информацией о версии файла.
