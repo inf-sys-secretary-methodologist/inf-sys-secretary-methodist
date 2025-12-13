@@ -2,45 +2,154 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Bell, CheckCheck, Settings, Trash2, Loader2 } from 'lucide-react'
+import { Bell, Settings, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { NotificationItem } from './NotificationItem'
 import {
   useNotifications,
   useUnreadCount,
   useMarkAsRead,
   useMarkAllAsRead,
-  useDeleteNotification,
-  useDeleteAllNotifications,
 } from '@/hooks/useNotifications'
 import { cn } from '@/lib/utils'
+import type { Notification, NotificationType } from '@/types/notification'
+import {
+  Bell as BellIcon,
+  Calendar,
+  FileText,
+  Megaphone,
+  CheckSquare,
+  Settings as SettingsIcon,
+} from 'lucide-react'
 
 interface NotificationCenterProps {
   className?: string
 }
 
+const typeIcons: Record<NotificationType, React.ElementType> = {
+  system: SettingsIcon,
+  reminder: BellIcon,
+  task: CheckSquare,
+  document: FileText,
+  announcement: Megaphone,
+  event: Calendar,
+}
+
+const typeColors: Record<NotificationType, string> = {
+  system: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  reminder: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
+  task: 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400',
+  document: 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400',
+  announcement: 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400',
+  event: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',
+}
+
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMins / 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffMins < 1) {
+    return 'Только что'
+  } else if (diffMins < 60) {
+    return `${diffMins} мин. назад`
+  } else if (diffHours < 24) {
+    return `${diffHours} ч. назад`
+  } else if (diffDays === 1) {
+    return 'Вчера'
+  } else if (diffDays < 7) {
+    return `${diffDays} дн. назад`
+  } else {
+    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+  }
+}
+
+function NotificationRow({
+  notification,
+  onMarkAsRead,
+  onClose,
+}: {
+  notification: Notification
+  onMarkAsRead: (id: number) => void
+  onClose: () => void
+}) {
+  const TypeIcon = typeIcons[notification.type] || BellIcon
+  const colorClass = typeColors[notification.type] || typeColors.system
+
+  const handleClick = () => {
+    if (!notification.is_read) {
+      onMarkAsRead(notification.id)
+    }
+    if (notification.link) {
+      onClose()
+    }
+  }
+
+  const content = (
+    <div
+      className={cn(
+        'relative flex items-start gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-accent',
+        notification.is_read ? '' : 'bg-blue-50/50 dark:bg-blue-900/10'
+      )}
+    >
+      {/* Icon */}
+      <div
+        className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full', colorClass)}
+      >
+        <TypeIcon className="h-4 w-4" />
+      </div>
+
+      {/* Content */}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm text-foreground">
+          <span className="font-medium">{notification.title}</span>
+        </p>
+        <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">{notification.message}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {notification.created_at_display || formatRelativeTime(notification.created_at)}
+        </p>
+      </div>
+
+      {/* Unread indicator */}
+      {!notification.is_read && (
+        <div className="flex h-2 w-2 shrink-0 items-center justify-center self-center">
+          <div className="h-2 w-2 rounded-full bg-blue-500" />
+        </div>
+      )}
+    </div>
+  )
+
+  if (notification.link) {
+    return (
+      <Link href={notification.link} onClick={handleClick} className="block">
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <button onClick={handleClick} className="block w-full text-left">
+      {content}
+    </button>
+  )
+}
+
 export function NotificationCenter({ className }: NotificationCenterProps) {
   const [open, setOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all')
 
   const { data: unreadData } = useUnreadCount()
   const unreadCount = unreadData?.count ?? 0
 
-  const { data: allData, isLoading: isLoadingAll } = useNotifications({ limit: 50 })
-  const { data: unreadOnlyData, isLoading: isLoadingUnread } = useNotifications({
-    is_read: false,
-    limit: 50,
-  })
+  const { data: allData, isLoading } = useNotifications({ limit: 20 })
+  const notifications = allData?.notifications ?? []
 
   const markAsRead = useMarkAsRead()
   const markAllAsRead = useMarkAllAsRead()
-  const deleteNotification = useDeleteNotification()
-  const deleteAll = useDeleteAllNotifications()
 
   const handleMarkAsRead = async (id: number) => {
     try {
@@ -59,27 +168,6 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    try {
-      await deleteNotification.mutateAsync(id)
-      toast.success('Уведомление удалено')
-    } catch {
-      toast.error('Не удалось удалить уведомление')
-    }
-  }
-
-  const handleDeleteAll = async () => {
-    try {
-      await deleteAll.mutateAsync()
-      toast.success('Все уведомления удалены')
-    } catch {
-      toast.error('Не удалось удалить уведомления')
-    }
-  }
-
-  const notifications = activeTab === 'all' ? allData?.notifications : unreadOnlyData?.notifications
-  const isLoading = activeTab === 'all' ? isLoadingAll : isLoadingUnread
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -92,8 +180,8 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge
+              className="absolute -top-2 left-full min-w-5 -translate-x-1/2 px-1 h-5 text-xs"
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 min-w-5 px-1 flex items-center justify-center text-xs"
             >
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
@@ -101,111 +189,62 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-[420px] p-0" align="end" sideOffset={8}>
+      <PopoverContent className="w-96 p-0" align="end" sideOffset={8}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <h3 className="text-sm font-semibold">Уведомления</h3>
           <div className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-blue-500 dark:text-blue-400" />
-            <h3 className="text-base font-semibold tracking-[-0.006em]">Уведомления</h3>
-          </div>
-          <div className="flex items-center gap-1">
             {unreadCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
+                className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
                 onClick={handleMarkAllAsRead}
                 disabled={markAllAsRead.isPending}
-                className="h-8 px-2 text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
               >
-                <CheckCheck className="h-4 w-4 mr-1" />
                 Прочитать все
-              </Button>
+              </button>
             )}
-            <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-              <Link href="/settings/notifications">
-                <Settings className="h-4 w-4 text-muted-foreground" />
-              </Link>
-            </Button>
+            <Link
+              href="/settings/notifications"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={() => setOpen(false)}
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => setActiveTab(v as 'all' | 'unread')}
-          className="w-full"
-        >
-          <div className="px-4 pt-3">
-            <TabsList className="w-full grid grid-cols-2 [&_button]:gap-1.5">
-              <TabsTrigger value="all" className="text-sm">
-                Все
-                {(allData?.total_count ?? 0) > 0 && (
-                  <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 rounded-full">
-                    {allData?.total_count}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="unread" className="text-sm">
-                Непрочитанные
-                {unreadCount > 0 && (
-                  <Badge variant="destructive" className="ml-1.5 h-5 px-1.5 rounded-full">
-                    {unreadCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value={activeTab} className="mt-0">
-            <ScrollArea className="h-[400px]">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : notifications && notifications.length > 0 ? (
-                <div className="space-y-0 divide-y divide-dashed divide-border px-4">
-                  {notifications.map((notification) => (
-                    <NotificationItem
-                      key={notification.id}
-                      notification={notification}
-                      onMarkAsRead={handleMarkAsRead}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                  <div className="rounded-full bg-muted p-4 mb-4">
-                    <Bell className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm font-medium tracking-[-0.006em] text-muted-foreground">
-                    {activeTab === 'unread'
-                      ? 'Нет непрочитанных уведомлений'
-                      : 'У вас пока нет уведомлений'}
-                  </p>
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
+        {/* Notifications List */}
+        <div className="max-h-96 overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : notifications.length > 0 ? (
+            <div className="divide-y">
+              {notifications.map((notification) => (
+                <NotificationRow
+                  key={notification.id}
+                  notification={notification}
+                  onMarkAsRead={handleMarkAsRead}
+                  onClose={() => setOpen(false)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+              <div className="rounded-full bg-muted p-3 mb-3">
+                <Bell className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">У вас пока нет уведомлений</p>
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
-        {notifications && notifications.length > 0 && (
-          <div className="flex items-center justify-between p-3 border-t bg-muted/30">
-            <Button variant="ghost" size="sm" asChild className="text-xs">
-              <Link href="/notifications" onClick={() => setOpen(false)}>
-                Смотреть все
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDeleteAll}
-              disabled={deleteAll.isPending}
-              className="text-xs text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1" />
-              Очистить все
+        {notifications.length > 0 && (
+          <div className="border-t p-3">
+            <Button variant="outline" className="w-full" asChild onClick={() => setOpen(false)}>
+              <Link href="/notifications">Смотреть все уведомления</Link>
             </Button>
           </div>
         )}
