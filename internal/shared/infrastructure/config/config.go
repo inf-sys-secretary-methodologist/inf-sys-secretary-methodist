@@ -20,6 +20,7 @@ type Config struct {
 	CORS        CORSConfig
 	JWT         JWTConfig
 	Composio    ComposioConfig
+	Telegram    TelegramConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -76,6 +77,14 @@ type ComposioConfig struct {
 	APIKey      string
 	EntityID    string
 	MCPConfigID string
+}
+
+// TelegramConfig holds Telegram bot configuration
+type TelegramConfig struct {
+	BotToken      string
+	BotUsername   string
+	WebhookURL    string
+	WebhookSecret string
 }
 
 // S3Config holds S3/MinIO storage configuration
@@ -146,6 +155,12 @@ func Load() (*Config, error) {
 			Region:          getEnv("S3_REGION", "us-east-1"),
 			UseSSL:          getEnvAsBool("S3_USE_SSL", false),
 			MaxFileSize:     getEnvAsInt64("S3_MAX_FILE_SIZE", 50*1024*1024), // 50MB default
+		},
+		Telegram: TelegramConfig{
+			BotToken:      getEnv("TELEGRAM_BOT_TOKEN", ""),
+			BotUsername:   getEnv("TELEGRAM_BOT_USERNAME", ""),
+			WebhookURL:    getEnv("TELEGRAM_WEBHOOK_URL", ""),
+			WebhookSecret: getEnv("TELEGRAM_WEBHOOK_SECRET", ""),
 		},
 	}
 

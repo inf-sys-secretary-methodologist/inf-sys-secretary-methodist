@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -32,7 +33,7 @@ import (
 	filesUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
 	filesPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/infrastructure/persistence"
 	filesHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/interfaces/http/handlers"
-	emailServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
+	notifServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	emailDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	notifPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/infrastructure/persistence"
@@ -59,6 +60,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/metrics"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/telegram"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
@@ -207,10 +209,30 @@ func main() {
 	composioEntityID := cfg.Composio.EntityID
 	var notifEmailService emailDomain.EmailService
 	if composioAPIKey != "" && composioEntityID != "" {
-		notifEmailService = emailServices.NewComposioEmailService(composioAPIKey, composioEntityID, auditLogger)
+		notifEmailService = notifServices.NewComposioEmailService(composioAPIKey, composioEntityID, auditLogger)
 	}
 
-	notificationUseCase := notifUsecases.NewNotificationUseCase(notificationRepo, preferencesRepo, notifEmailService)
+	// Initialize Telegram service (Composio) for sending messages
+	telegramRepo := notifPersistence.NewTelegramRepositoryPG(db)
+	var telegramService emailDomain.TelegramService
+	var telegramVerificationService *notifServices.TelegramVerificationService
+	if composioAPIKey != "" && composioEntityID != "" {
+		telegramService = notifServices.NewComposioTelegramService(composioAPIKey, composioEntityID, auditLogger)
+		telegramVerificationService = notifServices.NewTelegramVerificationService(
+			telegramRepo,
+			preferencesRepo,
+			telegramService,
+			auditLogger,
+			cfg.Telegram.BotUsername,
+		)
+		logger.Info("Telegram service initialized via Composio", map[string]interface{}{
+			"bot_username": cfg.Telegram.BotUsername,
+		})
+	} else {
+		logger.Warn("Telegram service not configured - COMPOSIO_API_KEY or COMPOSIO_ENTITY_ID not set", nil)
+	}
+
+	notificationUseCase := notifUsecases.NewNotificationUseCase(notificationRepo, preferencesRepo, telegramRepo, notifEmailService, telegramService)
 	preferencesUseCase := notifUsecases.NewPreferencesUseCase(preferencesRepo)
 	logger.Info("Notifications module initialized", nil)
 
@@ -310,7 +332,7 @@ func main() {
 	validator := validation.NewValidator()
 
 	// Setup router with all middleware
-	router := setupRoutes(
+	router, telegramPollingService := setupRoutes(
 		authUseCase,
 		docUseCase,
 		sharingUseCase,
@@ -329,6 +351,8 @@ func main() {
 		versionUseCase,
 		notificationUseCase,
 		preferencesUseCase,
+		telegramVerificationService,
+		telegramService,
 		s3Client,
 		securityLogger,
 		perfLogger,
@@ -373,6 +397,12 @@ func main() {
 	<-quit
 
 	logger.Info("Server shutting down...", nil)
+
+	// Stop Telegram polling if running
+	if telegramPollingService != nil {
+		telegramPollingService.Stop()
+		logger.Info("Telegram polling service stopped", nil)
+	}
 
 	// Stop reminder scheduler
 	if reminderScheduler != nil {
@@ -493,6 +523,8 @@ func setupRoutes(
 	versionUseCase *filesUsecases.VersionUseCase,
 	notificationUseCase *notifUsecases.NotificationUseCase,
 	preferencesUseCase *notifUsecases.PreferencesUseCase,
+	telegramVerificationService *notifServices.TelegramVerificationService,
+	telegramService emailDomain.TelegramService,
 	s3Client *storage.S3Client,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
@@ -506,8 +538,9 @@ func setupRoutes(
 	userRepo repositories.UserRepository,
 	userProfileRepo usersRepositories.UserProfileRepository,
 	validator *validation.Validator,
-) *gin.Engine {
+) (*gin.Engine, *telegram.PollingService) {
 	router := gin.New()
+	var telegramPollingService *telegram.PollingService
 
 	// Global middleware stack (order matters!)
 	router.Use(gin.Recovery())
@@ -550,7 +583,7 @@ func setupRoutes(
 	composioEntityID := cfg.Composio.EntityID
 	var emailService emailDomain.EmailService
 	if composioAPIKey != "" && composioEntityID != "" {
-		emailService = emailServices.NewComposioEmailService(composioAPIKey, composioEntityID, auditLogger)
+		emailService = notifServices.NewComposioEmailService(composioAPIKey, composioEntityID, auditLogger)
 		logger.Info("Email service initialized", nil)
 	}
 
@@ -587,6 +620,29 @@ func setupRoutes(
 			publicGroup.OPTIONS("/documents/:token", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 		}
 		logger.Info("Public document access routes registered", nil)
+	}
+
+	// Telegram webhook (public - receives updates from Telegram servers)
+	if telegramVerificationService != nil && telegramService != nil {
+		webhookHandler := notifHttp.NewTelegramWebhookHandler(
+			telegramVerificationService,
+			telegramService,
+			cfg.Telegram.WebhookSecret,
+			slog.Default(),
+		)
+		router.POST("/api/telegram/webhook", webhookHandler.HandleWebhook)
+		logger.Info("Telegram webhook route registered", nil)
+
+		// If no webhook URL is configured, use polling mode for local development
+		if cfg.Telegram.WebhookURL == "" && cfg.Telegram.BotToken != "" {
+			telegramPollingService = telegram.NewPollingService(cfg.Telegram.BotToken, slog.Default())
+			telegramPollingService.SetHandler(webhookHandler.ProcessUpdate)
+			if err := telegramPollingService.Start(context.Background()); err != nil {
+				logger.Warn("Failed to start Telegram polling", map[string]interface{}{"error": err.Error()})
+			} else {
+				logger.Info("Telegram polling mode started (no webhook URL configured)", nil)
+			}
+		}
 	}
 
 	// Protected routes (require JWT) with auth rate limiting (60 req/min + burst 10)
@@ -683,6 +739,23 @@ func setupRoutes(
 				notificationsGroup.OPTIONS("/timezones", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 			logger.Info("Notifications module routes registered", nil)
+
+			// Telegram routes (protected - for linking accounts)
+			if telegramVerificationService != nil {
+				telegramHandler := notifHttp.NewTelegramHandler(telegramVerificationService)
+				telegramGroup := protectedGroup.Group("/telegram")
+				{
+					telegramGroup.POST("/verification-code", telegramHandler.GenerateVerificationCode)
+					telegramGroup.GET("/status", telegramHandler.GetConnectionStatus)
+					telegramGroup.POST("/disconnect", telegramHandler.DisconnectTelegram)
+
+					// CORS preflight handlers
+					telegramGroup.OPTIONS("/verification-code", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					telegramGroup.OPTIONS("/status", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					telegramGroup.OPTIONS("/disconnect", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				}
+				logger.Info("Telegram API routes registered", nil)
+			}
 		}
 
 		// Email notification routes (legacy - for direct email sending)
@@ -1212,7 +1285,7 @@ func setupRoutes(
 		}
 	}
 
-	return router
+	return router, telegramPollingService
 }
 
 // performanceMiddleware logs HTTP request performance

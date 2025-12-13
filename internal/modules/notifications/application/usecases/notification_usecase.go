@@ -4,6 +4,8 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
@@ -16,19 +18,25 @@ import (
 type NotificationUseCase struct {
 	notificationRepo repositories.NotificationRepository
 	preferencesRepo  repositories.PreferencesRepository
+	telegramRepo     repositories.TelegramRepository
 	emailService     services.EmailService
+	telegramService  services.TelegramService
 }
 
 // NewNotificationUseCase creates a new notification use case
 func NewNotificationUseCase(
 	notificationRepo repositories.NotificationRepository,
 	preferencesRepo repositories.PreferencesRepository,
+	telegramRepo repositories.TelegramRepository,
 	emailService services.EmailService,
+	telegramService services.TelegramService,
 ) *NotificationUseCase {
 	return &NotificationUseCase{
 		notificationRepo: notificationRepo,
 		preferencesRepo:  preferencesRepo,
+		telegramRepo:     telegramRepo,
 		emailService:     emailService,
+		telegramService:  telegramService,
 	}
 }
 
@@ -40,7 +48,52 @@ func (uc *NotificationUseCase) Create(ctx context.Context, input *dto.CreateNoti
 		return nil, fmt.Errorf("failed to create notification: %w", err)
 	}
 
+	// Send to Telegram if user has connected account and service is available
+	uc.sendToTelegram(ctx, notification)
+
 	return dto.ToOutput(notification), nil
+}
+
+// sendToTelegram sends notification to Telegram if user has connected account
+func (uc *NotificationUseCase) sendToTelegram(ctx context.Context, notification *entities.Notification) {
+	if uc.telegramRepo == nil || uc.telegramService == nil {
+		return
+	}
+
+	// Check if user has Telegram connection
+	conn, err := uc.telegramRepo.GetConnectionByUserID(ctx, notification.UserID)
+	if err != nil {
+		slog.Debug("Failed to get Telegram connection", "user_id", notification.UserID, "error", err)
+		return
+	}
+	if conn == nil || !conn.IsActive {
+		return
+	}
+
+	// Check user preferences for Telegram notifications
+	prefs, err := uc.preferencesRepo.GetByUserID(ctx, notification.UserID)
+	if err != nil {
+		slog.Debug("Failed to get notification preferences", "user_id", notification.UserID, "error", err)
+		return
+	}
+	if prefs != nil && !prefs.TelegramEnabled {
+		return
+	}
+
+	// Send notification via Telegram
+	chatID := strconv.FormatInt(conn.TelegramChatID, 10)
+	if err := uc.telegramService.SendNotification(ctx, chatID, notification.Title, notification.Message, string(notification.Priority)); err != nil {
+		slog.Error("Failed to send Telegram notification",
+			"user_id", notification.UserID,
+			"chat_id", chatID,
+			"error", err,
+		)
+	} else {
+		slog.Info("Telegram notification sent",
+			"user_id", notification.UserID,
+			"notification_id", notification.ID,
+		)
+	}
 }
 
 // CreateBulk creates notifications for multiple users
@@ -72,6 +125,11 @@ func (uc *NotificationUseCase) CreateBulk(ctx context.Context, input *dto.Create
 
 	if err := uc.notificationRepo.CreateBulk(ctx, notifications); err != nil {
 		return nil, fmt.Errorf("failed to create bulk notifications: %w", err)
+	}
+
+	// Send to Telegram for each notification (async)
+	for _, notification := range notifications {
+		go uc.sendToTelegram(ctx, notification)
 	}
 
 	return dto.ToOutputList(notifications), nil
