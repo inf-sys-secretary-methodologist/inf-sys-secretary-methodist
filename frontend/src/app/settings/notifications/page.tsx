@@ -35,6 +35,7 @@ import {
   useTimezones,
 } from '@/hooks/useNotifications'
 import { notificationChannelLabels } from '@/types/notification'
+import { TelegramLinkCard } from '@/components/telegram/TelegramLinkCard'
 
 export default function NotificationSettingsPage() {
   const { data: preferences, isLoading } = useNotificationPreferences()
@@ -214,21 +215,6 @@ export default function NotificationSettingsPage() {
               <div className="flex items-center gap-3">
                 <MessageSquare className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <Label>Telegram</Label>
-                  <p className="text-sm text-muted-foreground">Уведомления в Telegram</p>
-                </div>
-              </div>
-              <Switch
-                checked={preferences?.telegram_enabled ?? false}
-                onCheckedChange={(checked) => handleToggleChannel('telegram', checked)}
-                disabled={toggleChannel.isPending}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                <div>
                   <Label>Slack</Label>
                   <p className="text-sm text-muted-foreground">Уведомления в Slack</p>
                 </div>
@@ -241,6 +227,9 @@ export default function NotificationSettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Telegram Integration */}
+        <TelegramLinkCard />
 
         {/* Quiet Hours */}
         <Card>
