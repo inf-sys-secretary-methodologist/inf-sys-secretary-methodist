@@ -11,7 +11,7 @@
 * **Автоматизация рабочих процессов**: Процессы согласования с маршрутизацией по ролям
 * **Управление расписанием**: Академическое планирование и оптимизация ресурсов
 * **Отчетность и аналитика**: Комплексная бизнес-аналитика
-* **Email уведомления**: Автоматическая отправка писем через Composio Gmail Integration
+* **Мультиканальные уведомления**: Email (Composio Gmail) и Telegram Bot интеграция
 * **Поддержка интеграций**: Бесшовное подключение к 1С и внешним системам
 
 ## 🏗️ Архитектура
@@ -97,6 +97,7 @@ docker-compose up -d
 - [🔐 Аутентификация](docs/api/authentication.md) - Endpoints аутентификации
 - [📄 API управления документами](docs/api/documents.md) - Endpoints документов
 - [📧 Composio Gmail Integration](docs/integrations/composio-gmail.md) - Email уведомления через Composio
+- [📱 Telegram Integration](docs/integrations/telegram-bot.md) - Уведомления через Telegram бота
 - [👥 Роли и права доступа](docs/users/roles-and-permissions.md) - Роли пользователей и контроль доступа
 
 ## 🏗️ Технологический стек
@@ -109,7 +110,7 @@ docker-compose up -d
 - **База данных**: PostgreSQL 17+ (основная), Redis (кеш/сессии)
 - **Messaging**: In-memory EventBus (готов к Kafka)
 - **Аутентификация**: OAuth 2.0 + JWT
-- **Email интеграция**: Composio Gmail API (100k+ писем/день)
+- **Уведомления**: Email (Composio Gmail API) + Telegram Bot (polling/webhook)
 - **Паттерны**: Repository, CQRS, Event Sourcing, Unit of Work
 - **Логирование**: Структурированное JSON логирование с correlation IDs
 - **Кеширование**: Redis с Decorator pattern (прирост производительности в 30x)

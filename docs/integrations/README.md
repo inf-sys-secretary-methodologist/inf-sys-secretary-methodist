@@ -41,6 +41,39 @@ curl -X POST http://localhost:8080/api/notifications/send-welcome \
 
 ---
 
+## 📱 Telegram Integration
+
+### Telegram Bot
+**Статус:** ✅ Активно используется
+
+Интеграция с Telegram для отправки push-уведомлений через бота.
+
+**Основные возможности:**
+- Привязка Telegram аккаунта к профилю пользователя
+- Автоматическая отправка уведомлений в Telegram
+- Поддержка polling (для разработки) и webhook (для production)
+- HTML форматирование сообщений
+
+**Документация:**
+- [Полное руководство](./telegram-bot.md)
+- [Environment Configuration](../deployment/environment.md)
+
+**Quick Start:**
+```bash
+# 1. Настройте переменные окружения
+export TELEGRAM_BOT_TOKEN="your-bot-token"
+
+# 2. Привяжите аккаунт через UI
+# Настройки -> Уведомления -> Telegram
+```
+
+**Используемые технологии:**
+- Telegram Bot API
+- Polling / Webhook режимы
+- Go HTTP Client
+
+---
+
 ## 🔮 Планируемые интеграции
 
 ### AI Assistant (Planned)
@@ -114,6 +147,6 @@ AI-ассистент на базе LLM для автоматизации рут
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-12-09
+**Последнее обновление**: 2025-12-13
 **Версия проекта**: 0.2.0
 **Статус**: Актуальный

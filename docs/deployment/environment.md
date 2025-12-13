@@ -84,6 +84,14 @@
 | `COMPOSIO_ENTITY_ID` | Entity ID Composio | - | Для email |
 | `COMPOSIO_MCP_CONFIG_ID` | MCP Config ID | - | Нет |
 
+### Telegram Bot
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `TELEGRAM_BOT_TOKEN` | Токен Telegram бота | - | Для Telegram |
+| `TELEGRAM_MODE` | Режим работы (polling/webhook) | `polling` | Нет |
+| `TELEGRAM_WEBHOOK_URL` | URL для webhook режима | - | Для webhook |
+
 ### Frontend (Next.js)
 
 | Переменная | Описание | Default | Required |
@@ -370,6 +378,6 @@ curl http://localhost:8080/health
 
 ---
 
-**Последнее обновление**: 2025-11-29
-**Версия проекта**: 0.1.0
+**Последнее обновление**: 2025-12-13
+**Версия проекта**: 0.2.0
 **Статус**: Актуальный
