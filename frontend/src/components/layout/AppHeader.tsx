@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserMenu } from '@/components/UserMenu'
 import { ThemeToggleButton } from '@/components/theme-toggle-button'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { MobileNav } from './MobileNav'
 import { NavItem } from '@/config/navigation'
 import { cn } from '@/lib/utils'
@@ -78,6 +79,7 @@ export function AppHeader({ items }: AppHeaderProps) {
 
         {/* Right side actions */}
         <div className="flex shrink-0 items-center justify-end gap-2 xl:w-56">
+          <NotificationBell />
           <ThemeToggleButton />
           <UserMenu />
         </div>
