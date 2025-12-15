@@ -52,7 +52,7 @@ jobs:
 
     - name: Cache Go modules
       if: steps.check_service.outputs.exists == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('services/${{ matrix.service }}/go.sum') }}
