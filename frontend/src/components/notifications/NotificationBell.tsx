@@ -114,7 +114,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                   className="size-8"
                   onClick={handleMarkAllAsRead}
                   disabled={markAllAsRead.isPending}
-                  title="Прочитать все"
+                  aria-label="Прочитать все"
                 >
                   <CheckCheck className="size-4 text-muted-foreground" />
                 </Button>
@@ -124,7 +124,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                 size="icon"
                 className="size-8"
                 asChild
-                title="Настройки"
+                aria-label="Настройки уведомлений"
                 onClick={() => setOpen(false)}
               >
                 <Link href="/settings/notifications">

@@ -1,10 +1,20 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { cn } from '@/lib/utils'
 import { User, ImagePlus, X, Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import { ImageCropper } from './ImageCropper'
+
+// Lazy load ImageCropper to reduce initial bundle (react-easy-crop ~40KB)
+const ImageCropper = dynamic(() => import('./ImageCropper').then((mod) => mod.ImageCropper), {
+  loading: () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <Loader2 className="h-8 w-8 animate-spin text-white" />
+    </div>
+  ),
+  ssr: false,
+})
 
 interface AvatarUploadProps {
   currentAvatar?: string | null

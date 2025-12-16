@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import {
   History,
   RotateCcw,
@@ -23,7 +24,12 @@ import {
   DocumentVersionListOutput,
   VersionDiffOutput,
 } from '@/lib/api/documents'
-import { TextDiff } from './TextDiff'
+
+// Lazy load TextDiff to reduce initial bundle (diff library ~15KB)
+const TextDiff = dynamic(() => import('./TextDiff').then((mod) => mod.TextDiff), {
+  loading: () => <div className="animate-pulse bg-gray-100 dark:bg-gray-800 rounded h-24" />,
+  ssr: false,
+})
 
 interface DocumentVersionHistoryProps {
   documentId: number | string

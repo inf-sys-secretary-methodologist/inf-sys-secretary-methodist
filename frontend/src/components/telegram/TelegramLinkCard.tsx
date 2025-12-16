@@ -246,7 +246,7 @@ export function TelegramLinkCard() {
                   variant="outline"
                   size="icon"
                   onClick={handleCopyCode}
-                  title="Копировать код"
+                  aria-label="Копировать код"
                 >
                   {copied ? (
                     <Check className="h-4 w-4 text-green-600" />
@@ -276,7 +276,7 @@ export function TelegramLinkCard() {
                 size="icon"
                 onClick={handleGenerateCode}
                 disabled={generateCode.isPending}
-                title="Получить новый код"
+                aria-label="Получить новый код"
               >
                 <RefreshCw className={`h-4 w-4 ${generateCode.isPending ? 'animate-spin' : ''}`} />
               </Button>

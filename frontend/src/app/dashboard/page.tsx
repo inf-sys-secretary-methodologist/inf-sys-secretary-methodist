@@ -1,14 +1,29 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { canEdit } from '@/lib/auth/permissions'
 import { useDashboardStats, useDashboardTrends, useDashboardActivity } from '@/hooks/useDashboard'
 import { AppLayout } from '@/components/layout'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
-import { StatsCard, TrendChart, ActivityFeed, ExportButton } from '@/components/dashboard'
+import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
+import { StatsCard, ActivityFeed, ExportButton } from '@/components/dashboard'
 import { FileText, Users, Calendar, TrendingUp, ClipboardList } from 'lucide-react'
+
+// Lazy load TrendChart to reduce initial bundle (recharts ~200KB)
+const TrendChart = dynamic(
+  () => import('@/components/dashboard/TrendChart').then((mod) => mod.TrendChart),
+  {
+    loading: () => (
+      <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
+        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
+        <div className="h-48 sm:h-64 bg-gray-200 dark:bg-gray-700 rounded" />
+      </div>
+    ),
+    ssr: false,
+  }
+)
 
 type Period = 'week' | 'month' | 'quarter' | 'year'
 
@@ -78,109 +93,119 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
-          {statsLoading ? (
-            // Loading skeletons
-            Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse"
-              >
-                <div className="h-8 sm:h-12 w-8 sm:w-12 bg-gray-200 dark:bg-gray-700 rounded-lg mb-3 sm:mb-4" />
-                <div className="h-3 sm:h-4 w-16 sm:w-20 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-                <div className="h-6 sm:h-8 w-12 sm:w-16 bg-gray-200 dark:bg-gray-700 rounded" />
-              </div>
-            ))
-          ) : (
-            <>
-              <StatsCard
-                icon={FileText}
-                title="Документы"
-                value={stats?.documents.total || 0}
-                change={stats?.documents.change || 0}
-                period={periodLabels[period]}
-              />
-              <StatsCard
-                icon={Users}
-                title="Студенты"
-                value={stats?.students.total || 0}
-                change={stats?.students.change || 0}
-                period={periodLabels[period]}
-              />
-              <StatsCard
-                icon={Calendar}
-                title="Мероприятия"
-                value={stats?.events.total || 0}
-                change={stats?.events.change || 0}
-                period={periodLabels[period]}
-              />
-              <StatsCard
-                icon={TrendingUp}
-                title="Отчеты"
-                value={stats?.reports.total || 0}
-                change={stats?.reports.change || 0}
-                period={periodLabels[period]}
-              />
-              <StatsCard
-                icon={ClipboardList}
-                title="Задачи"
-                value={stats?.tasks.total || 0}
-                change={stats?.tasks.change || 0}
-                period={periodLabels[period]}
-                className="col-span-2 sm:col-span-1"
-              />
-            </>
-          )}
-        </div>
+        <section aria-labelledby="stats-heading">
+          <h2 id="stats-heading" className="sr-only">
+            Статистика
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
+            {statsLoading ? (
+              // Loading skeletons
+              Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse"
+                >
+                  <div className="h-8 sm:h-12 w-8 sm:w-12 bg-gray-200 dark:bg-gray-700 rounded-lg mb-3 sm:mb-4" />
+                  <div className="h-3 sm:h-4 w-16 sm:w-20 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
+                  <div className="h-6 sm:h-8 w-12 sm:w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+              ))
+            ) : (
+              <>
+                <StatsCard
+                  icon={FileText}
+                  title="Документы"
+                  value={stats?.documents.total || 0}
+                  change={stats?.documents.change || 0}
+                  period={periodLabels[period]}
+                />
+                <StatsCard
+                  icon={Users}
+                  title="Студенты"
+                  value={stats?.students.total || 0}
+                  change={stats?.students.change || 0}
+                  period={periodLabels[period]}
+                />
+                <StatsCard
+                  icon={Calendar}
+                  title="Мероприятия"
+                  value={stats?.events.total || 0}
+                  change={stats?.events.change || 0}
+                  period={periodLabels[period]}
+                />
+                <StatsCard
+                  icon={TrendingUp}
+                  title="Отчеты"
+                  value={stats?.reports.total || 0}
+                  change={stats?.reports.change || 0}
+                  period={periodLabels[period]}
+                />
+                <StatsCard
+                  icon={ClipboardList}
+                  title="Задачи"
+                  value={stats?.tasks.total || 0}
+                  change={stats?.tasks.change || 0}
+                  period={periodLabels[period]}
+                  className="col-span-2 sm:col-span-1"
+                />
+              </>
+            )}
+          </div>
+        </section>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          {trendsLoading ? (
-            <>
-              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
-                <div className="h-48 sm:h-64 bg-gray-200 dark:bg-gray-700 rounded" />
-              </div>
-              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
-                <div className="h-48 sm:h-64 bg-gray-200 dark:bg-gray-700 rounded" />
-              </div>
-            </>
-          ) : (
-            <>
-              <TrendChart
-                title="Документы и отчеты"
-                period={period}
-                datasets={[
-                  {
-                    name: 'Документы',
-                    data: trends?.documents_trend || [],
-                    color: '#3b82f6',
-                  },
-                  {
-                    name: 'Отчеты',
-                    data: trends?.reports_trend || [],
-                    color: '#10b981',
-                  },
-                ]}
-              />
-              <TrendChart
-                title="Задачи и мероприятия"
-                period={period}
-                datasets={[
-                  {
-                    name: 'Задачи',
-                    data: trends?.tasks_trend || [],
-                    color: '#f59e0b',
-                  },
-                  {
-                    name: 'Мероприятия',
-                    data: trends?.events_trend || [],
-                    color: '#8b5cf6',
-                  },
-                ]}
-              />
-            </>
-          )}
-        </div>
+        <section aria-labelledby="trends-heading">
+          <h2 id="trends-heading" className="sr-only">
+            Тренды
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {trendsLoading ? (
+              <>
+                <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
+                  <div className="h-48 sm:h-64 bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+                <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
+                  <div className="h-48 sm:h-64 bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+              </>
+            ) : (
+              <>
+                <TrendChart
+                  title="Документы и отчеты"
+                  period={period}
+                  datasets={[
+                    {
+                      name: 'Документы',
+                      data: trends?.documents_trend || [],
+                      color: '#3b82f6',
+                    },
+                    {
+                      name: 'Отчеты',
+                      data: trends?.reports_trend || [],
+                      color: '#10b981',
+                    },
+                  ]}
+                />
+                <TrendChart
+                  title="Задачи и мероприятия"
+                  period={period}
+                  datasets={[
+                    {
+                      name: 'Задачи',
+                      data: trends?.tasks_trend || [],
+                      color: '#f59e0b',
+                    },
+                    {
+                      name: 'Мероприятия',
+                      data: trends?.events_trend || [],
+                      color: '#8b5cf6',
+                    },
+                  ]}
+                />
+              </>
+            )}
+          </div>
+        </section>
 
         {/* Quick Actions & Activity */}
         <div className={`grid grid-cols-1 ${userCanEdit ? 'lg:grid-cols-3' : ''} gap-4 sm:gap-6`}>

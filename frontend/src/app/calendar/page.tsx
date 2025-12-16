@@ -13,7 +13,7 @@ import {
 } from '@/hooks/useCalendarEvents'
 import { FullCalendar } from '@/components/calendar'
 import { AppLayout } from '@/components/layout'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
+import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import type { CreateEventInput } from '@/types/calendar'
 import { canEdit } from '@/lib/auth/permissions'
 
