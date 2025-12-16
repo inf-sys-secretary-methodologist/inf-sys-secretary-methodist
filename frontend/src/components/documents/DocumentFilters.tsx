@@ -1,12 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Filter, X, Calendar as CalendarIcon } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { Search, Filter, X, Calendar as CalendarIcon, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+
+// Lazy load Calendar to reduce initial bundle (react-day-picker ~100KB)
+const Calendar = dynamic(() => import('@/components/ui/calendar').then((mod) => mod.Calendar), {
+  loading: () => (
+    <div className="flex items-center justify-center p-4">
+      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+    </div>
+  ),
+  ssr: false,
+})
 import {
   DocumentCategory,
   DocumentStatus,
@@ -321,7 +331,7 @@ export function DocumentFilters({
                     size="icon"
                     onClick={() => handleDateFromChange(undefined)}
                     className="flex-shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    title="Сбросить дату"
+                    aria-label="Сбросить дату"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -364,7 +374,7 @@ export function DocumentFilters({
                     size="icon"
                     onClick={() => handleDateToChange(undefined)}
                     className="flex-shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    title="Сбросить дату"
+                    aria-label="Сбросить дату"
                   >
                     <X className="h-4 w-4" />
                   </Button>

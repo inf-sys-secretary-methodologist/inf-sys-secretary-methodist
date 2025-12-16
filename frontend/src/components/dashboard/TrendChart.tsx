@@ -10,7 +10,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
+import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import type { TrendPoint } from '@/types/dashboard'
 
 interface TrendDataset {

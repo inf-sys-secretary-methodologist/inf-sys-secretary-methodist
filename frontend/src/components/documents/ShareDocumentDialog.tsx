@@ -362,6 +362,7 @@ export function ShareDocumentDialog({
                           variant="ghost"
                           size="icon"
                           onClick={() => handleRevokePermission(perm.id)}
+                          aria-label="Отозвать доступ"
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -503,6 +504,7 @@ export function ShareDocumentDialog({
                             size="icon"
                             className="h-7 w-7"
                             onClick={() => handleCopyLink(link)}
+                            aria-label="Копировать ссылку"
                           >
                             {copiedLinkId === link.id ? (
                               <Check className="h-3 w-3 text-green-500" />
@@ -516,6 +518,7 @@ export function ShareDocumentDialog({
                               size="icon"
                               className="h-7 w-7"
                               onClick={() => handleDeactivateLink(link.id)}
+                              aria-label="Деактивировать ссылку"
                             >
                               <Eye className="h-3 w-3" />
                             </Button>
@@ -525,6 +528,7 @@ export function ShareDocumentDialog({
                             size="icon"
                             className="h-7 w-7"
                             onClick={() => handleDeleteLink(link.id)}
+                            aria-label="Удалить ссылку"
                           >
                             <Trash2 className="h-3 w-3 text-destructive" />
                           </Button>

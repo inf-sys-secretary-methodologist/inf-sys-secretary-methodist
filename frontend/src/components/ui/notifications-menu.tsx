@@ -121,6 +121,7 @@ function NotificationItem({
                 size="icon"
                 className="size-8"
                 onClick={() => onDownload?.(notification.id)}
+                aria-label="Скачать файл"
               >
                 <Download className="size-4" />
               </Button>
@@ -198,7 +199,7 @@ export function NotificationsMenu({
               variant="ghost"
               size="icon"
               onClick={onMarkAllRead}
-              title="Отметить все как прочитанные"
+              aria-label="Отметить все как прочитанные"
             >
               <CheckCheck className="size-4 text-muted-foreground" />
             </Button>
@@ -207,7 +208,7 @@ export function NotificationsMenu({
               variant="ghost"
               size="icon"
               onClick={onOpenSettings}
-              title="Настройки уведомлений"
+              aria-label="Настройки уведомлений"
             >
               <Settings className="size-4 text-muted-foreground" />
             </Button>

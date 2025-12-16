@@ -28,9 +28,6 @@ export const metadata: Metadata = {
     telephone: false,
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
-  alternates: {
-    canonical: '/',
-  },
   openGraph: {
     type: 'website',
     locale: 'ru_RU',

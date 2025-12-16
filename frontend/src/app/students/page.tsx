@@ -1,7 +1,7 @@
 'use client'
 
 import { AppLayout } from '@/components/layout'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
+import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import { Users } from 'lucide-react'
 
 export default function StudentsPage() {

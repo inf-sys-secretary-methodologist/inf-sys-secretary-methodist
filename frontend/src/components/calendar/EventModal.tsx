@@ -1,12 +1,13 @@
 'use client'
 
 import * as React from 'react'
+import dynamic from 'next/dynamic'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
-import { CalendarIcon, Clock, MapPin } from 'lucide-react'
+import { CalendarIcon, Clock, MapPin, Loader2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -27,8 +28,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+
+// Lazy load Calendar to reduce initial bundle (react-day-picker ~100KB)
+const Calendar = dynamic(() => import('@/components/ui/calendar').then((mod) => mod.Calendar), {
+  loading: () => (
+    <div className="flex items-center justify-center p-4">
+      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+    </div>
+  ),
+  ssr: false,
+})
 import type { CalendarEvent, CreateEventInput, EventType } from '@/types/calendar'
 import { EVENT_TYPE_LABELS } from '@/types/calendar'
 

@@ -92,7 +92,13 @@ export function InstallPrompt() {
               <Download className="h-5 w-5" />
               Установить приложение
             </CardTitle>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleDismiss}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleDismiss}
+              aria-label="Закрыть"
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -128,7 +134,13 @@ export function InstallPrompt() {
               <Download className="h-5 w-5" />
               Установить приложение
             </CardTitle>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleDismiss}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleDismiss}
+              aria-label="Закрыть"
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>

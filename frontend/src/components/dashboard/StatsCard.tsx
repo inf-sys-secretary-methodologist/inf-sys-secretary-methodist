@@ -1,7 +1,7 @@
 'use client'
 
 import { LucideIcon } from 'lucide-react'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
+import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import { NumberTicker } from '@/components/ui/number-ticker'
 import { cn } from '@/lib/utils'
 
@@ -49,7 +49,7 @@ export function StatsCard({ icon: Icon, title, value, change, period, className 
             {changeFormatted}
           </span>
         </div>
-        <h3 className="text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">{title}</h3>
+        <p className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">{title}</p>
         <div className="text-3xl font-bold text-gray-900 dark:text-white">
           <NumberTicker value={value} />
         </div>

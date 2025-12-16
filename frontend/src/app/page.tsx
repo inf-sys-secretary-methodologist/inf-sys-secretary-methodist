@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
+import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import { ThemeToggleButton } from '@/components/theme-toggle-button'
 import { UserMenu } from '@/components/UserMenu'
 import { Button } from '@/components/ui/button'

@@ -1,7 +1,7 @@
 'use client'
 
 import { FileText, ClipboardList, Calendar, Megaphone, User } from 'lucide-react'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
+import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import type { ActivityItem } from '@/types/dashboard'
 
 interface ActivityFeedProps {
@@ -76,9 +76,9 @@ function ActivityItemCard({ activity }: { activity: ActivityItem }) {
           </p>
         )}
         <div className="flex items-center gap-2 mt-2">
-          <User className="h-3 w-3 text-gray-400" />
+          <User className="h-3 w-3 text-gray-500" />
           <span className="text-xs text-gray-500 dark:text-gray-500">{activity.user_name}</span>
-          <span className="text-xs text-gray-400">•</span>
+          <span className="text-xs text-gray-500">•</span>
           <span className="text-xs text-gray-500 dark:text-gray-500">
             {formatRelativeTime(activity.created_at)}
           </span>
