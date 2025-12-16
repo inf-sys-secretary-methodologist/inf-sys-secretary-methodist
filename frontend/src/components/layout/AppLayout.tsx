@@ -4,6 +4,7 @@ import { ReactNode } from 'react'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { getAvailableNavItems } from '@/config/navigation'
 import { AppHeader } from './AppHeader'
+import { InstallPrompt } from '@/components/pwa/install-prompt'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -30,6 +31,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     <div className="min-h-screen bg-background">
       <AppHeader items={navItems} />
       <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8 pb-16">{children}</main>
+      <InstallPrompt />
     </div>
   )
 }
