@@ -20,6 +20,7 @@ export const publicRoutes = [
   '/forgot-password',
   '/reset-password',
   '/forbidden',
+  '/offline',
 ]
 
 /**
