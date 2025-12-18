@@ -74,6 +74,59 @@ export TELEGRAM_BOT_TOKEN="your-bot-token"
 
 ---
 
+## 🏢 Data Integrations
+
+### 1C Integration
+**Статус:** ✅ Реализовано
+
+Интеграция с 1С для синхронизации данных сотрудников и студентов.
+
+**Реализованные возможности:**
+- Синхронизация сотрудников из 1С
+- Синхронизация студентов из 1С
+- Автоматическое разрешение конфликтов (стратегии: source_wins, target_wins, manual)
+- Просмотр логов синхронизации с фильтрацией
+- Управление конфликтами через UI
+- Поддержка параметров синхронизации (force, dry_run)
+
+**Документация:**
+- [API Reference](../api/api-documentation.md#-integration-api)
+- [Environment Configuration](../deployment/environment.md)
+
+**Quick Start:**
+```bash
+# 1. Настройте переменные окружения
+export INTEGRATION_1C_ENABLED=true
+export INTEGRATION_1C_BASE_URL="https://your-1c-server/api"
+export INTEGRATION_1C_API_KEY="your-api-key"
+
+# 2. Выполните синхронизацию
+curl -X POST http://localhost:8080/api/integration/sync/employees \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"force": false}'
+```
+
+**Миграции:**
+- `016_integration_schema.up.sql` - Создание таблиц:
+  - `sync_logs` - Логи синхронизации
+  - `sync_conflicts` - Конфликты при синхронизации
+  - `external_employees` - Внешние сотрудники из 1С
+  - `external_students` - Внешние студенты из 1С
+
+**Используемые технологии:**
+- Go HTTP Client с retry logic
+- PostgreSQL для хранения состояния синхронизации
+- React UI с фильтрацией и пагинацией
+
+**Frontend UI:**
+- Страница интеграции: `/integration`
+- Просмотр логов синхронизации
+- Управление конфликтами с разрешением
+- Статистика синхронизации в реальном времени
+
+---
+
 ## 🔮 Планируемые интеграции
 
 ### AI Assistant (Planned)
@@ -124,29 +177,16 @@ AI-ассистент на базе LLM для автоматизации рут
 
 ---
 
-### 1C Integration (Planned)
-**Статус:** 📋 В планах
-
-Интеграция с 1С для синхронизации данных.
-
-**Планируемые возможности:**
-- Синхронизация пользователей
-- Экспорт отчетов
-- Обмен документами
-
-**Реализация:** Прямая интеграция через 1C API
-
----
-
 ## 📚 Дополнительные ресурсы
 
 - [Composio Platform Documentation](https://docs.composio.dev/)
 - [Gmail API Documentation](https://developers.google.com/gmail/api)
 - [OAuth 2.0 Setup Guide](https://developers.google.com/identity/protocols/oauth2)
+- [1C REST API Documentation](https://v8.1c.ru/platforma/http-servisy/)
 
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-12-13
-**Версия проекта**: 0.2.0
+**Последнее обновление**: 2025-12-17
+**Версия проекта**: 0.3.0
 **Статус**: Актуальный

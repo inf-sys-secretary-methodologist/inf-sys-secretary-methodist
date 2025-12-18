@@ -96,6 +96,20 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 
 1. [📧 Composio Gmail](integrations/composio-gmail.md) - Интеграция с Gmail для email уведомлений
 2. [📱 Telegram Bot](integrations/telegram-bot.md) - Интеграция с Telegram для push-уведомлений
+3. [🏢 1C Integration](integrations/README.md#1c-integration) - Синхронизация данных с 1С
+
+### Frontend Features
+
+1. **🎨 Настройки внешнего вида** (`/settings/appearance`)
+   - Выбор темы: светлая / тёмная / системная
+   - Анимированные шейдерные фоны (GrainGradient, Warp, MeshGradient)
+   - Настройка скорости и интенсивности анимации
+   - Режим уменьшения движения для доступности
+   - Сохранение в localStorage через Zustand
+
+2. **🔔 Настройки уведомлений** (`/settings/notifications`)
+   - Привязка Telegram аккаунта
+   - Настройка типов уведомлений
 
 ### Оптимизация и мониторинг
 
@@ -189,7 +203,7 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-12-13
-**Версия проекта**: 0.2.0
+**Последнее обновление**: 2025-12-17
+**Версия проекта**: 0.3.0
 **Статус**: Актуальный
 

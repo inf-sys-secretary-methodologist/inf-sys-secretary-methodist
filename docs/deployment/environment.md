@@ -92,6 +92,16 @@
 | `TELEGRAM_MODE` | Режим работы (polling/webhook) | `polling` | Нет |
 | `TELEGRAM_WEBHOOK_URL` | URL для webhook режима | - | Для webhook |
 
+### 1C Integration
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `INTEGRATION_1C_ENABLED` | Включить интеграцию с 1С | `false` | Нет |
+| `INTEGRATION_1C_BASE_URL` | Базовый URL REST API 1С | - | Для 1С |
+| `INTEGRATION_1C_API_KEY` | API ключ для авторизации 1С | - | Для 1С |
+| `INTEGRATION_1C_TIMEOUT` | Таймаут запросов (секунды) | `30` | Нет |
+| `INTEGRATION_1C_RETRY_COUNT` | Количество повторных попыток | `3` | Нет |
+
 ### Frontend (Next.js)
 
 | Переменная | Описание | Default | Required |
