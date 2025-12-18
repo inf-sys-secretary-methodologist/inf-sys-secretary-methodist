@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { LogOut, Settings, User as UserIcon, ChevronDown } from 'lucide-react'
+import { LogOut, User as UserIcon, ChevronDown, Bell, Palette } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   DropdownMenu,
@@ -117,9 +117,16 @@ export function UserMenu({ className }: UserMenuProps) {
         </DropdownMenuItem>
 
         <DropdownMenuItem asChild>
-          <Link href="/settings" className="cursor-pointer">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Настройки</span>
+          <Link href="/settings/appearance" className="cursor-pointer">
+            <Palette className="mr-2 h-4 w-4" />
+            <span>Внешний вид</span>
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem asChild>
+          <Link href="/settings/notifications" className="cursor-pointer">
+            <Bell className="mr-2 h-4 w-4" />
+            <span>Уведомления</span>
           </Link>
         </DropdownMenuItem>
 

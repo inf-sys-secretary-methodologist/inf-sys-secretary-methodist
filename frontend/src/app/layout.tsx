@@ -3,6 +3,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { ToasterProvider } from '@/components/providers/toaster-provider'
 import { ServiceWorkerRegistration } from '@/components/pwa/service-worker-registration'
+import { BackgroundProvider } from '@/components/backgrounds'
 
 export const metadata: Metadata = {
   title: {
@@ -103,6 +104,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
           disableTransitionOnChange
         >
+          <BackgroundProvider />
           {children}
           <ToasterProvider />
           <ServiceWorkerRegistration />
