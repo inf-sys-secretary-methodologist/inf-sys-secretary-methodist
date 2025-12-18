@@ -61,8 +61,11 @@ const statusLabels: Record<string, string> = {
 }
 
 function UsersManagementPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore()
+  const { user: currentUser, isAuthenticated, isLoading: authLoading } = useAuthStore()
+  const isAdmin = currentUser?.role === UserRole.SYSTEM_ADMIN
   const [searchQuery, setSearchQuery] = useState('')
+  const [nameFilter, setNameFilter] = useState('')
+  const [emailFilter, setEmailFilter] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [departmentFilter, setDepartmentFilter] = useState<string>('all')
@@ -75,8 +78,19 @@ function UsersManagementPage() {
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false)
   const limit = 10
 
+  // Combine search query with name/email filters for API call
+  const effectiveSearch =
+    searchQuery || nameFilter || emailFilter
+      ? [searchQuery, nameFilter, emailFilter].filter(Boolean).join(' ')
+      : undefined
+
   const hasActiveFilters =
-    searchQuery || roleFilter !== 'all' || statusFilter !== 'all' || departmentFilter !== 'all'
+    searchQuery ||
+    nameFilter ||
+    emailFilter ||
+    roleFilter !== 'all' ||
+    statusFilter !== 'all' ||
+    departmentFilter !== 'all'
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -87,7 +101,7 @@ function UsersManagementPage() {
         role: roleFilter !== 'all' ? roleFilter : undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         department_id: departmentFilter !== 'all' ? parseInt(departmentFilter) : undefined,
-        search: searchQuery || undefined,
+        search: effectiveSearch,
       })
       setUsers(response.data.users || [])
       setTotal(response.data.total)
@@ -98,7 +112,7 @@ function UsersManagementPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, limit, roleFilter, statusFilter, departmentFilter, searchQuery])
+  }, [page, limit, roleFilter, statusFilter, departmentFilter, effectiveSearch])
 
   const fetchReferenceData = useCallback(async () => {
     try {
@@ -157,6 +171,8 @@ function UsersManagementPage() {
 
   const resetFilters = () => {
     setSearchQuery('')
+    setNameFilter('')
+    setEmailFilter('')
     setRoleFilter('all')
     setStatusFilter('all')
     setDepartmentFilter('all')
@@ -275,6 +291,8 @@ function UsersManagementPage() {
                   <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
                     {
                       [
+                        nameFilter,
+                        emailFilter,
                         roleFilter !== 'all',
                         statusFilter !== 'all',
                         departmentFilter !== 'all',
@@ -295,7 +313,47 @@ function UsersManagementPage() {
             {/* Expanded Filters Panel */}
             {isFiltersExpanded && (
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Name Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Имя пользователя
+                    </label>
+                    <input
+                      type="text"
+                      value={nameFilter}
+                      onChange={(e) => {
+                        setNameFilter(e.target.value)
+                        setPage(1)
+                      }}
+                      placeholder="Фильтр по имени..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                               bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                               focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                               placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    />
+                  </div>
+
+                  {/* Email Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="text"
+                      value={emailFilter}
+                      onChange={(e) => {
+                        setEmailFilter(e.target.value)
+                        setPage(1)
+                      }}
+                      placeholder="Фильтр по email..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                               bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                               focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                               placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    />
+                  </div>
+
                   {/* Role Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -383,6 +441,34 @@ function UsersManagementPage() {
                         setPage(1)
                       }}
                       className="hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {nameFilter && (
+                  <span className="px-3 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-400 rounded-full text-sm flex items-center gap-2">
+                    Имя: {nameFilter}
+                    <button
+                      onClick={() => {
+                        setNameFilter('')
+                        setPage(1)
+                      }}
+                      className="hover:bg-cyan-200 dark:hover:bg-cyan-800/50 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {emailFilter && (
+                  <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400 rounded-full text-sm flex items-center gap-2">
+                    Email: {emailFilter}
+                    <button
+                      onClick={() => {
+                        setEmailFilter('')
+                        setPage(1)
+                      }}
+                      className="hover:bg-orange-200 dark:hover:bg-orange-800/50 rounded-full p-0.5"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -477,42 +563,44 @@ function UsersManagementPage() {
                             </div>
                             <span className="font-medium">{user.name}</span>
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleUpdateStatus(
-                                    user.id,
-                                    user.status === 'active' ? 'inactive' : 'active'
-                                  )
-                                }
-                              >
-                                {user.status === 'active' ? 'Деактивировать' : 'Активировать'}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleUpdateStatus(
-                                    user.id,
-                                    user.status === 'blocked' ? 'active' : 'blocked'
-                                  )
-                                }
-                              >
-                                {user.status === 'blocked' ? 'Разблокировать' : 'Заблокировать'}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => handleDeleteUser(user.id)}
-                              >
-                                Удалить
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {isAdmin && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleUpdateStatus(
+                                      user.id,
+                                      user.status === 'active' ? 'inactive' : 'active'
+                                    )
+                                  }
+                                >
+                                  {user.status === 'active' ? 'Деактивировать' : 'Активировать'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleUpdateStatus(
+                                      user.id,
+                                      user.status === 'blocked' ? 'active' : 'blocked'
+                                    )
+                                  }
+                                >
+                                  {user.status === 'blocked' ? 'Разблокировать' : 'Заблокировать'}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleDeleteUser(user.id)}
+                                >
+                                  Удалить
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Mail className="h-4 w-4" />
@@ -551,13 +639,16 @@ function UsersManagementPage() {
                         <TableHead>Статус</TableHead>
                         <TableHead className="hidden lg:table-cell">Подразделение</TableHead>
                         <TableHead className="hidden lg:table-cell">Дата создания</TableHead>
-                        <TableHead className="text-right">Действия</TableHead>
+                        {isAdmin && <TableHead className="text-right">Действия</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {users.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                          <TableCell
+                            colSpan={isAdmin ? 7 : 6}
+                            className="h-24 text-center text-muted-foreground"
+                          >
                             Пользователи не найдены
                           </TableCell>
                         </TableRow>
@@ -615,44 +706,48 @@ function UsersManagementPage() {
                                 {formatDate(user.created_at)}
                               </div>
                             </TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      handleUpdateStatus(
-                                        user.id,
-                                        user.status === 'active' ? 'inactive' : 'active'
-                                      )
-                                    }
-                                  >
-                                    {user.status === 'active' ? 'Деактивировать' : 'Активировать'}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      handleUpdateStatus(
-                                        user.id,
-                                        user.status === 'blocked' ? 'active' : 'blocked'
-                                      )
-                                    }
-                                  >
-                                    {user.status === 'blocked' ? 'Разблокировать' : 'Заблокировать'}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    className="text-destructive"
-                                    onClick={() => handleDeleteUser(user.id)}
-                                  >
-                                    Удалить
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
+                            {isAdmin && (
+                              <TableCell className="text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleUpdateStatus(
+                                          user.id,
+                                          user.status === 'active' ? 'inactive' : 'active'
+                                        )
+                                      }
+                                    >
+                                      {user.status === 'active' ? 'Деактивировать' : 'Активировать'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleUpdateStatus(
+                                          user.id,
+                                          user.status === 'blocked' ? 'active' : 'blocked'
+                                        )
+                                      }
+                                    >
+                                      {user.status === 'blocked'
+                                        ? 'Разблокировать'
+                                        : 'Заблокировать'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onClick={() => handleDeleteUser(user.id)}
+                                    >
+                                      Удалить
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))
                       )}
