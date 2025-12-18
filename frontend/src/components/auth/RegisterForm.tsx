@@ -22,7 +22,7 @@ interface RegisterFormProps {
 export function RegisterForm({ redirectTo = '/login', onSuccess, className }: RegisterFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const { register: registerUser, isLoading, error: authError, clearError } = useRegister()
+  const { register: registerUser, error: authError, clearError } = useRegister()
 
   const {
     register,
@@ -250,8 +250,8 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
       </div>
 
       {/* Submit button */}
-      <Button type="submit" disabled={isSubmitting || isLoading} className="w-full" size="lg">
-        {isSubmitting || isLoading ? (
+      <Button type="submit" disabled={isSubmitting} className="w-full" size="lg">
+        {isSubmitting ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             Регистрация...

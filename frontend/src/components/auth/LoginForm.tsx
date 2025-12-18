@@ -21,7 +21,7 @@ interface LoginFormProps {
 export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
-  const { login, isLoading, error: authError, clearError } = useLogin()
+  const { login, error: authError, clearError } = useLogin()
 
   const {
     register,
@@ -129,8 +129,8 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
       </div>
 
       {/* Submit button */}
-      <Button type="submit" disabled={isSubmitting || isLoading} className="w-full" size="lg">
-        {isSubmitting || isLoading ? (
+      <Button type="submit" disabled={isSubmitting} className="w-full" size="lg">
+        {isSubmitting ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             Вход...
