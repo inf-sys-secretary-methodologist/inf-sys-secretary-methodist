@@ -21,6 +21,7 @@ type Config struct {
 	JWT         JWTConfig
 	Composio    ComposioConfig
 	Telegram    TelegramConfig
+	Integration IntegrationConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -85,6 +86,22 @@ type TelegramConfig struct {
 	BotUsername   string
 	WebhookURL    string
 	WebhookSecret string
+}
+
+// IntegrationConfig holds 1C integration configuration
+type IntegrationConfig struct {
+	Enabled           bool
+	BaseURL           string        // 1C OData base URL (e.g., http://1c-server/base/odata/standard.odata)
+	Username          string        // 1C Basic Auth username
+	Password          string        // 1C Basic Auth password
+	Timeout           time.Duration // HTTP request timeout
+	MaxRetries        int           // Max retry attempts for failed requests
+	RetryDelay        time.Duration // Delay between retries
+	EmployeeCatalog   string        // 1C employee catalog name (e.g., "Catalog_Сотрудники")
+	StudentCatalog    string        // 1C student catalog name (e.g., "Catalog_Студенты")
+	SyncCronEmployee  string        // Cron expression for employee sync (e.g., "0 */6 * * *")
+	SyncCronStudent   string        // Cron expression for student sync (e.g., "0 */6 * * *")
+	BatchSize         int           // Batch size for sync operations
 }
 
 // S3Config holds S3/MinIO storage configuration
@@ -161,6 +178,20 @@ func Load() (*Config, error) {
 			BotUsername:   getEnv("TELEGRAM_BOT_USERNAME", ""),
 			WebhookURL:    getEnv("TELEGRAM_WEBHOOK_URL", ""),
 			WebhookSecret: getEnv("TELEGRAM_WEBHOOK_SECRET", ""),
+		},
+		Integration: IntegrationConfig{
+			Enabled:          getEnvAsBool("INTEGRATION_1C_ENABLED", false),
+			BaseURL:          getEnv("INTEGRATION_1C_BASE_URL", ""),
+			Username:         getEnv("INTEGRATION_1C_USERNAME", ""),
+			Password:         getEnv("INTEGRATION_1C_PASSWORD", ""),
+			Timeout:          getEnvAsDuration("INTEGRATION_1C_TIMEOUT", 30*time.Second),
+			MaxRetries:       getEnvAsInt("INTEGRATION_1C_MAX_RETRIES", 3),
+			RetryDelay:       getEnvAsDuration("INTEGRATION_1C_RETRY_DELAY", 5*time.Second),
+			EmployeeCatalog:  getEnv("INTEGRATION_1C_EMPLOYEE_CATALOG", "Catalog_Сотрудники"),
+			StudentCatalog:   getEnv("INTEGRATION_1C_STUDENT_CATALOG", "Catalog_Студенты"),
+			SyncCronEmployee: getEnv("INTEGRATION_1C_SYNC_CRON_EMPLOYEE", "0 */6 * * *"),
+			SyncCronStudent:  getEnv("INTEGRATION_1C_SYNC_CRON_STUDENT", "0 */6 * * *"),
+			BatchSize:        getEnvAsInt("INTEGRATION_1C_BATCH_SIZE", 100),
 		},
 	}
 
