@@ -16,16 +16,18 @@ export function middleware(request: NextRequest) {
   }
 
   const cookieObject = request.cookies.get('auth-storage')
-  const token = cookieObject?.value
+  const rawCookieValue = cookieObject?.value
 
   // Extract authentication data
   let isAuthenticated = false
   let userToken: string | null = null
   let userRole: UserRole | null = null
 
-  if (token) {
+  if (rawCookieValue) {
     try {
-      const authData = JSON.parse(token)
+      // Cookie value is URL-encoded, need to decode before parsing
+      const decodedValue = decodeURIComponent(rawCookieValue)
+      const authData = JSON.parse(decodedValue)
       userToken = authData.state?.token
       userRole = authData.state?.user?.role
 

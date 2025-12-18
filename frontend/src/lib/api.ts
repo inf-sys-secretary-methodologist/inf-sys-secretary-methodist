@@ -39,8 +39,12 @@ class ApiClient {
           requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register')
 
         if (error.response?.status === 401 && !isAuthEndpoint) {
-          this.clearAuthToken()
-          window.location.href = '/login'
+          // Prevent redirect loop - don't redirect if already on login page
+          const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+          if (!currentPath.startsWith('/login')) {
+            this.clearAuthToken()
+            window.location.href = '/login'
+          }
         }
         return Promise.reject(error)
       }
@@ -49,7 +53,44 @@ class ApiClient {
 
   private getAuthToken(): string | null {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('authToken')
+      // Try localStorage first
+      const localToken = localStorage.getItem('authToken')
+      if (localToken) {
+        console.log('🔑 Token from localStorage:', localToken.substring(0, 20) + '...')
+        return localToken
+      }
+
+      // Fallback to cookie (for cases when localStorage wasn't set yet)
+      try {
+        const cookieValue = this.getCookieValue('auth-storage')
+        console.log('🍪 Cookie value exists:', !!cookieValue)
+        if (cookieValue) {
+          const decoded = decodeURIComponent(cookieValue)
+          const parsed = JSON.parse(decoded)
+          const token = parsed.state?.token
+          console.log('🔑 Token from cookie:', token ? token.substring(0, 20) + '...' : 'null')
+          if (token) {
+            // Also save to localStorage for future requests
+            localStorage.setItem('authToken', token)
+            return token
+          }
+        }
+      } catch (e) {
+        console.error('❌ Cookie parsing failed:', e)
+      }
+    }
+    return null
+  }
+
+  private getCookieValue(name: string): string | null {
+    const nameEQ = name + '='
+    const ca = document.cookie.split(';')
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i]
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length)
+      if (c.indexOf(nameEQ) === 0) {
+        return c.substring(nameEQ.length, c.length)
+      }
     }
     return null
   }
