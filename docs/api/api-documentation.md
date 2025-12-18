@@ -1073,6 +1073,138 @@ X-RateLimit-Reset: 1732878000
 
 ---
 
+## Integration API (1C)
+
+### Base URL: `/api/integration`
+
+Требует JWT аутентификации и роль `admin`. Модуль интеграции с системой 1С. Доступен только при включенной интеграции (`INTEGRATION_1C_ENABLED=true`).
+
+### POST `/api/integration/sync/employees`
+Запустить синхронизацию сотрудников из 1С.
+
+**Request Body:**
+```json
+{
+  "force": false,
+  "dry_run": false
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "sync_id": 1,
+    "entity_type": "employee",
+    "status": "in_progress",
+    "started_at": "2025-12-17T10:00:00Z"
+  }
+}
+```
+
+### POST `/api/integration/sync/students`
+Запустить синхронизацию студентов из 1С.
+
+**Request Body:**
+```json
+{
+  "force": false,
+  "dry_run": false
+}
+```
+
+### GET `/api/integration/sync/logs`
+Получить логи синхронизации с пагинацией.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `page` | int | Номер страницы (default: 1) |
+| `limit` | int | Размер страницы (default: 20, max: 100) |
+| `entity_type` | string | Фильтр по типу (employee, student) |
+| `status` | string | Фильтр по статусу (pending, in_progress, completed, failed) |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "logs": [
+      {
+        "id": 1,
+        "entity_type": "employee",
+        "direction": "import",
+        "status": "completed",
+        "total_records": 150,
+        "processed_count": 150,
+        "success_count": 148,
+        "error_count": 2,
+        "conflict_count": 5,
+        "started_at": "2025-12-17T10:00:00Z",
+        "completed_at": "2025-12-17T10:05:00Z"
+      }
+    ],
+    "total": 10,
+    "page": 1,
+    "limit": 20
+  }
+}
+```
+
+### GET `/api/integration/conflicts`
+Получить список конфликтов синхронизации.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `resolution` | string | Фильтр по статусу разрешения (pending, use_local, use_external, merge, skip) |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "conflicts": [
+      {
+        "id": 1,
+        "entity_type": "employee",
+        "entity_id": "ABC123",
+        "conflict_type": "update",
+        "conflict_fields": ["email", "phone"],
+        "local_data": {"email": "old@local.com"},
+        "external_data": {"email": "new@1c.com"},
+        "resolution": "pending",
+        "created_at": "2025-12-17T10:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+### POST `/api/integration/conflicts/:id/resolve`
+Разрешить конфликт синхронизации.
+
+**Request Body:**
+```json
+{
+  "resolution": "use_external",
+  "notes": "Используем данные из 1С"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Conflict resolved"
+  }
+}
+```
+
+---
+
 ## CORS
 
 Настроен через переменные окружения:
@@ -1121,6 +1253,6 @@ curl -X POST http://localhost:8080/api/documents/1/file \
 
 ---
 
-**Последнее обновление**: 2025-12-11
-**Версия проекта**: 0.2.0
+**Последнее обновление**: 2025-12-17
+**Версия проекта**: 0.3.0
 **Статус**: Актуальный

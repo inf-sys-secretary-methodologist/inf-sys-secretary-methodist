@@ -38,9 +38,20 @@ export const protectedRoutes: RouteConfig[] = [
     path: '/admin',
     allowedRoles: [UserRole.SYSTEM_ADMIN],
   },
+  // Users management - accessible to admins, methodists, secretaries and teachers
   {
     path: '/users',
-    allowedRoles: [UserRole.SYSTEM_ADMIN],
+    allowedRoles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+    ],
+  },
+  // 1C Integration - admin and methodist only
+  {
+    path: '/integration',
+    allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST],
   },
 
   // Methodist routes
@@ -71,18 +82,6 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: '/tasks',
     allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.ACADEMIC_SECRETARY, UserRole.METHODIST],
-  },
-
-  // Student routes
-  {
-    path: '/students',
-    allowedRoles: [
-      UserRole.SYSTEM_ADMIN,
-      UserRole.METHODIST,
-      UserRole.ACADEMIC_SECRETARY,
-      UserRole.TEACHER,
-      UserRole.STUDENT, // view only
-    ],
   },
 
   // Calendar routes

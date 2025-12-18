@@ -85,15 +85,20 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// Flag to prevent multiple simultaneous checkAuth calls
+let isCheckingAuth = false
+let lastCheckAuthTime = 0
+const CHECK_AUTH_DEBOUNCE_MS = 1000 // Don't call checkAuth more than once per second
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      // Initial state
+      // Initial state - isLoading: true until Zustand hydrates from cookie
       user: null,
       token: null,
       refreshToken: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true, // Start with true, will be set to false after hydration
       error: null,
 
       // Login action
@@ -170,26 +175,20 @@ export const useAuthStore = create<AuthState>()(
 
       // Logout action
       logout: () => {
-        try {
-          authApi.logout().catch(() => {
-            // Ignore logout API errors
-          })
-        } finally {
-          // Clear API client token
-          apiClient.clearAuthToken()
+        // Clear API client token
+        apiClient.clearAuthToken()
 
-          // Explicitly delete the auth cookie
-          deleteCookie('auth-storage')
+        // Explicitly delete the auth cookie
+        deleteCookie('auth-storage')
 
-          set({
-            user: null,
-            token: null,
-            refreshToken: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: null,
-          })
-        }
+        set({
+          user: null,
+          token: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+        })
       },
 
       // Refresh token action
@@ -218,23 +217,53 @@ export const useAuthStore = create<AuthState>()(
 
       // Check auth status on app load
       checkAuth: async () => {
-        const state = get()
-        console.log('🔍 checkAuth called:', {
-          hasToken: !!state.token,
-          hasUser: !!state.user,
-          userName: state.user?.name,
-          isAuthenticated: state.isAuthenticated,
-        })
-
-        const { token } = state
-        if (!token) {
-          console.log('❌ No token found')
-          set({ isAuthenticated: false, isLoading: false })
+        // Prevent multiple simultaneous calls and debounce
+        const now = Date.now()
+        if (isCheckingAuth || now - lastCheckAuthTime < CHECK_AUTH_DEBOUNCE_MS) {
+          console.log('⏭️ checkAuth skipped (already running or debounced)')
           return
         }
+        isCheckingAuth = true
+        lastCheckAuthTime = now
 
-        set({ isLoading: true })
         try {
+          const state = get()
+
+          // Try to get token from multiple sources (in order of preference)
+          let token = state.token
+
+          if (!token && typeof window !== 'undefined') {
+            // 1. Try localStorage (most reliable, set during login)
+            token = localStorage.getItem('authToken')
+
+            // 2. Fallback to cookie (might not have token if too large)
+            if (!token) {
+              try {
+                const cookieValue = getCookie('auth-storage')
+                if (cookieValue) {
+                  const parsed = JSON.parse(cookieValue)
+                  token = parsed.state?.token
+                }
+              } catch {
+                // Cookie parsing failed
+              }
+            }
+          }
+
+          console.log('🔍 checkAuth called:', {
+            hasToken: !!token,
+            hasUser: !!state.user,
+            userName: state.user?.name,
+            isAuthenticated: state.isAuthenticated,
+          })
+
+          if (!token) {
+            console.log('❌ No token found')
+            set({ isAuthenticated: false, isLoading: false })
+            return
+          }
+
+          set({ isLoading: true })
           // Set token in API client first
           apiClient.setAuthToken(token)
 
@@ -250,9 +279,19 @@ export const useAuthStore = create<AuthState>()(
           })
         } catch (error) {
           console.error('❌ checkAuth failed:', error)
-          // If check fails, clear auth state
-          get().logout()
-          set({ isLoading: false })
+          // If check fails, clear auth state directly (don't call logout to avoid cascade)
+          apiClient.clearAuthToken()
+          deleteCookie('auth-storage')
+          set({
+            user: null,
+            token: null,
+            refreshToken: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+          })
+        } finally {
+          isCheckingAuth = false
         }
       },
 
@@ -276,6 +315,13 @@ export const useAuthStore = create<AuthState>()(
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
+      // Called after hydration completes
+      onRehydrateStorage: () => {
+        return () => {
+          // Set isLoading to false after hydration completes
+          useAuthStore.setState({ isLoading: false })
+        }
+      },
     }
   )
 )

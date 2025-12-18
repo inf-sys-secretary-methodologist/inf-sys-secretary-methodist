@@ -5,7 +5,8 @@ Project inf_sys_secretary_methodist {
   database_type: 'PostgreSQL'
   Note: '''
     Информационная система секретаря-методиста
-    Всего: 57 таблиц (56 + schema_migrations)
+    Всего: 68 таблиц (67 + schema_migrations)
+    Модули: Auth (2), Users (3), Documents (11), Schedule (13), Tasks (11), Reports (9), Events (4), Announcements (2), Files (2), Notifications (6), Integration (4)
   '''
 }
 
@@ -1196,6 +1197,281 @@ Table file_versions {
   }
 
   Note: 'Версии файлов для поддержки версионирования документов'
+}
+
+// ============================================================================
+// NOTIFICATIONS MODULE - Уведомления (6 таблиц)
+// ============================================================================
+
+// Enums: notification_type, notification_priority
+
+Table notifications {
+  id bigserial [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  type varchar(50) [not null, default: 'info', note: 'info, success, warning, error, reminder, task, document, event, system']
+  priority varchar(50) [not null, default: 'normal', note: 'low, normal, high, urgent']
+  title varchar(500) [not null]
+  message text [not null]
+  link varchar(1000)
+  image_url varchar(1000)
+  is_read boolean [not null, default: false]
+  read_at timestamp
+  expires_at timestamp
+  metadata jsonb
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    user_id
+    (user_id, is_read)
+    (user_id, created_at)
+    type
+    priority
+    expires_at
+    created_at
+  }
+
+  Note: 'In-app уведомления пользователей'
+}
+
+Table notification_preferences {
+  id bigserial [pk, increment]
+  user_id bigint [unique, not null, ref: > users.id]
+
+  // Channel preferences
+  email_enabled boolean [not null, default: true]
+  push_enabled boolean [not null, default: true]
+  in_app_enabled boolean [not null, default: true]
+  telegram_enabled boolean [not null, default: false]
+  slack_enabled boolean [not null, default: false]
+
+  // Quiet hours
+  quiet_hours_enabled boolean [not null, default: false]
+  quiet_hours_start varchar(5) [not null, default: '22:00']
+  quiet_hours_end varchar(5) [not null, default: '07:00']
+  timezone varchar(50) [not null, default: 'Europe/Moscow']
+
+  // Digest settings
+  digest_enabled boolean [not null, default: false]
+  digest_frequency varchar(20) [not null, default: 'daily']
+  digest_time varchar(5) [not null, default: '09:00']
+
+  type_preferences jsonb [note: 'Type-specific preferences']
+
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    user_id
+  }
+
+  Note: 'Настройки уведомлений пользователей'
+}
+
+Table user_telegram_connections {
+  user_id bigint [pk, ref: > users.id]
+  telegram_chat_id bigint [not null]
+  telegram_username varchar(255)
+  telegram_first_name varchar(255)
+  is_active boolean [not null, default: true]
+  connected_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    telegram_chat_id
+  }
+
+  Note: 'Привязка Telegram аккаунтов'
+}
+
+Table user_slack_connections {
+  user_id bigint [pk, ref: > users.id]
+  slack_user_id varchar(255) [not null]
+  slack_channel_id varchar(255)
+  slack_workspace_id varchar(255)
+  slack_username varchar(255)
+  is_active boolean [not null, default: true]
+  connected_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    slack_user_id
+  }
+
+  Note: 'Привязка Slack аккаунтов'
+}
+
+Table notification_delivery_log {
+  id bigserial [pk, increment]
+  notification_id bigint [ref: > notifications.id]
+  user_id bigint [not null, ref: > users.id]
+  channel varchar(50) [not null, note: 'email, push, telegram, slack, in_app']
+  status varchar(50) [not null, default: 'pending', note: 'pending, sent, delivered, failed, bounced']
+  external_id varchar(255) [note: 'External message ID from channel']
+  error_message text
+  sent_at timestamp
+  delivered_at timestamp
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    notification_id
+    (user_id, channel)
+    status
+    created_at
+  }
+
+  Note: 'Лог доставки уведомлений по каналам'
+}
+
+Table telegram_verification_codes {
+  id bigserial [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  code varchar(8) [unique, not null]
+  expires_at timestamp [not null]
+  used_at timestamp
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    code
+    user_id
+    expires_at
+  }
+
+  Note: 'Коды верификации для привязки Telegram'
+}
+
+// ============================================================================
+// INTEGRATION MODULE - Интеграция с 1С (4 таблицы)
+// ============================================================================
+
+// Enums: sync_status, sync_direction, sync_entity_type, conflict_resolution
+
+Table sync_logs {
+  id bigserial [pk, increment]
+  entity_type varchar(50) [not null, note: 'employee, student, finance']
+  direction varchar(50) [not null, note: 'import, export, both']
+  status varchar(50) [not null, default: 'pending', note: 'pending, in_progress, completed, failed, cancelled']
+  started_at timestamp [not null, default: `now()`]
+  completed_at timestamp
+  total_records int [not null, default: 0]
+  processed_count int [not null, default: 0]
+  success_count int [not null, default: 0]
+  error_count int [not null, default: 0]
+  conflict_count int [not null, default: 0]
+  error_message text
+  metadata jsonb [default: '{}']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    entity_type
+    status
+    started_at
+    (entity_type, status)
+  }
+
+  Note: 'Логи синхронизации с системой 1С'
+}
+
+Table external_employees {
+  id bigserial [pk, increment]
+  external_id varchar(50) [unique, not null, note: '1C GUID (Ref_Key)']
+  code varchar(50) [not null, note: '1C Code']
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  middle_name varchar(100)
+  email varchar(255)
+  phone varchar(50)
+  position varchar(255)
+  department varchar(255)
+  employment_date date
+  dismissal_date date
+  is_active boolean [not null, default: true]
+  local_user_id bigint [ref: > users.id]
+  last_sync_at timestamp [not null, default: `now()`]
+  external_data_hash varchar(64) [note: 'SHA256 hash for change detection']
+  raw_data jsonb [note: 'Original JSON from 1C']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    code
+    email
+    local_user_id
+    is_active
+    department
+    last_sync_at
+  }
+
+  Note: 'Сотрудники из системы 1С'
+}
+
+Table external_students {
+  id bigserial [pk, increment]
+  external_id varchar(50) [unique, not null, note: '1C GUID (Ref_Key)']
+  code varchar(50) [not null, note: '1C Code (зачетка)']
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  middle_name varchar(100)
+  email varchar(255)
+  phone varchar(50)
+  group_name varchar(100)
+  faculty varchar(255)
+  specialty varchar(255)
+  course int
+  study_form varchar(100)
+  enrollment_date date
+  expulsion_date date
+  graduation_date date
+  status varchar(50) [not null, default: 'enrolled', note: 'enrolled, graduated, expelled, academic_leave']
+  is_active boolean [not null, default: true]
+  local_user_id bigint [ref: > users.id]
+  last_sync_at timestamp [not null, default: `now()`]
+  external_data_hash varchar(64) [note: 'SHA256 hash for change detection']
+  raw_data jsonb [note: 'Original JSON from 1C']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    code
+    email
+    local_user_id
+    is_active
+    group_name
+    faculty
+    course
+    status
+    last_sync_at
+  }
+
+  Note: 'Студенты из системы 1С'
+}
+
+Table sync_conflicts {
+  id bigserial [pk, increment]
+  sync_log_id bigint [not null, ref: > sync_logs.id]
+  entity_type varchar(50) [not null, note: 'employee, student, finance']
+  entity_id varchar(50) [not null, note: 'External ID or local ID']
+  local_data jsonb [note: 'JSON of local record']
+  external_data jsonb [note: 'JSON of external record']
+  conflict_type varchar(50) [not null, note: 'update, delete, create']
+  conflict_fields text[] [note: 'Fields with conflicts']
+  resolution varchar(50) [not null, default: 'pending', note: 'pending, use_local, use_external, merge, skip']
+  resolved_by bigint [ref: > users.id]
+  resolved_at timestamp
+  resolved_data jsonb [note: 'Final merged data']
+  notes text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    sync_log_id
+    entity_type
+    resolution
+    created_at
+  }
+
+  Note: 'Конфликты данных при синхронизации с 1С'
 }
 
 // ============================================================================

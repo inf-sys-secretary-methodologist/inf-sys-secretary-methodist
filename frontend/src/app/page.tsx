@@ -3,11 +3,6 @@
 import * as React from 'react'
 import {
   Calendar,
-  TrendingUp,
-  Archive,
-  BarChart3,
-  MessageSquare,
-  Briefcase,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -16,11 +11,20 @@ import {
   UserCog,
   BookOpen,
   Users,
+  FileText,
+  Bell,
+  RefreshCw,
+  Palette,
+  Search,
+  Archive,
+  BarChart3,
+  Briefcase,
+  MessageSquare,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
-import { ThemeToggleButton } from '@/components/theme-toggle-button'
+import { ThemeSettingsPopover } from '@/components/theme-settings-popover'
 import { UserMenu } from '@/components/UserMenu'
 import { Button } from '@/components/ui/button'
 import { useAuthCheck } from '@/hooks/useAuth'
@@ -34,34 +38,35 @@ import {
 
 // Module data with detailed descriptions
 const MODULES_DATA = [
+  // ✅ Реализованные модули
   {
-    icon: <Archive className="h-6 w-6" />,
-    title: 'Система архивирования',
-    description: 'Автоматическое архивирование документов с возможностью восстановления',
+    icon: <FileText className="h-6 w-6" />,
+    title: 'Документооборот',
+    description: 'Полный цикл работы с документами: создание, согласование, архивирование',
     details: {
       features: [
-        'Автоматическое резервное копирование всех документов',
-        'Версионирование файлов с историей изменений',
-        'Быстрый поиск в архиве по ключевым словам',
-        'Восстановление удалённых документов в один клик',
-        'Настраиваемые политики хранения данных',
+        'Создание документов по шаблонам',
+        'Автоматическая регистрация и нумерация',
+        'Workflow согласования документов',
+        'Версионирование и история изменений',
+        'Контроль сроков исполнения',
       ],
-      status: 'В разработке',
+      status: 'Доступен',
     },
   },
   {
-    icon: <BarChart3 className="h-6 w-6" />,
-    title: 'Отчеты по посещаемости',
-    description: 'Детальная статистика посещений и участия студентов',
+    icon: <Bell className="h-6 w-6" />,
+    title: 'Система уведомлений',
+    description: 'Многоканальные уведомления: Email, Telegram, In-app',
     details: {
       features: [
-        'Отслеживание посещаемости в реальном времени',
-        'Генерация отчётов по группам и периодам',
-        'Визуализация данных в графиках и диаграммах',
-        'Экспорт в Excel и PDF форматы',
-        'Автоматические уведомления о пропусках',
+        'Email-уведомления через Gmail API',
+        'Telegram-бот с привязкой аккаунта',
+        'Уведомления внутри приложения',
+        'Настройка тихих часов и таймзон',
+        'Приоритеты и фильтрация уведомлений',
       ],
-      status: 'В разработке',
+      status: 'Доступен',
     },
   },
   {
@@ -80,16 +85,77 @@ const MODULES_DATA = [
     },
   },
   {
-    icon: <TrendingUp className="h-6 w-6" />,
-    title: 'Финансовая аналитика',
-    description: 'Отслеживание финансовых показателей и генерация отчетов',
+    icon: <RefreshCw className="h-6 w-6" />,
+    title: 'Интеграция с 1С',
+    description: 'Синхронизация данных сотрудников и студентов с системой 1С',
     details: {
       features: [
-        'Мониторинг бюджета в реальном времени',
-        'Прогнозирование расходов на основе истории',
-        'Автоматическая генерация финансовых отчётов',
-        'Интеграция с бухгалтерскими системами',
-        'Визуализация финансовых потоков',
+        'Импорт сотрудников из 1С',
+        'Импорт студентов из 1С',
+        'Автоматическое разрешение конфликтов',
+        'Логирование операций синхронизации',
+        'Гибкие настройки интеграции',
+      ],
+      status: 'Доступен',
+    },
+  },
+  {
+    icon: <Palette className="h-6 w-6" />,
+    title: 'Персонализация интерфейса',
+    description: 'Настройка внешнего вида: темы, шейдерные фоны, размер текста',
+    details: {
+      features: [
+        'Светлая и тёмная темы оформления',
+        'Анимированные шейдерные фоны',
+        'Настройка размера интерфейса',
+        'Режим высокой контрастности',
+        'Сохранение настроек в профиле',
+      ],
+      status: 'Доступен',
+    },
+  },
+  {
+    icon: <Search className="h-6 w-6" />,
+    title: 'Полнотекстовый поиск',
+    description: 'Быстрый поиск по документам, пользователям и событиям',
+    details: {
+      features: [
+        'Поиск по содержимому документов',
+        'Фильтрация по типу, дате, автору',
+        'Поиск по реквизитам документов',
+        'Мгновенные результаты с подсветкой',
+        'История поисковых запросов',
+      ],
+      status: 'Доступен',
+    },
+  },
+  // 🚧 Планируемые модули
+  {
+    icon: <Archive className="h-6 w-6" />,
+    title: 'Система архивирования',
+    description: 'Автоматическое архивирование документов с возможностью восстановления',
+    details: {
+      features: [
+        'Автоматическое резервное копирование всех документов',
+        'Версионирование файлов с историей изменений',
+        'Быстрый поиск в архиве по ключевым словам',
+        'Восстановление удалённых документов в один клик',
+        'Настраиваемые политики хранения данных',
+      ],
+      status: 'В разработке',
+    },
+  },
+  {
+    icon: <BarChart3 className="h-6 w-6" />,
+    title: 'Отчеты и аналитика',
+    description: 'Детальная статистика и генерация отчётов по всем направлениям',
+    details: {
+      features: [
+        'Отслеживание посещаемости в реальном времени',
+        'Генерация отчётов по группам и периодам',
+        'Визуализация данных в графиках и диаграммах',
+        'Экспорт в Excel и PDF форматы',
+        'Автоматические уведомления о важных метриках',
       ],
       status: 'В разработке',
     },
@@ -112,14 +178,14 @@ const MODULES_DATA = [
   {
     icon: <MessageSquare className="h-6 w-6" />,
     title: 'Коммуникационный центр',
-    description: 'Централизованная система для общения с преподавателями и студентами',
+    description: 'Централизованная система для общения преподавателей и студентов',
     details: {
       features: [
         'Внутренний чат между пользователями',
         'Групповые обсуждения по темам',
         'Рассылка объявлений и уведомлений',
         'История переписки с поиском',
-        'Интеграция с email-уведомлениями',
+        'Интеграция со Slack и другими мессенджерами',
       ],
       status: 'В разработке',
     },
@@ -311,9 +377,9 @@ const SecretaryMethodistDashboard = () => {
   }
 
   return (
-    <div className="h-screen bg-background overflow-hidden flex flex-col">
+    <div className="h-screen overflow-hidden flex flex-col">
       {/* Top Navigation - Fixed */}
-      <div className="flex-shrink-0 bg-background/80 backdrop-blur-md">
+      <div className="flex-shrink-0 bg-background/80 backdrop-blur-md border-b border-border/40">
         <div className="flex items-center justify-between px-4 py-4 sm:px-8 sm:py-5">
           {/* Slide indicators */}
           <div className="hidden sm:flex items-center gap-3">
@@ -355,7 +421,7 @@ const SecretaryMethodistDashboard = () => {
                 Войти
               </Button>
             )}
-            <ThemeToggleButton />
+            <ThemeSettingsPopover />
           </div>
         </div>
       </div>

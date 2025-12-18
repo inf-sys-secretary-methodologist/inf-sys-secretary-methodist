@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { ThemeToggleButton } from '@/components/theme-toggle-button'
+import { ThemeSettingsPopover } from '@/components/theme-settings-popover'
 
 export const metadata: Metadata = {
   title: {
@@ -11,10 +11,10 @@ export const metadata: Metadata = {
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
       {/* Theme Toggle */}
       <div className="fixed top-8 right-8 z-50">
-        <ThemeToggleButton />
+        <ThemeSettingsPopover />
       </div>
 
       {/* Auth Card */}

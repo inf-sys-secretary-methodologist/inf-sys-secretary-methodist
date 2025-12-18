@@ -33,6 +33,7 @@ import (
 	filesUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
 	filesPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/infrastructure/persistence"
 	filesHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/interfaces/http/handlers"
+	integration "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration"
 	notifServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	emailDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
@@ -368,6 +369,28 @@ func main() {
 		validator,
 	)
 
+	// Initialize integration module (1C synchronization)
+	var integrationModule *integration.Module
+	integrationModule, err = integration.NewModule(db, &cfg.Integration, logger)
+	if err != nil {
+		logger.Error("Failed to initialize integration module", map[string]interface{}{
+			"error": err.Error(),
+		})
+	} else if integrationModule.IsEnabled() {
+		// Register routes under protected API group
+		apiGroup := router.Group("/api")
+		apiGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
+		integrationModule.RegisterRoutes(apiGroup)
+
+		// Start scheduler for periodic sync
+		if err := integrationModule.StartScheduler(context.Background()); err != nil {
+			logger.Error("Failed to start integration scheduler", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+		logger.Info("Integration module initialized", nil)
+	}
+
 	// Create HTTP server
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
@@ -412,6 +435,17 @@ func main() {
 			})
 		} else {
 			logger.Info("Reminder scheduler stopped", nil)
+		}
+	}
+
+	// Stop integration scheduler
+	if integrationModule != nil && integrationModule.IsEnabled() {
+		if err := integrationModule.StopScheduler(); err != nil {
+			logger.Error("Failed to stop integration scheduler", map[string]interface{}{
+				"error": err.Error(),
+			})
+		} else {
+			logger.Info("Integration scheduler stopped", nil)
 		}
 	}
 

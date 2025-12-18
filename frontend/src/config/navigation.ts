@@ -1,4 +1,4 @@
-import { LucideIcon, LayoutDashboard, Users, FileText, Calendar, UserCog } from 'lucide-react'
+import { LucideIcon, LayoutDashboard, Users, FileText, Calendar, Database } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
 export interface NavItem {
@@ -17,15 +17,14 @@ export const navigationConfig: NavItem[] = [
     // Available to all authenticated users
   },
   {
-    name: 'Студенты',
-    url: '/students',
+    name: 'Пользователи',
+    url: '/users',
     icon: Users,
     roles: [
       UserRole.SYSTEM_ADMIN,
       UserRole.METHODIST,
       UserRole.ACADEMIC_SECRETARY,
       UserRole.TEACHER,
-      UserRole.STUDENT,
     ],
   },
   {
@@ -53,10 +52,10 @@ export const navigationConfig: NavItem[] = [
     ],
   },
   {
-    name: 'Пользователи',
-    url: '/users',
-    icon: UserCog,
-    roles: [UserRole.SYSTEM_ADMIN],
+    name: 'Интеграция 1С',
+    url: '/integration',
+    icon: Database,
+    roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST],
   },
 ]
 

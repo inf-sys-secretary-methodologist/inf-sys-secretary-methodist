@@ -2,19 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { withAuth } from '@/components/auth/withAuth'
+import { useAuthStore } from '@/stores/authStore'
 import { UserRole } from '@/types/auth'
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -27,7 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Search,
   Filter,
-  Users as UsersIcon,
+  X,
   Mail,
   Calendar,
   MoreVertical,
@@ -36,6 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
+import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,7 +35,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { usersApi, departmentsApi, UserWithOrg, Department } from '@/lib/api/users'
+import { usersApi, departmentsApi, type UserWithOrg, type Department } from '@/lib/api/users'
 import { toast } from 'sonner'
 
 const roleLabels: Record<string, string> = {
@@ -69,6 +61,7 @@ const statusLabels: Record<string, string> = {
 }
 
 function UsersManagementPage() {
+  const { isAuthenticated, isLoading: authLoading } = useAuthStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -79,7 +72,11 @@ function UsersManagementPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false)
   const limit = 10
+
+  const hasActiveFilters =
+    searchQuery || roleFilter !== 'all' || statusFilter !== 'all' || departmentFilter !== 'all'
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -113,12 +110,18 @@ function UsersManagementPage() {
   }, [])
 
   useEffect(() => {
-    fetchReferenceData()
-  }, [fetchReferenceData])
+    // Only fetch data when authenticated
+    if (!authLoading && isAuthenticated) {
+      fetchReferenceData()
+    }
+  }, [fetchReferenceData, authLoading, isAuthenticated])
 
   useEffect(() => {
-    fetchUsers()
-  }, [fetchUsers])
+    // Only fetch data when authenticated
+    if (!authLoading && isAuthenticated) {
+      fetchUsers()
+    }
+  }, [fetchUsers, authLoading, isAuthenticated])
 
   const handleUpdateStatus = async (userId: number, newStatus: string) => {
     try {
@@ -170,18 +173,19 @@ function UsersManagementPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-              <UsersIcon className="h-6 w-6 sm:h-8 sm:w-8" />
-              Управление пользователями
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground mt-1">
-              Просмотр и управление пользователями системы
-            </p>
-          </div>
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+        {/* Page Header */}
+        <div className="text-center space-y-2 sm:space-y-4">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
+            Управление пользователями
+          </h1>
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
+            Просмотр и управление пользователями системы
+          </p>
+        </div>
+
+        {/* Action Button */}
+        <div className="flex justify-end">
           <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Обновить
@@ -190,158 +194,265 @@ function UsersManagementPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-          <Card>
-            <CardHeader className="pb-2 sm:pb-3">
-              <CardDescription className="text-xs sm:text-sm">Всего</CardDescription>
-              <CardTitle className="text-2xl sm:text-3xl">{total}</CardTitle>
-            </CardHeader>
-          </Card>
+          <div className="relative overflow-hidden rounded-xl p-4 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
+            <GlowingEffect
+              spread={40}
+              glow={true}
+              disabled={false}
+              proximity={64}
+              inactiveZone={0.01}
+              borderWidth={3}
+            />
+            <div className="relative z-10">
+              <p className="text-xs sm:text-sm text-muted-foreground">Всего</p>
+              <p className="text-2xl sm:text-3xl font-bold">{total}</p>
+            </div>
+          </div>
 
           {Object.entries(roleLabels).map(([role, label]) => {
             const count = roleStats[role] || 0
 
             return (
-              <Card key={role}>
-                <CardHeader className="pb-2 sm:pb-3">
-                  <CardDescription className="text-xs sm:text-sm truncate">{label}</CardDescription>
-                  <CardTitle className="text-2xl sm:text-3xl">{count}</CardTitle>
-                </CardHeader>
-              </Card>
+              <div
+                key={role}
+                className="relative overflow-hidden rounded-xl p-4 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700"
+              >
+                <GlowingEffect
+                  spread={40}
+                  glow={true}
+                  disabled={false}
+                  proximity={64}
+                  inactiveZone={0.01}
+                  borderWidth={3}
+                />
+                <div className="relative z-10">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">{label}</p>
+                  <p className="text-2xl sm:text-3xl font-bold">{count}</p>
+                </div>
+              </div>
             )
           })}
         </div>
 
-        {/* Filters Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Фильтры</CardTitle>
-            <CardDescription>Поиск и фильтрация пользователей</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Search */}
-              <div className="space-y-2">
-                <Label htmlFor="search" className="text-sm">
-                  Поиск
-                </Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    placeholder="Имя или email..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value)
-                      setPage(1)
-                    }}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-
-              {/* Role Filter */}
-              <div className="space-y-2">
-                <Label htmlFor="role-filter" className="text-sm">
-                  Роль
-                </Label>
-                <div className="relative">
-                  <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
-                  <Select
-                    value={roleFilter}
-                    onValueChange={(value) => {
-                      setRoleFilter(value)
-                      setPage(1)
-                    }}
-                  >
-                    <SelectTrigger id="role-filter" className="pl-9">
-                      <SelectValue placeholder="Выберите роль" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Все роли</SelectItem>
-                      {Object.entries(roleLabels).map(([role, label]) => (
-                        <SelectItem key={role} value={role}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Status Filter */}
-              <div className="space-y-2">
-                <Label htmlFor="status-filter" className="text-sm">
-                  Статус
-                </Label>
-                <Select
-                  value={statusFilter}
-                  onValueChange={(value) => {
-                    setStatusFilter(value)
+        {/* Filters Section */}
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
+          <GlowingEffect
+            spread={40}
+            glow={true}
+            disabled={false}
+            proximity={64}
+            inactiveZone={0.01}
+            borderWidth={3}
+          />
+          <div className="relative z-10 space-y-4">
+            {/* Search Bar */}
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
                     setPage(1)
                   }}
-                >
-                  <SelectTrigger id="status-filter">
-                    <SelectValue placeholder="Выберите статус" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все статусы</SelectItem>
-                    {Object.entries(statusLabels).map(([status, label]) => (
-                      <SelectItem key={status} value={status}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Поиск по имени или email..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                           bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                           focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                />
               </div>
 
-              {/* Department Filter */}
-              <div className="space-y-2">
-                <Label htmlFor="department-filter" className="text-sm">
-                  Подразделение
-                </Label>
-                <Select
-                  value={departmentFilter}
-                  onValueChange={(value) => {
-                    setDepartmentFilter(value)
-                    setPage(1)
-                  }}
-                >
-                  <SelectTrigger id="department-filter">
-                    <SelectValue placeholder="Выберите подразделение" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все подразделения</SelectItem>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id.toString()}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Button
+                variant={isFiltersExpanded ? 'default' : 'outline'}
+                onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                className="flex-shrink-0"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Фильтры
+                {hasActiveFilters && !isFiltersExpanded && (
+                  <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                    {
+                      [
+                        roleFilter !== 'all',
+                        statusFilter !== 'all',
+                        departmentFilter !== 'all',
+                      ].filter(Boolean).length
+                    }
+                  </span>
+                )}
+              </Button>
+
+              {hasActiveFilters && (
+                <Button variant="outline" onClick={resetFilters} className="flex-shrink-0">
+                  <X className="h-4 w-4 mr-2" />
+                  Сбросить
+                </Button>
+              )}
             </div>
 
-            {(searchQuery ||
-              roleFilter !== 'all' ||
-              statusFilter !== 'all' ||
-              departmentFilter !== 'all') && (
-              <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 text-sm text-muted-foreground">
-                <span>Найдено пользователей: {total}</span>
-                <Button variant="ghost" size="sm" onClick={resetFilters}>
-                  Сбросить фильтры
-                </Button>
+            {/* Expanded Filters Panel */}
+            {isFiltersExpanded && (
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Role Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Роль
+                    </label>
+                    <select
+                      value={roleFilter}
+                      onChange={(e) => {
+                        setRoleFilter(e.target.value)
+                        setPage(1)
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                               bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                               focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="all">Все роли</option>
+                      {Object.entries(roleLabels).map(([role, label]) => (
+                        <option key={role} value={role}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Статус
+                    </label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value)
+                        setPage(1)
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                               bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                               focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="all">Все статусы</option>
+                      {Object.entries(statusLabels).map(([status, label]) => (
+                        <option key={status} value={status}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Department Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Подразделение
+                    </label>
+                    <select
+                      value={departmentFilter}
+                      onChange={(e) => {
+                        setDepartmentFilter(e.target.value)
+                        setPage(1)
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                               bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                               focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="all">Все подразделения</option>
+                      {departments.map((dept) => (
+                        <option key={dept.id} value={dept.id.toString()}>
+                          {dept.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+
+            {/* Active Filters Summary */}
+            {hasActiveFilters && !isFiltersExpanded && (
+              <div className="flex flex-wrap gap-2">
+                {searchQuery && (
+                  <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full text-sm flex items-center gap-2">
+                    Поиск: {searchQuery}
+                    <button
+                      onClick={() => {
+                        setSearchQuery('')
+                        setPage(1)
+                      }}
+                      className="hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {roleFilter !== 'all' && (
+                  <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full text-sm flex items-center gap-2">
+                    {roleLabels[roleFilter]}
+                    <button
+                      onClick={() => {
+                        setRoleFilter('all')
+                        setPage(1)
+                      }}
+                      className="hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {statusFilter !== 'all' && (
+                  <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full text-sm flex items-center gap-2">
+                    {statusLabels[statusFilter]}
+                    <button
+                      onClick={() => {
+                        setStatusFilter('all')
+                        setPage(1)
+                      }}
+                      className="hover:bg-green-200 dark:hover:bg-green-800/50 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {departmentFilter !== 'all' && (
+                  <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 rounded-full text-sm flex items-center gap-2">
+                    {departments.find((d) => d.id.toString() === departmentFilter)?.name ||
+                      'Подразделение'}
+                    <button
+                      onClick={() => {
+                        setDepartmentFilter('all')
+                        setPage(1)
+                      }}
+                      className="hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Users Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Пользователи</CardTitle>
-            <CardDescription>Список всех зарегистрированных пользователей</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700">
+          <GlowingEffect
+            spread={40}
+            glow={true}
+            disabled={false}
+            proximity={64}
+            inactiveZone={0.01}
+            borderWidth={3}
+          />
+          <div className="relative z-10">
+            <div className="mb-4">
+              <h3 className="text-lg sm:text-xl font-semibold">Пользователи</h3>
+              <p className="text-sm text-muted-foreground">
+                Список всех зарегистрированных пользователей
+              </p>
+            </div>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -413,7 +524,10 @@ function UsersManagementPage() {
                           </div>
                         )}
                         <div className="flex items-center justify-between">
-                          <Badge variant={roleColors[user.role] || 'outline'}>
+                          <Badge
+                            variant={roleColors[user.role] || 'outline'}
+                            className="whitespace-nowrap"
+                          >
                             {roleLabels[user.role] || user.role}
                           </Badge>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -433,7 +547,7 @@ function UsersManagementPage() {
                       <TableRow>
                         <TableHead>Пользователь</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Роль</TableHead>
+                        <TableHead className="min-w-[180px]">Роль</TableHead>
                         <TableHead>Статус</TableHead>
                         <TableHead className="hidden lg:table-cell">Подразделение</TableHead>
                         <TableHead className="hidden lg:table-cell">Дата создания</TableHead>
@@ -467,7 +581,10 @@ function UsersManagementPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={roleColors[user.role] || 'outline'}>
+                              <Badge
+                                variant={roleColors[user.role] || 'outline'}
+                                className="whitespace-nowrap"
+                              >
                                 {roleLabels[user.role] || user.role}
                               </Badge>
                             </TableCell>
@@ -475,10 +592,15 @@ function UsersManagementPage() {
                               <Badge
                                 variant={
                                   user.status === 'active'
-                                    ? 'default'
+                                    ? 'outline'
                                     : user.status === 'blocked'
                                       ? 'destructive'
                                       : 'secondary'
+                                }
+                                className={
+                                  user.status === 'active'
+                                    ? 'border-green-500 text-green-500 bg-green-500/10'
+                                    : ''
                                 }
                               >
                                 {statusLabels[user.status] || user.status}
@@ -566,14 +688,14 @@ function UsersManagementPage() {
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </AppLayout>
   )
 }
 
-// Only system admins can access this page
+// Admins, methodists, academic secretaries and teachers can access this page
 export default withAuth(UsersManagementPage, {
-  roles: [UserRole.SYSTEM_ADMIN],
+  roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY, UserRole.TEACHER],
 })

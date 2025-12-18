@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, ComponentType } from 'react'
+import { useEffect, ComponentType, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/authStore'
 import type { UserRole } from '@/types/auth'
@@ -46,13 +46,22 @@ export function withAuth<P extends object>(Component: ComponentType<P>, options?
 
   const ProtectedComponent = (props: P) => {
     const router = useRouter()
-    const { isAuthenticated, user, isLoading } = useAuthStore()
+    const { isAuthenticated, user, isLoading, checkAuth } = useAuthStore()
+    const [authChecked, setAuthChecked] = useState(false)
 
     const { roles, redirectTo = '/login', LoadingComponent } = options || {}
 
+    // Run checkAuth on mount (same as useAuthCheck does for other pages)
     useEffect(() => {
-      // Wait for auth state to load
-      if (isLoading) {
+      checkAuth().finally(() => {
+        setAuthChecked(true)
+      })
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []) // Only run once on mount
+
+    useEffect(() => {
+      // Wait for auth check to complete
+      if (!authChecked || isLoading) {
         return
       }
 
@@ -71,10 +80,10 @@ export function withAuth<P extends object>(Component: ComponentType<P>, options?
           return
         }
       }
-    }, [isAuthenticated, isLoading, user, router, roles, redirectTo])
+    }, [isAuthenticated, isLoading, user, router, roles, redirectTo, authChecked])
 
     // Show loading state
-    if (isLoading) {
+    if (!authChecked || isLoading) {
       if (LoadingComponent) {
         return <LoadingComponent />
       }

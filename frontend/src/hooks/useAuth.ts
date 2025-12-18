@@ -111,7 +111,8 @@ export function useAuthCheck() {
 
   useEffect(() => {
     checkAuth()
-  }, [checkAuth])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run once on mount - checkAuth is stable from Zustand
 
   return {
     user,
