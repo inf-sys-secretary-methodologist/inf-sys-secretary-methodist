@@ -40,7 +40,7 @@ export function MobileNav({ items }: MobileNavProps) {
             <span className="sr-only">Закрыть</span>
           </SheetClose>
         </SheetHeader>
-        <nav className="flex flex-col gap-2 p-4">
+        <nav aria-label="Мобильная навигация" className="flex flex-col gap-2 p-4">
           {items.map((item, index) => {
             const Icon = item.icon
             const isActive = pathname === item.url
@@ -50,10 +50,11 @@ export function MobileNav({ items }: MobileNavProps) {
               <Link
                 key={item.url}
                 href={item.url}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => setOpen(false)}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
-                className="relative"
+                className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg"
               >
                 <div
                   className={cn(

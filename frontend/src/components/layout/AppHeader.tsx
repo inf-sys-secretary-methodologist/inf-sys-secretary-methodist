@@ -36,8 +36,11 @@ export function AppHeader({ items }: AppHeaderProps) {
         <div className="w-44" />
 
         {/* Desktop Navigation - centered */}
-        <nav>
-          <div className="flex items-center gap-1 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200 dark:border-gray-700 px-3 py-2 shadow-lg">
+        <nav aria-label="Основная навигация">
+          <div
+            className="flex items-center gap-1 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200 dark:border-gray-700 px-3 py-2 shadow-lg"
+            role="list"
+          >
             {items.map((item, index) => {
               const Icon = item.icon
               const isActive = pathname === item.url
@@ -47,9 +50,11 @@ export function AppHeader({ items }: AppHeaderProps) {
                 <Link
                   key={item.url}
                   href={item.url}
+                  aria-current={isActive ? 'page' : undefined}
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
-                  className="relative"
+                  className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full"
+                  role="listitem"
                 >
                   <div
                     className={cn(
