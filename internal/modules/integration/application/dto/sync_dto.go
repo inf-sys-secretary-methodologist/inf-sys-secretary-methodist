@@ -8,20 +8,20 @@ import (
 
 // SyncLogDTO represents a sync log response
 type SyncLogDTO struct {
-	ID             int64                    `json:"id"`
-	EntityType     entities.SyncEntityType  `json:"entity_type"`
-	Direction      entities.SyncDirection   `json:"direction"`
-	Status         entities.SyncStatus      `json:"status"`
-	StartedAt      time.Time                `json:"started_at"`
-	CompletedAt    *time.Time               `json:"completed_at,omitempty"`
-	TotalRecords   int                      `json:"total_records"`
-	ProcessedCount int                      `json:"processed_count"`
-	SuccessCount   int                      `json:"success_count"`
-	ErrorCount     int                      `json:"error_count"`
-	ConflictCount  int                      `json:"conflict_count"`
-	Progress       float64                  `json:"progress"`
-	ErrorMessage   string                   `json:"error_message,omitempty"`
-	CreatedAt      time.Time                `json:"created_at"`
+	ID             int64                   `json:"id"`
+	EntityType     entities.SyncEntityType `json:"entity_type"`
+	Direction      entities.SyncDirection  `json:"direction"`
+	Status         entities.SyncStatus     `json:"status"`
+	StartedAt      time.Time               `json:"started_at"`
+	CompletedAt    *time.Time              `json:"completed_at,omitempty"`
+	TotalRecords   int                     `json:"total_records"`
+	ProcessedCount int                     `json:"processed_count"`
+	SuccessCount   int                     `json:"success_count"`
+	ErrorCount     int                     `json:"error_count"`
+	ConflictCount  int                     `json:"conflict_count"`
+	Progress       float64                 `json:"progress"`
+	ErrorMessage   string                  `json:"error_message,omitempty"`
+	CreatedAt      time.Time               `json:"created_at"`
 }
 
 // FromSyncLog converts entity to DTO
@@ -68,9 +68,9 @@ func FromSyncStats(stats *entities.SyncStats) *SyncStatsDTO {
 
 // StartSyncRequest represents a request to start synchronization
 type StartSyncRequest struct {
-	EntityType entities.SyncEntityType  `json:"entity_type" validate:"required,oneof=employee student finance"`
-	Direction  entities.SyncDirection   `json:"direction" validate:"required,oneof=import export both"`
-	Force      bool                     `json:"force"` // Force sync even if one is running
+	EntityType entities.SyncEntityType `json:"entity_type" validate:"required,oneof=employee student finance"`
+	Direction  entities.SyncDirection  `json:"direction" validate:"required,oneof=import export both"`
+	Force      bool                    `json:"force"` // Force sync even if one is running
 }
 
 // SyncListRequest represents a request to list sync logs

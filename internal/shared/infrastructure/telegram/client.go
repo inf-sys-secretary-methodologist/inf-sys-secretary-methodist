@@ -53,8 +53,8 @@ type APIResponse struct {
 
 // Message represents a Telegram message.
 type Message struct {
-	MessageID int64 `json:"message_id"`
-	Chat      *Chat `json:"chat"`
+	MessageID int64  `json:"message_id"`
+	Chat      *Chat  `json:"chat"`
 	Text      string `json:"text,omitempty"`
 }
 

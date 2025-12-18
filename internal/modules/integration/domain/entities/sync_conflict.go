@@ -88,8 +88,8 @@ type SyncConflictFilter struct {
 
 // ConflictStats represents statistics about sync conflicts
 type ConflictStats struct {
-	TotalConflicts    int64 `json:"total_conflicts"`
-	PendingConflicts  int64 `json:"pending_conflicts"`
-	ResolvedConflicts int64 `json:"resolved_conflicts"`
+	TotalConflicts    int64                    `json:"total_conflicts"`
+	PendingConflicts  int64                    `json:"pending_conflicts"`
+	ResolvedConflicts int64                    `json:"resolved_conflicts"`
 	ByEntityType      map[SyncEntityType]int64 `json:"by_entity_type"`
 }

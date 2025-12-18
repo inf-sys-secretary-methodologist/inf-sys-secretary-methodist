@@ -8,20 +8,20 @@ import (
 
 // SyncConflictDTO represents a sync conflict response
 type SyncConflictDTO struct {
-	ID             int64                      `json:"id"`
-	SyncLogID      int64                      `json:"sync_log_id"`
-	EntityType     entities.SyncEntityType    `json:"entity_type"`
-	EntityID       string                     `json:"entity_id"`
-	LocalData      string                     `json:"local_data,omitempty"`
-	ExternalData   string                     `json:"external_data,omitempty"`
-	ConflictType   string                     `json:"conflict_type"`
-	ConflictFields []string                   `json:"conflict_fields"`
+	ID             int64                       `json:"id"`
+	SyncLogID      int64                       `json:"sync_log_id"`
+	EntityType     entities.SyncEntityType     `json:"entity_type"`
+	EntityID       string                      `json:"entity_id"`
+	LocalData      string                      `json:"local_data,omitempty"`
+	ExternalData   string                      `json:"external_data,omitempty"`
+	ConflictType   string                      `json:"conflict_type"`
+	ConflictFields []string                    `json:"conflict_fields"`
 	Resolution     entities.ConflictResolution `json:"resolution"`
-	ResolvedBy     *int64                     `json:"resolved_by,omitempty"`
-	ResolvedAt     *time.Time                 `json:"resolved_at,omitempty"`
-	ResolvedData   string                     `json:"resolved_data,omitempty"`
-	Notes          string                     `json:"notes,omitempty"`
-	CreatedAt      time.Time                  `json:"created_at"`
+	ResolvedBy     *int64                      `json:"resolved_by,omitempty"`
+	ResolvedAt     *time.Time                  `json:"resolved_at,omitempty"`
+	ResolvedData   string                      `json:"resolved_data,omitempty"`
+	Notes          string                      `json:"notes,omitempty"`
+	CreatedAt      time.Time                   `json:"created_at"`
 }
 
 // FromSyncConflict converts entity to DTO
@@ -46,11 +46,11 @@ func FromSyncConflict(conflict *entities.SyncConflict) *SyncConflictDTO {
 
 // ConflictListRequest represents a request to list conflicts
 type ConflictListRequest struct {
-	SyncLogID  *int64                      `json:"sync_log_id,omitempty" form:"sync_log_id"`
-	EntityType *entities.SyncEntityType    `json:"entity_type,omitempty" form:"entity_type"`
+	SyncLogID  *int64                       `json:"sync_log_id,omitempty" form:"sync_log_id"`
+	EntityType *entities.SyncEntityType     `json:"entity_type,omitempty" form:"entity_type"`
 	Resolution *entities.ConflictResolution `json:"resolution,omitempty" form:"resolution"`
-	Limit      int                         `json:"limit,omitempty" form:"limit"`
-	Offset     int                         `json:"offset,omitempty" form:"offset"`
+	Limit      int                          `json:"limit,omitempty" form:"limit"`
+	Offset     int                          `json:"offset,omitempty" form:"offset"`
 }
 
 // ConflictListResponse represents a paginated list of conflicts
@@ -68,15 +68,15 @@ type ResolveConflictRequest struct {
 
 // BulkResolveRequest represents a request to resolve multiple conflicts
 type BulkResolveRequest struct {
-	IDs        []int64                    `json:"ids" validate:"required,min=1"`
+	IDs        []int64                     `json:"ids" validate:"required,min=1"`
 	Resolution entities.ConflictResolution `json:"resolution" validate:"required,oneof=use_local use_external skip"`
 }
 
 // ConflictStatsDTO represents conflict statistics
 type ConflictStatsDTO struct {
-	TotalConflicts    int64                         `json:"total_conflicts"`
-	PendingConflicts  int64                         `json:"pending_conflicts"`
-	ResolvedConflicts int64                         `json:"resolved_conflicts"`
+	TotalConflicts    int64                             `json:"total_conflicts"`
+	PendingConflicts  int64                             `json:"pending_conflicts"`
+	ResolvedConflicts int64                             `json:"resolved_conflicts"`
 	ByEntityType      map[entities.SyncEntityType]int64 `json:"by_entity_type"`
 }
 

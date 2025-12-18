@@ -90,18 +90,18 @@ type TelegramConfig struct {
 
 // IntegrationConfig holds 1C integration configuration
 type IntegrationConfig struct {
-	Enabled           bool
-	BaseURL           string        // 1C OData base URL (e.g., http://1c-server/base/odata/standard.odata)
-	Username          string        // 1C Basic Auth username
-	Password          string        // 1C Basic Auth password
-	Timeout           time.Duration // HTTP request timeout
-	MaxRetries        int           // Max retry attempts for failed requests
-	RetryDelay        time.Duration // Delay between retries
-	EmployeeCatalog   string        // 1C employee catalog name (e.g., "Catalog_Сотрудники")
-	StudentCatalog    string        // 1C student catalog name (e.g., "Catalog_Студенты")
-	SyncCronEmployee  string        // Cron expression for employee sync (e.g., "0 */6 * * *")
-	SyncCronStudent   string        // Cron expression for student sync (e.g., "0 */6 * * *")
-	BatchSize         int           // Batch size for sync operations
+	Enabled          bool
+	BaseURL          string        // 1C OData base URL (e.g., http://1c-server/base/odata/standard.odata)
+	Username         string        // 1C Basic Auth username
+	Password         string        // 1C Basic Auth password
+	Timeout          time.Duration // HTTP request timeout
+	MaxRetries       int           // Max retry attempts for failed requests
+	RetryDelay       time.Duration // Delay between retries
+	EmployeeCatalog  string        // 1C employee catalog name (e.g., "Catalog_Сотрудники")
+	StudentCatalog   string        // 1C student catalog name (e.g., "Catalog_Студенты")
+	SyncCronEmployee string        // Cron expression for employee sync (e.g., "0 */6 * * *")
+	SyncCronStudent  string        // Cron expression for student sync (e.g., "0 */6 * * *")
+	BatchSize        int           // Batch size for sync operations
 }
 
 // S3Config holds S3/MinIO storage configuration
