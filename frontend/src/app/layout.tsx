@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/components/providers/theme-provider'
 import { ToasterProvider } from '@/components/providers/toaster-provider'
 import { ServiceWorkerRegistration } from '@/components/pwa/service-worker-registration'
 import { BackgroundProvider } from '@/components/backgrounds'
+import { ScreenReaderAnnouncerProvider } from '@/components/ui/screen-reader-announcer'
 
 export const metadata: Metadata = {
   title: {
@@ -104,10 +105,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
           disableTransitionOnChange
         >
-          <BackgroundProvider />
-          {children}
-          <ToasterProvider />
-          <ServiceWorkerRegistration />
+          <ScreenReaderAnnouncerProvider>
+            <BackgroundProvider />
+            {children}
+            <ToasterProvider />
+            <ServiceWorkerRegistration />
+          </ScreenReaderAnnouncerProvider>
         </ThemeProvider>
       </body>
     </html>

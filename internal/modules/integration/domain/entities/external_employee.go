@@ -7,15 +7,15 @@ import (
 // ExternalEmployee represents an employee record from 1C system
 type ExternalEmployee struct {
 	ID               int64      `db:"id" json:"id"`
-	ExternalID       string     `db:"external_id" json:"external_id"`               // 1C GUID (Ref_Key)
-	Code             string     `db:"code" json:"code"`                             // 1C Code
-	FirstName        string     `db:"first_name" json:"first_name"`                 // Имя
-	LastName         string     `db:"last_name" json:"last_name"`                   // Фамилия
-	MiddleName       string     `db:"middle_name" json:"middle_name,omitempty"`     // Отчество
-	Email            string     `db:"email" json:"email,omitempty"`                 // Email
-	Phone            string     `db:"phone" json:"phone,omitempty"`                 // Телефон
-	Position         string     `db:"position" json:"position,omitempty"`           // Должность
-	Department       string     `db:"department" json:"department,omitempty"`       // Подразделение
+	ExternalID       string     `db:"external_id" json:"external_id"`           // 1C GUID (Ref_Key)
+	Code             string     `db:"code" json:"code"`                         // 1C Code
+	FirstName        string     `db:"first_name" json:"first_name"`             // Имя
+	LastName         string     `db:"last_name" json:"last_name"`               // Фамилия
+	MiddleName       string     `db:"middle_name" json:"middle_name,omitempty"` // Отчество
+	Email            string     `db:"email" json:"email,omitempty"`             // Email
+	Phone            string     `db:"phone" json:"phone,omitempty"`             // Телефон
+	Position         string     `db:"position" json:"position,omitempty"`       // Должность
+	Department       string     `db:"department" json:"department,omitempty"`   // Подразделение
 	EmploymentDate   *time.Time `db:"employment_date" json:"employment_date,omitempty"`
 	DismissalDate    *time.Time `db:"dismissal_date" json:"dismissal_date,omitempty"`
 	IsActive         bool       `db:"is_active" json:"is_active"`
@@ -73,31 +73,31 @@ func (e *ExternalEmployee) MarkSynced() {
 
 // ExternalEmployeeFilter represents filter options for external employees
 type ExternalEmployeeFilter struct {
-	Search       string `json:"search,omitempty"`
-	Department   string `json:"department,omitempty"`
-	Position     string `json:"position,omitempty"`
-	IsActive     *bool  `json:"is_active,omitempty"`
-	IsLinked     *bool  `json:"is_linked,omitempty"`
-	Limit        int    `json:"limit,omitempty"`
-	Offset       int    `json:"offset,omitempty"`
+	Search     string `json:"search,omitempty"`
+	Department string `json:"department,omitempty"`
+	Position   string `json:"position,omitempty"`
+	IsActive   *bool  `json:"is_active,omitempty"`
+	IsLinked   *bool  `json:"is_linked,omitempty"`
+	Limit      int    `json:"limit,omitempty"`
+	Offset     int    `json:"offset,omitempty"`
 }
 
 // ODataEmployee represents the employee structure from 1C OData response
 type ODataEmployee struct {
-	RefKey         string  `json:"Ref_Key"`
-	DataVersion    string  `json:"DataVersion"`
-	DeletionMark   bool    `json:"DeletionMark"`
-	Code           string  `json:"Code"`
-	Description    string  `json:"Description"`
-	FirstName      string  `json:"ФизическоеЛицо_Имя,omitempty"`
-	LastName       string  `json:"ФизическоеЛицо_Фамилия,omitempty"`
-	MiddleName     string  `json:"ФизическоеЛицо_Отчество,omitempty"`
-	Email          string  `json:"КонтактнаяИнформация_АдресЭП,omitempty"`
-	Phone          string  `json:"КонтактнаяИнформация_Телефон,omitempty"`
-	Position       string  `json:"Должность,omitempty"`
-	Department     string  `json:"Подразделение,omitempty"`
-	EmploymentDate string  `json:"ДатаПриема,omitempty"`
-	DismissalDate  string  `json:"ДатаУвольнения,omitempty"`
+	RefKey         string `json:"Ref_Key"`
+	DataVersion    string `json:"DataVersion"`
+	DeletionMark   bool   `json:"DeletionMark"`
+	Code           string `json:"Code"`
+	Description    string `json:"Description"`
+	FirstName      string `json:"ФизическоеЛицо_Имя,omitempty"`
+	LastName       string `json:"ФизическоеЛицо_Фамилия,omitempty"`
+	MiddleName     string `json:"ФизическоеЛицо_Отчество,omitempty"`
+	Email          string `json:"КонтактнаяИнформация_АдресЭП,omitempty"`
+	Phone          string `json:"КонтактнаяИнформация_Телефон,omitempty"`
+	Position       string `json:"Должность,omitempty"`
+	Department     string `json:"Подразделение,omitempty"`
+	EmploymentDate string `json:"ДатаПриема,omitempty"`
+	DismissalDate  string `json:"ДатаУвольнения,omitempty"`
 }
 
 // ToExternalEmployee converts OData response to ExternalEmployee entity

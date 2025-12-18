@@ -16,14 +16,14 @@ import (
 
 // Config holds the 1C OData client configuration
 type Config struct {
-	BaseURL      string        `json:"base_url"`      // e.g., http://server/config/odata/standard.odata
-	Username     string        `json:"username"`      // 1C user
-	Password     string        `json:"password"`      // 1C password
-	Timeout      time.Duration `json:"timeout"`       // HTTP client timeout
-	MaxRetries   int           `json:"max_retries"`   // Max retry attempts
-	RetryDelay   time.Duration `json:"retry_delay"`   // Delay between retries
-	EmployeesCatalog string    `json:"employees_catalog"` // Catalog name for employees
-	StudentsCatalog  string    `json:"students_catalog"`  // Catalog name for students
+	BaseURL          string        `json:"base_url"`          // e.g., http://server/config/odata/standard.odata
+	Username         string        `json:"username"`          // 1C user
+	Password         string        `json:"password"`          // 1C password
+	Timeout          time.Duration `json:"timeout"`           // HTTP client timeout
+	MaxRetries       int           `json:"max_retries"`       // Max retry attempts
+	RetryDelay       time.Duration `json:"retry_delay"`       // Delay between retries
+	EmployeesCatalog string        `json:"employees_catalog"` // Catalog name for employees
+	StudentsCatalog  string        `json:"students_catalog"`  // Catalog name for students
 }
 
 // DefaultConfig returns default configuration

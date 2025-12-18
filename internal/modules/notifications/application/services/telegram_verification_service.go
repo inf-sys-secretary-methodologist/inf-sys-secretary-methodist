@@ -180,10 +180,10 @@ func (s *TelegramVerificationService) VerifyCode(ctx context.Context, req *Verif
 	}
 
 	s.logAudit(ctx, "telegram_account_linked", "telegram", map[string]any{
-		"user_id":     code.UserID,
-		"chat_id":     req.TelegramChatID,
-		"username":    req.TelegramUsername,
-		"first_name":  req.TelegramFirstName,
+		"user_id":    code.UserID,
+		"chat_id":    req.TelegramChatID,
+		"username":   req.TelegramUsername,
+		"first_name": req.TelegramFirstName,
 	})
 
 	return &VerifyCodeResponse{

@@ -70,8 +70,18 @@ export default function CalendarPage() {
 
   return (
     <AppLayout>
-      <div className="mx-auto max-w-[1600px] h-[calc(100vh-8rem)] sm:h-[calc(100vh-10rem)]">
-        <div className="relative h-full rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-black/95 overflow-hidden">
+      <div className="mx-auto max-w-[1600px] space-y-6 sm:space-y-8">
+        {/* Page Header */}
+        <div className="text-center space-y-2 sm:space-y-4">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
+            Календарь
+          </h1>
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
+            Планирование и управление событиями
+          </p>
+        </div>
+
+        <div className="relative h-[calc(100vh-16rem)] sm:h-[calc(100vh-18rem)] rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-black/95 overflow-hidden">
           <GlowingEffect
             spread={40}
             glow={true}
