@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { UserMenu } from '@/components/UserMenu'
 import { ThemeSettingsPopover } from '@/components/theme-settings-popover'
+import { LanguageSwitcher } from '@/components/language-switcher'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { MobileNav } from './MobileNav'
 import { NavItem } from '@/config/navigation'
@@ -17,6 +19,7 @@ interface AppHeaderProps {
 export function AppHeader({ items }: AppHeaderProps) {
   const pathname = usePathname()
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const t = useTranslations('nav')
 
   return (
     <header className="sticky top-0 z-50 w-full pt-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -25,6 +28,7 @@ export function AppHeader({ items }: AppHeaderProps) {
         <MobileNav items={items} />
         <div className="flex items-center gap-2">
           <NotificationBell />
+          <LanguageSwitcher />
           <ThemeSettingsPopover />
           <UserMenu />
         </div>
@@ -36,7 +40,7 @@ export function AppHeader({ items }: AppHeaderProps) {
         <div className="w-44" />
 
         {/* Desktop Navigation - centered */}
-        <nav aria-label="Основная навигация">
+        <nav aria-label={t('mainNavigation')}>
           <div
             className="flex items-center gap-1 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200 dark:border-gray-700 px-3 py-2 shadow-lg"
             role="list"
@@ -82,7 +86,9 @@ export function AppHeader({ items }: AppHeaderProps) {
                     {/* Content */}
                     <div className="relative z-10 flex items-center gap-1.5">
                       <Icon className="h-4 w-4" />
-                      <span className="text-sm font-medium whitespace-nowrap">{item.name}</span>
+                      <span className="text-sm font-medium whitespace-nowrap">
+                        {t(item.nameKey)}
+                      </span>
                     </div>
                   </div>
                 </Link>
@@ -94,6 +100,7 @@ export function AppHeader({ items }: AppHeaderProps) {
         {/* Right side actions */}
         <div className="flex items-center justify-end gap-2 w-44">
           <NotificationBell />
+          <LanguageSwitcher />
           <ThemeSettingsPopover />
           <UserMenu />
         </div>

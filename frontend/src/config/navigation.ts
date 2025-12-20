@@ -2,22 +2,24 @@ import { LucideIcon, LayoutDashboard, Users, FileText, Calendar, Database } from
 import { UserRole } from '@/types/auth'
 
 export interface NavItem {
-  name: string
+  /** Translation key for the nav item name (e.g., 'dashboard' -> t('nav.dashboard')) */
+  nameKey: string
   url: string
   icon: LucideIcon
   roles?: UserRole[] // If undefined, available to all authenticated users
 }
 
 // Define which roles can access which pages
+// nameKey corresponds to keys in messages/*.json under "nav" namespace
 export const navigationConfig: NavItem[] = [
   {
-    name: 'Главная',
+    nameKey: 'dashboard',
     url: '/dashboard',
     icon: LayoutDashboard,
     // Available to all authenticated users
   },
   {
-    name: 'Пользователи',
+    nameKey: 'users',
     url: '/users',
     icon: Users,
     roles: [
@@ -28,7 +30,7 @@ export const navigationConfig: NavItem[] = [
     ],
   },
   {
-    name: 'Документы',
+    nameKey: 'documents',
     url: '/documents',
     icon: FileText,
     roles: [
@@ -40,7 +42,7 @@ export const navigationConfig: NavItem[] = [
     ],
   },
   {
-    name: 'Календарь',
+    nameKey: 'calendar',
     url: '/calendar',
     icon: Calendar,
     roles: [
@@ -52,7 +54,7 @@ export const navigationConfig: NavItem[] = [
     ],
   },
   {
-    name: 'Интеграция 1С',
+    nameKey: 'integration',
     url: '/integration',
     icon: Database,
     roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST],

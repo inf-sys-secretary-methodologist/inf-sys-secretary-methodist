@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react'
+import { useTranslations } from 'next-intl'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { getAvailableNavItems } from '@/config/navigation'
 import { useRouteAnnouncer } from '@/hooks/useRouteAnnouncer'
@@ -13,6 +14,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const t = useTranslations('common')
   const { user, isLoading } = useAuthCheck()
 
   // Announce route changes for screen readers
@@ -26,7 +28,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="text-muted-foreground">Загрузка...</p>
+          <p className="text-muted-foreground">{t('loading')}</p>
         </div>
       </div>
     )
