@@ -1,0 +1,1279 @@
+{
+  "errorPages": {
+    "notFound": {
+      "title": "Page Non Trouvée",
+      "description": "Désolé, la page que vous recherchez n'existe pas ou a été supprimée.",
+      "backHome": "Retour à l'Accueil"
+    },
+    "offline": {
+      "title": "Pas de Connexion Internet",
+      "description": "Veuillez vérifier votre connexion internet et réessayer. Certaines fonctionnalités peuvent être indisponibles hors ligne.",
+      "retry": "Réessayer",
+      "cacheNote": "Vous pouvez continuer à travailler avec les données précédemment chargées depuis le cache.",
+      "tipsTitle": "Conseils pour travailler hors ligne:",
+      "tip1": "Les pages précédemment consultées sont disponibles depuis le cache",
+      "tip2": "Les modifications seront synchronisées une fois la connexion rétablie",
+      "tip3": "Les notifications arriveront après la connexion"
+    },
+    "forbidden": {
+      "title": "Accès Refusé",
+      "description": "Vous n'avez pas la permission d'accéder à cette page. Veuillez contacter un administrateur si vous pensez qu'il s'agit d'une erreur.",
+      "back": "Retour",
+      "backHome": "Aller à l'Accueil"
+    },
+    "error": {
+      "title": "Une Erreur s'est Produite",
+      "description": "Une erreur inattendue s'est produite. Veuillez réessayer.",
+      "details": "Détails de l'erreur:",
+      "supportCode": "Code d'erreur pour le support:",
+      "retry": "Réessayer",
+      "backHome": "Aller à l'Accueil"
+    },
+    "globalError": {
+      "title": "Erreur Critique",
+      "description": "L'application a rencontré une erreur critique. Veuillez recharger la page.",
+      "details": "Détails de l'erreur:",
+      "supportCode": "Code d'erreur pour le support:",
+      "retry": "Réessayer",
+      "reload": "Recharger la Page"
+    },
+    "errorBoundary": {
+      "title": "Une Erreur s'est Produite",
+      "defaultMessage": "Ce composant a rencontré une erreur et ne peut pas être affiché.",
+      "details": "Message d'erreur:",
+      "showStack": "Afficher la pile de composants",
+      "retry": "Réessayer"
+    }
+  },
+  "common": {
+    "loading": "Chargement...",
+    "time": {
+      "justNow": "À l'instant",
+      "minutesAgo": "Il y a {count} min.",
+      "hoursAgo": "Il y a {count} h.",
+      "yesterday": "Hier",
+      "daysAgo": "Il y a {count} j."
+    },
+    "fileSize": {
+      "bytes": "{size} o",
+      "kb": "{size} Ko",
+      "mb": "{size} Mo",
+      "gb": "{size} Go"
+    },
+    "error": "Erreur",
+    "success": "Succès",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "filters": "Filtres",
+    "reset": "Réinitialiser",
+    "refresh": "Actualiser",
+    "uploaded": "Téléchargé",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "confirm": "Confirmer",
+    "all": "Tous",
+    "total": "Total",
+    "page": "Page",
+    "of": "sur",
+    "noResults": "Aucun résultat trouvé",
+    "actions": "Actions",
+    "status": "Statut",
+    "name": "Nom",
+    "email": "E-mail",
+    "date": "Date",
+    "unknown": "Inconnu",
+    "aria": {
+      "close": "Fermer",
+      "downloadFile": "Télécharger le fichier",
+      "markAllRead": "Tout marquer comme lu",
+      "settings": "Paramètres",
+      "copy": "Copier",
+      "copyCode": "Copier le code",
+      "getNewCode": "Obtenir un nouveau code",
+      "themeSettings": "Paramètres du thème",
+      "enableAnimatedBackground": "Activer l'arrière-plan animé"
+    }
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "register": "S'inscrire",
+    "loginTitle": "Connexion",
+    "registerTitle": "Créer un compte",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "noAccount": "Pas de compte ?",
+    "hasAccount": "Déjà un compte ?",
+    "registerFree": "S'inscrire gratuitement",
+    "loginToSystem": "Se connecter au système"
+  },
+  "loginForm": {
+    "loginSuccess": "Connexion réussie !",
+    "redirecting": "Redirection...",
+    "loginError": "Erreur de connexion",
+    "invalidCredentials": "E-mail ou mot de passe invalide",
+    "loggingIn": "Connexion en cours..."
+  },
+  "registerForm": {
+    "registerSuccess": "Inscription réussie !",
+    "redirectingToLogin": "Redirection vers la page de connexion...",
+    "registerError": "Erreur d'inscription",
+    "registering": "Inscription...",
+    "name": "Nom",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "role": "Rôle",
+    "passwordStrength": "Force du mot de passe :",
+    "passwordWeak": "Faible",
+    "passwordMedium": "Moyen",
+    "passwordStrong": "Fort",
+    "passwordRequirements": "Le mot de passe doit :"
+  },
+  "authPages": {
+    "loginWelcome": "Bienvenue",
+    "loginSubtitle": "Connectez-vous à votre compte pour continuer",
+    "registerTitle": "Créer un compte",
+    "registerSubtitle": "Inscrivez-vous pour accéder au système",
+    "backToHome": "← Retour à l'accueil",
+    "footer": "© 2025 Système d'information du secrétaire-méthodiste",
+    "metaTitle": "Authentification",
+    "metaDescription": "Connexion et inscription au système"
+  },
+  "nav": {
+    "home": "Accueil",
+    "dashboard": "Tableau de bord",
+    "users": "Utilisateurs",
+    "documents": "Documents",
+    "calendar": "Calendrier",
+    "integration": "Intégration 1C",
+    "notifications": "Notifications",
+    "settings": "Paramètres",
+    "profile": "Profil",
+    "appearance": "Apparence",
+    "navigation": "Navigation",
+    "openMenu": "Ouvrir le menu",
+    "mainNavigation": "Navigation principale",
+    "mobileNavigation": "Navigation mobile"
+  },
+  "roles": {
+    "system_admin": "Administrateur",
+    "methodist": "Méthodiste",
+    "academic_secretary": "Secrétaire académique",
+    "teacher": "Enseignant",
+    "student": "Étudiant"
+  },
+  "landing": {
+    "title": "Système d'information",
+    "subtitle": "pour Secrétaire-Méthodiste",
+    "description": "Panneau de contrôle moderne pour les affaires académiques et la gestion documentaire",
+    "getStarted": "Commencer",
+    "learnMore": "En savoir plus",
+    "slides": {
+      "hero": "Accueil",
+      "modules": "Modules",
+      "stats": "Statistiques",
+      "roles": "Rôles",
+      "faq": "FAQ",
+      "cta": "Démarrer"
+    },
+    "modules": {
+      "title": "Capacités du système",
+      "subtitle": "Cliquez sur une carte pour en savoir plus sur le module",
+      "features": "Fonctionnalités du module :",
+      "goToModule": "Aller au module",
+      "available": "Disponible",
+      "inDevelopment": "En développement",
+      "documents": {
+        "title": "Gestion documentaire",
+        "description": "Cycle complet des documents : création, approbation, archivage"
+      },
+      "notifications": {
+        "title": "Système de notifications",
+        "description": "Notifications multicanaux : Email, Telegram, In-app"
+      },
+      "calendar": {
+        "title": "Calendrier des événements",
+        "description": "Calendrier interactif avec rappels pour les événements importants"
+      },
+      "integration": {
+        "title": "Intégration 1C",
+        "description": "Synchronisation des données des employés et étudiants avec le système 1C"
+      },
+      "personalization": {
+        "title": "Personnalisation de l'interface",
+        "description": "Personnalisation de l'apparence : thèmes, arrière-plans, taille du texte"
+      },
+      "search": {
+        "title": "Recherche plein texte",
+        "description": "Recherche rapide dans les documents, utilisateurs et événements"
+      },
+      "archive": {
+        "title": "Système d'archivage",
+        "description": "Archivage automatique des documents avec option de récupération"
+      },
+      "reports": {
+        "title": "Rapports et analytique",
+        "description": "Statistiques détaillées et génération de rapports dans tous les domaines"
+      },
+      "projects": {
+        "title": "Gestion de projets",
+        "description": "Planification et suivi des projets éducatifs"
+      },
+      "communication": {
+        "title": "Centre de communication",
+        "description": "Système centralisé pour la communication enseignant-étudiant"
+      }
+    },
+    "stats": {
+      "title": "Nos réalisations en chiffres",
+      "subtitle": "Le système évolue continuellement et aide des milliers d'utilisateurs à optimiser leurs flux de travail",
+      "documentsProcessed": "Documents traités",
+      "activeUsers": "Utilisateurs actifs",
+      "eventsHeld": "Événements organisés",
+      "satisfaction": "Satisfaction"
+    },
+    "roleSection": {
+      "title": "Rôles du système",
+      "subtitle": "Chaque utilisateur accède aux fonctions selon son rôle",
+      "admin": {
+        "title": "Administrateur",
+        "description": "Contrôle total du système",
+        "features": ["Gestion des utilisateurs", "Configuration système", "Toutes les opérations"]
+      },
+      "methodist": {
+        "title": "Méthodiste",
+        "description": "Travail avec documents et modèles",
+        "features": ["Création de documents", "Gestion des modèles", "Génération de rapports"]
+      },
+      "secretary": {
+        "title": "Secrétaire",
+        "description": "Organisation du processus éducatif",
+        "features": ["Planification des cours", "Suivi des présences", "Travail avec étudiants"]
+      },
+      "teacher": {
+        "title": "Enseignant",
+        "description": "Accès aux matériels pédagogiques",
+        "features": ["Consultation emploi du temps", "Listes d'étudiants", "Calendrier événements"]
+      },
+      "student": {
+        "title": "Étudiant",
+        "description": "Consultation d'informations",
+        "features": ["Emploi du temps personnel", "Documents", "Annonces"]
+      }
+    },
+    "faq": {
+      "title": "Questions fréquemment posées",
+      "subtitle": "Réponses aux questions populaires sur le système",
+      "items": {
+        "0": {
+          "question": "Comment commencer à utiliser le système ?",
+          "answer": "Pour commencer, inscrivez-vous au système ou connectez-vous avec les identifiants fournis par l'administrateur. Après connexion, vous aurez accès aux fonctions selon votre rôle."
+        },
+        "1": {
+          "question": "Quels rôles d'utilisateurs existent dans le système ?",
+          "answer": "Le système comprend 5 rôles : Administrateur (accès complet), Méthodiste (gestion des documents et modèles), Secrétaire (travail avec l'emploi du temps et les rapports), Enseignant (consultation de l'emploi du temps et des étudiants) et Étudiant (accès limité en consultation)."
+        },
+        "2": {
+          "question": "Comment télécharger des documents ?",
+          "answer": "Allez dans la section \"Documents\" et cliquez sur le bouton \"Télécharger un document\". Les formats pris en charge sont PDF, DOC, DOCX, XLS, XLSX. La taille maximale du fichier est de 50 Mo."
+        },
+        "3": {
+          "question": "Puis-je récupérer des documents supprimés ?",
+          "answer": "Oui, tous les documents supprimés sont déplacés vers les archives où ils sont conservés pendant 30 jours. Pendant ce temps, ils peuvent être récupérés via la section \"Archives\"."
+        },
+        "4": {
+          "question": "Comment configurer les notifications ?",
+          "answer": "Dans la section \"Paramètres\" de votre profil, vous pouvez choisir les types de notifications (email, push) et les événements pour lesquels vous souhaitez recevoir des alertes : nouveaux documents, échéances approchantes, changements d'emploi du temps."
+        },
+        "5": {
+          "question": "Mes données sont-elles sécurisées ?",
+          "answer": "Oui, nous utilisons des méthodes de chiffrement modernes (TLS 1.3, AES-256), l'authentification à deux facteurs et des sauvegardes régulières. Toutes les données sont stockées sur des serveurs sécurisés conformément aux exigences légales."
+        }
+      }
+    },
+    "cta": {
+      "title": "Prêt à commencer ?",
+      "subtitle": "Rejoignez des milliers d'utilisateurs qui ont déjà optimisé leurs flux de travail avec notre système"
+    }
+  },
+  "dashboard": {
+    "welcome": "Bienvenue, {name} !",
+    "periods": {
+      "week": "Semaine",
+      "month": "Mois",
+      "quarter": "Trimestre",
+      "year": "Année"
+    },
+    "periodLabels": {
+      "week": "semaine",
+      "month": "mois",
+      "quarter": "trimestre",
+      "year": "année"
+    },
+    "stats": {
+      "documents": "Documents",
+      "students": "Étudiants",
+      "events": "Événements",
+      "reports": "Rapports",
+      "tasks": "Tâches",
+      "statistics": "Statistiques",
+      "trends": "Tendances"
+    },
+    "charts": {
+      "documentsAndReports": "Documents et rapports",
+      "tasksAndEvents": "Tâches et événements"
+    },
+    "quickActions": {
+      "title": "Actions rapides",
+      "uploadDocument": "Télécharger un document",
+      "addStudent": "Ajouter un étudiant",
+      "createEvent": "Créer un événement",
+      "createTask": "Créer une tâche"
+    },
+    "activityFeed": {
+      "title": "Activité récente",
+      "empty": "Aucune activité à afficher",
+      "types": {
+        "document": "Document",
+        "report": "Rapport",
+        "task": "Tâche",
+        "event": "Événement",
+        "announcement": "Annonce"
+      },
+      "actions": {
+        "created": "créé(e)",
+        "updated": "mis(e) à jour",
+        "deleted": "supprimé(e)"
+      }
+    },
+    "export": {
+      "title": "Exporter",
+      "pdf": "Exporter en PDF",
+      "excel": "Exporter en Excel"
+    }
+  },
+  "documents": {
+    "title": "Gestion documentaire",
+    "versions": {
+      "loadError": "Échec du chargement de l'historique des versions",
+      "createError": "Échec de la création de la version",
+      "restoreError": "Échec de la restauration de la version",
+      "deleteError": "Échec de la suppression de la version",
+      "compareError": "Échec de la comparaison des versions",
+      "downloadError": "Échec de l'obtention du fichier de version",
+      "descriptionPlaceholder": "Description des modifications (optionnel)",
+      "fieldLabels": {
+        "title": "Titre",
+        "subject": "Sujet",
+        "content": "Contenu",
+        "status": "Statut",
+        "file_name": "Fichier"
+      },
+      "file": "Fichier",
+      "topic": "Sujet",
+      "noVersions": "Aucune version disponible",
+      "version": "Version",
+      "current": "Actuelle",
+      "restore": "Restaurer",
+      "compare": "Comparer",
+      "download": "Télécharger",
+      "delete": "Supprimer",
+      "createVersion": "Créer une version",
+      "creating": "Création...",
+      "changes": "Modifications",
+      "noChanges": "Aucune modification",
+      "addedLines": "Lignes ajoutées",
+      "removedLines": "Lignes supprimées",
+      "versionsIdentical": "Les versions sont identiques",
+      "changedFields": "Champs modifiés",
+      "confirmRestore": "Êtes-vous sûr de vouloir restaurer le document à la version {version} ?",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer la version {version} ?",
+      "loadingHistory": "Chargement de l'historique des versions...",
+      "retry": "Réessayer",
+      "history": "Historique des versions",
+      "versionsCount": "versions",
+      "compareCount": "Comparer ({count}/2)",
+      "saveVersion": "Enregistrer la version",
+      "comparisonTitle": "Comparaison des versions {from} et {to}",
+      "empty": "L'historique des versions est vide",
+      "title": "Titre",
+      "status": "Statut",
+      "before": "Avant",
+      "after": "Après",
+      "emptyValue": "(vide)"
+    },
+    "subtitle": "Télécharger, rechercher et gérer les documents",
+    "upload": "Télécharger des documents",
+    "uploadShort": "Télécharger",
+    "showDocuments": "Afficher les documents",
+    "documentsShort": "Documents",
+    "sharedDocuments": "Documents partagés",
+    "sharedShort": "Partagés",
+    "searchResults": "Trouvé : {count} documents pour \"{query}\"",
+    "sortedByRelevance": "Résultats triés par pertinence",
+    "searching": "Recherche...",
+    "uploadFailed": "Échec du téléchargement des documents",
+    "deleteFailed": "Échec de la suppression du document",
+    "loadFailed": "Échec du chargement des documents",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer le document \"{name}\" ?",
+    "form": {
+      "fileNamePlaceholder": "Nom du fichier",
+      "documentNamePlaceholder": "Nom du document",
+      "descriptionPlaceholder": "Brève description du document",
+      "contentPlaceholder": "Contenu textuel du document (optionnel)",
+      "tagsSearchPlaceholder": "Rechercher des tags...",
+      "tagsPlaceholder": "Entrez les tags séparés par des virgules...",
+      "searchPlaceholder": "Rechercher des documents...",
+      "uploadDescriptionPlaceholder": "Brève description des documents...",
+      "versionDescriptionPlaceholder": "Description des modifications (optionnel)",
+      "selectUserPlaceholder": "Sélectionner un utilisateur",
+      "selectRolePlaceholder": "Sélectionner un rôle",
+      "noLimitPlaceholder": "Sans limite",
+      "noPasswordPlaceholder": "Sans mot de passe"
+    },
+    "actions": {
+      "edit": "Modifier",
+      "share": "Partager",
+      "resetDate": "Réinitialiser la date",
+      "copyLink": "Copier le lien",
+      "revokeAccess": "Révoquer l'accès",
+      "deactivateLink": "Désactiver le lien",
+      "deleteLink": "Supprimer le lien"
+    },
+    "edit": {
+      "title": "Modifier le document",
+      "attachedFile": "Fichier joint",
+      "selectNewFile": "Sélectionner un nouveau fichier",
+      "versionNote": "Le téléchargement d'un nouveau fichier crée une nouvelle version du document",
+      "titleLabel": "Titre",
+      "subjectLabel": "Sujet / Description",
+      "contentLabel": "Contenu",
+      "tagsLabel": "Tags",
+      "noTags": "Pas de tags",
+      "tagNotFound": "Tag non trouvé",
+      "saveNote": "L'enregistrement des modifications crée automatiquement une nouvelle version du document",
+      "saving": "Enregistrement...",
+      "fileUploadedSuccess": "Fichier \"{name}\" téléchargé avec succès",
+      "fileUploadError": "Échec du téléchargement du fichier",
+      "tagAddError": "Échec de l'ajout du tag",
+      "tagRemoveError": "Échec de la suppression du tag",
+      "saveError": "Échec de l'enregistrement des modifications"
+    },
+    "categories": {
+      "educational": "Activités éducatives",
+      "hr": "Ressources humaines",
+      "administrative": "Administratif",
+      "methodical": "Travail méthodique",
+      "financial": "Financier",
+      "archive": "Archives"
+    },
+    "statuses": {
+      "uploading": "Téléchargement",
+      "processing": "Traitement",
+      "ready": "Prêt",
+      "error": "Erreur"
+    },
+    "filters": {
+      "category": "Catégorie",
+      "status": "Statut",
+      "author": "Auteur",
+      "dateFrom": "Date de début",
+      "dateTo": "Date de fin",
+      "tags": "Tags",
+      "sort": "Trier",
+      "allCategories": "Toutes les catégories",
+      "allStatuses": "Tous les statuts",
+      "allAuthors": "Tous les auteurs",
+      "selectDate": "Sélectionner une date",
+      "loading": "Chargement...",
+      "name": "Nom",
+      "uploadDate": "Date de téléchargement",
+      "modifyDate": "Date de modification",
+      "size": "Taille",
+      "authorPrefix": "Auteur",
+      "from": "De",
+      "to": "À",
+      "search": "Recherche",
+      "tagsPlaceholder": "Entrez les tags séparés par des virgules..."
+    },
+    "uploadForm": {
+      "dragAndDrop": "Glissez-déposez les fichiers ici",
+      "orClickButton": "ou cliquez sur le bouton ci-dessous pour sélectionner des fichiers",
+      "selectFiles": "Sélectionner des fichiers",
+      "supportedFormats": "Formats pris en charge : PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG (max 10 Mo)",
+      "selectedFiles": "Fichiers sélectionnés",
+      "documentCategory": "Catégorie du document",
+      "descriptionOptional": "Description (optionnel)",
+      "tagsOptional": "Tags (optionnel)",
+      "loadingTags": "Chargement des tags...",
+      "noTagsAvailable": "Aucun tag disponible",
+      "selectedTags": "Tags sélectionnés",
+      "uploading": "Téléchargement...",
+      "upload": "Télécharger",
+      "uploadCount": "Télécharger ({count})",
+      "descriptionPlaceholder": "Brève description des documents...",
+      "typeNotSupported": "Type de fichier non pris en charge. Autorisés : {extensions}",
+      "sizeExceeded": "La taille du fichier dépasse le maximum ({size} Mo)"
+    },
+    "share": {
+      "title": "Partager le document",
+      "usersTab": "Utilisateurs",
+      "linksTab": "Liens publics",
+      "toUser": "À l'utilisateur",
+      "byRole": "Par rôle",
+      "user": "Utilisateur",
+      "role": "Rôle",
+      "accessLevel": "Niveau d'accès",
+      "expiryOptional": "Expiration (optionnel)",
+      "grantAccess": "Accorder l'accès",
+      "currentPermissions": "Permissions actuelles",
+      "noAccessGranted": "Aucun accès accordé",
+      "unknown": "Inconnu",
+      "until": "Jusqu'au",
+      "accessType": "Type d'accès",
+      "expiry": "Expiration",
+      "maxUses": "Utilisations max",
+      "passwordOptional": "Mot de passe (optionnel)",
+      "createPublicLink": "Créer un lien public",
+      "existingLinks": "Liens existants",
+      "noPublicLinks": "Pas de liens publics",
+      "inactive": "Inactif",
+      "uses": "util.",
+      "unlimited": "Illimité",
+      "maxUsesLabel": "Max {count} util.",
+      "viewOnly": "Lecture seule",
+      "viewAndDownload": "Lecture et téléchargement",
+      "selectUser": "Sélectionner un utilisateur",
+      "selectRole": "Sélectionner un rôle",
+      "dataLoadError": "Erreur de chargement des données",
+      "accessGranted": "Accès accordé",
+      "grantError": "Erreur lors de l'octroi de l'accès",
+      "accessRevoked": "Accès révoqué",
+      "revokeError": "Erreur lors de la révocation de l'accès",
+      "linkCreated": "Lien public créé",
+      "linkCreateError": "Erreur lors de la création du lien",
+      "linkCopied": "Lien copié",
+      "linkCopyError": "Impossible de copier le lien",
+      "linkDeactivated": "Lien désactivé",
+      "linkDeactivateError": "Erreur lors de la désactivation du lien",
+      "linkDeleted": "Lien supprimé",
+      "linkDeleteError": "Erreur lors de la suppression du lien",
+      "permissionRead": "Lecture",
+      "permissionWrite": "Modification",
+      "permissionDelete": "Suppression",
+      "permissionAdmin": "Accès complet",
+      "roleAdmin": "Administrateur",
+      "roleSecretary": "Secrétaire",
+      "roleMethodist": "Méthodiste",
+      "roleTeacher": "Enseignant",
+      "roleStudent": "Étudiant",
+      "noLimitPlaceholder": "Sans limite",
+      "noPasswordPlaceholder": "Sans mot de passe"
+    },
+    "sharedPage": {
+      "title": "Documents partagés",
+      "subtitle": "Gérer les documents partagés",
+      "unknown": "Inconnu",
+      "loading": "Chargement des documents...",
+      "backToDocuments": "Retour aux documents",
+      "back": "Retour",
+      "goToDocuments": "Aller aux documents",
+      "sharedWithMe": "Partagés avec moi",
+      "myShared": "Mes documents partagés",
+      "incoming": "Entrants",
+      "outgoing": "Sortants",
+      "loadError": "Échec du chargement des documents partagés",
+      "loadMySharedError": "Échec du chargement de vos documents partagés",
+      "noSharedWithMe": "Pas de documents partagés",
+      "noSharedWithMeDesc": "Personne n'a encore partagé de documents avec vous",
+      "noMyShared": "Vous n'avez pas partagé de documents",
+      "noMySharedDesc": "Vous n'avez pas encore partagé de documents avec d'autres utilisateurs",
+      "role": "Rôle",
+      "noExpiration": "sans expiration",
+      "sharedWith": "Partagé avec",
+      "and": "et",
+      "user": "utilisateur",
+      "users": "utilisateurs",
+      "roleSingular": "rôle",
+      "roles": "rôles",
+      "noAccess": "Pas d'accès partagé"
+    }
+  },
+  "calendar": {
+    "title": "Calendrier",
+    "subtitle": "Planification et gestion des événements",
+    "eventCreated": "Événement créé",
+    "eventUpdated": "Événement mis à jour",
+    "eventDeleted": "Événement supprimé",
+    "createError": "Erreur lors de la création de l'événement",
+    "updateError": "Erreur lors de la mise à jour de l'événement",
+    "deleteError": "Erreur lors de la suppression de l'événement",
+    "form": {
+      "eventNamePlaceholder": "Entrez le nom de l'événement",
+      "selectTypePlaceholder": "Sélectionner le type",
+      "locationPlaceholder": "Entrez le lieu",
+      "reminderPlaceholder": "Par défaut",
+      "eventDescriptionPlaceholder": "Ajouter une description de l'événement"
+    },
+    "navigation": {
+      "previous": "Précédent",
+      "next": "Suivant"
+    },
+    "eventTypes": {
+      "meeting": "Réunion",
+      "deadline": "Échéance",
+      "task": "Tâche",
+      "reminder": "Rappel",
+      "holiday": "Jour férié",
+      "personal": "Personnel"
+    },
+    "eventStatuses": {
+      "scheduled": "Planifié",
+      "ongoing": "En cours",
+      "completed": "Terminé",
+      "cancelled": "Annulé",
+      "postponed": "Reporté"
+    },
+    "recurring": "Récurrent",
+    "allDay": "Toute la journée",
+    "participants": "{count} participants",
+    "menu": "Menu",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "modal": {
+      "viewTitle": "Afficher l'événement",
+      "editTitle": "Modifier l'événement",
+      "newTitle": "Nouvel événement",
+      "viewDescription": "Détails de l'événement",
+      "editDescription": "Modifier les détails de l'événement",
+      "newDescription": "Remplissez les informations du nouvel événement"
+    },
+    "labels": {
+      "title": "Titre",
+      "titleRequired": "Titre *",
+      "eventType": "Type d'événement",
+      "allDay": "Toute la journée",
+      "startDate": "Date de début",
+      "startDateRequired": "Date de début *",
+      "startTime": "Heure de début",
+      "startTimeRequired": "Heure de début *",
+      "endDate": "Date de fin",
+      "endTime": "Heure de fin",
+      "location": "Lieu",
+      "color": "Couleur",
+      "description": "Description"
+    },
+    "placeholders": {
+      "selectDate": "Sélectionner une date"
+    },
+    "validation": {
+      "titleRequired": "Le titre est obligatoire",
+      "timeFormat": "Format HH:MM"
+    },
+    "colors": {
+      "default": "Par défaut",
+      "blue": "Bleu",
+      "red": "Rouge",
+      "green": "Vert",
+      "yellow": "Jaune",
+      "purple": "Violet",
+      "gray": "Gris"
+    },
+    "buttons": {
+      "delete": "Supprimer",
+      "close": "Fermer",
+      "cancel": "Annuler",
+      "saving": "Enregistrement...",
+      "save": "Enregistrer",
+      "create": "Créer"
+    }
+  },
+  "users": {
+    "title": "Gestion des utilisateurs",
+    "subtitle": "Voir et gérer les utilisateurs du système",
+    "searchPlaceholder": "Rechercher par nom ou e-mail...",
+    "nameFilter": "Nom d'utilisateur",
+    "emailFilter": "E-mail",
+    "roleFilter": "Rôle",
+    "statusFilter": "Statut",
+    "departmentFilter": "Département",
+    "allRoles": "Tous les rôles",
+    "allStatuses": "Tous les statuts",
+    "allDepartments": "Tous les départements",
+    "filterByName": "Filtrer par nom...",
+    "filterByEmail": "Filtrer par e-mail...",
+    "usersList": "Utilisateurs",
+    "usersListSubtitle": "Liste de tous les utilisateurs enregistrés",
+    "noUsersFound": "Aucun utilisateur trouvé",
+    "creationDate": "Date de création",
+    "deactivate": "Désactiver",
+    "activate": "Activer",
+    "block": "Bloquer",
+    "unblock": "Débloquer",
+    "statusUpdated": "Statut de l'utilisateur mis à jour",
+    "statusUpdateFailed": "Échec de la mise à jour du statut",
+    "userDeleted": "Utilisateur supprimé",
+    "deleteFailed": "Échec de la suppression de l'utilisateur",
+    "loadFailed": "Échec du chargement de la liste des utilisateurs",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?",
+    "statuses": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "blocked": "Bloqué"
+    },
+    "filterLabels": {
+      "search": "Recherche",
+      "name": "Nom",
+      "department": "Département"
+    },
+    "tableHeaders": {
+      "user": "Utilisateur",
+      "email": "Email",
+      "role": "Rôle",
+      "status": "Statut",
+      "department": "Département",
+      "createdAt": "Créé le",
+      "actions": "Actions"
+    },
+    "delete": "Supprimer",
+    "pagination": "Page {page} sur {totalPages}"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "reset": "Réinitialiser",
+    "resetSettings": "Réinitialiser les paramètres ?",
+    "appearance": {
+      "title": "Apparence",
+      "subtitle": "Personnaliser le thème et l'arrière-plan animé",
+      "resetDescription": "Tous les paramètres d'apparence seront réinitialisés aux valeurs par défaut.",
+      "resetSuccess": "Paramètres d'apparence réinitialisés",
+      "theme": {
+        "title": "Thème",
+        "subtitle": "Choisir le thème de couleur de l'interface",
+        "light": "Clair",
+        "dark": "Sombre",
+        "system": "Système"
+      },
+      "background": {
+        "title": "Arrière-plan animé",
+        "subtitle": "Configurer l'arrière-plan dynamique de l'application",
+        "type": "Type d'arrière-plan",
+        "typePlaceholder": "Sélectionner le type d'arrière-plan",
+        "speed": "Vitesse d'animation",
+        "speedDisabled": "Désactivé en raison du mode de mouvement réduit",
+        "speedDescription": "Vitesse de lecture de l'animation",
+        "intensity": "Intensité",
+        "intensityDescription": "Luminosité et saturation de l'effet",
+        "types": {
+          "none": "Aucun arrière-plan",
+          "noneDesc": "Arrière-plan de couleur unie standard",
+          "grainGradient": "Dégradé granuleux",
+          "grainGradientDesc": "Dégradé doux avec effet de grain",
+          "warp": "Distorsion",
+          "warpDesc": "Effet ondulé dynamique",
+          "meshGradient": "Dégradé maillé",
+          "meshGradientDesc": "Dégradé multicolore fluide"
+        }
+      },
+      "accessibility": {
+        "title": "Accessibilité",
+        "subtitle": "Paramètres pour une meilleure utilisation",
+        "reduceMotion": "Réduire les mouvements",
+        "reduceMotionDesc": "Désactive les animations pour les personnes souffrant de troubles vestibulaires"
+      },
+      "preview": "Les modifications sont appliquées automatiquement. Regardez l'arrière-plan de la page pour voir le résultat."
+    },
+    "notifications": {
+      "title": "Paramètres de notification",
+      "subtitle": "Gérer la façon dont vous recevez les notifications",
+      "resetDescription": "Tous les paramètres de notification seront réinitialisés aux valeurs par défaut. Cette action est irréversible.",
+      "resetSuccess": "Paramètres réinitialisés aux valeurs par défaut",
+      "updateError": "Échec de la mise à jour des paramètres",
+      "channels": {
+        "title": "Canaux de notification",
+        "subtitle": "Choisissez comment vous souhaitez recevoir les notifications",
+        "inApp": "Dans l'application",
+        "inAppDesc": "Notifications dans le centre de notifications",
+        "email": "E-mail",
+        "emailDesc": "Envoyer les notifications par e-mail",
+        "push": "Notifications push",
+        "pushDesc": "Notifications sur appareil mobile",
+        "slack": "Slack",
+        "slackDesc": "Notifications dans Slack",
+        "enabled": "activées",
+        "disabled": "désactivées"
+      },
+      "quietHours": {
+        "title": "Heures calmes",
+        "subtitle": "Désactiver les notifications à certaines heures",
+        "start": "Début",
+        "end": "Fin",
+        "timezone": "Fuseau horaire",
+        "timezonePlaceholder": "Sélectionner le fuseau horaire",
+        "save": "Enregistrer les paramètres des heures calmes",
+        "saving": "Enregistrement...",
+        "saved": "Paramètres des heures calmes enregistrés",
+        "enabled": "Heures calmes activées",
+        "disabled": "Heures calmes désactivées"
+      }
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Voir et gérer toutes les notifications",
+    "ariaLabel": "Notifications",
+    "ariaLabelWithCount": "Notifications ({count} non lues)",
+    "viewAll": "Voir toutes les notifications",
+    "markAsReadError": "Impossible de marquer la notification",
+    "allMarkedAsRead": "Toutes les notifications ont été marquées comme lues",
+    "markAllAsReadError": "Impossible de marquer les notifications",
+    "markAllAsRead": "Tout marquer comme lu",
+    "empty": "Vous n'avez pas encore de notifications",
+    "noNotifications": "Vous n'avez pas encore de notifications",
+    "tryChangeFilters": "Essayez de modifier les filtres",
+    "markAllRead": "Tout marquer comme lu",
+    "clearAll": "Tout effacer",
+    "deleteAll": "Supprimer toutes les notifications ?",
+    "deleteAllDesc": "Toutes les notifications seront définitivement supprimées. Cette action est irréversible.",
+    "deleteAllSuccess": "Toutes les notifications supprimées",
+    "allMarkedRead": "Toutes les notifications marquées comme lues",
+    "deleted": "Notification supprimée",
+    "markError": "Échec du marquage de la notification",
+    "markAllError": "Échec du marquage des notifications",
+    "deleteError": "Échec de la suppression de la notification",
+    "deleteAllError": "Échec de la suppression des notifications",
+    "stats": {
+      "total": "Total",
+      "unread": "Non lues",
+      "today": "Aujourd'hui",
+      "urgent": "Urgentes",
+      "expired": "Expirées"
+    },
+    "filters": {
+      "title": "Filtres",
+      "type": "Type",
+      "priority": "Priorité",
+      "status": "Statut",
+      "allTypes": "Tous les types",
+      "allPriorities": "Toutes les priorités",
+      "all": "Toutes",
+      "unread": "Non lues",
+      "read": "Lues"
+    },
+    "pagination": {
+      "showing": "Affichage de {count} sur {total} notifications",
+      "more": "+{count} de plus"
+    }
+  },
+  "profile": {
+    "title": "Profil utilisateur",
+    "subtitle": "Gérer votre compte et vos données personnelles",
+    "editProfile": "Modifier",
+    "avatar": {
+      "title": "Photo de profil",
+      "subtitle": "Téléchargez une photo pour votre profil"
+    },
+    "personalInfo": {
+      "title": "Informations personnelles",
+      "subtitle": "Vos données de compte de base"
+    },
+    "accountInfo": {
+      "title": "Informations du compte",
+      "subtitle": "Données supplémentaires du compte"
+    },
+    "fields": {
+      "name": "Nom",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "phonePlaceholder": "+33 6 12 34 56 78",
+      "phoneNotSet": "Non défini",
+      "bio": "À propos",
+      "bioPlaceholder": "Parlez-nous un peu de vous...",
+      "bioNotSet": "Non défini",
+      "role": "Rôle",
+      "createdAt": "Créé le",
+      "updatedAt": "Dernière mise à jour",
+      "userId": "ID utilisateur",
+      "notSet": "Non défini"
+    },
+    "errors": {
+      "saveError": "Erreur lors de l'enregistrement du profil",
+      "phoneFormat": "Le téléphone doit être au format international (ex: +33612345678)",
+      "bioLength": "La bio ne doit pas dépasser 500 caractères"
+    }
+  },
+  "integration": {
+    "title": "Intégration 1C",
+    "subtitle": "Synchronisation des données des employés et étudiants",
+    "refresh": "Actualiser",
+    "stats": {
+      "totalSyncs": "Total synchronisations",
+      "successful": "Réussies",
+      "failed": "Échecs",
+      "conflicts": "Conflits"
+    },
+    "sync": {
+      "title": "Démarrer la synchronisation",
+      "subtitle": "Sélectionnez le type de données à synchroniser avec 1C",
+      "employees": "Synchroniser les employés",
+      "students": "Synchroniser les étudiants",
+      "lastSync": "Dernière synchronisation",
+      "started": "Synchronisation {type} démarrée",
+      "error": "Échec du démarrage de la synchronisation"
+    },
+    "tabs": {
+      "logs": "Historique",
+      "conflicts": "Conflits",
+      "employees": "Employés",
+      "students": "Étudiants"
+    },
+    "logs": {
+      "title": "Historique de synchronisation",
+      "subtitle": "Journal de toutes les opérations de synchronisation",
+      "noRecords": "Aucun enregistrement",
+      "columns": {
+        "type": "Type",
+        "status": "Statut",
+        "records": "Enregistrements",
+        "success": "Succès",
+        "errors": "Erreurs",
+        "conflicts": "Conflits",
+        "date": "Date"
+      }
+    },
+    "conflicts": {
+      "title": "Conflits de synchronisation",
+      "subtitle": "Nécessitent une résolution manuelle",
+      "noConflicts": "Aucun conflit non résolu",
+      "allLocal": "Tout local",
+      "allExternal": "Tout externe",
+      "resolve": "Résoudre",
+      "resolved": "Conflit résolu",
+      "resolvedCount": "Conflits résolus : {count}",
+      "resolveError": "Échec de la résolution du conflit",
+      "bulkResolveError": "Échec de la résolution des conflits",
+      "columns": {
+        "type": "Type",
+        "entityId": "ID entité",
+        "conflictType": "Type de conflit",
+        "fields": "Champs",
+        "date": "Date",
+        "actions": "Actions"
+      },
+      "dialog": {
+        "title": "Résoudre le conflit",
+        "subtitle": "Choisissez quelles données utiliser pour l'entité {id}",
+        "localData": "Données locales",
+        "externalData": "Données externes (1C)",
+        "selectResolution": "Sélectionner la résolution :",
+        "useLocal": "Utiliser les données locales",
+        "useExternal": "Utiliser les données de 1C",
+        "skip": "Ignorer",
+        "apply": "Appliquer"
+      }
+    },
+    "employees": {
+      "title": "Employés de 1C",
+      "subtitle": "Données des employés synchronisées",
+      "noData": "Aucune donnée",
+      "columns": {
+        "fullName": "Nom complet",
+        "email": "E-mail",
+        "position": "Poste",
+        "department": "Département",
+        "status": "Statut",
+        "synced": "Synchronisé"
+      }
+    },
+    "students": {
+      "title": "Étudiants de 1C",
+      "subtitle": "Données des étudiants synchronisées",
+      "noData": "Aucune donnée",
+      "columns": {
+        "fullName": "Nom complet",
+        "group": "Groupe",
+        "faculty": "Faculté",
+        "course": "Année",
+        "status": "Statut",
+        "synced": "Synchronisé"
+      }
+    },
+    "entityTypes": {
+      "employee": "Employés",
+      "student": "Étudiants"
+    },
+    "statuses": {
+      "pending": "En attente",
+      "in_progress": "En cours",
+      "completed": "Terminé",
+      "failed": "Échec",
+      "cancelled": "Annulé",
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "pagination": {
+      "page": "Page {current} sur {total}"
+    }
+  },
+  "notificationBell": {
+    "ariaLabel": "Notifications{count, plural, =0 {} other { ({count} non lues)}}",
+    "settingsAriaLabel": "Paramètres de notification",
+    "showAll": "Afficher toutes les notifications",
+    "tabs": {
+      "all": "Toutes",
+      "tasks": "Tâches",
+      "documents": "Documents",
+      "events": "Événements"
+    }
+  },
+  "userMenu": {
+    "defaultUser": "Utilisateur",
+    "avatar": "Avatar",
+    "profile": "Profil",
+    "appearance": "Apparence",
+    "notifications": "Notifications",
+    "loggingOut": "Déconnexion...",
+    "logoutSuccess": "Déconnexion réussie",
+    "logoutSuccessDesc": "À bientôt !",
+    "logoutError": "Erreur de déconnexion",
+    "logoutErrorDesc": "Veuillez réessayer"
+  },
+  "notificationTypes": {
+    "system": "Système",
+    "reminder": "Rappel",
+    "task": "Tâche",
+    "document": "Document",
+    "announcement": "Annonce",
+    "event": "Événement",
+    "calendar": "Calendrier",
+    "integration": "Intégration",
+    "user": "Utilisateur"
+  },
+  "notificationPriorities": {
+    "low": "Faible",
+    "normal": "Normal",
+    "high": "Élevé",
+    "urgent": "Urgent"
+  },
+  "notificationChannels": {
+    "email": "Email",
+    "push": "Notifications push",
+    "in_app": "Dans l'application",
+    "telegram": "Telegram",
+    "slack": "Slack"
+  },
+  "metadata": {
+    "title": "Secrétaire-Méthodiste | Système d'information",
+    "titleTemplate": "%s | SM SI",
+    "shortName": "SM SI",
+    "siteName": "Secrétaire-Méthodiste SI",
+    "description": "Système d'information pour la gestion documentaire et l'automatisation du travail du secrétaire-méthodiste dans les établissements d'enseignement",
+    "ogDescription": "Système d'information pour la gestion documentaire et l'automatisation du travail du secrétaire-méthodiste",
+    "ogImageAlt": "Secrétaire-Méthodiste SI",
+    "keywords": "secrétaire, méthodiste, gestion documentaire, établissement d'enseignement, automatisation, emploi du temps"
+  },
+  "manifest": {
+    "name": "Secrétaire-Méthodiste | Système d'information",
+    "shortName": "SM SI",
+    "description": "Système d'information pour la gestion documentaire et l'automatisation du travail du secrétaire-méthodiste dans les établissements d'enseignement",
+    "desktopScreenshot": "Bureau de l'application",
+    "mobileScreenshot": "Version mobile",
+    "shortcutDocuments": "Documents",
+    "shortcutDocumentsDesc": "Aller aux documents",
+    "shortcutCalendar": "Calendrier",
+    "shortcutCalendarDesc": "Ouvrir le calendrier",
+    "shortcutNotifications": "Notifications",
+    "shortcutNotificationsDesc": "Voir les notifications"
+  },
+  "pwa": {
+    "installApp": "Installer l'application",
+    "close": "Fermer",
+    "iosInstructions": "Pour installer sur iOS :",
+    "iosStep1": "Appuyez sur",
+    "iosStep1Action": "Partager",
+    "iosStep2": "Sélectionnez",
+    "iosStep2Action": "Sur l'écran d'accueil",
+    "installDescription": "Installez l'application pour un accès rapide et une utilisation hors ligne.",
+    "install": "Installer",
+    "notNow": "Pas maintenant",
+    "updateAvailable": "Mise à jour disponible. Mettre à jour maintenant ?"
+  },
+  "telegram": {
+    "generateCodeError": "Échec de la génération du code",
+    "codeCopied": "Code copié",
+    "copyError": "Échec de la copie du code",
+    "disconnected": "Telegram déconnecté",
+    "disconnectError": "Échec de la déconnexion de Telegram",
+    "accountLinked": "Compte lié",
+    "connected": "Connecté",
+    "name": "Nom",
+    "connectedAt": "Connecté",
+    "disconnect": "Déconnecter Telegram",
+    "disconnectTitle": "Déconnecter Telegram ?",
+    "disconnectDescription": "Vous ne recevrez plus de notifications via Telegram. Vous pouvez lier votre compte à nouveau à tout moment.",
+    "cancel": "Annuler",
+    "confirmDisconnect": "Déconnecter",
+    "linkDescription": "Liez Telegram pour recevoir des notifications",
+    "linkInstructions": "Pour lier votre compte Telegram, cliquez sur le bouton ci-dessous. Un code unique sera généré que vous devrez envoyer au bot.",
+    "generating": "Génération...",
+    "getCode": "Obtenir le code de liaison",
+    "yourCode": "Votre code :",
+    "expiresIn": "Expire dans {time}",
+    "copyCode": "Copier le code",
+    "howToLink": "Comment lier :",
+    "step1": "Cliquez sur le bouton ci-dessous pour ouvrir le bot",
+    "step2": "Cliquez sur 'Start' ou envoyez le code manuellement",
+    "step3": "Attendez la confirmation",
+    "openBot": "Ouvrir le bot",
+    "getNewCode": "Obtenir un nouveau code"
+  },
+  "avatarUpload": {
+    "sizeError": "La taille du fichier doit être inférieure à 5 Mo",
+    "formatError": "Seuls JPG, PNG, GIF, WebP sont pris en charge",
+    "uploadError": "Erreur lors du téléchargement du fichier",
+    "deleteError": "Erreur lors de la suppression de la photo",
+    "avatar": "Avatar",
+    "changePhoto": "Changer la photo",
+    "uploadPhoto": "Télécharger une photo",
+    "delete": "Supprimer",
+    "formatHint": "JPG, PNG, GIF ou WebP. Max 5 Mo."
+  },
+  "imageCropper": {
+    "title": "Ajuster la photo",
+    "rotate": "Pivoter",
+    "cancel": "Annuler",
+    "saving": "Enregistrement...",
+    "apply": "Appliquer"
+  },
+  "themeSettings": {
+    "ariaLabel": "Paramètres du thème",
+    "themeTitle": "Thème",
+    "animatedBackground": "Arrière-plan animé",
+    "enableAnimatedBackground": "Activer l'arrière-plan animé",
+    "themes": {
+      "light": "Clair",
+      "dark": "Sombre",
+      "system": "Système"
+    },
+    "backgrounds": {
+      "none": "Aucun arrière-plan",
+      "grain-gradient": "Dégradé",
+      "warp": "Distorsion",
+      "mesh-gradient": "Maillage"
+    }
+  },
+  "calendarView": {
+    "moreEvents": "+ {count} de plus",
+    "eventsCount": "{count} événements",
+    "allDay": "Toute la journée",
+    "week": "Semaine",
+    "weekNumber": "Semaine",
+    "month": "Mois",
+    "day": "Jour",
+    "today": "Aujourd'hui",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "newEvent": "Événement",
+    "eventsOn": "Événements du",
+    "noEvents": "Aucun événement pour ce jour",
+    "weekdays": {
+      "sun": "Dim",
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mer",
+      "thu": "Jeu",
+      "fri": "Ven",
+      "sat": "Sam"
+    }
+  },
+  "notificationsMenu": {
+    "downloadFile": "Télécharger le fichier",
+    "reject": "Rejeter",
+    "accept": "Accepter",
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "settings": "Paramètres de notification",
+    "tabs": {
+      "all": "Toutes",
+      "unread": "Non lues",
+      "mentions": "Mentions"
+    },
+    "empty": "Aucune notification"
+  },
+  "skipToContent": "Passer au contenu",
+  "documentList": {
+    "loading": "Chargement des documents...",
+    "noDocuments": "Aucun document",
+    "noDocumentsHint": "Téléchargez des documents pour les voir ici",
+    "view": "Afficher",
+    "edit": "Modifier",
+    "share": "Partager"
+  },
+  "documentPreview": {
+    "download": "Télécharger",
+    "open": "Ouvrir",
+    "viewTab": "Aperçu",
+    "historyTab": "Historique des versions",
+    "previewUnavailable": "Aperçu non disponible",
+    "previewUnavailableHint": "Ce type de fichier ne prend pas en charge l'aperçu.",
+    "downloadToView": "Télécharger pour afficher",
+    "version": "Version",
+    "modified": "Modifié",
+    "description": "Description",
+    "tags": "Tags"
+  },
+  "textDiff": {
+    "before": "Avant",
+    "after": "Après",
+    "noChanges": "Aucun changement",
+    "removed": "supprimé",
+    "added": "ajouté",
+    "versionA": "Version A",
+    "versionB": "Version B"
+  },
+  "validation": {
+    "emailRequired": "L'email est obligatoire",
+    "emailInvalid": "Format d'email invalide",
+    "passwordRequired": "Le mot de passe est obligatoire",
+    "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères",
+    "passwordUppercase": "Le mot de passe doit contenir au moins une lettre majuscule",
+    "passwordLowercase": "Le mot de passe doit contenir au moins une lettre minuscule",
+    "passwordDigit": "Le mot de passe doit contenir au moins un chiffre",
+    "passwordSpecial": "Le mot de passe doit contenir au moins un caractère spécial",
+    "nameRequired": "Le nom est obligatoire",
+    "nameMinLength": "Le nom doit contenir au moins 2 caractères",
+    "nameMaxLength": "Le nom ne doit pas dépasser 50 caractères",
+    "confirmPasswordRequired": "La confirmation du mot de passe est obligatoire",
+    "confirmPassword": "Confirmez votre mot de passe",
+    "passwordsMismatch": "Les mots de passe ne correspondent pas",
+    "roleInvalid": "Veuillez sélectionner un rôle valide"
+  },
+  "routeAnnouncer": {
+    "navigatedTo": "Navigation vers : {page}",
+    "routes": {
+      "home": "Page d'accueil",
+      "dashboard": "Tableau de bord",
+      "documents": "Documents",
+      "sharedDocuments": "Documents partagés",
+      "calendar": "Calendrier",
+      "notifications": "Notifications",
+      "profile": "Profil",
+      "users": "Utilisateurs",
+      "appearance": "Paramètres d'apparence",
+      "notificationSettings": "Paramètres de notification",
+      "integration": "Intégration 1C",
+      "login": "Connexion",
+      "register": "Inscription"
+    }
+  }
+}

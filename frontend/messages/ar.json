@@ -1,0 +1,1279 @@
+{
+  "errorPages": {
+    "notFound": {
+      "title": "الصفحة غير موجودة",
+      "description": "عذراً، الصفحة التي تبحث عنها غير موجودة أو تم حذفها.",
+      "backHome": "العودة للرئيسية"
+    },
+    "offline": {
+      "title": "لا يوجد اتصال بالإنترنت",
+      "description": "يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى. قد تكون بعض الميزات غير متاحة دون اتصال.",
+      "retry": "حاول مرة أخرى",
+      "cacheNote": "يمكنك الاستمرار في العمل مع البيانات المحملة مسبقاً من الذاكرة المؤقتة.",
+      "tipsTitle": "نصائح للعمل دون اتصال:",
+      "tip1": "الصفحات التي تمت مشاهدتها مسبقاً متاحة من الذاكرة المؤقتة",
+      "tip2": "سيتم مزامنة التغييرات عند استعادة الاتصال",
+      "tip3": "ستصل الإشعارات بعد الاتصال"
+    },
+    "forbidden": {
+      "title": "الوصول مرفوض",
+      "description": "ليس لديك صلاحية للوصول إلى هذه الصفحة. يرجى الاتصال بالمسؤول إذا كنت تعتقد أن هذا خطأ.",
+      "back": "رجوع",
+      "backHome": "الذهاب للرئيسية"
+    },
+    "error": {
+      "title": "حدث خطأ ما",
+      "description": "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
+      "details": "تفاصيل الخطأ:",
+      "supportCode": "رمز الخطأ للدعم:",
+      "retry": "حاول مرة أخرى",
+      "backHome": "الذهاب للرئيسية"
+    },
+    "globalError": {
+      "title": "خطأ حرج",
+      "description": "واجه التطبيق خطأ حرجاً. يرجى إعادة تحميل الصفحة.",
+      "details": "تفاصيل الخطأ:",
+      "supportCode": "رمز الخطأ للدعم:",
+      "retry": "حاول مرة أخرى",
+      "reload": "إعادة تحميل الصفحة"
+    },
+    "errorBoundary": {
+      "title": "حدث خطأ",
+      "defaultMessage": "واجه هذا المكون خطأ ولا يمكن عرضه.",
+      "details": "رسالة الخطأ:",
+      "showStack": "عرض مكدس المكونات",
+      "retry": "حاول مرة أخرى"
+    }
+  },
+  "common": {
+    "loading": "جارٍ التحميل...",
+    "time": {
+      "justNow": "الآن",
+      "minutesAgo": "منذ {count} د.",
+      "hoursAgo": "منذ {count} س.",
+      "yesterday": "أمس",
+      "daysAgo": "منذ {count} ي."
+    },
+    "fileSize": {
+      "bytes": "{size} بايت",
+      "kb": "{size} ك.ب",
+      "mb": "{size} م.ب",
+      "gb": "{size} ج.ب"
+    },
+    "error": "خطأ",
+    "success": "نجاح",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "create": "إنشاء",
+    "search": "بحث",
+    "filter": "تصفية",
+    "filters": "المرشحات",
+    "reset": "إعادة تعيين",
+    "refresh": "تحديث",
+    "uploaded": "تم الرفع",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "confirm": "تأكيد",
+    "all": "الكل",
+    "total": "المجموع",
+    "page": "صفحة",
+    "of": "من",
+    "noResults": "لم يتم العثور على نتائج",
+    "actions": "الإجراءات",
+    "status": "الحالة",
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "date": "التاريخ",
+    "unknown": "غير معروف",
+    "aria": {
+      "close": "إغلاق",
+      "downloadFile": "تحميل الملف",
+      "markAllRead": "تحديد الكل كمقروء",
+      "settings": "الإعدادات",
+      "copy": "نسخ",
+      "copyCode": "نسخ الكود",
+      "getNewCode": "الحصول على كود جديد",
+      "themeSettings": "إعدادات السمة",
+      "enableAnimatedBackground": "تفعيل الخلفية المتحركة"
+    }
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "register": "إنشاء حساب",
+    "loginTitle": "تسجيل الدخول",
+    "registerTitle": "إنشاء حساب",
+    "email": "عنوان البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "noAccount": "ليس لديك حساب؟",
+    "hasAccount": "لديك حساب بالفعل؟",
+    "registerFree": "سجل مجاناً",
+    "loginToSystem": "تسجيل الدخول إلى النظام"
+  },
+  "loginForm": {
+    "loginSuccess": "تم تسجيل الدخول بنجاح!",
+    "redirecting": "جاري إعادة التوجيه...",
+    "loginError": "خطأ في تسجيل الدخول",
+    "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "loggingIn": "جاري تسجيل الدخول..."
+  },
+  "registerForm": {
+    "registerSuccess": "تم التسجيل بنجاح!",
+    "redirectingToLogin": "جاري إعادة التوجيه إلى صفحة تسجيل الدخول...",
+    "registerError": "خطأ في التسجيل",
+    "registering": "جاري التسجيل...",
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "role": "الدور",
+    "passwordStrength": "قوة كلمة المرور:",
+    "passwordWeak": "ضعيفة",
+    "passwordMedium": "متوسطة",
+    "passwordStrong": "قوية",
+    "passwordRequirements": "يجب أن تحتوي كلمة المرور على:"
+  },
+  "authPages": {
+    "loginWelcome": "مرحباً بعودتك",
+    "loginSubtitle": "سجل الدخول إلى حسابك للمتابعة",
+    "registerTitle": "إنشاء حساب",
+    "registerSubtitle": "سجل للوصول إلى النظام",
+    "backToHome": "← العودة إلى الرئيسية",
+    "footer": "© 2025 نظام معلومات السكرتير المنهجي",
+    "metaTitle": "المصادقة",
+    "metaDescription": "تسجيل الدخول والتسجيل في النظام"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "dashboard": "لوحة التحكم",
+    "users": "المستخدمون",
+    "documents": "المستندات",
+    "calendar": "التقويم",
+    "integration": "تكامل 1C",
+    "notifications": "الإشعارات",
+    "settings": "الإعدادات",
+    "profile": "الملف الشخصي",
+    "appearance": "المظهر",
+    "navigation": "التنقل",
+    "openMenu": "فتح القائمة",
+    "mainNavigation": "التنقل الرئيسي",
+    "mobileNavigation": "التنقل للجوال"
+  },
+  "roles": {
+    "system_admin": "مدير النظام",
+    "methodist": "المنهجي",
+    "academic_secretary": "السكرتير الأكاديمي",
+    "teacher": "المعلم",
+    "student": "الطالب"
+  },
+  "landing": {
+    "title": "نظام المعلومات",
+    "subtitle": "للسكرتير المنهجي",
+    "description": "لوحة تحكم حديثة للشؤون الأكاديمية وإدارة المستندات",
+    "getStarted": "ابدأ الآن",
+    "learnMore": "اعرف المزيد",
+    "slides": {
+      "hero": "الرئيسية",
+      "modules": "الوحدات",
+      "stats": "الإحصائيات",
+      "roles": "الأدوار",
+      "faq": "الأسئلة الشائعة",
+      "cta": "ابدأ"
+    },
+    "modules": {
+      "title": "قدرات النظام",
+      "subtitle": "انقر على البطاقة لمعرفة المزيد عن الوحدة",
+      "features": "ميزات الوحدة:",
+      "goToModule": "الذهاب إلى الوحدة",
+      "available": "متاح",
+      "inDevelopment": "قيد التطوير",
+      "documents": {
+        "title": "إدارة المستندات",
+        "description": "دورة كاملة للمستندات: الإنشاء، الموافقة، الأرشفة"
+      },
+      "notifications": {
+        "title": "نظام الإشعارات",
+        "description": "إشعارات متعددة القنوات: البريد الإلكتروني، تيليجرام، داخل التطبيق"
+      },
+      "calendar": {
+        "title": "تقويم الفعاليات",
+        "description": "تقويم تفاعلي مع تذكيرات للأحداث المهمة"
+      },
+      "integration": {
+        "title": "تكامل 1C",
+        "description": "مزامنة بيانات الموظفين والطلاب مع نظام 1C"
+      },
+      "personalization": {
+        "title": "تخصيص الواجهة",
+        "description": "تخصيص المظهر: السمات، الخلفيات، حجم النص"
+      },
+      "search": {
+        "title": "البحث الكامل",
+        "description": "بحث سريع في المستندات والمستخدمين والفعاليات"
+      },
+      "archive": {
+        "title": "نظام الأرشفة",
+        "description": "أرشفة تلقائية للمستندات مع خيار الاسترداد"
+      },
+      "reports": {
+        "title": "التقارير والتحليلات",
+        "description": "إحصائيات مفصلة وإنشاء تقارير في جميع المجالات"
+      },
+      "projects": {
+        "title": "إدارة المشاريع",
+        "description": "تخطيط وتتبع المشاريع التعليمية"
+      },
+      "communication": {
+        "title": "مركز الاتصالات",
+        "description": "نظام مركزي للتواصل بين المعلم والطالب"
+      }
+    },
+    "stats": {
+      "title": "إنجازاتنا بالأرقام",
+      "subtitle": "يتطور النظام باستمرار ويساعد آلاف المستخدمين على تحسين سير عملهم",
+      "documentsProcessed": "المستندات المعالجة",
+      "activeUsers": "المستخدمون النشطون",
+      "eventsHeld": "الفعاليات المنعقدة",
+      "satisfaction": "الرضا"
+    },
+    "roleSection": {
+      "title": "أدوار النظام",
+      "subtitle": "يحصل كل مستخدم على صلاحيات وفقاً لدوره",
+      "admin": {
+        "title": "المدير",
+        "description": "تحكم كامل في النظام",
+        "features": ["إدارة المستخدمين", "تكوين النظام", "جميع العمليات"]
+      },
+      "methodist": {
+        "title": "المنهجي",
+        "description": "العمل مع المستندات والقوالب",
+        "features": ["إنشاء المستندات", "إدارة القوالب", "إنشاء التقارير"]
+      },
+      "secretary": {
+        "title": "السكرتير",
+        "description": "تنظيم العملية التعليمية",
+        "features": ["جدولة الفصول", "تتبع الحضور", "العمل مع الطلاب"]
+      },
+      "teacher": {
+        "title": "المعلم",
+        "description": "الوصول إلى المواد التعليمية",
+        "features": ["عرض الجدول", "قوائم الطلاب", "تقويم الفعاليات"]
+      },
+      "student": {
+        "title": "الطالب",
+        "description": "عرض المعلومات",
+        "features": ["الجدول الشخصي", "المستندات", "الإعلانات"]
+      }
+    },
+    "faq": {
+      "title": "الأسئلة الشائعة",
+      "subtitle": "إجابات على الأسئلة الشائعة حول النظام",
+      "items": {
+        "0": {
+          "question": "كيف أبدأ العمل مع النظام؟",
+          "answer": "للبدء، سجل في النظام أو قم بتسجيل الدخول باستخدام بيانات الاعتماد المقدمة من المدير. بعد تسجيل الدخول، ستحصل على صلاحيات وفقاً لدورك."
+        },
+        "1": {
+          "question": "ما هي أدوار المستخدمين الموجودة في النظام؟",
+          "answer": "يحتوي النظام على 5 أدوار: المدير (صلاحيات كاملة)، المنهجي (إدارة المستندات والقوالب)، السكرتير (العمل مع الجدول والتقارير)، المعلم (عرض الجدول والطلاب) والطالب (صلاحيات عرض محدودة)."
+        },
+        "2": {
+          "question": "كيف أرفع المستندات؟",
+          "answer": "انتقل إلى قسم \"المستندات\" وانقر على زر \"رفع مستند\". الصيغ المدعومة هي PDF، DOC، DOCX، XLS، XLSX. الحد الأقصى لحجم الملف هو 50 ميجابايت."
+        },
+        "3": {
+          "question": "هل يمكنني استعادة المستندات المحذوفة؟",
+          "answer": "نعم، يتم نقل جميع المستندات المحذوفة إلى الأرشيف حيث يتم تخزينها لمدة 30 يوماً. خلال هذه الفترة، يمكن استعادتها من خلال قسم \"الأرشيف\"."
+        },
+        "4": {
+          "question": "كيف أضبط الإشعارات؟",
+          "answer": "في قسم \"الإعدادات\" في ملفك الشخصي، يمكنك اختيار أنواع الإشعارات (البريد الإلكتروني، الإشعارات الفورية) والأحداث التي تريد تلقي تنبيهات بشأنها: المستندات الجديدة، المواعيد النهائية القادمة، تغييرات الجدول."
+        },
+        "5": {
+          "question": "هل بياناتي آمنة؟",
+          "answer": "نعم، نستخدم أساليب تشفير حديثة (TLS 1.3، AES-256)، والمصادقة الثنائية، والنسخ الاحتياطي المنتظم. يتم تخزين جميع البيانات على خوادم آمنة وفقاً للمتطلبات القانونية."
+        }
+      }
+    },
+    "cta": {
+      "title": "هل أنت مستعد للبدء؟",
+      "subtitle": "انضم إلى آلاف المستخدمين الذين حسّنوا سير عملهم بالفعل مع نظامنا"
+    }
+  },
+  "dashboard": {
+    "welcome": "مرحباً، {name}!",
+    "periods": {
+      "week": "أسبوع",
+      "month": "شهر",
+      "quarter": "ربع سنة",
+      "year": "سنة"
+    },
+    "periodLabels": {
+      "week": "أسبوع",
+      "month": "شهر",
+      "quarter": "ربع سنة",
+      "year": "سنة"
+    },
+    "stats": {
+      "documents": "المستندات",
+      "students": "الطلاب",
+      "events": "الفعاليات",
+      "reports": "التقارير",
+      "tasks": "المهام",
+      "statistics": "الإحصائيات",
+      "trends": "الاتجاهات"
+    },
+    "charts": {
+      "documentsAndReports": "المستندات والتقارير",
+      "tasksAndEvents": "المهام والفعاليات"
+    },
+    "quickActions": {
+      "title": "الإجراءات السريعة",
+      "uploadDocument": "رفع مستند",
+      "addStudent": "إضافة طالب",
+      "createEvent": "إنشاء فعالية",
+      "createTask": "إنشاء مهمة"
+    },
+    "activityFeed": {
+      "title": "النشاط الأخير",
+      "empty": "لا يوجد نشاط للعرض",
+      "types": {
+        "document": "مستند",
+        "report": "تقرير",
+        "task": "مهمة",
+        "event": "فعالية",
+        "announcement": "إعلان"
+      },
+      "actions": {
+        "created": "تم إنشاؤه",
+        "updated": "تم تحديثه",
+        "deleted": "تم حذفه"
+      }
+    },
+    "export": {
+      "title": "تصدير",
+      "pdf": "تصدير إلى PDF",
+      "excel": "تصدير إلى Excel"
+    }
+  },
+  "documents": {
+    "title": "إدارة المستندات",
+    "versions": {
+      "loadError": "فشل في تحميل سجل الإصدارات",
+      "createError": "فشل في إنشاء الإصدار",
+      "restoreError": "فشل في استعادة الإصدار",
+      "deleteError": "فشل في حذف الإصدار",
+      "compareError": "فشل في مقارنة الإصدارات",
+      "downloadError": "فشل في الحصول على ملف الإصدار",
+      "descriptionPlaceholder": "وصف التغييرات (اختياري)",
+      "fieldLabels": {
+        "title": "العنوان",
+        "subject": "الموضوع",
+        "content": "المحتوى",
+        "status": "الحالة",
+        "file_name": "الملف"
+      },
+      "file": "الملف",
+      "topic": "الموضوع",
+      "noVersions": "لا توجد إصدارات متاحة",
+      "version": "الإصدار",
+      "current": "الحالي",
+      "restore": "استعادة",
+      "compare": "مقارنة",
+      "download": "تحميل",
+      "delete": "حذف",
+      "createVersion": "إنشاء إصدار",
+      "creating": "جاري الإنشاء...",
+      "changes": "التغييرات",
+      "noChanges": "لا توجد تغييرات",
+      "addedLines": "الأسطر المضافة",
+      "removedLines": "الأسطر المحذوفة",
+      "versionsIdentical": "الإصدارات متطابقة",
+      "changedFields": "الحقول المتغيرة",
+      "confirmRestore": "هل أنت متأكد من أنك تريد استعادة المستند إلى الإصدار {version}؟",
+      "confirmDelete": "هل أنت متأكد من أنك تريد حذف الإصدار {version}؟",
+      "loadingHistory": "جاري تحميل سجل الإصدارات...",
+      "retry": "إعادة المحاولة",
+      "history": "سجل الإصدارات",
+      "versionsCount": "إصدار",
+      "compareCount": "مقارنة ({count}/2)",
+      "saveVersion": "حفظ الإصدار",
+      "comparisonTitle": "مقارنة الإصدارات {from} و {to}",
+      "empty": "سجل الإصدارات فارغ",
+      "title": "العنوان",
+      "status": "الحالة",
+      "before": "قبل",
+      "after": "بعد",
+      "emptyValue": "(فارغ)"
+    },
+    "subtitle": "رفع والبحث وإدارة المستندات",
+    "upload": "رفع المستندات",
+    "uploadShort": "رفع",
+    "showDocuments": "عرض المستندات",
+    "documentsShort": "المستندات",
+    "sharedDocuments": "المستندات المشتركة",
+    "sharedShort": "مشتركة",
+    "searchResults": "تم العثور على: {count} مستند لـ \"{query}\"",
+    "sortedByRelevance": "النتائج مرتبة حسب الصلة",
+    "searching": "جارٍ البحث...",
+    "uploadFailed": "فشل رفع المستندات",
+    "deleteFailed": "فشل حذف المستند",
+    "loadFailed": "فشل تحميل المستندات",
+    "confirmDelete": "هل أنت متأكد من حذف المستند \"{name}\"؟",
+    "form": {
+      "fileNamePlaceholder": "اسم الملف",
+      "documentNamePlaceholder": "اسم المستند",
+      "descriptionPlaceholder": "وصف موجز للمستند",
+      "contentPlaceholder": "المحتوى النصي للمستند (اختياري)",
+      "tagsSearchPlaceholder": "البحث في الوسوم...",
+      "tagsPlaceholder": "أدخل الوسوم مفصولة بفواصل...",
+      "searchPlaceholder": "البحث في المستندات...",
+      "uploadDescriptionPlaceholder": "وصف موجز للمستندات...",
+      "versionDescriptionPlaceholder": "وصف التغييرات (اختياري)",
+      "selectUserPlaceholder": "اختر مستخدم",
+      "selectRolePlaceholder": "اختر دور",
+      "noLimitPlaceholder": "بدون حد",
+      "noPasswordPlaceholder": "بدون كلمة مرور"
+    },
+    "actions": {
+      "edit": "تعديل",
+      "share": "مشاركة",
+      "resetDate": "إعادة تعيين التاريخ",
+      "copyLink": "نسخ الرابط",
+      "revokeAccess": "إلغاء الوصول",
+      "deactivateLink": "إلغاء تفعيل الرابط",
+      "deleteLink": "حذف الرابط"
+    },
+    "edit": {
+      "title": "تعديل المستند",
+      "attachedFile": "الملف المرفق",
+      "selectNewFile": "اختيار ملف جديد",
+      "versionNote": "رفع ملف جديد ينشئ نسخة جديدة من المستند",
+      "titleLabel": "العنوان",
+      "subjectLabel": "الموضوع / الوصف",
+      "contentLabel": "المحتوى",
+      "tagsLabel": "الوسوم",
+      "noTags": "لا توجد وسوم",
+      "tagNotFound": "الوسم غير موجود",
+      "saveNote": "حفظ التغييرات ينشئ تلقائياً نسخة جديدة من المستند",
+      "saving": "جارٍ الحفظ...",
+      "fileUploadedSuccess": "تم رفع الملف \"{name}\" بنجاح",
+      "fileUploadError": "فشل في رفع الملف",
+      "tagAddError": "فشل في إضافة الوسم",
+      "tagRemoveError": "فشل في إزالة الوسم",
+      "saveError": "فشل في حفظ التغييرات"
+    },
+    "categories": {
+      "educational": "الأنشطة التعليمية",
+      "hr": "الموارد البشرية",
+      "administrative": "الإدارية",
+      "methodical": "العمل المنهجي",
+      "financial": "المالية",
+      "archive": "الأرشيف"
+    },
+    "statuses": {
+      "uploading": "جارٍ الرفع",
+      "processing": "جارٍ المعالجة",
+      "ready": "جاهز",
+      "error": "خطأ"
+    },
+    "filters": {
+      "category": "الفئة",
+      "status": "الحالة",
+      "author": "المؤلف",
+      "dateFrom": "التاريخ من",
+      "dateTo": "التاريخ إلى",
+      "tags": "الوسوم",
+      "sort": "ترتيب",
+      "allCategories": "جميع الفئات",
+      "allStatuses": "جميع الحالات",
+      "allAuthors": "جميع المؤلفين",
+      "selectDate": "اختر التاريخ",
+      "loading": "جارٍ التحميل...",
+      "name": "الاسم",
+      "uploadDate": "تاريخ الرفع",
+      "modifyDate": "تاريخ التعديل",
+      "size": "الحجم",
+      "authorPrefix": "المؤلف",
+      "from": "من",
+      "to": "إلى",
+      "search": "بحث",
+      "tagsPlaceholder": "أدخل الوسوم مفصولة بفواصل..."
+    },
+    "uploadForm": {
+      "dragAndDrop": "اسحب وأفلت الملفات هنا",
+      "orClickButton": "أو انقر على الزر أدناه لاختيار الملفات",
+      "selectFiles": "اختيار الملفات",
+      "supportedFormats": "الصيغ المدعومة: PDF، DOC، DOCX، XLS، XLSX، TXT، JPG، PNG (الحد الأقصى 10 ميجابايت)",
+      "selectedFiles": "الملفات المختارة",
+      "documentCategory": "فئة المستند",
+      "descriptionOptional": "الوصف (اختياري)",
+      "tagsOptional": "الوسوم (اختياري)",
+      "loadingTags": "جارٍ تحميل الوسوم...",
+      "noTagsAvailable": "لا توجد وسوم متاحة",
+      "selectedTags": "الوسوم المختارة",
+      "uploading": "جارٍ الرفع...",
+      "upload": "رفع",
+      "uploadCount": "رفع ({count})",
+      "descriptionPlaceholder": "وصف موجز للمستندات...",
+      "typeNotSupported": "نوع الملف غير مدعوم. المسموح بها: {extensions}",
+      "sizeExceeded": "حجم الملف يتجاوز الحد الأقصى ({size} ميجابايت)"
+    },
+    "share": {
+      "title": "مشاركة المستند",
+      "usersTab": "المستخدمون",
+      "linksTab": "الروابط العامة",
+      "toUser": "إلى مستخدم",
+      "byRole": "حسب الدور",
+      "user": "المستخدم",
+      "role": "الدور",
+      "accessLevel": "مستوى الوصول",
+      "expiryOptional": "تاريخ الانتهاء (اختياري)",
+      "grantAccess": "منح الوصول",
+      "currentPermissions": "الصلاحيات الحالية",
+      "noAccessGranted": "لم يتم منح أي وصول بعد",
+      "unknown": "غير معروف",
+      "until": "حتى",
+      "accessType": "نوع الوصول",
+      "expiry": "انتهاء الصلاحية",
+      "maxUses": "الحد الأقصى للاستخدام",
+      "passwordOptional": "كلمة المرور (اختياري)",
+      "createPublicLink": "إنشاء رابط عام",
+      "existingLinks": "الروابط الموجودة",
+      "noPublicLinks": "لا توجد روابط عامة",
+      "inactive": "غير نشط",
+      "uses": "استخدام",
+      "unlimited": "غير محدود",
+      "maxUsesLabel": "الحد الأقصى {count} استخدام",
+      "viewOnly": "العرض فقط",
+      "viewAndDownload": "العرض والتحميل",
+      "selectUser": "اختر مستخدم",
+      "selectRole": "اختر دور",
+      "dataLoadError": "خطأ في تحميل البيانات",
+      "accessGranted": "تم منح الوصول",
+      "grantError": "خطأ في منح الوصول",
+      "accessRevoked": "تم إلغاء الوصول",
+      "revokeError": "خطأ في إلغاء الوصول",
+      "linkCreated": "تم إنشاء الرابط العام",
+      "linkCreateError": "خطأ في إنشاء الرابط",
+      "linkCopied": "تم نسخ الرابط",
+      "linkCopyError": "فشل في نسخ الرابط",
+      "linkDeactivated": "تم إلغاء تفعيل الرابط",
+      "linkDeactivateError": "خطأ في إلغاء تفعيل الرابط",
+      "linkDeleted": "تم حذف الرابط",
+      "linkDeleteError": "خطأ في حذف الرابط",
+      "permissionRead": "قراءة",
+      "permissionWrite": "تعديل",
+      "permissionDelete": "حذف",
+      "permissionAdmin": "وصول كامل",
+      "roleAdmin": "مسؤول",
+      "roleSecretary": "سكرتير",
+      "roleMethodist": "منهجي",
+      "roleTeacher": "معلم",
+      "roleStudent": "طالب",
+      "noLimitPlaceholder": "بدون حد",
+      "noPasswordPlaceholder": "بدون كلمة مرور"
+    },
+    "sharedPage": {
+      "title": "المستندات المشتركة",
+      "subtitle": "إدارة المستندات المشتركة",
+      "unknown": "غير معروف",
+      "loading": "جارٍ تحميل المستندات...",
+      "backToDocuments": "العودة إلى المستندات",
+      "back": "رجوع",
+      "goToDocuments": "الانتقال إلى المستندات",
+      "sharedWithMe": "مشتركة معي",
+      "myShared": "مستنداتي المشتركة",
+      "incoming": "واردة",
+      "outgoing": "صادرة",
+      "loadError": "فشل تحميل المستندات المشتركة",
+      "loadMySharedError": "فشل تحميل مستنداتك المشتركة",
+      "noSharedWithMe": "لا توجد مستندات مشتركة",
+      "noSharedWithMeDesc": "لم يشارك أحد أي مستندات معك حتى الآن",
+      "noMyShared": "لم تشارك مستندات",
+      "noMySharedDesc": "لم تشارك أي مستندات مع مستخدمين آخرين حتى الآن",
+      "role": "الدور",
+      "noExpiration": "بدون انتهاء",
+      "sharedWith": "مشترك مع",
+      "and": "و",
+      "user": "مستخدم",
+      "users": "مستخدمين",
+      "roleSingular": "دور",
+      "roles": "أدوار",
+      "noAccess": "لا يوجد وصول مشترك"
+    }
+  },
+  "calendar": {
+    "title": "التقويم",
+    "subtitle": "تخطيط وإدارة الفعاليات",
+    "eventCreated": "تم إنشاء الفعالية",
+    "eventUpdated": "تم تحديث الفعالية",
+    "eventDeleted": "تم حذف الفعالية",
+    "createError": "خطأ في إنشاء الفعالية",
+    "updateError": "خطأ في تحديث الفعالية",
+    "deleteError": "خطأ في حذف الفعالية",
+    "form": {
+      "eventNamePlaceholder": "أدخل اسم الفعالية",
+      "selectTypePlaceholder": "اختر النوع",
+      "locationPlaceholder": "أدخل الموقع",
+      "reminderPlaceholder": "افتراضي",
+      "eventDescriptionPlaceholder": "أضف وصف الفعالية"
+    },
+    "navigation": {
+      "previous": "السابق",
+      "next": "التالي"
+    },
+    "eventTypes": {
+      "meeting": "اجتماع",
+      "deadline": "موعد نهائي",
+      "task": "مهمة",
+      "reminder": "تذكير",
+      "holiday": "عطلة",
+      "personal": "شخصي"
+    },
+    "eventStatuses": {
+      "scheduled": "مجدول",
+      "ongoing": "جارٍ",
+      "completed": "مكتمل",
+      "cancelled": "ملغي",
+      "postponed": "مؤجل"
+    },
+    "recurring": "متكرر",
+    "allDay": "طوال اليوم",
+    "participants": "{count} مشاركين",
+    "menu": "القائمة",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "modal": {
+      "viewTitle": "عرض الفعالية",
+      "editTitle": "تعديل الفعالية",
+      "newTitle": "فعالية جديدة",
+      "viewDescription": "تفاصيل الفعالية",
+      "editDescription": "تعديل تفاصيل الفعالية",
+      "newDescription": "املأ معلومات الفعالية الجديدة"
+    },
+    "labels": {
+      "title": "العنوان",
+      "titleRequired": "العنوان *",
+      "eventType": "نوع الفعالية",
+      "allDay": "طوال اليوم",
+      "startDate": "تاريخ البدء",
+      "startDateRequired": "تاريخ البدء *",
+      "startTime": "وقت البدء",
+      "startTimeRequired": "وقت البدء *",
+      "endDate": "تاريخ الانتهاء",
+      "endTime": "وقت الانتهاء",
+      "location": "الموقع",
+      "color": "اللون",
+      "description": "الوصف"
+    },
+    "placeholders": {
+      "selectDate": "اختر التاريخ"
+    },
+    "validation": {
+      "titleRequired": "العنوان مطلوب",
+      "timeFormat": "الصيغة HH:MM"
+    },
+    "colors": {
+      "default": "افتراضي",
+      "blue": "أزرق",
+      "red": "أحمر",
+      "green": "أخضر",
+      "yellow": "أصفر",
+      "purple": "بنفسجي",
+      "gray": "رمادي"
+    },
+    "buttons": {
+      "delete": "حذف",
+      "close": "إغلاق",
+      "cancel": "إلغاء",
+      "saving": "جارٍ الحفظ...",
+      "save": "حفظ",
+      "create": "إنشاء"
+    }
+  },
+  "users": {
+    "title": "إدارة المستخدمين",
+    "subtitle": "عرض وإدارة مستخدمي النظام",
+    "searchPlaceholder": "البحث بالاسم أو البريد الإلكتروني...",
+    "nameFilter": "اسم المستخدم",
+    "emailFilter": "البريد الإلكتروني",
+    "roleFilter": "الدور",
+    "statusFilter": "الحالة",
+    "departmentFilter": "القسم",
+    "allRoles": "جميع الأدوار",
+    "allStatuses": "جميع الحالات",
+    "allDepartments": "جميع الأقسام",
+    "filterByName": "تصفية بالاسم...",
+    "filterByEmail": "تصفية بالبريد الإلكتروني...",
+    "usersList": "المستخدمون",
+    "usersListSubtitle": "قائمة جميع المستخدمين المسجلين",
+    "noUsersFound": "لم يتم العثور على مستخدمين",
+    "creationDate": "تاريخ الإنشاء",
+    "deactivate": "إلغاء التفعيل",
+    "activate": "تفعيل",
+    "block": "حظر",
+    "unblock": "إلغاء الحظر",
+    "statusUpdated": "تم تحديث حالة المستخدم",
+    "statusUpdateFailed": "فشل تحديث الحالة",
+    "userDeleted": "تم حذف المستخدم",
+    "deleteFailed": "فشل حذف المستخدم",
+    "loadFailed": "فشل تحميل قائمة المستخدمين",
+    "confirmDelete": "هل أنت متأكد من حذف هذا المستخدم؟",
+    "statuses": {
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "blocked": "محظور"
+    },
+    "filterLabels": {
+      "search": "بحث",
+      "name": "الاسم",
+      "department": "القسم"
+    },
+    "tableHeaders": {
+      "user": "المستخدم",
+      "email": "البريد الإلكتروني",
+      "role": "الدور",
+      "status": "الحالة",
+      "department": "القسم",
+      "createdAt": "تاريخ الإنشاء",
+      "actions": "الإجراءات"
+    },
+    "delete": "حذف",
+    "pagination": "صفحة {page} من {totalPages}"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "reset": "إعادة تعيين",
+    "resetSettings": "إعادة تعيين الإعدادات؟",
+    "appearance": {
+      "title": "المظهر",
+      "subtitle": "تخصيص السمة والخلفية المتحركة",
+      "resetDescription": "سيتم إعادة تعيين جميع إعدادات المظهر إلى الإعدادات الافتراضية.",
+      "resetSuccess": "تم إعادة تعيين إعدادات المظهر",
+      "theme": {
+        "title": "السمة",
+        "subtitle": "اختر سمة لون الواجهة",
+        "light": "فاتح",
+        "dark": "داكن",
+        "system": "النظام"
+      },
+      "background": {
+        "title": "الخلفية المتحركة",
+        "subtitle": "تكوين خلفية التطبيق الديناميكية",
+        "type": "نوع الخلفية",
+        "typePlaceholder": "اختر نوع الخلفية",
+        "speed": "سرعة الرسوم المتحركة",
+        "speedDisabled": "معطل بسبب وضع تقليل الحركة",
+        "speedDescription": "سرعة تشغيل الرسوم المتحركة",
+        "intensity": "الكثافة",
+        "intensityDescription": "سطوع وتشبع التأثير",
+        "types": {
+          "none": "بدون خلفية",
+          "noneDesc": "خلفية بلون موحد قياسية",
+          "grainGradient": "تدرج محبب",
+          "grainGradientDesc": "تدرج ناعم مع تأثير الحبيبات",
+          "warp": "تشويه",
+          "warpDesc": "تأثير موجي ديناميكي",
+          "meshGradient": "تدرج شبكي",
+          "meshGradientDesc": "تدرج متعدد الألوان سلس"
+        }
+      },
+      "accessibility": {
+        "title": "إمكانية الوصول",
+        "subtitle": "إعدادات لتحسين سهولة الاستخدام",
+        "reduceMotion": "تقليل الحركة",
+        "reduceMotionDesc": "تعطيل الرسوم المتحركة للأشخاص الذين يعانون من اضطرابات الدهليز"
+      },
+      "preview": "يتم تطبيق التغييرات تلقائياً. انظر إلى خلفية الصفحة لرؤية النتيجة."
+    },
+    "notifications": {
+      "title": "إعدادات الإشعارات",
+      "subtitle": "إدارة كيفية تلقي الإشعارات",
+      "resetDescription": "سيتم إعادة تعيين جميع إعدادات الإشعارات إلى الإعدادات الافتراضية. لا يمكن التراجع عن هذا الإجراء.",
+      "resetSuccess": "تم إعادة تعيين الإعدادات إلى الإعدادات الافتراضية",
+      "updateError": "فشل في تحديث الإعدادات",
+      "channels": {
+        "title": "قنوات الإشعارات",
+        "subtitle": "اختر كيف تريد تلقي الإشعارات",
+        "inApp": "داخل التطبيق",
+        "inAppDesc": "الإشعارات في مركز الإشعارات",
+        "email": "البريد الإلكتروني",
+        "emailDesc": "إرسال الإشعارات إلى البريد الإلكتروني",
+        "push": "الإشعارات الفورية",
+        "pushDesc": "الإشعارات على الجهاز المحمول",
+        "slack": "سلاك",
+        "slackDesc": "الإشعارات في سلاك",
+        "enabled": "مفعل",
+        "disabled": "معطل"
+      },
+      "quietHours": {
+        "title": "ساعات الهدوء",
+        "subtitle": "تعطيل الإشعارات في أوقات معينة",
+        "start": "البداية",
+        "end": "النهاية",
+        "timezone": "المنطقة الزمنية",
+        "timezonePlaceholder": "اختر المنطقة الزمنية",
+        "save": "حفظ إعدادات ساعات الهدوء",
+        "saving": "جاري الحفظ...",
+        "saved": "تم حفظ إعدادات ساعات الهدوء",
+        "enabled": "ساعات الهدوء مفعلة",
+        "disabled": "ساعات الهدوء معطلة"
+      }
+    }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "subtitle": "عرض وإدارة جميع الإشعارات",
+    "ariaLabel": "الإشعارات",
+    "ariaLabelWithCount": "الإشعارات ({count} غير مقروءة)",
+    "viewAll": "عرض جميع الإشعارات",
+    "markAsReadError": "فشل في تحديد الإشعار",
+    "allMarkedAsRead": "تم تحديد جميع الإشعارات كمقروءة",
+    "markAllAsReadError": "فشل في تحديد الإشعارات",
+    "markAllAsRead": "تحديد الكل كمقروء",
+    "empty": "ليس لديك إشعارات بعد",
+    "noNotifications": "ليس لديك إشعارات بعد",
+    "tryChangeFilters": "جرب تغيير المرشحات",
+    "markAllRead": "تحديد الكل كمقروء",
+    "clearAll": "مسح الكل",
+    "deleteAll": "حذف جميع الإشعارات؟",
+    "deleteAllDesc": "سيتم حذف جميع الإشعارات نهائياً. لا يمكن التراجع عن هذا الإجراء.",
+    "deleteAllSuccess": "تم حذف جميع الإشعارات",
+    "allMarkedRead": "تم تحديد جميع الإشعارات كمقروءة",
+    "deleted": "تم حذف الإشعار",
+    "markError": "فشل في تحديد الإشعار",
+    "markAllError": "فشل في تحديد الإشعارات",
+    "deleteError": "فشل في حذف الإشعار",
+    "deleteAllError": "فشل في حذف الإشعارات",
+    "stats": {
+      "total": "المجموع",
+      "unread": "غير مقروءة",
+      "today": "اليوم",
+      "urgent": "عاجلة",
+      "expired": "منتهية"
+    },
+    "filters": {
+      "title": "المرشحات",
+      "type": "النوع",
+      "priority": "الأولوية",
+      "status": "الحالة",
+      "allTypes": "جميع الأنواع",
+      "allPriorities": "جميع الأولويات",
+      "all": "الكل",
+      "unread": "غير مقروءة",
+      "read": "مقروءة"
+    },
+    "pagination": {
+      "showing": "عرض {count} من {total} إشعار",
+      "more": "+{count} المزيد"
+    }
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "subtitle": "إدارة حسابك وبياناتك الشخصية",
+    "editProfile": "تعديل",
+    "avatar": {
+      "title": "صورة الملف الشخصي",
+      "subtitle": "رفع صورة لملفك الشخصي"
+    },
+    "personalInfo": {
+      "title": "المعلومات الشخصية",
+      "subtitle": "بيانات حسابك الأساسية"
+    },
+    "accountInfo": {
+      "title": "معلومات الحساب",
+      "subtitle": "بيانات الحساب الإضافية"
+    },
+    "fields": {
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "phonePlaceholder": "+966 5X XXX XXXX",
+      "phoneNotSet": "غير محدد",
+      "bio": "نبذة",
+      "bioPlaceholder": "أخبرنا قليلاً عن نفسك...",
+      "bioNotSet": "غير محدد",
+      "role": "الدور",
+      "createdAt": "تاريخ الإنشاء",
+      "updatedAt": "آخر تحديث",
+      "userId": "معرف المستخدم",
+      "notSet": "غير محدد"
+    },
+    "errors": {
+      "saveError": "خطأ في حفظ الملف الشخصي",
+      "phoneFormat": "يجب أن يكون الهاتف بالتنسيق الدولي (مثال: +966512345678)",
+      "bioLength": "يجب ألا تتجاوز النبذة 500 حرف"
+    }
+  },
+  "integration": {
+    "title": "تكامل 1C",
+    "subtitle": "مزامنة بيانات الموظفين والطلاب",
+    "refresh": "تحديث",
+    "stats": {
+      "totalSyncs": "إجمالي المزامنات",
+      "successful": "ناجحة",
+      "failed": "فاشلة",
+      "conflicts": "التعارضات"
+    },
+    "sync": {
+      "title": "بدء المزامنة",
+      "subtitle": "اختر نوع البيانات للمزامنة مع 1C",
+      "employees": "مزامنة الموظفين",
+      "students": "مزامنة الطلاب",
+      "lastSync": "آخر مزامنة",
+      "started": "بدأت مزامنة {type}",
+      "error": "فشل في بدء المزامنة"
+    },
+    "tabs": {
+      "logs": "السجل",
+      "conflicts": "التعارضات",
+      "employees": "الموظفون",
+      "students": "الطلاب"
+    },
+    "logs": {
+      "title": "سجل المزامنة",
+      "subtitle": "سجل جميع عمليات المزامنة",
+      "noRecords": "لا توجد سجلات",
+      "columns": {
+        "type": "النوع",
+        "status": "الحالة",
+        "records": "السجلات",
+        "success": "ناجحة",
+        "errors": "الأخطاء",
+        "conflicts": "التعارضات",
+        "date": "التاريخ"
+      }
+    },
+    "conflicts": {
+      "title": "تعارضات المزامنة",
+      "subtitle": "تتطلب حلاً يدوياً",
+      "noConflicts": "لا توجد تعارضات غير محلولة",
+      "allLocal": "الكل محلي",
+      "allExternal": "الكل خارجي",
+      "resolve": "حل",
+      "resolved": "تم حل التعارض",
+      "resolvedCount": "التعارضات المحلولة: {count}",
+      "resolveError": "فشل في حل التعارض",
+      "bulkResolveError": "فشل في حل التعارضات",
+      "columns": {
+        "type": "النوع",
+        "entityId": "معرف الكيان",
+        "conflictType": "نوع التعارض",
+        "fields": "الحقول",
+        "date": "التاريخ",
+        "actions": "الإجراءات"
+      },
+      "dialog": {
+        "title": "حل التعارض",
+        "subtitle": "اختر البيانات المراد استخدامها للكيان {id}",
+        "localData": "البيانات المحلية",
+        "externalData": "البيانات الخارجية (1C)",
+        "selectResolution": "اختر الحل:",
+        "useLocal": "استخدام البيانات المحلية",
+        "useExternal": "استخدام البيانات من 1C",
+        "skip": "تخطي",
+        "apply": "تطبيق"
+      }
+    },
+    "employees": {
+      "title": "الموظفون من 1C",
+      "subtitle": "بيانات الموظفين المتزامنة",
+      "noData": "لا توجد بيانات",
+      "columns": {
+        "fullName": "الاسم الكامل",
+        "email": "البريد الإلكتروني",
+        "position": "المنصب",
+        "department": "القسم",
+        "status": "الحالة",
+        "synced": "متزامن"
+      }
+    },
+    "students": {
+      "title": "الطلاب من 1C",
+      "subtitle": "بيانات الطلاب المتزامنة",
+      "noData": "لا توجد بيانات",
+      "columns": {
+        "fullName": "الاسم الكامل",
+        "group": "المجموعة",
+        "faculty": "الكلية",
+        "course": "السنة",
+        "status": "الحالة",
+        "synced": "متزامن"
+      }
+    },
+    "entityTypes": {
+      "employee": "الموظفون",
+      "student": "الطلاب"
+    },
+    "statuses": {
+      "pending": "قيد الانتظار",
+      "in_progress": "قيد التنفيذ",
+      "completed": "مكتمل",
+      "failed": "فشل",
+      "cancelled": "ملغى",
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "pagination": {
+      "page": "صفحة {current} من {total}"
+    }
+  },
+  "notificationBell": {
+    "ariaLabel": "الإشعارات{count, plural, =0 {} other { ({count} غير مقروءة)}}",
+    "settingsAriaLabel": "إعدادات الإشعارات",
+    "showAll": "عرض جميع الإشعارات",
+    "tabs": {
+      "all": "الكل",
+      "tasks": "المهام",
+      "documents": "المستندات",
+      "events": "الفعاليات"
+    }
+  },
+  "userMenu": {
+    "defaultUser": "مستخدم",
+    "avatar": "الصورة الرمزية",
+    "profile": "الملف الشخصي",
+    "appearance": "المظهر",
+    "notifications": "الإشعارات",
+    "loggingOut": "جاري تسجيل الخروج...",
+    "logoutSuccess": "تم تسجيل الخروج بنجاح",
+    "logoutSuccessDesc": "إلى اللقاء!",
+    "logoutError": "خطأ في تسجيل الخروج",
+    "logoutErrorDesc": "يرجى المحاولة مرة أخرى"
+  },
+  "notificationTypes": {
+    "system": "النظام",
+    "reminder": "تذكير",
+    "task": "المهمة",
+    "document": "المستند",
+    "announcement": "إعلان",
+    "event": "فعالية",
+    "calendar": "التقويم",
+    "integration": "التكامل",
+    "user": "المستخدم"
+  },
+  "notificationPriorities": {
+    "low": "منخفض",
+    "normal": "عادي",
+    "high": "مرتفع",
+    "urgent": "عاجل"
+  },
+  "notificationChannels": {
+    "email": "البريد الإلكتروني",
+    "push": "إشعارات فورية",
+    "in_app": "داخل التطبيق",
+    "telegram": "تيليجرام",
+    "slack": "سلاك"
+  },
+  "metadata": {
+    "title": "السكرتير المنهجي | نظام المعلومات",
+    "titleTemplate": "%s | ن م",
+    "shortName": "ن م",
+    "siteName": "نظام السكرتير المنهجي",
+    "description": "نظام معلومات لإدارة المستندات وأتمتة عمل السكرتير المنهجي في المؤسسات التعليمية",
+    "ogDescription": "نظام معلومات لإدارة المستندات وأتمتة عمل السكرتير المنهجي",
+    "ogImageAlt": "نظام السكرتير المنهجي",
+    "keywords": "سكرتير، منهجي، إدارة المستندات، مؤسسة تعليمية، أتمتة، جدول"
+  },
+  "manifest": {
+    "name": "السكرتير المنهجي | نظام المعلومات",
+    "shortName": "ن م",
+    "description": "نظام معلومات لإدارة المستندات وأتمتة عمل السكرتير المنهجي في المؤسسات التعليمية",
+    "desktopScreenshot": "سطح مكتب التطبيق",
+    "mobileScreenshot": "النسخة المحمولة",
+    "shortcutDocuments": "المستندات",
+    "shortcutDocumentsDesc": "الذهاب إلى المستندات",
+    "shortcutCalendar": "التقويم",
+    "shortcutCalendarDesc": "فتح التقويم",
+    "shortcutNotifications": "الإشعارات",
+    "shortcutNotificationsDesc": "عرض الإشعارات"
+  },
+  "pwa": {
+    "installApp": "تثبيت التطبيق",
+    "close": "إغلاق",
+    "iosInstructions": "للتثبيت على iOS:",
+    "iosStep1": "انقر على",
+    "iosStep1Action": "مشاركة",
+    "iosStep2": "اختر",
+    "iosStep2Action": "إضافة إلى الشاشة الرئيسية",
+    "installDescription": "قم بتثبيت التطبيق للوصول السريع والعمل دون اتصال.",
+    "install": "تثبيت",
+    "notNow": "ليس الآن",
+    "updateAvailable": "تحديث التطبيق متاح. هل تريد التحديث الآن؟"
+  },
+  "telegram": {
+    "generateCodeError": "فشل في إنشاء الكود",
+    "codeCopied": "تم نسخ الكود",
+    "copyError": "فشل في نسخ الكود",
+    "disconnected": "تم قطع اتصال تيليجرام",
+    "disconnectError": "فشل في قطع اتصال تيليجرام",
+    "accountLinked": "تم ربط الحساب",
+    "connected": "متصل",
+    "name": "الاسم",
+    "connectedAt": "متصل",
+    "disconnect": "قطع اتصال تيليجرام",
+    "disconnectTitle": "قطع اتصال تيليجرام؟",
+    "disconnectDescription": "لن تتلقى إشعارات عبر تيليجرام بعد الآن. يمكنك ربط حسابك مرة أخرى في أي وقت.",
+    "cancel": "إلغاء",
+    "confirmDisconnect": "قطع الاتصال",
+    "linkDescription": "اربط تيليجرام لتلقي الإشعارات",
+    "linkInstructions": "لربط حساب تيليجرام الخاص بك، انقر على الزر أدناه. سيتم إنشاء كود فريد تحتاج إلى إرساله إلى البوت.",
+    "generating": "جاري الإنشاء...",
+    "getCode": "الحصول على كود الربط",
+    "yourCode": "الكود الخاص بك:",
+    "expiresIn": "ينتهي خلال {time}",
+    "copyCode": "نسخ الكود",
+    "howToLink": "كيفية الربط:",
+    "step1": "انقر على الزر أدناه لفتح البوت",
+    "step2": "انقر على 'Start' أو أرسل الكود يدوياً",
+    "step3": "انتظر التأكيد",
+    "openBot": "فتح البوت",
+    "getNewCode": "الحصول على كود جديد"
+  },
+  "avatarUpload": {
+    "sizeError": "يجب أن يكون حجم الملف أقل من 5 ميجابايت",
+    "formatError": "يُدعم فقط JPG، PNG، GIF، WebP",
+    "uploadError": "خطأ في رفع الملف",
+    "deleteError": "خطأ في حذف الصورة",
+    "avatar": "الصورة الرمزية",
+    "changePhoto": "تغيير الصورة",
+    "uploadPhoto": "رفع صورة",
+    "delete": "حذف",
+    "formatHint": "JPG، PNG، GIF أو WebP. الحد الأقصى 5 ميجابايت."
+  },
+  "imageCropper": {
+    "title": "ضبط الصورة",
+    "rotate": "تدوير",
+    "cancel": "إلغاء",
+    "saving": "جاري الحفظ...",
+    "apply": "تطبيق"
+  },
+  "themeSettings": {
+    "ariaLabel": "إعدادات السمة",
+    "themeTitle": "السمة",
+    "animatedBackground": "الخلفية المتحركة",
+    "enableAnimatedBackground": "تفعيل الخلفية المتحركة",
+    "themes": {
+      "light": "فاتح",
+      "dark": "داكن",
+      "system": "النظام"
+    },
+    "backgrounds": {
+      "none": "بدون خلفية",
+      "grain-gradient": "تدرج",
+      "warp": "تشويه",
+      "mesh-gradient": "شبكة"
+    }
+  },
+  "calendarView": {
+    "moreEvents": "+ {count} المزيد",
+    "eventsCount": "{count} فعاليات",
+    "allDay": "طوال اليوم",
+    "week": "أسبوع",
+    "weekNumber": "أسبوع",
+    "month": "شهر",
+    "day": "يوم",
+    "today": "اليوم",
+    "previous": "السابق",
+    "next": "التالي",
+    "newEvent": "فعالية",
+    "eventsOn": "فعاليات في",
+    "noEvents": "لا توجد فعاليات لهذا اليوم",
+    "weekdays": {
+      "sun": "أحد",
+      "mon": "إثن",
+      "tue": "ثلا",
+      "wed": "أرب",
+      "thu": "خمي",
+      "fri": "جمع",
+      "sat": "سبت"
+    }
+  },
+  "notificationsMenu": {
+    "downloadFile": "تحميل الملف",
+    "reject": "رفض",
+    "accept": "قبول",
+    "title": "الإشعارات",
+    "markAllRead": "تحديد الكل كمقروء",
+    "settings": "إعدادات الإشعارات",
+    "tabs": {
+      "all": "الكل",
+      "unread": "غير مقروءة",
+      "mentions": "الإشارات"
+    },
+    "empty": "لا توجد إشعارات"
+  },
+  "skipToContent": "تخطي إلى المحتوى",
+  "documentList": {
+    "loading": "جاري تحميل المستندات...",
+    "noDocuments": "لا توجد مستندات",
+    "noDocumentsHint": "ارفع مستندات لعرضها هنا",
+    "view": "عرض",
+    "edit": "تعديل",
+    "share": "مشاركة"
+  },
+  "documentPreview": {
+    "download": "تحميل",
+    "open": "فتح",
+    "viewTab": "معاينة",
+    "historyTab": "سجل الإصدارات",
+    "previewUnavailable": "المعاينة غير متاحة",
+    "previewUnavailableHint": "هذا النوع من الملفات لا يدعم المعاينة.",
+    "downloadToView": "تحميل للعرض",
+    "version": "الإصدار",
+    "modified": "تم التعديل",
+    "description": "الوصف",
+    "tags": "الوسوم"
+  },
+  "textDiff": {
+    "before": "قبل",
+    "after": "بعد",
+    "noChanges": "لا توجد تغييرات",
+    "removed": "محذوف",
+    "added": "مضاف",
+    "versionA": "الإصدار أ",
+    "versionB": "الإصدار ب"
+  },
+  "validation": {
+    "emailRequired": "البريد الإلكتروني مطلوب",
+    "emailInvalid": "صيغة البريد الإلكتروني غير صحيحة",
+    "passwordRequired": "كلمة المرور مطلوبة",
+    "passwordMinLength": "يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل",
+    "passwordUppercase": "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل",
+    "passwordLowercase": "يجب أن تحتوي كلمة المرور على حرف صغير واحد على الأقل",
+    "passwordDigit": "يجب أن تحتوي كلمة المرور على رقم واحد على الأقل",
+    "passwordSpecial": "يجب أن تحتوي كلمة المرور على رمز خاص واحد على الأقل",
+    "nameRequired": "الاسم مطلوب",
+    "nameMinLength": "يجب أن يحتوي الاسم على حرفين على الأقل",
+    "nameMaxLength": "يجب ألا يتجاوز الاسم 50 حرفًا",
+    "confirmPasswordRequired": "تأكيد كلمة المرور مطلوب",
+    "confirmPassword": "أكد كلمة المرور",
+    "passwordsMismatch": "كلمات المرور غير متطابقة",
+    "roleInvalid": "يرجى اختيار دور صالح"
+  },
+  "routeAnnouncer": {
+    "navigatedTo": "انتقال إلى: {page}",
+    "routes": {
+      "home": "الصفحة الرئيسية",
+      "dashboard": "لوحة التحكم",
+      "documents": "المستندات",
+      "sharedDocuments": "المستندات المشتركة",
+      "calendar": "التقويم",
+      "notifications": "الإشعارات",
+      "profile": "الملف الشخصي",
+      "users": "المستخدمون",
+      "appearance": "إعدادات المظهر",
+      "notificationSettings": "إعدادات الإشعارات",
+      "integration": "تكامل 1C",
+      "login": "تسجيل الدخول",
+      "register": "التسجيل"
+    }
+  }
+}
