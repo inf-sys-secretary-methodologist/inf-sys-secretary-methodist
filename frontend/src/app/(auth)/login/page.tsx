@@ -1,23 +1,27 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import { LoginForm } from '@/components/auth/LoginForm'
 
-export const metadata: Metadata = {
-  title: 'Вход',
-  description: 'Войдите в свою учетную запись',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('auth')
+  return {
+    title: t('loginTitle'),
+    description: t('loginToSystem'),
+  }
 }
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const t = await getTranslations('authPages')
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Добро пожаловать
+          {t('loginWelcome')}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Войдите в свою учетную запись для продолжения
-        </p>
+        <p className="text-sm text-muted-foreground">{t('loginSubtitle')}</p>
       </div>
 
       {/* Login Form */}
@@ -29,7 +33,7 @@ export default function LoginPage() {
           href="/"
           className="font-medium text-muted-foreground hover:text-primary transition-colors"
         >
-          ← Вернуться на главную
+          {t('backToHome')}
         </Link>
       </div>
     </div>

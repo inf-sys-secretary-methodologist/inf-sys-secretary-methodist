@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { toast } from '@/components/providers/toaster-provider'
 import { FloatingInput } from '@/components/ui/floating-input'
 import { Button } from '@/components/ui/button'
 import { useLogin } from '@/hooks/useAuth'
-import { loginSchema, type LoginFormData } from '@/lib/validations/auth'
+import { createLoginSchema, type LoginFormData } from '@/lib/validations/auth'
 import { cn } from '@/lib/utils'
 
 interface LoginFormProps {
@@ -22,6 +23,11 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const { login, error: authError, clearError } = useLogin()
+  const t = useTranslations('loginForm')
+  const tAuth = useTranslations('auth')
+  const tValidation = useTranslations('validation')
+
+  const loginSchema = useMemo(() => createLoginSchema(tValidation), [tValidation])
 
   const {
     register,
@@ -38,8 +44,8 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
       setLocalError(null)
       await login(data, redirectTo)
 
-      toast.success('Вход выполнен успешно!', {
-        description: 'Перенаправление...',
+      toast.success(t('loginSuccess'), {
+        description: t('redirecting'),
       })
 
       if (onSuccess) {
@@ -52,17 +58,17 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         ''
 
-      // Translate common error messages to Russian
+      // Use translated error message
       const errorMessage =
         rawMessage === 'Unauthorized access' || rawMessage === ''
-          ? 'Неверный email или пароль'
+          ? t('invalidCredentials')
           : rawMessage
 
       // Set local error state for immediate feedback
       setLocalError(errorMessage)
 
       // Show toast with unique ID and longer duration to prevent auto-dismissal
-      toast.error('Ошибка входа', {
+      toast.error(t('loginError'), {
         id: 'login-error',
         description: errorMessage,
         duration: 10000, // 10 seconds
@@ -82,7 +88,7 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
       {/* Email field */}
       <div className="space-y-2">
         <FloatingInput
-          label="Email"
+          label={tAuth('email')}
           type="email"
           autoComplete="email"
           disabled={isSubmitting}
@@ -98,7 +104,7 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
       <div className="space-y-2">
         <div className="relative">
           <FloatingInput
-            label="Пароль"
+            label={tAuth('password')}
             type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
             disabled={isSubmitting}
@@ -123,7 +129,7 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
       <div className="flex items-center justify-between">
         <div className="text-sm">
           <Link href="/forgot-password" className="font-medium text-primary hover:underline">
-            Забыли пароль?
+            {tAuth('forgotPassword')}
           </Link>
         </div>
       </div>
@@ -133,18 +139,18 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
         {isSubmitting ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Вход...
+            {t('loggingIn')}
           </>
         ) : (
-          'Войти'
+          tAuth('login')
         )}
       </Button>
 
       {/* Register link */}
       <div className="text-center text-sm">
-        <span className="text-muted-foreground">Нет аккаунта? </span>
+        <span className="text-muted-foreground">{tAuth('noAccount')} </span>
         <Link href="/register" className="font-medium text-primary hover:underline">
-          Зарегистрироваться
+          {tAuth('register')}
         </Link>
       </div>
     </form>

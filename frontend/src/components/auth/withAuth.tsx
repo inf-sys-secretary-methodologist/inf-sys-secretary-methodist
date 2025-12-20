@@ -2,6 +2,7 @@
 
 import { useEffect, ComponentType, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useAuthStore } from '@/stores/authStore'
 import type { UserRole } from '@/types/auth'
 
@@ -46,6 +47,7 @@ export function withAuth<P extends object>(Component: ComponentType<P>, options?
 
   const ProtectedComponent = (props: P) => {
     const router = useRouter()
+    const t = useTranslations('common')
     const { isAuthenticated, user, isLoading, checkAuth } = useAuthStore()
     const [authChecked, setAuthChecked] = useState(false)
 
@@ -92,7 +94,7 @@ export function withAuth<P extends object>(Component: ComponentType<P>, options?
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-            <p className="text-muted-foreground">Загрузка...</p>
+            <p className="text-muted-foreground">{t('loading')}</p>
           </div>
         </div>
       )
