@@ -102,6 +102,29 @@
 | `INTEGRATION_1C_TIMEOUT` | Таймаут запросов (секунды) | `30` | Нет |
 | `INTEGRATION_1C_RETRY_COUNT` | Количество повторных попыток | `3` | Нет |
 
+### Backup
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `BACKUP_MODE` | Режим: `cron`, `backup`, `restore-postgres`, `restore-minio`, `shell` | `cron` | Нет |
+| `BACKUP_SCHEDULE` | Cron расписание (2:00 каждый день) | `0 2 * * *` | Нет |
+| `BACKUP_ON_START` | Выполнить бэкап при старте контейнера | `false` | Нет |
+| `POSTGRES_BACKUP_RETENTION` | Хранить бэкапы PostgreSQL N дней | `7` | Нет |
+| `MINIO_BACKUP_RETENTION` | Хранить бэкапы MinIO N дней | `7` | Нет |
+
+### Remote Sync (Offsite Backup)
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `REMOTE_SYNC_ENABLED` | Включить синхронизацию на внешний S3 | `false` | Нет |
+| `REMOTE_S3_ENDPOINT` | URL S3-совместимого хранилища | - | Для offsite |
+| `REMOTE_S3_ACCESS_KEY` | Access Key для удалённого хранилища | - | Для offsite |
+| `REMOTE_S3_SECRET_KEY` | Secret Key для удалённого хранилища | - | Для offsite |
+| `REMOTE_S3_BUCKET` | Имя bucket для бэкапов | - | Для offsite |
+| `REMOTE_S3_REGION` | Регион S3 | `us-east-1` | Нет |
+| `REMOTE_S3_PATH` | Путь внутри bucket | `backups` | Нет |
+| `SERVER_ID` | Идентификатор сервера (для multi-server) | `production` | Нет |
+
 ### Frontend (Next.js)
 
 | Переменная | Описание | Default | Required |
@@ -388,6 +411,6 @@ curl http://localhost:8080/health
 
 ---
 
-**Последнее обновление**: 2025-12-13
-**Версия проекта**: 0.2.0
+**Последнее обновление**: 2025-12-20
+**Версия проекта**: 0.3.0
 **Статус**: Актуальный
