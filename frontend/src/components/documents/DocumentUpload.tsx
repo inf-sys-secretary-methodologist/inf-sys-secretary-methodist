@@ -1,11 +1,11 @@
 'use client'
 
 import { useCallback, useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Upload, X, FileText, AlertCircle, Tag, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DocumentCategory,
-  DocumentCategoryLabels,
   ALLOWED_FILE_TYPES,
   ALLOWED_FILE_EXTENSIONS,
   MAX_FILE_SIZE,
@@ -32,6 +32,9 @@ export function DocumentUploadComponent({
   isUploading = false,
   className = '',
 }: DocumentUploadProps) {
+  const t = useTranslations('documents.uploadForm')
+  const tDocs = useTranslations('documents')
+  const tCommon = useTranslations('common')
   const [files, setFiles] = useState<FileWithPreview[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [category, setCategory] = useState<DocumentCategory>(DocumentCategory.EDUCATIONAL)
@@ -60,12 +63,12 @@ export function DocumentUploadComponent({
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {
       const ext = '.' + file.name.split('.').pop()?.toLowerCase()
       if (!ALLOWED_FILE_EXTENSIONS.includes(ext)) {
-        return `Тип файла не поддерживается. Разрешены: ${ALLOWED_FILE_EXTENSIONS.join(', ')}`
+        return t('typeNotSupported', { extensions: ALLOWED_FILE_EXTENSIONS.join(', ') })
       }
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return `Размер файла превышает максимальный (${MAX_FILE_SIZE / 1024 / 1024}МБ)`
+      return t('sizeExceeded', { size: String(MAX_FILE_SIZE / 1024 / 1024) })
     }
 
     return null
@@ -179,29 +182,25 @@ export function DocumentUploadComponent({
 
         <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          Перетащите файлы сюда
+          {t('dragAndDrop')}
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          или нажмите кнопку ниже для выбора файлов
-        </p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{t('orClickButton')}</p>
         <Button
           variant="outline"
           className="cursor-pointer"
           disabled={isUploading}
           onClick={() => document.getElementById('file-upload')?.click()}
         >
-          Выбрать файлы
+          {t('selectFiles')}
         </Button>
-        <p className="text-xs text-gray-500 dark:text-gray-500 mt-4">
-          Поддерживаемые форматы: PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG (макс. 10МБ)
-        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-4">{t('supportedFormats')}</p>
       </div>
 
       {/* File List */}
       {files.length > 0 && (
         <div className="space-y-4">
           <h4 className="font-semibold text-gray-900 dark:text-white">
-            Выбранные файлы ({files.length})
+            {t('selectedFiles')} ({files.length})
           </h4>
           <div className="space-y-2">
             {files.map((fileWithPreview, index) => (
@@ -227,7 +226,9 @@ export function DocumentUploadComponent({
                       {fileWithPreview.file.name}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {(fileWithPreview.file.size / 1024).toFixed(2)} КБ
+                      {tCommon('fileSize.kb', {
+                        size: (fileWithPreview.file.size / 1024).toFixed(2),
+                      })}
                     </p>
                     {fileWithPreview.error && (
                       <p className="text-xs text-red-600 dark:text-red-400 mt-1">
@@ -254,7 +255,7 @@ export function DocumentUploadComponent({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Категория документа
+              {t('documentCategory')}
             </label>
             <select
               value={category}
@@ -264,9 +265,9 @@ export function DocumentUploadComponent({
                        focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={isUploading}
             >
-              {Object.entries(DocumentCategoryLabels).map(([value, label]) => (
+              {Object.values(DocumentCategory).map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {tDocs(`categories.${value}`)}
                 </option>
               ))}
             </select>
@@ -274,7 +275,7 @@ export function DocumentUploadComponent({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Описание (опционально)
+              {t('descriptionOptional')}
             </label>
             <textarea
               value={description}
@@ -284,7 +285,7 @@ export function DocumentUploadComponent({
                        focus:ring-2 focus:ring-blue-500 focus:border-transparent
                        resize-none"
               rows={3}
-              placeholder="Краткое описание документов..."
+              placeholder={t('descriptionPlaceholder')}
               disabled={isUploading}
             />
           </div>
@@ -292,12 +293,12 @@ export function DocumentUploadComponent({
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <Tag className="h-4 w-4 inline-block mr-1" />
-              Теги (опционально)
+              {t('tagsOptional')}
             </label>
             {isLoadingTags ? (
-              <p className="text-sm text-gray-500">Загрузка тегов...</p>
+              <p className="text-sm text-gray-500">{t('loadingTags')}</p>
             ) : availableTags.length === 0 ? (
-              <p className="text-sm text-gray-500">Нет доступных тегов</p>
+              <p className="text-sm text-gray-500">{t('noTagsAvailable')}</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {availableTags.map((tag) => {
@@ -336,7 +337,9 @@ export function DocumentUploadComponent({
               </div>
             )}
             {selectedTagIds.length > 0 && (
-              <p className="text-xs text-gray-500 mt-2">Выбрано тегов: {selectedTagIds.length}</p>
+              <p className="text-xs text-gray-500 mt-2">
+                {t('selectedTags')}: {selectedTagIds.length}
+              </p>
             )}
           </div>
 
@@ -344,14 +347,14 @@ export function DocumentUploadComponent({
           <div className="flex gap-3 justify-end">
             {onCancel && (
               <Button variant="outline" onClick={onCancel} disabled={isUploading}>
-                Отмена
+                {tCommon('cancel')}
               </Button>
             )}
             <Button
               onClick={handleSubmit}
               disabled={isUploading || validFilesCount === 0 || hasErrors}
             >
-              {isUploading ? 'Загрузка...' : `Загрузить (${validFilesCount})`}
+              {isUploading ? t('uploading') : t('uploadCount', { count: validFilesCount })}
             </Button>
           </div>
         </div>

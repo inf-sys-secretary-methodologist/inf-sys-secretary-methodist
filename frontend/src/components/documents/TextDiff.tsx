@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import * as Diff from 'diff'
+import { useTranslations } from 'next-intl'
 
 interface TextDiffProps {
   oldText: string
@@ -17,13 +18,11 @@ type DiffPart = {
   removed?: boolean
 }
 
-export function TextDiff({
-  oldText,
-  newText,
-  oldLabel = 'Было',
-  newLabel = 'Стало',
-  className = '',
-}: TextDiffProps) {
+export function TextDiff({ oldText, newText, oldLabel, newLabel, className = '' }: TextDiffProps) {
+  const t = useTranslations('textDiff')
+  const effectiveOldLabel = oldLabel ?? t('before')
+  const effectiveNewLabel = newLabel ?? t('after')
+
   const diff = useMemo(() => {
     return Diff.diffLines(oldText || '', newText || '')
   }, [oldText, newText])
@@ -33,7 +32,7 @@ export function TextDiff({
   if (!hasChanges) {
     return (
       <div className={`text-gray-500 dark:text-gray-400 text-sm italic ${className}`}>
-        Нет изменений
+        {t('noChanges')}
       </div>
     )
   }
@@ -44,11 +43,15 @@ export function TextDiff({
       <div className="flex gap-4 mb-3 text-xs">
         <div className="flex items-center gap-1">
           <span className="w-3 h-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded" />
-          <span className="text-gray-600 dark:text-gray-400">{oldLabel} (удалено)</span>
+          <span className="text-gray-600 dark:text-gray-400">
+            {effectiveOldLabel} ({t('removed')})
+          </span>
         </div>
         <div className="flex items-center gap-1">
           <span className="w-3 h-3 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded" />
-          <span className="text-gray-600 dark:text-gray-400">{newLabel} (добавлено)</span>
+          <span className="text-gray-600 dark:text-gray-400">
+            {effectiveNewLabel} ({t('added')})
+          </span>
         </div>
       </div>
 
@@ -93,10 +96,14 @@ export function TextDiff({
 export function TextDiffSideBySide({
   oldText,
   newText,
-  oldLabel = 'Версия A',
-  newLabel = 'Версия B',
+  oldLabel,
+  newLabel,
   className = '',
 }: TextDiffProps) {
+  const t = useTranslations('textDiff')
+  const effectiveOldLabel = oldLabel ?? t('versionA')
+  const effectiveNewLabel = newLabel ?? t('versionB')
+
   const diff = useMemo(() => {
     return Diff.diffLines(oldText || '', newText || '')
   }, [oldText, newText])
@@ -130,7 +137,7 @@ export function TextDiffSideBySide({
   if (!hasChanges) {
     return (
       <div className={`text-gray-500 dark:text-gray-400 text-sm italic ${className}`}>
-        Нет изменений
+        {t('noChanges')}
       </div>
     )
   }
@@ -155,7 +162,7 @@ export function TextDiffSideBySide({
         <div>
           <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-2">
             <span className="w-2 h-2 bg-red-400 rounded-full" />
-            {oldLabel}
+            {effectiveOldLabel}
           </div>
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
             {leftLines.map((line, index) => (
@@ -173,7 +180,7 @@ export function TextDiffSideBySide({
         <div>
           <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-2">
             <span className="w-2 h-2 bg-green-400 rounded-full" />
-            {newLabel}
+            {effectiveNewLabel}
           </div>
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
             {rightLines.map((line, index) => (
@@ -197,6 +204,7 @@ export function TextDiffInline({
   newText,
   className = '',
 }: Omit<TextDiffProps, 'oldLabel' | 'newLabel'>) {
+  const t = useTranslations('textDiff')
   const diff = useMemo(() => {
     return Diff.diffWords(oldText || '', newText || '')
   }, [oldText, newText])
@@ -206,7 +214,7 @@ export function TextDiffInline({
   if (!hasChanges) {
     return (
       <div className={`text-gray-500 dark:text-gray-400 text-sm italic ${className}`}>
-        Нет изменений
+        {t('noChanges')}
       </div>
     )
   }

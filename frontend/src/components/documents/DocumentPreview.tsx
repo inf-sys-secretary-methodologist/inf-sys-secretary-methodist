@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { X, Download, ExternalLink, FileText, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Document, DocumentCategoryLabels, DocumentStatusLabels } from '@/types/document'
+import { Document } from '@/types/document'
 import { DocumentVersionHistory } from './DocumentVersionHistory'
 
 type TabType = 'preview' | 'versions'
@@ -23,6 +24,9 @@ export function DocumentPreview({
   onDocumentUpdated,
   className = '',
 }: DocumentPreviewProps) {
+  const t = useTranslations('common')
+  const tDocs = useTranslations('documents')
+  const tPreview = useTranslations('documentPreview')
   const modalRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<TabType>('preview')
 
@@ -59,9 +63,9 @@ export function DocumentPreview({
   }
 
   const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} Б`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} КБ`
-    return `${(bytes / 1024 / 1024).toFixed(2)} МБ`
+    if (bytes < 1024) return t('fileSize.bytes', { size: bytes.toString() })
+    if (bytes < 1024 * 1024) return t('fileSize.kb', { size: (bytes / 1024).toFixed(2) })
+    return t('fileSize.mb', { size: (bytes / 1024 / 1024).toFixed(2) })
   }
 
   const isPDF = doc.metadata.mimeType === 'application/pdf'
@@ -96,7 +100,7 @@ export function DocumentPreview({
               {doc.name}
             </h2>
             <div className="flex items-center gap-3 mt-2 text-sm text-gray-600 dark:text-gray-400">
-              <span>{DocumentCategoryLabels[doc.category]}</span>
+              <span>{tDocs(`categories.${doc.category}`)}</span>
               <span>•</span>
               <span>{formatFileSize(doc.metadata.size)}</span>
               <span>•</span>
@@ -108,7 +112,7 @@ export function DocumentPreview({
             {onDownload && (
               <Button variant="outline" size="sm" onClick={onDownload}>
                 <Download className="h-4 w-4 mr-2" />
-                Скачать
+                {tPreview('download')}
               </Button>
             )}
             {doc.url && (
@@ -118,7 +122,7 @@ export function DocumentPreview({
                 onClick={() => window.open(getAuthenticatedUrl(doc.url!, true), '_blank')}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Открыть
+                {tPreview('open')}
               </Button>
             )}
             <button
@@ -144,7 +148,7 @@ export function DocumentPreview({
             `}
           >
             <FileText className="h-4 w-4 inline-block mr-2" />
-            Просмотр
+            {tPreview('viewTab')}
           </button>
           <button
             onClick={() => setActiveTab('versions')}
@@ -158,7 +162,7 @@ export function DocumentPreview({
             `}
           >
             <History className="h-4 w-4 inline-block mr-2" />
-            История версий
+            {tPreview('historyTab')}
           </button>
         </div>
 
@@ -186,15 +190,15 @@ export function DocumentPreview({
                 <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
                   <FileText className="h-24 w-24 text-gray-400 mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Предварительный просмотр недоступен
+                    {tPreview('previewUnavailable')}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    Этот тип файла не поддерживает предварительный просмотр.
+                    {tPreview('previewUnavailableHint')}
                   </p>
                   {onDownload && (
                     <Button onClick={onDownload}>
                       <Download className="h-4 w-4 mr-2" />
-                      Скачать для просмотра
+                      {tPreview('downloadToView')}
                     </Button>
                   )}
                 </div>
@@ -213,24 +217,24 @@ export function DocumentPreview({
         <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <p className="text-gray-500 dark:text-gray-400 mb-1">Статус</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-1">{tDocs('filters.status')}</p>
               <p className="font-medium text-gray-900 dark:text-white">
-                {DocumentStatusLabels[doc.status]}
+                {tDocs(`statuses.${doc.status}`)}
               </p>
             </div>
             <div>
-              <p className="text-gray-500 dark:text-gray-400 mb-1">Загрузил</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-1">{tDocs('filters.author')}</p>
               <p className="font-medium text-gray-900 dark:text-white">{doc.metadata.uploadedBy}</p>
             </div>
             {doc.metadata.version && (
               <div>
-                <p className="text-gray-500 dark:text-gray-400 mb-1">Версия</p>
+                <p className="text-gray-500 dark:text-gray-400 mb-1">{tPreview('version')}</p>
                 <p className="font-medium text-gray-900 dark:text-white">{doc.metadata.version}</p>
               </div>
             )}
             {doc.metadata.modifiedAt && (
               <div>
-                <p className="text-gray-500 dark:text-gray-400 mb-1">Изменен</p>
+                <p className="text-gray-500 dark:text-gray-400 mb-1">{tPreview('modified')}</p>
                 <p className="font-medium text-gray-900 dark:text-white">
                   {formatDate(doc.metadata.modifiedAt)}
                 </p>
@@ -240,14 +244,14 @@ export function DocumentPreview({
 
           {doc.description && (
             <div className="mt-4">
-              <p className="text-gray-500 dark:text-gray-400 mb-1">Описание</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-1">{tPreview('description')}</p>
               <p className="text-gray-900 dark:text-white">{doc.description}</p>
             </div>
           )}
 
           {doc.tags && doc.tags.length > 0 && (
             <div className="mt-4">
-              <p className="text-gray-500 dark:text-gray-400 mb-2">Теги</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-2">{tPreview('tags')}</p>
               <div className="flex flex-wrap gap-2">
                 {doc.tags.map((tag, idx) => (
                   <span

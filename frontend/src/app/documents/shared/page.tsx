@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { useAuthCheck, useAuth } from '@/hooks/useAuth'
 import { UserRole } from '@/types/auth'
 import { AppLayout } from '@/components/layout'
@@ -50,7 +51,7 @@ const mapBackendStatus = (status: string): DocumentStatus => {
 }
 
 // Helper to convert API DocumentInfo to frontend Document type
-const mapDocumentInfoToDocument = (doc: DocumentInfo): Document => {
+const mapDocumentInfoToDocument = (doc: DocumentInfo, unknownLabel: string): Document => {
   const fileUrl = doc.has_file ? documentsApi.getFileDownloadUrl(doc.id) : undefined
   const mimeType = doc.mime_type || 'application/octet-stream'
   const isImage = mimeType.startsWith('image/')
@@ -68,39 +69,35 @@ const mapDocumentInfoToDocument = (doc: DocumentInfo): Document => {
     metadata: {
       size: doc.file_size || 0,
       mimeType,
-      uploadedBy: doc.author_name || 'Неизвестно',
+      uploadedBy: doc.author_name || unknownLabel,
       uploadedAt: new Date(doc.created_at),
     },
   }
 }
 
-// Helper to format permission level
-const formatPermission = (permission: PermissionLevel): string => {
-  const labels: Record<PermissionLevel, string> = {
-    read: 'Чтение',
-    write: 'Запись',
-    delete: 'Удаление',
-    admin: 'Администратор',
-  }
-  return labels[permission] || permission
+// Permission keys for translation
+const PERMISSION_KEYS: Record<PermissionLevel, string> = {
+  read: 'permissionRead',
+  write: 'permissionWrite',
+  delete: 'permissionDelete',
+  admin: 'permissionAdmin',
 }
 
-// Helper to format role
-const formatRole = (role: string): string => {
-  const labels: Record<string, string> = {
-    admin: 'Администратор',
-    secretary: 'Секретарь',
-    methodist: 'Методист',
-    teacher: 'Преподаватель',
-    student: 'Студент',
-  }
-  return labels[role] || role
+// Role keys for translation
+const ROLE_KEYS: Record<string, string> = {
+  admin: 'roleAdmin',
+  secretary: 'roleSecretary',
+  methodist: 'roleMethodist',
+  teacher: 'roleTeacher',
+  student: 'roleStudent',
 }
 
 export default function SharedDocumentsPage() {
   useAuthCheck()
   const { user } = useAuth()
   const canShare = user?.role !== UserRole.STUDENT
+  const t = useTranslations('documents.sharedPage')
+  const tShare = useTranslations('documents.share')
 
   const [sharedWithMe, setSharedWithMe] = useState<Document[]>([])
   const [mySharedDocs, setMySharedDocs] = useState<MySharedDocumentOutput[]>([])
@@ -116,15 +113,15 @@ export default function SharedDocumentsPage() {
       setIsLoadingSharedWithMe(true)
       setErrorSharedWithMe(null)
       const response = await documentsApi.getSharedDocuments()
-      const mappedDocs = response.map(mapDocumentInfoToDocument)
+      const mappedDocs = response.map((doc) => mapDocumentInfoToDocument(doc, t('unknown')))
       setSharedWithMe(mappedDocs)
     } catch (err) {
       console.error('Failed to fetch shared documents:', err)
-      setErrorSharedWithMe('Не удалось загрузить общие документы')
+      setErrorSharedWithMe(t('loadError'))
     } finally {
       setIsLoadingSharedWithMe(false)
     }
-  }, [])
+  }, [t])
 
   // Fetch my shared documents (documents I shared with others)
   const fetchMySharedDocuments = useCallback(async () => {
@@ -135,11 +132,11 @@ export default function SharedDocumentsPage() {
       setMySharedDocs(response)
     } catch (err) {
       console.error('Failed to fetch my shared documents:', err)
-      setErrorMyShared('Не удалось загрузить ваши общие документы')
+      setErrorMyShared(t('loadMySharedError'))
     } finally {
       setIsLoadingMyShared(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     fetchSharedDocuments()
@@ -169,7 +166,7 @@ export default function SharedDocumentsPage() {
     <div className="flex items-center justify-center py-12">
       <div className="text-center space-y-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-        <p className="text-muted-foreground">Загрузка документов...</p>
+        <p className="text-muted-foreground">{t('loading')}</p>
       </div>
     </div>
   )
@@ -186,15 +183,13 @@ export default function SharedDocumentsPage() {
     <div className="text-center py-12">
       <Share2 className="h-16 w-16 mx-auto text-gray-400 mb-4" />
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-        Нет общих документов
+        {t('noSharedWithMe')}
       </h3>
-      <p className="text-gray-600 dark:text-gray-400">
-        С вами пока не поделились ни одним документом
-      </p>
+      <p className="text-gray-600 dark:text-gray-400">{t('noSharedWithMeDesc')}</p>
       <Link href="/documents" className="mt-4 inline-block">
         <Button variant="outline">
           <FileText className="h-4 w-4 mr-2" />
-          Перейти к документам
+          {t('goToDocuments')}
         </Button>
       </Link>
     </div>
@@ -205,15 +200,13 @@ export default function SharedDocumentsPage() {
     <div className="text-center py-12">
       <Send className="h-16 w-16 mx-auto text-gray-400 mb-4" />
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-        Вы не поделились документами
+        {t('noMyShared')}
       </h3>
-      <p className="text-gray-600 dark:text-gray-400">
-        Вы пока не поделились ни одним документом с другими пользователями
-      </p>
+      <p className="text-gray-600 dark:text-gray-400">{t('noMySharedDesc')}</p>
       <Link href="/documents" className="mt-4 inline-block">
         <Button variant="outline">
           <FileText className="h-4 w-4 mr-2" />
-          Перейти к документам
+          {t('goToDocuments')}
         </Button>
       </Link>
     </div>
@@ -221,12 +214,14 @@ export default function SharedDocumentsPage() {
 
   // Render shared with info
   const renderSharedWithInfo = (sharedWith: SharedWithInfo) => {
+    const roleKey = sharedWith.role ? ROLE_KEYS[sharedWith.role] : null
     const displayName =
-      sharedWith.user_name ||
-      (sharedWith.role ? `Роль: ${formatRole(sharedWith.role)}` : 'Неизвестно')
+      sharedWith.user_name || (roleKey ? `${t('role')}: ${tShare(roleKey)}` : t('unknown'))
     const expiresInfo = sharedWith.expires_at
-      ? `до ${new Date(sharedWith.expires_at).toLocaleDateString('ru-RU')}`
-      : 'бессрочно'
+      ? `→ ${new Date(sharedWith.expires_at).toLocaleDateString()}`
+      : t('noExpiration')
+
+    const permissionKey = PERMISSION_KEYS[sharedWith.permission]
 
     return (
       <div
@@ -242,7 +237,7 @@ export default function SharedDocumentsPage() {
         </div>
         <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
           <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs">
-            {formatPermission(sharedWith.permission)}
+            {tShare(permissionKey)}
           </span>
           <span className="text-xs">{expiresInfo}</span>
         </div>
@@ -258,16 +253,16 @@ export default function SharedDocumentsPage() {
     const parts: string[] = []
 
     if (userShares.length > 0) {
-      const userWord = userShares.length === 1 ? 'пользователем' : 'пользователями'
+      const userWord = userShares.length === 1 ? t('user') : t('users')
       parts.push(`${userShares.length} ${userWord}`)
     }
 
     if (roleShares.length > 0) {
-      const roleWord = roleShares.length === 1 ? 'ролью' : 'ролями'
+      const roleWord = roleShares.length === 1 ? t('roleSingular') : t('roles')
       parts.push(`${roleShares.length} ${roleWord}`)
     }
 
-    return parts.length > 0 ? `Поделились с ${parts.join(' и ')}` : 'Нет общего доступа'
+    return parts.length > 0 ? `${t('sharedWith')} ${parts.join(` ${t('and')} `)}` : t('noAccess')
   }
 
   // Render my shared documents list
@@ -301,11 +296,9 @@ export default function SharedDocumentsPage() {
         {/* Page Header */}
         <div className="text-center space-y-2 sm:space-y-4">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-            Общие документы
+            {t('title')}
           </h1>
-          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
-            Управление общими документами
-          </p>
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">{t('subtitle')}</p>
         </div>
 
         {/* Back Button */}
@@ -313,8 +306,8 @@ export default function SharedDocumentsPage() {
           <Link href="/documents">
             <Button variant="outline" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Назад к документам</span>
-              <span className="sm:hidden">Назад</span>
+              <span className="hidden sm:inline">{t('backToDocuments')}</span>
+              <span className="sm:hidden">{t('back')}</span>
             </Button>
           </Link>
         </div>
@@ -325,13 +318,13 @@ export default function SharedDocumentsPage() {
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="shared-with-me" className="flex items-center gap-2">
                 <Share2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Поделились со мной</span>
-                <span className="sm:hidden">Входящие</span>
+                <span className="hidden sm:inline">{t('sharedWithMe')}</span>
+                <span className="sm:hidden">{t('incoming')}</span>
               </TabsTrigger>
               <TabsTrigger value="my-shared" className="flex items-center gap-2">
                 <Send className="h-4 w-4" />
-                <span className="hidden sm:inline">Мои общие документы</span>
-                <span className="sm:hidden">Исходящие</span>
+                <span className="hidden sm:inline">{t('myShared')}</span>
+                <span className="sm:hidden">{t('outgoing')}</span>
               </TabsTrigger>
             </TabsList>
           ) : null}
