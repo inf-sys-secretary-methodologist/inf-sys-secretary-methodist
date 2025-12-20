@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { isSameDay } from 'date-fns'
+import { useTranslations, useLocale } from 'next-intl'
 
 import { cn } from '@/lib/utils'
 import { CalendarHeader } from './CalendarHeader'
@@ -34,6 +35,8 @@ export function FullCalendar({
   onEventClick,
   className,
 }: FullCalendarProps) {
+  const t = useTranslations('calendarView')
+  const locale = useLocale()
   const isMobile = useIsMobile()
   const [currentDate, setCurrentDate] = React.useState(new Date())
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>()
@@ -148,13 +151,13 @@ export function FullCalendar({
           >
             <TabsList className="w-full">
               <TabsTrigger value="month" className="flex-1">
-                Месяц
+                {t('month')}
               </TabsTrigger>
               <TabsTrigger value="week" className="flex-1">
-                Неделя
+                {t('week')}
               </TabsTrigger>
               <TabsTrigger value="day" className="flex-1">
-                День
+                {t('day')}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -212,9 +215,9 @@ export function FullCalendar({
         <DialogContent className="max-h-[80vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>
-              События на{' '}
+              {t('eventsOn')}{' '}
               {selectedDate
-                ? new Intl.DateTimeFormat('ru', {
+                ? new Intl.DateTimeFormat(locale, {
                     day: 'numeric',
                     month: 'long',
                   }).format(selectedDate)
@@ -223,7 +226,7 @@ export function FullCalendar({
           </DialogHeader>
           <div className="space-y-3">
             {selectedDayEvents.length === 0 ? (
-              <p className="text-center text-muted-foreground py-4">Нет событий на этот день</p>
+              <p className="text-center text-muted-foreground py-4">{t('noEvents')}</p>
             ) : (
               selectedDayEvents.map((event) => (
                 <EventCard

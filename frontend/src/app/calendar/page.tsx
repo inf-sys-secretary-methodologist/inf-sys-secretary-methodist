@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths } from 'date-fns'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 import { useAuthCheck } from '@/hooks/useAuth'
 import {
@@ -19,6 +20,7 @@ import { canEdit } from '@/lib/auth/permissions'
 
 export default function CalendarPage() {
   const { user } = useAuthCheck()
+  const t = useTranslations('calendar')
   const userCanEdit = canEdit(user?.role)
   const [currentMonth] = React.useState(new Date())
   const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -34,9 +36,9 @@ export default function CalendarPage() {
     try {
       await createEvent(data)
       await mutate()
-      toast.success('Событие создано')
+      toast.success(t('eventCreated'))
     } catch {
-      toast.error('Ошибка при создании события')
+      toast.error(t('createError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -47,9 +49,9 @@ export default function CalendarPage() {
     try {
       await updateEvent(id, data)
       await mutate()
-      toast.success('Событие обновлено')
+      toast.success(t('eventUpdated'))
     } catch {
-      toast.error('Ошибка при обновлении события')
+      toast.error(t('updateError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -60,9 +62,9 @@ export default function CalendarPage() {
     try {
       await deleteEvent(id)
       await mutate()
-      toast.success('Событие удалено')
+      toast.success(t('eventDeleted'))
     } catch {
-      toast.error('Ошибка при удалении события')
+      toast.error(t('deleteError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -74,11 +76,9 @@ export default function CalendarPage() {
         {/* Page Header */}
         <div className="text-center space-y-2 sm:space-y-4">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-            Календарь
+            {t('title')}
           </h1>
-          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
-            Планирование и управление событиями
-          </p>
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">{t('subtitle')}</p>
         </div>
 
         <div className="relative h-[calc(100vh-16rem)] sm:h-[calc(100vh-18rem)] rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-black/95 overflow-hidden">
