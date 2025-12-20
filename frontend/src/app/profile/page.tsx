@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { useAuthStore } from '@/stores/authStore'
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
@@ -22,17 +23,10 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react'
-import { UserRole } from '@/types/auth'
-
-const roleLabels: Record<UserRole, string> = {
-  [UserRole.SYSTEM_ADMIN]: 'Системный администратор',
-  [UserRole.METHODIST]: 'Методист',
-  [UserRole.ACADEMIC_SECRETARY]: 'Учёный секретарь',
-  [UserRole.TEACHER]: 'Преподаватель',
-  [UserRole.STUDENT]: 'Студент',
-}
-
 function ProfilePage() {
+  const t = useTranslations('profile')
+  const tRoles = useTranslations('roles')
+  const tCommon = useTranslations('common')
   const { user, checkAuth } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -73,14 +67,14 @@ function ProfilePage() {
       const errorMessage =
         apiError?.response?.data?.message ||
         apiError?.response?.data?.error ||
-        'Ошибка при сохранении профиля'
+        t('errors.saveError')
 
       // Translate common validation errors
       let userFriendlyError = errorMessage
       if (errorMessage.includes('e164') || errorMessage.includes('phone')) {
-        userFriendlyError = 'Телефон должен быть в международном формате (например, +79991234567)'
+        userFriendlyError = t('errors.phoneFormat')
       } else if (errorMessage.includes('bio') || errorMessage.includes('max=500')) {
-        userFriendlyError = 'Описание не должно превышать 500 символов'
+        userFriendlyError = t('errors.bioLength')
       }
 
       setError(userFriendlyError)
@@ -122,10 +116,10 @@ function ProfilePage() {
   }
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Не указано'
+    if (!dateString) return t('fields.notSet')
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return 'Не указано'
-    return date.toLocaleDateString('ru-RU', {
+    if (isNaN(date.getTime())) return t('fields.notSet')
+    return date.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -138,16 +132,14 @@ function ProfilePage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Профиль пользователя</h1>
-            <p className="text-sm sm:text-base text-muted-foreground mt-1">
-              Управляйте вашей учётной записью и персональными данными
-            </p>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('title')}</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">{t('subtitle')}</p>
           </div>
 
           {!isEditing && (
             <Button onClick={() => setIsEditing(true)} className="gap-2 w-full sm:w-auto">
               <Edit2 className="h-4 w-4" />
-              Редактировать
+              {t('editProfile')}
             </Button>
           )}
         </div>
@@ -155,8 +147,8 @@ function ProfilePage() {
         {/* Avatar Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Фото профиля</CardTitle>
-            <CardDescription>Загрузите фотографию для вашего профиля</CardDescription>
+            <CardTitle className="text-lg sm:text-xl">{t('avatar.title')}</CardTitle>
+            <CardDescription>{t('avatar.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             <AvatarUpload
@@ -172,8 +164,8 @@ function ProfilePage() {
         {/* Profile Information Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Персональная информация</CardTitle>
-            <CardDescription>Ваши основные данные учётной записи</CardDescription>
+            <CardTitle className="text-lg sm:text-xl">{t('personalInfo.title')}</CardTitle>
+            <CardDescription>{t('personalInfo.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 sm:space-y-6">
             {error && (
@@ -186,7 +178,7 @@ function ProfilePage() {
             <div className="space-y-2">
               <Label htmlFor="name" className="flex items-center gap-2 text-sm">
                 <User className="h-4 w-4 text-muted-foreground" />
-                Имя
+                {t('fields.name')}
               </Label>
               <p className="text-sm text-foreground bg-secondary/50 dark:bg-secondary/30 p-3 rounded-md border border-border/50">
                 {user.name}
@@ -208,7 +200,7 @@ function ProfilePage() {
             <div className="space-y-2">
               <Label htmlFor="phone" className="flex items-center gap-2 text-sm">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                Телефон
+                {t('fields.phone')}
               </Label>
               {isEditing ? (
                 <Input
@@ -220,7 +212,7 @@ function ProfilePage() {
                 />
               ) : (
                 <p className="text-sm text-foreground bg-secondary/50 dark:bg-secondary/30 p-3 rounded-md border border-border/50">
-                  {(user as unknown as { phone?: string }).phone || 'Не указан'}
+                  {(user as unknown as { phone?: string }).phone || t('fields.phoneNotSet')}
                 </p>
               )}
             </div>
@@ -228,19 +220,20 @@ function ProfilePage() {
             {/* Bio Field */}
             <div className="space-y-2">
               <Label htmlFor="bio" className="flex items-center gap-2 text-sm">
-                <FileText className="h-4 w-4 text-muted-foreground" />О себе
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                {t('fields.bio')}
               </Label>
               {isEditing ? (
                 <Textarea
                   id="bio"
                   value={editedBio}
                   onChange={(e) => setEditedBio(e.target.value)}
-                  placeholder="Расскажите немного о себе..."
+                  placeholder={t('fields.bioPlaceholder')}
                   rows={3}
                 />
               ) : (
                 <p className="text-sm text-foreground bg-secondary/50 dark:bg-secondary/30 p-3 rounded-md border border-border/50 min-h-[60px]">
-                  {(user as unknown as { bio?: string }).bio || 'Не указано'}
+                  {(user as unknown as { bio?: string }).bio || t('fields.bioNotSet')}
                 </p>
               )}
             </div>
@@ -249,10 +242,10 @@ function ProfilePage() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-sm">
                 <Shield className="h-4 w-4 text-muted-foreground" />
-                Роль
+                {t('fields.role')}
               </Label>
               <p className="text-sm text-foreground bg-secondary/50 dark:bg-secondary/30 p-3 rounded-md border border-border/50">
-                {roleLabels[user.role]}
+                {tRoles(user.role)}
               </p>
             </div>
 
@@ -265,7 +258,7 @@ function ProfilePage() {
                   ) : (
                     <Check className="h-4 w-4" />
                   )}
-                  Сохранить
+                  {tCommon('save')}
                 </Button>
                 <Button
                   onClick={handleCancel}
@@ -274,7 +267,7 @@ function ProfilePage() {
                   className="gap-2 w-full sm:w-auto"
                 >
                   <X className="h-4 w-4" />
-                  Отмена
+                  {tCommon('cancel')}
                 </Button>
               </div>
             )}
@@ -284,15 +277,15 @@ function ProfilePage() {
         {/* Account Information Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Информация об учётной записи</CardTitle>
-            <CardDescription>Дополнительные данные вашего аккаунта</CardDescription>
+            <CardTitle className="text-lg sm:text-xl">{t('accountInfo.title')}</CardTitle>
+            <CardDescription>{t('accountInfo.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Created At */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 border-b gap-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                <span>Дата создания</span>
+                <span>{t('fields.createdAt')}</span>
               </div>
               <p className="text-sm font-medium">{formatDate(user.created_at)}</p>
             </div>
@@ -301,7 +294,7 @@ function ProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 border-b gap-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                <span>Последнее обновление</span>
+                <span>{t('fields.updatedAt')}</span>
               </div>
               <p className="text-sm font-medium">{formatDate(user.updated_at)}</p>
             </div>
@@ -310,7 +303,7 @@ function ProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 gap-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="h-4 w-4" />
-                <span>ID пользователя</span>
+                <span>{t('fields.userId')}</span>
               </div>
               <p className="text-xs font-mono bg-secondary/50 dark:bg-secondary/30 px-2 py-1 rounded border border-border/50 break-all">
                 {user.id}

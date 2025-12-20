@@ -1,18 +1,22 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 
 export function ServiceWorkerRegistration() {
+  const t = useTranslations('pwa')
+  const updateMessage = t('updateAvailable')
+
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      registerServiceWorker()
+      registerServiceWorker(updateMessage)
     }
-  }, [])
+  }, [updateMessage])
 
   return null
 }
 
-async function registerServiceWorker() {
+async function registerServiceWorker(updateMessage: string) {
   try {
     const registration = await navigator.serviceWorker.register('/sw.js', {
       scope: '/',
@@ -35,7 +39,7 @@ async function registerServiceWorker() {
       newWorker.addEventListener('statechange', () => {
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
           // New content is available, show update prompt
-          if (window.confirm('Доступно обновление приложения. Обновить сейчас?')) {
+          if (window.confirm(updateMessage)) {
             newWorker.postMessage({ type: 'SKIP_WAITING' })
             window.location.reload()
           }

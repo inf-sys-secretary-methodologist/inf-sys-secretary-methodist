@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Bell, Calendar, FileText, Megaphone, CheckSquare, Settings } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import type { Notification, NotificationType } from '@/types/notification'
 
@@ -30,36 +31,37 @@ const typeColors: Record<NotificationType, string> = {
   event: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',
 }
 
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMins / 60)
-  const diffDays = Math.floor(diffHours / 24)
-
-  if (diffMins < 1) {
-    return 'Только что'
-  } else if (diffMins < 60) {
-    return `${diffMins} мин. назад`
-  } else if (diffHours < 24) {
-    return `${diffHours} ч. назад`
-  } else if (diffDays === 1) {
-    return 'Вчера'
-  } else if (diffDays < 7) {
-    return `${diffDays} дн. назад`
-  } else {
-    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
-  }
-}
-
 export function NotificationItem({
   notification,
   onMarkAsRead,
   compact = false,
 }: NotificationItemProps) {
+  const tCommon = useTranslations('common')
   const TypeIcon = typeIcons[notification.type] || Bell
   const colorClass = typeColors[notification.type] || typeColors.system
+
+  const formatRelativeTime = (dateString: string): string => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffMins < 1) {
+      return tCommon('time.justNow')
+    } else if (diffMins < 60) {
+      return tCommon('time.minutesAgo', { count: diffMins })
+    } else if (diffHours < 24) {
+      return tCommon('time.hoursAgo', { count: diffHours })
+    } else if (diffDays === 1) {
+      return tCommon('time.yesterday')
+    } else if (diffDays < 7) {
+      return tCommon('time.daysAgo', { count: diffDays })
+    } else {
+      return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+    }
+  }
 
   const handleClick = () => {
     if (!notification.is_read && onMarkAsRead) {

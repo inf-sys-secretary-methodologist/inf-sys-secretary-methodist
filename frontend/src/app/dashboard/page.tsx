@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { canEdit } from '@/lib/auth/permissions'
 import { useDashboardStats, useDashboardTrends, useDashboardActivity } from '@/hooks/useDashboard'
@@ -27,16 +28,11 @@ const TrendChart = dynamic(
 
 type Period = 'week' | 'month' | 'quarter' | 'year'
 
-const periodLabels: Record<Period, string> = {
-  week: 'неделю',
-  month: 'месяц',
-  quarter: 'квартал',
-  year: 'год',
-}
-
 export default function DashboardPage() {
   const router = useRouter()
   const { user } = useAuthCheck()
+  const t = useTranslations('dashboard')
+  const tRoles = useTranslations('roles')
   const userCanEdit = canEdit(user?.role)
   const [period, setPeriod] = useState<Period>('month')
 
@@ -51,10 +47,10 @@ export default function DashboardPage() {
         {/* Welcome Header */}
         <div className="text-center space-y-2 sm:space-y-4">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-            Добро пожаловать, {user?.name}!
+            {t('welcome', { name: user?.name || '' })}
           </h1>
           <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
-            <span className="font-semibold">{getRoleDisplayName(user?.role || '')}</span>
+            <span className="font-semibold">{user?.role ? tRoles(user.role) : ''}</span>
           </p>
         </div>
 
@@ -80,10 +76,7 @@ export default function DashboardPage() {
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10'
                   }`}
                 >
-                  {p === 'week' && 'Неделя'}
-                  {p === 'month' && 'Месяц'}
-                  {p === 'quarter' && 'Квартал'}
-                  {p === 'year' && 'Год'}
+                  {t(`periods.${p}`)}
                 </button>
               ))}
             </div>
@@ -95,7 +88,7 @@ export default function DashboardPage() {
         {/* Stats Grid */}
         <section aria-labelledby="stats-heading">
           <h2 id="stats-heading" className="sr-only">
-            Статистика
+            {t('stats.statistics')}
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
             {statsLoading ? (
@@ -114,38 +107,38 @@ export default function DashboardPage() {
               <>
                 <StatsCard
                   icon={FileText}
-                  title="Документы"
+                  title={t('stats.documents')}
                   value={stats?.documents.total || 0}
                   change={stats?.documents.change || 0}
-                  period={periodLabels[period]}
+                  period={t(`periodLabels.${period}`)}
                 />
                 <StatsCard
                   icon={Users}
-                  title="Студенты"
+                  title={t('stats.students')}
                   value={stats?.students.total || 0}
                   change={stats?.students.change || 0}
-                  period={periodLabels[period]}
+                  period={t(`periodLabels.${period}`)}
                 />
                 <StatsCard
                   icon={Calendar}
-                  title="Мероприятия"
+                  title={t('stats.events')}
                   value={stats?.events.total || 0}
                   change={stats?.events.change || 0}
-                  period={periodLabels[period]}
+                  period={t(`periodLabels.${period}`)}
                 />
                 <StatsCard
                   icon={TrendingUp}
-                  title="Отчеты"
+                  title={t('stats.reports')}
                   value={stats?.reports.total || 0}
                   change={stats?.reports.change || 0}
-                  period={periodLabels[period]}
+                  period={t(`periodLabels.${period}`)}
                 />
                 <StatsCard
                   icon={ClipboardList}
-                  title="Задачи"
+                  title={t('stats.tasks')}
                   value={stats?.tasks.total || 0}
                   change={stats?.tasks.change || 0}
-                  period={periodLabels[period]}
+                  period={t(`periodLabels.${period}`)}
                   className="col-span-2 sm:col-span-1"
                 />
               </>
@@ -156,7 +149,7 @@ export default function DashboardPage() {
         {/* Charts Row */}
         <section aria-labelledby="trends-heading">
           <h2 id="trends-heading" className="sr-only">
-            Тренды
+            {t('stats.trends')}
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {trendsLoading ? (
@@ -171,32 +164,32 @@ export default function DashboardPage() {
             ) : (
               <>
                 <TrendChart
-                  title="Документы и отчеты"
+                  title={t('charts.documentsAndReports')}
                   period={period}
                   datasets={[
                     {
-                      name: 'Документы',
+                      name: t('stats.documents'),
                       data: trends?.documents_trend || [],
                       color: '#3b82f6',
                     },
                     {
-                      name: 'Отчеты',
+                      name: t('stats.reports'),
                       data: trends?.reports_trend || [],
                       color: '#10b981',
                     },
                   ]}
                 />
                 <TrendChart
-                  title="Задачи и мероприятия"
+                  title={t('charts.tasksAndEvents')}
                   period={period}
                   datasets={[
                     {
-                      name: 'Задачи',
+                      name: t('stats.tasks'),
                       data: trends?.tasks_trend || [],
                       color: '#f59e0b',
                     },
                     {
-                      name: 'Мероприятия',
+                      name: t('stats.events'),
                       data: trends?.events_trend || [],
                       color: '#8b5cf6',
                     },
@@ -222,32 +215,32 @@ export default function DashboardPage() {
               />
               <div className="relative z-10 space-y-4 sm:space-y-6">
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                  Быстрые действия
+                  {t('quickActions.title')}
                 </h2>
                 <div className="space-y-2 sm:space-y-3">
                   <button
                     onClick={() => router.push('/documents')}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
                   >
-                    Загрузить документ
+                    {t('quickActions.uploadDocument')}
                   </button>
                   <button
                     onClick={() => router.push('/students')}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
                   >
-                    Добавить студента
+                    {t('quickActions.addStudent')}
                   </button>
                   <button
                     onClick={() => router.push('/calendar')}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
                   >
-                    Создать мероприятие
+                    {t('quickActions.createEvent')}
                   </button>
                   <button
                     onClick={() => router.push('/calendar')}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
                   >
-                    Создать задачу
+                    {t('quickActions.createTask')}
                   </button>
                 </div>
               </div>
@@ -268,15 +261,4 @@ export default function DashboardPage() {
       </div>
     </AppLayout>
   )
-}
-
-function getRoleDisplayName(role: string): string {
-  const roleMap: Record<string, string> = {
-    system_admin: 'Администратор',
-    methodist: 'Методист',
-    academic_secretary: 'Секретарь',
-    teacher: 'Преподаватель',
-    student: 'Студент',
-  }
-  return roleMap[role] || role
 }

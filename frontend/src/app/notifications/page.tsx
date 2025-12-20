@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Bell, CheckCheck, Settings, Trash2, Loader2, Filter } from 'lucide-react'
 import { toast } from 'sonner'
 import { AppLayout } from '@/components/layout'
@@ -35,10 +36,24 @@ import {
   useDeleteNotification,
   useDeleteAllNotifications,
 } from '@/hooks/useNotifications'
-import { notificationTypeLabels, notificationPriorityLabels } from '@/types/notification'
 import type { NotificationType, NotificationPriority } from '@/types/notification'
 
+const NOTIFICATION_TYPE_KEYS = [
+  'system',
+  'document',
+  'calendar',
+  'task',
+  'integration',
+  'user',
+] as const
+const NOTIFICATION_PRIORITY_KEYS = ['low', 'normal', 'high', 'urgent'] as const
+
 export default function NotificationsPage() {
+  const t = useTranslations('notifications')
+  const tTypes = useTranslations('notificationTypes')
+  const tPriorities = useTranslations('notificationPriorities')
+  const tSettings = useTranslations('settings')
+  const tCommon = useTranslations('common')
   const [typeFilter, setTypeFilter] = useState<NotificationType | 'all'>('all')
   const [priorityFilter, setPriorityFilter] = useState<NotificationPriority | 'all'>('all')
   const [readFilter, setReadFilter] = useState<'all' | 'read' | 'unread'>('all')
@@ -60,34 +75,34 @@ export default function NotificationsPage() {
     try {
       await markAsRead.mutateAsync(id)
     } catch {
-      toast.error('Не удалось отметить уведомление')
+      toast.error(t('markError'))
     }
   }
 
   const handleMarkAllAsRead = async () => {
     try {
       await markAllAsRead.mutateAsync()
-      toast.success('Все уведомления отмечены как прочитанные')
+      toast.success(t('allMarkedRead'))
     } catch {
-      toast.error('Не удалось отметить уведомления')
+      toast.error(t('markAllError'))
     }
   }
 
   const handleDelete = async (id: number) => {
     try {
       await deleteNotification.mutateAsync(id)
-      toast.success('Уведомление удалено')
+      toast.success(t('deleted'))
     } catch {
-      toast.error('Не удалось удалить уведомление')
+      toast.error(t('deleteError'))
     }
   }
 
   const handleDeleteAll = async () => {
     try {
       await deleteAll.mutateAsync()
-      toast.success('Все уведомления удалены')
+      toast.success(t('deleteAllSuccess'))
     } catch {
-      toast.error('Не удалось удалить уведомления')
+      toast.error(t('deleteAllError'))
     }
   }
 
@@ -100,13 +115,13 @@ export default function NotificationsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Уведомления</h1>
-            <p className="text-muted-foreground">Просмотр и управление всеми уведомлениями</p>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground">{t('subtitle')}</p>
           </div>
           <Button variant="outline" asChild>
             <Link href="/settings/notifications">
               <Settings className="h-4 w-4 mr-2" />
-              Настройки
+              {tSettings('title')}
             </Link>
           </Button>
         </div>
@@ -116,7 +131,9 @@ export default function NotificationsPage() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Всего</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t('stats.total')}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">{stats.total_count}</p>
@@ -125,7 +142,7 @@ export default function NotificationsPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Непрочитанные
+                  {t('stats.unread')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -134,7 +151,9 @@ export default function NotificationsPage() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Сегодня</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t('stats.today')}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">{stats.today_count}</p>
@@ -142,7 +161,9 @@ export default function NotificationsPage() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Срочные</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t('stats.urgent')}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold text-red-500">{stats.urgent_count}</p>
@@ -151,7 +172,7 @@ export default function NotificationsPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Истёкшие
+                  {t('stats.expired')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -166,7 +187,7 @@ export default function NotificationsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Фильтры:</span>
+              <span className="text-sm text-muted-foreground">{t('filters.title')}:</span>
             </div>
 
             <Select
@@ -174,13 +195,13 @@ export default function NotificationsPage() {
               onValueChange={(v) => setTypeFilter(v as NotificationType | 'all')}
             >
               <SelectTrigger className="w-auto min-w-[130px] h-9">
-                <SelectValue placeholder="Тип" />
+                <SelectValue placeholder={t('filters.type')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Все типы</SelectItem>
-                {Object.entries(notificationTypeLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
+                <SelectItem value="all">{t('filters.allTypes')}</SelectItem>
+                {NOTIFICATION_TYPE_KEYS.map((key) => (
+                  <SelectItem key={key} value={key}>
+                    {tTypes(key)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -191,13 +212,13 @@ export default function NotificationsPage() {
               onValueChange={(v) => setPriorityFilter(v as NotificationPriority | 'all')}
             >
               <SelectTrigger className="w-auto min-w-[130px] h-9">
-                <SelectValue placeholder="Приоритет" />
+                <SelectValue placeholder={t('filters.priority')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Все приоритеты</SelectItem>
-                {Object.entries(notificationPriorityLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
+                <SelectItem value="all">{t('filters.allPriorities')}</SelectItem>
+                {NOTIFICATION_PRIORITY_KEYS.map((key) => (
+                  <SelectItem key={key} value={key}>
+                    {tPriorities(key)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -208,12 +229,12 @@ export default function NotificationsPage() {
               onValueChange={(v) => setReadFilter(v as 'all' | 'read' | 'unread')}
             >
               <SelectTrigger className="w-auto min-w-[130px] h-9">
-                <SelectValue placeholder="Статус" />
+                <SelectValue placeholder={t('filters.status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Все</SelectItem>
-                <SelectItem value="unread">Непрочитанные</SelectItem>
-                <SelectItem value="read">Прочитанные</SelectItem>
+                <SelectItem value="all">{t('filters.all')}</SelectItem>
+                <SelectItem value="unread">{t('filters.unread')}</SelectItem>
+                <SelectItem value="read">{t('filters.read')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -227,7 +248,7 @@ export default function NotificationsPage() {
                 disabled={markAllAsRead.isPending}
               >
                 <CheckCheck className="h-4 w-4 mr-2" />
-                Прочитать все
+                {t('markAllRead')}
               </Button>
             )}
 
@@ -240,23 +261,21 @@ export default function NotificationsPage() {
                   disabled={notifications.length === 0}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Очистить все
+                  {t('clearAll')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Удалить все уведомления?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Все уведомления будут безвозвратно удалены. Это действие нельзя отменить.
-                  </AlertDialogDescription>
+                  <AlertDialogTitle>{t('deleteAll')}</AlertDialogTitle>
+                  <AlertDialogDescription>{t('deleteAllDesc')}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                  <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDeleteAll}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
-                    Удалить все
+                    {tCommon('delete')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -285,11 +304,11 @@ export default function NotificationsPage() {
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Bell className="h-16 w-16 text-muted-foreground/30 mb-4" />
-              <h3 className="text-lg font-medium">Нет уведомлений</h3>
+              <h3 className="text-lg font-medium">{t('empty')}</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 {typeFilter !== 'all' || priorityFilter !== 'all' || readFilter !== 'all'
-                  ? 'Попробуйте изменить фильтры'
-                  : 'У вас пока нет уведомлений'}
+                  ? t('tryChangeFilters')
+                  : t('noNotifications')}
               </p>
             </div>
           )}
@@ -299,11 +318,16 @@ export default function NotificationsPage() {
         {notificationsData && notificationsData.total_count > 0 && (
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <p>
-              Показано {notifications.length} из {notificationsData.total_count} уведомлений
+              {t('pagination.showing', {
+                count: notifications.length,
+                total: notificationsData.total_count,
+              })}
             </p>
             {notificationsData.total_count > notifications.length && (
               <Badge variant="secondary">
-                +{notificationsData.total_count - notifications.length} ещё
+                {t('pagination.more', {
+                  count: notificationsData.total_count - notifications.length,
+                })}
               </Badge>
             )}
           </div>

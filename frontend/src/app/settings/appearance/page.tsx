@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
+import { useTranslations } from 'next-intl'
 import { Palette, Sun, Moon, Monitor, Sparkles, RotateCcw, Eye, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { AppLayout } from '@/components/layout'
@@ -31,29 +32,24 @@ import {
 import { useAppearanceStore, type BackgroundType } from '@/stores/appearanceStore'
 import { cn } from '@/lib/utils'
 
-const backgroundTypes: { value: BackgroundType; label: string; description: string }[] = [
-  { value: 'none', label: 'Без фона', description: 'Стандартный однотонный фон' },
-  {
-    value: 'grain-gradient',
-    label: 'Градиент с зернистостью',
-    description: 'Мягкий градиент с эффектом зернистости',
-  },
-  { value: 'warp', label: 'Искажение', description: 'Динамичный волнистый эффект' },
-  {
-    value: 'mesh-gradient',
-    label: 'Сетчатый градиент',
-    description: 'Плавный многоцветный градиент',
-  },
+const BACKGROUND_TYPES: { value: BackgroundType; labelKey: string; descKey: string }[] = [
+  { value: 'none', labelKey: 'none', descKey: 'noneDesc' },
+  { value: 'grain-gradient', labelKey: 'grainGradient', descKey: 'grainGradientDesc' },
+  { value: 'warp', labelKey: 'warp', descKey: 'warpDesc' },
+  { value: 'mesh-gradient', labelKey: 'meshGradient', descKey: 'meshGradientDesc' },
 ]
 
-const themeOptions = [
-  { value: 'light', label: 'Светлая', icon: Sun },
-  { value: 'dark', label: 'Тёмная', icon: Moon },
-  { value: 'system', label: 'Системная', icon: Monitor },
+const THEME_OPTIONS = [
+  { value: 'light', labelKey: 'light', icon: Sun },
+  { value: 'dark', labelKey: 'dark', icon: Moon },
+  { value: 'system', labelKey: 'system', icon: Monitor },
 ]
 
 export default function AppearanceSettingsPage() {
   const { theme, setTheme } = useTheme()
+  const t = useTranslations('settings.appearance')
+  const tSettings = useTranslations('settings')
+  const tCommon = useTranslations('common')
   const {
     background,
     reducedMotion,
@@ -74,7 +70,7 @@ export default function AppearanceSettingsPage() {
   const handleReset = () => {
     resetToDefaults()
     setTheme('system')
-    toast.success('Настройки внешнего вида сброшены')
+    toast.success(t('resetSuccess'))
   }
 
   if (!mounted) {
@@ -92,26 +88,24 @@ export default function AppearanceSettingsPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Внешний вид</h1>
-            <p className="text-muted-foreground">Настройте тему и анимированный фон</p>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground">{t('subtitle')}</p>
           </div>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Сбросить
+                {tSettings('reset')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Сбросить настройки?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Все настройки внешнего вида будут сброшены к значениям по умолчанию.
-                </AlertDialogDescription>
+                <AlertDialogTitle>{tSettings('resetSettings')}</AlertDialogTitle>
+                <AlertDialogDescription>{t('resetDescription')}</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Отмена</AlertDialogCancel>
-                <AlertDialogAction onClick={handleReset}>Сбросить</AlertDialogAction>
+                <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleReset}>{tSettings('reset')}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -122,13 +116,13 @@ export default function AppearanceSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5" />
-              Тема оформления
+              {t('theme.title')}
             </CardTitle>
-            <CardDescription>Выберите цветовую тему интерфейса</CardDescription>
+            <CardDescription>{t('theme.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-3">
-              {themeOptions.map((option) => {
+              {THEME_OPTIONS.map((option) => {
                 const Icon = option.icon
                 const isSelected = theme === option.value
                 return (
@@ -154,7 +148,7 @@ export default function AppearanceSettingsPage() {
                         isSelected ? 'text-primary' : 'text-muted-foreground'
                       )}
                     >
-                      {option.label}
+                      {t(`theme.${option.labelKey}`)}
                     </span>
                   </button>
                 )
@@ -170,9 +164,9 @@ export default function AppearanceSettingsPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5" />
-                  Анимированный фон
+                  {t('background.title')}
                 </CardTitle>
-                <CardDescription>Настройте динамический фон приложения</CardDescription>
+                <CardDescription>{t('background.subtitle')}</CardDescription>
               </div>
               <Switch checked={background.enabled} onCheckedChange={setBackgroundEnabled} />
             </div>
@@ -183,21 +177,23 @@ export default function AppearanceSettingsPage() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Eye className="h-4 w-4" />
-                  Тип фона
+                  {t('background.type')}
                 </Label>
                 <Select
                   value={background.type}
                   onValueChange={(value) => setBackgroundType(value as BackgroundType)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Выберите тип фона" />
+                    <SelectValue placeholder={t('background.typePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {backgroundTypes.map((type) => (
+                    {BACKGROUND_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         <div className="flex flex-col">
-                          <span>{type.label}</span>
-                          <span className="text-xs text-muted-foreground">{type.description}</span>
+                          <span>{t(`background.types.${type.labelKey}`)}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {t(`background.types.${type.descKey}`)}
+                          </span>
                         </div>
                       </SelectItem>
                     ))}
@@ -212,7 +208,7 @@ export default function AppearanceSettingsPage() {
                     <div className="flex items-center justify-between">
                       <Label className="flex items-center gap-2">
                         <Zap className="h-4 w-4" />
-                        Скорость анимации
+                        {t('background.speed')}
                       </Label>
                       <span className="text-sm text-muted-foreground">
                         {background.speed.toFixed(1)}x
@@ -228,15 +224,15 @@ export default function AppearanceSettingsPage() {
                     />
                     <p className="text-xs text-muted-foreground">
                       {reducedMotion
-                        ? 'Отключено из-за режима уменьшения движения'
-                        : 'Скорость воспроизведения анимации'}
+                        ? t('background.speedDisabled')
+                        : t('background.speedDescription')}
                     </p>
                   </div>
 
                   {/* Intensity Control */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label>Интенсивность</Label>
+                      <Label>{t('background.intensity')}</Label>
                       <span className="text-sm text-muted-foreground">
                         {Math.round(background.intensity * 100)}%
                       </span>
@@ -248,7 +244,9 @@ export default function AppearanceSettingsPage() {
                       max={1}
                       step={0.05}
                     />
-                    <p className="text-xs text-muted-foreground">Яркость и насыщенность эффекта</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('background.intensityDescription')}
+                    </p>
                   </div>
                 </>
               )}
@@ -259,15 +257,15 @@ export default function AppearanceSettingsPage() {
         {/* Accessibility */}
         <Card>
           <CardHeader>
-            <CardTitle>Доступность</CardTitle>
-            <CardDescription>Настройки для улучшения удобства использования</CardDescription>
+            <CardTitle>{t('accessibility.title')}</CardTitle>
+            <CardDescription>{t('accessibility.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Уменьшить движение</Label>
+                <Label>{t('accessibility.reduceMotion')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Отключает анимации для людей с вестибулярными нарушениями
+                  {t('accessibility.reduceMotionDesc')}
                 </p>
               </div>
               <Switch checked={reducedMotion} onCheckedChange={setReducedMotion} />
@@ -278,10 +276,7 @@ export default function AppearanceSettingsPage() {
         {/* Preview Info */}
         <Card className="border-dashed">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground text-center">
-              Изменения применяются автоматически. Посмотрите на фон страницы, чтобы увидеть
-              результат.
-            </p>
+            <p className="text-sm text-muted-foreground text-center">{t('preview')}</p>
           </CardContent>
         </Card>
       </div>
