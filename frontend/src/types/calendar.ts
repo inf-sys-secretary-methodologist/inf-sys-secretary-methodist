@@ -160,19 +160,5 @@ export const EVENT_TYPE_COLORS: Record<EventType, string> = {
   personal: 'bg-gray-500',
 }
 
-export const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  meeting: 'Встреча',
-  deadline: 'Дедлайн',
-  task: 'Задача',
-  reminder: 'Напоминание',
-  holiday: 'Праздник',
-  personal: 'Личное',
-}
-
-export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
-  scheduled: 'Запланировано',
-  ongoing: 'В процессе',
-  completed: 'Завершено',
-  cancelled: 'Отменено',
-  postponed: 'Отложено',
-}
+// Labels are now provided via i18n (messages/*.json)
+// Use t('calendar.eventTypes.meeting'), t('calendar.eventStatuses.scheduled'), etc.

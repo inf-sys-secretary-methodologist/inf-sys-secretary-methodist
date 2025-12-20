@@ -1,18 +1,21 @@
 import type { MetadataRoute } from 'next'
+import { getLocale, getTranslations } from 'next-intl/server'
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const locale = await getLocale()
+  const t = await getTranslations('manifest')
+
   return {
-    name: 'Секретарь-Методист | Информационная система',
-    short_name: 'СМ ИС',
-    description:
-      'Информационная система для управления документооборотом и автоматизации работы секретаря-методиста учебного заведения',
+    name: t('name'),
+    short_name: t('shortName'),
+    description: t('description'),
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#0f172a',
     orientation: 'portrait-primary',
     scope: '/',
-    lang: 'ru',
+    lang: locale,
     categories: ['education', 'productivity', 'business'],
     icons: [
       {
@@ -70,35 +73,35 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '1280x720',
         type: 'image/png',
         form_factor: 'wide',
-        label: 'Рабочий стол приложения',
+        label: t('desktopScreenshot'),
       },
       {
         src: '/screenshots/mobile.png',
         sizes: '750x1334',
         type: 'image/png',
         form_factor: 'narrow',
-        label: 'Мобильная версия',
+        label: t('mobileScreenshot'),
       },
     ],
     shortcuts: [
       {
-        name: 'Документы',
-        short_name: 'Документы',
-        description: 'Перейти к документам',
+        name: t('shortcutDocuments'),
+        short_name: t('shortcutDocuments'),
+        description: t('shortcutDocumentsDesc'),
         url: '/documents',
         icons: [{ src: '/icons/shortcut-documents.png', sizes: '96x96' }],
       },
       {
-        name: 'Календарь',
-        short_name: 'Календарь',
-        description: 'Открыть календарь',
+        name: t('shortcutCalendar'),
+        short_name: t('shortcutCalendar'),
+        description: t('shortcutCalendarDesc'),
         url: '/calendar',
         icons: [{ src: '/icons/shortcut-calendar.png', sizes: '96x96' }],
       },
       {
-        name: 'Уведомления',
-        short_name: 'Уведомления',
-        description: 'Просмотр уведомлений',
+        name: t('shortcutNotifications'),
+        short_name: t('shortcutNotifications'),
+        description: t('shortcutNotificationsDesc'),
         url: '/notifications',
         icons: [{ src: '/icons/shortcut-notifications.png', sizes: '96x96' }],
       },

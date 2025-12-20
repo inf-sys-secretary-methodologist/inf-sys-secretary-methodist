@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sm-is-cache-v1'
+const CACHE_NAME = 'sm-is-cache-v2'
 const OFFLINE_URL = '/offline'
 
 // Static assets to cache immediately on install
@@ -60,6 +60,11 @@ self.addEventListener('fetch', (event) => {
 
   // Skip API requests - always fetch from network
   if (request.url.includes('/api/')) {
+    return
+  }
+
+  // Skip Next.js chunks and app routes - they contain dynamic code
+  if (request.url.includes('/_next/') || request.url.includes('/__next')) {
     return
   }
 

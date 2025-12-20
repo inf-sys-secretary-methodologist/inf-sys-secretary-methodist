@@ -75,22 +75,8 @@ export interface DocumentSortOptions {
   order: 'asc' | 'desc'
 }
 
-// Mapping for display purposes
-export const DocumentCategoryLabels: Record<DocumentCategory, string> = {
-  [DocumentCategory.EDUCATIONAL]: 'Учебная деятельность',
-  [DocumentCategory.HR]: 'Кадровые вопросы',
-  [DocumentCategory.ADMINISTRATIVE]: 'Административные',
-  [DocumentCategory.METHODICAL]: 'Методическая работа',
-  [DocumentCategory.FINANCIAL]: 'Финансовые',
-  [DocumentCategory.ARCHIVE]: 'Архив',
-}
-
-export const DocumentStatusLabels: Record<DocumentStatus, string> = {
-  [DocumentStatus.UPLOADING]: 'Загрузка',
-  [DocumentStatus.PROCESSING]: 'Обработка',
-  [DocumentStatus.READY]: 'Готов',
-  [DocumentStatus.ERROR]: 'Ошибка',
-}
+// Labels are now provided via i18n (messages/*.json)
+// Use t('documents.categories.educational'), t('documents.statuses.uploading'), etc.
 
 // Allowed file types for upload
 export const ALLOWED_FILE_TYPES = [
