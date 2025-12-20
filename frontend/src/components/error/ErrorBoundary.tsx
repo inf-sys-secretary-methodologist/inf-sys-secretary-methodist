@@ -1,6 +1,7 @@
 'use client'
 
 import React, { Component, ErrorInfo, ReactNode } from 'react'
+import { useTranslations } from 'next-intl'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -22,6 +23,16 @@ interface Props {
    * Whether to show error details in development mode
    */
   showDetails?: boolean
+  /**
+   * Translations for error boundary UI (optional, defaults to English)
+   */
+  translations?: {
+    title?: string
+    defaultMessage?: string
+    errorDetails?: string
+    showStack?: string
+    retry?: string
+  }
 }
 
 interface State {
@@ -107,7 +118,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     const { hasError, error, errorInfo } = this.state
-    const { children, fallback, errorMessage, showDetails = true } = this.props
+    const { children, fallback, errorMessage, showDetails = true, translations } = this.props
+
+    // Default translations (English)
+    const t = {
+      title: translations?.title ?? 'An Error Occurred',
+      defaultMessage:
+        translations?.defaultMessage ??
+        'This component encountered an error and cannot be displayed.',
+      errorDetails: translations?.errorDetails ?? 'Error message:',
+      showStack: translations?.showStack ?? 'Show component stack',
+      retry: translations?.retry ?? 'Try Again',
+    }
 
     if (hasError) {
       // Render custom fallback if provided
@@ -129,9 +151,9 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex-1 space-y-4">
               {/* Error Title */}
               <div>
-                <h3 className="text-lg font-semibold text-destructive">Произошла ошибка</h3>
+                <h3 className="text-lg font-semibold text-destructive">{t.title}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {errorMessage || 'Этот компонент столкнулся с ошибкой и не может быть отображён.'}
+                  {errorMessage || t.defaultMessage}
                 </p>
               </div>
 
@@ -139,9 +161,7 @@ export class ErrorBoundary extends Component<Props, State> {
               {showDetails && process.env.NODE_ENV === 'development' && error && (
                 <div className="space-y-2">
                   <div className="p-3 rounded bg-destructive/10 border border-destructive/20">
-                    <p className="text-xs font-semibold text-destructive mb-1">
-                      Сообщение об ошибке:
-                    </p>
+                    <p className="text-xs font-semibold text-destructive mb-1">{t.errorDetails}</p>
                     <p className="text-xs text-destructive/80 font-mono break-words">
                       {error.message}
                     </p>
@@ -150,7 +170,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   {errorInfo?.componentStack && (
                     <details className="text-xs">
                       <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                        Показать стек компонентов
+                        {t.showStack}
                       </summary>
                       <pre className="mt-2 p-3 rounded bg-muted overflow-x-auto text-xs">
                         {errorInfo.componentStack}
@@ -164,7 +184,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <div>
                 <Button onClick={this.handleReset} variant="outline" size="sm" className="gap-2">
                   <RefreshCw className="h-4 w-4" />
-                  Попробовать снова
+                  {t.retry}
                 </Button>
               </div>
             </div>
@@ -196,4 +216,36 @@ export function ErrorBoundaryWrapper({
   ...props
 }: Omit<Props, 'children'> & { children: ReactNode }) {
   return <ErrorBoundary {...props}>{children}</ErrorBoundary>
+}
+
+/**
+ * Translated version of ErrorBoundary that uses i18n
+ *
+ * @example
+ * ```tsx
+ * <TranslatedErrorBoundary>
+ *   <MyComponent />
+ * </TranslatedErrorBoundary>
+ * ```
+ */
+export function TranslatedErrorBoundary({
+  children,
+  ...props
+}: Omit<Props, 'children' | 'translations'> & { children: ReactNode }) {
+  const t = useTranslations('errorPages.errorBoundary')
+
+  return (
+    <ErrorBoundary
+      {...props}
+      translations={{
+        title: t('title'),
+        defaultMessage: t('defaultMessage'),
+        errorDetails: t('details'),
+        showStack: t('showStack'),
+        retry: t('retry'),
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  )
 }
