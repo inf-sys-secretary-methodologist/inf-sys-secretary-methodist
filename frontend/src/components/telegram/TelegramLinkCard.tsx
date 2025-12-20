@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Send, Check, Copy, ExternalLink, Loader2, XCircle, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +25,7 @@ import {
 } from '@/hooks/useTelegram'
 
 export function TelegramLinkCard() {
+  const t = useTranslations('telegram')
   const { data: status, isLoading: statusLoading, mutate: refreshStatus } = useTelegramStatus()
   const generateCode = useGenerateVerificationCode()
   const disconnectTelegram = useDisconnectTelegram()
@@ -58,7 +60,7 @@ export function TelegramLinkCard() {
     try {
       await generateCode.mutateAsync()
     } catch {
-      toast.error('Не удалось сгенерировать код')
+      toast.error(t('generateCodeError'))
     }
   }
 
@@ -68,10 +70,10 @@ export function TelegramLinkCard() {
     try {
       await navigator.clipboard.writeText(generateCode.data.code)
       setCopied(true)
-      toast.success('Код скопирован')
+      toast.success(t('codeCopied'))
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error('Не удалось скопировать код')
+      toast.error(t('copyError'))
     }
   }
 
@@ -83,10 +85,10 @@ export function TelegramLinkCard() {
   const handleDisconnect = async () => {
     try {
       await disconnectTelegram.mutateAsync()
-      toast.success('Telegram отключен')
+      toast.success(t('disconnected'))
       refreshStatus()
     } catch {
-      toast.error('Не удалось отключить Telegram')
+      toast.error(t('disconnectError'))
     }
   }
 
@@ -123,11 +125,11 @@ export function TelegramLinkCard() {
                 <Send className="h-5 w-5 flex-shrink-0" />
                 Telegram
               </CardTitle>
-              <CardDescription>Аккаунт привязан</CardDescription>
+              <CardDescription>{t('accountLinked')}</CardDescription>
             </div>
             <Badge variant="default" className="bg-green-600 hover:bg-green-700">
               <Check className="h-3 w-3 mr-1" />
-              Подключено
+              {t('connected')}
             </Badge>
           </div>
         </CardHeader>
@@ -135,7 +137,7 @@ export function TelegramLinkCard() {
           <div className="bg-muted/50 rounded-lg p-4 space-y-2">
             {status.first_name && (
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Имя</span>
+                <span className="text-muted-foreground">{t('name')}</span>
                 <span className="font-medium">{status.first_name}</span>
               </div>
             )}
@@ -147,9 +149,9 @@ export function TelegramLinkCard() {
             )}
             {status.connected_at && (
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Подключено</span>
+                <span className="text-muted-foreground">{t('connectedAt')}</span>
                 <span className="font-medium">
-                  {new Date(status.connected_at).toLocaleDateString('ru-RU', {
+                  {new Date(status.connected_at).toLocaleDateString(undefined, {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
@@ -163,24 +165,21 @@ export function TelegramLinkCard() {
             <AlertDialogTrigger asChild>
               <Button variant="destructive" className="w-full">
                 <XCircle className="h-4 w-4 mr-2" />
-                Отключить Telegram
+                {t('disconnect')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Отключить Telegram?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Вы больше не будете получать уведомления в Telegram. Вы можете привязать аккаунт
-                  снова в любое время.
-                </AlertDialogDescription>
+                <AlertDialogTitle>{t('disconnectTitle')}</AlertDialogTitle>
+                <AlertDialogDescription>{t('disconnectDescription')}</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDisconnect}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Отключить
+                  {t('confirmDisconnect')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -198,16 +197,13 @@ export function TelegramLinkCard() {
           <Send className="h-5 w-5 flex-shrink-0" />
           Telegram
         </CardTitle>
-        <CardDescription>Привяжите Telegram для получения уведомлений</CardDescription>
+        <CardDescription>{t('linkDescription')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {!generateCode.data ? (
           // Step 1: Generate code button
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Для привязки Telegram-аккаунта нажмите кнопку ниже. Вам будет сгенерирован уникальный
-              код, который нужно отправить боту.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('linkInstructions')}</p>
             <Button
               onClick={handleGenerateCode}
               disabled={generateCode.isPending}
@@ -216,12 +212,12 @@ export function TelegramLinkCard() {
               {generateCode.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Генерация...
+                  {t('generating')}
                 </>
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  Получить код привязки
+                  {t('getCode')}
                 </>
               )}
             </Button>
@@ -231,10 +227,10 @@ export function TelegramLinkCard() {
           <div className="space-y-4">
             <div className="bg-muted rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Ваш код:</span>
+                <span className="text-sm text-muted-foreground">{t('yourCode')}</span>
                 {expiresIn !== null && expiresIn > 0 && (
                   <Badge variant="outline" className="text-xs">
-                    Истекает через {formatTime(expiresIn)}
+                    {t('expiresIn', { time: formatTime(expiresIn) })}
                   </Badge>
                 )}
               </div>
@@ -246,7 +242,7 @@ export function TelegramLinkCard() {
                   variant="outline"
                   size="icon"
                   onClick={handleCopyCode}
-                  aria-label="Копировать код"
+                  aria-label={t('copyCode')}
                 >
                   {copied ? (
                     <Check className="h-4 w-4 text-green-600" />
@@ -258,25 +254,25 @@ export function TelegramLinkCard() {
             </div>
 
             <div className="space-y-2 text-sm">
-              <p className="font-medium">Как привязать:</p>
+              <p className="font-medium">{t('howToLink')}</p>
               <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                <li>Нажмите кнопку ниже, чтобы открыть бота</li>
-                <li>Нажмите «Start» или отправьте код вручную</li>
-                <li>Дождитесь подтверждения привязки</li>
+                <li>{t('step1')}</li>
+                <li>{t('step2')}</li>
+                <li>{t('step3')}</li>
               </ol>
             </div>
 
             <div className="flex gap-2">
               <Button onClick={handleOpenBot} className="flex-1">
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Открыть бота
+                {t('openBot')}
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={handleGenerateCode}
                 disabled={generateCode.isPending}
-                aria-label="Получить новый код"
+                aria-label={t('getNewCode')}
               >
                 <RefreshCw className={`h-4 w-4 ${generateCode.isPending ? 'animate-spin' : ''}`} />
               </Button>
@@ -290,7 +286,7 @@ export function TelegramLinkCard() {
               }}
               className="w-full text-muted-foreground"
             >
-              Отмена
+              {t('cancel')}
             </Button>
           </div>
         )}

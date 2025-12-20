@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { withAuth } from '@/components/auth/withAuth'
 import { UserRole } from '@/types/auth'
 import { AppLayout } from '@/components/layout'
@@ -62,20 +63,7 @@ import {
   type ConflictResolution,
 } from '@/hooks/useIntegration'
 
-const entityTypeLabels: Record<SyncEntityType, string> = {
-  employee: 'Сотрудники',
-  student: 'Студенты',
-}
-
-const statusLabels: Record<string, string> = {
-  pending: 'Ожидание',
-  in_progress: 'В процессе',
-  completed: 'Завершено',
-  failed: 'Ошибка',
-  cancelled: 'Отменено',
-}
-
-const statusColors: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+const STATUS_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   pending: 'secondary',
   in_progress: 'default',
   completed: 'outline',
@@ -84,6 +72,8 @@ const statusColors: Record<string, 'default' | 'secondary' | 'destructive' | 'ou
 }
 
 function IntegrationPage() {
+  const t = useTranslations('integration')
+  const tCommon = useTranslations('common')
   const [activeTab, setActiveTab] = useState('overview')
   const [syncingEntity, setSyncingEntity] = useState<SyncEntityType | null>(null)
   const [selectedConflict, setSelectedConflict] = useState<SyncConflict | null>(null)
@@ -134,19 +124,19 @@ function IntegrationPage() {
       setSyncingEntity(entityType)
       try {
         const result = await startSync({ entity_type: entityType, force: false })
-        toast.success(`Синхронизация ${entityTypeLabels[entityType].toLowerCase()} запущена`, {
+        toast.success(t('sync.started', { type: t(`entityTypes.${entityType}`) }), {
           description: `ID: ${result.sync_log_id}`,
         })
         mutateStats()
         mutateLogs()
       } catch (error) {
         console.error('Sync failed:', error)
-        toast.error('Не удалось запустить синхронизацию')
+        toast.error(t('sync.error'))
       } finally {
         setSyncingEntity(null)
       }
     },
-    [mutateStats, mutateLogs]
+    [mutateStats, mutateLogs, t]
   )
 
   const handleResolveConflict = useCallback(async () => {
@@ -154,15 +144,15 @@ function IntegrationPage() {
 
     try {
       await resolveConflict(selectedConflict.id, { resolution: selectedResolution })
-      toast.success('Конфликт разрешен')
+      toast.success(t('conflicts.resolved'))
       mutateConflicts()
       setShowResolveDialog(false)
       setSelectedConflict(null)
     } catch (error) {
       console.error('Resolve failed:', error)
-      toast.error('Не удалось разрешить конфликт')
+      toast.error(t('conflicts.resolveError'))
     }
-  }, [selectedConflict, selectedResolution, mutateConflicts])
+  }, [selectedConflict, selectedResolution, mutateConflicts, t])
 
   const handleBulkResolve = useCallback(
     async (resolution: ConflictResolution) => {
@@ -171,14 +161,14 @@ function IntegrationPage() {
 
       try {
         const result = await bulkResolveConflicts({ ids, resolution })
-        toast.success(`Разрешено конфликтов: ${result.count}`)
+        toast.success(t('conflicts.resolvedCount', { count: result.count }))
         mutateConflicts()
       } catch (error) {
         console.error('Bulk resolve failed:', error)
-        toast.error('Не удалось разрешить конфликты')
+        toast.error(t('conflicts.bulkResolveError'))
       }
     },
-    [conflicts, mutateConflicts]
+    [conflicts, mutateConflicts, t]
   )
 
   const formatDate = (dateString: string) => {
@@ -203,18 +193,16 @@ function IntegrationPage() {
         {/* Page Header */}
         <div className="text-center space-y-2 sm:space-y-4">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-            Интеграция с 1С
+            {t('title')}
           </h1>
-          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
-            Синхронизация данных сотрудников и студентов
-          </p>
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">{t('subtitle')}</p>
         </div>
 
         {/* Action Button */}
         <div className="flex justify-end">
           <Button variant="outline" size="sm" onClick={refreshAll}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Обновить
+            {t('refresh')}
           </Button>
         </div>
 
@@ -232,7 +220,7 @@ function IntegrationPage() {
             <div className="relative z-10">
               <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
                 <Activity className="h-4 w-4" />
-                Всего синхронизаций
+                {t('stats.totalSyncs')}
               </p>
               <p className="text-2xl sm:text-3xl font-bold">
                 {statsLoading ? (
@@ -255,7 +243,7 @@ function IntegrationPage() {
             <div className="relative z-10">
               <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
-                Успешных
+                {t('stats.successful')}
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-green-600">
                 {statsLoading ? (
@@ -278,7 +266,7 @@ function IntegrationPage() {
             <div className="relative z-10">
               <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
                 <XCircle className="h-4 w-4 text-red-500" />
-                Ошибок
+                {t('stats.failed')}
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-red-600">
                 {statsLoading ? (
@@ -301,7 +289,7 @@ function IntegrationPage() {
             <div className="relative z-10">
               <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
                 <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                Конфликтов
+                {t('stats.conflicts')}
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-yellow-600">
                 {statsLoading ? (
@@ -326,10 +314,8 @@ function IntegrationPage() {
           />
           <div className="relative z-10">
             <div className="mb-4">
-              <h3 className="text-lg font-semibold">Запуск синхронизации</h3>
-              <p className="text-sm text-muted-foreground">
-                Выберите тип данных для синхронизации с 1С
-              </p>
+              <h3 className="text-lg font-semibold">{t('sync.title')}</h3>
+              <p className="text-sm text-muted-foreground">{t('sync.subtitle')}</p>
             </div>
             <div className="flex flex-wrap gap-4">
               <Button
@@ -342,7 +328,7 @@ function IntegrationPage() {
                 ) : (
                   <Users className="h-4 w-4" />
                 )}
-                Синхронизировать сотрудников
+                {t('sync.employees')}
               </Button>
               <Button
                 onClick={() => handleStartSync('student')}
@@ -355,12 +341,12 @@ function IntegrationPage() {
                 ) : (
                   <GraduationCap className="h-4 w-4" />
                 )}
-                Синхронизировать студентов
+                {t('sync.students')}
               </Button>
             </div>
             {syncStats?.last_sync_at && (
               <p className="text-sm text-muted-foreground mt-4">
-                Последняя синхронизация: {formatDate(syncStats.last_sync_at)}
+                {t('sync.lastSync')}: {formatDate(syncStats.last_sync_at)}
               </p>
             )}
           </div>
@@ -377,11 +363,11 @@ function IntegrationPage() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="logs" className="flex items-center gap-1">
               <Clock className="h-4 w-4" />
-              <span className="hidden sm:inline">История</span>
+              <span className="hidden sm:inline">{t('tabs.logs')}</span>
             </TabsTrigger>
             <TabsTrigger value="conflicts" className="flex items-center gap-1">
               <AlertTriangle className="h-4 w-4" />
-              <span className="hidden sm:inline">Конфликты</span>
+              <span className="hidden sm:inline">{t('tabs.conflicts')}</span>
               {conflictsTotal > 0 && (
                 <Badge variant="destructive" className="ml-1">
                   {conflictsTotal}
@@ -390,11 +376,11 @@ function IntegrationPage() {
             </TabsTrigger>
             <TabsTrigger value="employees" className="flex items-center gap-1">
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Сотрудники</span>
+              <span className="hidden sm:inline">{t('tabs.employees')}</span>
             </TabsTrigger>
             <TabsTrigger value="students" className="flex items-center gap-1">
               <GraduationCap className="h-4 w-4" />
-              <span className="hidden sm:inline">Студенты</span>
+              <span className="hidden sm:inline">{t('tabs.students')}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -411,10 +397,8 @@ function IntegrationPage() {
               />
               <div className="relative z-10">
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold">История синхронизаций</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Журнал всех операций синхронизации
-                  </p>
+                  <h3 className="text-lg font-semibold">{t('logs.title')}</h3>
+                  <p className="text-sm text-muted-foreground">{t('logs.subtitle')}</p>
                 </div>
                 {logsLoading ? (
                   <div className="flex justify-center py-8">
@@ -426,13 +410,13 @@ function IntegrationPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Тип</TableHead>
-                            <TableHead>Статус</TableHead>
-                            <TableHead>Записей</TableHead>
-                            <TableHead>Успешно</TableHead>
-                            <TableHead>Ошибок</TableHead>
-                            <TableHead>Конфликтов</TableHead>
-                            <TableHead>Дата</TableHead>
+                            <TableHead>{t('logs.columns.type')}</TableHead>
+                            <TableHead>{t('logs.columns.status')}</TableHead>
+                            <TableHead>{t('logs.columns.records')}</TableHead>
+                            <TableHead>{t('logs.columns.success')}</TableHead>
+                            <TableHead>{t('logs.columns.errors')}</TableHead>
+                            <TableHead>{t('logs.columns.conflicts')}</TableHead>
+                            <TableHead>{t('logs.columns.date')}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -442,7 +426,7 @@ function IntegrationPage() {
                                 colSpan={7}
                                 className="text-center text-muted-foreground py-8"
                               >
-                                Нет записей
+                                {t('logs.noRecords')}
                               </TableCell>
                             </TableRow>
                           ) : (
@@ -455,12 +439,12 @@ function IntegrationPage() {
                                     ) : (
                                       <GraduationCap className="h-4 w-4" />
                                     )}
-                                    {entityTypeLabels[log.entity_type]}
+                                    {t(`entityTypes.${log.entity_type}`)}
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <Badge variant={statusColors[log.status]}>
-                                    {statusLabels[log.status]}
+                                  <Badge variant={STATUS_COLORS[log.status]}>
+                                    {t(`statuses.${log.status}`)}
                                   </Badge>
                                 </TableCell>
                                 <TableCell>{log.total_records}</TableCell>
@@ -481,7 +465,12 @@ function IntegrationPage() {
                       </Table>
                     </div>
                     {totalPages > 1 && (
-                      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+                      <PaginationComponent
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                        t={t}
+                      />
                     )}
                   </>
                 )}
@@ -503,8 +492,8 @@ function IntegrationPage() {
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold">Конфликты синхронизации</h3>
-                    <p className="text-sm text-muted-foreground">Требуют ручного разрешения</p>
+                    <h3 className="text-lg font-semibold">{t('conflicts.title')}</h3>
+                    <p className="text-sm text-muted-foreground">{t('conflicts.subtitle')}</p>
                   </div>
                   {conflicts.length > 0 && (
                     <div className="flex gap-2">
@@ -513,14 +502,14 @@ function IntegrationPage() {
                         variant="outline"
                         onClick={() => handleBulkResolve('use_local')}
                       >
-                        Все локальные
+                        {t('conflicts.allLocal')}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleBulkResolve('use_external')}
                       >
-                        Все внешние
+                        {t('conflicts.allExternal')}
                       </Button>
                     </div>
                   )}
@@ -532,7 +521,7 @@ function IntegrationPage() {
                 ) : conflicts.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-green-500" />
-                    <p>Нет нерешенных конфликтов</p>
+                    <p>{t('conflicts.noConflicts')}</p>
                   </div>
                 ) : (
                   <>
@@ -540,12 +529,14 @@ function IntegrationPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Тип</TableHead>
-                            <TableHead>ID сущности</TableHead>
-                            <TableHead>Тип конфликта</TableHead>
-                            <TableHead>Поля</TableHead>
-                            <TableHead>Дата</TableHead>
-                            <TableHead className="text-right">Действия</TableHead>
+                            <TableHead>{t('conflicts.columns.type')}</TableHead>
+                            <TableHead>{t('conflicts.columns.entityId')}</TableHead>
+                            <TableHead>{t('conflicts.columns.conflictType')}</TableHead>
+                            <TableHead>{t('conflicts.columns.fields')}</TableHead>
+                            <TableHead>{t('conflicts.columns.date')}</TableHead>
+                            <TableHead className="text-right">
+                              {t('conflicts.columns.actions')}
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -553,7 +544,7 @@ function IntegrationPage() {
                             <TableRow key={conflict.id}>
                               <TableCell>
                                 <Badge variant="outline">
-                                  {entityTypeLabels[conflict.entity_type]}
+                                  {t(`entityTypes.${conflict.entity_type}`)}
                                 </Badge>
                               </TableCell>
                               <TableCell className="font-mono text-sm">
@@ -587,7 +578,7 @@ function IntegrationPage() {
                                   }}
                                 >
                                   <Eye className="h-4 w-4 mr-1" />
-                                  Разрешить
+                                  {t('conflicts.resolve')}
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -596,7 +587,12 @@ function IntegrationPage() {
                       </Table>
                     </div>
                     {totalPages > 1 && (
-                      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+                      <PaginationComponent
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                        t={t}
+                      />
                     )}
                   </>
                 )}
@@ -617,10 +613,8 @@ function IntegrationPage() {
               />
               <div className="relative z-10">
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold">Сотрудники из 1С</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Синхронизированные данные сотрудников
-                  </p>
+                  <h3 className="text-lg font-semibold">{t('employees.title')}</h3>
+                  <p className="text-sm text-muted-foreground">{t('employees.subtitle')}</p>
                 </div>
                 {employeesLoading ? (
                   <div className="flex justify-center py-8">
@@ -632,12 +626,12 @@ function IntegrationPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>ФИО</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Должность</TableHead>
-                            <TableHead>Подразделение</TableHead>
-                            <TableHead>Статус</TableHead>
-                            <TableHead>Синхронизирован</TableHead>
+                            <TableHead>{t('employees.columns.fullName')}</TableHead>
+                            <TableHead>{t('employees.columns.email')}</TableHead>
+                            <TableHead>{t('employees.columns.position')}</TableHead>
+                            <TableHead>{t('employees.columns.department')}</TableHead>
+                            <TableHead>{t('employees.columns.status')}</TableHead>
+                            <TableHead>{t('employees.columns.synced')}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -647,7 +641,7 @@ function IntegrationPage() {
                                 colSpan={6}
                                 className="text-center text-muted-foreground py-8"
                               >
-                                Нет данных
+                                {t('employees.noData')}
                               </TableCell>
                             </TableRow>
                           ) : (
@@ -661,7 +655,7 @@ function IntegrationPage() {
                                 <TableCell className="text-sm">{emp.department || '-'}</TableCell>
                                 <TableCell>
                                   <Badge variant={emp.is_active ? 'default' : 'secondary'}>
-                                    {emp.is_active ? 'Активен' : 'Неактивен'}
+                                    {emp.is_active ? t('statuses.active') : t('statuses.inactive')}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">
@@ -674,7 +668,12 @@ function IntegrationPage() {
                       </Table>
                     </div>
                     {totalPages > 1 && (
-                      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+                      <PaginationComponent
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                        t={t}
+                      />
                     )}
                   </>
                 )}
@@ -695,10 +694,8 @@ function IntegrationPage() {
               />
               <div className="relative z-10">
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold">Студенты из 1С</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Синхронизированные данные студентов
-                  </p>
+                  <h3 className="text-lg font-semibold">{t('students.title')}</h3>
+                  <p className="text-sm text-muted-foreground">{t('students.subtitle')}</p>
                 </div>
                 {studentsLoading ? (
                   <div className="flex justify-center py-8">
@@ -710,12 +707,12 @@ function IntegrationPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>ФИО</TableHead>
-                            <TableHead>Группа</TableHead>
-                            <TableHead>Факультет</TableHead>
-                            <TableHead>Курс</TableHead>
-                            <TableHead>Статус</TableHead>
-                            <TableHead>Синхронизирован</TableHead>
+                            <TableHead>{t('students.columns.fullName')}</TableHead>
+                            <TableHead>{t('students.columns.group')}</TableHead>
+                            <TableHead>{t('students.columns.faculty')}</TableHead>
+                            <TableHead>{t('students.columns.course')}</TableHead>
+                            <TableHead>{t('students.columns.status')}</TableHead>
+                            <TableHead>{t('students.columns.synced')}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -725,7 +722,7 @@ function IntegrationPage() {
                                 colSpan={6}
                                 className="text-center text-muted-foreground py-8"
                               >
-                                Нет данных
+                                {t('students.noData')}
                               </TableCell>
                             </TableRow>
                           ) : (
@@ -742,7 +739,9 @@ function IntegrationPage() {
                                 <TableCell className="text-sm">{student.course || '-'}</TableCell>
                                 <TableCell>
                                   <Badge variant={student.is_active ? 'default' : 'secondary'}>
-                                    {student.is_active ? 'Активен' : 'Неактивен'}
+                                    {student.is_active
+                                      ? t('statuses.active')
+                                      : t('statuses.inactive')}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">
@@ -755,7 +754,12 @@ function IntegrationPage() {
                       </Table>
                     </div>
                     {totalPages > 1 && (
-                      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+                      <PaginationComponent
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                        t={t}
+                      />
                     )}
                   </>
                 )}
@@ -769,9 +773,9 @@ function IntegrationPage() {
       <AlertDialog open={showResolveDialog} onOpenChange={setShowResolveDialog}>
         <AlertDialogContent className="max-w-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Разрешение конфликта</AlertDialogTitle>
+            <AlertDialogTitle>{t('conflicts.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Выберите, какие данные использовать для сущности {selectedConflict?.entity_id}
+              {t('conflicts.dialog.subtitle', { id: selectedConflict?.entity_id || '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -779,13 +783,13 @@ function IntegrationPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Локальные данные</h4>
+                  <h4 className="font-medium text-sm">{t('conflicts.dialog.localData')}</h4>
                   <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-40">
                     {JSON.stringify(JSON.parse(selectedConflict.local_data || '{}'), null, 2)}
                   </pre>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Внешние данные (1С)</h4>
+                  <h4 className="font-medium text-sm">{t('conflicts.dialog.externalData')}</h4>
                   <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-40">
                     {JSON.stringify(JSON.parse(selectedConflict.external_data || '{}'), null, 2)}
                   </pre>
@@ -793,7 +797,9 @@ function IntegrationPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Выберите решение:</label>
+                <label className="text-sm font-medium">
+                  {t('conflicts.dialog.selectResolution')}
+                </label>
                 <Select
                   value={selectedResolution}
                   onValueChange={(v) => setSelectedResolution(v as ConflictResolution)}
@@ -802,9 +808,11 @@ function IntegrationPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="use_local">Использовать локальные данные</SelectItem>
-                    <SelectItem value="use_external">Использовать данные из 1С</SelectItem>
-                    <SelectItem value="skip">Пропустить</SelectItem>
+                    <SelectItem value="use_local">{t('conflicts.dialog.useLocal')}</SelectItem>
+                    <SelectItem value="use_external">
+                      {t('conflicts.dialog.useExternal')}
+                    </SelectItem>
+                    <SelectItem value="skip">{t('conflicts.dialog.skip')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -812,8 +820,10 @@ function IntegrationPage() {
           )}
 
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleResolveConflict}>Применить</AlertDialogAction>
+            <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResolveConflict}>
+              {t('conflicts.dialog.apply')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -822,19 +832,21 @@ function IntegrationPage() {
 }
 
 // Pagination component
-function Pagination({
+function PaginationComponent({
   page,
   totalPages,
   onPageChange,
+  t,
 }: {
   page: number
   totalPages: number
   onPageChange: (page: number) => void
+  t: ReturnType<typeof useTranslations>
 }) {
   return (
     <div className="flex items-center justify-between mt-4">
       <p className="text-sm text-muted-foreground">
-        Страница {page} из {totalPages}
+        {t('pagination.page', { current: page, total: totalPages })}
       </p>
       <div className="flex items-center gap-2">
         <Button

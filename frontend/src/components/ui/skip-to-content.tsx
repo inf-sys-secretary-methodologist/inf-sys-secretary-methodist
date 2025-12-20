@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 interface SkipToContentProps {
@@ -13,6 +14,7 @@ interface SkipToContentProps {
  * WCAG 2.4.1: Bypass Blocks
  */
 export function SkipToContent({ contentId = 'main-content', className }: SkipToContentProps) {
+  const t = useTranslations()
   return (
     <a
       href={`#${contentId}`}
@@ -27,7 +29,7 @@ export function SkipToContent({ contentId = 'main-content', className }: SkipToC
         className
       )}
     >
-      Перейти к содержимому
+      {t('skipToContent')}
     </a>
   )
 }

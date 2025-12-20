@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import Cropper from 'react-easy-crop'
 import type { Area, Point } from 'react-easy-crop'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -87,6 +88,7 @@ export function ImageCropper({
   aspectRatio = 1,
   open,
 }: ImageCropperProps) {
+  const t = useTranslations('imageCropper')
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [rotation, setRotation] = useState(0)
@@ -127,7 +129,7 @@ export function ImageCropper({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
       <DialogContent className="sm:max-w-[500px] p-0">
         <DialogHeader className="p-6 pb-0">
-          <DialogTitle>Настройка фото</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
 
         <div className="relative h-[300px] bg-black">
@@ -162,17 +164,17 @@ export function ImageCropper({
           <div className="flex justify-center">
             <Button variant="outline" size="sm" onClick={handleRotate}>
               <RotateCw className="h-4 w-4 mr-2" />
-              Повернуть
+              {t('rotate')}
             </Button>
           </div>
         </div>
 
         <DialogFooter className="p-6 pt-0">
           <Button variant="outline" onClick={onCancel} disabled={isProcessing}>
-            Отмена
+            {t('cancel')}
           </Button>
           <Button onClick={handleSave} disabled={isProcessing}>
-            {isProcessing ? 'Сохранение...' : 'Применить'}
+            {isProcessing ? t('saving') : t('apply')}
           </Button>
         </DialogFooter>
       </DialogContent>

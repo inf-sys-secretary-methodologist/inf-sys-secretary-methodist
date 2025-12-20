@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { exportDashboard } from '@/hooks/useDashboard'
 import type { ExportInput } from '@/types/dashboard'
 
@@ -10,6 +11,7 @@ interface ExportButtonProps {
 }
 
 export function ExportButton({ className }: ExportButtonProps) {
+  const t = useTranslations('dashboard.export')
   const [isExporting, setIsExporting] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
 
@@ -51,7 +53,7 @@ export function ExportButton({ className }: ExportButtonProps) {
         ) : (
           <Download className="h-4 w-4" />
         )}
-        Экспорт
+        {t('title')}
       </button>
 
       {showMenu && !isExporting && (
@@ -61,14 +63,14 @@ export function ExportButton({ className }: ExportButtonProps) {
             className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-t-lg"
           >
             <FileText className="h-4 w-4 text-red-500" />
-            <span className="text-gray-900 dark:text-white">Экспорт в PDF</span>
+            <span className="text-gray-900 dark:text-white">{t('pdf')}</span>
           </button>
           <button
             onClick={() => handleExport('xlsx')}
             className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-b-lg"
           >
             <FileSpreadsheet className="h-4 w-4 text-green-500" />
-            <span className="text-gray-900 dark:text-white">Экспорт в Excel</span>
+            <span className="text-gray-900 dark:text-white">{t('excel')}</span>
           </button>
         </div>
       )}

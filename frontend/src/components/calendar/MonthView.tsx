@@ -13,6 +13,7 @@ import {
   isToday,
   getDay,
 } from 'date-fns'
+import { useTranslations } from 'next-intl'
 
 import { cn } from '@/lib/utils'
 import { EventCard } from './EventCard'
@@ -27,7 +28,7 @@ interface MonthViewProps {
   className?: string
 }
 
-const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
 
 const colStartClasses = [
   '',
@@ -47,6 +48,7 @@ export function MonthView({
   onEventClick,
   className,
 }: MonthViewProps) {
+  const t = useTranslations('calendarView')
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 })
@@ -68,9 +70,9 @@ export function MonthView({
     <div className={cn('flex flex-1 flex-col', className)}>
       {/* Weekday Headers */}
       <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-white/5 text-center text-xs font-semibold">
-        {WEEKDAYS.map((day, index) => (
+        {WEEKDAY_KEYS.map((key, index) => (
           <div
-            key={day}
+            key={key}
             className={cn(
               'py-2.5 border-r border-gray-200 dark:border-gray-700 last:border-r-0',
               index === 0 || index === 6
@@ -78,7 +80,7 @@ export function MonthView({
                 : 'text-gray-900 dark:text-white'
             )}
           >
-            {day}
+            {t(`weekdays.${key}`)}
           </div>
         ))}
       </div>
@@ -144,7 +146,7 @@ export function MonthView({
                     }}
                     className="w-full text-left text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-2"
                   >
-                    + ещё {dayEvents.length - 3}
+                    {t('moreEvents', { count: dayEvents.length - 3 })}
                   </button>
                 )}
               </div>

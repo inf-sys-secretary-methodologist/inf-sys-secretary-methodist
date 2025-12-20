@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
 import { CalendarIcon, Clock, MapPin, Loader2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -40,18 +41,17 @@ const Calendar = dynamic(() => import('@/components/ui/calendar').then((mod) => 
   ssr: false,
 })
 import type { CalendarEvent, CreateEventInput, EventType } from '@/types/calendar'
-import { EVENT_TYPE_LABELS } from '@/types/calendar'
 
 const eventSchema = z.object({
-  title: z.string().min(1, 'Название обязательно').max(500),
+  title: z.string().min(1, 'validation.titleRequired').max(500),
   description: z.string().max(5000).optional(),
   event_type: z.enum(['meeting', 'deadline', 'task', 'reminder', 'holiday', 'personal']),
   start_date: z.date(),
-  start_time: z.string().regex(/^\d{2}:\d{2}$/, 'Формат HH:MM'),
+  start_time: z.string().regex(/^\d{2}:\d{2}$/, 'validation.timeFormat'),
   end_date: z.date().optional(),
   end_time: z
     .string()
-    .refine((val) => val === '' || /^\d{2}:\d{2}$/.test(val), 'Формат HH:MM')
+    .refine((val) => val === '' || /^\d{2}:\d{2}$/.test(val), 'validation.timeFormat')
     .optional(),
   all_day: z.boolean(),
   location: z.string().max(500).optional(),
@@ -73,13 +73,13 @@ interface EventModalProps {
 const EVENT_TYPES: EventType[] = ['meeting', 'deadline', 'task', 'reminder', 'holiday', 'personal']
 
 const COLOR_OPTIONS = [
-  { value: 'default', label: 'По умолчанию' },
-  { value: '#3b82f6', label: 'Синий' },
-  { value: '#ef4444', label: 'Красный' },
-  { value: '#22c55e', label: 'Зелёный' },
-  { value: '#eab308', label: 'Жёлтый' },
-  { value: '#a855f7', label: 'Фиолетовый' },
-  { value: '#6b7280', label: 'Серый' },
+  { value: 'default', key: 'default' },
+  { value: '#3b82f6', key: 'blue' },
+  { value: '#ef4444', key: 'red' },
+  { value: '#22c55e', key: 'green' },
+  { value: '#eab308', key: 'yellow' },
+  { value: '#a855f7', key: 'purple' },
+  { value: '#6b7280', key: 'gray' },
 ]
 
 export function EventModal({
@@ -91,6 +91,7 @@ export function EventModal({
   onDelete,
   isLoading,
 }: EventModalProps) {
+  const t = useTranslations('calendar')
   const isEditing = !!event
 
   const defaultValues: Partial<EventFormData> = React.useMemo(() => {
@@ -199,48 +200,54 @@ export function EventModal({
         <DialogHeader>
           <DialogTitle>
             {isViewOnly
-              ? 'Просмотр события'
+              ? t('modal.viewTitle')
               : isEditing
-                ? 'Редактировать событие'
-                : 'Новое событие'}
+                ? t('modal.editTitle')
+                : t('modal.newTitle')}
           </DialogTitle>
           <DialogDescription>
             {isViewOnly
-              ? 'Детали события'
+              ? t('modal.viewDescription')
               : isEditing
-                ? 'Измените детали события'
-                : 'Заполните информацию о новом событии'}
+                ? t('modal.editDescription')
+                : t('modal.newDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">Название {!isViewOnly && '*'}</Label>
+            <Label htmlFor="title">
+              {isViewOnly ? t('labels.title') : t('labels.titleRequired')}
+            </Label>
             <Input
               id="title"
-              placeholder="Введите название события"
+              placeholder={t('form.eventNamePlaceholder')}
               disabled={isViewOnly}
               {...register('title')}
             />
-            {errors.title && <p className="text-sm text-destructive">{errors.title.message}</p>}
+            {errors.title && (
+              <p className="text-sm text-destructive">
+                {t(errors.title.message as 'validation.titleRequired' | 'validation.timeFormat')}
+              </p>
+            )}
           </div>
 
           {/* Event Type */}
           <div className="space-y-2">
-            <Label>Тип события</Label>
+            <Label>{t('labels.eventType')}</Label>
             <Select
               value={watch('event_type')}
               onValueChange={(v) => setValue('event_type', v as EventType)}
               disabled={isViewOnly}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Выберите тип" />
+                <SelectValue placeholder={t('form.selectTypePlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {EVENT_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
-                    {EVENT_TYPE_LABELS[type]}
+                    {t(`eventTypes.${type}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -256,14 +263,14 @@ export function EventModal({
               {...register('all_day')}
               className="h-4 w-4 rounded border-gray-300"
             />
-            <Label htmlFor="all_day">Весь день</Label>
+            <Label htmlFor="all_day">{t('labels.allDay')}</Label>
           </div>
 
           {/* Start Date & Time */}
           <div className="grid gap-4 sm:grid-cols-2">
             {/* Start Date */}
             <div className="space-y-2">
-              <Label>Дата начала {!isViewOnly && '*'}</Label>
+              <Label>{isViewOnly ? t('labels.startDate') : t('labels.startDateRequired')}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -275,7 +282,9 @@ export function EventModal({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, 'd MMM yyyy', { locale: ru }) : 'Выберите дату'}
+                    {startDate
+                      ? format(startDate, 'd MMM yyyy', { locale: ru })
+                      : t('placeholders.selectDate')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -292,7 +301,9 @@ export function EventModal({
             {/* Start Time */}
             {!allDay && (
               <div className="space-y-2">
-                <Label htmlFor="start_time">Время начала {!isViewOnly && '*'}</Label>
+                <Label htmlFor="start_time">
+                  {isViewOnly ? t('labels.startTime') : t('labels.startTimeRequired')}
+                </Label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -311,7 +322,7 @@ export function EventModal({
           <div className="grid gap-4 sm:grid-cols-2">
             {/* End Date */}
             <div className="space-y-2">
-              <Label>Дата окончания</Label>
+              <Label>{t('labels.endDate')}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -323,7 +334,9 @@ export function EventModal({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, 'd MMM yyyy', { locale: ru }) : 'Выберите дату'}
+                    {endDate
+                      ? format(endDate, 'd MMM yyyy', { locale: ru })
+                      : t('placeholders.selectDate')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -340,7 +353,7 @@ export function EventModal({
             {/* End Time */}
             {!allDay && (
               <div className="space-y-2">
-                <Label htmlFor="end_time">Время окончания</Label>
+                <Label htmlFor="end_time">{t('labels.endTime')}</Label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -357,12 +370,12 @@ export function EventModal({
 
           {/* Location */}
           <div className="space-y-2">
-            <Label htmlFor="location">Место</Label>
+            <Label htmlFor="location">{t('labels.location')}</Label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="location"
-                placeholder="Введите место проведения"
+                placeholder={t('form.locationPlaceholder')}
                 className="pl-9"
                 disabled={isViewOnly}
                 {...register('location')}
@@ -372,14 +385,14 @@ export function EventModal({
 
           {/* Color */}
           <div className="space-y-2">
-            <Label>Цвет</Label>
+            <Label>{t('labels.color')}</Label>
             <Select
               value={watch('color') || 'default'}
               onValueChange={(v) => setValue('color', v === 'default' ? '' : v)}
               disabled={isViewOnly}
             >
               <SelectTrigger>
-                <SelectValue placeholder="По умолчанию" />
+                <SelectValue placeholder={t('colors.default')} />
               </SelectTrigger>
               <SelectContent>
                 {COLOR_OPTIONS.map((color) => (
@@ -391,7 +404,7 @@ export function EventModal({
                           style={{ backgroundColor: color.value }}
                         />
                       )}
-                      {color.label}
+                      {t(`colors.${color.key}`)}
                     </div>
                   </SelectItem>
                 ))}
@@ -401,10 +414,10 @@ export function EventModal({
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Описание</Label>
+            <Label htmlFor="description">{t('labels.description')}</Label>
             <textarea
               id="description"
-              placeholder="Добавьте описание события"
+              placeholder={t('form.eventDescriptionPlaceholder')}
               disabled={isViewOnly}
               className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               {...register('description')}
@@ -419,15 +432,19 @@ export function EventModal({
                 onClick={handleDelete}
                 disabled={isLoading}
               >
-                Удалить
+                {t('buttons.delete')}
               </Button>
             )}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {isViewOnly ? 'Закрыть' : 'Отмена'}
+              {isViewOnly ? t('buttons.close') : t('buttons.cancel')}
             </Button>
             {!isViewOnly && (
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Сохранение...' : isEditing ? 'Сохранить' : 'Создать'}
+                {isLoading
+                  ? t('buttons.saving')
+                  : isEditing
+                    ? t('buttons.save')
+                    : t('buttons.create')}
               </Button>
             )}
           </DialogFooter>

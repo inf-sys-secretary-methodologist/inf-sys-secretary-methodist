@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 import {
   Dialog,
   DialogContent,
@@ -50,27 +51,38 @@ interface ShareDocumentDialogProps {
   documentTitle: string
 }
 
-const PERMISSION_LABELS: Record<PermissionLevel, string> = {
-  read: 'Чтение',
-  write: 'Редактирование',
-  delete: 'Удаление',
-  admin: 'Полный доступ',
-}
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  admin: 'Администратор',
-  secretary: 'Секретарь',
-  methodist: 'Методист',
-  teacher: 'Преподаватель',
-  student: 'Студент',
-}
-
 export function ShareDocumentDialog({
   open,
   onOpenChange,
   documentId,
   documentTitle,
 }: ShareDocumentDialogProps) {
+  const t = useTranslations('documents.share')
+  const tCommon = useTranslations('common')
+  const tForm = useTranslations('documents.form')
+  const locale = useLocale()
+
+  const PERMISSION_LABELS = useMemo<Record<PermissionLevel, string>>(
+    () => ({
+      read: t('permissionRead'),
+      write: t('permissionWrite'),
+      delete: t('permissionDelete'),
+      admin: t('permissionAdmin'),
+    }),
+    [t]
+  )
+
+  const ROLE_LABELS = useMemo<Record<UserRole, string>>(
+    () => ({
+      admin: t('roleAdmin'),
+      secretary: t('roleSecretary'),
+      methodist: t('roleMethodist'),
+      teacher: t('roleTeacher'),
+      student: t('roleStudent'),
+    }),
+    [t]
+  )
+
   const [activeTab, setActiveTab] = useState('users')
   const [permissions, setPermissions] = useState<PermissionInfo[]>([])
   const [publicLinks, setPublicLinks] = useState<PublicLinkInfo[]>([])
@@ -104,7 +116,7 @@ export function ShareDocumentDialog({
       setPublicLinks(links)
       setUsers(usersList)
     } catch (_error) {
-      toast.error('Ошибка загрузки данных')
+      toast.error(t('dataLoadError'))
     } finally {
       setLoading(false)
     }
@@ -118,11 +130,11 @@ export function ShareDocumentDialog({
 
   const handleShare = async () => {
     if (shareType === 'user' && !selectedUserId) {
-      toast.error('Выберите пользователя')
+      toast.error(t('selectUser'))
       return
     }
     if (shareType === 'role' && !selectedRole) {
-      toast.error('Выберите роль')
+      toast.error(t('selectRole'))
       return
     }
 
@@ -134,13 +146,13 @@ export function ShareDocumentDialog({
         permission: selectedPermission,
         expires_at: expiresAt || undefined,
       })
-      toast.success('Доступ предоставлен')
+      toast.success(t('accessGranted'))
       setSelectedUserId('')
       setSelectedRole('')
       setExpiresAt('')
       await loadData()
     } catch (_error) {
-      toast.error('Ошибка при предоставлении доступа')
+      toast.error(t('grantError'))
     } finally {
       setSaving(false)
     }
@@ -149,10 +161,10 @@ export function ShareDocumentDialog({
   const handleRevokePermission = async (permissionId: number) => {
     try {
       await documentsApi.revokePermission(documentId, permissionId)
-      toast.success('Доступ отозван')
+      toast.success(t('accessRevoked'))
       setPermissions((prev) => prev.filter((p) => p.id !== permissionId))
     } catch (_error) {
-      toast.error('Ошибка при отзыве доступа')
+      toast.error(t('revokeError'))
     }
   }
 
@@ -165,13 +177,13 @@ export function ShareDocumentDialog({
         max_uses: linkMaxUses ? Number(linkMaxUses) : undefined,
         password: linkPassword || undefined,
       })
-      toast.success('Публичная ссылка создана')
+      toast.success(t('linkCreated'))
       setPublicLinks((prev) => [newLink, ...prev])
       setLinkExpiresAt('')
       setLinkMaxUses('')
       setLinkPassword('')
     } catch (_error) {
-      toast.error('Ошибка при создании ссылки')
+      toast.error(t('linkCreateError'))
     } finally {
       setSaving(false)
     }
@@ -181,30 +193,30 @@ export function ShareDocumentDialog({
     try {
       await navigator.clipboard.writeText(link.url)
       setCopiedLinkId(link.id)
-      toast.success('Ссылка скопирована')
+      toast.success(t('linkCopied'))
       setTimeout(() => setCopiedLinkId(null), 2000)
     } catch {
-      toast.error('Не удалось скопировать ссылку')
+      toast.error(t('linkCopyError'))
     }
   }
 
   const handleDeactivateLink = async (linkId: number) => {
     try {
       await documentsApi.deactivatePublicLink(documentId, linkId)
-      toast.success('Ссылка деактивирована')
+      toast.success(t('linkDeactivated'))
       setPublicLinks((prev) => prev.map((l) => (l.id === linkId ? { ...l, is_active: false } : l)))
     } catch (_error) {
-      toast.error('Ошибка при деактивации ссылки')
+      toast.error(t('linkDeactivateError'))
     }
   }
 
   const handleDeleteLink = async (linkId: number) => {
     try {
       await documentsApi.deletePublicLink(documentId, linkId)
-      toast.success('Ссылка удалена')
+      toast.success(t('linkDeleted'))
       setPublicLinks((prev) => prev.filter((l) => l.id !== linkId))
     } catch (_error) {
-      toast.error('Ошибка при удалении ссылки')
+      toast.error(t('linkDeleteError'))
     }
   }
 
@@ -212,7 +224,7 @@ export function ShareDocumentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Поделиться документом</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription className="truncate">{documentTitle}</DialogDescription>
         </DialogHeader>
 
@@ -220,11 +232,11 @@ export function ShareDocumentDialog({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Пользователи
+              {t('usersTab')}
             </TabsTrigger>
             <TabsTrigger value="links" className="flex items-center gap-2">
               <Link2 className="h-4 w-4" />
-              Публичные ссылки
+              {t('linksTab')}
             </TabsTrigger>
           </TabsList>
 
@@ -238,24 +250,24 @@ export function ShareDocumentDialog({
                   size="sm"
                   onClick={() => setShareType('user')}
                 >
-                  Пользователю
+                  {t('toUser')}
                 </Button>
                 <Button
                   variant={shareType === 'role' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setShareType('role')}
                 >
-                  По роли
+                  {t('byRole')}
                 </Button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 {shareType === 'user' ? (
                   <div className="space-y-2">
-                    <Label>Пользователь</Label>
+                    <Label>{t('user')}</Label>
                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Выберите пользователя" />
+                        <SelectValue placeholder={t('selectUser')} />
                       </SelectTrigger>
                       <SelectContent>
                         {users.map((user) => (
@@ -268,13 +280,13 @@ export function ShareDocumentDialog({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Label>Роль</Label>
+                    <Label>{t('role')}</Label>
                     <Select
                       value={selectedRole}
                       onValueChange={(v) => setSelectedRole(v as UserRole)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Выберите роль" />
+                        <SelectValue placeholder={t('selectRole')} />
                       </SelectTrigger>
                       <SelectContent>
                         {(Object.keys(ROLE_LABELS) as UserRole[]).map((role) => (
@@ -288,7 +300,7 @@ export function ShareDocumentDialog({
                 )}
 
                 <div className="space-y-2">
-                  <Label>Уровень доступа</Label>
+                  <Label>{t('accessLevel')}</Label>
                   <Select
                     value={selectedPermission}
                     onValueChange={(v) => setSelectedPermission(v as PermissionLevel)}
@@ -310,7 +322,7 @@ export function ShareDocumentDialog({
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Срок действия (опционально)
+                  {t('expiryOptional')}
                 </Label>
                 <Input
                   type="datetime-local"
@@ -321,20 +333,20 @@ export function ShareDocumentDialog({
 
               <Button onClick={handleShare} disabled={saving} className="w-full">
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Предоставить доступ
+                {t('grantAccess')}
               </Button>
             </div>
 
             {/* Existing permissions */}
             <div className="space-y-2">
-              <Label>Текущие права доступа</Label>
+              <Label>{t('currentPermissions')}</Label>
               {loading ? (
                 <div className="flex justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
               ) : permissions.length === 0 ? (
                 <p className="text-sm text-muted-foreground p-4 text-center">
-                  Доступ ещё никому не предоставлен
+                  {t('noAccessGranted')}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -345,14 +357,14 @@ export function ShareDocumentDialog({
                     >
                       <div className="flex flex-col">
                         <span className="font-medium">
-                          {perm.user_name || perm.role || 'Неизвестно'}
+                          {perm.user_name || perm.role || t('unknown')}
                         </span>
                         {perm.user_email && (
                           <span className="text-sm text-muted-foreground">{perm.user_email}</span>
                         )}
                         {perm.expires_at && (
                           <span className="text-xs text-muted-foreground">
-                            До: {new Date(perm.expires_at).toLocaleDateString('ru-RU')}
+                            {t('until')}: {new Date(perm.expires_at).toLocaleDateString(locale)}
                           </span>
                         )}
                       </div>
@@ -362,7 +374,7 @@ export function ShareDocumentDialog({
                           variant="ghost"
                           size="icon"
                           onClick={() => handleRevokePermission(perm.id)}
-                          aria-label="Отозвать доступ"
+                          aria-label={tForm('revokeAccess')}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -386,7 +398,7 @@ export function ShareDocumentDialog({
                     ) : (
                       <Download className="h-4 w-4" />
                     )}
-                    Тип доступа
+                    {t('accessType')}
                   </Label>
                   <Select
                     value={linkPermission}
@@ -396,8 +408,8 @@ export function ShareDocumentDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="read">Только просмотр</SelectItem>
-                      <SelectItem value="download">Просмотр и скачивание</SelectItem>
+                      <SelectItem value="read">{t('viewOnly')}</SelectItem>
+                      <SelectItem value="download">{t('viewAndDownload')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -405,7 +417,7 @@ export function ShareDocumentDialog({
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    Срок действия
+                    {t('expiry')}
                   </Label>
                   <Input
                     type="datetime-local"
@@ -417,11 +429,11 @@ export function ShareDocumentDialog({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Макс. использований</Label>
+                  <Label>{t('maxUses')}</Label>
                   <Input
                     type="number"
                     min="1"
-                    placeholder="Без ограничений"
+                    placeholder={t('noLimitPlaceholder')}
                     value={linkMaxUses}
                     onChange={(e) => setLinkMaxUses(e.target.value)}
                   />
@@ -430,11 +442,11 @@ export function ShareDocumentDialog({
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <Lock className="h-4 w-4" />
-                    Пароль (опционально)
+                    {t('passwordOptional')}
                   </Label>
                   <Input
                     type="password"
-                    placeholder="Без пароля"
+                    placeholder={t('noPasswordPlaceholder')}
                     value={linkPassword}
                     onChange={(e) => setLinkPassword(e.target.value)}
                   />
@@ -443,20 +455,20 @@ export function ShareDocumentDialog({
 
               <Button onClick={handleCreatePublicLink} disabled={saving} className="w-full">
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Создать публичную ссылку
+                {t('createPublicLink')}
               </Button>
             </div>
 
             {/* Existing links */}
             <div className="space-y-2">
-              <Label>Существующие ссылки</Label>
+              <Label>{t('existingLinks')}</Label>
               {loading ? (
                 <div className="flex justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
               ) : publicLinks.length === 0 ? (
                 <p className="text-sm text-muted-foreground p-4 text-center">
-                  Публичных ссылок нет
+                  {t('noPublicLinks')}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -482,11 +494,11 @@ export function ShareDocumentDialog({
                         <div className="flex items-center gap-1">
                           {!link.is_active && (
                             <Badge variant="outline" className="text-xs">
-                              Неактивна
+                              {t('inactive')}
                             </Badge>
                           )}
                           <Badge variant="secondary" className="text-xs">
-                            {link.use_count} исп.
+                            {link.use_count} {t('uses')}
                           </Badge>
                         </div>
                       </div>
@@ -494,9 +506,9 @@ export function ShareDocumentDialog({
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>
                           {link.expires_at
-                            ? `До ${new Date(link.expires_at).toLocaleDateString('ru-RU')}`
-                            : 'Бессрочно'}
-                          {link.max_uses && ` • Макс. ${link.max_uses} исп.`}
+                            ? `${t('until')} ${new Date(link.expires_at).toLocaleDateString(locale)}`
+                            : t('unlimited')}
+                          {link.max_uses && ` • ${t('maxUsesLabel', { count: link.max_uses })}`}
                         </span>
                         <div className="flex gap-1">
                           <Button
@@ -504,7 +516,7 @@ export function ShareDocumentDialog({
                             size="icon"
                             className="h-7 w-7"
                             onClick={() => handleCopyLink(link)}
-                            aria-label="Копировать ссылку"
+                            aria-label={tForm('copyLink')}
                           >
                             {copiedLinkId === link.id ? (
                               <Check className="h-3 w-3 text-green-500" />
@@ -518,7 +530,7 @@ export function ShareDocumentDialog({
                               size="icon"
                               className="h-7 w-7"
                               onClick={() => handleDeactivateLink(link.id)}
-                              aria-label="Деактивировать ссылку"
+                              aria-label={tForm('deactivateLink')}
                             >
                               <Eye className="h-3 w-3" />
                             </Button>
@@ -528,7 +540,7 @@ export function ShareDocumentDialog({
                             size="icon"
                             className="h-7 w-7"
                             onClick={() => handleDeleteLink(link.id)}
-                            aria-label="Удалить ссылку"
+                            aria-label={tForm('deleteLink')}
                           >
                             <Trash2 className="h-3 w-3 text-destructive" />
                           </Button>
@@ -544,7 +556,7 @@ export function ShareDocumentDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Закрыть
+            {tCommon('close')}
           </Button>
         </DialogFooter>
       </DialogContent>

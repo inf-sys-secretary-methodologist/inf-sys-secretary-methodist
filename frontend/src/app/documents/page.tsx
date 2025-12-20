@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { format } from 'date-fns'
+import { useTranslations } from 'next-intl'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { UserRole } from '@/types/auth'
 import { AppLayout } from '@/components/layout'
@@ -58,7 +59,11 @@ const mapCategoryIdToCategory = (categoryId?: number): DocumentCategory => {
 }
 
 // Helper to convert API DocumentInfo to frontend Document type
-const mapDocumentInfoToDocument = (doc: DocumentInfo, tags?: TagInfo[]): Document => {
+const mapDocumentInfoToDocument = (
+  doc: DocumentInfo,
+  tags?: TagInfo[],
+  unknownAuthor: string = 'Unknown'
+): Document => {
   const fileUrl = doc.has_file ? documentsApi.getFileDownloadUrl(doc.id) : undefined
   const mimeType = doc.mime_type || 'application/octet-stream'
 
@@ -78,7 +83,7 @@ const mapDocumentInfoToDocument = (doc: DocumentInfo, tags?: TagInfo[]): Documen
     metadata: {
       size: doc.file_size || 0,
       mimeType,
-      uploadedBy: doc.author_name || 'Неизвестно',
+      uploadedBy: doc.author_name || unknownAuthor,
       uploadedAt: new Date(doc.created_at),
     },
     authorId: doc.author_id,
@@ -94,7 +99,8 @@ type DocumentWithHighlighting = Document & {
 // Helper to convert search result to frontend Document with highlighting
 const mapSearchResultToDocument = (
   result: SearchResultItem,
-  tags?: TagInfo[]
+  tags?: TagInfo[],
+  unknownAuthor: string = 'Unknown'
 ): DocumentWithHighlighting => {
   const doc = result.document
   const fileUrl = doc.has_file ? documentsApi.getFileDownloadUrl(doc.id) : undefined
@@ -114,7 +120,7 @@ const mapSearchResultToDocument = (
     metadata: {
       size: doc.file_size || 0,
       mimeType,
-      uploadedBy: doc.author_name || 'Неизвестно',
+      uploadedBy: doc.author_name || unknownAuthor,
       uploadedAt: new Date(doc.created_at),
     },
     authorId: doc.author_id,
@@ -129,6 +135,8 @@ const mapSearchResultToDocument = (
 
 export default function DocumentsPage() {
   const { user } = useAuthCheck()
+  const t = useTranslations('documents')
+  const tCommon = useTranslations('common')
   const userCanEdit = canEdit(user?.role)
   const [showUpload, setShowUpload] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
@@ -153,47 +161,51 @@ export default function DocumentsPage() {
   })
 
   // Fetch documents from API with filters
-  const fetchDocuments = useCallback(async (currentFilters?: DocumentFilter) => {
-    try {
-      setIsLoading(true)
-      setError(null)
+  const fetchDocuments = useCallback(
+    async (currentFilters?: DocumentFilter) => {
+      try {
+        setIsLoading(true)
+        setError(null)
 
-      // Build API params from filters
-      const params: Parameters<typeof documentsApi.list>[0] = {}
+        // Build API params from filters
+        const params: Parameters<typeof documentsApi.list>[0] = {}
 
-      if (currentFilters?.status) {
-        params.status = currentFilters.status
+        if (currentFilters?.status) {
+          params.status = currentFilters.status
+        }
+        if (currentFilters?.authorId) {
+          params.author_id = currentFilters.authorId
+        }
+        if (currentFilters?.dateFrom) {
+          params.from_date = format(currentFilters.dateFrom, 'yyyy-MM-dd')
+        }
+        if (currentFilters?.dateTo) {
+          params.to_date = format(currentFilters.dateTo, 'yyyy-MM-dd')
+        }
+
+        const response = await documentsApi.list(params)
+
+        // Fetch tags for all documents in parallel
+        const tagsPromises = response.data.map((doc) =>
+          tagsApi.getDocumentTags(doc.id).catch(() => [])
+        )
+        const allTags = await Promise.all(tagsPromises)
+
+        // Map documents with their tags
+        const unknownAuthor = tCommon('unknown')
+        const mappedDocs = response.data.map((doc, index) =>
+          mapDocumentInfoToDocument(doc, allTags[index], unknownAuthor)
+        )
+        setDocuments(mappedDocs)
+      } catch (err) {
+        console.error('Failed to fetch documents:', err)
+        setError(t('loadFailed'))
+      } finally {
+        setIsLoading(false)
       }
-      if (currentFilters?.authorId) {
-        params.author_id = currentFilters.authorId
-      }
-      if (currentFilters?.dateFrom) {
-        params.from_date = format(currentFilters.dateFrom, 'yyyy-MM-dd')
-      }
-      if (currentFilters?.dateTo) {
-        params.to_date = format(currentFilters.dateTo, 'yyyy-MM-dd')
-      }
-
-      const response = await documentsApi.list(params)
-
-      // Fetch tags for all documents in parallel
-      const tagsPromises = response.data.map((doc) =>
-        tagsApi.getDocumentTags(doc.id).catch(() => [])
-      )
-      const allTags = await Promise.all(tagsPromises)
-
-      // Map documents with their tags
-      const mappedDocs = response.data.map((doc, index) =>
-        mapDocumentInfoToDocument(doc, allTags[index])
-      )
-      setDocuments(mappedDocs)
-    } catch (err) {
-      console.error('Failed to fetch documents:', err)
-      setError('Не удалось загрузить документы')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+    },
+    [t, tCommon]
+  )
 
   // Load documents on mount and when filters change (except search which is handled separately)
   useEffect(() => {
@@ -256,8 +268,9 @@ export default function DocumentsPage() {
         const allTags = await Promise.all(tagsPromises)
 
         // Map results with their tags
+        const unknownAuthor = tCommon('unknown')
         const mappedResults = result.results.map((r, index) =>
-          mapSearchResultToDocument(r, allTags[index])
+          mapSearchResultToDocument(r, allTags[index], unknownAuthor)
         )
         setSearchResults(mappedResults)
         setSearchTotal(result.total)
@@ -276,7 +289,7 @@ export default function DocumentsPage() {
         clearTimeout(searchTimeoutRef.current)
       }
     }
-  }, [filters.search, filters.authorId, filters.status, filters.dateFrom, filters.dateTo])
+  }, [filters.search, filters.authorId, filters.status, filters.dateFrom, filters.dateTo, tCommon])
 
   // Determine which documents to show
   const isInSearchMode = Boolean(filters.search?.trim() && filters.search.trim().length >= 2)
@@ -350,7 +363,7 @@ export default function DocumentsPage() {
       setShowUpload(false)
     } catch (err) {
       console.error('Failed to upload documents:', err)
-      setError('Не удалось загрузить документы')
+      setError(t('uploadFailed'))
     } finally {
       setIsUploading(false)
     }
@@ -372,13 +385,13 @@ export default function DocumentsPage() {
   }
 
   const handleDelete = async (doc: Document) => {
-    if (confirm(`Вы уверены, что хотите удалить документ "${doc.name}"?`)) {
+    if (confirm(t('confirmDelete', { name: doc.name }))) {
       try {
         await documentsApi.delete(doc.id)
         await fetchDocuments()
       } catch (err) {
         console.error('Failed to delete document:', err)
-        setError('Не удалось удалить документ')
+        setError(t('deleteFailed'))
       }
     }
   }
@@ -401,11 +414,9 @@ export default function DocumentsPage() {
         {/* Page Header */}
         <div className="text-center space-y-2 sm:space-y-4">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-            Управление документами
+            {t('title')}
           </h1>
-          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
-            Загрузка, поиск и управление документами
-          </p>
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">{t('subtitle')}</p>
         </div>
 
         {/* Action Buttons */}
@@ -413,22 +424,22 @@ export default function DocumentsPage() {
           <Link href="/documents/shared">
             <Button variant="outline" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Общие документы</span>
-              <span className="sm:hidden">Общие</span>
+              <span className="hidden sm:inline">{t('sharedDocuments')}</span>
+              <span className="sm:hidden">{t('sharedShort')}</span>
             </Button>
           </Link>
           <Button onClick={() => setShowUpload(!showUpload)} className="flex items-center gap-2">
             {showUpload ? (
               <>
                 <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Показать документы</span>
-                <span className="sm:hidden">Документы</span>
+                <span className="hidden sm:inline">{t('showDocuments')}</span>
+                <span className="sm:hidden">{t('documentsShort')}</span>
               </>
             ) : (
               <>
                 <Upload className="h-4 w-4" />
-                <span className="hidden sm:inline">Загрузить документы</span>
-                <span className="sm:hidden">Загрузить</span>
+                <span className="hidden sm:inline">{t('upload')}</span>
+                <span className="sm:hidden">{t('uploadShort')}</span>
               </>
             )}
           </Button>
@@ -482,20 +493,27 @@ export default function DocumentsPage() {
                   {isSearching ? (
                     <>
                       <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
-                      <span className="text-blue-700 dark:text-blue-300 text-sm">Поиск...</span>
+                      <span className="text-blue-700 dark:text-blue-300 text-sm">
+                        {t('searching')}
+                      </span>
                     </>
                   ) : (
                     <>
-                      <span className="text-blue-700 dark:text-blue-300 text-sm">
-                        Найдено: <strong>{searchTotal}</strong> документов по запросу &quot;
-                        {filters.search}&quot;
-                      </span>
+                      <span
+                        className="text-blue-700 dark:text-blue-300 text-sm"
+                        dangerouslySetInnerHTML={{
+                          __html: t('searchResults', {
+                            count: searchTotal,
+                            query: filters.search || '',
+                          }),
+                        }}
+                      />
                     </>
                   )}
                 </div>
                 {searchTotal > 0 && !isSearching && (
                   <span className="text-xs text-blue-600 dark:text-blue-400">
-                    Результаты отсортированы по релевантности
+                    {t('sortedByRelevance')}
                   </span>
                 )}
               </div>

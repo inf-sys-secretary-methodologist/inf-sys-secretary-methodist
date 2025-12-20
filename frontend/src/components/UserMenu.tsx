@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { LogOut, User as UserIcon, ChevronDown, Bell, Palette } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -22,6 +23,9 @@ interface UserMenuProps {
 export function UserMenu({ className }: UserMenuProps) {
   const { user, isAuthenticated } = useAuth()
   const { logout, isLoading } = useLogout()
+  const t = useTranslations('userMenu')
+  const tRoles = useTranslations('roles')
+  const tAuth = useTranslations('auth')
 
   if (!isAuthenticated || !user) {
     return null
@@ -30,12 +34,12 @@ export function UserMenu({ className }: UserMenuProps) {
   const handleLogout = async () => {
     try {
       await logout('/login')
-      toast.success('Выход выполнен успешно', {
-        description: 'До скорой встречи!',
+      toast.success(t('logoutSuccess'), {
+        description: t('logoutSuccessDesc'),
       })
     } catch (_error) {
-      toast.error('Ошибка выхода', {
-        description: 'Попробуйте еще раз',
+      toast.error(t('logoutError'), {
+        description: t('logoutErrorDesc'),
       })
     }
   }
@@ -55,15 +59,14 @@ export function UserMenu({ className }: UserMenuProps) {
 
   // Get role display name
   const getRoleDisplayName = (role?: string): string => {
-    if (!role) return 'Пользователь'
-    const roleMap: Record<string, string> = {
-      system_admin: 'Администратор',
-      methodist: 'Методист',
-      academic_secretary: 'Секретарь',
-      teacher: 'Преподаватель',
-      student: 'Студент',
+    if (!role) return t('defaultUser')
+    try {
+      return tRoles(
+        role as 'system_admin' | 'methodist' | 'academic_secretary' | 'teacher' | 'student'
+      )
+    } catch {
+      return role
     }
-    return roleMap[role] || role
   }
 
   return (
@@ -80,7 +83,7 @@ export function UserMenu({ className }: UserMenuProps) {
           {(user as unknown as { avatar?: string }).avatar && (
             <AvatarImage
               src={(user as unknown as { avatar?: string }).avatar}
-              alt={user?.name || 'Аватар'}
+              alt={user?.name || t('avatar')}
             />
           )}
           <AvatarFallback className="bg-primary text-primary-foreground font-medium">
@@ -90,7 +93,7 @@ export function UserMenu({ className }: UserMenuProps) {
 
         <div className="hidden xl:flex xl:flex-col xl:items-start text-left">
           <span className="text-sm font-medium text-foreground">
-            {user?.name || 'Пользователь'}
+            {user?.name || t('defaultUser')}
           </span>
           <span className="text-xs text-muted-foreground">{getRoleDisplayName(user?.role)}</span>
         </div>
@@ -101,7 +104,7 @@ export function UserMenu({ className }: UserMenuProps) {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium">{user?.name || 'Пользователь'}</p>
+            <p className="text-sm font-medium">{user?.name || t('defaultUser')}</p>
             <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
             <p className="text-xs text-muted-foreground">{getRoleDisplayName(user?.role)}</p>
           </div>
@@ -112,21 +115,21 @@ export function UserMenu({ className }: UserMenuProps) {
         <DropdownMenuItem asChild>
           <Link href="/profile" className="cursor-pointer">
             <UserIcon className="mr-2 h-4 w-4" />
-            <span>Профиль</span>
+            <span>{t('profile')}</span>
           </Link>
         </DropdownMenuItem>
 
         <DropdownMenuItem asChild>
           <Link href="/settings/appearance" className="cursor-pointer">
             <Palette className="mr-2 h-4 w-4" />
-            <span>Внешний вид</span>
+            <span>{t('appearance')}</span>
           </Link>
         </DropdownMenuItem>
 
         <DropdownMenuItem asChild>
           <Link href="/settings/notifications" className="cursor-pointer">
             <Bell className="mr-2 h-4 w-4" />
-            <span>Уведомления</span>
+            <span>{t('notifications')}</span>
           </Link>
         </DropdownMenuItem>
 
@@ -138,7 +141,7 @@ export function UserMenu({ className }: UserMenuProps) {
           className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          <span>{isLoading ? 'Выход...' : 'Выйти'}</span>
+          <span>{isLoading ? t('loggingOut') : tAuth('logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

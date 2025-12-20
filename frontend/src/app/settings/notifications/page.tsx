@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Bell, Mail, Smartphone, MessageSquare, Clock, RotateCcw, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { AppLayout } from '@/components/layout'
@@ -34,10 +35,14 @@ import {
   useResetPreferences,
   useTimezones,
 } from '@/hooks/useNotifications'
-import { notificationChannelLabels } from '@/types/notification'
 import { TelegramLinkCard } from '@/components/telegram/TelegramLinkCard'
 
+const _CHANNEL_KEYS = ['in_app', 'email', 'push', 'slack'] as const
+
 export default function NotificationSettingsPage() {
+  const t = useTranslations('settings.notifications')
+  const tSettings = useTranslations('settings')
+  const tCommon = useTranslations('common')
   const { data: preferences, isLoading } = useNotificationPreferences()
   const { data: timezonesData } = useTimezones()
   const toggleChannel = useToggleChannel()
@@ -65,11 +70,12 @@ export default function NotificationSettingsPage() {
   const handleToggleChannel = async (channel: string, enabled: boolean) => {
     try {
       await toggleChannel.mutateAsync({ channel, enabled })
-      toast.success(
-        `${notificationChannelLabels[channel as keyof typeof notificationChannelLabels]} ${enabled ? 'включены' : 'отключены'}`
-      )
+      const channelKey = channel === 'in_app' ? 'inApp' : channel
+      const channelName = t(`channels.${channelKey}`)
+      const status = enabled ? t('channels.enabled') : t('channels.disabled')
+      toast.success(`${channelName} ${status}`)
     } catch {
-      toast.error('Не удалось обновить настройки')
+      toast.error(t('updateError'))
     }
   }
 
@@ -81,9 +87,9 @@ export default function NotificationSettingsPage() {
         end_time: quietHoursEnd,
         timezone,
       })
-      toast.success(enabled ? 'Тихие часы включены' : 'Тихие часы отключены')
+      toast.success(enabled ? t('quietHours.enabled') : t('quietHours.disabled'))
     } catch {
-      toast.error('Не удалось обновить тихие часы')
+      toast.error(t('updateError'))
     }
   }
 
@@ -95,9 +101,9 @@ export default function NotificationSettingsPage() {
         end_time: quietHoursEnd,
         timezone,
       })
-      toast.success('Настройки тихих часов сохранены')
+      toast.success(t('quietHours.saved'))
     } catch {
-      toast.error('Не удалось сохранить настройки')
+      toast.error(t('updateError'))
     }
   }
 
@@ -105,9 +111,9 @@ export default function NotificationSettingsPage() {
     try {
       await resetPreferences.mutateAsync()
       initFormValues()
-      toast.success('Настройки сброшены по умолчанию')
+      toast.success(t('resetSuccess'))
     } catch {
-      toast.error('Не удалось сбросить настройки')
+      toast.error(t('updateError'))
     }
   }
 
@@ -126,27 +132,24 @@ export default function NotificationSettingsPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Настройки уведомлений</h1>
-            <p className="text-muted-foreground">Управляйте способами получения уведомлений</p>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground">{t('subtitle')}</p>
           </div>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Сбросить
+                {tSettings('reset')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Сбросить настройки?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Все настройки уведомлений будут сброшены к значениям по умолчанию. Это действие
-                  нельзя отменить.
-                </AlertDialogDescription>
+                <AlertDialogTitle>{tSettings('resetSettings')}</AlertDialogTitle>
+                <AlertDialogDescription>{t('resetDescription')}</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Отмена</AlertDialogCancel>
-                <AlertDialogAction onClick={handleReset}>Сбросить</AlertDialogAction>
+                <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleReset}>{tSettings('reset')}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -157,17 +160,17 @@ export default function NotificationSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Каналы уведомлений
+              {t('channels.title')}
             </CardTitle>
-            <CardDescription>Выберите, как вы хотите получать уведомления</CardDescription>
+            <CardDescription>{t('channels.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <Label>В приложении</Label>
-                  <p className="text-sm text-muted-foreground">Уведомления в центре уведомлений</p>
+                  <Label>{t('channels.inApp')}</Label>
+                  <p className="text-sm text-muted-foreground">{t('channels.inAppDesc')}</p>
                 </div>
               </div>
               <Switch
@@ -181,10 +184,8 @@ export default function NotificationSettingsPage() {
               <div className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <Label>Email</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Отправка уведомлений на электронную почту
-                  </p>
+                  <Label>{t('channels.email')}</Label>
+                  <p className="text-sm text-muted-foreground">{t('channels.emailDesc')}</p>
                 </div>
               </div>
               <Switch
@@ -198,10 +199,8 @@ export default function NotificationSettingsPage() {
               <div className="flex items-center gap-3">
                 <Smartphone className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <Label>Push-уведомления</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Уведомления на мобильном устройстве
-                  </p>
+                  <Label>{t('channels.push')}</Label>
+                  <p className="text-sm text-muted-foreground">{t('channels.pushDesc')}</p>
                 </div>
               </div>
               <Switch
@@ -215,8 +214,8 @@ export default function NotificationSettingsPage() {
               <div className="flex items-center gap-3">
                 <MessageSquare className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <Label>Slack</Label>
-                  <p className="text-sm text-muted-foreground">Уведомления в Slack</p>
+                  <Label>{t('channels.slack')}</Label>
+                  <p className="text-sm text-muted-foreground">{t('channels.slackDesc')}</p>
                 </div>
               </div>
               <Switch
@@ -238,9 +237,9 @@ export default function NotificationSettingsPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-5 w-5" />
-                  Тихие часы
+                  {t('quietHours.title')}
                 </CardTitle>
-                <CardDescription>Отключите уведомления в определённое время</CardDescription>
+                <CardDescription>{t('quietHours.subtitle')}</CardDescription>
               </div>
               <Switch
                 checked={preferences?.quiet_hours_enabled ?? false}
@@ -253,7 +252,7 @@ export default function NotificationSettingsPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="quiet-start">Начало</Label>
+                  <Label htmlFor="quiet-start">{t('quietHours.start')}</Label>
                   <Input
                     id="quiet-start"
                     type="time"
@@ -262,7 +261,7 @@ export default function NotificationSettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="quiet-end">Конец</Label>
+                  <Label htmlFor="quiet-end">{t('quietHours.end')}</Label>
                   <Input
                     id="quiet-end"
                     type="time"
@@ -273,10 +272,10 @@ export default function NotificationSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="timezone">Часовой пояс</Label>
+                <Label htmlFor="timezone">{t('quietHours.timezone')}</Label>
                 <Select value={timezone} onValueChange={setTimezone}>
                   <SelectTrigger id="timezone">
-                    <SelectValue placeholder="Выберите часовой пояс" />
+                    <SelectValue placeholder={t('quietHours.timezonePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {timezonesData?.timezones.map((tz) => (
@@ -296,10 +295,10 @@ export default function NotificationSettingsPage() {
                 {updateQuietHours.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Сохранение...
+                    {t('quietHours.saving')}
                   </>
                 ) : (
-                  'Сохранить настройки тихих часов'
+                  t('quietHours.save')
                 )}
               </Button>
             </CardContent>

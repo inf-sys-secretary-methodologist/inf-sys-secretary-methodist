@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   FileText,
   Download,
@@ -15,12 +16,7 @@ import {
   Pencil,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Document,
-  DocumentCategoryLabels,
-  DocumentStatusLabels,
-  DocumentStatus,
-} from '@/types/document'
+import { Document, DocumentStatus } from '@/types/document'
 
 interface DocumentListProps {
   documents: Document[]
@@ -80,10 +76,13 @@ export function DocumentList({
   isLoading = false,
   className = '',
 }: DocumentListProps) {
+  const t = useTranslations('common')
+  const tDocs = useTranslations('documents')
+  const tList = useTranslations('documentList')
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('ru-RU', {
+    return new Intl.DateTimeFormat(undefined, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -93,9 +92,9 @@ export function DocumentList({
   }
 
   const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} Б`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} КБ`
-    return `${(bytes / 1024 / 1024).toFixed(2)} МБ`
+    if (bytes < 1024) return t('fileSize.bytes', { size: bytes.toString() })
+    if (bytes < 1024 * 1024) return t('fileSize.kb', { size: (bytes / 1024).toFixed(2) })
+    return t('fileSize.mb', { size: (bytes / 1024 / 1024).toFixed(2) })
   }
 
   const getStatusColor = (status: DocumentStatus) => {
@@ -118,7 +117,7 @@ export function DocumentList({
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="text-muted-foreground">Загрузка документов...</p>
+          <p className="text-muted-foreground">{tList('loading')}</p>
         </div>
       </div>
     )
@@ -128,10 +127,10 @@ export function DocumentList({
     return (
       <div className="text-center py-12">
         <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Нет документов</h3>
-        <p className="text-gray-600 dark:text-gray-400">
-          Загрузите документы, чтобы они появились здесь
-        </p>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          {tList('noDocuments')}
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400">{tList('noDocumentsHint')}</p>
       </div>
     )
   }
@@ -195,16 +194,20 @@ export function DocumentList({
 
                 <div className="flex items-center gap-2">
                   <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(doc.status)}`}>
-                    {DocumentStatusLabels[doc.status]}
+                    {tDocs(`statuses.${doc.status}`)}
                   </span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {DocumentCategoryLabels[doc.category]}
+                    {tDocs(`categories.${doc.category}`)}
                   </span>
                 </div>
 
                 <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                  <p>Размер: {formatFileSize(doc.metadata.size)}</p>
-                  <p>Загружено: {formatDate(doc.metadata.uploadedAt)}</p>
+                  <p>
+                    {tDocs('filters.size')}: {formatFileSize(doc.metadata.size)}
+                  </p>
+                  <p>
+                    {t('uploaded')}: {formatDate(doc.metadata.uploadedAt)}
+                  </p>
                 </div>
 
                 {doc.description && (
@@ -242,7 +245,7 @@ export function DocumentList({
                     className="flex-1"
                   >
                     <Eye className="h-4 w-4 mr-1" />
-                    Просмотр
+                    {tList('view')}
                   </Button>
                 )}
                 {onEdit && doc.status === DocumentStatus.READY && (!canEdit || canEdit(doc)) && (
@@ -250,7 +253,7 @@ export function DocumentList({
                     variant="outline"
                     size="sm"
                     onClick={() => onEdit(doc)}
-                    title="Редактировать"
+                    title={tList('edit')}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -260,7 +263,7 @@ export function DocumentList({
                     variant="outline"
                     size="sm"
                     onClick={() => onShare(doc)}
-                    title="Поделиться"
+                    title={tList('share')}
                   >
                     <Share2 className="h-4 w-4" />
                   </Button>
@@ -325,10 +328,10 @@ export function DocumentList({
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(doc.status)}`}
                     >
-                      {DocumentStatusLabels[doc.status]}
+                      {tDocs(`statuses.${doc.status}`)}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {DocumentCategoryLabels[doc.category]}
+                      {tDocs(`categories.${doc.category}`)}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       {formatFileSize(doc.metadata.size)}
@@ -357,7 +360,7 @@ export function DocumentList({
                 {onPreview && doc.status === DocumentStatus.READY && (
                   <Button variant="outline" size="sm" onClick={() => onPreview(doc)}>
                     <Eye className="h-4 w-4 mr-1" />
-                    Просмотр
+                    {tList('view')}
                   </Button>
                 )}
                 {onEdit && doc.status === DocumentStatus.READY && (!canEdit || canEdit(doc)) && (
@@ -365,7 +368,7 @@ export function DocumentList({
                     variant="outline"
                     size="sm"
                     onClick={() => onEdit(doc)}
-                    title="Редактировать"
+                    title={tList('edit')}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -375,7 +378,7 @@ export function DocumentList({
                     variant="outline"
                     size="sm"
                     onClick={() => onShare(doc)}
-                    title="Поделиться"
+                    title={tList('share')}
                   >
                     <Share2 className="h-4 w-4" />
                   </Button>

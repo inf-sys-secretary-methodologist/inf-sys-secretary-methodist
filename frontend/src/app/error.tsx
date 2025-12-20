@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { AlertCircle, Home, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTranslations } from 'next-intl'
 
 export default function Error({
   error,
@@ -11,6 +12,8 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const t = useTranslations('errorPages.error')
+
   useEffect(() => {
     // Log error to console (can be extended to send to error tracking service)
     console.error('Application error:', {
@@ -36,16 +39,14 @@ export default function Error({
 
         {/* Error Title */}
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight">Что-то пошло не так</h1>
-          <p className="text-muted-foreground">
-            Произошла непредвиденная ошибка. Пожалуйста, попробуйте еще раз.
-          </p>
+          <h1 className="text-4xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
         </div>
 
         {/* Error Message (Development mode or non-sensitive errors) */}
         {process.env.NODE_ENV === 'development' && error.message && (
           <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-left">
-            <p className="text-sm font-semibold text-destructive mb-2">Детали ошибки:</p>
+            <p className="text-sm font-semibold text-destructive mb-2">{t('details')}</p>
             <p className="text-xs text-destructive/80 font-mono break-words">{error.message}</p>
             {error.digest && (
               <p className="text-xs text-muted-foreground mt-2">Error ID: {error.digest}</p>
@@ -56,7 +57,7 @@ export default function Error({
         {/* Production error digest */}
         {process.env.NODE_ENV === 'production' && error.digest && (
           <div className="p-4 rounded-lg bg-muted border text-left">
-            <p className="text-sm text-muted-foreground">Код ошибки для службы поддержки:</p>
+            <p className="text-sm text-muted-foreground">{t('supportCode')}</p>
             <p className="text-xs font-mono text-foreground mt-1">{error.digest}</p>
           </div>
         )}
@@ -65,7 +66,7 @@ export default function Error({
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button onClick={reset} variant="default" className="gap-2">
             <RefreshCw className="h-4 w-4" />
-            Попробовать снова
+            {t('retry')}
           </Button>
           <Button
             onClick={() => (window.location.href = '/dashboard')}
@@ -73,7 +74,7 @@ export default function Error({
             className="gap-2"
           >
             <Home className="h-4 w-4" />
-            На главную
+            {t('backHome')}
           </Button>
         </div>
       </div>

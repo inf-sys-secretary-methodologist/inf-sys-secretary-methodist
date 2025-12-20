@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { withAuth } from '@/components/auth/withAuth'
 import { useAuthStore } from '@/stores/authStore'
 import { UserRole } from '@/types/auth'
@@ -38,14 +39,6 @@ import {
 import { usersApi, departmentsApi, type UserWithOrg, type Department } from '@/lib/api/users'
 import { toast } from 'sonner'
 
-const roleLabels: Record<string, string> = {
-  system_admin: 'Системный администратор',
-  methodist: 'Методист',
-  academic_secretary: 'Учёный секретарь',
-  teacher: 'Преподаватель',
-  student: 'Студент',
-}
-
 const roleColors: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   system_admin: 'destructive',
   methodist: 'default',
@@ -54,13 +47,12 @@ const roleColors: Record<string, 'default' | 'secondary' | 'destructive' | 'outl
   student: 'outline',
 }
 
-const statusLabels: Record<string, string> = {
-  active: 'Активен',
-  inactive: 'Неактивен',
-  blocked: 'Заблокирован',
-}
+const ROLE_KEYS = ['system_admin', 'methodist', 'academic_secretary', 'teacher', 'student'] as const
 
 function UsersManagementPage() {
+  const t = useTranslations('users')
+  const tRoles = useTranslations('roles')
+  const tCommon = useTranslations('common')
   const { user: currentUser, isAuthenticated, isLoading: authLoading } = useAuthStore()
   const isAdmin = currentUser?.role === UserRole.SYSTEM_ADMIN
   const [searchQuery, setSearchQuery] = useState('')
@@ -108,7 +100,7 @@ function UsersManagementPage() {
       setTotalPages(response.data.total_pages)
     } catch (error) {
       console.error('Failed to fetch users:', error)
-      toast.error('Не удалось загрузить список пользователей')
+      toast.error(t('loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -140,24 +132,24 @@ function UsersManagementPage() {
   const handleUpdateStatus = async (userId: number, newStatus: string) => {
     try {
       await usersApi.updateStatus(userId, newStatus)
-      toast.success('Статус пользователя обновлен')
+      toast.success(t('statusUpdated'))
       fetchUsers()
     } catch (error) {
       console.error('Failed to update status:', error)
-      toast.error('Не удалось обновить статус')
+      toast.error(t('statusUpdateFailed'))
     }
   }
 
   const handleDeleteUser = async (userId: number) => {
-    if (!confirm('Вы уверены, что хотите удалить этого пользователя?')) return
+    if (!confirm(t('confirmDelete'))) return
 
     try {
       await usersApi.delete(userId)
-      toast.success('Пользователь удален')
+      toast.success(t('userDeleted'))
       fetchUsers()
     } catch (error) {
       console.error('Failed to delete user:', error)
-      toast.error('Не удалось удалить пользователя')
+      toast.error(t('deleteFailed'))
     }
   }
 
@@ -193,18 +185,16 @@ function UsersManagementPage() {
         {/* Page Header */}
         <div className="text-center space-y-2 sm:space-y-4">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-            Управление пользователями
+            {t('title')}
           </h1>
-          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
-            Просмотр и управление пользователями системы
-          </p>
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">{t('subtitle')}</p>
         </div>
 
         {/* Action Button */}
         <div className="flex justify-end">
           <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Обновить
+            {tCommon('refresh')}
           </Button>
         </div>
 
@@ -220,12 +210,12 @@ function UsersManagementPage() {
               borderWidth={3}
             />
             <div className="relative z-10">
-              <p className="text-xs sm:text-sm text-muted-foreground">Всего</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{tCommon('total')}</p>
               <p className="text-2xl sm:text-3xl font-bold">{total}</p>
             </div>
           </div>
 
-          {Object.entries(roleLabels).map(([role, label]) => {
+          {ROLE_KEYS.map((role) => {
             const count = roleStats[role] || 0
 
             return (
@@ -242,7 +232,9 @@ function UsersManagementPage() {
                   borderWidth={3}
                 />
                 <div className="relative z-10">
-                  <p className="text-xs sm:text-sm text-muted-foreground truncate">{label}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                    {tRoles(role)}
+                  </p>
                   <p className="text-2xl sm:text-3xl font-bold">{count}</p>
                 </div>
               </div>
@@ -272,7 +264,7 @@ function UsersManagementPage() {
                     setSearchQuery(e.target.value)
                     setPage(1)
                   }}
-                  placeholder="Поиск по имени или email..."
+                  placeholder={t('searchPlaceholder')}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
                            bg-white dark:bg-gray-900 text-gray-900 dark:text-white
                            focus:ring-2 focus:ring-blue-500 focus:border-transparent
@@ -286,7 +278,7 @@ function UsersManagementPage() {
                 className="flex-shrink-0"
               >
                 <Filter className="h-4 w-4 mr-2" />
-                Фильтры
+                {tCommon('filters')}
                 {hasActiveFilters && !isFiltersExpanded && (
                   <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
                     {
@@ -305,7 +297,7 @@ function UsersManagementPage() {
               {hasActiveFilters && (
                 <Button variant="outline" onClick={resetFilters} className="flex-shrink-0">
                   <X className="h-4 w-4 mr-2" />
-                  Сбросить
+                  {tCommon('reset')}
                 </Button>
               )}
             </div>
@@ -317,7 +309,7 @@ function UsersManagementPage() {
                   {/* Name Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Имя пользователя
+                      {t('nameFilter')}
                     </label>
                     <input
                       type="text"
@@ -326,7 +318,7 @@ function UsersManagementPage() {
                         setNameFilter(e.target.value)
                         setPage(1)
                       }}
-                      placeholder="Фильтр по имени..."
+                      placeholder={t('filterByName')}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
                                bg-white dark:bg-gray-900 text-gray-900 dark:text-white
                                focus:ring-2 focus:ring-blue-500 focus:border-transparent
@@ -337,7 +329,7 @@ function UsersManagementPage() {
                   {/* Email Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email
+                      {t('emailFilter')}
                     </label>
                     <input
                       type="text"
@@ -346,7 +338,7 @@ function UsersManagementPage() {
                         setEmailFilter(e.target.value)
                         setPage(1)
                       }}
-                      placeholder="Фильтр по email..."
+                      placeholder={t('filterByEmail')}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
                                bg-white dark:bg-gray-900 text-gray-900 dark:text-white
                                focus:ring-2 focus:ring-blue-500 focus:border-transparent
@@ -357,7 +349,7 @@ function UsersManagementPage() {
                   {/* Role Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Роль
+                      {t('roleFilter')}
                     </label>
                     <select
                       value={roleFilter}
@@ -369,10 +361,10 @@ function UsersManagementPage() {
                                bg-white dark:bg-gray-900 text-gray-900 dark:text-white
                                focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="all">Все роли</option>
-                      {Object.entries(roleLabels).map(([role, label]) => (
+                      <option value="all">{t('allRoles')}</option>
+                      {ROLE_KEYS.map((role) => (
                         <option key={role} value={role}>
-                          {label}
+                          {tRoles(role)}
                         </option>
                       ))}
                     </select>
@@ -381,7 +373,7 @@ function UsersManagementPage() {
                   {/* Status Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Статус
+                      {t('statusFilter')}
                     </label>
                     <select
                       value={statusFilter}
@@ -393,10 +385,10 @@ function UsersManagementPage() {
                                bg-white dark:bg-gray-900 text-gray-900 dark:text-white
                                focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="all">Все статусы</option>
-                      {Object.entries(statusLabels).map(([status, label]) => (
+                      <option value="all">{t('allStatuses')}</option>
+                      {(['active', 'inactive', 'blocked'] as const).map((status) => (
                         <option key={status} value={status}>
-                          {label}
+                          {t(`statuses.${status}`)}
                         </option>
                       ))}
                     </select>
@@ -405,7 +397,7 @@ function UsersManagementPage() {
                   {/* Department Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Подразделение
+                      {t('departmentFilter')}
                     </label>
                     <select
                       value={departmentFilter}
@@ -417,7 +409,7 @@ function UsersManagementPage() {
                                bg-white dark:bg-gray-900 text-gray-900 dark:text-white
                                focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="all">Все подразделения</option>
+                      <option value="all">{t('allDepartments')}</option>
                       {departments.map((dept) => (
                         <option key={dept.id} value={dept.id.toString()}>
                           {dept.name}
@@ -434,7 +426,7 @@ function UsersManagementPage() {
               <div className="flex flex-wrap gap-2">
                 {searchQuery && (
                   <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full text-sm flex items-center gap-2">
-                    Поиск: {searchQuery}
+                    {t('filterLabels.search')}: {searchQuery}
                     <button
                       onClick={() => {
                         setSearchQuery('')
@@ -448,7 +440,7 @@ function UsersManagementPage() {
                 )}
                 {nameFilter && (
                   <span className="px-3 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-400 rounded-full text-sm flex items-center gap-2">
-                    Имя: {nameFilter}
+                    {t('filterLabels.name')}: {nameFilter}
                     <button
                       onClick={() => {
                         setNameFilter('')
@@ -476,7 +468,7 @@ function UsersManagementPage() {
                 )}
                 {roleFilter !== 'all' && (
                   <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full text-sm flex items-center gap-2">
-                    {roleLabels[roleFilter]}
+                    {tRoles(roleFilter)}
                     <button
                       onClick={() => {
                         setRoleFilter('all')
@@ -490,7 +482,7 @@ function UsersManagementPage() {
                 )}
                 {statusFilter !== 'all' && (
                   <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full text-sm flex items-center gap-2">
-                    {statusLabels[statusFilter]}
+                    {t(`statuses.${statusFilter}`)}
                     <button
                       onClick={() => {
                         setStatusFilter('all')
@@ -505,7 +497,7 @@ function UsersManagementPage() {
                 {departmentFilter !== 'all' && (
                   <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 rounded-full text-sm flex items-center gap-2">
                     {departments.find((d) => d.id.toString() === departmentFilter)?.name ||
-                      'Подразделение'}
+                      t('filterLabels.department')}
                     <button
                       onClick={() => {
                         setDepartmentFilter('all')
@@ -534,10 +526,8 @@ function UsersManagementPage() {
           />
           <div className="relative z-10">
             <div className="mb-4">
-              <h3 className="text-lg sm:text-xl font-semibold">Пользователи</h3>
-              <p className="text-sm text-muted-foreground">
-                Список всех зарегистрированных пользователей
-              </p>
+              <h3 className="text-lg sm:text-xl font-semibold">{t('usersList')}</h3>
+              <p className="text-sm text-muted-foreground">{t('usersListSubtitle')}</p>
             </div>
             {loading ? (
               <div className="flex items-center justify-center py-12">
@@ -548,9 +538,7 @@ function UsersManagementPage() {
                 {/* Mobile Cards View */}
                 <div className="block sm:hidden space-y-4">
                   {users.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      Пользователи не найдены
-                    </p>
+                    <p className="text-center text-muted-foreground py-8">{t('noUsersFound')}</p>
                   ) : (
                     users.map((user) => (
                       <div key={user.id} className="border rounded-lg p-4 space-y-3">
@@ -579,7 +567,7 @@ function UsersManagementPage() {
                                     )
                                   }
                                 >
-                                  {user.status === 'active' ? 'Деактивировать' : 'Активировать'}
+                                  {user.status === 'active' ? t('deactivate') : t('activate')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() =>
@@ -589,14 +577,14 @@ function UsersManagementPage() {
                                     )
                                   }
                                 >
-                                  {user.status === 'blocked' ? 'Разблокировать' : 'Заблокировать'}
+                                  {user.status === 'blocked' ? t('unblock') : t('block')}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   className="text-destructive"
                                   onClick={() => handleDeleteUser(user.id)}
                                 >
-                                  Удалить
+                                  {t('delete')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -616,7 +604,7 @@ function UsersManagementPage() {
                             variant={roleColors[user.role] || 'outline'}
                             className="whitespace-nowrap"
                           >
-                            {roleLabels[user.role] || user.role}
+                            {tRoles(user.role)}
                           </Badge>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Calendar className="h-3 w-3" />
@@ -633,13 +621,19 @@ function UsersManagementPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Пользователь</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead className="min-w-[180px]">Роль</TableHead>
-                        <TableHead>Статус</TableHead>
-                        <TableHead className="hidden lg:table-cell">Подразделение</TableHead>
-                        <TableHead className="hidden lg:table-cell">Дата создания</TableHead>
-                        {isAdmin && <TableHead className="text-right">Действия</TableHead>}
+                        <TableHead>{t('tableHeaders.user')}</TableHead>
+                        <TableHead>{t('tableHeaders.email')}</TableHead>
+                        <TableHead className="min-w-[180px]">{t('tableHeaders.role')}</TableHead>
+                        <TableHead>{t('tableHeaders.status')}</TableHead>
+                        <TableHead className="hidden lg:table-cell">
+                          {t('tableHeaders.department')}
+                        </TableHead>
+                        <TableHead className="hidden lg:table-cell">
+                          {t('tableHeaders.createdAt')}
+                        </TableHead>
+                        {isAdmin && (
+                          <TableHead className="text-right">{t('tableHeaders.actions')}</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -649,7 +643,7 @@ function UsersManagementPage() {
                             colSpan={isAdmin ? 7 : 6}
                             className="h-24 text-center text-muted-foreground"
                           >
-                            Пользователи не найдены
+                            {t('noUsersFound')}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -676,7 +670,7 @@ function UsersManagementPage() {
                                 variant={roleColors[user.role] || 'outline'}
                                 className="whitespace-nowrap"
                               >
-                                {roleLabels[user.role] || user.role}
+                                {tRoles(user.role)}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -694,7 +688,7 @@ function UsersManagementPage() {
                                     : ''
                                 }
                               >
-                                {statusLabels[user.status] || user.status}
+                                {t(`statuses.${user.status}`)}
                               </Badge>
                             </TableCell>
                             <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
@@ -723,7 +717,7 @@ function UsersManagementPage() {
                                         )
                                       }
                                     >
-                                      {user.status === 'active' ? 'Деактивировать' : 'Активировать'}
+                                      {user.status === 'active' ? t('deactivate') : t('activate')}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={() =>
@@ -733,16 +727,14 @@ function UsersManagementPage() {
                                         )
                                       }
                                     >
-                                      {user.status === 'blocked'
-                                        ? 'Разблокировать'
-                                        : 'Заблокировать'}
+                                      {user.status === 'blocked' ? t('unblock') : t('block')}
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                       className="text-destructive"
                                       onClick={() => handleDeleteUser(user.id)}
                                     >
-                                      Удалить
+                                      {t('delete')}
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -759,7 +751,7 @@ function UsersManagementPage() {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-4">
                     <p className="text-sm text-muted-foreground">
-                      Страница {page} из {totalPages}
+                      {t('pagination', { page, totalPages })}
                     </p>
                     <div className="flex items-center gap-2">
                       <Button

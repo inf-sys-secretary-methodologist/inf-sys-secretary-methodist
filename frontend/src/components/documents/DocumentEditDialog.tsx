@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import { X, Save, Loader2, Upload, FileText, Trash2, Tag, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Document } from '@/types/document'
@@ -19,6 +20,9 @@ export function DocumentEditDialog({
   onOpenChange,
   onSaved,
 }: DocumentEditDialogProps) {
+  const t = useTranslations('documents.edit')
+  const tCommon = useTranslations('common')
+  const tForm = useTranslations('documents.form')
   const [title, setTitle] = useState('')
   const [subject, setSubject] = useState('')
   const [content, setContent] = useState('')
@@ -94,7 +98,7 @@ export function DocumentEditDialog({
 
     try {
       await documentsApi.uploadFile(document.id, newFile)
-      setSuccess(`Файл "${newFile.name}" успешно загружен`)
+      setSuccess(t('fileUploadedSuccess', { name: newFile.name }))
       setCurrentFileName(newFile.name)
       setNewFile(null)
       if (fileInputRef.current) {
@@ -102,7 +106,7 @@ export function DocumentEditDialog({
       }
     } catch (err) {
       console.error('Failed to upload file:', err)
-      setError('Не удалось загрузить файл')
+      setError(t('fileUploadError'))
     } finally {
       setIsUploading(false)
     }
@@ -120,7 +124,7 @@ export function DocumentEditDialog({
       setShowTagDropdown(false)
     } catch (err) {
       console.error('Failed to add tag:', err)
-      setError('Не удалось добавить тег')
+      setError(t('tagAddError'))
     }
   }
 
@@ -132,7 +136,7 @@ export function DocumentEditDialog({
       setDocumentTags(documentTags.filter((t) => t.id !== tagId))
     } catch (err) {
       console.error('Failed to remove tag:', err)
-      setError('Не удалось удалить тег')
+      setError(t('tagRemoveError'))
     }
   }
 
@@ -161,16 +165,16 @@ export function DocumentEditDialog({
       onSaved?.()
     } catch (err) {
       console.error('Failed to update document:', err)
-      setError('Не удалось сохранить изменения')
+      setError(t('saveError'))
     } finally {
       setIsLoading(false)
     }
   }
 
   const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} Б`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`
-    return `${(bytes / 1024 / 1024).toFixed(1)} МБ`
+    if (bytes < 1024) return tCommon('fileSize.bytes', { size: bytes.toString() })
+    if (bytes < 1024 * 1024) return tCommon('fileSize.kb', { size: (bytes / 1024).toFixed(1) })
+    return tCommon('fileSize.mb', { size: (bytes / 1024 / 1024).toFixed(1) })
   }
 
   if (!open || !document) return null
@@ -180,9 +184,7 @@ export function DocumentEditDialog({
       <div className="relative w-full max-w-2xl m-4 bg-white dark:bg-gray-900 rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Редактирование документа
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('title')}</h2>
           <button
             onClick={() => onOpenChange(false)}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
@@ -208,7 +210,7 @@ export function DocumentEditDialog({
           {/* File Upload Section */}
           <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Прикреплённый файл
+              {t('attachedFile')}
             </label>
 
             {currentFileName && (
@@ -221,7 +223,7 @@ export function DocumentEditDialog({
                   className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
                            bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                            focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Название файла"
+                  placeholder={tForm('fileNamePlaceholder')}
                 />
               </div>
             )}
@@ -241,7 +243,7 @@ export function DocumentEditDialog({
                          text-gray-700 dark:text-gray-300"
               >
                 <Upload className="h-4 w-4" />
-                Выбрать новый файл
+                {t('selectNewFile')}
               </label>
 
               {newFile && (
@@ -250,7 +252,7 @@ export function DocumentEditDialog({
                     {newFile.name} ({formatFileSize(newFile.size)})
                   </span>
                   <Button size="sm" onClick={handleFileUpload} disabled={isUploading}>
-                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Загрузить'}
+                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : tCommon('save')}
                   </Button>
                   <button
                     onClick={() => {
@@ -265,15 +267,13 @@ export function DocumentEditDialog({
               )}
             </div>
 
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              При загрузке нового файла создаётся новая версия документа
-            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('versionNote')}</p>
           </div>
 
           {/* Metadata Fields */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Заголовок *
+              {t('titleLabel')} *
             </label>
             <input
               type="text"
@@ -282,13 +282,13 @@ export function DocumentEditDialog({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
                        bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                        focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Название документа"
+              placeholder={tForm('documentNamePlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Тема / Описание
+              {t('subjectLabel')}
             </label>
             <input
               type="text"
@@ -297,13 +297,13 @@ export function DocumentEditDialog({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
                        bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                        focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Краткое описание документа"
+              placeholder={tForm('descriptionPlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Содержание
+              {t('contentLabel')}
             </label>
             <textarea
               value={content}
@@ -312,7 +312,7 @@ export function DocumentEditDialog({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
                        bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                        focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              placeholder="Текстовое содержание документа (опционально)"
+              placeholder={tForm('contentPlaceholder')}
             />
           </div>
 
@@ -320,7 +320,7 @@ export function DocumentEditDialog({
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <Tag className="h-4 w-4 inline-block mr-1" />
-              Теги
+              {t('tagsLabel')}
             </label>
 
             {/* Current tags */}
@@ -342,7 +342,7 @@ export function DocumentEditDialog({
                 </span>
               ))}
               {documentTags.length === 0 && (
-                <span className="text-sm text-gray-500 dark:text-gray-400">Нет тегов</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{t('noTags')}</span>
               )}
             </div>
 
@@ -360,7 +360,7 @@ export function DocumentEditDialog({
                   className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
                            bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                            focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  placeholder="Поиск тегов..."
+                  placeholder={tForm('tagsSearchPlaceholder')}
                 />
               </div>
 
@@ -396,7 +396,7 @@ export function DocumentEditDialog({
                   className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200
                               dark:border-gray-700 rounded-lg shadow-lg p-3 text-sm text-gray-500"
                 >
-                  Тег не найден
+                  {t('tagNotFound')}
                 </div>
               )}
             </div>
@@ -407,26 +407,24 @@ export function DocumentEditDialog({
             )}
           </div>
 
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            При сохранении изменений автоматически создается новая версия документа
-          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('saveNote')}</p>
         </div>
 
         {/* Footer */}
         <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-900">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-            Отмена
+            {tCommon('cancel')}
           </Button>
           <Button onClick={handleSave} disabled={isLoading || !title.trim()}>
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Сохранение...
+                {t('saving')}
               </>
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Сохранить
+                {tCommon('save')}
               </>
             )}
           </Button>

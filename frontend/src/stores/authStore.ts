@@ -128,7 +128,7 @@ export const useAuthStore = create<AuthState>()(
             (error as { response?: { data?: { error?: { message?: string }; message?: string } } })
               .response?.data?.error?.message ||
             (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
-            'Ошибка входа'
+            'LOGIN_ERROR' // Error code, will be translated by UI components
           set({
             isLoading: false,
             error: errorMessage,
@@ -164,7 +164,7 @@ export const useAuthStore = create<AuthState>()(
             (error as { response?: { data?: { error?: { message?: string }; message?: string } } })
               .response?.data?.error?.message ||
             (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
-            'Ошибка регистрации'
+            'REGISTER_ERROR' // Error code, will be translated by UI components
           set({
             isLoading: false,
             error: errorMessage,

@@ -14,11 +14,14 @@ import {
   getMinutes,
   differenceInMinutes,
 } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, fr, ar } from 'date-fns/locale'
+import { useTranslations, useLocale } from 'next-intl'
 
 import { cn } from '@/lib/utils'
 import { EventCard } from './EventCard'
 import type { CalendarEvent } from '@/types/calendar'
+
+const localeMap = { ru, en: enUS, fr, ar }
 
 interface WeekViewProps {
   currentDate: Date
@@ -42,6 +45,9 @@ export function WeekView({
   onTimeSlotClick,
   className,
 }: WeekViewProps) {
+  const t = useTranslations('calendarView')
+  const locale = useLocale()
+  const dateLocale = localeMap[locale as keyof typeof localeMap] || enUS
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 })
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
@@ -118,7 +124,7 @@ export function WeekView({
                   )}
                 >
                   <div className="text-xs text-gray-500 dark:text-gray-400 uppercase">
-                    {format(day, 'EEE', { locale: ru })}
+                    {format(day, 'EEE', { locale: dateLocale })}
                   </div>
                   <div
                     className={cn(
@@ -143,7 +149,7 @@ export function WeekView({
                     ))}
                     {allDayEvents.length > 2 && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 px-1">
-                        + ещё {allDayEvents.length - 2}
+                        {t('moreEvents', { count: allDayEvents.length - 2 })}
                       </div>
                     )}
                   </div>

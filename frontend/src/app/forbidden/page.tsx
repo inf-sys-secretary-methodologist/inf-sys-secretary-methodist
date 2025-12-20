@@ -3,9 +3,11 @@
 import { useRouter } from 'next/navigation'
 import { ShieldX, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTranslations } from 'next-intl'
 
 export default function ForbiddenPage() {
   const router = useRouter()
+  const t = useTranslations('errorPages.forbidden')
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -20,22 +22,19 @@ export default function ForbiddenPage() {
         {/* Title */}
         <div className="space-y-2">
           <h1 className="text-4xl font-bold tracking-tight">403</h1>
-          <h2 className="text-2xl font-semibold">Доступ запрещен</h2>
+          <h2 className="text-2xl font-semibold">{t('title')}</h2>
         </div>
 
         {/* Description */}
-        <p className="text-muted-foreground">
-          У вас нет прав доступа к этой странице. Пожалуйста, свяжитесь с администратором, если вы
-          считаете, что это ошибка.
-        </p>
+        <p className="text-muted-foreground">{t('description')}</p>
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button onClick={() => router.back()} variant="outline" className="gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Назад
+            {t('back')}
           </Button>
-          <Button onClick={() => router.push('/dashboard')}>На главную</Button>
+          <Button onClick={() => router.push('/dashboard')}>{t('backHome')}</Button>
         </div>
       </div>
     </div>

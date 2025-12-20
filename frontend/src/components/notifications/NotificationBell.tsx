@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Bell, CheckCheck, Settings, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +26,8 @@ interface NotificationBellProps {
 export function NotificationBell({ className }: NotificationBellProps) {
   const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<string>('all')
+  const t = useTranslations('notificationBell')
+  const tNotifications = useTranslations('notifications')
 
   const { count: unreadCount } = useUnreadCount()
   const { notifications, isLoading } = useNotifications({ limit: 20 })
@@ -36,16 +39,16 @@ export function NotificationBell({ className }: NotificationBellProps) {
     try {
       await markAsRead.mutateAsync(id)
     } catch {
-      toast.error('Не удалось отметить уведомление')
+      toast.error(tNotifications('markError'))
     }
   }
 
   const handleMarkAllAsRead = async () => {
     try {
       await markAllAsRead.mutateAsync()
-      toast.success('Все уведомления отмечены как прочитанные')
+      toast.success(tNotifications('allMarkedRead'))
     } catch {
-      toast.error('Не удалось отметить уведомления')
+      toast.error(tNotifications('markAllError'))
     }
   }
 
@@ -81,7 +84,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
             !open && 'hover:scale-105 hover:shadow-lg active:scale-95',
             className
           )}
-          aria-label={`Уведомления${unreadCount > 0 ? ` (${unreadCount} непрочитанных)` : ''}`}
+          aria-label={t('ariaLabel', { count: unreadCount })}
           type="button"
         >
           <Bell className="h-5 w-5" />
@@ -104,7 +107,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
         <div className="flex flex-col gap-4 p-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base leading-none font-semibold tracking-[-0.006em]">
-              Уведомления
+              {tNotifications('title')}
             </h3>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
@@ -114,7 +117,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                   className="size-8"
                   onClick={handleMarkAllAsRead}
                   disabled={markAllAsRead.isPending}
-                  aria-label="Прочитать все"
+                  aria-label={tNotifications('markAllRead')}
                 >
                   <CheckCheck className="size-4 text-muted-foreground" />
                 </Button>
@@ -124,7 +127,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                 size="icon"
                 className="size-8"
                 asChild
-                aria-label="Настройки уведомлений"
+                aria-label={t('settingsAriaLabel')}
                 onClick={() => setOpen(false)}
               >
                 <Link href="/settings/notifications">
@@ -141,7 +144,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                 value="all"
                 className="gap-1 data-[state=active]:bg-muted data-[state=active]:shadow-none rounded-full px-2.5 py-1 text-xs"
               >
-                Все
+                {t('tabs.all')}
                 <Badge
                   variant="secondary"
                   className="size-4 rounded-full p-0 justify-center text-[10px]"
@@ -153,7 +156,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                 value="tasks"
                 className="gap-1 data-[state=active]:bg-muted data-[state=active]:shadow-none rounded-full px-2.5 py-1 text-xs"
               >
-                Задачи
+                {t('tabs.tasks')}
                 <Badge
                   variant="secondary"
                   className="size-4 rounded-full p-0 justify-center text-[10px]"
@@ -165,7 +168,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                 value="documents"
                 className="gap-1 data-[state=active]:bg-muted data-[state=active]:shadow-none rounded-full px-2.5 py-1 text-xs"
               >
-                Документы
+                {t('tabs.documents')}
                 <Badge
                   variant="secondary"
                   className="size-4 rounded-full p-0 justify-center text-[10px]"
@@ -177,7 +180,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                 value="reminders"
                 className="gap-1 data-[state=active]:bg-muted data-[state=active]:shadow-none rounded-full px-2.5 py-1 text-xs"
               >
-                События
+                {t('tabs.events')}
                 <Badge
                   variant="secondary"
                   className="size-4 rounded-full p-0 justify-center text-[10px]"
@@ -212,7 +215,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                 <Bell className="h-6 w-6 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium tracking-[-0.006em] text-muted-foreground">
-                Нет уведомлений
+                {tNotifications('empty')}
               </p>
             </div>
           )}
@@ -227,7 +230,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
               asChild
               onClick={() => setOpen(false)}
             >
-              <Link href="/notifications">Показать все уведомления</Link>
+              <Link href="/notifications">{t('showAll')}</Link>
             </Button>
           </div>
         )}

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import { useTranslations, useLocale } from 'next-intl'
 import { Search, Filter, X, Calendar as CalendarIcon, Loader2 } from 'lucide-react'
-import { format } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { format, Locale } from 'date-fns'
+import { ru, enUS, fr, ar } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
@@ -20,8 +21,6 @@ const Calendar = dynamic(() => import('@/components/ui/calendar').then((mod) => 
 import {
   DocumentCategory,
   DocumentStatus,
-  DocumentCategoryLabels,
-  DocumentStatusLabels,
   type DocumentFilter,
   type DocumentSortOptions,
 } from '@/types/document'
@@ -41,6 +40,13 @@ interface DocumentFiltersProps {
   className?: string
 }
 
+const localeMap: Record<string, Locale> = {
+  ru: ru,
+  en: enUS,
+  fr: fr,
+  ar: ar,
+}
+
 export function DocumentFilters({
   onFilterChange,
   onSortChange,
@@ -48,6 +54,12 @@ export function DocumentFilters({
   currentSort,
   className = '',
 }: DocumentFiltersProps) {
+  const t = useTranslations('documents.filters')
+  const tDocs = useTranslations('documents')
+  const tCommon = useTranslations('common')
+  const tForm = useTranslations('documents.form')
+  const locale = useLocale()
+  const dateLocale = localeMap[locale] || enUS
   const [isExpanded, setIsExpanded] = useState(false)
   const [searchQuery, setSearchQuery] = useState(currentFilters.search || '')
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory | 'all'>(
@@ -179,7 +191,7 @@ export function DocumentFilters({
 
   const getAuthorName = (id: number) => {
     const author = authors.find((a) => a.id === id)
-    return author?.name || `Автор #${id}`
+    return author?.name || `${t('authorPrefix')} #${id}`
   }
 
   return (
@@ -192,7 +204,7 @@ export function DocumentFilters({
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Поиск документов..."
+            placeholder={tForm('searchPlaceholder')}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
                      bg-white dark:bg-gray-900 text-gray-900 dark:text-white
                      focus:ring-2 focus:ring-blue-500 focus:border-transparent
@@ -206,7 +218,7 @@ export function DocumentFilters({
           className="flex-shrink-0"
         >
           <Filter className="h-4 w-4 mr-2" />
-          Фильтры
+          {tCommon('filters')}
           {hasActiveFilters && !isExpanded && (
             <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
               {
@@ -220,7 +232,7 @@ export function DocumentFilters({
         {hasActiveFilters && (
           <Button variant="outline" onClick={clearFilters} className="flex-shrink-0">
             <X className="h-4 w-4 mr-2" />
-            Сбросить
+            {tCommon('reset')}
           </Button>
         )}
       </div>
@@ -232,7 +244,7 @@ export function DocumentFilters({
             {/* Category Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Категория
+                {t('category')}
               </label>
               <select
                 value={selectedCategory}
@@ -241,10 +253,10 @@ export function DocumentFilters({
                          bg-white dark:bg-gray-900 text-gray-900 dark:text-white
                          focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="all">Все категории</option>
-                {Object.entries(DocumentCategoryLabels).map(([value, label]) => (
+                <option value="all">{t('allCategories')}</option>
+                {Object.values(DocumentCategory).map((value) => (
                   <option key={value} value={value}>
-                    {label}
+                    {tDocs(`categories.${value}`)}
                   </option>
                 ))}
               </select>
@@ -253,7 +265,7 @@ export function DocumentFilters({
             {/* Status Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Статус
+                {t('status')}
               </label>
               <select
                 value={selectedStatus}
@@ -262,10 +274,10 @@ export function DocumentFilters({
                          bg-white dark:bg-gray-900 text-gray-900 dark:text-white
                          focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="all">Все статусы</option>
-                {Object.entries(DocumentStatusLabels).map(([value, label]) => (
+                <option value="all">{t('allStatuses')}</option>
+                {Object.values(DocumentStatus).map((value) => (
                   <option key={value} value={value}>
-                    {label}
+                    {tDocs(`statuses.${value}`)}
                   </option>
                 ))}
               </select>
@@ -274,7 +286,7 @@ export function DocumentFilters({
             {/* Author Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Автор
+                {t('author')}
               </label>
               <select
                 value={selectedAuthorId}
@@ -287,7 +299,7 @@ export function DocumentFilters({
                          focus:ring-2 focus:ring-blue-500 focus:border-transparent
                          disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="all">{isLoadingAuthors ? 'Загрузка...' : 'Все авторы'}</option>
+                <option value="all">{isLoadingAuthors ? t('loading') : t('allAuthors')}</option>
                 {authors.map((author) => (
                   <option key={author.id} value={author.id}>
                     {author.name}
@@ -299,7 +311,7 @@ export function DocumentFilters({
             {/* Date From Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Дата от
+                {t('dateFrom')}
               </label>
               <div className="flex gap-2">
                 <Popover>
@@ -312,7 +324,9 @@ export function DocumentFilters({
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateFrom ? format(dateFrom, 'dd.MM.yyyy', { locale: ru }) : 'Выберите дату'}
+                      {dateFrom
+                        ? format(dateFrom, 'dd.MM.yyyy', { locale: dateLocale })
+                        : t('selectDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -321,7 +335,7 @@ export function DocumentFilters({
                       selected={dateFrom}
                       onSelect={handleDateFromChange}
                       disabled={(date) => (dateTo ? date > dateTo : false)}
-                      locale={ru}
+                      locale={dateLocale}
                     />
                   </PopoverContent>
                 </Popover>
@@ -331,7 +345,7 @@ export function DocumentFilters({
                     size="icon"
                     onClick={() => handleDateFromChange(undefined)}
                     className="flex-shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    aria-label="Сбросить дату"
+                    aria-label={tForm('resetDate')}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -342,7 +356,7 @@ export function DocumentFilters({
             {/* Date To Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Дата до
+                {t('dateTo')}
               </label>
               <div className="flex gap-2">
                 <Popover>
@@ -355,7 +369,9 @@ export function DocumentFilters({
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateTo ? format(dateTo, 'dd.MM.yyyy', { locale: ru }) : 'Выберите дату'}
+                      {dateTo
+                        ? format(dateTo, 'dd.MM.yyyy', { locale: dateLocale })
+                        : t('selectDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -364,7 +380,7 @@ export function DocumentFilters({
                       selected={dateTo}
                       onSelect={handleDateToChange}
                       disabled={(date) => (dateFrom ? date < dateFrom : false)}
-                      locale={ru}
+                      locale={dateLocale}
                     />
                   </PopoverContent>
                 </Popover>
@@ -374,7 +390,7 @@ export function DocumentFilters({
                     size="icon"
                     onClick={() => handleDateToChange(undefined)}
                     className="flex-shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    aria-label="Сбросить дату"
+                    aria-label={tForm('resetDate')}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -385,13 +401,13 @@ export function DocumentFilters({
             {/* Tags Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Теги
+                {t('tags')}
               </label>
               <input
                 type="text"
                 value={tagInput}
                 onChange={(e) => handleTagsChange(e.target.value)}
-                placeholder="Введите теги через запятую..."
+                placeholder={t('tagsPlaceholder')}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
                          bg-white dark:bg-gray-900 text-gray-900 dark:text-white
                          focus:ring-2 focus:ring-blue-500 focus:border-transparent
@@ -403,14 +419,14 @@ export function DocumentFilters({
           {/* Sort Options */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Сортировка
+              {t('sort')}
             </label>
             <div className="flex flex-wrap gap-2">
               {[
-                { field: 'name' as const, label: 'Название' },
-                { field: 'uploadedAt' as const, label: 'Дата загрузки' },
-                { field: 'modifiedAt' as const, label: 'Дата изменения' },
-                { field: 'size' as const, label: 'Размер' },
+                { field: 'name' as const, label: t('name') },
+                { field: 'uploadedAt' as const, label: t('uploadDate') },
+                { field: 'modifiedAt' as const, label: t('modifyDate') },
+                { field: 'size' as const, label: t('size') },
               ].map(({ field, label }) => (
                 <Button
                   key={field}
@@ -435,7 +451,7 @@ export function DocumentFilters({
         <div className="flex flex-wrap gap-2">
           {currentFilters.search && (
             <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full text-sm flex items-center gap-2">
-              Поиск: {currentFilters.search}
+              {t('search')}: {currentFilters.search}
               <button
                 onClick={() => handleSearchChange('')}
                 className="hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-full p-0.5"
@@ -446,7 +462,7 @@ export function DocumentFilters({
           )}
           {currentFilters.category && (
             <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full text-sm flex items-center gap-2">
-              {DocumentCategoryLabels[currentFilters.category]}
+              {tDocs(`categories.${currentFilters.category}`)}
               <button
                 onClick={() => handleCategoryChange('all')}
                 className="hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-full p-0.5"
@@ -457,7 +473,7 @@ export function DocumentFilters({
           )}
           {currentFilters.status && (
             <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full text-sm flex items-center gap-2">
-              {DocumentStatusLabels[currentFilters.status]}
+              {tDocs(`statuses.${currentFilters.status}`)}
               <button
                 onClick={() => handleStatusChange('all')}
                 className="hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-full p-0.5"
@@ -468,7 +484,7 @@ export function DocumentFilters({
           )}
           {currentFilters.authorId && (
             <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full text-sm flex items-center gap-2">
-              Автор: {getAuthorName(currentFilters.authorId)}
+              {t('authorPrefix')}: {getAuthorName(currentFilters.authorId)}
               <button
                 onClick={() => handleAuthorChange('all')}
                 className="hover:bg-green-200 dark:hover:bg-green-800/50 rounded-full p-0.5"
@@ -479,7 +495,7 @@ export function DocumentFilters({
           )}
           {currentFilters.dateFrom && (
             <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 rounded-full text-sm flex items-center gap-2">
-              От: {format(currentFilters.dateFrom, 'dd.MM.yyyy', { locale: ru })}
+              {t('from')}: {format(currentFilters.dateFrom, 'dd.MM.yyyy', { locale: dateLocale })}
               <button
                 onClick={() => handleDateFromChange(undefined)}
                 className="hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded-full p-0.5"
@@ -490,7 +506,7 @@ export function DocumentFilters({
           )}
           {currentFilters.dateTo && (
             <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 rounded-full text-sm flex items-center gap-2">
-              До: {format(currentFilters.dateTo, 'dd.MM.yyyy', { locale: ru })}
+              {t('to')}: {format(currentFilters.dateTo, 'dd.MM.yyyy', { locale: dateLocale })}
               <button
                 onClick={() => handleDateToChange(undefined)}
                 className="hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded-full p-0.5"
@@ -501,7 +517,7 @@ export function DocumentFilters({
           )}
           {currentFilters.tags && currentFilters.tags.length > 0 && (
             <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full text-sm flex items-center gap-2">
-              Теги: {currentFilters.tags.join(', ')}
+              {t('tags')}: {currentFilters.tags.join(', ')}
               <button
                 onClick={() => handleTagsChange('')}
                 className="hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-full p-0.5"

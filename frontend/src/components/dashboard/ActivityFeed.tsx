@@ -1,6 +1,7 @@
 'use client'
 
 import { FileText, ClipboardList, Calendar, Megaphone, User } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import type { ActivityItem } from '@/types/dashboard'
 
@@ -18,44 +19,18 @@ const typeIcons: Record<string, typeof FileText> = {
   announcement: Megaphone,
 }
 
-const typeLabels: Record<string, string> = {
-  document: 'Документ',
-  report: 'Отчет',
-  task: 'Задача',
-  event: 'Мероприятие',
-  announcement: 'Объявление',
-}
-
-const actionLabels: Record<string, string> = {
-  created: 'создан(о)',
-  updated: 'обновлен(о)',
-  deleted: 'удален(о)',
-}
-
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-
-  if (diffMins < 1) return 'только что'
-  if (diffMins < 60) return `${diffMins} мин. назад`
-  if (diffHours < 24) return `${diffHours} ч. назад`
-  if (diffDays < 7) return `${diffDays} дн. назад`
-
-  return date.toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
-}
-
-function ActivityItemCard({ activity }: { activity: ActivityItem }) {
+function ActivityItemCard({
+  activity,
+  typeLabel,
+  actionLabel,
+  formatRelativeTime,
+}: {
+  activity: ActivityItem
+  typeLabel: string
+  actionLabel: string
+  formatRelativeTime: (dateString: string) => string
+}) {
   const Icon = typeIcons[activity.type] || FileText
-  const typeLabel = typeLabels[activity.type] || activity.type
-  const actionLabel = actionLabels[activity.action] || activity.action
 
   return (
     <div className="flex items-start gap-4 p-4 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
@@ -88,11 +63,48 @@ function ActivityItemCard({ activity }: { activity: ActivityItem }) {
   )
 }
 
-export function ActivityFeed({
-  activities,
-  title = 'Последние действия',
-  className,
-}: ActivityFeedProps) {
+export function ActivityFeed({ activities, title, className }: ActivityFeedProps) {
+  const t = useTranslations('dashboard.activityFeed')
+  const tCommon = useTranslations('common')
+
+  const formatRelativeTime = (dateString: string): string => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return tCommon('time.justNow')
+    if (diffMins < 60) return tCommon('time.minutesAgo', { count: diffMins })
+    if (diffHours < 24) return tCommon('time.hoursAgo', { count: diffHours })
+    if (diffDays < 7) return tCommon('time.daysAgo', { count: diffDays })
+
+    return date.toLocaleDateString(undefined, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+  }
+
+  const getTypeLabel = (type: string): string => {
+    const key = `types.${type}` as const
+    try {
+      return t(key)
+    } catch {
+      return type
+    }
+  }
+
+  const getActionLabel = (action: string): string => {
+    const key = `actions.${action}` as const
+    try {
+      return t(key)
+    } catch {
+      return action
+    }
+  }
+
   return (
     <div
       className={`relative overflow-hidden rounded-2xl p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 ${className}`}
@@ -106,16 +118,22 @@ export function ActivityFeed({
         borderWidth={3}
       />
       <div className="relative z-10">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{title}</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+          {title || t('title')}
+        </h3>
         <div className="space-y-3 max-h-96 overflow-y-auto">
           {activities.length > 0 ? (
             activities.map((activity) => (
-              <ActivityItemCard key={`${activity.type}-${activity.id}`} activity={activity} />
+              <ActivityItemCard
+                key={`${activity.type}-${activity.id}`}
+                activity={activity}
+                typeLabel={getTypeLabel(activity.type)}
+                actionLabel={getActionLabel(activity.action)}
+                formatRelativeTime={formatRelativeTime}
+              />
             ))
           ) : (
-            <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-              Нет активности для отображения
-            </p>
+            <p className="text-center text-gray-500 dark:text-gray-400 py-8">{t('empty')}</p>
           )}
         </div>
       </div>

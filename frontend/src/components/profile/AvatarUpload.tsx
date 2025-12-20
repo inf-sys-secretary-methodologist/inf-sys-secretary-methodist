@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { cn } from '@/lib/utils'
 import { User, ImagePlus, X, Loader2 } from 'lucide-react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 
 // Lazy load ImageCropper to reduce initial bundle (react-easy-crop ~40KB)
 const ImageCropper = dynamic(() => import('./ImageCropper').then((mod) => mod.ImageCropper), {
@@ -33,6 +34,7 @@ export function AvatarUpload({
   disabled = false,
   className,
 }: AvatarUploadProps) {
+  const t = useTranslations('avatarUpload')
   const [isDragging, setIsDragging] = useState(false)
   const [preview, setPreview] = useState<string | null>(currentAvatar || null)
   const [isUploading, setIsUploading] = useState(false)
@@ -54,10 +56,10 @@ export function AvatarUpload({
 
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_SIZE) {
-      return 'Размер файла должен быть менее 5MB'
+      return t('sizeError')
     }
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      return 'Поддерживаются только JPG, PNG, GIF, WebP'
+      return t('formatError')
     }
     return null
   }
@@ -101,7 +103,7 @@ export function AvatarUpload({
     try {
       await onUpload(croppedFile)
     } catch {
-      setError('Ошибка при загрузке файла')
+      setError(t('uploadError'))
       setPreview(currentAvatar || null)
     } finally {
       setIsUploading(false)
@@ -147,7 +149,7 @@ export function AvatarUpload({
         fileInputRef.current.value = ''
       }
     } catch {
-      setError('Ошибка при удалении фото')
+      setError(t('deleteError'))
     } finally {
       setIsUploading(false)
     }
@@ -192,7 +194,7 @@ export function AvatarUpload({
           ) : preview ? (
             <Image
               src={preview}
-              alt={userName || 'Аватар'}
+              alt={userName || t('avatar')}
               fill
               className="object-cover"
               sizes="80px"
@@ -224,7 +226,7 @@ export function AvatarUpload({
           >
             <span className="flex items-center gap-2">
               <ImagePlus className="size-4" />
-              {preview ? 'Изменить фото' : 'Загрузить фото'}
+              {preview ? t('changePhoto') : t('uploadPhoto')}
             </span>
           </button>
 
@@ -242,7 +244,7 @@ export function AvatarUpload({
             >
               <span className="flex items-center gap-2">
                 <X className="size-4" />
-                Удалить
+                {t('delete')}
               </span>
             </button>
           )}
@@ -250,7 +252,7 @@ export function AvatarUpload({
       </div>
 
       {/* Hints */}
-      <p className="text-xs text-muted-foreground">JPG, PNG, GIF или WebP. Максимум 5MB.</p>
+      <p className="text-xs text-muted-foreground">{t('formatHint')}</p>
 
       {/* Error */}
       {error && <p className="text-xs text-red-500">{error}</p>}

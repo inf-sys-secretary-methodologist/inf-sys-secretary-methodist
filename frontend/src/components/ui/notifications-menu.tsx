@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { CheckCheck, Settings, Bell, Download } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -44,6 +45,7 @@ function NotificationItem({
   onDecline,
   onDownload,
 }: NotificationItemProps) {
+  const t = useTranslations('notificationsMenu')
   return (
     <div className="w-full py-4 first:pt-0 last:pb-0">
       <div className="flex gap-3">
@@ -121,7 +123,7 @@ function NotificationItem({
                 size="icon"
                 className="size-8"
                 onClick={() => onDownload?.(notification.id)}
-                aria-label="Скачать файл"
+                aria-label={t('downloadFile')}
               >
                 <Download className="size-4" />
               </Button>
@@ -136,10 +138,10 @@ function NotificationItem({
                 className="h-7 text-xs"
                 onClick={() => onDecline?.(notification.id)}
               >
-                Отклонить
+                {t('reject')}
               </Button>
               <Button size="sm" className="h-7 text-xs" onClick={() => onAccept?.(notification.id)}>
-                Принять
+                {t('accept')}
               </Button>
             </div>
           )}
@@ -168,6 +170,7 @@ export function NotificationsMenu({
   onDownload,
   className,
 }: NotificationsMenuProps) {
+  const t = useTranslations('notificationsMenu')
   const [activeTab, setActiveTab] = React.useState<string>('all')
 
   const unreadCount = notifications.filter((n) => !n.isRead).length
@@ -192,14 +195,14 @@ export function NotificationsMenu({
     >
       <CardHeader className="p-0">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold leading-none tracking-[-0.006em]">Уведомления</h3>
+          <h3 className="text-base font-semibold leading-none tracking-[-0.006em]">{t('title')}</h3>
           <div className="flex items-center gap-2">
             <Button
               className="size-8"
               variant="ghost"
               size="icon"
               onClick={onMarkAllRead}
-              aria-label="Отметить все как прочитанные"
+              aria-label={t('markAllRead')}
             >
               <CheckCheck className="size-4 text-muted-foreground" />
             </Button>
@@ -208,7 +211,7 @@ export function NotificationsMenu({
               variant="ghost"
               size="icon"
               onClick={onOpenSettings}
-              aria-label="Настройки уведомлений"
+              aria-label={t('settings')}
             >
               <Settings className="size-4 text-muted-foreground" />
             </Button>
@@ -223,19 +226,19 @@ export function NotificationsMenu({
           <div className="flex items-center justify-between">
             <TabsList className="[&_button]:gap-1.5">
               <TabsTrigger value="all">
-                Все
+                {t('tabs.all')}
                 <Badge variant="secondary" className="size-5 rounded-full p-0 text-xs">
                   {notifications.length}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="unread">
-                Непрочитанные
+                {t('tabs.unread')}
                 <Badge variant="secondary" className="size-5 rounded-full p-0 text-xs">
                   {unreadCount}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="mentions">
-                Упоминания
+                {t('tabs.mentions')}
                 <Badge variant="secondary" className="size-5 rounded-full p-0 text-xs">
                   {mentionCount}
                 </Badge>
@@ -263,7 +266,7 @@ export function NotificationsMenu({
                 <Bell className="size-6 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium tracking-[-0.006em] text-muted-foreground">
-                Нет уведомлений
+                {t('empty')}
               </p>
             </div>
           )}

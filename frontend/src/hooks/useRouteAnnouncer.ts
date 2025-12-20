@@ -2,25 +2,26 @@
 
 import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useAnnouncer } from '@/components/ui/screen-reader-announcer'
 
 /**
- * Map of routes to their display names for announcements
+ * Map of routes to their i18n keys
  */
-const routeNames: Record<string, string> = {
-  '/': 'Главная страница',
-  '/dashboard': 'Панель управления',
-  '/documents': 'Документы',
-  '/documents/shared': 'Общие документы',
-  '/calendar': 'Календарь',
-  '/notifications': 'Уведомления',
-  '/profile': 'Профиль',
-  '/users': 'Пользователи',
-  '/settings/appearance': 'Настройки внешнего вида',
-  '/settings/notifications': 'Настройки уведомлений',
-  '/integration': 'Интеграция 1С',
-  '/login': 'Вход в систему',
-  '/register': 'Регистрация',
+const routeKeys: Record<string, string> = {
+  '/': 'home',
+  '/dashboard': 'dashboard',
+  '/documents': 'documents',
+  '/documents/shared': 'sharedDocuments',
+  '/calendar': 'calendar',
+  '/notifications': 'notifications',
+  '/profile': 'profile',
+  '/users': 'users',
+  '/settings/appearance': 'appearance',
+  '/settings/notifications': 'notificationSettings',
+  '/integration': 'integration',
+  '/login': 'login',
+  '/register': 'register',
 }
 
 /**
@@ -30,6 +31,7 @@ const routeNames: Record<string, string> = {
 export function useRouteAnnouncer() {
   const pathname = usePathname()
   const { announce } = useAnnouncer()
+  const t = useTranslations('routeAnnouncer')
   const previousPathname = useRef<string | null>(null)
 
   useEffect(() => {
@@ -46,12 +48,13 @@ export function useRouteAnnouncer() {
 
     previousPathname.current = pathname
 
-    // Get the route name or generate from pathname
-    const routeName = routeNames[pathname] || generateRouteName(pathname)
+    // Get the route key or use fallback
+    const routeKey = routeKeys[pathname]
+    const routeName = routeKey ? t(`routes.${routeKey}`) : generateRouteName(pathname)
 
     // Announce the navigation
-    announce(`Перешли на страницу: ${routeName}`)
-  }, [pathname, announce])
+    announce(t('navigatedTo', { page: routeName }))
+  }, [pathname, announce, t])
 }
 
 /**
@@ -66,7 +69,7 @@ function generateRouteName(pathname: string): string {
 
   // Handle dynamic routes (e.g., [id])
   if (lastPart.startsWith('[') && lastPart.endsWith(']')) {
-    return 'Детали'
+    return 'Details'
   }
 
   // Convert kebab-case to title

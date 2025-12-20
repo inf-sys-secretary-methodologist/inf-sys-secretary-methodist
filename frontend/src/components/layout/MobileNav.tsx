@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,23 +25,25 @@ export function MobileNav({ items }: MobileNavProps) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const t = useTranslations('nav')
+  const tCommon = useTranslations('common')
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Открыть меню">
+        <Button variant="ghost" size="icon" aria-label={t('openMenu')}>
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-72 p-0 [&>button:first-child]:hidden">
         <SheetHeader className="flex flex-row items-center justify-between px-6 py-4">
-          <SheetTitle className="text-left">Навигация</SheetTitle>
+          <SheetTitle className="text-left">{t('navigation')}</SheetTitle>
           <SheetClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
             <X className="h-5 w-5" />
-            <span className="sr-only">Закрыть</span>
+            <span className="sr-only">{tCommon('close')}</span>
           </SheetClose>
         </SheetHeader>
-        <nav aria-label="Мобильная навигация" className="flex flex-col gap-2 p-4">
+        <nav aria-label={t('mobileNavigation')} className="flex flex-col gap-2 p-4">
           {items.map((item, index) => {
             const Icon = item.icon
             const isActive = pathname === item.url
@@ -82,7 +85,7 @@ export function MobileNav({ items }: MobileNavProps) {
                   {/* Content */}
                   <div className="relative z-10 flex items-center gap-3">
                     <Icon className="h-5 w-5" />
-                    <span>{item.name}</span>
+                    <span>{t(item.nameKey)}</span>
                   </div>
                 </div>
               </Link>

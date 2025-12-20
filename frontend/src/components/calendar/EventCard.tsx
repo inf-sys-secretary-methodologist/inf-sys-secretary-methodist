@@ -4,6 +4,7 @@ import * as React from 'react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { Clock, MapPin, Users, MoreHorizontal } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import { cn } from '@/lib/utils'
 import {
@@ -15,7 +16,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import type { CalendarEvent, EventType } from '@/types/calendar'
-import { EVENT_TYPE_LABELS } from '@/types/calendar'
 
 interface EventCardProps {
   event: CalendarEvent
@@ -88,6 +88,7 @@ export function EventCard({
   onDelete,
   className,
 }: EventCardProps) {
+  const t = useTranslations('calendar')
   const startTime = new Date(event.start_time)
   const endTime = event.end_time ? new Date(event.end_time) : null
 
@@ -161,10 +162,12 @@ export function EventCard({
                   colors.text
                 )}
               >
-                {EVENT_TYPE_LABELS[event.event_type]}
+                {t(`eventTypes.${event.event_type}`)}
               </span>
               {event.is_recurring && (
-                <span className="text-[10px] text-muted-foreground font-medium">Повтор</span>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  {t('recurring')}
+                </span>
               )}
             </div>
             <button
@@ -192,16 +195,16 @@ export function EventCard({
                   className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Меню</span>
+                  <span className="sr-only">{t('menu')}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {onEdit && <DropdownMenuItem onClick={onEdit}>Редактировать</DropdownMenuItem>}
+                {onEdit && <DropdownMenuItem onClick={onEdit}>{t('edit')}</DropdownMenuItem>}
                 {onDelete && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={onDelete} className="text-destructive">
-                      Удалить
+                      {t('delete')}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -215,7 +218,7 @@ export function EventCard({
             <Clock className="h-3.5 w-3.5" />
             <span className="text-muted-foreground font-medium">
               {event.all_day ? (
-                'Весь день'
+                t('allDay')
               ) : (
                 <>
                   {format(startTime, 'HH:mm', { locale: ru })}
@@ -235,7 +238,9 @@ export function EventCard({
           {event.participants && event.participants.length > 0 && (
             <div className={cn('flex items-center gap-2 text-xs', colors.icon)}>
               <Users className="h-3.5 w-3.5" />
-              <span className="text-muted-foreground">{event.participants.length} участников</span>
+              <span className="text-muted-foreground">
+                {t('participants', { count: event.participants.length })}
+              </span>
             </div>
           )}
         </div>

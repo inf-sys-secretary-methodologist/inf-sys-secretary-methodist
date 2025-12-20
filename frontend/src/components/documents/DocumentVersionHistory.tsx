@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
+import { useTranslations } from 'next-intl'
 import {
   History,
   RotateCcw,
@@ -44,6 +45,8 @@ export function DocumentVersionHistory({
   onVersionRestored,
   className = '',
 }: DocumentVersionHistoryProps) {
+  const t = useTranslations('documents.versions')
+  const tCommon = useTranslations('common')
   const [versionData, setVersionData] = useState<DocumentVersionListOutput | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -68,7 +71,7 @@ export function DocumentVersionHistory({
       setVersionData(data)
     } catch (err) {
       console.error('Failed to fetch versions:', err)
-      setError('Не удалось загрузить историю версий')
+      setError(t('loadError'))
     } finally {
       setIsLoading(false)
     }
@@ -89,14 +92,14 @@ export function DocumentVersionHistory({
       await fetchVersions()
     } catch (err) {
       console.error('Failed to create version:', err)
-      setError('Не удалось создать версию')
+      setError(t('createError'))
     } finally {
       setIsCreatingVersion(false)
     }
   }
 
   const handleRestoreVersion = async (version: number) => {
-    if (!confirm(`Вы уверены, что хотите восстановить документ до версии ${version}?`)) {
+    if (!confirm(t('confirmRestore', { version: version.toString() }))) {
       return
     }
     try {
@@ -106,14 +109,14 @@ export function DocumentVersionHistory({
       onVersionRestored?.()
     } catch (err) {
       console.error('Failed to restore version:', err)
-      setError('Не удалось восстановить версию')
+      setError(t('restoreError'))
     } finally {
       setRestoringVersion(null)
     }
   }
 
   const handleDeleteVersion = async (version: number) => {
-    if (!confirm(`Вы уверены, что хотите удалить версию ${version}?`)) {
+    if (!confirm(t('confirmDelete', { version: version.toString() }))) {
       return
     }
     try {
@@ -122,7 +125,7 @@ export function DocumentVersionHistory({
       await fetchVersions()
     } catch (err) {
       console.error('Failed to delete version:', err)
-      setError('Не удалось удалить версию')
+      setError(t('deleteError'))
     } finally {
       setDeletingVersion(null)
     }
@@ -152,7 +155,7 @@ export function DocumentVersionHistory({
       setComparisonResult(result)
     } catch (err) {
       console.error('Failed to compare versions:', err)
-      setError('Не удалось сравнить версии')
+      setError(t('compareError'))
     } finally {
       setIsComparing(false)
     }
@@ -166,7 +169,7 @@ export function DocumentVersionHistory({
       }
     } catch (err) {
       console.error('Failed to get version file:', err)
-      setError('Не удалось получить файл версии')
+      setError(t('downloadError'))
     }
   }
 
@@ -190,7 +193,7 @@ export function DocumentVersionHistory({
     return (
       <div className={`flex items-center justify-center p-8 ${className}`}>
         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Загрузка истории версий...</span>
+        <span className="ml-2 text-gray-500">{t('loadingHistory')}</span>
       </div>
     )
   }
@@ -203,7 +206,7 @@ export function DocumentVersionHistory({
           <span>{error}</span>
         </div>
         <Button variant="outline" size="sm" onClick={fetchVersions} className="mt-2">
-          Повторить
+          {t('retry')}
         </Button>
       </div>
     )
@@ -218,8 +221,10 @@ export function DocumentVersionHistory({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <History className="h-5 w-5 text-gray-500" />
-          <h3 className="font-semibold text-gray-900 dark:text-white">История версий</h3>
-          <span className="text-sm text-gray-500">({versionData?.total || 0} версий)</span>
+          <h3 className="font-semibold text-gray-900 dark:text-white">{t('history')}</h3>
+          <span className="text-sm text-gray-500">
+            ({versionData?.total || 0} {t('versionsCount')})
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -236,10 +241,10 @@ export function DocumentVersionHistory({
                 ) : (
                   <GitCompare className="h-4 w-4 mr-2" />
                 )}
-                Сравнить ({selectedVersions.length}/2)
+                {t('compareCount', { count: selectedVersions.length })}
               </Button>
               <Button variant="ghost" size="sm" onClick={resetCompareMode}>
-                Отмена
+                {tCommon('cancel')}
               </Button>
             </>
           ) : (
@@ -251,7 +256,7 @@ export function DocumentVersionHistory({
                 disabled={versions.length < 2}
               >
                 <GitCompare className="h-4 w-4 mr-2" />
-                Сравнить
+                {t('compare')}
               </Button>
               <Button
                 variant="outline"
@@ -259,7 +264,7 @@ export function DocumentVersionHistory({
                 onClick={() => setShowCreateForm(!showCreateForm)}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Создать версию
+                {t('createVersion')}
               </Button>
             </>
           )}
@@ -271,7 +276,7 @@ export function DocumentVersionHistory({
         <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-3">
           <input
             type="text"
-            placeholder="Описание изменений (необязательно)"
+            placeholder={t('descriptionPlaceholder')}
             value={newVersionDescription}
             onChange={(e) => setNewVersionDescription(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md
@@ -285,7 +290,7 @@ export function DocumentVersionHistory({
               ) : (
                 <Check className="h-4 w-4 mr-2" />
               )}
-              Сохранить версию
+              {t('saveVersion')}
             </Button>
             <Button
               variant="ghost"
@@ -295,7 +300,7 @@ export function DocumentVersionHistory({
                 setNewVersionDescription('')
               }}
             >
-              Отмена
+              {tCommon('cancel')}
             </Button>
           </div>
         </div>
@@ -306,29 +311,32 @@ export function DocumentVersionHistory({
         <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-blue-900 dark:text-blue-100">
-              Сравнение версий {comparisonResult.from_version} и {comparisonResult.to_version}
+              {t('comparisonTitle', {
+                from: comparisonResult.from_version,
+                to: comparisonResult.to_version,
+              })}
             </h4>
             <Button variant="ghost" size="sm" onClick={() => setComparisonResult(null)}>
-              Закрыть
+              {tCommon('close')}
             </Button>
           </div>
 
           {comparisonResult.changed_fields.length === 0 ? (
-            <p className="text-sm text-blue-700 dark:text-blue-300">Версии идентичны</p>
+            <p className="text-sm text-blue-700 dark:text-blue-300">{t('versionsIdentical')}</p>
           ) : (
             <div className="space-y-2">
               <p className="text-sm text-blue-700 dark:text-blue-300">
-                Изменённые поля: {comparisonResult.changed_fields.join(', ')}
+                {t('changedFields')}: {comparisonResult.changed_fields.join(', ')}
               </p>
               {comparisonResult.diff_data && (
                 <div className="space-y-4 mt-3">
                   {Object.entries(comparisonResult.diff_data).map(([field, diff]) => {
                     const fieldLabels: Record<string, string> = {
-                      title: 'Заголовок',
-                      subject: 'Тема',
-                      content: 'Содержание',
-                      status: 'Статус',
-                      file_name: 'Файл',
+                      title: t('fieldLabels.title'),
+                      subject: t('fieldLabels.subject'),
+                      content: t('fieldLabels.content'),
+                      status: t('fieldLabels.status'),
+                      file_name: t('fieldLabels.file_name'),
                     }
                     const isTextContent =
                       field === 'content' || field === 'subject' || field === 'title'
@@ -348,25 +356,25 @@ export function DocumentVersionHistory({
                           <TextDiff
                             oldText={oldValue}
                             newText={newValue}
-                            oldLabel={`Версия ${comparisonResult.from_version}`}
-                            newLabel={`Версия ${comparisonResult.to_version}`}
+                            oldLabel={`${t('version')} ${comparisonResult.from_version}`}
+                            newLabel={`${t('version')} ${comparisonResult.to_version}`}
                           />
                         ) : (
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                               <span className="text-red-600 dark:text-red-400 font-medium">
-                                Было:
+                                {t('before')}:
                               </span>
                               <p className="mt-1 text-gray-600 dark:text-gray-400 bg-red-50 dark:bg-red-900/20 p-2 rounded break-words">
-                                {oldValue || '(пусто)'}
+                                {oldValue || t('emptyValue')}
                               </p>
                             </div>
                             <div>
                               <span className="text-green-600 dark:text-green-400 font-medium">
-                                Стало:
+                                {t('after')}:
                               </span>
                               <p className="mt-1 text-gray-600 dark:text-gray-400 bg-green-50 dark:bg-green-900/20 p-2 rounded break-words">
-                                {newValue || '(пусто)'}
+                                {newValue || t('emptyValue')}
                               </p>
                             </div>
                           </div>
@@ -385,7 +393,7 @@ export function DocumentVersionHistory({
       {versions.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>История версий пуста</p>
+          <p>{t('empty')}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -446,6 +454,8 @@ function VersionItem({
   onDownloadFile,
   formatDate,
 }: VersionItemProps) {
+  const t = useTranslations('documents.versions')
+  const tCommon = useTranslations('common')
   return (
     <div
       className={`
@@ -479,11 +489,11 @@ function VersionItem({
           <div>
             <div className="flex items-center gap-2">
               <span className="font-medium text-gray-900 dark:text-white">
-                Версия {version.version}
+                {t('version')} {version.version}
               </span>
               {isLatest && (
                 <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
-                  Текущая
+                  {t('current')}
                 </span>
               )}
             </div>
@@ -568,30 +578,34 @@ function VersionItem({
           <div className="grid grid-cols-2 gap-4 text-sm pt-3">
             {version.title && (
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Название</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('title')}</p>
                 <p className="text-gray-900 dark:text-white">{version.title}</p>
               </div>
             )}
             {version.status && (
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Статус</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('status')}</p>
                 <p className="text-gray-900 dark:text-white">{version.status}</p>
               </div>
             )}
             {version.change_description && (
               <div className="col-span-2">
-                <p className="text-gray-500 dark:text-gray-400">Описание изменений</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('changes')}</p>
                 <p className="text-gray-900 dark:text-white">{version.change_description}</p>
               </div>
             )}
             {version.file_name && (
               <div className="col-span-2">
-                <p className="text-gray-500 dark:text-gray-400">Файл</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('file')}</p>
                 <p className="text-gray-900 dark:text-white">
                   {version.file_name}
                   {version.file_size && (
                     <span className="text-gray-500 ml-2">
-                      ({(version.file_size / 1024 / 1024).toFixed(2)} МБ)
+                      (
+                      {tCommon('fileSize.mb', {
+                        size: (version.file_size / 1024 / 1024).toFixed(2),
+                      })}
+                      )
                     </span>
                   )}
                 </p>
@@ -599,7 +613,7 @@ function VersionItem({
             )}
             {version.subject && (
               <div className="col-span-2">
-                <p className="text-gray-500 dark:text-gray-400">Тема</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('topic')}</p>
                 <p className="text-gray-900 dark:text-white">{version.subject}</p>
               </div>
             )}

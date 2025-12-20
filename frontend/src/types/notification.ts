@@ -115,26 +115,5 @@ export interface QuietHoursInput {
   timezone?: string
 }
 
-export const notificationTypeLabels: Record<NotificationType, string> = {
-  system: 'Системное',
-  reminder: 'Напоминание',
-  task: 'Задача',
-  document: 'Документ',
-  announcement: 'Объявление',
-  event: 'Событие',
-}
-
-export const notificationPriorityLabels: Record<NotificationPriority, string> = {
-  low: 'Низкий',
-  normal: 'Обычный',
-  high: 'Высокий',
-  urgent: 'Срочный',
-}
-
-export const notificationChannelLabels: Record<NotificationChannel, string> = {
-  email: 'Email',
-  push: 'Push-уведомления',
-  in_app: 'В приложении',
-  telegram: 'Telegram',
-  slack: 'Slack',
-}
+// Labels are now provided via i18n (messages/*.json)
+// Use t('notificationTypes.system'), t('notificationPriorities.low'), t('notificationChannels.email'), etc.

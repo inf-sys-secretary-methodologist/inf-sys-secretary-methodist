@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { FloatingInput } from '@/components/ui/floating-input'
 import { Button } from '@/components/ui/button'
 import { useRegister } from '@/hooks/useAuth'
-import { registerSchema, type RegisterFormData } from '@/lib/validations/auth'
+import { createRegisterSchema, type RegisterFormData } from '@/lib/validations/auth'
 import { UserRole } from '@/types/auth'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +24,12 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const { register: registerUser, error: authError, clearError } = useRegister()
+  const t = useTranslations('registerForm')
+  const tAuth = useTranslations('auth')
+  const tRoles = useTranslations('roles')
+  const tValidation = useTranslations('validation')
+
+  const registerSchema = useMemo(() => createRegisterSchema(tValidation), [tValidation])
 
   const {
     register,
@@ -52,8 +59,8 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
         redirectTo
       )
 
-      toast.success('Регистрация успешна!', {
-        description: 'Перенаправление на страницу входа...',
+      toast.success(t('registerSuccess'), {
+        description: t('redirectingToLogin'),
       })
 
       if (onSuccess) {
@@ -63,8 +70,8 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
       const errorMessage =
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         authError ||
-        'Ошибка регистрации'
-      toast.error('Ошибка регистрации', {
+        t('registerError')
+      toast.error(t('registerError'), {
         description: errorMessage,
       })
       console.error('Registration error:', error)
@@ -92,9 +99,9 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
   }
 
   const getPasswordStrengthText = (strength: number): string => {
-    if (strength < 40) return 'Слабый'
-    if (strength < 70) return 'Средний'
-    return 'Сильный'
+    if (strength < 40) return t('passwordWeak')
+    if (strength < 70) return t('passwordMedium')
+    return t('passwordStrong')
   }
 
   return (
@@ -109,7 +116,7 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
       {/* Name field */}
       <div className="space-y-2">
         <FloatingInput
-          label="Имя"
+          label={t('name')}
           type="text"
           autoComplete="name"
           disabled={isSubmitting}
@@ -124,7 +131,7 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
       {/* Email field */}
       <div className="space-y-2">
         <FloatingInput
-          label="Email"
+          label={t('email')}
           type="email"
           autoComplete="email"
           disabled={isSubmitting}
@@ -140,7 +147,7 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
       <div className="space-y-2">
         <div className="relative">
           <FloatingInput
-            label="Пароль"
+            label={t('password')}
             type={showPassword ? 'text' : 'password'}
             autoComplete="new-password"
             disabled={isSubmitting}
@@ -161,7 +168,7 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
         {password && (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Сложность пароля:</span>
+              <span className="text-muted-foreground">{t('passwordStrength')}</span>
               <span className={cn('font-medium', passwordStrength >= 70 && 'text-green-600')}>
                 {getPasswordStrengthText(passwordStrength)}
               </span>
@@ -180,7 +187,9 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
 
         {errors.password && (
           <div className="space-y-1">
-            <p className="text-sm font-medium text-red-600 dark:text-red-400">Пароль должен:</p>
+            <p className="text-sm font-medium text-red-600 dark:text-red-400">
+              {t('passwordRequirements')}
+            </p>
             <ul className="text-sm text-red-600 dark:text-red-400 list-disc list-inside space-y-0.5">
               {errors.password.message?.split('. ').map((msg, i) => (
                 <li key={i}>{msg}</li>
@@ -194,7 +203,7 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
       <div className="space-y-2">
         <div className="relative">
           <FloatingInput
-            label="Подтвердите пароль"
+            label={t('confirmPassword')}
             type={showConfirmPassword ? 'text' : 'password'}
             autoComplete="new-password"
             disabled={isSubmitting}
@@ -220,7 +229,7 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
 
       {/* Role selection */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground">Роль</label>
+        <label className="block text-sm font-medium text-foreground">{t('role')}</label>
         <select
           {...register('role')}
           disabled={isSubmitting}
@@ -238,11 +247,11 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
             backgroundSize: '1.5em 1.5em',
           }}
         >
-          <option value={UserRole.STUDENT}>Студент</option>
-          <option value={UserRole.TEACHER}>Преподаватель</option>
-          <option value={UserRole.ACADEMIC_SECRETARY}>Секретарь</option>
-          <option value={UserRole.METHODIST}>Методист</option>
-          <option value={UserRole.SYSTEM_ADMIN}>Администратор</option>
+          <option value={UserRole.STUDENT}>{tRoles('student')}</option>
+          <option value={UserRole.TEACHER}>{tRoles('teacher')}</option>
+          <option value={UserRole.ACADEMIC_SECRETARY}>{tRoles('academic_secretary')}</option>
+          <option value={UserRole.METHODIST}>{tRoles('methodist')}</option>
+          <option value={UserRole.SYSTEM_ADMIN}>{tRoles('system_admin')}</option>
         </select>
         {errors.role && (
           <p className="text-sm text-red-600 dark:text-red-400">{errors.role.message}</p>
@@ -254,18 +263,18 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
         {isSubmitting ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Регистрация...
+            {t('registering')}
           </>
         ) : (
-          'Зарегистрироваться'
+          tAuth('register')
         )}
       </Button>
 
       {/* Login link */}
       <div className="text-center text-sm">
-        <span className="text-muted-foreground">Уже есть аккаунт? </span>
+        <span className="text-muted-foreground">{tAuth('hasAccount')} </span>
         <Link href="/login" className="font-medium text-primary hover:underline">
-          Войти
+          {tAuth('login')}
         </Link>
       </div>
     </form>

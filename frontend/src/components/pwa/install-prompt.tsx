@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Download, X, Share, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useTranslations } from 'next-intl'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -11,6 +12,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function InstallPrompt() {
+  const t = useTranslations('pwa')
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
@@ -90,33 +92,33 @@ export function InstallPrompt() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
               <Download className="h-5 w-5" />
-              Установить приложение
+              {t('installApp')}
             </CardTitle>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8"
               onClick={handleDismiss}
-              aria-label="Закрыть"
+              aria-label={t('close')}
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <CardDescription className="text-sm">Для установки на iOS:</CardDescription>
+          <CardDescription className="text-sm">{t('iosInstructions')}</CardDescription>
           <ol className="mt-2 text-sm text-muted-foreground space-y-1">
             <li className="flex items-center gap-2">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs">
                 1
               </span>
-              Нажмите <Share className="h-4 w-4 inline mx-1" /> Поделиться
+              {t('iosStep1')} <Share className="h-4 w-4 inline mx-1" /> {t('iosStep1Action')}
             </li>
             <li className="flex items-center gap-2">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs">
                 2
               </span>
-              Выберите <Plus className="h-4 w-4 inline mx-1" /> На экран «Домой»
+              {t('iosStep2')} <Plus className="h-4 w-4 inline mx-1" /> {t('iosStep2Action')}
             </li>
           </ol>
         </CardContent>
@@ -132,29 +134,27 @@ export function InstallPrompt() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
               <Download className="h-5 w-5" />
-              Установить приложение
+              {t('installApp')}
             </CardTitle>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8"
               onClick={handleDismiss}
-              aria-label="Закрыть"
+              aria-label={t('close')}
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
         <CardContent className="pt-0 space-y-3">
-          <CardDescription>
-            Установите приложение для быстрого доступа и работы офлайн.
-          </CardDescription>
+          <CardDescription>{t('installDescription')}</CardDescription>
           <div className="flex gap-2">
             <Button onClick={handleInstall} className="flex-1">
-              Установить
+              {t('install')}
             </Button>
             <Button variant="outline" onClick={handleDismiss}>
-              Не сейчас
+              {t('notNow')}
             </Button>
           </div>
         </CardContent>

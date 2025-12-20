@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Bell, Settings, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -46,37 +47,16 @@ const typeColors: Record<NotificationType, string> = {
   event: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',
 }
 
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMins / 60)
-  const diffDays = Math.floor(diffHours / 24)
-
-  if (diffMins < 1) {
-    return 'Только что'
-  } else if (diffMins < 60) {
-    return `${diffMins} мин. назад`
-  } else if (diffHours < 24) {
-    return `${diffHours} ч. назад`
-  } else if (diffDays === 1) {
-    return 'Вчера'
-  } else if (diffDays < 7) {
-    return `${diffDays} дн. назад`
-  } else {
-    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
-  }
-}
-
 function NotificationRow({
   notification,
   onMarkAsRead,
   onClose,
+  formatRelativeTime,
 }: {
   notification: Notification
   onMarkAsRead: (id: number) => void
   onClose: () => void
+  formatRelativeTime: (dateString: string) => string
 }) {
   const TypeIcon = typeIcons[notification.type] || BellIcon
   const colorClass = typeColors[notification.type] || typeColors.system
@@ -141,6 +121,8 @@ function NotificationRow({
 
 export function NotificationCenter({ className }: NotificationCenterProps) {
   const [open, setOpen] = useState(false)
+  const t = useTranslations('notifications')
+  const tCommon = useTranslations('common')
 
   const { data: unreadData } = useUnreadCount()
   const unreadCount = unreadData?.count ?? 0
@@ -151,20 +133,43 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
   const markAsRead = useMarkAsRead()
   const markAllAsRead = useMarkAllAsRead()
 
+  const formatRelativeTime = (dateString: string): string => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffMins < 1) {
+      return tCommon('time.justNow')
+    } else if (diffMins < 60) {
+      return tCommon('time.minutesAgo', { count: diffMins })
+    } else if (diffHours < 24) {
+      return tCommon('time.hoursAgo', { count: diffHours })
+    } else if (diffDays === 1) {
+      return tCommon('time.yesterday')
+    } else if (diffDays < 7) {
+      return tCommon('time.daysAgo', { count: diffDays })
+    } else {
+      return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+    }
+  }
+
   const handleMarkAsRead = async (id: number) => {
     try {
       await markAsRead.mutateAsync(id)
     } catch {
-      toast.error('Не удалось отметить уведомление')
+      toast.error(t('markAsReadError'))
     }
   }
 
   const handleMarkAllAsRead = async () => {
     try {
       await markAllAsRead.mutateAsync()
-      toast.success('Все уведомления отмечены как прочитанные')
+      toast.success(t('allMarkedAsRead'))
     } catch {
-      toast.error('Не удалось отметить уведомления')
+      toast.error(t('markAllAsReadError'))
     }
   }
 
@@ -175,7 +180,9 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
           variant="ghost"
           size="icon"
           className={cn('relative', className)}
-          aria-label={`Уведомления${unreadCount > 0 ? ` (${unreadCount} непрочитанных)` : ''}`}
+          aria-label={
+            unreadCount > 0 ? t('ariaLabelWithCount', { count: unreadCount }) : t('ariaLabel')
+          }
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
@@ -192,7 +199,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
       <PopoverContent className="w-96 p-0" align="end" sideOffset={8}>
         {/* Header */}
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h3 className="text-sm font-semibold">Уведомления</h3>
+          <h3 className="text-sm font-semibold">{t('title')}</h3>
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
               <button
@@ -200,7 +207,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                 onClick={handleMarkAllAsRead}
                 disabled={markAllAsRead.isPending}
               >
-                Прочитать все
+                {t('markAllAsRead')}
               </button>
             )}
             <Link
@@ -227,6 +234,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                   notification={notification}
                   onMarkAsRead={handleMarkAsRead}
                   onClose={() => setOpen(false)}
+                  formatRelativeTime={formatRelativeTime}
                 />
               ))}
             </div>
@@ -235,7 +243,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
               <div className="rounded-full bg-muted p-3 mb-3">
                 <Bell className="h-6 w-6 text-muted-foreground" />
               </div>
-              <p className="text-sm text-muted-foreground">У вас пока нет уведомлений</p>
+              <p className="text-sm text-muted-foreground">{t('empty')}</p>
             </div>
           )}
         </div>
@@ -244,7 +252,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
         {notifications.length > 0 && (
           <div className="border-t p-3">
             <Button variant="outline" className="w-full" asChild onClick={() => setOpen(false)}>
-              <Link href="/notifications">Смотреть все уведомления</Link>
+              <Link href="/notifications">{t('viewAll')}</Link>
             </Button>
           </div>
         )}

@@ -10,11 +10,14 @@ import {
   differenceInMinutes,
   isToday,
 } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, fr, ar } from 'date-fns/locale'
+import { useTranslations, useLocale } from 'next-intl'
 
 import { cn } from '@/lib/utils'
 import { EventCard } from './EventCard'
 import type { CalendarEvent } from '@/types/calendar'
+
+const localeMap = { ru, en: enUS, fr, ar }
 
 interface DayViewProps {
   currentDate: Date
@@ -34,6 +37,9 @@ export function DayView({
   onTimeSlotClick,
   className,
 }: DayViewProps) {
+  const t = useTranslations('calendarView')
+  const locale = useLocale()
+  const dateLocale = localeMap[locale as keyof typeof localeMap] || enUS
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const isTodayDate = isToday(currentDate)
 
@@ -78,14 +84,18 @@ export function DayView({
               isTodayDate && 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
             )}
           >
-            <span className="text-xs uppercase">{format(currentDate, 'EEE', { locale: ru })}</span>
+            <span className="text-xs uppercase">
+              {format(currentDate, 'EEE', { locale: dateLocale })}
+            </span>
             <span className="text-2xl font-bold">{format(currentDate, 'd')}</span>
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {format(currentDate, 'd MMMM yyyy', { locale: ru })}
+              {format(currentDate, 'd MMMM yyyy', { locale: dateLocale })}
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{events.length} событий</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {t('eventsCount', { count: events.length })}
+            </p>
           </div>
         </div>
 
@@ -93,7 +103,7 @@ export function DayView({
         {allDayEvents.length > 0 && (
           <div className="mt-4">
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              На весь день
+              {t('allDay')}
             </h3>
             <div className="space-y-2">
               {allDayEvents.map((event) => (

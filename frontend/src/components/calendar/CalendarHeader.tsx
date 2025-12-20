@@ -2,14 +2,17 @@
 
 import * as React from 'react'
 import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, fr, ar } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus } from 'lucide-react'
+import { useTranslations, useLocale } from 'next-intl'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { CalendarView } from '@/types/calendar'
+
+const localeMap = { ru, en: enUS, fr, ar }
 
 interface CalendarHeaderProps {
   currentDate: Date
@@ -28,6 +31,10 @@ export function CalendarHeader({
   onAddEvent,
   className,
 }: CalendarHeaderProps) {
+  const t = useTranslations('calendarView')
+  const locale = useLocale()
+  const dateLocale = localeMap[locale as keyof typeof localeMap] || enUS
+
   const handlePrevious = () => {
     switch (view) {
       case 'month':
@@ -63,11 +70,11 @@ export function CalendarHeader({
   const getHeaderTitle = () => {
     switch (view) {
       case 'month':
-        return format(currentDate, 'LLLL yyyy', { locale: ru })
+        return format(currentDate, 'LLLL yyyy', { locale: dateLocale })
       case 'week':
-        return format(currentDate, "'Неделя' w, LLLL yyyy", { locale: ru })
+        return `${t('weekNumber')} ${format(currentDate, 'w')}, ${format(currentDate, 'LLLL yyyy', { locale: dateLocale })}`
       case 'day':
-        return format(currentDate, 'd MMMM yyyy', { locale: ru })
+        return format(currentDate, 'd MMMM yyyy', { locale: dateLocale })
     }
   }
 
@@ -82,7 +89,7 @@ export function CalendarHeader({
       <div className="flex items-center gap-4">
         <div className="flex w-14 md:w-16 flex-col items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-white/10 p-0.5">
           <span className="p-1 text-xs uppercase text-gray-500 dark:text-gray-400">
-            {format(currentDate, 'MMM', { locale: ru })}
+            {format(currentDate, 'MMM', { locale: dateLocale })}
           </span>
           <div className="flex w-full items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-black/95 p-0.5 text-lg font-bold text-gray-900 dark:text-white">
             <span>{format(currentDate, 'd')}</span>
@@ -93,8 +100,9 @@ export function CalendarHeader({
             {getHeaderTitle()}
           </h2>
           <p className="hidden md:block text-sm text-gray-600 dark:text-gray-400">
-            {view === 'month' && format(currentDate, 'd MMMM - ', { locale: ru })}
-            {view === 'month' && format(addMonths(currentDate, 1), 'd MMMM yyyy', { locale: ru })}
+            {view === 'month' && format(currentDate, 'd MMMM - ', { locale: dateLocale })}
+            {view === 'month' &&
+              format(addMonths(currentDate, 1), 'd MMMM yyyy', { locale: dateLocale })}
           </p>
         </div>
       </div>
@@ -108,9 +116,9 @@ export function CalendarHeader({
           className="hidden sm:block"
         >
           <TabsList>
-            <TabsTrigger value="month">Месяц</TabsTrigger>
-            <TabsTrigger value="week">Неделя</TabsTrigger>
-            <TabsTrigger value="day">День</TabsTrigger>
+            <TabsTrigger value="month">{t('month')}</TabsTrigger>
+            <TabsTrigger value="week">{t('week')}</TabsTrigger>
+            <TabsTrigger value="day">{t('day')}</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -123,7 +131,7 @@ export function CalendarHeader({
             className="rounded-none shadow-none first:rounded-s-lg last:rounded-e-lg focus-visible:z-10"
             variant="outline"
             size="icon"
-            aria-label="Предыдущий"
+            aria-label={t('previous')}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -133,14 +141,14 @@ export function CalendarHeader({
             variant="outline"
           >
             <CalendarIcon className="mr-2 h-4 w-4 md:hidden" />
-            Сегодня
+            {t('today')}
           </Button>
           <Button
             onClick={handleNext}
             className="rounded-none shadow-none first:rounded-s-lg last:rounded-e-lg focus-visible:z-10"
             variant="outline"
             size="icon"
-            aria-label="Следующий"
+            aria-label={t('next')}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -153,7 +161,7 @@ export function CalendarHeader({
         {onAddEvent && (
           <Button onClick={onAddEvent} className="w-full gap-2 md:w-auto">
             <Plus className="h-4 w-4" />
-            <span>Событие</span>
+            <span>{t('newEvent')}</span>
           </Button>
         )}
       </div>
