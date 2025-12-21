@@ -111,6 +111,44 @@
 | `BACKUP_ON_START` | Выполнить бэкап при старте контейнера | `false` | Нет |
 | `POSTGRES_BACKUP_RETENTION` | Хранить бэкапы PostgreSQL N дней | `7` | Нет |
 | `MINIO_BACKUP_RETENTION` | Хранить бэкапы MinIO N дней | `7` | Нет |
+| `SERVER_ID` | Идентификатор сервера (для multi-server) | `production` | Нет |
+
+### Backup Encryption
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `BACKUP_ENCRYPTION_ENABLED` | Включить шифрование бэкапов | `false` | Нет |
+| `BACKUP_ENCRYPTION_TYPE` | Тип шифрования: `age` или `gpg` | `age` | Нет |
+| `BACKUP_AGE_PUBLIC_KEY` | Публичный ключ age для шифрования | - | Для age |
+| `BACKUP_GPG_RECIPIENT` | Email/ID получателя GPG | - | Для GPG |
+
+### Backup Notifications
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `NOTIFY_ON_SUCCESS` | Уведомлять при успешном бэкапе | `false` | Нет |
+| `NOTIFY_ON_FAILURE` | Уведомлять при ошибке бэкапа | `true` | Нет |
+| `NOTIFY_LEVELS` | Уровни для уведомлений | `error,warning,success` | Нет |
+| `NOTIFY_TELEGRAM_ENABLED` | Включить Telegram уведомления | `false` | Нет |
+| `NOTIFY_TELEGRAM_BOT_TOKEN` | Token Telegram бота | - | Для Telegram |
+| `NOTIFY_TELEGRAM_CHAT_ID` | ID чата для уведомлений | - | Для Telegram |
+| `NOTIFY_WEBHOOK_ENABLED` | Включить webhook уведомления | `false` | Нет |
+| `NOTIFY_WEBHOOK_URL` | URL для POST запроса | - | Для webhook |
+| `NOTIFY_WEBHOOK_SECRET` | Секрет для HMAC подписи | - | Нет |
+| `NOTIFY_EMAIL_ENABLED` | Включить email уведомления | `false` | Нет |
+| `NOTIFY_EMAIL_SMTP_HOST` | SMTP сервер | - | Для email |
+| `NOTIFY_EMAIL_SMTP_PORT` | Порт SMTP | `587` | Нет |
+| `NOTIFY_EMAIL_FROM` | Email отправителя | - | Для email |
+| `NOTIFY_EMAIL_TO` | Email получателя | - | Для email |
+| `NOTIFY_EMAIL_USER` | Логин SMTP | - | Для email |
+| `NOTIFY_EMAIL_PASSWORD` | Пароль SMTP | - | Для email |
+
+### Backup Metrics
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `METRICS_ENABLED` | Включить сбор Prometheus метрик | `true` | Нет |
+| `METRICS_DIR` | Директория для textfile collector | `/var/lib/node_exporter/textfile_collector` | Нет |
 
 ### Remote Sync (Offsite Backup)
 
@@ -123,7 +161,6 @@
 | `REMOTE_S3_BUCKET` | Имя bucket для бэкапов | - | Для offsite |
 | `REMOTE_S3_REGION` | Регион S3 | `us-east-1` | Нет |
 | `REMOTE_S3_PATH` | Путь внутри bucket | `backups` | Нет |
-| `SERVER_ID` | Идентификатор сервера (для multi-server) | `production` | Нет |
 
 ### Frontend (Next.js)
 

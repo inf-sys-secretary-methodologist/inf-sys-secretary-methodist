@@ -216,8 +216,37 @@ services:
       REMOTE_S3_REGION: ${REMOTE_S3_REGION:-us-east-1}
       REMOTE_S3_PATH: ${REMOTE_S3_PATH:-backups}
       SERVER_ID: ${SERVER_ID:-production}
+      # Encryption (age or gpg)
+      BACKUP_ENCRYPTION_ENABLED: ${BACKUP_ENCRYPTION_ENABLED:-false}
+      BACKUP_ENCRYPTION_TYPE: ${BACKUP_ENCRYPTION_TYPE:-age}
+      BACKUP_AGE_PUBLIC_KEY: ${BACKUP_AGE_PUBLIC_KEY:-}
+      BACKUP_GPG_RECIPIENT: ${BACKUP_GPG_RECIPIENT:-}
+      # Metrics
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
+      METRICS_DIR: /var/lib/node_exporter/textfile_collector
+      # Notifications
+      NOTIFY_ON_SUCCESS: ${NOTIFY_ON_SUCCESS:-false}
+      NOTIFY_ON_FAILURE: ${NOTIFY_ON_FAILURE:-true}
+      NOTIFY_LEVELS: ${NOTIFY_LEVELS:-error,warning,success}
+      # Telegram notifications
+      NOTIFY_TELEGRAM_ENABLED: ${NOTIFY_TELEGRAM_ENABLED:-false}
+      NOTIFY_TELEGRAM_BOT_TOKEN: ${NOTIFY_TELEGRAM_BOT_TOKEN:-}
+      NOTIFY_TELEGRAM_CHAT_ID: ${NOTIFY_TELEGRAM_CHAT_ID:-}
+      # Webhook notifications
+      NOTIFY_WEBHOOK_ENABLED: ${NOTIFY_WEBHOOK_ENABLED:-false}
+      NOTIFY_WEBHOOK_URL: ${NOTIFY_WEBHOOK_URL:-}
+      NOTIFY_WEBHOOK_SECRET: ${NOTIFY_WEBHOOK_SECRET:-}
+      # Email notifications (SMTP)
+      NOTIFY_EMAIL_ENABLED: ${NOTIFY_EMAIL_ENABLED:-false}
+      NOTIFY_EMAIL_SMTP_HOST: ${NOTIFY_EMAIL_SMTP_HOST:-}
+      NOTIFY_EMAIL_SMTP_PORT: ${NOTIFY_EMAIL_SMTP_PORT:-587}
+      NOTIFY_EMAIL_FROM: ${NOTIFY_EMAIL_FROM:-}
+      NOTIFY_EMAIL_TO: ${NOTIFY_EMAIL_TO:-}
+      NOTIFY_EMAIL_USER: ${NOTIFY_EMAIL_USER:-}
+      NOTIFY_EMAIL_PASSWORD: ${NOTIFY_EMAIL_PASSWORD:-}
     volumes:
       - backup_data:/backups
+      - backup_metrics:/var/lib/node_exporter/textfile_collector
     depends_on:
       postgres:
         condition: service_healthy
@@ -235,4 +264,6 @@ volumes:
   minio_data:
     driver: local
   backup_data:
+    driver: local
+  backup_metrics:
     driver: local
