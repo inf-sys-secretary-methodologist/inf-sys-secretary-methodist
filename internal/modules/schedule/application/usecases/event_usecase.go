@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
@@ -14,10 +15,11 @@ import (
 
 // EventUseCase handles event business logic
 type EventUseCase struct {
-	eventRepo       repositories.EventRepository
-	participantRepo repositories.EventParticipantRepository
-	reminderRepo    repositories.EventReminderRepository
-	auditLog        *logging.AuditLogger
+	eventRepo           repositories.EventRepository
+	participantRepo     repositories.EventParticipantRepository
+	reminderRepo        repositories.EventReminderRepository
+	auditLog            *logging.AuditLogger
+	notificationUseCase *notifUsecases.NotificationUseCase
 }
 
 // NewEventUseCase creates a new event use case
@@ -26,12 +28,14 @@ func NewEventUseCase(
 	participantRepo repositories.EventParticipantRepository,
 	reminderRepo repositories.EventReminderRepository,
 	auditLog *logging.AuditLogger,
+	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *EventUseCase {
 	return &EventUseCase{
-		eventRepo:       eventRepo,
-		participantRepo: participantRepo,
-		reminderRepo:    reminderRepo,
-		auditLog:        auditLog,
+		eventRepo:           eventRepo,
+		participantRepo:     participantRepo,
+		reminderRepo:        reminderRepo,
+		auditLog:            auditLog,
+		notificationUseCase: notificationUseCase,
 	}
 }
 
@@ -73,6 +77,20 @@ func (uc *EventUseCase) Create(ctx context.Context, input dto.CreateEventInput, 
 		err := uc.participantRepo.AddParticipants(ctx, event.ID, input.ParticipantIDs, entities.ParticipantRoleRequired)
 		if err != nil {
 			return nil, fmt.Errorf("не удалось добавить участников: %w", err)
+		}
+
+		// Notify participants about new event
+		if uc.notificationUseCase != nil {
+			go func() {
+				for _, userID := range input.ParticipantIDs {
+					_ = uc.notificationUseCase.SendSystemNotification(
+						context.Background(),
+						userID,
+						"Приглашение на событие",
+						fmt.Sprintf("Вы приглашены на «%s» (%s)", event.Title, event.StartTime.Format("02.01.2006 15:04")),
+					)
+				}
+			}()
 		}
 	}
 
@@ -186,6 +204,23 @@ func (uc *EventUseCase) Update(ctx context.Context, id int64, input dto.UpdateEv
 		"event_id": event.ID,
 		"user_id":  userID,
 	})
+
+	// Notify participants about event update
+	if uc.notificationUseCase != nil {
+		go func() {
+			participants, err := uc.participantRepo.GetByEventID(context.Background(), event.ID)
+			if err == nil {
+				for _, p := range participants {
+					_ = uc.notificationUseCase.SendSystemNotification(
+						context.Background(),
+						p.UserID,
+						"Событие изменено",
+						fmt.Sprintf("Событие «%s» было обновлено", event.Title),
+					)
+				}
+			}
+		}()
+	}
 
 	return uc.buildEventOutput(ctx, event)
 }
@@ -386,6 +421,23 @@ func (uc *EventUseCase) Cancel(ctx context.Context, id int64, userID int64) (*dt
 		"title":    event.Title,
 	})
 
+	// Notify participants about event cancellation
+	if uc.notificationUseCase != nil {
+		go func() {
+			participants, err := uc.participantRepo.GetByEventID(context.Background(), event.ID)
+			if err == nil {
+				for _, p := range participants {
+					_ = uc.notificationUseCase.SendSystemNotification(
+						context.Background(),
+						p.UserID,
+						"Событие отменено",
+						fmt.Sprintf("Событие «%s» (%s) было отменено", event.Title, event.StartTime.Format("02.01.2006 15:04")),
+					)
+				}
+			}
+		}()
+	}
+
 	return uc.buildEventOutput(ctx, event)
 }
 
@@ -458,6 +510,20 @@ func (uc *EventUseCase) AddParticipants(ctx context.Context, eventID int64, inpu
 		"participant_count": len(input.UserIDs),
 		"role":              input.Role,
 	})
+
+	// Notify added participants
+	if uc.notificationUseCase != nil {
+		go func() {
+			for _, uid := range input.UserIDs {
+				_ = uc.notificationUseCase.SendSystemNotification(
+					context.Background(),
+					uid,
+					"Приглашение на событие",
+					fmt.Sprintf("Вы приглашены на «%s» (%s)", event.Title, event.StartTime.Format("02.01.2006 15:04")),
+				)
+			}
+		}()
+	}
 
 	return nil
 }

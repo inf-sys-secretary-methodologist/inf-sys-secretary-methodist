@@ -343,7 +343,7 @@ func (m *MockReportTypeRepository) UpdateSubscription(ctx context.Context, subsc
 func TestReportUseCase_Create(t *testing.T) {
 	mockReportRepo := new(MockReportRepository)
 	mockTypeRepo := new(MockReportTypeRepository)
-	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
 
 	t.Run("create report successfully", func(t *testing.T) {
 		reportType := &entities.ReportType{
@@ -387,7 +387,7 @@ func TestReportUseCase_Create(t *testing.T) {
 func TestReportUseCase_GetByID(t *testing.T) {
 	mockReportRepo := new(MockReportRepository)
 	mockTypeRepo := new(MockReportTypeRepository)
-	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
 
 	t.Run("get existing report", func(t *testing.T) {
 		report := &entities.Report{
@@ -429,7 +429,7 @@ func TestReportUseCase_GetByID(t *testing.T) {
 func TestReportUseCase_List(t *testing.T) {
 	mockReportRepo := new(MockReportRepository)
 	mockTypeRepo := new(MockReportTypeRepository)
-	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
 
 	t.Run("list reports with pagination", func(t *testing.T) {
 		reports := []*entities.Report{
@@ -473,7 +473,7 @@ func TestReportUseCase_List(t *testing.T) {
 func TestReportUseCase_Delete(t *testing.T) {
 	mockReportRepo := new(MockReportRepository)
 	mockTypeRepo := new(MockReportTypeRepository)
-	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
 
 	t.Run("delete existing report", func(t *testing.T) {
 		report := &entities.Report{
@@ -519,7 +519,7 @@ func TestReportUseCase_Delete(t *testing.T) {
 func TestReportUseCase_GetReportTypes(t *testing.T) {
 	mockReportRepo := new(MockReportRepository)
 	mockTypeRepo := new(MockReportTypeRepository)
-	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
 
 	t.Run("get report types", func(t *testing.T) {
 		reportTypes := []*entities.ReportType{

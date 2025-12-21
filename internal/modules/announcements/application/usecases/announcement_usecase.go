@@ -4,12 +4,14 @@ package usecases
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/repositories"
+	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -22,20 +24,31 @@ var (
 	ErrInvalidInput = errors.New("invalid input")
 )
 
+// UserIDsProvider provides a list of user IDs for broadcast notifications.
+type UserIDsProvider interface {
+	GetActiveUserIDs(ctx context.Context) ([]int64, error)
+}
+
 // AnnouncementUseCase handles announcement business logic.
 type AnnouncementUseCase struct {
-	repo        repositories.AnnouncementRepository
-	auditLogger *logging.AuditLogger
+	repo                repositories.AnnouncementRepository
+	auditLogger         *logging.AuditLogger
+	notificationUseCase *notifUsecases.NotificationUseCase
+	userIDsProvider     UserIDsProvider
 }
 
 // NewAnnouncementUseCase creates a new AnnouncementUseCase.
 func NewAnnouncementUseCase(
 	repo repositories.AnnouncementRepository,
 	auditLogger *logging.AuditLogger,
+	notificationUseCase *notifUsecases.NotificationUseCase,
+	userIDsProvider UserIDsProvider,
 ) *AnnouncementUseCase {
 	return &AnnouncementUseCase{
-		repo:        repo,
-		auditLogger: auditLogger,
+		repo:                repo,
+		auditLogger:         auditLogger,
+		notificationUseCase: notificationUseCase,
+		userIDsProvider:     userIDsProvider,
 	}
 }
 
@@ -295,6 +308,28 @@ func (uc *AnnouncementUseCase) Publish(ctx context.Context, userID int64, id int
 		"announcement_id": announcement.ID,
 		"published_by":    userID,
 	})
+
+	// Send broadcast notification to all users
+	if uc.notificationUseCase != nil && uc.userIDsProvider != nil {
+		go func() {
+			userIDs, err := uc.userIDsProvider.GetActiveUserIDs(context.Background())
+			if err != nil {
+				return
+			}
+			for _, uid := range userIDs {
+				summary := ""
+				if announcement.Summary != nil {
+					summary = *announcement.Summary
+				}
+				_ = uc.notificationUseCase.SendSystemNotification(
+					context.Background(),
+					uid,
+					fmt.Sprintf("Объявление: %s", announcement.Title),
+					summary,
+				)
+			}
+		}()
+	}
 
 	return announcement, nil
 }

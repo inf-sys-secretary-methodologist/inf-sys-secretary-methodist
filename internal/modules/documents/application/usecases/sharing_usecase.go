@@ -9,17 +9,19 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
+	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // SharingUseCase handles document sharing operations
 type SharingUseCase struct {
-	documentRepo   repositories.DocumentRepository
-	permissionRepo repositories.PermissionRepository
-	publicLinkRepo repositories.PublicLinkRepository
-	auditLog       *logging.AuditLogger
-	baseURL        string
+	documentRepo        repositories.DocumentRepository
+	permissionRepo      repositories.PermissionRepository
+	publicLinkRepo      repositories.PublicLinkRepository
+	auditLog            *logging.AuditLogger
+	baseURL             string
+	notificationUseCase *notifUsecases.NotificationUseCase
 }
 
 // NewSharingUseCase creates a new SharingUseCase
@@ -29,13 +31,15 @@ func NewSharingUseCase(
 	publicLinkRepo repositories.PublicLinkRepository,
 	auditLog *logging.AuditLogger,
 	baseURL string,
+	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *SharingUseCase {
 	return &SharingUseCase{
-		documentRepo:   documentRepo,
-		permissionRepo: permissionRepo,
-		publicLinkRepo: publicLinkRepo,
-		auditLog:       auditLog,
-		baseURL:        baseURL,
+		documentRepo:        documentRepo,
+		permissionRepo:      permissionRepo,
+		publicLinkRepo:      publicLinkRepo,
+		auditLog:            auditLog,
+		baseURL:             baseURL,
+		notificationUseCase: notificationUseCase,
 	}
 }
 
@@ -105,6 +109,20 @@ func (uc *SharingUseCase) ShareDocument(ctx context.Context, input dto.ShareDocu
 			details["role"] = *input.Role
 		}
 		uc.auditLog.LogAuditEvent(ctx, "document_shared", "document_permission", details)
+	}
+
+	// Send notification to the user about shared document
+	if uc.notificationUseCase != nil && input.UserID != nil {
+		go func() {
+			link := fmt.Sprintf("/documents/%d", input.DocumentID)
+			_ = uc.notificationUseCase.SendDocumentNotification(
+				context.Background(),
+				*input.UserID,
+				"Документ открыт для вас",
+				fmt.Sprintf("Вам предоставлен доступ к документу «%s»", doc.Title),
+				link,
+			)
+		}()
 	}
 
 	// Get full permission with user details

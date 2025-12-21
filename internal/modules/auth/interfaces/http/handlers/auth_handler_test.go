@@ -34,7 +34,7 @@ func (s *AuthHandlerTestSuite) SetupSuite() {
 	repo := persistence.NewUserRepositoryPG(s.DB)
 	jwtSecret := []byte("test-secret")
 	refreshSecret := []byte("test-refresh-secret")
-	s.usecase = usecases.NewAuthUseCase(repo, jwtSecret, refreshSecret, nil, nil)
+	s.usecase = usecases.NewAuthUseCase(repo, jwtSecret, refreshSecret, nil, nil, nil)
 	s.handler = authHandler.NewAuthHandler(s.usecase, nil) // emailService not needed for tests
 
 	// Setup router

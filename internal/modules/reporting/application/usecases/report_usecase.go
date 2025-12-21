@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
@@ -26,10 +27,11 @@ var (
 
 // ReportUseCase handles report business logic
 type ReportUseCase struct {
-	reportRepo     repositories.ReportRepository
-	reportTypeRepo repositories.ReportTypeRepository
-	s3Client       *storage.S3Client
-	auditLog       *logging.AuditLogger
+	reportRepo          repositories.ReportRepository
+	reportTypeRepo      repositories.ReportTypeRepository
+	s3Client            *storage.S3Client
+	auditLog            *logging.AuditLogger
+	notificationUseCase *notifUsecases.NotificationUseCase
 }
 
 // NewReportUseCase creates a new report use case
@@ -38,12 +40,14 @@ func NewReportUseCase(
 	reportTypeRepo repositories.ReportTypeRepository,
 	s3Client *storage.S3Client,
 	auditLog *logging.AuditLogger,
+	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *ReportUseCase {
 	return &ReportUseCase{
-		reportRepo:     reportRepo,
-		reportTypeRepo: reportTypeRepo,
-		s3Client:       s3Client,
-		auditLog:       auditLog,
+		reportRepo:          reportRepo,
+		reportTypeRepo:      reportTypeRepo,
+		s3Client:            s3Client,
+		auditLog:            auditLog,
+		notificationUseCase: notificationUseCase,
 	}
 }
 
@@ -477,6 +481,25 @@ func (uc *ReportUseCase) Publish(ctx context.Context, id, userID int64, input *d
 	_ = uc.reportRepo.AddHistory(ctx, history)
 
 	uc.logAudit(ctx, "publish_report", userID, report.ID, nil)
+
+	// Notify users with access about report publication
+	if uc.notificationUseCase != nil {
+		go func() {
+			accesses, err := uc.reportRepo.GetAccessByReport(context.Background(), report.ID)
+			if err == nil {
+				for _, access := range accesses {
+					if access.UserID != nil && *access.UserID != userID {
+						_ = uc.notificationUseCase.SendSystemNotification(
+							context.Background(),
+							*access.UserID,
+							"Отчёт опубликован",
+							fmt.Sprintf("Отчёт «%s» был опубликован", report.Title),
+						)
+					}
+				}
+			}
+		}()
+	}
 
 	return dto.ToReportOutput(report), nil
 }
