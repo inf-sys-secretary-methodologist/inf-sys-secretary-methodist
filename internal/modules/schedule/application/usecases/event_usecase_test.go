@@ -253,7 +253,7 @@ func TestEventUseCase_Create(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	startTime := time.Now().Add(24 * time.Hour)
 	input := dto.CreateEventInput{
@@ -282,7 +282,7 @@ func TestEventUseCase_Create_WithParticipants(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	startTime := time.Now().Add(24 * time.Hour)
 	input := dto.CreateEventInput{
@@ -311,7 +311,7 @@ func TestEventUseCase_Create_InvalidTime(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	startTime := time.Now().Add(24 * time.Hour)
 	endTime := time.Now().Add(-24 * time.Hour) // End before start
@@ -335,7 +335,7 @@ func TestEventUseCase_Update(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	existingEvent := &entities.Event{
 		ID:          1,
@@ -369,7 +369,7 @@ func TestEventUseCase_Update_NotOrganizer(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	existingEvent := &entities.Event{
 		ID:          1,
@@ -397,7 +397,7 @@ func TestEventUseCase_Delete(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	existingEvent := &entities.Event{
 		ID:          1,
@@ -419,7 +419,7 @@ func TestEventUseCase_GetByID(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	event := &entities.Event{
 		ID:          1,
@@ -448,7 +448,7 @@ func TestEventUseCase_List(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	events := []*entities.Event{
 		{ID: 1, Title: "Event 1", EventType: entities.EventTypeMeeting, Status: entities.EventStatusScheduled, OrganizerID: 1, StartTime: time.Now()},
@@ -480,7 +480,7 @@ func TestEventUseCase_Cancel(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	event := &entities.Event{
 		ID:          1,
@@ -509,7 +509,7 @@ func TestEventUseCase_Reschedule(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	event := &entities.Event{
 		ID:          1,
@@ -541,7 +541,7 @@ func TestEventUseCase_UpdateParticipantStatus(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	participant := &entities.EventParticipant{
 		ID:             1,
@@ -569,7 +569,7 @@ func TestEventUseCase_GetUpcoming(t *testing.T) {
 	mockParticipantRepo := new(MockEventParticipantRepository)
 	mockReminderRepo := new(MockEventReminderRepository)
 
-	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil)
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
 
 	events := []*entities.Event{
 		{ID: 1, Title: "Upcoming 1", EventType: entities.EventTypeMeeting, Status: entities.EventStatusScheduled, OrganizerID: 1, StartTime: time.Now().Add(1 * time.Hour)},

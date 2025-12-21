@@ -15,6 +15,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
+	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
@@ -36,13 +37,14 @@ var (
 
 // AuthUseCase handles authentication business logic.
 type AuthUseCase struct {
-	userRepo      repositories.UserRepository
-	jwtSecret     []byte
-	refreshSecret []byte
-	accessExpiry  time.Duration
-	refreshExpiry time.Duration
-	securityLog   *logging.SecurityLogger
-	auditLog      *logging.AuditLogger
+	userRepo            repositories.UserRepository
+	jwtSecret           []byte
+	refreshSecret       []byte
+	accessExpiry        time.Duration
+	refreshExpiry       time.Duration
+	securityLog         *logging.SecurityLogger
+	auditLog            *logging.AuditLogger
+	notificationUseCase *notifUsecases.NotificationUseCase
 }
 
 // NewAuthUseCase creates a new auth use case
@@ -51,15 +53,17 @@ func NewAuthUseCase(
 	jwtSecret, refreshSecret []byte,
 	securityLog *logging.SecurityLogger,
 	auditLog *logging.AuditLogger,
+	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *AuthUseCase {
 	return &AuthUseCase{
-		userRepo:      userRepo,
-		jwtSecret:     jwtSecret,
-		refreshSecret: refreshSecret,
-		accessExpiry:  time.Minute * 15,
-		refreshExpiry: time.Hour * 24 * 7,
-		securityLog:   securityLog,
-		auditLog:      auditLog,
+		userRepo:            userRepo,
+		jwtSecret:           jwtSecret,
+		refreshSecret:       refreshSecret,
+		accessExpiry:        time.Minute * 15,
+		refreshExpiry:       time.Hour * 24 * 7,
+		securityLog:         securityLog,
+		auditLog:            auditLog,
+		notificationUseCase: notificationUseCase,
 	}
 }
 
@@ -220,6 +224,18 @@ func (u *AuthUseCase) Register(ctx context.Context, input dto.RegisterInput) err
 		"role":        user.Role,
 		"duration_ms": time.Since(startTime).Milliseconds(),
 	})
+
+	// Send welcome notification
+	if u.notificationUseCase != nil {
+		go func() {
+			_ = u.notificationUseCase.SendSystemNotification(
+				context.Background(),
+				user.ID,
+				"Добро пожаловать!",
+				"Ваш аккаунт успешно создан. Настройте профиль и начните работу в системе.",
+			)
+		}()
+	}
 
 	return nil
 }

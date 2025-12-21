@@ -11,6 +11,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
+	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -26,9 +27,10 @@ var (
 
 // TaskUseCase provides task management operations.
 type TaskUseCase struct {
-	taskRepo    repositories.TaskRepository
-	projectRepo repositories.ProjectRepository
-	auditLogger *logging.AuditLogger
+	taskRepo            repositories.TaskRepository
+	projectRepo         repositories.ProjectRepository
+	auditLogger         *logging.AuditLogger
+	notificationUseCase *notifUsecases.NotificationUseCase
 }
 
 // NewTaskUseCase creates a new TaskUseCase.
@@ -36,11 +38,13 @@ func NewTaskUseCase(
 	taskRepo repositories.TaskRepository,
 	projectRepo repositories.ProjectRepository,
 	auditLogger *logging.AuditLogger,
+	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *TaskUseCase {
 	return &TaskUseCase{
-		taskRepo:    taskRepo,
-		projectRepo: projectRepo,
-		auditLogger: auditLogger,
+		taskRepo:            taskRepo,
+		projectRepo:         projectRepo,
+		auditLogger:         auditLogger,
+		notificationUseCase: notificationUseCase,
 	}
 }
 
@@ -264,6 +268,21 @@ func (uc *TaskUseCase) Assign(ctx context.Context, userID, taskID int64, input d
 	_ = uc.taskRepo.AddHistory(ctx, history)
 
 	uc.logAudit(ctx, userID, "task.assigned", taskID)
+
+	// Send notification to the new assignee
+	if uc.notificationUseCase != nil && input.AssigneeID != userID {
+		go func() {
+			link := fmt.Sprintf("/tasks/%d", taskID)
+			_ = uc.notificationUseCase.SendTaskNotification(
+				context.Background(),
+				input.AssigneeID,
+				"Новая задача",
+				fmt.Sprintf("Вам назначена задача: %s", task.Title),
+				link,
+			)
+		}()
+	}
+
 	return task, nil
 }
 
@@ -331,6 +350,21 @@ func (uc *TaskUseCase) SubmitForReview(ctx context.Context, userID, taskID int64
 	_ = uc.taskRepo.AddHistory(ctx, history)
 
 	uc.logAudit(ctx, userID, "task.submitted_for_review", taskID)
+
+	// Notify author about task submitted for review
+	if uc.notificationUseCase != nil && task.AuthorID != userID {
+		go func() {
+			link := fmt.Sprintf("/tasks/%d", taskID)
+			_ = uc.notificationUseCase.SendTaskNotification(
+				context.Background(),
+				task.AuthorID,
+				"Задача на проверке",
+				fmt.Sprintf("Задача «%s» отправлена на проверку", task.Title),
+				link,
+			)
+		}()
+	}
+
 	return task, nil
 }
 
@@ -355,6 +389,21 @@ func (uc *TaskUseCase) Complete(ctx context.Context, userID, taskID int64) (*ent
 	_ = uc.taskRepo.AddHistory(ctx, history)
 
 	uc.logAudit(ctx, userID, "task.completed", taskID)
+
+	// Send notification to the author about task completion
+	if uc.notificationUseCase != nil && task.AuthorID != userID {
+		go func() {
+			link := fmt.Sprintf("/tasks/%d", taskID)
+			_ = uc.notificationUseCase.SendTaskNotification(
+				context.Background(),
+				task.AuthorID,
+				"Задача выполнена",
+				fmt.Sprintf("Задача «%s» была завершена", task.Title),
+				link,
+			)
+		}()
+	}
+
 	return task, nil
 }
 
@@ -379,6 +428,21 @@ func (uc *TaskUseCase) Cancel(ctx context.Context, userID, taskID int64) (*entit
 	_ = uc.taskRepo.AddHistory(ctx, history)
 
 	uc.logAudit(ctx, userID, "task.cancelled", taskID)
+
+	// Notify assignee about task cancellation
+	if uc.notificationUseCase != nil && task.AssigneeID != nil && *task.AssigneeID != userID {
+		go func() {
+			link := fmt.Sprintf("/tasks/%d", taskID)
+			_ = uc.notificationUseCase.SendTaskNotification(
+				context.Background(),
+				*task.AssigneeID,
+				"Задача отменена",
+				fmt.Sprintf("Задача «%s» была отменена", task.Title),
+				link,
+			)
+		}()
+	}
+
 	return task, nil
 }
 
@@ -462,6 +526,38 @@ func (uc *TaskUseCase) AddComment(ctx context.Context, userID, taskID int64, inp
 	}
 
 	uc.logAudit(ctx, userID, "task.comment_added", taskID)
+
+	// Notify author and assignee about new comment
+	if uc.notificationUseCase != nil {
+		go func() {
+			task, err := uc.taskRepo.GetByID(context.Background(), taskID)
+			if err != nil || task == nil {
+				return
+			}
+			link := fmt.Sprintf("/tasks/%d", taskID)
+			// Notify author if not the commenter
+			if task.AuthorID != userID {
+				_ = uc.notificationUseCase.SendTaskNotification(
+					context.Background(),
+					task.AuthorID,
+					"Новый комментарий",
+					fmt.Sprintf("Новый комментарий к задаче «%s»", task.Title),
+					link,
+				)
+			}
+			// Notify assignee if different from author and commenter
+			if task.AssigneeID != nil && *task.AssigneeID != userID && *task.AssigneeID != task.AuthorID {
+				_ = uc.notificationUseCase.SendTaskNotification(
+					context.Background(),
+					*task.AssigneeID,
+					"Новый комментарий",
+					fmt.Sprintf("Новый комментарий к задаче «%s»", task.Title),
+					link,
+				)
+			}
+		}()
+	}
+
 	return comment, nil
 }
 

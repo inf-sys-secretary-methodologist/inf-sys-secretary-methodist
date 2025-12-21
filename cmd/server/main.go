@@ -54,6 +54,11 @@ import (
 	usersRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	usersPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/infrastructure/persistence"
 	usersHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/handlers"
+	messagingServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/services"
+	messagingUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/usecases"
+	messagingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/persistence"
+	messagingWebsocket "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
+	messagingHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -150,58 +155,7 @@ func main() {
 		}
 	}
 
-	// Initialize auth module with all optimizations
-	authUseCase, userRepo := initAuthModule(
-		db,
-		redisCache,
-		securityLogger,
-		auditLogger,
-		perfLogger,
-		cfg,
-	)
-
-	// Initialize documents module
-	var docUseCase *docUsecases.DocumentUseCase
-	var sharingUseCase *docUsecases.SharingUseCase
-	var docVersionUseCase *docUsecases.DocumentVersionUseCase
-	var tagUseCase *docUsecases.TagUseCase
-	if s3Client != nil {
-		docRepo := docPersistence.NewDocumentRepositoryPG(db)
-		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
-		docCategoryRepo := docPersistence.NewDocumentCategoryRepositoryPG(db)
-		permissionRepo := docPersistence.NewPermissionRepositoryPG(db)
-		publicLinkRepo := docPersistence.NewPublicLinkRepositoryPG(db)
-		docTagRepo := docPersistence.NewDocumentTagRepositoryPG(db)
-		docUseCase = docUsecases.NewDocumentUseCase(docRepo, docTypeRepo, docCategoryRepo, s3Client, auditLogger)
-		sharingUseCase = docUsecases.NewSharingUseCase(docRepo, permissionRepo, publicLinkRepo, auditLogger, cfg.Server.BaseURL)
-		docVersionUseCase = docUsecases.NewDocumentVersionUseCase(docRepo, s3Client, auditLogger)
-		tagUseCase = docUsecases.NewTagUseCase(docTagRepo, docRepo, auditLogger)
-		logger.Info("Documents module initialized", nil)
-	} else {
-		logger.Warn("Documents module not initialized - S3 storage not available", nil)
-	}
-
-	// Initialize reporting module
-	reportRepo := reportPersistence.NewReportRepositoryPG(db)
-	reportTypeRepo := reportPersistence.NewReportTypeRepositoryPG(db)
-	reportUseCase := reportUsecases.NewReportUseCase(reportRepo, reportTypeRepo, s3Client, auditLogger)
-	logger.Info("Reporting module initialized", nil)
-
-	// Initialize tasks module
-	taskRepo := taskPersistence.NewTaskRepositoryPG(db)
-	projectRepo := taskPersistence.NewProjectRepositoryPG(db)
-	taskUseCase := taskUsecases.NewTaskUseCase(taskRepo, projectRepo, auditLogger)
-	projectUseCase := taskUsecases.NewProjectUseCase(projectRepo, auditLogger)
-	logger.Info("Tasks module initialized", nil)
-
-	// Initialize schedule module
-	eventRepo := schedulePersistence.NewEventRepositoryPG(db)
-	participantRepo := schedulePersistence.NewEventParticipantRepositoryPG(db)
-	reminderRepo := schedulePersistence.NewEventReminderRepositoryPG(db)
-	eventUseCase := scheduleUsecases.NewEventUseCase(eventRepo, participantRepo, reminderRepo, auditLogger)
-	logger.Info("Schedule module initialized", nil)
-
-	// Initialize notifications module
+	// Initialize notifications module FIRST (needed by other modules)
 	notificationRepo := notifPersistence.NewNotificationRepositoryPG(db)
 	preferencesRepo := notifPersistence.NewPreferencesRepositoryPG(db)
 
@@ -237,6 +191,58 @@ func main() {
 	preferencesUseCase := notifUsecases.NewPreferencesUseCase(preferencesRepo)
 	logger.Info("Notifications module initialized", nil)
 
+	// Initialize auth module with all optimizations
+	authUseCase, userRepo := initAuthModule(
+		db,
+		redisCache,
+		securityLogger,
+		auditLogger,
+		perfLogger,
+		cfg,
+		notificationUseCase,
+	)
+
+	// Initialize documents module
+	var docUseCase *docUsecases.DocumentUseCase
+	var sharingUseCase *docUsecases.SharingUseCase
+	var docVersionUseCase *docUsecases.DocumentVersionUseCase
+	var tagUseCase *docUsecases.TagUseCase
+	if s3Client != nil {
+		docRepo := docPersistence.NewDocumentRepositoryPG(db)
+		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
+		docCategoryRepo := docPersistence.NewDocumentCategoryRepositoryPG(db)
+		permissionRepo := docPersistence.NewPermissionRepositoryPG(db)
+		publicLinkRepo := docPersistence.NewPublicLinkRepositoryPG(db)
+		docTagRepo := docPersistence.NewDocumentTagRepositoryPG(db)
+		docUseCase = docUsecases.NewDocumentUseCase(docRepo, docTypeRepo, docCategoryRepo, s3Client, auditLogger)
+		sharingUseCase = docUsecases.NewSharingUseCase(docRepo, permissionRepo, publicLinkRepo, auditLogger, cfg.Server.BaseURL, notificationUseCase)
+		docVersionUseCase = docUsecases.NewDocumentVersionUseCase(docRepo, s3Client, auditLogger)
+		tagUseCase = docUsecases.NewTagUseCase(docTagRepo, docRepo, auditLogger)
+		logger.Info("Documents module initialized", nil)
+	} else {
+		logger.Warn("Documents module not initialized - S3 storage not available", nil)
+	}
+
+	// Initialize reporting module
+	reportRepo := reportPersistence.NewReportRepositoryPG(db)
+	reportTypeRepo := reportPersistence.NewReportTypeRepositoryPG(db)
+	reportUseCase := reportUsecases.NewReportUseCase(reportRepo, reportTypeRepo, s3Client, auditLogger, notificationUseCase)
+	logger.Info("Reporting module initialized", nil)
+
+	// Initialize tasks module
+	taskRepo := taskPersistence.NewTaskRepositoryPG(db)
+	projectRepo := taskPersistence.NewProjectRepositoryPG(db)
+	taskUseCase := taskUsecases.NewTaskUseCase(taskRepo, projectRepo, auditLogger, notificationUseCase)
+	projectUseCase := taskUsecases.NewProjectUseCase(projectRepo, auditLogger)
+	logger.Info("Tasks module initialized", nil)
+
+	// Initialize schedule module
+	eventRepo := schedulePersistence.NewEventRepositoryPG(db)
+	participantRepo := schedulePersistence.NewEventParticipantRepositoryPG(db)
+	reminderRepo := schedulePersistence.NewEventReminderRepositoryPG(db)
+	eventUseCase := scheduleUsecases.NewEventUseCase(eventRepo, participantRepo, reminderRepo, auditLogger, notificationUseCase)
+	logger.Info("Schedule module initialized", nil)
+
 	// Initialize reminder scheduler
 	var reminderScheduler *notifScheduler.ReminderScheduler
 	reminderScheduler, err = notifScheduler.NewReminderScheduler(
@@ -264,7 +270,7 @@ func main() {
 
 	// Initialize announcements module
 	announcementRepo := announcementPersistence.NewAnnouncementRepositoryPG(db)
-	announcementUseCase := announcementUsecases.NewAnnouncementUseCase(announcementRepo, auditLogger)
+	announcementUseCase := announcementUsecases.NewAnnouncementUseCase(announcementRepo, auditLogger, notificationUseCase, nil)
 	logger.Info("Announcements module initialized", nil)
 
 	// Initialize dashboard module
@@ -276,10 +282,20 @@ func main() {
 	departmentRepo := usersPersistence.NewDepartmentRepositoryPG(db)
 	positionRepo := usersPersistence.NewPositionRepositoryPG(db)
 	userProfileRepo := usersPersistence.NewUserProfileRepositoryPG(db)
-	userUseCase := usersUsecases.NewUserUseCase(userRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger)
+	userUseCase := usersUsecases.NewUserUseCase(userRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger, notificationUseCase)
 	departmentUseCase := usersUsecases.NewDepartmentUseCase(departmentRepo, auditLogger)
 	positionUseCase := usersUsecases.NewPositionUseCase(positionRepo, auditLogger)
 	logger.Info("Users module initialized", nil)
+
+	// Initialize messaging module
+	conversationRepo := messagingPersistence.NewConversationRepositoryPG(db)
+	messageRepo := messagingPersistence.NewMessageRepositoryPG(db)
+	messagingHub := messagingWebsocket.NewHub(logger)
+	go messagingHub.Run() // Start WebSocket hub in background
+	// Create message notifier for sending notifications about new messages
+	messageNotifier := messagingServices.NewNotificationNotifier(notificationUseCase)
+	messagingUseCase := messagingUsecases.NewMessagingUseCase(conversationRepo, messageRepo, messagingHub, logger, messageNotifier)
+	logger.Info("Messaging module initialized", nil)
 
 	// Initialize files module
 	var fileUseCase *filesUsecases.FileUseCase
@@ -354,6 +370,8 @@ func main() {
 		preferencesUseCase,
 		telegramVerificationService,
 		telegramService,
+		messagingUseCase,
+		messagingHub,
 		s3Client,
 		securityLogger,
 		perfLogger,
@@ -508,6 +526,7 @@ func initAuthModule(
 	auditLog *logging.AuditLogger,
 	perfLog *logging.PerformanceLogger,
 	cfg *config.Config,
+	notificationUseCase *notifUsecases.NotificationUseCase,
 ) (*usecases.AuthUseCase, repositories.UserRepository) {
 	// JWT secrets from config
 	jwtSecret := []byte(cfg.JWT.AccessSecret)
@@ -533,6 +552,7 @@ func initAuthModule(
 		refreshSecret,
 		securityLog,
 		auditLog,
+		notificationUseCase,
 	)
 
 	return authUseCase, userRepo.(repositories.UserRepository)
@@ -559,6 +579,8 @@ func setupRoutes(
 	preferencesUseCase *notifUsecases.PreferencesUseCase,
 	telegramVerificationService *notifServices.TelegramVerificationService,
 	telegramService emailDomain.TelegramService,
+	messagingUseCase *messagingUsecases.MessagingUseCase,
+	messagingHub *messagingWebsocket.Hub,
 	s3Client *storage.S3Client,
 	securityLog *logging.SecurityLogger,
 	perfLog *logging.PerformanceLogger,
@@ -806,6 +828,13 @@ func setupRoutes(
 			logger.Info("Email notification routes registered", nil)
 		} else {
 			logger.Warn("Email notification routes not registered - Composio credentials not configured", nil)
+		}
+
+		// Messaging module routes (internal messaging system)
+		if messagingUseCase != nil {
+			msgHandler := messagingHandler.NewMessagingHandler(messagingUseCase, messagingHub, logger, validator)
+			msgHandler.RegisterRoutes(protectedGroup, authMiddleware.JWTMiddleware(authUseCase))
+			logger.Info("Messaging module routes registered", nil)
 		}
 
 		// Document management routes

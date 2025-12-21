@@ -3,11 +3,13 @@ package usecases
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	authRepos "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
+	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
@@ -16,11 +18,12 @@ import (
 
 // UserUseCase handles user management business logic.
 type UserUseCase struct {
-	userRepo        authRepos.UserRepository
-	userProfileRepo repositories.UserProfileRepository
-	departmentRepo  repositories.DepartmentRepository
-	positionRepo    repositories.PositionRepository
-	auditLogger     *logging.AuditLogger
+	userRepo            authRepos.UserRepository
+	userProfileRepo     repositories.UserProfileRepository
+	departmentRepo      repositories.DepartmentRepository
+	positionRepo        repositories.PositionRepository
+	auditLogger         *logging.AuditLogger
+	notificationUseCase *notifUsecases.NotificationUseCase
 }
 
 // NewUserUseCase creates a new user use case.
@@ -30,13 +33,15 @@ func NewUserUseCase(
 	departmentRepo repositories.DepartmentRepository,
 	positionRepo repositories.PositionRepository,
 	auditLogger *logging.AuditLogger,
+	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *UserUseCase {
 	return &UserUseCase{
-		userRepo:        userRepo,
-		userProfileRepo: userProfileRepo,
-		departmentRepo:  departmentRepo,
-		positionRepo:    positionRepo,
-		auditLogger:     auditLogger,
+		userRepo:            userRepo,
+		userProfileRepo:     userProfileRepo,
+		departmentRepo:      departmentRepo,
+		positionRepo:        positionRepo,
+		auditLogger:         auditLogger,
+		notificationUseCase: notificationUseCase,
 	}
 }
 
@@ -158,6 +163,18 @@ func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *
 		})
 	}
 
+	// Notify user about role change
+	if uc.notificationUseCase != nil {
+		go func() {
+			_ = uc.notificationUseCase.SendSystemNotification(
+				context.Background(),
+				userID,
+				"Изменение роли",
+				fmt.Sprintf("Ваша роль изменена на «%s»", input.Role),
+			)
+		}()
+	}
+
 	return nil
 }
 
@@ -190,6 +207,27 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, userID int64, input
 			"old_status": oldStatus,
 			"new_status": user.Status,
 		})
+	}
+
+	// Notify user about status change
+	if uc.notificationUseCase != nil {
+		go func() {
+			statusNames := map[string]string{
+				"active":   "активен",
+				"inactive": "неактивен",
+				"blocked":  "заблокирован",
+			}
+			statusName := statusNames[input.Status]
+			if statusName == "" {
+				statusName = input.Status
+			}
+			_ = uc.notificationUseCase.SendSystemNotification(
+				context.Background(),
+				userID,
+				"Изменение статуса",
+				fmt.Sprintf("Ваш статус изменён на «%s»", statusName),
+			)
+		}()
 	}
 
 	return nil

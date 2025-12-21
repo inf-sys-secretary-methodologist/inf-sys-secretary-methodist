@@ -291,7 +291,7 @@ func (m *MockProjectRepository) GetByStatus(_ context.Context, _ domain.ProjectS
 func TestTaskUseCase_Create(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 	input := dto.CreateTaskInput{
@@ -324,7 +324,7 @@ func TestTaskUseCase_Create(t *testing.T) {
 func TestTaskUseCase_Create_WithAssignee(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 	assigneeID := int64(2)
@@ -350,7 +350,7 @@ func TestTaskUseCase_Create_WithAssignee(t *testing.T) {
 func TestTaskUseCase_GetByID(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -372,7 +372,7 @@ func TestTaskUseCase_GetByID(t *testing.T) {
 func TestTaskUseCase_GetByID_NotFound(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -385,7 +385,7 @@ func TestTaskUseCase_GetByID_NotFound(t *testing.T) {
 func TestTaskUseCase_Update(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -410,7 +410,7 @@ func TestTaskUseCase_Update(t *testing.T) {
 func TestTaskUseCase_Delete(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -434,7 +434,7 @@ func TestTaskUseCase_Delete(t *testing.T) {
 func TestTaskUseCase_Delete_Unauthorized(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -452,7 +452,7 @@ func TestTaskUseCase_Delete_Unauthorized(t *testing.T) {
 func TestTaskUseCase_List(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -475,7 +475,7 @@ func TestTaskUseCase_List(t *testing.T) {
 func TestTaskUseCase_Workflow(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -526,7 +526,7 @@ func TestTaskUseCase_Workflow(t *testing.T) {
 func TestTaskUseCase_Cancel(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -547,7 +547,7 @@ func TestTaskUseCase_Cancel(t *testing.T) {
 func TestTaskUseCase_Reopen(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -569,7 +569,7 @@ func TestTaskUseCase_Reopen(t *testing.T) {
 func TestTaskUseCase_Comments(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -613,7 +613,7 @@ func TestTaskUseCase_Comments(t *testing.T) {
 func TestTaskUseCase_Watchers(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -650,7 +650,7 @@ func TestTaskUseCase_Watchers(t *testing.T) {
 func TestTaskUseCase_Checklists(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 
@@ -688,7 +688,7 @@ func TestTaskUseCase_Checklists(t *testing.T) {
 func TestTaskUseCase_History(t *testing.T) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil)
+	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
 
 	ctx := context.Background()
 

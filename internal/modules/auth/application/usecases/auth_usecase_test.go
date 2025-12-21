@@ -59,7 +59,7 @@ func (m *mockUserRepository) List(_ context.Context, _, _ int) ([]*entities.User
 
 func TestRegister(t *testing.T) {
 	repo := &mockUserRepository{}
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
 
 	input := dto.RegisterInput{
 		Email:    "newuser@example.com",
@@ -75,7 +75,7 @@ func TestRegister(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	repo := &mockUserRepository{}
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
 
 	input := dto.LoginInput{
 		Email:    "test@example.com",
@@ -94,7 +94,7 @@ func TestLogin(t *testing.T) {
 
 func TestValidateAccessToken(t *testing.T) {
 	repo := &mockUserRepository{}
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
 
 	// First login to get a token
 	input := dto.LoginInput{
