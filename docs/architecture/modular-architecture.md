@@ -26,7 +26,7 @@
 
 ## 🧩 Модульная структура
 
-> **Статус реализации**: На данный момент реализованы 6 модулей из 10. Остальные существуют как placeholder'ы для будущей разработки.
+> **Статус реализации**: На данный момент реализованы 7 модулей из 10. Остальные существуют как placeholder'ы для будущей разработки.
 
 | Модуль | Статус | Файлов | Описание |
 |--------|--------|--------|----------|
@@ -39,7 +39,7 @@
 | workflow | 📋 Планируется | 0 | Согласование документов |
 | tasks | 📋 Планируется | 0 | Задания для студентов |
 | reporting | 📋 Планируется | 0 | Аналитика и отчёты |
-| integration | 📋 Планируется | 0 | Интеграция с 1С |
+| integration | ✅ Реализован | 27 | Интеграция с 1С (импорт сотрудников/студентов) |
 
 ### Core Modules (Основные модули)
 
@@ -482,48 +482,59 @@ internal/modules/files/ (planned)
         └── storage_api.go
 ```
 
-#### 10. **Integration Module** 🔗 📋 Планируется
+#### 10. **Integration Module** 🔗 ✅ Реализован
 **Bounded Context**: External System Integration
+
+Модуль интеграции с внешними системами (1С):
+- Импорт сотрудников из 1С через OData
+- Импорт студентов из 1С через OData
+- Логирование операций синхронизации
+- Автоматическое разрешение конфликтов (source_wins, target_wins, manual)
+- Frontend UI для управления интеграцией
+
 ```
 internal/modules/integration/
 ├── domain/
 │   ├── entities/
-│   │   ├── integration.go
-│   │   ├── mapping.go
-│   │   └── sync_log.go
-│   ├── repositories/
-│   │   └── integration_repository.go
-│   ├── services/
-│   │   ├── sync_service.go
-│   │   ├── mapping_service.go
-│   │   └── conflict_resolver.go
-│   └── value_objects/
-│       ├── sync_status.go
-│       └── data_source.go
+│   │   ├── external_employee.go
+│   │   ├── external_student.go
+│   │   ├── sync_log.go
+│   │   ├── sync_status.go
+│   │   └── sync_conflict.go
+│   └── repositories/
+│       ├── external_employee_repository.go
+│       ├── external_student_repository.go
+│       ├── sync_log_repository.go
+│       └── sync_conflict_repository.go
 ├── application/
-│   ├── usecases/
-│   │   ├── sync_with_1c.go
-│   │   ├── resolve_conflicts.go
-│   │   └── validate_data.go
-│   └── adapters/
-│       ├── onec_adapter.go
-│       ├── ldap_adapter.go
-│       └── api_adapter.go
+│   ├── dto/
+│   │   ├── employee_dto.go
+│   │   ├── student_dto.go
+│   │   ├── sync_dto.go
+│   │   └── conflict_dto.go
+│   └── usecases/
+│       ├── employee_usecase.go
+│       ├── student_usecase.go
+│       ├── sync_usecase.go
+│       └── conflict_usecase.go
 ├── infrastructure/
 │   ├── persistence/
-│   │   └── postgres/
-│   ├── external/
-│   │   ├── onec_client.go
-│   │   ├── ldap_client.go
-│   │   └── rest_client.go
-│   └── queue/
-│       └── sync_scheduler.go
-└── interfaces/
-    ├── http/
-    ├── cron/
-    └── events/
-        └── sync_events.go
+│   │   ├── external_employee_repository_pg.go
+│   │   ├── external_student_repository_pg.go
+│   │   ├── sync_log_repository_pg.go
+│   │   └── sync_conflict_repository_pg.go
+│   └── odata/
+│       └── client.go
+├── interfaces/
+│   └── http/
+│       ├── employee_handler.go
+│       ├── student_handler.go
+│       ├── sync_handler.go
+│       └── conflict_handler.go
+└── module.go
 ```
+
+**См. также**: [1C Integration](../../integrations/README.md#1c-integration)
 
 ## 🔄 Межмодульное взаимодействие
 
@@ -1007,7 +1018,7 @@ func SecurityMiddleware(next http.Handler) http.Handler {
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-12-13
-**Версия проекта**: 0.2.0
+**Последнее обновление**: 2025-12-20
+**Версия проекта**: 0.3.0
 **Статус**: Актуальный
 

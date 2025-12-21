@@ -7,10 +7,12 @@
 ### Архитектура проекта
 
 Проект построен по принципу **модульного монолита**:
-- **backend** - единый Go бэкенд с модулями (auth, documents, schedule, notifications)
-- **frontend** - Next.js веб-интерфейс
+- **backend** - единый Go бэкенд с модулями (auth, documents, schedule, notifications, integration)
+- **frontend** - Next.js веб-интерфейс с PWA, i18n, темами
 - **postgres** - PostgreSQL 17 для хранения данных
 - **redis** - Redis 7 для кэширования и сессий
+- **minio** - S3-совместимое хранилище файлов
+- **backup** - Сервис резервного копирования (PostgreSQL + MinIO)
 
 Дополнительно доступен **мониторинг стек** (Prometheus, Grafana, Loki, Promtail).
 
@@ -451,6 +453,52 @@ docker compose exec redis redis-cli
 
 ---
 
+## Backup Service
+
+### Запуск backup-сервиса:
+```bash
+# Запуск с профилем backup (cron режим - бэкап в 2:00 ежедневно)
+docker compose --profile backup up -d backup
+
+# Проверка логов
+docker compose logs -f backup
+```
+
+### Ручной бэкап:
+```bash
+# Полный бэкап (PostgreSQL + MinIO)
+./scripts/backup.sh
+
+# Только PostgreSQL
+./scripts/backup.sh postgres
+
+# Только MinIO
+./scripts/backup.sh minio
+```
+
+### Восстановление:
+```bash
+# Восстановление PostgreSQL
+./scripts/restore.sh postgres
+
+# Восстановление MinIO
+./scripts/restore.sh minio
+```
+
+### Remote Sync (offsite backup):
+```bash
+# Настройка в .env
+REMOTE_SYNC_ENABLED=true
+REMOTE_S3_ENDPOINT=https://storage.yandexcloud.net
+REMOTE_S3_ACCESS_KEY=your-key
+REMOTE_S3_SECRET_KEY=your-secret
+REMOTE_S3_BUCKET=my-backups
+```
+
+Подробная документация: [backup/README.md](../../backup/README.md)
+
+---
+
 ## Troubleshooting
 
 ### Проверка занятых портов:
@@ -508,6 +556,6 @@ services:
 
 ---
 
-**Последнее обновление**: 2025-12-13
-**Версия проекта**: 0.2.0
+**Последнее обновление**: 2025-12-20
+**Версия проекта**: 0.3.0
 **Статус**: Актуальный

@@ -180,10 +180,90 @@ services:
     # extra_hosts:
     #   - "host.docker.internal:host-gateway"
 
+  backup:
+    build:
+      context: ./backup
+      dockerfile: Dockerfile
+    container_name: backup-service
+    environment:
+      # Backup mode: cron, backup, restore-postgres, restore-minio, shell
+      BACKUP_MODE: ${BACKUP_MODE:-cron}
+      # Cron schedule (default: 2:00 AM daily)
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * *}
+      # Run backup on container start
+      BACKUP_ON_START: ${BACKUP_ON_START:-false}
+      # Retention period in days
+      POSTGRES_BACKUP_RETENTION: ${POSTGRES_BACKUP_RETENTION:-7}
+      MINIO_BACKUP_RETENTION: ${MINIO_BACKUP_RETENTION:-7}
+      # PostgreSQL connection
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-inf_sys_db}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Please set POSTGRES_PASSWORD}
+      # MinIO connection
+      MINIO_HOST: minio
+      MINIO_PORT: 9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-documents}
+      # Remote S3 sync (offsite backup)
+      REMOTE_SYNC_ENABLED: ${REMOTE_SYNC_ENABLED:-false}
+      REMOTE_S3_ENDPOINT: ${REMOTE_S3_ENDPOINT:-}
+      REMOTE_S3_ACCESS_KEY: ${REMOTE_S3_ACCESS_KEY:-}
+      REMOTE_S3_SECRET_KEY: ${REMOTE_S3_SECRET_KEY:-}
+      REMOTE_S3_BUCKET: ${REMOTE_S3_BUCKET:-}
+      REMOTE_S3_REGION: ${REMOTE_S3_REGION:-us-east-1}
+      REMOTE_S3_PATH: ${REMOTE_S3_PATH:-backups}
+      SERVER_ID: ${SERVER_ID:-production}
+      # Encryption (age or gpg)
+      BACKUP_ENCRYPTION_ENABLED: ${BACKUP_ENCRYPTION_ENABLED:-false}
+      BACKUP_ENCRYPTION_TYPE: ${BACKUP_ENCRYPTION_TYPE:-age}
+      BACKUP_AGE_PUBLIC_KEY: ${BACKUP_AGE_PUBLIC_KEY:-}
+      BACKUP_GPG_RECIPIENT: ${BACKUP_GPG_RECIPIENT:-}
+      # Metrics
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
+      METRICS_DIR: /var/lib/node_exporter/textfile_collector
+      # Notifications
+      NOTIFY_ON_SUCCESS: ${NOTIFY_ON_SUCCESS:-false}
+      NOTIFY_ON_FAILURE: ${NOTIFY_ON_FAILURE:-true}
+      NOTIFY_LEVELS: ${NOTIFY_LEVELS:-error,warning,success}
+      # Telegram notifications
+      NOTIFY_TELEGRAM_ENABLED: ${NOTIFY_TELEGRAM_ENABLED:-false}
+      NOTIFY_TELEGRAM_BOT_TOKEN: ${NOTIFY_TELEGRAM_BOT_TOKEN:-}
+      NOTIFY_TELEGRAM_CHAT_ID: ${NOTIFY_TELEGRAM_CHAT_ID:-}
+      # Webhook notifications
+      NOTIFY_WEBHOOK_ENABLED: ${NOTIFY_WEBHOOK_ENABLED:-false}
+      NOTIFY_WEBHOOK_URL: ${NOTIFY_WEBHOOK_URL:-}
+      NOTIFY_WEBHOOK_SECRET: ${NOTIFY_WEBHOOK_SECRET:-}
+      # Email notifications (SMTP)
+      NOTIFY_EMAIL_ENABLED: ${NOTIFY_EMAIL_ENABLED:-false}
+      NOTIFY_EMAIL_SMTP_HOST: ${NOTIFY_EMAIL_SMTP_HOST:-}
+      NOTIFY_EMAIL_SMTP_PORT: ${NOTIFY_EMAIL_SMTP_PORT:-587}
+      NOTIFY_EMAIL_FROM: ${NOTIFY_EMAIL_FROM:-}
+      NOTIFY_EMAIL_TO: ${NOTIFY_EMAIL_TO:-}
+      NOTIFY_EMAIL_USER: ${NOTIFY_EMAIL_USER:-}
+      NOTIFY_EMAIL_PASSWORD: ${NOTIFY_EMAIL_PASSWORD:-}
+    volumes:
+      - backup_data:/backups
+      - backup_metrics:/var/lib/node_exporter/textfile_collector
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    profiles:
+      - backup
+    restart: unless-stopped
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
   minio_data:
+    driver: local
+  backup_data:
+    driver: local
+  backup_metrics:
     driver: local
