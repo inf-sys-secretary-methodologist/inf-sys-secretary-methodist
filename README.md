@@ -177,7 +177,7 @@ docker-compose up -d
 
 ---
 
-**Стек технологий (обновлено 2025)**:
+**Стек технологий (обновлено 2025-12-22)**:
 - Backend: Go 1.25 • PostgreSQL 17 • Redis 7 • Gin • DDD • Clean Architecture
 - Frontend: Next.js 15 • React 19 • TypeScript 5.7 • MUI 6 • Zustand 5
 - DevOps: Docker • Kubernetes • GitHub Actions • Prometheus • Grafana
