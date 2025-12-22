@@ -11,6 +11,7 @@
 * **Автоматизация рабочих процессов**: Процессы согласования с маршрутизацией по ролям
 * **Управление расписанием**: Академическое планирование и оптимизация ресурсов
 * **Отчетность и аналитика**: Комплексная бизнес-аналитика
+* **Внутренние сообщения**: Real-time чаты, прямые и групповые сообщения через WebSocket
 * **Мультиканальные уведомления**: Email (Composio Gmail) и Telegram Bot интеграция
 * **Поддержка интеграций**: Бесшовное подключение к 1С и внешним системам
 * **Мультиязычность (i18n)**: Поддержка русского, английского, французского и арабского языков
@@ -102,6 +103,7 @@ docker-compose up -d
 - [📖 Справочник REST API](docs/api/api-documentation.md) - Полная документация API
 - [🔐 Аутентификация](docs/api/authentication.md) - Endpoints аутентификации
 - [📄 API управления документами](docs/api/documents.md) - Endpoints документов
+- [💬 Messaging API](docs/api/messaging.md) - API внутренних сообщений и чатов
 - [📧 Composio Gmail Integration](docs/integrations/composio-gmail.md) - Email уведомления через Composio
 - [📱 Telegram Integration](docs/integrations/telegram-bot.md) - Уведомления через Telegram бота
 - [👥 Роли и права доступа](docs/users/roles-and-permissions.md) - Роли пользователей и контроль доступа
