@@ -1,4 +1,12 @@
-import { LucideIcon, LayoutDashboard, Users, FileText, Calendar, Database } from 'lucide-react'
+import {
+  LucideIcon,
+  LayoutDashboard,
+  Users,
+  FileText,
+  Calendar,
+  MessageCircle,
+  Database,
+} from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
 export interface NavItem {
@@ -52,6 +60,12 @@ export const navigationConfig: NavItem[] = [
       UserRole.TEACHER,
       UserRole.STUDENT,
     ],
+  },
+  {
+    nameKey: 'messages',
+    url: '/messages',
+    icon: MessageCircle,
+    // Available to all authenticated users
   },
   {
     nameKey: 'integration',
