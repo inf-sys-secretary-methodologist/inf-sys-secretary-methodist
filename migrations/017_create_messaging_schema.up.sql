@@ -68,7 +68,7 @@ CREATE INDEX idx_messages_search ON messages USING GIN(search_vector);
 CREATE TABLE IF NOT EXISTS message_attachments (
     id BIGSERIAL PRIMARY KEY,
     message_id BIGINT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
-    file_id BIGINT NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    file_id BIGINT NOT NULL REFERENCES file_metadata(id) ON DELETE CASCADE,
     file_name VARCHAR(255) NOT NULL,
     file_size BIGINT NOT NULL DEFAULT 0,
     mime_type VARCHAR(100) NOT NULL,

@@ -3,12 +3,15 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
 
 // MessageNotifier is an interface for sending notifications about new messages.
@@ -18,6 +21,9 @@ type MessageNotifier interface {
 	NotifyNewMessage(ctx context.Context, userID int64, senderName, content string, conversationID, messageID int64) error
 }
 
+// AvatarURLExpiration is how long presigned URLs for avatars are valid
+const AvatarURLExpiration = 7 * 24 * time.Hour // 7 days
+
 // MessagingUseCase implements messaging business logic.
 type MessagingUseCase struct {
 	conversationRepo repositories.ConversationRepository
@@ -25,6 +31,7 @@ type MessagingUseCase struct {
 	hub              *websocket.Hub
 	logger           *logging.Logger
 	notifier         MessageNotifier
+	s3Client         *storage.S3Client
 }
 
 // NewMessagingUseCase creates a new messaging use case.
@@ -34,6 +41,7 @@ func NewMessagingUseCase(
 	hub *websocket.Hub,
 	logger *logging.Logger,
 	notifier MessageNotifier,
+	s3Client *storage.S3Client,
 ) *MessagingUseCase {
 	return &MessagingUseCase{
 		conversationRepo: conversationRepo,
@@ -41,7 +49,34 @@ func NewMessagingUseCase(
 		hub:              hub,
 		logger:           logger,
 		notifier:         notifier,
+		s3Client:         s3Client,
 	}
+}
+
+// resolveAvatarURL converts a storage path to a presigned URL.
+// If the path is empty or already a URL, it returns it as-is.
+func (uc *MessagingUseCase) resolveAvatarURL(ctx context.Context, avatarPath *string) *string {
+	if avatarPath == nil || *avatarPath == "" {
+		return nil
+	}
+	// Already a full URL
+	if strings.HasPrefix(*avatarPath, "http://") || strings.HasPrefix(*avatarPath, "https://") {
+		return avatarPath
+	}
+	// No S3 client configured
+	if uc.s3Client == nil {
+		return nil
+	}
+	// Generate presigned URL
+	url, err := uc.s3Client.GetPresignedURL(ctx, *avatarPath, AvatarURLExpiration)
+	if err != nil {
+		uc.logger.Error("failed to generate presigned URL for avatar", map[string]interface{}{
+			"path":  *avatarPath,
+			"error": err.Error(),
+		})
+		return nil
+	}
+	return &url
 }
 
 // CreateDirectConversation creates a new direct conversation between two users.
@@ -99,6 +134,23 @@ func (uc *MessagingUseCase) CreateGroupConversation(ctx context.Context, creator
 	return conv, nil
 }
 
+// resolveConversationAvatars resolves avatar URLs for a conversation and its participants.
+func (uc *MessagingUseCase) resolveConversationAvatars(ctx context.Context, conv *entities.Conversation) {
+	if conv == nil {
+		return
+	}
+	// Resolve conversation avatar
+	conv.AvatarURL = uc.resolveAvatarURL(ctx, conv.AvatarURL)
+	// Resolve participant avatars
+	for i := range conv.Participants {
+		conv.Participants[i].UserAvatarURL = uc.resolveAvatarURL(ctx, conv.Participants[i].UserAvatarURL)
+	}
+	// Resolve last message sender avatar
+	if conv.LastMessage != nil {
+		conv.LastMessage.SenderAvatarURL = uc.resolveAvatarURL(ctx, conv.LastMessage.SenderAvatarURL)
+	}
+}
+
 // GetConversation retrieves a conversation by ID.
 func (uc *MessagingUseCase) GetConversation(ctx context.Context, userID, conversationID int64) (*entities.Conversation, error) {
 	conv, err := uc.conversationRepo.GetByID(ctx, conversationID)
@@ -131,6 +183,9 @@ func (uc *MessagingUseCase) GetConversation(ctx context.Context, userID, convers
 	}
 	conv.LastMessage = lastMsg
 
+	// Resolve avatar URLs to presigned URLs
+	uc.resolveConversationAvatars(ctx, conv)
+
 	return conv, nil
 }
 
@@ -152,7 +207,17 @@ func (uc *MessagingUseCase) ListConversations(ctx context.Context, userID int64,
 		filter.Limit = 20
 	}
 
-	return uc.conversationRepo.List(ctx, filter)
+	conversations, total, err := uc.conversationRepo.List(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Resolve avatar URLs for all conversations
+	for _, conv := range conversations {
+		uc.resolveConversationAvatars(ctx, conv)
+	}
+
+	return conversations, total, nil
 }
 
 // UpdateConversation updates a conversation.
@@ -353,8 +418,9 @@ func (uc *MessagingUseCase) SendMessage(ctx context.Context, userID, conversatio
 	}, 0) // Don't exclude sender - they should see their own message
 
 	// Send notifications to participants who are not online in the conversation
+	// Use background context because HTTP request context may be cancelled by the time goroutine runs
 	if uc.notifier != nil {
-		go uc.notifyParticipants(ctx, conversationID, userID, msg)
+		go uc.notifyParticipants(context.Background(), conversationID, userID, msg)
 	}
 
 	uc.logger.Debug("message sent", map[string]any{
@@ -434,6 +500,11 @@ func (uc *MessagingUseCase) GetMessages(ctx context.Context, userID, conversatio
 	hasMore := len(messages) > limit
 	if hasMore {
 		messages = messages[:limit]
+	}
+
+	// Resolve sender avatar URLs
+	for _, msg := range messages {
+		msg.SenderAvatarURL = uc.resolveAvatarURL(ctx, msg.SenderAvatarURL)
 	}
 
 	return messages, hasMore, nil
