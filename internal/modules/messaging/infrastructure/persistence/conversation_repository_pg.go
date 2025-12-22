@@ -175,7 +175,7 @@ func (r *ConversationRepositoryPG) List(ctx context.Context, filter entities.Con
 	query := fmt.Sprintf(`
 		SELECT c.id, c.type, c.title, c.description, c.avatar_url, c.created_by, c.created_at, c.updated_at,
 			   m.id, m.sender_id, m.type, m.content, m.created_at,
-			   u.name, u.avatar_url
+			   u.name, up.avatar
 		FROM conversations c
 		LEFT JOIN LATERAL (
 			SELECT id, sender_id, type, content, created_at
@@ -185,6 +185,7 @@ func (r *ConversationRepositoryPG) List(ctx context.Context, filter entities.Con
 			LIMIT 1
 		) m ON TRUE
 		LEFT JOIN users u ON u.id = m.sender_id
+		LEFT JOIN user_profiles up ON up.user_id = m.sender_id
 		WHERE %s
 		ORDER BY COALESCE(m.created_at, c.updated_at) DESC
 		LIMIT $%d OFFSET $%d`, whereClause, argNum, argNum+1)
@@ -365,9 +366,10 @@ func (r *ConversationRepositoryPG) UpdateParticipant(ctx context.Context, partic
 func (r *ConversationRepositoryPG) GetParticipants(ctx context.Context, conversationID int64) ([]entities.Participant, error) {
 	query := `
 		SELECT cp.id, cp.conversation_id, cp.user_id, cp.role, cp.last_read_at, cp.is_muted, cp.joined_at, cp.left_at,
-			   u.name, u.avatar_url
+			   u.name, up.avatar
 		FROM conversation_participants cp
 		JOIN users u ON u.id = cp.user_id
+		LEFT JOIN user_profiles up ON up.user_id = cp.user_id
 		WHERE cp.conversation_id = $1 AND cp.left_at IS NULL
 		ORDER BY cp.joined_at`
 
@@ -397,9 +399,10 @@ func (r *ConversationRepositoryPG) GetParticipants(ctx context.Context, conversa
 func (r *ConversationRepositoryPG) GetParticipant(ctx context.Context, conversationID, userID int64) (*entities.Participant, error) {
 	query := `
 		SELECT cp.id, cp.conversation_id, cp.user_id, cp.role, cp.last_read_at, cp.is_muted, cp.joined_at, cp.left_at,
-			   u.name, u.avatar_url
+			   u.name, up.avatar
 		FROM conversation_participants cp
 		JOIN users u ON u.id = cp.user_id
+		LEFT JOIN user_profiles up ON up.user_id = cp.user_id
 		WHERE cp.conversation_id = $1 AND cp.user_id = $2 AND cp.left_at IS NULL`
 
 	var p entities.Participant

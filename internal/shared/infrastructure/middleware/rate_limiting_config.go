@@ -21,10 +21,10 @@ type RateLimitConfig struct {
 // LoadRateLimitConfig загружает конфигурацию из environment variables
 func LoadRateLimitConfig() *RateLimitConfig {
 	return &RateLimitConfig{
-		PublicRequestsPerMinute: getEnvInt("RATE_LIMIT_PUBLIC_RPM", 10),
-		PublicBurst:             getEnvInt("RATE_LIMIT_PUBLIC_BURST", 5),
-		AuthRequestsPerMinute:   getEnvInt("RATE_LIMIT_AUTH_RPM", 60),
-		AuthBurst:               getEnvInt("RATE_LIMIT_AUTH_BURST", 10),
+		PublicRequestsPerMinute: getEnvInt("RATE_LIMIT_PUBLIC_RPM", 100),
+		PublicBurst:             getEnvInt("RATE_LIMIT_PUBLIC_BURST", 50),
+		AuthRequestsPerMinute:   getEnvInt("RATE_LIMIT_AUTH_RPM", 600),
+		AuthBurst:               getEnvInt("RATE_LIMIT_AUTH_BURST", 100),
 	}
 }
 

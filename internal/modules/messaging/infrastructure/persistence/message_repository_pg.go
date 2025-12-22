@@ -46,9 +46,10 @@ func (r *MessageRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.
 	query := `
 		SELECT m.id, m.conversation_id, m.sender_id, m.type, m.content, m.reply_to_id,
 			   m.is_edited, m.edited_at, m.is_deleted, m.deleted_at, m.created_at,
-			   u.name, u.avatar_url
+			   u.name, up.avatar
 		FROM messages m
 		LEFT JOIN users u ON u.id = m.sender_id
+		LEFT JOIN user_profiles up ON up.user_id = m.sender_id
 		WHERE m.id = $1`
 
 	var msg entities.Message
@@ -143,9 +144,10 @@ func (r *MessageRepositoryPG) List(ctx context.Context, filter entities.MessageF
 	query := fmt.Sprintf(`
 		SELECT m.id, m.conversation_id, m.sender_id, m.type, m.content, m.reply_to_id,
 			   m.is_edited, m.edited_at, m.is_deleted, m.deleted_at, m.created_at,
-			   u.name, u.avatar_url
+			   u.name, up.avatar
 		FROM messages m
 		LEFT JOIN users u ON u.id = m.sender_id
+		LEFT JOIN user_profiles up ON up.user_id = m.sender_id
 		WHERE %s
 		ORDER BY m.created_at DESC
 		LIMIT $%d`, whereClause, argNum)
@@ -211,9 +213,10 @@ func (r *MessageRepositoryPG) getMessageBasic(ctx context.Context, id int64) (*e
 	query := `
 		SELECT m.id, m.conversation_id, m.sender_id, m.type, m.content,
 			   m.is_edited, m.is_deleted, m.created_at,
-			   u.name, u.avatar_url
+			   u.name, up.avatar
 		FROM messages m
 		LEFT JOIN users u ON u.id = m.sender_id
+		LEFT JOIN user_profiles up ON up.user_id = m.sender_id
 		WHERE m.id = $1`
 
 	var msg entities.Message
@@ -287,9 +290,10 @@ func (r *MessageRepositoryPG) GetLastMessage(ctx context.Context, conversationID
 	query := `
 		SELECT m.id, m.conversation_id, m.sender_id, m.type, m.content, m.reply_to_id,
 			   m.is_edited, m.edited_at, m.is_deleted, m.deleted_at, m.created_at,
-			   u.name, u.avatar_url
+			   u.name, up.avatar
 		FROM messages m
 		LEFT JOIN users u ON u.id = m.sender_id
+		LEFT JOIN user_profiles up ON up.user_id = m.sender_id
 		WHERE m.conversation_id = $1 AND m.is_deleted = FALSE
 		ORDER BY m.created_at DESC
 		LIMIT 1`
@@ -415,10 +419,11 @@ func (r *MessageRepositoryPG) Search(ctx context.Context, conversationID int64, 
 	searchQuery := `
 		SELECT m.id, m.conversation_id, m.sender_id, m.type, m.content,
 			   m.is_edited, m.edited_at, m.is_deleted, m.deleted_at, m.created_at,
-			   u.name, u.avatar_url,
+			   u.name, up.avatar,
 			   ts_rank(m.search_vector, plainto_tsquery('russian', $2)) as rank
 		FROM messages m
 		LEFT JOIN users u ON u.id = m.sender_id
+		LEFT JOIN user_profiles up ON up.user_id = m.sender_id
 		WHERE m.conversation_id = $1 AND m.is_deleted = FALSE
 		AND m.search_vector @@ plainto_tsquery('russian', $2)
 		ORDER BY rank DESC, m.created_at DESC

@@ -14,7 +14,7 @@ export default async function NotFound() {
         </div>
 
         <Link
-          href="/"
+          href="/dashboard"
           className="inline-block px-6 py-3 rounded-lg font-medium transition-all duration-300 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
         >
           {t('backHome')}
