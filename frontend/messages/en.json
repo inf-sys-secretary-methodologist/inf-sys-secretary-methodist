@@ -154,6 +154,7 @@
     "dashboard": "Dashboard",
     "users": "Users",
     "documents": "Documents",
+    "reports": "Reports",
     "calendar": "Calendar",
     "messages": "Messages",
     "integration": "1C Integration",
@@ -1336,6 +1337,228 @@
       "createTask": "Create task",
       "shareDocument": "Share",
       "askAI": "Ask AI"
+    }
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Create and manage custom reports",
+    "newReport": "New Report",
+    "createNew": "New Report",
+    "createFirstReport": "Create your first report",
+    "quickTemplates": "Quick Templates",
+    "useTemplate": "Use template",
+    "savedReports": "Saved Reports",
+    "noSavedReports": "No saved reports",
+    "noSavedReportsHint": "Create your first custom report using the builder",
+    "lastUpdated": "Last updated",
+    "templates": {
+      "title": "Quick Templates",
+      "documentsByCategory": "Documents by Category",
+      "documentsByCategoryDesc": "Distribution of documents across categories",
+      "usersByRole": "Users by Role",
+      "usersByRoleDesc": "Statistics of users by system roles",
+      "eventsThisMonth": "Events This Month",
+      "eventsThisMonthDesc": "All scheduled events for current month",
+      "tasksByStatus": "Tasks by Status",
+      "tasksByStatusDesc": "Distribution of tasks by their status",
+      "studentsByGroup": "Students by Group",
+      "studentsByGroupDesc": "Distribution of students across study groups",
+      "recentDocuments": "Recent Documents",
+      "recentDocumentsDesc": "Documents uploaded in the last 7 days"
+    },
+    "builder": {
+      "title": "Report Builder",
+      "subtitle": "Configure your custom report",
+      "untitledReport": "Untitled Report",
+      "preview": "Preview",
+      "refreshPreview": "Refresh",
+      "generatePreview": "Generate Preview",
+      "clickToPreview": "Click to generate a preview of your report",
+      "loading": "Loading...",
+      "selectFieldsFirst": "Select fields to preview",
+      "selectFieldsHint": "Add fields from the left panel to see data preview",
+      "previewNote": "This is a preview with sample data. Actual report will use real data.",
+      "showingResults": "Showing {count} results",
+      "filtersApplied": "{count} filters applied",
+      "dataSource": "Data Source",
+      "sources": {
+        "documents": "Documents",
+        "users": "Users",
+        "events": "Events",
+        "tasks": "Tasks",
+        "students": "Students"
+      },
+      "tabs": {
+        "fields": "Fields",
+        "filters": "Filters",
+        "preview": "Preview"
+      },
+      "availableFields": "Available Fields",
+      "selectedFields": "Selected Fields",
+      "searchFields": "Search fields...",
+      "noFieldsFound": "No fields found",
+      "allFieldsSelected": "All fields have been selected",
+      "noFieldsSelected": "No fields selected",
+      "clickToAddFields": "Click on available fields to add them",
+      "options": "options",
+      "filters": "Filters",
+      "addFilter": "Add Filter",
+      "noFilters": "No filters applied",
+      "addFiltersHint": "Add filters to narrow down your report data",
+      "selectField": "Select field",
+      "selectValue": "Select value",
+      "enterValue": "Enter value",
+      "add": "Add",
+      "and": "and",
+      "true": "Yes",
+      "false": "No",
+      "operators": {
+        "equals": "equals",
+        "not_equals": "not equals",
+        "contains": "contains",
+        "not_contains": "does not contain",
+        "starts_with": "starts with",
+        "ends_with": "ends with",
+        "greater_than": "greater than",
+        "less_than": "less than",
+        "greater_or_equal": "greater or equal",
+        "less_or_equal": "less or equal",
+        "between": "between",
+        "in": "in",
+        "not_in": "not in",
+        "is_null": "is empty",
+        "is_not_null": "is not empty"
+      },
+      "fields": {
+        "documents": {
+          "id": "ID",
+          "title": "Title",
+          "category": "Category",
+          "status": "Status",
+          "authorId": "Author ID",
+          "authorName": "Author Name",
+          "createdAt": "Created Date",
+          "updatedAt": "Updated Date",
+          "fileSize": "File Size",
+          "fileType": "File Type"
+        },
+        "users": {
+          "id": "ID",
+          "name": "Name",
+          "email": "Email",
+          "role": "Role",
+          "status": "Status",
+          "department": "Department",
+          "createdAt": "Created Date",
+          "lastLoginAt": "Last Login"
+        },
+        "events": {
+          "id": "ID",
+          "title": "Title",
+          "type": "Type",
+          "status": "Status",
+          "startDate": "Start Date",
+          "endDate": "End Date",
+          "location": "Location",
+          "organizerId": "Organizer ID",
+          "participantCount": "Participants"
+        },
+        "tasks": {
+          "id": "ID",
+          "title": "Title",
+          "status": "Status",
+          "priority": "Priority",
+          "assigneeId": "Assignee ID",
+          "assigneeName": "Assignee Name",
+          "dueDate": "Due Date",
+          "completedAt": "Completed Date",
+          "isOverdue": "Is Overdue"
+        },
+        "students": {
+          "id": "ID",
+          "fullName": "Full Name",
+          "email": "Email",
+          "groupName": "Group",
+          "faculty": "Faculty",
+          "course": "Course",
+          "status": "Status",
+          "enrollmentDate": "Enrollment Date"
+        }
+      },
+      "enumValues": {
+        "documents": {
+          "category": {
+            "educational": "Educational",
+            "hr": "HR",
+            "administrative": "Administrative",
+            "methodical": "Methodical",
+            "financial": "Financial"
+          },
+          "status": {
+            "draft": "Draft",
+            "pending": "Pending",
+            "approved": "Approved",
+            "rejected": "Rejected",
+            "archived": "Archived"
+          }
+        },
+        "users": {
+          "role": {
+            "admin": "Admin",
+            "methodist": "Methodist",
+            "secretary": "Secretary",
+            "teacher": "Teacher",
+            "student": "Student"
+          },
+          "status": {
+            "active": "Active",
+            "inactive": "Inactive",
+            "blocked": "Blocked"
+          }
+        },
+        "events": {
+          "type": {
+            "meeting": "Meeting",
+            "deadline": "Deadline",
+            "task": "Task",
+            "reminder": "Reminder",
+            "holiday": "Holiday"
+          },
+          "status": {
+            "scheduled": "Scheduled",
+            "ongoing": "Ongoing",
+            "completed": "Completed",
+            "cancelled": "Cancelled"
+          }
+        },
+        "tasks": {
+          "status": {
+            "pending": "Pending",
+            "in_progress": "In Progress",
+            "completed": "Completed",
+            "cancelled": "Cancelled"
+          },
+          "priority": {
+            "low": "Low",
+            "medium": "Medium",
+            "high": "High",
+            "urgent": "Urgent"
+          }
+        },
+        "students": {
+          "status": {
+            "active": "Active",
+            "graduated": "Graduated",
+            "suspended": "Suspended",
+            "expelled": "Expelled"
+          }
+        }
+      },
+      "save": "Save",
+      "export": "Export",
+      "exportPdf": "Export as PDF",
+      "exportExcel": "Export as Excel",
+      "exportCsv": "Export as CSV"
     }
   }
 }

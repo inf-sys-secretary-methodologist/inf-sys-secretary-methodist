@@ -154,6 +154,7 @@
     "dashboard": "لوحة التحكم",
     "users": "المستخدمون",
     "documents": "المستندات",
+    "reports": "التقارير",
     "calendar": "التقويم",
     "messages": "الرسائل",
     "integration": "تكامل 1C",
@@ -1336,6 +1337,228 @@
       "createTask": "إنشاء مهمة",
       "shareDocument": "مشاركة",
       "askAI": "سؤال AI"
+    }
+  },
+  "reports": {
+    "title": "التقارير",
+    "subtitle": "إنشاء وإدارة التقارير المخصصة",
+    "newReport": "تقرير جديد",
+    "createNew": "تقرير جديد",
+    "createFirstReport": "إنشاء تقريرك الأول",
+    "quickTemplates": "قوالب سريعة",
+    "useTemplate": "استخدام القالب",
+    "savedReports": "التقارير المحفوظة",
+    "noSavedReports": "لا توجد تقارير محفوظة",
+    "noSavedReportsHint": "أنشئ تقريرك المخصص الأول باستخدام المنشئ",
+    "lastUpdated": "آخر تحديث",
+    "templates": {
+      "title": "قوالب سريعة",
+      "documentsByCategory": "المستندات حسب الفئة",
+      "documentsByCategoryDesc": "توزيع المستندات عبر الفئات",
+      "usersByRole": "المستخدمون حسب الدور",
+      "usersByRoleDesc": "إحصائيات المستخدمين حسب أدوار النظام",
+      "eventsThisMonth": "أحداث هذا الشهر",
+      "eventsThisMonthDesc": "جميع الأحداث المجدولة للشهر الحالي",
+      "tasksByStatus": "المهام حسب الحالة",
+      "tasksByStatusDesc": "توزيع المهام حسب حالتها",
+      "studentsByGroup": "الطلاب حسب المجموعة",
+      "studentsByGroupDesc": "توزيع الطلاب عبر مجموعات الدراسة",
+      "recentDocuments": "المستندات الأخيرة",
+      "recentDocumentsDesc": "المستندات المرفوعة خلال الـ 7 أيام الماضية"
+    },
+    "builder": {
+      "title": "منشئ التقارير",
+      "subtitle": "قم بتكوين تقريرك المخصص",
+      "untitledReport": "تقرير بدون عنوان",
+      "preview": "معاينة",
+      "refreshPreview": "تحديث",
+      "generatePreview": "إنشاء معاينة",
+      "clickToPreview": "انقر لإنشاء معاينة لتقريرك",
+      "loading": "جارٍ التحميل...",
+      "selectFieldsFirst": "اختر الحقول للمعاينة",
+      "selectFieldsHint": "أضف حقولًا من اللوحة اليسرى لرؤية معاينة البيانات",
+      "previewNote": "هذه معاينة ببيانات تجريبية. سيستخدم التقرير الفعلي بيانات حقيقية.",
+      "showingResults": "عرض {count} نتائج",
+      "filtersApplied": "تم تطبيق {count} مرشحات",
+      "dataSource": "مصدر البيانات",
+      "sources": {
+        "documents": "المستندات",
+        "users": "المستخدمون",
+        "events": "الأحداث",
+        "tasks": "المهام",
+        "students": "الطلاب"
+      },
+      "tabs": {
+        "fields": "الحقول",
+        "filters": "المرشحات",
+        "preview": "معاينة"
+      },
+      "availableFields": "الحقول المتاحة",
+      "selectedFields": "الحقول المختارة",
+      "searchFields": "البحث في الحقول...",
+      "noFieldsFound": "لم يتم العثور على حقول",
+      "allFieldsSelected": "تم اختيار جميع الحقول",
+      "noFieldsSelected": "لم يتم اختيار حقول",
+      "clickToAddFields": "انقر على الحقول المتاحة لإضافتها",
+      "options": "خيارات",
+      "filters": "المرشحات",
+      "addFilter": "إضافة مرشح",
+      "noFilters": "لم يتم تطبيق مرشحات",
+      "addFiltersHint": "أضف مرشحات لتضييق بيانات التقرير",
+      "selectField": "اختر حقلاً",
+      "selectValue": "اختر قيمة",
+      "enterValue": "أدخل قيمة",
+      "add": "إضافة",
+      "and": "و",
+      "true": "نعم",
+      "false": "لا",
+      "operators": {
+        "equals": "يساوي",
+        "not_equals": "لا يساوي",
+        "contains": "يحتوي على",
+        "not_contains": "لا يحتوي على",
+        "starts_with": "يبدأ بـ",
+        "ends_with": "ينتهي بـ",
+        "greater_than": "أكبر من",
+        "less_than": "أصغر من",
+        "greater_or_equal": "أكبر من أو يساوي",
+        "less_or_equal": "أصغر من أو يساوي",
+        "between": "بين",
+        "in": "في",
+        "not_in": "ليس في",
+        "is_null": "فارغ",
+        "is_not_null": "ليس فارغًا"
+      },
+      "fields": {
+        "documents": {
+          "id": "المعرف",
+          "title": "العنوان",
+          "category": "الفئة",
+          "status": "الحالة",
+          "authorId": "معرف المؤلف",
+          "authorName": "اسم المؤلف",
+          "createdAt": "تاريخ الإنشاء",
+          "updatedAt": "تاريخ التحديث",
+          "fileSize": "حجم الملف",
+          "fileType": "نوع الملف"
+        },
+        "users": {
+          "id": "المعرف",
+          "name": "الاسم",
+          "email": "البريد الإلكتروني",
+          "role": "الدور",
+          "status": "الحالة",
+          "department": "القسم",
+          "createdAt": "تاريخ الإنشاء",
+          "lastLoginAt": "آخر تسجيل دخول"
+        },
+        "events": {
+          "id": "المعرف",
+          "title": "العنوان",
+          "type": "النوع",
+          "status": "الحالة",
+          "startDate": "تاريخ البدء",
+          "endDate": "تاريخ الانتهاء",
+          "location": "الموقع",
+          "organizerId": "معرف المنظم",
+          "participantCount": "المشاركون"
+        },
+        "tasks": {
+          "id": "المعرف",
+          "title": "العنوان",
+          "status": "الحالة",
+          "priority": "الأولوية",
+          "assigneeId": "معرف المكلف",
+          "assigneeName": "اسم المكلف",
+          "dueDate": "تاريخ الاستحقاق",
+          "completedAt": "تاريخ الإكمال",
+          "isOverdue": "متأخر"
+        },
+        "students": {
+          "id": "المعرف",
+          "fullName": "الاسم الكامل",
+          "email": "البريد الإلكتروني",
+          "groupName": "المجموعة",
+          "faculty": "الكلية",
+          "course": "الدورة",
+          "status": "الحالة",
+          "enrollmentDate": "تاريخ التسجيل"
+        }
+      },
+      "enumValues": {
+        "documents": {
+          "category": {
+            "educational": "تعليمي",
+            "hr": "موارد بشرية",
+            "administrative": "إداري",
+            "methodical": "منهجي",
+            "financial": "مالي"
+          },
+          "status": {
+            "draft": "مسودة",
+            "pending": "قيد الانتظار",
+            "approved": "معتمد",
+            "rejected": "مرفوض",
+            "archived": "مؤرشف"
+          }
+        },
+        "users": {
+          "role": {
+            "admin": "مدير",
+            "methodist": "منهجي",
+            "secretary": "سكرتير",
+            "teacher": "معلم",
+            "student": "طالب"
+          },
+          "status": {
+            "active": "نشط",
+            "inactive": "غير نشط",
+            "blocked": "محظور"
+          }
+        },
+        "events": {
+          "type": {
+            "meeting": "اجتماع",
+            "deadline": "موعد نهائي",
+            "task": "مهمة",
+            "reminder": "تذكير",
+            "holiday": "عطلة"
+          },
+          "status": {
+            "scheduled": "مجدول",
+            "ongoing": "جارٍ",
+            "completed": "مكتمل",
+            "cancelled": "ملغى"
+          }
+        },
+        "tasks": {
+          "status": {
+            "pending": "قيد الانتظار",
+            "in_progress": "قيد التنفيذ",
+            "completed": "مكتمل",
+            "cancelled": "ملغى"
+          },
+          "priority": {
+            "low": "منخفضة",
+            "medium": "متوسطة",
+            "high": "عالية",
+            "urgent": "عاجلة"
+          }
+        },
+        "students": {
+          "status": {
+            "active": "نشط",
+            "graduated": "متخرج",
+            "suspended": "موقوف",
+            "expelled": "مفصول"
+          }
+        }
+      },
+      "save": "حفظ",
+      "export": "تصدير",
+      "exportPdf": "تصدير كـ PDF",
+      "exportExcel": "تصدير كـ Excel",
+      "exportCsv": "تصدير كـ CSV"
     }
   }
 }

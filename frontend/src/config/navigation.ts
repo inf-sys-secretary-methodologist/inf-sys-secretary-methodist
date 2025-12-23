@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Users,
   FileText,
+  BarChart3,
   Calendar,
   MessageCircle,
   Database,
@@ -48,6 +49,12 @@ export const navigationConfig: NavItem[] = [
       UserRole.TEACHER,
       UserRole.STUDENT,
     ],
+  },
+  {
+    nameKey: 'reports',
+    url: '/reports',
+    icon: BarChart3,
+    roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
   },
   {
     nameKey: 'calendar',

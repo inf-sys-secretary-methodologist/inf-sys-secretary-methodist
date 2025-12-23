@@ -154,6 +154,7 @@
     "dashboard": "Главная",
     "users": "Пользователи",
     "documents": "Документы",
+    "reports": "Отчёты",
     "calendar": "Календарь",
     "messages": "Сообщения",
     "integration": "Интеграция 1С",
@@ -1336,6 +1337,228 @@
       "createTask": "Создать задачу",
       "shareDocument": "Поделиться",
       "askAI": "Спросить AI"
+    }
+  },
+  "reports": {
+    "title": "Отчёты",
+    "subtitle": "Создание и управление пользовательскими отчётами",
+    "newReport": "Новый отчёт",
+    "createNew": "Новый отчёт",
+    "createFirstReport": "Создать первый отчёт",
+    "quickTemplates": "Быстрые шаблоны",
+    "useTemplate": "Использовать шаблон",
+    "savedReports": "Сохранённые отчёты",
+    "noSavedReports": "Нет сохранённых отчётов",
+    "noSavedReportsHint": "Создайте свой первый отчёт с помощью конструктора",
+    "lastUpdated": "Последнее обновление",
+    "templates": {
+      "title": "Быстрые шаблоны",
+      "documentsByCategory": "Документы по категориям",
+      "documentsByCategoryDesc": "Распределение документов по категориям",
+      "usersByRole": "Пользователи по ролям",
+      "usersByRoleDesc": "Статистика пользователей по ролям в системе",
+      "eventsThisMonth": "События в этом месяце",
+      "eventsThisMonthDesc": "Все запланированные события на текущий месяц",
+      "tasksByStatus": "Задачи по статусу",
+      "tasksByStatusDesc": "Распределение задач по их статусу",
+      "studentsByGroup": "Студенты по группам",
+      "studentsByGroupDesc": "Распределение студентов по учебным группам",
+      "recentDocuments": "Последние документы",
+      "recentDocumentsDesc": "Документы, загруженные за последние 7 дней"
+    },
+    "builder": {
+      "title": "Конструктор отчётов",
+      "subtitle": "Настройте свой отчёт",
+      "untitledReport": "Новый отчёт",
+      "preview": "Предпросмотр",
+      "refreshPreview": "Обновить",
+      "generatePreview": "Сгенерировать",
+      "clickToPreview": "Нажмите для предпросмотра отчёта",
+      "loading": "Загрузка...",
+      "selectFieldsFirst": "Выберите поля для предпросмотра",
+      "selectFieldsHint": "Добавьте поля из левой панели для просмотра данных",
+      "previewNote": "Это предпросмотр с тестовыми данными. В реальном отчёте будут использованы актуальные данные.",
+      "showingResults": "Показано {count} результатов",
+      "filtersApplied": "Применено {count} фильтров",
+      "dataSource": "Источник данных",
+      "sources": {
+        "documents": "Документы",
+        "users": "Пользователи",
+        "events": "События",
+        "tasks": "Задачи",
+        "students": "Студенты"
+      },
+      "tabs": {
+        "fields": "Поля",
+        "filters": "Фильтры",
+        "preview": "Предпросмотр"
+      },
+      "availableFields": "Доступные поля",
+      "selectedFields": "Выбранные поля",
+      "searchFields": "Поиск полей...",
+      "noFieldsFound": "Поля не найдены",
+      "allFieldsSelected": "Все поля уже выбраны",
+      "noFieldsSelected": "Поля не выбраны",
+      "clickToAddFields": "Нажмите на поля слева, чтобы добавить их",
+      "options": "опций",
+      "filters": "Фильтры",
+      "addFilter": "Добавить фильтр",
+      "noFilters": "Фильтры не применены",
+      "addFiltersHint": "Добавьте фильтры для уточнения данных отчёта",
+      "selectField": "Выберите поле",
+      "selectValue": "Выберите значение",
+      "enterValue": "Введите значение",
+      "add": "Добавить",
+      "and": "и",
+      "true": "Да",
+      "false": "Нет",
+      "operators": {
+        "equals": "равно",
+        "not_equals": "не равно",
+        "contains": "содержит",
+        "not_contains": "не содержит",
+        "starts_with": "начинается с",
+        "ends_with": "заканчивается на",
+        "greater_than": "больше",
+        "less_than": "меньше",
+        "greater_or_equal": "больше или равно",
+        "less_or_equal": "меньше или равно",
+        "between": "между",
+        "in": "в списке",
+        "not_in": "не в списке",
+        "is_null": "пусто",
+        "is_not_null": "не пусто"
+      },
+      "fields": {
+        "documents": {
+          "id": "ID",
+          "title": "Название",
+          "category": "Категория",
+          "status": "Статус",
+          "authorId": "ID автора",
+          "authorName": "Имя автора",
+          "createdAt": "Дата создания",
+          "updatedAt": "Дата изменения",
+          "fileSize": "Размер файла",
+          "fileType": "Тип файла"
+        },
+        "users": {
+          "id": "ID",
+          "name": "Имя",
+          "email": "Email",
+          "role": "Роль",
+          "status": "Статус",
+          "department": "Отдел",
+          "createdAt": "Дата создания",
+          "lastLoginAt": "Последний вход"
+        },
+        "events": {
+          "id": "ID",
+          "title": "Название",
+          "type": "Тип",
+          "status": "Статус",
+          "startDate": "Дата начала",
+          "endDate": "Дата окончания",
+          "location": "Место",
+          "organizerId": "ID организатора",
+          "participantCount": "Участники"
+        },
+        "tasks": {
+          "id": "ID",
+          "title": "Название",
+          "status": "Статус",
+          "priority": "Приоритет",
+          "assigneeId": "ID исполнителя",
+          "assigneeName": "Имя исполнителя",
+          "dueDate": "Срок выполнения",
+          "completedAt": "Дата завершения",
+          "isOverdue": "Просрочено"
+        },
+        "students": {
+          "id": "ID",
+          "fullName": "ФИО",
+          "email": "Email",
+          "groupName": "Группа",
+          "faculty": "Факультет",
+          "course": "Курс",
+          "status": "Статус",
+          "enrollmentDate": "Дата зачисления"
+        }
+      },
+      "enumValues": {
+        "documents": {
+          "category": {
+            "educational": "Учебные",
+            "hr": "Кадровые",
+            "administrative": "Административные",
+            "methodical": "Методические",
+            "financial": "Финансовые"
+          },
+          "status": {
+            "draft": "Черновик",
+            "pending": "На рассмотрении",
+            "approved": "Утверждён",
+            "rejected": "Отклонён",
+            "archived": "В архиве"
+          }
+        },
+        "users": {
+          "role": {
+            "admin": "Администратор",
+            "methodist": "Методист",
+            "secretary": "Секретарь",
+            "teacher": "Преподаватель",
+            "student": "Студент"
+          },
+          "status": {
+            "active": "Активен",
+            "inactive": "Неактивен",
+            "blocked": "Заблокирован"
+          }
+        },
+        "events": {
+          "type": {
+            "meeting": "Встреча",
+            "deadline": "Дедлайн",
+            "task": "Задача",
+            "reminder": "Напоминание",
+            "holiday": "Праздник"
+          },
+          "status": {
+            "scheduled": "Запланировано",
+            "ongoing": "Проходит",
+            "completed": "Завершено",
+            "cancelled": "Отменено"
+          }
+        },
+        "tasks": {
+          "status": {
+            "pending": "Ожидает",
+            "in_progress": "В работе",
+            "completed": "Завершена",
+            "cancelled": "Отменена"
+          },
+          "priority": {
+            "low": "Низкий",
+            "medium": "Средний",
+            "high": "Высокий",
+            "urgent": "Срочный"
+          }
+        },
+        "students": {
+          "status": {
+            "active": "Обучается",
+            "graduated": "Выпущен",
+            "suspended": "Отчислен временно",
+            "expelled": "Отчислен"
+          }
+        }
+      },
+      "save": "Сохранить",
+      "export": "Экспорт",
+      "exportPdf": "Экспорт в PDF",
+      "exportExcel": "Экспорт в Excel",
+      "exportCsv": "Экспорт в CSV"
     }
   }
 }
