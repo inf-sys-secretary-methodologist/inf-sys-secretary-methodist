@@ -154,6 +154,7 @@
     "dashboard": "Tableau de bord",
     "users": "Utilisateurs",
     "documents": "Documents",
+    "reports": "Rapports",
     "calendar": "Calendrier",
     "messages": "Messages",
     "integration": "Intégration 1C",
@@ -1336,6 +1337,228 @@
       "createTask": "Créer une tâche",
       "shareDocument": "Partager",
       "askAI": "Demander à l'IA"
+    }
+  },
+  "reports": {
+    "title": "Rapports",
+    "subtitle": "Créer et gérer des rapports personnalisés",
+    "newReport": "Nouveau rapport",
+    "createNew": "Nouveau rapport",
+    "createFirstReport": "Créer votre premier rapport",
+    "quickTemplates": "Modèles rapides",
+    "useTemplate": "Utiliser le modèle",
+    "savedReports": "Rapports enregistrés",
+    "noSavedReports": "Aucun rapport enregistré",
+    "noSavedReportsHint": "Créez votre premier rapport personnalisé avec le constructeur",
+    "lastUpdated": "Dernière mise à jour",
+    "templates": {
+      "title": "Modèles rapides",
+      "documentsByCategory": "Documents par catégorie",
+      "documentsByCategoryDesc": "Distribution des documents par catégories",
+      "usersByRole": "Utilisateurs par rôle",
+      "usersByRoleDesc": "Statistiques des utilisateurs par rôles système",
+      "eventsThisMonth": "Événements ce mois-ci",
+      "eventsThisMonthDesc": "Tous les événements prévus pour le mois en cours",
+      "tasksByStatus": "Tâches par statut",
+      "tasksByStatusDesc": "Distribution des tâches par statut",
+      "studentsByGroup": "Étudiants par groupe",
+      "studentsByGroupDesc": "Distribution des étudiants par groupes d'étude",
+      "recentDocuments": "Documents récents",
+      "recentDocumentsDesc": "Documents téléchargés au cours des 7 derniers jours"
+    },
+    "builder": {
+      "title": "Constructeur de rapports",
+      "subtitle": "Configurez votre rapport personnalisé",
+      "untitledReport": "Rapport sans titre",
+      "preview": "Aperçu",
+      "refreshPreview": "Actualiser",
+      "generatePreview": "Générer l'aperçu",
+      "clickToPreview": "Cliquez pour générer un aperçu de votre rapport",
+      "loading": "Chargement...",
+      "selectFieldsFirst": "Sélectionnez des champs pour l'aperçu",
+      "selectFieldsHint": "Ajoutez des champs du panneau de gauche pour voir l'aperçu des données",
+      "previewNote": "Ceci est un aperçu avec des données d'exemple. Le rapport réel utilisera des données réelles.",
+      "showingResults": "Affichage de {count} résultats",
+      "filtersApplied": "{count} filtres appliqués",
+      "dataSource": "Source de données",
+      "sources": {
+        "documents": "Documents",
+        "users": "Utilisateurs",
+        "events": "Événements",
+        "tasks": "Tâches",
+        "students": "Étudiants"
+      },
+      "tabs": {
+        "fields": "Champs",
+        "filters": "Filtres",
+        "preview": "Aperçu"
+      },
+      "availableFields": "Champs disponibles",
+      "selectedFields": "Champs sélectionnés",
+      "searchFields": "Rechercher des champs...",
+      "noFieldsFound": "Aucun champ trouvé",
+      "allFieldsSelected": "Tous les champs ont été sélectionnés",
+      "noFieldsSelected": "Aucun champ sélectionné",
+      "clickToAddFields": "Cliquez sur les champs disponibles pour les ajouter",
+      "options": "options",
+      "filters": "Filtres",
+      "addFilter": "Ajouter un filtre",
+      "noFilters": "Aucun filtre appliqué",
+      "addFiltersHint": "Ajoutez des filtres pour affiner les données de votre rapport",
+      "selectField": "Sélectionner un champ",
+      "selectValue": "Sélectionner une valeur",
+      "enterValue": "Entrer une valeur",
+      "add": "Ajouter",
+      "and": "et",
+      "true": "Oui",
+      "false": "Non",
+      "operators": {
+        "equals": "égal à",
+        "not_equals": "différent de",
+        "contains": "contient",
+        "not_contains": "ne contient pas",
+        "starts_with": "commence par",
+        "ends_with": "se termine par",
+        "greater_than": "supérieur à",
+        "less_than": "inférieur à",
+        "greater_or_equal": "supérieur ou égal à",
+        "less_or_equal": "inférieur ou égal à",
+        "between": "entre",
+        "in": "dans",
+        "not_in": "pas dans",
+        "is_null": "est vide",
+        "is_not_null": "n'est pas vide"
+      },
+      "fields": {
+        "documents": {
+          "id": "ID",
+          "title": "Titre",
+          "category": "Catégorie",
+          "status": "Statut",
+          "authorId": "ID auteur",
+          "authorName": "Nom de l'auteur",
+          "createdAt": "Date de création",
+          "updatedAt": "Date de modification",
+          "fileSize": "Taille du fichier",
+          "fileType": "Type de fichier"
+        },
+        "users": {
+          "id": "ID",
+          "name": "Nom",
+          "email": "Email",
+          "role": "Rôle",
+          "status": "Statut",
+          "department": "Département",
+          "createdAt": "Date de création",
+          "lastLoginAt": "Dernière connexion"
+        },
+        "events": {
+          "id": "ID",
+          "title": "Titre",
+          "type": "Type",
+          "status": "Statut",
+          "startDate": "Date de début",
+          "endDate": "Date de fin",
+          "location": "Lieu",
+          "organizerId": "ID organisateur",
+          "participantCount": "Participants"
+        },
+        "tasks": {
+          "id": "ID",
+          "title": "Titre",
+          "status": "Statut",
+          "priority": "Priorité",
+          "assigneeId": "ID assigné",
+          "assigneeName": "Nom de l'assigné",
+          "dueDate": "Date d'échéance",
+          "completedAt": "Date d'achèvement",
+          "isOverdue": "En retard"
+        },
+        "students": {
+          "id": "ID",
+          "fullName": "Nom complet",
+          "email": "Email",
+          "groupName": "Groupe",
+          "faculty": "Faculté",
+          "course": "Cours",
+          "status": "Statut",
+          "enrollmentDate": "Date d'inscription"
+        }
+      },
+      "enumValues": {
+        "documents": {
+          "category": {
+            "educational": "Éducatif",
+            "hr": "RH",
+            "administrative": "Administratif",
+            "methodical": "Méthodique",
+            "financial": "Financier"
+          },
+          "status": {
+            "draft": "Brouillon",
+            "pending": "En attente",
+            "approved": "Approuvé",
+            "rejected": "Rejeté",
+            "archived": "Archivé"
+          }
+        },
+        "users": {
+          "role": {
+            "admin": "Administrateur",
+            "methodist": "Méthodiste",
+            "secretary": "Secrétaire",
+            "teacher": "Enseignant",
+            "student": "Étudiant"
+          },
+          "status": {
+            "active": "Actif",
+            "inactive": "Inactif",
+            "blocked": "Bloqué"
+          }
+        },
+        "events": {
+          "type": {
+            "meeting": "Réunion",
+            "deadline": "Échéance",
+            "task": "Tâche",
+            "reminder": "Rappel",
+            "holiday": "Vacances"
+          },
+          "status": {
+            "scheduled": "Programmé",
+            "ongoing": "En cours",
+            "completed": "Terminé",
+            "cancelled": "Annulé"
+          }
+        },
+        "tasks": {
+          "status": {
+            "pending": "En attente",
+            "in_progress": "En cours",
+            "completed": "Terminé",
+            "cancelled": "Annulé"
+          },
+          "priority": {
+            "low": "Faible",
+            "medium": "Moyen",
+            "high": "Élevé",
+            "urgent": "Urgent"
+          }
+        },
+        "students": {
+          "status": {
+            "active": "Actif",
+            "graduated": "Diplômé",
+            "suspended": "Suspendu",
+            "expelled": "Expulsé"
+          }
+        }
+      },
+      "save": "Enregistrer",
+      "export": "Exporter",
+      "exportPdf": "Exporter en PDF",
+      "exportExcel": "Exporter en Excel",
+      "exportCsv": "Exporter en CSV"
     }
   }
 }
