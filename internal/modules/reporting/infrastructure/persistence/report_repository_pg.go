@@ -138,7 +138,7 @@ func (r *ReportRepositoryPG) List(ctx context.Context, filter repositories.Repor
 	if err != nil {
 		return nil, fmt.Errorf("failed to list reports: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanReports(rows)
 }
@@ -319,7 +319,7 @@ func (r *ReportRepositoryPG) GetAccessByReport(ctx context.Context, reportID int
 	if err != nil {
 		return nil, fmt.Errorf("failed to get report access: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var accesses []*entities.ReportAccess
 	for rows.Next() {
@@ -449,7 +449,7 @@ func (r *ReportRepositoryPG) GetCommentsByReport(ctx context.Context, reportID i
 	if err != nil {
 		return nil, fmt.Errorf("failed to get report comments: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var comments []*entities.ReportComment
 	for rows.Next() {
@@ -496,7 +496,7 @@ func (r *ReportRepositoryPG) GetHistoryByReport(ctx context.Context, reportID in
 	if err != nil {
 		return nil, fmt.Errorf("failed to get report history: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var histories []*entities.ReportHistory
 	for rows.Next() {
@@ -568,7 +568,7 @@ func (r *ReportRepositoryPG) GetGenerationLogsByReport(ctx context.Context, repo
 	if err != nil {
 		return nil, fmt.Errorf("failed to get generation logs: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var logs []*entities.ReportGenerationLog
 	for rows.Next() {

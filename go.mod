@@ -37,6 +37,7 @@ require (
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/jung-kurt/gofpdf v1.16.2 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
@@ -55,11 +56,17 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.54.0 // indirect
+	github.com/richardlehane/mscfb v1.0.4 // indirect
+	github.com/richardlehane/msoleps v1.0.4 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/tiendc/go-deepcopy v1.7.1 // indirect
 	github.com/tinylib/msgp v1.3.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
+	github.com/xuri/efp v0.0.1 // indirect
+	github.com/xuri/excelize/v2 v2.10.0 // indirect
+	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect

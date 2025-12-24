@@ -1432,9 +1432,15 @@
       "fields": {
         "documents": {
           "id": "ID",
+          "name": "Name",
           "title": "Title",
           "category": "Category",
           "status": "Status",
+          "size": "Size",
+          "created_at": "Created At",
+          "updated_at": "Updated At",
+          "author_name": "Author",
+          "tags": "Tags",
           "authorId": "Author ID",
           "authorName": "Author Name",
           "createdAt": "Created Date",
@@ -1449,6 +1455,8 @@
           "role": "Role",
           "status": "Status",
           "department": "Department",
+          "created_at": "Created At",
+          "is_active": "Is Active",
           "createdAt": "Created Date",
           "lastLoginAt": "Last Login"
         },
@@ -1457,9 +1465,12 @@
           "title": "Title",
           "type": "Type",
           "status": "Status",
+          "start_time": "Start Time",
+          "end_time": "End Time",
+          "location": "Location",
+          "organizer": "Organizer",
           "startDate": "Start Date",
           "endDate": "End Date",
-          "location": "Location",
           "organizerId": "Organizer ID",
           "participantCount": "Participants"
         },
@@ -1468,6 +1479,9 @@
           "title": "Title",
           "status": "Status",
           "priority": "Priority",
+          "due_date": "Due Date",
+          "assignee": "Assignee",
+          "created_at": "Created At",
           "assigneeId": "Assignee ID",
           "assigneeName": "Assignee Name",
           "dueDate": "Due Date",
@@ -1476,12 +1490,15 @@
         },
         "students": {
           "id": "ID",
+          "name": "Name",
+          "group": "Group",
+          "course": "Course",
+          "faculty": "Faculty",
+          "status": "Status",
+          "enrolled_at": "Enrolled At",
           "fullName": "Full Name",
           "email": "Email",
           "groupName": "Group",
-          "faculty": "Faculty",
-          "course": "Course",
-          "status": "Status",
           "enrollmentDate": "Enrollment Date"
         }
       },
@@ -1492,14 +1509,14 @@
             "hr": "HR",
             "administrative": "Administrative",
             "methodical": "Methodical",
-            "financial": "Financial"
+            "financial": "Financial",
+            "archive": "Archive"
           },
           "status": {
-            "draft": "Draft",
-            "pending": "Pending",
-            "approved": "Approved",
-            "rejected": "Rejected",
-            "archived": "Archived"
+            "uploading": "Uploading",
+            "processing": "Processing",
+            "ready": "Ready",
+            "error": "Error"
           }
         },
         "users": {
@@ -1509,26 +1526,15 @@
             "secretary": "Secretary",
             "teacher": "Teacher",
             "student": "Student"
-          },
-          "status": {
-            "active": "Active",
-            "inactive": "Inactive",
-            "blocked": "Blocked"
           }
         },
         "events": {
           "type": {
+            "lecture": "Lecture",
+            "seminar": "Seminar",
+            "exam": "Exam",
             "meeting": "Meeting",
-            "deadline": "Deadline",
-            "task": "Task",
-            "reminder": "Reminder",
-            "holiday": "Holiday"
-          },
-          "status": {
-            "scheduled": "Scheduled",
-            "ongoing": "Ongoing",
-            "completed": "Completed",
-            "cancelled": "Cancelled"
+            "other": "Other"
           }
         },
         "tasks": {
@@ -1548,9 +1554,9 @@
         "students": {
           "status": {
             "active": "Active",
-            "graduated": "Graduated",
-            "suspended": "Suspended",
-            "expelled": "Expelled"
+            "academic_leave": "Academic Leave",
+            "expelled": "Expelled",
+            "graduated": "Graduated"
           }
         }
       },

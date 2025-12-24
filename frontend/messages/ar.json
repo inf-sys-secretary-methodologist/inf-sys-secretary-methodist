@@ -1432,9 +1432,15 @@
       "fields": {
         "documents": {
           "id": "المعرف",
+          "name": "الاسم",
           "title": "العنوان",
           "category": "الفئة",
           "status": "الحالة",
+          "size": "الحجم",
+          "created_at": "تاريخ الإنشاء",
+          "updated_at": "تاريخ التحديث",
+          "author_name": "المؤلف",
+          "tags": "الوسوم",
           "authorId": "معرف المؤلف",
           "authorName": "اسم المؤلف",
           "createdAt": "تاريخ الإنشاء",
@@ -1449,6 +1455,8 @@
           "role": "الدور",
           "status": "الحالة",
           "department": "القسم",
+          "created_at": "تاريخ التسجيل",
+          "is_active": "نشط",
           "createdAt": "تاريخ الإنشاء",
           "lastLoginAt": "آخر تسجيل دخول"
         },
@@ -1457,9 +1465,12 @@
           "title": "العنوان",
           "type": "النوع",
           "status": "الحالة",
+          "start_time": "وقت البدء",
+          "end_time": "وقت الانتهاء",
+          "location": "الموقع",
+          "organizer": "المنظم",
           "startDate": "تاريخ البدء",
           "endDate": "تاريخ الانتهاء",
-          "location": "الموقع",
           "organizerId": "معرف المنظم",
           "participantCount": "المشاركون"
         },
@@ -1468,6 +1479,9 @@
           "title": "العنوان",
           "status": "الحالة",
           "priority": "الأولوية",
+          "due_date": "تاريخ الاستحقاق",
+          "assignee": "المكلف",
+          "created_at": "تاريخ الإنشاء",
           "assigneeId": "معرف المكلف",
           "assigneeName": "اسم المكلف",
           "dueDate": "تاريخ الاستحقاق",
@@ -1476,12 +1490,15 @@
         },
         "students": {
           "id": "المعرف",
+          "name": "الاسم",
+          "group": "المجموعة",
+          "course": "الدورة",
+          "faculty": "الكلية",
+          "status": "الحالة",
+          "enrolled_at": "تاريخ التسجيل",
           "fullName": "الاسم الكامل",
           "email": "البريد الإلكتروني",
           "groupName": "المجموعة",
-          "faculty": "الكلية",
-          "course": "الدورة",
-          "status": "الحالة",
           "enrollmentDate": "تاريخ التسجيل"
         }
       },
@@ -1492,14 +1509,14 @@
             "hr": "موارد بشرية",
             "administrative": "إداري",
             "methodical": "منهجي",
-            "financial": "مالي"
+            "financial": "مالي",
+            "archive": "أرشيف"
           },
           "status": {
-            "draft": "مسودة",
-            "pending": "قيد الانتظار",
-            "approved": "معتمد",
-            "rejected": "مرفوض",
-            "archived": "مؤرشف"
+            "uploading": "جارٍ الرفع",
+            "processing": "جارٍ المعالجة",
+            "ready": "جاهز",
+            "error": "خطأ"
           }
         },
         "users": {
@@ -1509,26 +1526,15 @@
             "secretary": "سكرتير",
             "teacher": "معلم",
             "student": "طالب"
-          },
-          "status": {
-            "active": "نشط",
-            "inactive": "غير نشط",
-            "blocked": "محظور"
           }
         },
         "events": {
           "type": {
+            "lecture": "محاضرة",
+            "seminar": "ندوة",
+            "exam": "امتحان",
             "meeting": "اجتماع",
-            "deadline": "موعد نهائي",
-            "task": "مهمة",
-            "reminder": "تذكير",
-            "holiday": "عطلة"
-          },
-          "status": {
-            "scheduled": "مجدول",
-            "ongoing": "جارٍ",
-            "completed": "مكتمل",
-            "cancelled": "ملغى"
+            "other": "أخرى"
           }
         },
         "tasks": {
@@ -1548,9 +1554,9 @@
         "students": {
           "status": {
             "active": "نشط",
-            "graduated": "متخرج",
-            "suspended": "موقوف",
-            "expelled": "مفصول"
+            "academic_leave": "إجازة أكاديمية",
+            "expelled": "مفصول",
+            "graduated": "متخرج"
           }
         }
       },

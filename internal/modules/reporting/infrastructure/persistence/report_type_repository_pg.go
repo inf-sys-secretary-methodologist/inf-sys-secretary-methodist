@@ -148,7 +148,7 @@ func (r *ReportTypeRepositoryPG) List(ctx context.Context, filter repositories.R
 	if err != nil {
 		return nil, fmt.Errorf("failed to list report types: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanReportTypes(rows)
 }
@@ -319,7 +319,7 @@ func (r *ReportTypeRepositoryPG) GetParametersByReportType(ctx context.Context, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get parameters: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var params []*entities.ReportParameter
 	for rows.Next() {
@@ -411,7 +411,7 @@ func (r *ReportTypeRepositoryPG) GetTemplatesByReportType(ctx context.Context, r
 	if err != nil {
 		return nil, fmt.Errorf("failed to get templates: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var templates []*entities.ReportTemplate
 	for rows.Next() {
@@ -563,7 +563,7 @@ func (r *ReportTypeRepositoryPG) GetSubscribersByReportType(ctx context.Context,
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subscribers: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanSubscriptions(rows)
 }
@@ -578,7 +578,7 @@ func (r *ReportTypeRepositoryPG) GetSubscriptionsByUser(ctx context.Context, use
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user subscriptions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanSubscriptions(rows)
 }
