@@ -26,7 +26,7 @@
 
 ## 🧩 Модульная структура
 
-> **Статус реализации**: На данный момент реализованы 8 модулей из 11. Остальные существуют как placeholder'ы для будущей разработки.
+> **Статус реализации**: На данный момент реализованы 9 модулей из 11. Остальные существуют как placeholder'ы для будущей разработки.
 
 | Модуль | Статус | Файлов | Описание |
 |--------|--------|--------|----------|
@@ -39,7 +39,7 @@
 | messaging | ✅ Реализован | 15 | Внутренняя переписка, групповые чаты, WebSocket |
 | workflow | 📋 Планируется | 0 | Согласование документов |
 | tasks | 📋 Планируется | 0 | Задания для студентов |
-| reporting | 📋 Планируется | 0 | Аналитика и отчёты |
+| reporting | ✅ Реализован | 15 | Пользовательские отчёты, экспорт в PDF/Excel/CSV |
 | integration | ✅ Реализован | 27 | Интеграция с 1С (импорт сотрудников/студентов) |
 
 ### Core Modules (Основные модули)
@@ -276,44 +276,67 @@ internal/modules/schedule/
     └── events/
 ```
 
-#### 6. **Reporting Module** 📊 📋 Планируется
+#### 6. **Reporting Module** 📊 ✅ Реализован
 **Bounded Context**: Analytics & Business Intelligence
+
+Модуль пользовательских отчётов (Custom Report Builder):
+- Конструктор отчётов с drag-and-drop интерфейсом
+- Выбор полей и фильтров из различных источников данных
+- Группировка и сортировка данных
+- Экспорт в PDF, Excel (XLSX), CSV
+- Публичные и приватные отчёты
+- Динамическое выполнение SQL запросов
+
+**Источники данных (DataSource)**:
+- `documents` - Документы
+- `users` - Пользователи
+- `events` - События
+- `tasks` - Задачи
+- `students` - Студенты
+
 ```
 internal/modules/reporting/
 ├── domain/
 │   ├── entities/
-│   │   ├── report.go
-│   │   ├── metric.go
-│   │   └── dashboard.go
-│   ├── repositories/
-│   │   └── report_repository.go
-│   ├── services/
-│   │   ├── report_generator.go
-│   │   ├── data_aggregator.go
-│   │   └── export_service.go
-│   └── value_objects/
-│       ├── report_type.go
-│       └── time_period.go
+│   │   ├── custom_report.go      # Пользовательский отчёт
+│   │   ├── report_field.go       # Поле отчёта
+│   │   └── report.go             # Базовый отчёт
+│   └── repositories/
+│       ├── custom_report_repository.go
+│       └── report_repository.go
 ├── application/
-│   ├── usecases/
-│   │   ├── generate_report.go
-│   │   ├── schedule_report.go
-│   │   └── export_data.go
-│   └── queries/
-│       └── analytics_queries.go
+│   ├── dto/
+│   │   ├── custom_report_dto.go  # DTO для пользовательских отчётов
+│   │   └── report_dto.go
+│   └── usecases/
+│       ├── custom_report_usecase.go      # Бизнес-логика
+│       ├── custom_report_usecase_test.go # Unit тесты
+│       └── report_usecase.go
 ├── infrastructure/
 │   ├── persistence/
-│   │   ├── postgres/
-│   │   └── clickhouse/
-│   │       └── analytics_repository.go
-│   └── external/
-│       ├── excel_exporter.go
-│       └── pdf_generator.go
+│   │   ├── custom_report_repository_pg.go
+│   │   └── report_repository_pg.go
+│   └── query/
+│       └── dynamic_query_builder.go  # Динамический SQL builder
 └── interfaces/
-    ├── http/
-    └── scheduled/
-        └── report_scheduler.go
+    └── http/
+        └── handlers/
+            ├── custom_report_handler.go      # REST API
+            ├── custom_report_handler_test.go # E2E тесты
+            └── report_handler.go
 ```
+
+**API Endpoints**:
+- `GET /api/custom-reports` - Список отчётов
+- `POST /api/custom-reports` - Создание отчёта
+- `GET /api/custom-reports/:id` - Получение отчёта
+- `PUT /api/custom-reports/:id` - Обновление отчёта
+- `DELETE /api/custom-reports/:id` - Удаление отчёта
+- `POST /api/custom-reports/:id/execute` - Выполнение отчёта
+- `POST /api/custom-reports/:id/export` - Экспорт в PDF/Excel/CSV
+- `GET /api/custom-reports/my` - Мои отчёты
+- `GET /api/custom-reports/public` - Публичные отчёты
+- `GET /api/custom-reports/available-fields/:dataSource` - Доступные поля
 
 #### 7. **Task Management Module** ☑️ 📋 Планируется
 **Bounded Context**: Task Tracking & Assignment
@@ -1019,7 +1042,7 @@ func SecurityMiddleware(next http.Handler) http.Handler {
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-12-22
-**Версия проекта**: 0.3.0
+**Последнее обновление**: 2025-12-23
+**Версия проекта**: 0.3.1
 **Статус**: Актуальный
 

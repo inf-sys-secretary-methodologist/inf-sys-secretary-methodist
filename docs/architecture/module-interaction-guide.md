@@ -1,8 +1,8 @@
 # Module Interaction Guide: Modular Monolith Architecture
 
-**Дата актуальности**: 2025-11-09
+**Дата актуальности**: 2025-12-23
 **Статус**: Актуально
-**Версия**: 1.0
+**Версия**: 1.1
 
 ## Содержание
 
@@ -428,6 +428,11 @@ func (m *NotificationModule) RegisterEventHandlers(eventBus *eventbus.EventBus) 
 |---------|----------|---------|------------|
 | `report.generated` | Отчет сгенерирован | `{ report_id, type, generated_by, period }` | Notifications, Files, Audit |
 | `report.scheduled` | Отчет запланирован | `{ report_id, schedule, recipients }` | Notifications |
+| `custom_report.created` | Пользовательский отчёт создан | `{ report_id, name, data_source, created_by }` | Audit |
+| `custom_report.updated` | Пользовательский отчёт обновлён | `{ report_id, name, updated_by }` | Audit |
+| `custom_report.deleted` | Пользовательский отчёт удалён | `{ report_id, deleted_by }` | Audit |
+| `custom_report.executed` | Пользовательский отчёт выполнен | `{ report_id, rows_count, executed_by }` | Audit, Reporting |
+| `custom_report.exported` | Пользовательский отчёт экспортирован | `{ report_id, format, exported_by }` | Audit, Files |
 
 #### Notifications Context Events
 

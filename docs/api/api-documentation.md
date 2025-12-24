@@ -1237,6 +1237,205 @@ X-RateLimit-Reset: 1732878000
 
 ---
 
+## Custom Reports API
+
+### Base URL: `/api/custom-reports`
+
+Требует JWT аутентификации. Модуль создания пользовательских отчётов с поддержкой экспорта в PDF, Excel и CSV. Реализован в рамках GitHub Issue #21 и #167.
+
+### Источники данных (DataSource)
+
+| Источник | Описание |
+|----------|----------|
+| `documents` | Документы |
+| `users` | Пользователи |
+| `events` | События |
+| `tasks` | Задачи |
+| `students` | Студенты |
+
+### POST `/api/custom-reports`
+Создание пользовательского отчёта.
+
+**Request:**
+```json
+{
+  "name": "Отчёт по документам",
+  "description": "Список документов за месяц",
+  "data_source": "documents",
+  "fields": [
+    {"field_key": "id", "display_name": "ID", "order": 1},
+    {"field_key": "name", "display_name": "Название", "order": 2},
+    {"field_key": "created_at", "display_name": "Дата создания", "order": 3}
+  ],
+  "filters": [
+    {"field": "created_at", "operator": "gte", "value": "2025-01-01"}
+  ],
+  "groupings": [],
+  "sortings": [
+    {"field": "created_at", "direction": "desc"}
+  ],
+  "is_public": false
+}
+```
+
+**Response (201):**
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Отчёт по документам",
+    "description": "Список документов за месяц",
+    "data_source": "documents",
+    "fields": [...],
+    "filters": [...],
+    "groupings": [],
+    "sortings": [...],
+    "is_public": false,
+    "created_by": 1,
+    "created_at": "2025-12-23T10:00:00Z",
+    "updated_at": "2025-12-23T10:00:00Z"
+  }
+}
+```
+
+### GET `/api/custom-reports`
+Получение списка отчётов с пагинацией.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `page` | int | Номер страницы (default: 1) |
+| `page_size` | int | Размер страницы (default: 10, max: 100) |
+| `data_source` | string | Фильтр по источнику данных |
+| `search` | string | Поиск по названию |
+| `is_public` | bool | Фильтр по публичности |
+
+**Response (200):**
+```json
+{
+  "status": "success",
+  "data": {
+    "reports": [...],
+    "total": 50,
+    "page": 1,
+    "page_size": 10,
+    "total_pages": 5
+  }
+}
+```
+
+### GET `/api/custom-reports/:id`
+Получение отчёта по ID.
+
+### PUT `/api/custom-reports/:id`
+Обновление отчёта (только создатель).
+
+**Request:**
+```json
+{
+  "name": "Обновлённое название",
+  "description": "Новое описание",
+  "is_public": true
+}
+```
+
+### DELETE `/api/custom-reports/:id`
+Удаление отчёта (только создатель).
+
+### POST `/api/custom-reports/:id/execute`
+Выполнение отчёта и получение данных.
+
+**Request:**
+```json
+{
+  "page": 1,
+  "page_size": 50
+}
+```
+
+**Response (200):**
+```json
+{
+  "status": "success",
+  "data": {
+    "columns": [
+      {"key": "id", "label": "ID"},
+      {"key": "name", "label": "Название"},
+      {"key": "created_at", "label": "Дата создания"}
+    ],
+    "rows": [
+      {"id": 1, "name": "Документ 1", "created_at": "2025-12-20T10:00:00Z"},
+      {"id": 2, "name": "Документ 2", "created_at": "2025-12-21T11:00:00Z"}
+    ],
+    "total_count": 150,
+    "page": 1,
+    "page_size": 50,
+    "total_pages": 3
+  }
+}
+```
+
+### POST `/api/custom-reports/:id/export`
+Экспорт отчёта в файл.
+
+**Request:**
+```json
+{
+  "format": "xlsx",
+  "include_headers": true,
+  "page_size": 1000,
+  "orientation": "landscape"
+}
+```
+
+**Форматы экспорта:**
+| Формат | Content-Type | Описание |
+|--------|--------------|----------|
+| `csv` | text/csv | Простой табличный формат |
+| `xlsx` | application/vnd.openxmlformats-officedocument.spreadsheetml.sheet | Microsoft Excel |
+| `pdf` | application/pdf | PDF документ |
+
+**Response:** Бинарный файл с заголовком `Content-Disposition: attachment; filename="report.xlsx"`
+
+### GET `/api/custom-reports/my`
+Получение отчётов текущего пользователя.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `page` | int | Номер страницы (default: 1) |
+| `page_size` | int | Размер страницы (default: 10) |
+
+### GET `/api/custom-reports/public`
+Получение публичных отчётов.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `page` | int | Номер страницы (default: 1) |
+| `page_size` | int | Размер страницы (default: 10) |
+
+### GET `/api/custom-reports/available-fields/:dataSource`
+Получение доступных полей для источника данных.
+
+**Response (200):**
+```json
+{
+  "status": "success",
+  "data": {
+    "fields": [
+      {"id": "id", "name": "id", "label": "ID", "type": "number"},
+      {"id": "name", "name": "name", "label": "Название", "type": "string"},
+      {"id": "created_at", "name": "created_at", "label": "Дата создания", "type": "date"},
+      {"id": "author_id", "name": "author_id", "label": "ID автора", "type": "number"}
+    ]
+  }
+}
+```
+
+---
+
 ## CORS
 
 Настроен через переменные окружения:
@@ -1285,6 +1484,6 @@ curl -X POST http://localhost:8080/api/documents/1/file \
 
 ---
 
-**Последнее обновление**: 2025-12-22
-**Версия проекта**: 0.3.0
+**Последнее обновление**: 2025-12-23
+**Версия проекта**: 0.3.1
 **Статус**: Актуальный

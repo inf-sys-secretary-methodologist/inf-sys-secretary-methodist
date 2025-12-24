@@ -1432,9 +1432,15 @@
       "fields": {
         "documents": {
           "id": "ID",
+          "name": "Название",
           "title": "Название",
           "category": "Категория",
           "status": "Статус",
+          "size": "Размер",
+          "created_at": "Дата создания",
+          "updated_at": "Дата изменения",
+          "author_name": "Автор",
+          "tags": "Теги",
           "authorId": "ID автора",
           "authorName": "Имя автора",
           "createdAt": "Дата создания",
@@ -1449,6 +1455,8 @@
           "role": "Роль",
           "status": "Статус",
           "department": "Отдел",
+          "created_at": "Дата регистрации",
+          "is_active": "Активен",
           "createdAt": "Дата создания",
           "lastLoginAt": "Последний вход"
         },
@@ -1457,9 +1465,12 @@
           "title": "Название",
           "type": "Тип",
           "status": "Статус",
+          "start_time": "Время начала",
+          "end_time": "Время окончания",
+          "location": "Место",
+          "organizer": "Организатор",
           "startDate": "Дата начала",
           "endDate": "Дата окончания",
-          "location": "Место",
           "organizerId": "ID организатора",
           "participantCount": "Участники"
         },
@@ -1468,6 +1479,9 @@
           "title": "Название",
           "status": "Статус",
           "priority": "Приоритет",
+          "due_date": "Срок выполнения",
+          "assignee": "Исполнитель",
+          "created_at": "Дата создания",
           "assigneeId": "ID исполнителя",
           "assigneeName": "Имя исполнителя",
           "dueDate": "Срок выполнения",
@@ -1476,12 +1490,15 @@
         },
         "students": {
           "id": "ID",
+          "name": "ФИО",
+          "group": "Группа",
+          "course": "Курс",
+          "faculty": "Факультет",
+          "status": "Статус",
+          "enrolled_at": "Дата зачисления",
           "fullName": "ФИО",
           "email": "Email",
           "groupName": "Группа",
-          "faculty": "Факультет",
-          "course": "Курс",
-          "status": "Статус",
           "enrollmentDate": "Дата зачисления"
         }
       },
@@ -1492,14 +1509,14 @@
             "hr": "Кадровые",
             "administrative": "Административные",
             "methodical": "Методические",
-            "financial": "Финансовые"
+            "financial": "Финансовые",
+            "archive": "Архив"
           },
           "status": {
-            "draft": "Черновик",
-            "pending": "На рассмотрении",
-            "approved": "Утверждён",
-            "rejected": "Отклонён",
-            "archived": "В архиве"
+            "uploading": "Загрузка",
+            "processing": "Обработка",
+            "ready": "Готов",
+            "error": "Ошибка"
           }
         },
         "users": {
@@ -1509,26 +1526,15 @@
             "secretary": "Секретарь",
             "teacher": "Преподаватель",
             "student": "Студент"
-          },
-          "status": {
-            "active": "Активен",
-            "inactive": "Неактивен",
-            "blocked": "Заблокирован"
           }
         },
         "events": {
           "type": {
+            "lecture": "Лекция",
+            "seminar": "Семинар",
+            "exam": "Экзамен",
             "meeting": "Встреча",
-            "deadline": "Дедлайн",
-            "task": "Задача",
-            "reminder": "Напоминание",
-            "holiday": "Праздник"
-          },
-          "status": {
-            "scheduled": "Запланировано",
-            "ongoing": "Проходит",
-            "completed": "Завершено",
-            "cancelled": "Отменено"
+            "other": "Другое"
           }
         },
         "tasks": {
@@ -1548,9 +1554,9 @@
         "students": {
           "status": {
             "active": "Обучается",
-            "graduated": "Выпущен",
-            "suspended": "Отчислен временно",
-            "expelled": "Отчислен"
+            "academic_leave": "Академический отпуск",
+            "expelled": "Отчислен",
+            "graduated": "Выпущен"
           }
         }
       },

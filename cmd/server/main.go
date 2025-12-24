@@ -43,6 +43,7 @@ import (
 	emailHandlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/interfaces/http/handlers"
 	reportUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
 	reportPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/infrastructure/persistence"
+	reportQuery "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/infrastructure/query"
 	reportHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/interfaces/http/handlers"
 	scheduleUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	schedulePersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/infrastructure/persistence"
@@ -229,6 +230,12 @@ func main() {
 	reportUseCase := reportUsecases.NewReportUseCase(reportRepo, reportTypeRepo, s3Client, auditLogger, notificationUseCase)
 	logger.Info("Reporting module initialized", nil)
 
+	// Initialize custom report module
+	customReportRepo := reportPersistence.NewCustomReportRepositoryPG(db)
+	customQueryBuilder := reportQuery.NewDynamicQueryBuilder(db)
+	customReportUseCase := reportUsecases.NewCustomReportUseCase(customReportRepo, customQueryBuilder)
+	logger.Info("Custom reports module initialized", nil)
+
 	// Initialize tasks module
 	taskRepo := taskPersistence.NewTaskRepositoryPG(db)
 	projectRepo := taskPersistence.NewProjectRepositoryPG(db)
@@ -356,6 +363,7 @@ func main() {
 		docVersionUseCase,
 		tagUseCase,
 		reportUseCase,
+		customReportUseCase,
 		taskUseCase,
 		projectUseCase,
 		eventUseCase,
@@ -565,6 +573,7 @@ func setupRoutes(
 	docVersionUseCase *docUsecases.DocumentVersionUseCase,
 	tagUseCase *docUsecases.TagUseCase,
 	reportUseCase *reportUsecases.ReportUseCase,
+	customReportUseCase *reportUsecases.CustomReportUseCase,
 	taskUseCase *taskUsecases.TaskUseCase,
 	projectUseCase *taskUsecases.ProjectUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
@@ -1015,6 +1024,41 @@ func setupRoutes(
 			}
 
 			logger.Info("Reporting module routes registered", nil)
+		}
+
+		// Custom reports module routes
+		if customReportUseCase != nil {
+			customReportHandlerInstance := reportHandler.NewCustomReportHandler(customReportUseCase)
+
+			customReportsGroup := protectedGroup.Group("/custom-reports")
+			{
+				// CRUD operations
+				customReportsGroup.POST("", customReportHandlerInstance.Create)
+				customReportsGroup.GET("", customReportHandlerInstance.List)
+				customReportsGroup.GET("/:id", customReportHandlerInstance.GetByID)
+				customReportsGroup.PUT("/:id", customReportHandlerInstance.Update)
+				customReportsGroup.DELETE("/:id", customReportHandlerInstance.Delete)
+
+				// Report execution and export
+				customReportsGroup.POST("/:id/execute", customReportHandlerInstance.Execute)
+				customReportsGroup.POST("/:id/export", customReportHandlerInstance.Export)
+
+				// Special queries
+				customReportsGroup.GET("/my", customReportHandlerInstance.GetMyReports)
+				customReportsGroup.GET("/public", customReportHandlerInstance.GetPublicReports)
+				customReportsGroup.GET("/available-fields", customReportHandlerInstance.GetAvailableFields)
+
+				// CORS preflight handlers
+				customReportsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				customReportsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				customReportsGroup.OPTIONS("/:id/execute", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				customReportsGroup.OPTIONS("/:id/export", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				customReportsGroup.OPTIONS("/my", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				customReportsGroup.OPTIONS("/public", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				customReportsGroup.OPTIONS("/available-fields", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			logger.Info("Custom reports module routes registered", nil)
 		}
 
 		// Tasks module routes

@@ -1432,9 +1432,15 @@
       "fields": {
         "documents": {
           "id": "ID",
+          "name": "Nom",
           "title": "Titre",
           "category": "Catégorie",
           "status": "Statut",
+          "size": "Taille",
+          "created_at": "Date de création",
+          "updated_at": "Date de modification",
+          "author_name": "Auteur",
+          "tags": "Tags",
           "authorId": "ID auteur",
           "authorName": "Nom de l'auteur",
           "createdAt": "Date de création",
@@ -1449,6 +1455,8 @@
           "role": "Rôle",
           "status": "Statut",
           "department": "Département",
+          "created_at": "Date d'inscription",
+          "is_active": "Actif",
           "createdAt": "Date de création",
           "lastLoginAt": "Dernière connexion"
         },
@@ -1457,9 +1465,12 @@
           "title": "Titre",
           "type": "Type",
           "status": "Statut",
+          "start_time": "Heure de début",
+          "end_time": "Heure de fin",
+          "location": "Lieu",
+          "organizer": "Organisateur",
           "startDate": "Date de début",
           "endDate": "Date de fin",
-          "location": "Lieu",
           "organizerId": "ID organisateur",
           "participantCount": "Participants"
         },
@@ -1468,6 +1479,9 @@
           "title": "Titre",
           "status": "Statut",
           "priority": "Priorité",
+          "due_date": "Date d'échéance",
+          "assignee": "Assigné",
+          "created_at": "Date de création",
           "assigneeId": "ID assigné",
           "assigneeName": "Nom de l'assigné",
           "dueDate": "Date d'échéance",
@@ -1476,12 +1490,15 @@
         },
         "students": {
           "id": "ID",
+          "name": "Nom",
+          "group": "Groupe",
+          "course": "Cours",
+          "faculty": "Faculté",
+          "status": "Statut",
+          "enrolled_at": "Date d'inscription",
           "fullName": "Nom complet",
           "email": "Email",
           "groupName": "Groupe",
-          "faculty": "Faculté",
-          "course": "Cours",
-          "status": "Statut",
           "enrollmentDate": "Date d'inscription"
         }
       },
@@ -1492,14 +1509,14 @@
             "hr": "RH",
             "administrative": "Administratif",
             "methodical": "Méthodique",
-            "financial": "Financier"
+            "financial": "Financier",
+            "archive": "Archives"
           },
           "status": {
-            "draft": "Brouillon",
-            "pending": "En attente",
-            "approved": "Approuvé",
-            "rejected": "Rejeté",
-            "archived": "Archivé"
+            "uploading": "Téléchargement",
+            "processing": "Traitement",
+            "ready": "Prêt",
+            "error": "Erreur"
           }
         },
         "users": {
@@ -1509,26 +1526,15 @@
             "secretary": "Secrétaire",
             "teacher": "Enseignant",
             "student": "Étudiant"
-          },
-          "status": {
-            "active": "Actif",
-            "inactive": "Inactif",
-            "blocked": "Bloqué"
           }
         },
         "events": {
           "type": {
+            "lecture": "Cours magistral",
+            "seminar": "Séminaire",
+            "exam": "Examen",
             "meeting": "Réunion",
-            "deadline": "Échéance",
-            "task": "Tâche",
-            "reminder": "Rappel",
-            "holiday": "Vacances"
-          },
-          "status": {
-            "scheduled": "Programmé",
-            "ongoing": "En cours",
-            "completed": "Terminé",
-            "cancelled": "Annulé"
+            "other": "Autre"
           }
         },
         "tasks": {
@@ -1548,9 +1554,9 @@
         "students": {
           "status": {
             "active": "Actif",
-            "graduated": "Diplômé",
-            "suspended": "Suspendu",
-            "expelled": "Expulsé"
+            "academic_leave": "Congé académique",
+            "expelled": "Expulsé",
+            "graduated": "Diplômé"
           }
         }
       },
