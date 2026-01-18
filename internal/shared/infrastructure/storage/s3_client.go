@@ -22,6 +22,7 @@ type S3Client struct {
 	maxSize        int64
 	publicEndpoint string // External endpoint for presigned URLs
 	useSSL         bool
+	publicUseSSL   bool // SSL for public URLs (via reverse proxy)
 }
 
 // FileInfo contains metadata about uploaded file
@@ -50,7 +51,7 @@ func NewS3Client(cfg config.S3Config) (*S3Client, error) {
 	if cfg.PublicEndpoint != "" && cfg.PublicEndpoint != cfg.Endpoint {
 		publicClient, err = minio.New(cfg.PublicEndpoint, &minio.Options{
 			Creds:  credentials.NewStaticV4(cfg.AccessKeyID, cfg.SecretAccessKey, ""),
-			Secure: cfg.UseSSL,
+			Secure: cfg.PublicUseSSL, // Use separate SSL setting for public URLs
 			Region: cfg.Region,
 		})
 		if err != nil {
@@ -66,6 +67,7 @@ func NewS3Client(cfg config.S3Config) (*S3Client, error) {
 		maxSize:        cfg.MaxFileSize,
 		publicEndpoint: cfg.PublicEndpoint,
 		useSSL:         cfg.UseSSL,
+		publicUseSSL:   cfg.PublicUseSSL,
 	}, nil
 }
 

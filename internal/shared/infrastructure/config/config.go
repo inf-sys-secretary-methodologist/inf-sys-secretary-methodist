@@ -112,7 +112,8 @@ type S3Config struct {
 	SecretAccessKey string
 	BucketName      string
 	Region          string
-	UseSSL          bool
+	UseSSL          bool  // SSL for internal connection to MinIO
+	PublicUseSSL    bool  // SSL for public presigned URLs (via reverse proxy like Caddy)
 	MaxFileSize     int64 // max file size in bytes
 }
 
@@ -171,6 +172,7 @@ func Load() (*Config, error) {
 			BucketName:      getEnv("S3_BUCKET_NAME", "documents"),
 			Region:          getEnv("S3_REGION", "us-east-1"),
 			UseSSL:          getEnvAsBool("S3_USE_SSL", false),
+			PublicUseSSL:    getEnvAsBool("S3_PUBLIC_USE_SSL", false),
 			MaxFileSize:     getEnvAsInt64("S3_MAX_FILE_SIZE", 50*1024*1024), // 50MB default
 		},
 		Telegram: TelegramConfig{

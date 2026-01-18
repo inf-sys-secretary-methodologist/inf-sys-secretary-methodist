@@ -137,6 +137,7 @@ services:
       S3_BUCKET_NAME: ${S3_BUCKET_NAME:-documents}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_USE_SSL: ${S3_USE_SSL:-false}
+      S3_PUBLIC_USE_SSL: ${S3_PUBLIC_USE_SSL:-false}
       S3_MAX_FILE_SIZE: ${S3_MAX_FILE_SIZE:-104857600}
 
       # Application
