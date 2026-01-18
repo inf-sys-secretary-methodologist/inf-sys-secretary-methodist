@@ -92,4 +92,4 @@ frontend/storybook-static/
 runtime-state/
 
 # Taskmaster
-.taskmaster/
+.taskmaster/.taskmaster/tasks/tasks.json
