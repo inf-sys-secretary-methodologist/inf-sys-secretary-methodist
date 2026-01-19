@@ -16,6 +16,7 @@ interface AppearanceState {
   // State
   background: BackgroundConfig
   reducedMotion: boolean
+  _hasHydrated: boolean
 
   // Actions
   setBackgroundType: (type: BackgroundType) => void
@@ -24,6 +25,7 @@ interface AppearanceState {
   setBackgroundIntensity: (intensity: number) => void
   setReducedMotion: (reduced: boolean) => void
   resetToDefaults: () => void
+  setHasHydrated: (state: boolean) => void
 }
 
 const defaultBackground: BackgroundConfig = {
@@ -39,6 +41,7 @@ export const useAppearanceStore = create<AppearanceState>()(
       // Initial state
       background: defaultBackground,
       reducedMotion: false,
+      _hasHydrated: false,
 
       // Actions
       setBackgroundType: (type) =>
@@ -68,6 +71,8 @@ export const useAppearanceStore = create<AppearanceState>()(
           background: defaultBackground,
           reducedMotion: false,
         }),
+
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {
       name: 'appearance-settings',
@@ -75,6 +80,12 @@ export const useAppearanceStore = create<AppearanceState>()(
         background: state.background,
         reducedMotion: state.reducedMotion,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
     }
   )
 )
+
+// Hook to check if store has hydrated
+export const useAppearanceHydrated = () => useAppearanceStore((state) => state._hasHydrated)
