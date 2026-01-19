@@ -169,6 +169,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
     container_name: frontend-dev
     ports:
       - "${FRONTEND_PORT:-3000}:3000"

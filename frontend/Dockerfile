@@ -20,8 +20,9 @@ COPY --from=deps /app/node_modules ./node_modules
 # Копируем исходники
 COPY . .
 
-# Build-time переменные
-ENV NEXT_PUBLIC_API_URL=http://localhost:8080
+# Build-time переменные (передаются через docker compose build args)
+ARG NEXT_PUBLIC_API_URL=http://localhost:8080
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Собираем приложение
