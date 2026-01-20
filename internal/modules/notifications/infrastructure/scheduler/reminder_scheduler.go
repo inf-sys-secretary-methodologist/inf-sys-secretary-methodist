@@ -239,17 +239,15 @@ func (s *ReminderScheduler) sendInAppReminder(ctx context.Context, reminder *sch
 	return s.notificationRepo.Create(ctx, notification)
 }
 
-// sendPushReminder sends a push notification (placeholder for future implementation)
+// sendPushReminder sends a push notification.
+// Currently falls back to in-app notification; Firebase FCM integration planned for future.
 func (s *ReminderScheduler) sendPushReminder(ctx context.Context, reminder *scheduleEntities.EventReminder, event *scheduleEntities.Event) error {
-	// TODO: Implement push notifications via Firebase FCM
-	// For now, fall back to in-app notification
 	return s.sendInAppReminder(ctx, reminder, event)
 }
 
-// sendTelegramReminder sends a Telegram notification (placeholder for Composio integration)
+// sendTelegramReminder sends a Telegram notification.
+// Currently falls back to in-app notification; Telegram bot integration planned for future.
 func (s *ReminderScheduler) sendTelegramReminder(ctx context.Context, reminder *scheduleEntities.EventReminder, event *scheduleEntities.Event) error {
-	// TODO: Implement via Composio Telegram service
-	// For now, fall back to in-app notification
 	return s.sendInAppReminder(ctx, reminder, event)
 }
 

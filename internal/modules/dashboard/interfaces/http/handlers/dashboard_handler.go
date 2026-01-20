@@ -128,8 +128,8 @@ func (h *DashboardHandler) Export(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement actual export functionality
-	// For now, return a placeholder response
+	// Export functionality placeholder - returns stub response.
+	// Actual PDF/XLSX generation to be implemented when export requirements are finalized.
 	c.JSON(http.StatusOK, response.Success(dto.ExportDashboardOutput{
 		FileURL:   "/api/files/dashboard-export." + input.Format,
 		FileName:  "dashboard-export." + input.Format,

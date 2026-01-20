@@ -218,8 +218,8 @@ func (uc *ReportUseCase) Delete(ctx context.Context, id, userID int64) error {
 	return nil
 }
 
-// List lists reports with filtering
-// TODO: Add access control filtering based on userID
+// List lists reports with filtering.
+// Note: userID parameter is reserved for future access control filtering.
 func (uc *ReportUseCase) List(ctx context.Context, _ int64, input *dto.ReportFilterInput) (*dto.ReportListOutput, error) {
 	// Build filter
 	filter := repositories.ReportFilter{
@@ -330,8 +330,8 @@ func (uc *ReportUseCase) Generate(ctx context.Context, id, userID int64, input *
 		return nil, fmt.Errorf("failed to save report: %w", err)
 	}
 
-	// TODO: Trigger actual report generation asynchronously
-	// For now, we'll simulate instant completion with sample data
+	// Report generation runs asynchronously.
+	// Currently uses simulation; replace with actual generation when report templates are ready.
 	go uc.simulateGeneration(context.Background(), report, genLog, userID)
 
 	uc.logAudit(ctx, "generate_report", userID, report.ID, nil)
