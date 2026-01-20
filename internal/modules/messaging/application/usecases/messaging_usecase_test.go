@@ -173,7 +173,7 @@ func TestMessagingUseCase_CreateDirectConversation(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		input := dto.CreateDirectConversationInput{
 			RecipientID: 2,
@@ -196,7 +196,7 @@ func TestMessagingUseCase_CreateDirectConversation(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		existingConv := &entities.Conversation{
 			ID:   1,
@@ -227,7 +227,7 @@ func TestMessagingUseCase_CreateGroupConversation(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		description := "Test group description"
 		input := dto.CreateGroupConversationInput{
@@ -259,7 +259,7 @@ func TestMessagingUseCase_GetConversation(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		now := time.Now()
 		conv := &entities.Conversation{
@@ -293,7 +293,7 @@ func TestMessagingUseCase_GetConversation(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		conv := &entities.Conversation{
 			ID:   1,
@@ -324,7 +324,7 @@ func TestMessagingUseCase_ListConversations(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		now := time.Now()
 		conversations := []*entities.Conversation{
@@ -357,7 +357,7 @@ func TestMessagingUseCase_SendMessage(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		participant := &entities.Participant{
 			ConversationID: 1,
@@ -389,7 +389,7 @@ func TestMessagingUseCase_SendMessage(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		participant := &entities.Participant{
 			ConversationID: 1,
@@ -434,7 +434,7 @@ func TestMessagingUseCase_GetMessages(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		participant := &entities.Participant{
 			ConversationID: 1,
@@ -470,7 +470,7 @@ func TestMessagingUseCase_GetMessages(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		participant := &entities.Participant{
 			ConversationID: 1,
@@ -510,7 +510,7 @@ func TestMessagingUseCase_EditMessage(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		now := time.Now()
 		msg := &entities.Message{
@@ -544,7 +544,7 @@ func TestMessagingUseCase_EditMessage(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		now := time.Now()
 		msg := &entities.Message{
@@ -580,7 +580,7 @@ func TestMessagingUseCase_DeleteMessage(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		now := time.Now()
 		msg := &entities.Message{
@@ -618,7 +618,7 @@ func TestMessagingUseCase_DeleteMessage(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		now := time.Now()
 		msg := &entities.Message{
@@ -656,7 +656,7 @@ func TestMessagingUseCase_DeleteMessage(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		now := time.Now()
 		msg := &entities.Message{
@@ -698,7 +698,7 @@ func TestMessagingUseCase_MarkAsRead(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		participant := &entities.Participant{
 			ConversationID: 1,
@@ -725,7 +725,7 @@ func TestMessagingUseCase_SearchMessages(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		participant := &entities.Participant{
 			ConversationID: 1,
@@ -761,7 +761,7 @@ func TestMessagingUseCase_AddParticipants(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		conv := &entities.Conversation{
 			ID:   1,
@@ -792,7 +792,7 @@ func TestMessagingUseCase_AddParticipants(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		conv := &entities.Conversation{
 			ID:   1,
@@ -818,7 +818,7 @@ func TestMessagingUseCase_AddParticipants(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		conv := &entities.Conversation{
 			ID:   1,
@@ -851,7 +851,7 @@ func TestMessagingUseCase_LeaveConversation(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		conv := &entities.Conversation{
 			ID:   1,
@@ -879,7 +879,7 @@ func TestMessagingUseCase_LeaveConversation(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		conv := &entities.Conversation{
 			ID:   1,
@@ -901,7 +901,7 @@ func TestMessagingUseCase_LeaveConversation(t *testing.T) {
 		logger := createTestLogger()
 		hub := websocket.NewHub(logger)
 
-		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil)
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
 		conv := &entities.Conversation{
 			ID:   1,

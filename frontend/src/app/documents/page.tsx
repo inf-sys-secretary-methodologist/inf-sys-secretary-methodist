@@ -498,17 +498,12 @@ export default function DocumentsPage() {
                       </span>
                     </>
                   ) : (
-                    <>
-                      <span
-                        className="text-blue-700 dark:text-blue-300 text-sm"
-                        dangerouslySetInnerHTML={{
-                          __html: t('searchResults', {
-                            count: searchTotal,
-                            query: filters.search || '',
-                          }),
-                        }}
-                      />
-                    </>
+                    <span className="text-blue-700 dark:text-blue-300 text-sm">
+                      {t('searchResults', {
+                        count: searchTotal,
+                        query: filters.search || '',
+                      })}
+                    </span>
                   )}
                 </div>
                 {searchTotal > 0 && !isSearching && (

@@ -72,10 +72,7 @@ func checkOrigin(r *http.Request) bool {
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		// TODO: Use checkOrigin in production
-		return true
-	},
+	CheckOrigin:     checkOrigin,
 }
 
 // Client is a middleman between the websocket connection and the hub.
