@@ -266,6 +266,56 @@ func (m *MockDocumentCategoryRepository) GetDocumentCount(ctx context.Context, i
 	return args.Get(0).(int64), args.Error(1)
 }
 
+func TestDocumentUseCase_Create(t *testing.T) {
+	mockDocRepo := new(MockDocumentRepository)
+	mockTypeRepo := new(MockDocumentTypeRepository)
+	mockCategoryRepo := new(MockDocumentCategoryRepository)
+
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
+
+	ctx := context.Background()
+
+	t.Run("successfully creates document", func(t *testing.T) {
+		docType := &entities.DocumentType{ID: 1, Name: "Приказ", Code: "order"}
+
+		mockTypeRepo.On("GetByID", ctx, int64(1)).Return(docType, nil).Once()
+		mockDocRepo.On("Create", ctx, mock.AnythingOfType("*entities.Document")).Return(nil).Once()
+		mockDocRepo.On("AddHistory", ctx, mock.AnythingOfType("*entities.DocumentHistory")).Return(nil).Once()
+
+		input := dto.CreateDocumentInput{
+			Title:          "Новый документ",
+			DocumentTypeID: 1,
+			Subject:        strPtr("Тестовая тема"),
+			Content:        strPtr("Содержимое документа"),
+		}
+
+		result, err := usecase.Create(ctx, input, 1)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "Новый документ", result.Title)
+
+		mockTypeRepo.AssertExpectations(t)
+		mockDocRepo.AssertExpectations(t)
+	})
+
+	t.Run("fails with invalid document type", func(t *testing.T) {
+		mockTypeRepo.On("GetByID", ctx, int64(999)).Return(nil, assert.AnError).Once()
+
+		input := dto.CreateDocumentInput{
+			Title:          "Документ",
+			DocumentTypeID: 999,
+		}
+
+		result, err := usecase.Create(ctx, input, 1)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+
+		mockTypeRepo.AssertExpectations(t)
+	})
+}
+
 func TestDocumentUseCase_GetByID(t *testing.T) {
 	mockDocRepo := new(MockDocumentRepository)
 	mockTypeRepo := new(MockDocumentTypeRepository)

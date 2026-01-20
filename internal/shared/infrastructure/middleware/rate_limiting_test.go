@@ -285,10 +285,10 @@ func TestRateLimitConfig_DefaultValues(t *testing.T) {
 	config := LoadRateLimitConfig()
 
 	// Проверяем default значения
-	assert.Equal(t, 10, config.PublicRequestsPerMinute)
-	assert.Equal(t, 5, config.PublicBurst)
-	assert.Equal(t, 60, config.AuthRequestsPerMinute)
-	assert.Equal(t, 10, config.AuthBurst)
+	assert.Equal(t, 100, config.PublicRequestsPerMinute)
+	assert.Equal(t, 50, config.PublicBurst)
+	assert.Equal(t, 600, config.AuthRequestsPerMinute)
+	assert.Equal(t, 100, config.AuthBurst)
 }
 
 func TestRateLimitConfig_GetLimiters(t *testing.T) {
