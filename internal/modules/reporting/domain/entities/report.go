@@ -18,43 +18,42 @@ var (
 )
 
 // Report represents a generated report
-// Aligned with migrations/006_create_reports_schema.up.sql - reports table
 type Report struct {
-	ID           int64               `db:"id" json:"id"`
-	ReportTypeID int64               `db:"report_type_id" json:"report_type_id"`
-	Title        string              `db:"title" json:"title"`
-	Description  *string             `db:"description" json:"description,omitempty"`
-	PeriodStart  *time.Time          `db:"period_start" json:"period_start,omitempty"`
-	PeriodEnd    *time.Time          `db:"period_end" json:"period_end,omitempty"`
-	AuthorID     int64               `db:"author_id" json:"author_id"`
-	Status       domain.ReportStatus `db:"status" json:"status"`
+	ID           int64               `json:"id"`
+	ReportTypeID int64               `json:"report_type_id"`
+	Title        string              `json:"title"`
+	Description  *string             `json:"description,omitempty"`
+	PeriodStart  *time.Time          `json:"period_start,omitempty"`
+	PeriodEnd    *time.Time          `json:"period_end,omitempty"`
+	AuthorID     int64               `json:"author_id"`
+	Status       domain.ReportStatus `json:"status"`
 
 	// File information
-	FileName *string `db:"file_name" json:"file_name,omitempty"`
-	FilePath *string `db:"file_path" json:"file_path,omitempty"`
-	FileSize *int64  `db:"file_size" json:"file_size,omitempty"`
-	MimeType *string `db:"mime_type" json:"mime_type,omitempty"`
+	FileName *string `json:"file_name,omitempty"`
+	FilePath *string `json:"file_path,omitempty"`
+	FileSize *int64  `json:"file_size,omitempty"`
+	MimeType *string `json:"mime_type,omitempty"`
 
 	// Report data
-	Parameters json.RawMessage `db:"parameters" json:"parameters,omitempty"`
-	Data       json.RawMessage `db:"data" json:"data,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
+	Data       json.RawMessage `json:"data,omitempty"`
 
 	// Review information
-	ReviewerComment *string    `db:"reviewer_comment" json:"reviewer_comment,omitempty"`
-	ReviewedBy      *int64     `db:"reviewed_by" json:"reviewed_by,omitempty"`
-	ReviewedAt      *time.Time `db:"reviewed_at" json:"reviewed_at,omitempty"`
+	ReviewerComment *string    `json:"reviewer_comment,omitempty"`
+	ReviewedBy      *int64     `json:"reviewed_by,omitempty"`
+	ReviewedAt      *time.Time `json:"reviewed_at,omitempty"`
 
 	// Publication
-	PublishedAt *time.Time `db:"published_at" json:"published_at,omitempty"`
-	IsPublic    bool       `db:"is_public" json:"is_public"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
+	IsPublic    bool       `json:"is_public"`
 
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
-	// Associations (not stored in DB, loaded separately)
-	ReportType *ReportType     `db:"-" json:"report_type,omitempty"`
-	Access     []ReportAccess  `db:"-" json:"access,omitempty"`
-	Comments   []ReportComment `db:"-" json:"comments,omitempty"`
+	// Associations (loaded separately)
+	ReportType *ReportType     `json:"report_type,omitempty"`
+	Access     []ReportAccess  `json:"access,omitempty"`
+	Comments   []ReportComment `json:"comments,omitempty"`
 }
 
 // NewReport creates a new report in draft status

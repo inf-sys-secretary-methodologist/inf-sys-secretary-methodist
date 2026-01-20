@@ -4,12 +4,12 @@ import "time"
 
 // TaskWatcher represents a user watching a task.
 type TaskWatcher struct {
-	TaskID    int64     `db:"task_id" json:"task_id"`
-	UserID    int64     `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	TaskID    int64     `json:"task_id"`
+	UserID    int64     `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
 
 	// Associations
-	User *WatcherUser `db:"-" json:"user,omitempty"`
+	User *WatcherUser `json:"user,omitempty"`
 }
 
 // WatcherUser represents basic user info for watcher response.

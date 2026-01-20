@@ -5,14 +5,14 @@ import "time"
 
 // Position represents a job position/title within the organization.
 type Position struct {
-	ID          int64     `db:"id" json:"id"`
-	Name        string    `db:"name" json:"name"`
-	Code        string    `db:"code" json:"code"` // Краткий код должности
-	Description string    `db:"description" json:"description,omitempty"`
-	Level       int       `db:"level" json:"level"` // Уровень должности (для иерархии)
-	IsActive    bool      `db:"is_active" json:"is_active"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	Code        string    `json:"code"` // Краткий код должности
+	Description string    `json:"description,omitempty"`
+	Level       int       `json:"level"` // Уровень должности (для иерархии)
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // NewPosition creates a new position instance.

@@ -25,19 +25,19 @@ const (
 
 // DocumentPermission represents a permission granted to a user or role for a document
 type DocumentPermission struct {
-	ID         int64           `db:"id" json:"id"`
-	DocumentID int64           `db:"document_id" json:"document_id"`
-	UserID     *int64          `db:"user_id" json:"user_id,omitempty"`
-	Role       *UserRole       `db:"role" json:"role,omitempty"`
-	Permission PermissionLevel `db:"permission" json:"permission"`
-	GrantedBy  *int64          `db:"granted_by" json:"granted_by,omitempty"`
-	ExpiresAt  *time.Time      `db:"expires_at" json:"expires_at,omitempty"`
-	CreatedAt  time.Time       `db:"created_at" json:"created_at"`
+	ID         int64           `json:"id"`
+	DocumentID int64           `json:"document_id"`
+	UserID     *int64          `json:"user_id,omitempty"`
+	Role       *UserRole       `json:"role,omitempty"`
+	Permission PermissionLevel `json:"permission"`
+	GrantedBy  *int64          `json:"granted_by,omitempty"`
+	ExpiresAt  *time.Time      `json:"expires_at,omitempty"`
+	CreatedAt  time.Time       `json:"created_at"`
 
 	// Populated via JOIN
-	UserName      *string `db:"-" json:"user_name,omitempty"`
-	UserEmail     *string `db:"-" json:"user_email,omitempty"`
-	GrantedByName *string `db:"-" json:"granted_by_name,omitempty"`
+	UserName      *string `json:"user_name,omitempty"`
+	UserEmail     *string `json:"user_email,omitempty"`
+	GrantedByName *string `json:"granted_by_name,omitempty"`
 }
 
 // IsExpired checks if the permission has expired

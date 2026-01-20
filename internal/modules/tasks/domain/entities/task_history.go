@@ -4,16 +4,16 @@ import "time"
 
 // TaskHistory represents a history entry for task changes.
 type TaskHistory struct {
-	ID        int64     `db:"id" json:"id"`
-	TaskID    int64     `db:"task_id" json:"task_id"`
-	UserID    *int64    `db:"user_id" json:"user_id,omitempty"`
-	FieldName string    `db:"field_name" json:"field_name"`
-	OldValue  *string   `db:"old_value" json:"old_value,omitempty"`
-	NewValue  *string   `db:"new_value" json:"new_value,omitempty"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        int64     `json:"id"`
+	TaskID    int64     `json:"task_id"`
+	UserID    *int64    `json:"user_id,omitempty"`
+	FieldName string    `json:"field_name"`
+	OldValue  *string   `json:"old_value,omitempty"`
+	NewValue  *string   `json:"new_value,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 
 	// Associations
-	User *HistoryUser `db:"-" json:"user,omitempty"`
+	User *HistoryUser `json:"user,omitempty"`
 }
 
 // HistoryUser represents basic user info for history response.

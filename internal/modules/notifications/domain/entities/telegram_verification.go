@@ -9,23 +9,23 @@ import (
 
 // TelegramVerificationCode represents a verification code for linking Telegram accounts
 type TelegramVerificationCode struct {
-	ID        int64      `db:"id" json:"id"`
-	UserID    int64      `db:"user_id" json:"user_id"`
-	Code      string     `db:"code" json:"code"`
-	ExpiresAt time.Time  `db:"expires_at" json:"expires_at"`
-	UsedAt    *time.Time `db:"used_at" json:"used_at,omitempty"`
-	CreatedAt time.Time  `db:"created_at" json:"created_at"`
+	ID        int64      `json:"id"`
+	UserID    int64      `json:"user_id"`
+	Code      string     `json:"code"`
+	ExpiresAt time.Time  `json:"expires_at"`
+	UsedAt    *time.Time `json:"used_at,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
 }
 
 // TelegramConnection represents a user's Telegram connection
 type TelegramConnection struct {
-	UserID            int64     `db:"user_id" json:"user_id"`
-	TelegramChatID    int64     `db:"telegram_chat_id" json:"telegram_chat_id"`
-	TelegramUsername  string    `db:"telegram_username" json:"telegram_username,omitempty"`
-	TelegramFirstName string    `db:"telegram_first_name" json:"telegram_first_name,omitempty"`
-	IsActive          bool      `db:"is_active" json:"is_active"`
-	ConnectedAt       time.Time `db:"connected_at" json:"connected_at"`
-	UpdatedAt         time.Time `db:"updated_at" json:"updated_at"`
+	UserID            int64     `json:"user_id"`
+	TelegramChatID    int64     `json:"telegram_chat_id"`
+	TelegramUsername  string    `json:"telegram_username,omitempty"`
+	TelegramFirstName string    `json:"telegram_first_name,omitempty"`
+	IsActive          bool      `json:"is_active"`
+	ConnectedAt       time.Time `json:"connected_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 // NewTelegramVerificationCode creates a new verification code for a user

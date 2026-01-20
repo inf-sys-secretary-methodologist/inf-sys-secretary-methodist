@@ -4,26 +4,26 @@ import "time"
 
 // TaskChecklist represents a checklist for a task.
 type TaskChecklist struct {
-	ID        int64     `db:"id" json:"id"`
-	TaskID    int64     `db:"task_id" json:"task_id"`
-	Title     string    `db:"title" json:"title"`
-	Position  int       `db:"position" json:"position"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        int64     `json:"id"`
+	TaskID    int64     `json:"task_id"`
+	Title     string    `json:"title"`
+	Position  int       `json:"position"`
+	CreatedAt time.Time `json:"created_at"`
 
 	// Associations
-	Items []TaskChecklistItem `db:"-" json:"items,omitempty"`
+	Items []TaskChecklistItem `json:"items,omitempty"`
 }
 
 // TaskChecklistItem represents an item in a checklist.
 type TaskChecklistItem struct {
-	ID          int64      `db:"id" json:"id"`
-	ChecklistID int64      `db:"checklist_id" json:"checklist_id"`
-	Title       string     `db:"title" json:"title"`
-	IsCompleted bool       `db:"is_completed" json:"is_completed"`
-	Position    int        `db:"position" json:"position"`
-	CompletedBy *int64     `db:"completed_by" json:"completed_by,omitempty"`
-	CompletedAt *time.Time `db:"completed_at" json:"completed_at,omitempty"`
-	CreatedAt   time.Time  `db:"created_at" json:"created_at"`
+	ID          int64      `json:"id"`
+	ChecklistID int64      `json:"checklist_id"`
+	Title       string     `json:"title"`
+	IsCompleted bool       `json:"is_completed"`
+	Position    int        `json:"position"`
+	CompletedBy *int64     `json:"completed_by,omitempty"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 // NewTaskChecklist creates a new task checklist.

@@ -16,22 +16,22 @@ const (
 
 // PublicLink represents a public sharing link for a document
 type PublicLink struct {
-	ID           int64                `db:"id" json:"id"`
-	DocumentID   int64                `db:"document_id" json:"document_id"`
-	Token        string               `db:"token" json:"token"`
-	Permission   PublicLinkPermission `db:"permission" json:"permission"`
-	CreatedBy    int64                `db:"created_by" json:"created_by"`
-	ExpiresAt    *time.Time           `db:"expires_at" json:"expires_at,omitempty"`
-	MaxUses      *int                 `db:"max_uses" json:"max_uses,omitempty"`
-	UseCount     int                  `db:"use_count" json:"use_count"`
-	PasswordHash *string              `db:"password_hash" json:"-"`
-	IsActive     bool                 `db:"is_active" json:"is_active"`
-	CreatedAt    time.Time            `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time            `db:"updated_at" json:"updated_at"`
+	ID           int64                `json:"id"`
+	DocumentID   int64                `json:"document_id"`
+	Token        string               `json:"token"`
+	Permission   PublicLinkPermission `json:"permission"`
+	CreatedBy    int64                `json:"created_by"`
+	ExpiresAt    *time.Time           `json:"expires_at,omitempty"`
+	MaxUses      *int                 `json:"max_uses,omitempty"`
+	UseCount     int                  `json:"use_count"`
+	PasswordHash *string              `json:"-"`
+	IsActive     bool                 `json:"is_active"`
+	CreatedAt    time.Time            `json:"created_at"`
+	UpdatedAt    time.Time            `json:"updated_at"`
 
 	// Populated via JOIN
-	DocumentTitle *string `db:"-" json:"document_title,omitempty"`
-	CreatedByName *string `db:"-" json:"created_by_name,omitempty"`
+	DocumentTitle *string `json:"document_title,omitempty"`
+	CreatedByName *string `json:"created_by_name,omitempty"`
 }
 
 // GenerateToken creates a secure random token for the public link

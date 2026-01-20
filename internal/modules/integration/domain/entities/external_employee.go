@@ -6,25 +6,25 @@ import (
 
 // ExternalEmployee represents an employee record from 1C system
 type ExternalEmployee struct {
-	ID               int64      `db:"id" json:"id"`
-	ExternalID       string     `db:"external_id" json:"external_id"`           // 1C GUID (Ref_Key)
-	Code             string     `db:"code" json:"code"`                         // 1C Code
-	FirstName        string     `db:"first_name" json:"first_name"`             // Имя
-	LastName         string     `db:"last_name" json:"last_name"`               // Фамилия
-	MiddleName       string     `db:"middle_name" json:"middle_name,omitempty"` // Отчество
-	Email            string     `db:"email" json:"email,omitempty"`             // Email
-	Phone            string     `db:"phone" json:"phone,omitempty"`             // Телефон
-	Position         string     `db:"position" json:"position,omitempty"`       // Должность
-	Department       string     `db:"department" json:"department,omitempty"`   // Подразделение
-	EmploymentDate   *time.Time `db:"employment_date" json:"employment_date,omitempty"`
-	DismissalDate    *time.Time `db:"dismissal_date" json:"dismissal_date,omitempty"`
-	IsActive         bool       `db:"is_active" json:"is_active"`
-	LocalUserID      *int64     `db:"local_user_id" json:"local_user_id,omitempty"` // Linked local user
-	LastSyncAt       time.Time  `db:"last_sync_at" json:"last_sync_at"`
-	ExternalDataHash string     `db:"external_data_hash" json:"external_data_hash"` // Hash for change detection
-	RawData          string     `db:"raw_data" json:"raw_data,omitempty"`           // Original JSON from 1C
-	CreatedAt        time.Time  `db:"created_at" json:"created_at"`
-	UpdatedAt        time.Time  `db:"updated_at" json:"updated_at"`
+	ID               int64      `json:"id"`
+	ExternalID       string     `json:"external_id"`           // 1C GUID (Ref_Key)
+	Code             string     `json:"code"`                  // 1C Code
+	FirstName        string     `json:"first_name"`            // Имя
+	LastName         string     `json:"last_name"`             // Фамилия
+	MiddleName       string     `json:"middle_name,omitempty"` // Отчество
+	Email            string     `json:"email,omitempty"`       // Email
+	Phone            string     `json:"phone,omitempty"`       // Телефон
+	Position         string     `json:"position,omitempty"`    // Должность
+	Department       string     `json:"department,omitempty"`  // Подразделение
+	EmploymentDate   *time.Time `json:"employment_date,omitempty"`
+	DismissalDate    *time.Time `json:"dismissal_date,omitempty"`
+	IsActive         bool       `json:"is_active"`
+	LocalUserID      *int64     `json:"local_user_id,omitempty"` // Linked local user
+	LastSyncAt       time.Time  `json:"last_sync_at"`
+	ExternalDataHash string     `json:"external_data_hash"` // Hash for change detection
+	RawData          string     `json:"raw_data,omitempty"` // Original JSON from 1C
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
 }
 
 // NewExternalEmployee creates a new external employee record

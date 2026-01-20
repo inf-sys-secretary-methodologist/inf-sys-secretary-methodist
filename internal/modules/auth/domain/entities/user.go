@@ -8,16 +8,15 @@ import (
 )
 
 // User represents a user entity in the auth domain
-// Aligned with migrations/001_create_users_table.up.sql
 type User struct {
-	ID        int64           `db:"id" json:"id"`
-	Email     string          `db:"email" json:"email"`
-	Password  string          `db:"password" json:"-"` // hashed password, не отдаём в JSON
-	Name      string          `db:"name" json:"name"`
-	Role      domain.RoleType `db:"role" json:"role"`
-	Status    UserStatus      `db:"status" json:"status"`
-	CreatedAt time.Time       `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time       `db:"updated_at" json:"updated_at"`
+	ID        int64           `json:"id"`
+	Email     string          `json:"email"`
+	Password  string          `json:"-"` // hashed password, не отдаём в JSON
+	Name      string          `json:"name"`
+	Role      domain.RoleType `json:"role"`
+	Status    UserStatus      `json:"status"`
+	CreatedAt time.Time       `json:"created_at"`
+	UpdatedAt time.Time       `json:"updated_at"`
 }
 
 // UserStatus represents user account status

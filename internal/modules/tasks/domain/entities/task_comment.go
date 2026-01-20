@@ -4,17 +4,17 @@ import "time"
 
 // TaskComment represents a comment on a task.
 type TaskComment struct {
-	ID              int64     `db:"id" json:"id"`
-	TaskID          int64     `db:"task_id" json:"task_id"`
-	AuthorID        int64     `db:"author_id" json:"author_id"`
-	Content         string    `db:"content" json:"content"`
-	ParentCommentID *int64    `db:"parent_comment_id" json:"parent_comment_id,omitempty"`
-	CreatedAt       time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
+	ID              int64     `json:"id"`
+	TaskID          int64     `json:"task_id"`
+	AuthorID        int64     `json:"author_id"`
+	Content         string    `json:"content"`
+	ParentCommentID *int64    `json:"parent_comment_id,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 
 	// Associations
-	Author  *CommentAuthor `db:"-" json:"author,omitempty"`
-	Replies []TaskComment  `db:"-" json:"replies,omitempty"`
+	Author  *CommentAuthor `json:"author,omitempty"`
+	Replies []TaskComment  `json:"replies,omitempty"`
 }
 
 // CommentAuthor represents basic author info for comment response.

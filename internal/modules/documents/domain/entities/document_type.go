@@ -6,29 +6,28 @@ import (
 )
 
 // DocumentType represents a type of document (memo, order, letter, etc.)
-// Aligned with migrations/003_create_documents_schema.up.sql
 type DocumentType struct {
-	ID                   int64     `db:"id" json:"id"`
-	Name                 string    `db:"name" json:"name"`
-	Code                 string    `db:"code" json:"code"`
-	Description          *string   `db:"description" json:"description,omitempty"`
-	TemplatePath         *string   `db:"template_path" json:"template_path,omitempty"`
-	RequiresApproval     bool      `db:"requires_approval" json:"requires_approval"`
-	RequiresRegistration bool      `db:"requires_registration" json:"requires_registration"`
-	NumberingPattern     *string   `db:"numbering_pattern" json:"numbering_pattern,omitempty"`
-	RetentionPeriod      *int      `db:"retention_period" json:"retention_period,omitempty"` // months
-	CreatedAt            time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt            time.Time `db:"updated_at" json:"updated_at"`
+	ID                   int64     `json:"id"`
+	Name                 string    `json:"name"`
+	Code                 string    `json:"code"`
+	Description          *string   `json:"description,omitempty"`
+	TemplatePath         *string   `json:"template_path,omitempty"`
+	RequiresApproval     bool      `json:"requires_approval"`
+	RequiresRegistration bool      `json:"requires_registration"`
+	NumberingPattern     *string   `json:"numbering_pattern,omitempty"`
+	RetentionPeriod      *int      `json:"retention_period,omitempty"` // months
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
 }
 
 // DocumentCategory represents a category for grouping documents
 type DocumentCategory struct {
-	ID          int64     `db:"id" json:"id"`
-	Name        string    `db:"name" json:"name"`
-	Description *string   `db:"description" json:"description,omitempty"`
-	ParentID    *int64    `db:"parent_id" json:"parent_id,omitempty"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	Description *string   `json:"description,omitempty"`
+	ParentID    *int64    `json:"parent_id,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // CategoryTreeNode represents a category with its children for tree structure
@@ -45,34 +44,34 @@ type CategoryTreeNode struct {
 
 // DocumentVersion represents a version of a document with full snapshot
 type DocumentVersion struct {
-	ID                int64                  `db:"id" json:"id"`
-	DocumentID        int64                  `db:"document_id" json:"document_id"`
-	Version           int                    `db:"version" json:"version"`
-	Title             *string                `db:"title" json:"title,omitempty"`
-	Subject           *string                `db:"subject" json:"subject,omitempty"`
-	Content           *string                `db:"content" json:"content,omitempty"`
-	Status            *string                `db:"status" json:"status,omitempty"`
-	FileName          *string                `db:"file_name" json:"file_name,omitempty"`
-	FilePath          *string                `db:"file_path" json:"file_path,omitempty"`
-	FileSize          *int64                 `db:"file_size" json:"file_size,omitempty"`
-	MimeType          *string                `db:"mime_type" json:"mime_type,omitempty"`
-	StorageKey        *string                `db:"storage_key" json:"storage_key,omitempty"`
-	Metadata          map[string]interface{} `db:"metadata" json:"metadata,omitempty"`
-	ChangedBy         int64                  `db:"changed_by" json:"changed_by"`
-	ChangedByName     *string                `db:"-" json:"changed_by_name,omitempty"` // Populated via JOIN
-	ChangeDescription *string                `db:"change_description" json:"change_description,omitempty"`
-	CreatedAt         time.Time              `db:"created_at" json:"created_at"`
+	ID                int64                  `json:"id"`
+	DocumentID        int64                  `json:"document_id"`
+	Version           int                    `json:"version"`
+	Title             *string                `json:"title,omitempty"`
+	Subject           *string                `json:"subject,omitempty"`
+	Content           *string                `json:"content,omitempty"`
+	Status            *string                `json:"status,omitempty"`
+	FileName          *string                `json:"file_name,omitempty"`
+	FilePath          *string                `json:"file_path,omitempty"`
+	FileSize          *int64                 `json:"file_size,omitempty"`
+	MimeType          *string                `json:"mime_type,omitempty"`
+	StorageKey        *string                `json:"storage_key,omitempty"`
+	Metadata          map[string]interface{} `json:"metadata,omitempty"`
+	ChangedBy         int64                  `json:"changed_by"`
+	ChangedByName     *string                `json:"changed_by_name,omitempty"` // Populated via JOIN
+	ChangeDescription *string                `json:"change_description,omitempty"`
+	CreatedAt         time.Time              `json:"created_at"`
 }
 
 // DocumentVersionDiff represents a comparison between two document versions
 type DocumentVersionDiff struct {
-	ID            int64                  `db:"id" json:"id"`
-	DocumentID    int64                  `db:"document_id" json:"document_id"`
-	FromVersion   int                    `db:"from_version" json:"from_version"`
-	ToVersion     int                    `db:"to_version" json:"to_version"`
-	ChangedFields []string               `db:"changed_fields" json:"changed_fields"`
-	DiffData      map[string]interface{} `db:"diff_data" json:"diff_data,omitempty"`
-	CreatedAt     time.Time              `db:"created_at" json:"created_at"`
+	ID            int64                  `json:"id"`
+	DocumentID    int64                  `json:"document_id"`
+	FromVersion   int                    `json:"from_version"`
+	ToVersion     int                    `json:"to_version"`
+	ChangedFields []string               `json:"changed_fields"`
+	DiffData      map[string]interface{} `json:"diff_data,omitempty"`
+	CreatedAt     time.Time              `json:"created_at"`
 }
 
 // FieldDiff represents a single field difference between versions
@@ -106,20 +105,20 @@ func NewDocumentVersion(doc *Document, changedBy int64, description string) *Doc
 
 // DocumentTag represents a tag for documents
 type DocumentTag struct {
-	ID        int64     `db:"id" json:"id"`
-	Name      string    `db:"name" json:"name"`
-	Color     *string   `db:"color" json:"color,omitempty"` // hex color
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Color     *string   `json:"color,omitempty"` // hex color
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // DocumentHistory represents an audit log entry for a document
 type DocumentHistory struct {
-	ID         int64                  `db:"id" json:"id"`
-	DocumentID int64                  `db:"document_id" json:"document_id"`
-	UserID     *int64                 `db:"user_id" json:"user_id,omitempty"`
-	Action     string                 `db:"action" json:"action"`
-	Details    map[string]interface{} `db:"details" json:"details,omitempty"`
-	IPAddress  *string                `db:"ip_address" json:"ip_address,omitempty"`
-	UserAgent  *string                `db:"user_agent" json:"user_agent,omitempty"`
-	CreatedAt  time.Time              `db:"created_at" json:"created_at"`
+	ID         int64                  `json:"id"`
+	DocumentID int64                  `json:"document_id"`
+	UserID     *int64                 `json:"user_id,omitempty"`
+	Action     string                 `json:"action"`
+	Details    map[string]interface{} `json:"details,omitempty"`
+	IPAddress  *string                `json:"ip_address,omitempty"`
+	UserAgent  *string                `json:"user_agent,omitempty"`
+	CreatedAt  time.Time              `json:"created_at"`
 }

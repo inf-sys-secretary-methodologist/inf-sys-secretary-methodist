@@ -5,15 +5,15 @@ import "time"
 
 // Department represents an organizational department/division.
 type Department struct {
-	ID          int64     `db:"id" json:"id"`
-	Name        string    `db:"name" json:"name"`
-	Code        string    `db:"code" json:"code"` // Краткий код подразделения (например, "IT", "HR")
-	Description string    `db:"description" json:"description,omitempty"`
-	ParentID    *int64    `db:"parent_id" json:"parent_id,omitempty"` // Для иерархии подразделений
-	HeadID      *int64    `db:"head_id" json:"head_id,omitempty"`     // ID руководителя подразделения
-	IsActive    bool      `db:"is_active" json:"is_active"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	Code        string    `json:"code"` // Краткий код подразделения (например, "IT", "HR")
+	Description string    `json:"description,omitempty"`
+	ParentID    *int64    `json:"parent_id,omitempty"` // Для иерархии подразделений
+	HeadID      *int64    `json:"head_id,omitempty"`   // ID руководителя подразделения
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // NewDepartment creates a new department instance.

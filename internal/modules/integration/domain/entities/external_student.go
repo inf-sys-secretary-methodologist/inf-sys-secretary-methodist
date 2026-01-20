@@ -6,30 +6,30 @@ import (
 
 // ExternalStudent represents a student record from 1C system
 type ExternalStudent struct {
-	ID               int64      `db:"id" json:"id"`
-	ExternalID       string     `db:"external_id" json:"external_id"`           // 1C GUID (Ref_Key)
-	Code             string     `db:"code" json:"code"`                         // 1C Code (зачетка)
-	FirstName        string     `db:"first_name" json:"first_name"`             // Имя
-	LastName         string     `db:"last_name" json:"last_name"`               // Фамилия
-	MiddleName       string     `db:"middle_name" json:"middle_name,omitempty"` // Отчество
-	Email            string     `db:"email" json:"email,omitempty"`             // Email
-	Phone            string     `db:"phone" json:"phone,omitempty"`             // Телефон
-	GroupName        string     `db:"group_name" json:"group_name,omitempty"`   // Группа
-	Faculty          string     `db:"faculty" json:"faculty,omitempty"`         // Факультет
-	Specialty        string     `db:"specialty" json:"specialty,omitempty"`     // Специальность
-	Course           int        `db:"course" json:"course,omitempty"`           // Курс
-	StudyForm        string     `db:"study_form" json:"study_form,omitempty"`   // Форма обучения
-	EnrollmentDate   *time.Time `db:"enrollment_date" json:"enrollment_date,omitempty"`
-	ExpulsionDate    *time.Time `db:"expulsion_date" json:"expulsion_date,omitempty"`
-	GraduationDate   *time.Time `db:"graduation_date" json:"graduation_date,omitempty"`
-	Status           string     `db:"status" json:"status"` // enrolled, graduated, expelled
-	IsActive         bool       `db:"is_active" json:"is_active"`
-	LocalUserID      *int64     `db:"local_user_id" json:"local_user_id,omitempty"` // Linked local user
-	LastSyncAt       time.Time  `db:"last_sync_at" json:"last_sync_at"`
-	ExternalDataHash string     `db:"external_data_hash" json:"external_data_hash"`
-	RawData          string     `db:"raw_data" json:"raw_data,omitempty"`
-	CreatedAt        time.Time  `db:"created_at" json:"created_at"`
-	UpdatedAt        time.Time  `db:"updated_at" json:"updated_at"`
+	ID               int64      `json:"id"`
+	ExternalID       string     `json:"external_id"`           // 1C GUID (Ref_Key)
+	Code             string     `json:"code"`                  // 1C Code (зачетка)
+	FirstName        string     `json:"first_name"`            // Имя
+	LastName         string     `json:"last_name"`             // Фамилия
+	MiddleName       string     `json:"middle_name,omitempty"` // Отчество
+	Email            string     `json:"email,omitempty"`       // Email
+	Phone            string     `json:"phone,omitempty"`       // Телефон
+	GroupName        string     `json:"group_name,omitempty"`  // Группа
+	Faculty          string     `json:"faculty,omitempty"`     // Факультет
+	Specialty        string     `json:"specialty,omitempty"`   // Специальность
+	Course           int        `json:"course,omitempty"`      // Курс
+	StudyForm        string     `json:"study_form,omitempty"`  // Форма обучения
+	EnrollmentDate   *time.Time `json:"enrollment_date,omitempty"`
+	ExpulsionDate    *time.Time `json:"expulsion_date,omitempty"`
+	GraduationDate   *time.Time `json:"graduation_date,omitempty"`
+	Status           string     `json:"status"` // enrolled, graduated, expelled
+	IsActive         bool       `json:"is_active"`
+	LocalUserID      *int64     `json:"local_user_id,omitempty"` // Linked local user
+	LastSyncAt       time.Time  `json:"last_sync_at"`
+	ExternalDataHash string     `json:"external_data_hash"`
+	RawData          string     `json:"raw_data,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
 }
 
 // Student status constants

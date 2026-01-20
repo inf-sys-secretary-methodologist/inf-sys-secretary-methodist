@@ -43,20 +43,20 @@ const (
 
 // Notification represents an in-app notification
 type Notification struct {
-	ID        int64                `db:"id" json:"id"`
-	UserID    int64                `db:"user_id" json:"user_id"`
-	Type      NotificationType     `db:"type" json:"type"`
-	Priority  NotificationPriority `db:"priority" json:"priority"`
-	Title     string               `db:"title" json:"title"`
-	Message   string               `db:"message" json:"message"`
-	Link      string               `db:"link" json:"link,omitempty"`
-	ImageURL  string               `db:"image_url" json:"image_url,omitempty"`
-	IsRead    bool                 `db:"is_read" json:"is_read"`
-	ReadAt    *time.Time           `db:"read_at" json:"read_at,omitempty"`
-	ExpiresAt *time.Time           `db:"expires_at" json:"expires_at,omitempty"`
-	Metadata  map[string]any       `db:"metadata" json:"metadata,omitempty"`
-	CreatedAt time.Time            `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time            `db:"updated_at" json:"updated_at"`
+	ID        int64                `json:"id"`
+	UserID    int64                `json:"user_id"`
+	Type      NotificationType     `json:"type"`
+	Priority  NotificationPriority `json:"priority"`
+	Title     string               `json:"title"`
+	Message   string               `json:"message"`
+	Link      string               `json:"link,omitempty"`
+	ImageURL  string               `json:"image_url,omitempty"`
+	IsRead    bool                 `json:"is_read"`
+	ReadAt    *time.Time           `json:"read_at,omitempty"`
+	ExpiresAt *time.Time           `json:"expires_at,omitempty"`
+	Metadata  map[string]any       `json:"metadata,omitempty"`
+	CreatedAt time.Time            `json:"created_at"`
+	UpdatedAt time.Time            `json:"updated_at"`
 }
 
 // NewNotification creates a new notification with default values

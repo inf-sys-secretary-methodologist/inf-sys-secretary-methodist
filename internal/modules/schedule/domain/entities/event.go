@@ -53,55 +53,55 @@ const (
 
 // RecurrenceRule represents recurrence pattern for events (RFC 5545 RRULE)
 type RecurrenceRule struct {
-	Frequency  RecurrenceFrequency `json:"frequency" db:"frequency"`               // FREQ: daily, weekly, monthly, yearly
-	Interval   int                 `json:"interval" db:"interval"`                 // INTERVAL: every N frequency units
-	Count      *int                `json:"count,omitempty" db:"count"`             // COUNT: number of occurrences
-	Until      *time.Time          `json:"until,omitempty" db:"until"`             // UNTIL: end date for recurrence
-	ByWeekday  []Weekday           `json:"by_weekday,omitempty" db:"by_weekday"`   // BYDAY: specific days of week
-	ByMonthDay []int               `json:"by_monthday,omitempty" db:"by_monthday"` // BYMONTHDAY: specific days of month
-	ByMonth    []int               `json:"by_month,omitempty" db:"by_month"`       // BYMONTH: specific months
-	WeekStart  Weekday             `json:"week_start" db:"week_start"`             // WKST: week start day
+	Frequency  RecurrenceFrequency `json:"frequency"`               // FREQ: daily, weekly, monthly, yearly
+	Interval   int                 `json:"interval"`                // INTERVAL: every N frequency units
+	Count      *int                `json:"count,omitempty"`         // COUNT: number of occurrences
+	Until      *time.Time          `json:"until,omitempty"`         // UNTIL: end date for recurrence
+	ByWeekday  []Weekday           `json:"by_weekday,omitempty"`    // BYDAY: specific days of week
+	ByMonthDay []int               `json:"by_monthday,omitempty"`   // BYMONTHDAY: specific days of month
+	ByMonth    []int               `json:"by_month,omitempty"`      // BYMONTH: specific months
+	WeekStart  Weekday             `json:"week_start"`              // WKST: week start day
 }
 
 // Event represents a calendar event entity
 type Event struct {
-	ID          int64       `db:"id" json:"id"`
-	Title       string      `db:"title" json:"title"`
-	Description *string     `db:"description" json:"description,omitempty"`
-	EventType   EventType   `db:"event_type" json:"event_type"`
-	Status      EventStatus `db:"status" json:"status"`
+	ID          int64       `json:"id"`
+	Title       string      `json:"title"`
+	Description *string     `json:"description,omitempty"`
+	EventType   EventType   `json:"event_type"`
+	Status      EventStatus `json:"status"`
 
 	// Time fields
-	StartTime time.Time  `db:"start_time" json:"start_time"`
-	EndTime   *time.Time `db:"end_time" json:"end_time,omitempty"`
-	AllDay    bool       `db:"all_day" json:"all_day"`
-	Timezone  string     `db:"timezone" json:"timezone"`
+	StartTime time.Time  `json:"start_time"`
+	EndTime   *time.Time `json:"end_time,omitempty"`
+	AllDay    bool       `json:"all_day"`
+	Timezone  string     `json:"timezone"`
 
 	// Location
-	Location *string `db:"location" json:"location,omitempty"`
+	Location *string `json:"location,omitempty"`
 
 	// Participants
-	OrganizerID    int64   `db:"organizer_id" json:"organizer_id"`
-	ParticipantIDs []int64 `db:"-" json:"participant_ids,omitempty"` // loaded separately
+	OrganizerID    int64   `json:"organizer_id"`
+	ParticipantIDs []int64 `json:"participant_ids,omitempty"` // loaded separately
 
 	// Recurrence
-	IsRecurring    bool            `db:"is_recurring" json:"is_recurring"`
-	RecurrenceRule *RecurrenceRule `db:"recurrence_rule" json:"recurrence_rule,omitempty"`
-	ParentEventID  *int64          `db:"parent_event_id" json:"parent_event_id,omitempty"` // for recurring instances
-	RecurrenceID   *time.Time      `db:"recurrence_id" json:"recurrence_id,omitempty"`     // original start time of instance
+	IsRecurring    bool            `json:"is_recurring"`
+	RecurrenceRule *RecurrenceRule `json:"recurrence_rule,omitempty"`
+	ParentEventID  *int64          `json:"parent_event_id,omitempty"` // for recurring instances
+	RecurrenceID   *time.Time      `json:"recurrence_id,omitempty"`   // original start time of instance
 
 	// Categorization
-	Color    *string `db:"color" json:"color,omitempty"` // hex color for UI
-	Priority int     `db:"priority" json:"priority"`     // 1-5, higher = more important
+	Color    *string `json:"color,omitempty"` // hex color for UI
+	Priority int     `json:"priority"`        // 1-5, higher = more important
 
 	// Metadata
-	Metadata   map[string]interface{} `db:"metadata" json:"metadata,omitempty"`
-	ExternalID *string                `db:"external_id" json:"external_id,omitempty"` // for external calendar sync
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	ExternalID *string                `json:"external_id,omitempty"` // for external calendar sync
 
 	// Audit
-	CreatedAt time.Time  `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time  `db:"updated_at" json:"updated_at"`
-	DeletedAt *time.Time `db:"deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
 // NewEvent creates a new event with default values
@@ -196,14 +196,14 @@ func (e *Event) Duration() time.Duration {
 
 // EventParticipant represents a participant in an event
 type EventParticipant struct {
-	ID             int64             `db:"id" json:"id"`
-	EventID        int64             `db:"event_id" json:"event_id"`
-	UserID         int64             `db:"user_id" json:"user_id"`
-	ResponseStatus ParticipantStatus `db:"response_status" json:"response_status"`
-	Role           ParticipantRole   `db:"role" json:"role"`
-	NotifiedAt     *time.Time        `db:"notified_at" json:"notified_at,omitempty"`
-	RespondedAt    *time.Time        `db:"responded_at" json:"responded_at,omitempty"`
-	CreatedAt      time.Time         `db:"created_at" json:"created_at"`
+	ID             int64             `json:"id"`
+	EventID        int64             `json:"event_id"`
+	UserID         int64             `json:"user_id"`
+	ResponseStatus ParticipantStatus `json:"response_status"`
+	Role           ParticipantRole   `json:"role"`
+	NotifiedAt     *time.Time        `json:"notified_at,omitempty"`
+	RespondedAt    *time.Time        `json:"responded_at,omitempty"`
+	CreatedAt      time.Time         `json:"created_at"`
 }
 
 // ParticipantStatus represents the response status of a participant
@@ -227,14 +227,14 @@ const (
 
 // EventReminder represents a reminder for an event
 type EventReminder struct {
-	ID            int64        `db:"id" json:"id"`
-	EventID       int64        `db:"event_id" json:"event_id"`
-	UserID        int64        `db:"user_id" json:"user_id"`
-	ReminderType  ReminderType `db:"reminder_type" json:"reminder_type"`
-	MinutesBefore int          `db:"minutes_before" json:"minutes_before"` // minutes before event
-	IsSent        bool         `db:"is_sent" json:"is_sent"`
-	SentAt        *time.Time   `db:"sent_at" json:"sent_at,omitempty"`
-	CreatedAt     time.Time    `db:"created_at" json:"created_at"`
+	ID            int64        `json:"id"`
+	EventID       int64        `json:"event_id"`
+	UserID        int64        `json:"user_id"`
+	ReminderType  ReminderType `json:"reminder_type"`
+	MinutesBefore int          `json:"minutes_before"` // minutes before event
+	IsSent        bool         `json:"is_sent"`
+	SentAt        *time.Time   `json:"sent_at,omitempty"`
+	CreatedAt     time.Time    `json:"created_at"`
 }
 
 // ReminderType represents the type of reminder notification

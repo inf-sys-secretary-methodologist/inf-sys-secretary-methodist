@@ -31,60 +31,59 @@ const (
 )
 
 // Document represents a document entity in the documents domain
-// Aligned with migrations/003_create_documents_schema.up.sql
 type Document struct {
-	ID             int64  `db:"id" json:"id"`
-	DocumentTypeID int64  `db:"document_type_id" json:"document_type_id"`
-	CategoryID     *int64 `db:"category_id" json:"category_id,omitempty"`
+	ID             int64  `json:"id"`
+	DocumentTypeID int64  `json:"document_type_id"`
+	CategoryID     *int64 `json:"category_id,omitempty"`
 
 	// Registration data
-	RegistrationNumber *string    `db:"registration_number" json:"registration_number,omitempty"`
-	RegistrationDate   *time.Time `db:"registration_date" json:"registration_date,omitempty"`
+	RegistrationNumber *string    `json:"registration_number,omitempty"`
+	RegistrationDate   *time.Time `json:"registration_date,omitempty"`
 
 	// Main information
-	Title   string  `db:"title" json:"title"`
-	Subject *string `db:"subject" json:"subject,omitempty"`
-	Content *string `db:"content" json:"content,omitempty"`
+	Title   string  `json:"title"`
+	Subject *string `json:"subject,omitempty"`
+	Content *string `json:"content,omitempty"`
 
 	// Author details
-	AuthorID         int64   `db:"author_id" json:"author_id"`
-	AuthorName       *string `db:"-" json:"author_name,omitempty"` // Populated via JOIN, not stored in documents table
-	AuthorDepartment *string `db:"author_department" json:"author_department,omitempty"`
-	AuthorPosition   *string `db:"author_position" json:"author_position,omitempty"`
+	AuthorID         int64   `json:"author_id"`
+	AuthorName       *string `json:"author_name,omitempty"` // Populated via JOIN
+	AuthorDepartment *string `json:"author_department,omitempty"`
+	AuthorPosition   *string `json:"author_position,omitempty"`
 
 	// Recipient details
-	RecipientID         *int64  `db:"recipient_id" json:"recipient_id,omitempty"`
-	RecipientName       *string `db:"-" json:"recipient_name,omitempty"` // Populated via JOIN, not stored in documents table
-	RecipientDepartment *string `db:"recipient_department" json:"recipient_department,omitempty"`
-	RecipientPosition   *string `db:"recipient_position" json:"recipient_position,omitempty"`
-	RecipientExternal   *string `db:"recipient_external" json:"recipient_external,omitempty"`
+	RecipientID         *int64  `json:"recipient_id,omitempty"`
+	RecipientName       *string `json:"recipient_name,omitempty"` // Populated via JOIN
+	RecipientDepartment *string `json:"recipient_department,omitempty"`
+	RecipientPosition   *string `json:"recipient_position,omitempty"`
+	RecipientExternal   *string `json:"recipient_external,omitempty"`
 
 	// Status and workflow
-	Status DocumentStatus `db:"status" json:"status"`
+	Status DocumentStatus `json:"status"`
 
 	// File information
-	FileName *string `db:"file_name" json:"file_name,omitempty"`
-	FilePath *string `db:"file_path" json:"file_path,omitempty"`
-	FileSize *int64  `db:"file_size" json:"file_size,omitempty"`
-	MimeType *string `db:"mime_type" json:"mime_type,omitempty"`
+	FileName *string `json:"file_name,omitempty"`
+	FilePath *string `json:"file_path,omitempty"`
+	FileSize *int64  `json:"file_size,omitempty"`
+	MimeType *string `json:"mime_type,omitempty"`
 
 	// Versioning
-	Version          int    `db:"version" json:"version"`
-	ParentDocumentID *int64 `db:"parent_document_id" json:"parent_document_id,omitempty"`
+	Version          int    `json:"version"`
+	ParentDocumentID *int64 `json:"parent_document_id,omitempty"`
 
 	// Deadlines
-	Deadline      *time.Time `db:"deadline" json:"deadline,omitempty"`
-	ExecutionDate *time.Time `db:"execution_date" json:"execution_date,omitempty"`
+	Deadline      *time.Time `json:"deadline,omitempty"`
+	ExecutionDate *time.Time `json:"execution_date,omitempty"`
 
 	// Metadata
-	Metadata   map[string]interface{} `db:"metadata" json:"metadata,omitempty"`
-	IsPublic   bool                   `db:"is_public" json:"is_public"`
-	Importance DocumentImportance     `db:"importance" json:"importance"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	IsPublic   bool                   `json:"is_public"`
+	Importance DocumentImportance     `json:"importance"`
 
 	// Audit
-	CreatedAt time.Time  `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time  `db:"updated_at" json:"updated_at"`
-	DeletedAt *time.Time `db:"deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
 // NewDocument creates a new document with default values

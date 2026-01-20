@@ -6,21 +6,21 @@ import (
 
 // SyncLog represents a synchronization operation log entry
 type SyncLog struct {
-	ID             int64          `db:"id" json:"id"`
-	EntityType     SyncEntityType `db:"entity_type" json:"entity_type"`
-	Direction      SyncDirection  `db:"direction" json:"direction"`
-	Status         SyncStatus     `db:"status" json:"status"`
-	StartedAt      time.Time      `db:"started_at" json:"started_at"`
-	CompletedAt    *time.Time     `db:"completed_at" json:"completed_at,omitempty"`
-	TotalRecords   int            `db:"total_records" json:"total_records"`
-	ProcessedCount int            `db:"processed_count" json:"processed_count"`
-	SuccessCount   int            `db:"success_count" json:"success_count"`
-	ErrorCount     int            `db:"error_count" json:"error_count"`
-	ConflictCount  int            `db:"conflict_count" json:"conflict_count"`
-	ErrorMessage   string         `db:"error_message" json:"error_message,omitempty"`
-	Metadata       map[string]any `db:"metadata" json:"metadata,omitempty"`
-	CreatedAt      time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt      time.Time      `db:"updated_at" json:"updated_at"`
+	ID             int64          `json:"id"`
+	EntityType     SyncEntityType `json:"entity_type"`
+	Direction      SyncDirection  `json:"direction"`
+	Status         SyncStatus     `json:"status"`
+	StartedAt      time.Time      `json:"started_at"`
+	CompletedAt    *time.Time     `json:"completed_at,omitempty"`
+	TotalRecords   int            `json:"total_records"`
+	ProcessedCount int            `json:"processed_count"`
+	SuccessCount   int            `json:"success_count"`
+	ErrorCount     int            `json:"error_count"`
+	ConflictCount  int            `json:"conflict_count"`
+	ErrorMessage   string         `json:"error_message,omitempty"`
+	Metadata       map[string]any `json:"metadata,omitempty"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
 }
 
 // NewSyncLog creates a new sync log entry

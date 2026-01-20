@@ -21,14 +21,13 @@ const (
 )
 
 // ReportHistory represents a history entry for report changes
-// Aligned with migrations/006_create_reports_schema.up.sql - report_history table
 type ReportHistory struct {
-	ID        int64           `db:"id" json:"id"`
-	ReportID  int64           `db:"report_id" json:"report_id"`
-	UserID    *int64          `db:"user_id" json:"user_id,omitempty"`
-	Action    ReportAction    `db:"action" json:"action"`
-	Details   json.RawMessage `db:"details" json:"details,omitempty"`
-	CreatedAt time.Time       `db:"created_at" json:"created_at"`
+	ID        int64           `json:"id"`
+	ReportID  int64           `json:"report_id"`
+	UserID    *int64          `json:"user_id,omitempty"`
+	Action    ReportAction    `json:"action"`
+	Details   json.RawMessage `json:"details,omitempty"`
+	CreatedAt time.Time       `json:"created_at"`
 }
 
 // NewReportHistory creates a new history entry
@@ -60,16 +59,15 @@ func (rh *ReportHistory) GetDetails(target any) error {
 }
 
 // ReportGenerationLog represents a log entry for report generation
-// Aligned with migrations/006_create_reports_schema.up.sql - report_generation_log table
 type ReportGenerationLog struct {
-	ID               int64                   `db:"id" json:"id"`
-	ReportID         int64                   `db:"report_id" json:"report_id"`
-	StartedAt        time.Time               `db:"started_at" json:"started_at"`
-	CompletedAt      *time.Time              `db:"completed_at" json:"completed_at,omitempty"`
-	Status           domain.GenerationStatus `db:"status" json:"status"`
-	ErrorMessage     *string                 `db:"error_message" json:"error_message,omitempty"`
-	DurationSeconds  *int                    `db:"duration_seconds" json:"duration_seconds,omitempty"`
-	RecordsProcessed *int                    `db:"records_processed" json:"records_processed,omitempty"`
+	ID               int64                   `json:"id"`
+	ReportID         int64                   `json:"report_id"`
+	StartedAt        time.Time               `json:"started_at"`
+	CompletedAt      *time.Time              `json:"completed_at,omitempty"`
+	Status           domain.GenerationStatus `json:"status"`
+	ErrorMessage     *string                 `json:"error_message,omitempty"`
+	DurationSeconds  *int                    `json:"duration_seconds,omitempty"`
+	RecordsProcessed *int                    `json:"records_processed,omitempty"`
 }
 
 // NewReportGenerationLog creates a new generation log entry

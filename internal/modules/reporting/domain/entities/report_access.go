@@ -7,15 +7,14 @@ import (
 )
 
 // ReportAccess represents access permissions for a report
-// Aligned with migrations/006_create_reports_schema.up.sql - report_access table
 type ReportAccess struct {
-	ID         int64                   `db:"id" json:"id"`
-	ReportID   int64                   `db:"report_id" json:"report_id"`
-	UserID     *int64                  `db:"user_id" json:"user_id,omitempty"`
-	Role       *domain.AccessRole      `db:"role" json:"role,omitempty"`
-	Permission domain.ReportPermission `db:"permission" json:"permission"`
-	GrantedBy  *int64                  `db:"granted_by" json:"granted_by,omitempty"`
-	CreatedAt  time.Time               `db:"created_at" json:"created_at"`
+	ID         int64                   `json:"id"`
+	ReportID   int64                   `json:"report_id"`
+	UserID     *int64                  `json:"user_id,omitempty"`
+	Role       *domain.AccessRole      `json:"role,omitempty"`
+	Permission domain.ReportPermission `json:"permission"`
+	GrantedBy  *int64                  `json:"granted_by,omitempty"`
+	CreatedAt  time.Time               `json:"created_at"`
 }
 
 // NewReportAccessForUser creates access for a specific user
@@ -51,14 +50,13 @@ func (ra *ReportAccess) IsForRole() bool {
 }
 
 // ReportComment represents a comment on a report
-// Aligned with migrations/006_create_reports_schema.up.sql - report_comments table
 type ReportComment struct {
-	ID        int64     `db:"id" json:"id"`
-	ReportID  int64     `db:"report_id" json:"report_id"`
-	AuthorID  int64     `db:"author_id" json:"author_id"`
-	Content   string    `db:"content" json:"content"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	ID        int64     `json:"id"`
+	ReportID  int64     `json:"report_id"`
+	AuthorID  int64     `json:"author_id"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // NewReportComment creates a new comment
@@ -80,14 +78,13 @@ func (rc *ReportComment) Update(content string) {
 }
 
 // ReportSubscription represents a user subscription to a report type
-// Aligned with migrations/006_create_reports_schema.up.sql - report_subscriptions table
 type ReportSubscription struct {
-	ID             int64                 `db:"id" json:"id"`
-	ReportTypeID   int64                 `db:"report_type_id" json:"report_type_id"`
-	UserID         int64                 `db:"user_id" json:"user_id"`
-	DeliveryMethod domain.DeliveryMethod `db:"delivery_method" json:"delivery_method"`
-	IsActive       bool                  `db:"is_active" json:"is_active"`
-	CreatedAt      time.Time             `db:"created_at" json:"created_at"`
+	ID             int64                 `json:"id"`
+	ReportTypeID   int64                 `json:"report_type_id"`
+	UserID         int64                 `json:"user_id"`
+	DeliveryMethod domain.DeliveryMethod `json:"delivery_method"`
+	IsActive       bool                  `json:"is_active"`
+	CreatedAt      time.Time             `json:"created_at"`
 }
 
 // NewReportSubscription creates a new subscription

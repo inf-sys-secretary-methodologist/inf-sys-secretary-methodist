@@ -24,26 +24,26 @@ var (
 
 // Announcement represents a news or announcement entity.
 type Announcement struct {
-	ID             int64                       `db:"id" json:"id"`
-	Title          string                      `db:"title" json:"title"`
-	Content        string                      `db:"content" json:"content"`
-	Summary        *string                     `db:"summary" json:"summary,omitempty"`
-	AuthorID       int64                       `db:"author_id" json:"author_id"`
-	Status         domain.AnnouncementStatus   `db:"status" json:"status"`
-	Priority       domain.AnnouncementPriority `db:"priority" json:"priority"`
-	TargetAudience domain.TargetAudience       `db:"target_audience" json:"target_audience"`
-	PublishAt      *time.Time                  `db:"publish_at" json:"publish_at,omitempty"`
-	ExpireAt       *time.Time                  `db:"expire_at" json:"expire_at,omitempty"`
-	IsPinned       bool                        `db:"is_pinned" json:"is_pinned"`
-	ViewCount      int64                       `db:"view_count" json:"view_count"`
-	Tags           []string                    `db:"tags" json:"tags,omitempty"`
-	Metadata       json.RawMessage             `db:"metadata" json:"metadata,omitempty"`
-	CreatedAt      time.Time                   `db:"created_at" json:"created_at"`
-	UpdatedAt      time.Time                   `db:"updated_at" json:"updated_at"`
+	ID             int64                       `json:"id"`
+	Title          string                      `json:"title"`
+	Content        string                      `json:"content"`
+	Summary        *string                     `json:"summary,omitempty"`
+	AuthorID       int64                       `json:"author_id"`
+	Status         domain.AnnouncementStatus   `json:"status"`
+	Priority       domain.AnnouncementPriority `json:"priority"`
+	TargetAudience domain.TargetAudience       `json:"target_audience"`
+	PublishAt      *time.Time                  `json:"publish_at,omitempty"`
+	ExpireAt       *time.Time                  `json:"expire_at,omitempty"`
+	IsPinned       bool                        `json:"is_pinned"`
+	ViewCount      int64                       `json:"view_count"`
+	Tags           []string                    `json:"tags,omitempty"`
+	Metadata       json.RawMessage             `json:"metadata,omitempty"`
+	CreatedAt      time.Time                   `json:"created_at"`
+	UpdatedAt      time.Time                   `json:"updated_at"`
 
 	// Associations (not stored in DB, loaded separately)
-	Author      *AnnouncementAuthor      `db:"-" json:"author,omitempty"`
-	Attachments []AnnouncementAttachment `db:"-" json:"attachments,omitempty"`
+	Author      *AnnouncementAuthor      `json:"author,omitempty"`
+	Attachments []AnnouncementAttachment `json:"attachments,omitempty"`
 }
 
 // AnnouncementAuthor represents the author of an announcement.
@@ -55,14 +55,14 @@ type AnnouncementAuthor struct {
 
 // AnnouncementAttachment represents a file attached to an announcement.
 type AnnouncementAttachment struct {
-	ID             int64     `db:"id" json:"id"`
-	AnnouncementID int64     `db:"announcement_id" json:"announcement_id"`
-	FileName       string    `db:"file_name" json:"file_name"`
-	FilePath       string    `db:"file_path" json:"file_path"`
-	FileSize       int64     `db:"file_size" json:"file_size"`
-	MimeType       string    `db:"mime_type" json:"mime_type"`
-	UploadedBy     int64     `db:"uploaded_by" json:"uploaded_by"`
-	CreatedAt      time.Time `db:"created_at" json:"created_at"`
+	ID             int64     `json:"id"`
+	AnnouncementID int64     `json:"announcement_id"`
+	FileName       string    `json:"file_name"`
+	FilePath       string    `json:"file_path"`
+	FileSize       int64     `json:"file_size"`
+	MimeType       string    `json:"mime_type"`
+	UploadedBy     int64     `json:"uploaded_by"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 // NewAnnouncement creates a new announcement with default values.

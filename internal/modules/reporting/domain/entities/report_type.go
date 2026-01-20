@@ -8,23 +8,22 @@ import (
 )
 
 // ReportType represents a type/template of report
-// Aligned with migrations/006_create_reports_schema.up.sql - report_types table
 type ReportType struct {
-	ID           int64                  `db:"id" json:"id"`
-	Name         string                 `db:"name" json:"name"`
-	Code         string                 `db:"code" json:"code"`
-	Description  *string                `db:"description" json:"description,omitempty"`
-	Category     *domain.ReportCategory `db:"category" json:"category,omitempty"`
-	TemplatePath *string                `db:"template_path" json:"template_path,omitempty"`
-	OutputFormat domain.OutputFormat    `db:"output_format" json:"output_format"`
-	IsPeriodic   bool                   `db:"is_periodic" json:"is_periodic"`
-	PeriodType   *domain.PeriodType     `db:"period_type" json:"period_type,omitempty"`
-	CreatedAt    time.Time              `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time              `db:"updated_at" json:"updated_at"`
+	ID           int64                  `json:"id"`
+	Name         string                 `json:"name"`
+	Code         string                 `json:"code"`
+	Description  *string                `json:"description,omitempty"`
+	Category     *domain.ReportCategory `json:"category,omitempty"`
+	TemplatePath *string                `json:"template_path,omitempty"`
+	OutputFormat domain.OutputFormat    `json:"output_format"`
+	IsPeriodic   bool                   `json:"is_periodic"`
+	PeriodType   *domain.PeriodType     `json:"period_type,omitempty"`
+	CreatedAt    time.Time              `json:"created_at"`
+	UpdatedAt    time.Time              `json:"updated_at"`
 
-	// Associations (not stored in DB, loaded separately)
-	Parameters []ReportParameter `db:"-" json:"parameters,omitempty"`
-	Templates  []ReportTemplate  `db:"-" json:"templates,omitempty"`
+	// Associations (loaded separately)
+	Parameters []ReportParameter `json:"parameters,omitempty"`
+	Templates  []ReportTemplate  `json:"templates,omitempty"`
 }
 
 // NewReportType creates a new report type
@@ -54,17 +53,16 @@ func (rt *ReportType) SetCategory(category domain.ReportCategory) {
 }
 
 // ReportParameter represents a parameter definition for a report type
-// Aligned with migrations/006_create_reports_schema.up.sql - report_parameters table
 type ReportParameter struct {
-	ID            int64                `db:"id" json:"id"`
-	ReportTypeID  int64                `db:"report_type_id" json:"report_type_id"`
-	ParameterName string               `db:"parameter_name" json:"parameter_name"`
-	ParameterType domain.ParameterType `db:"parameter_type" json:"parameter_type"`
-	IsRequired    bool                 `db:"is_required" json:"is_required"`
-	DefaultValue  *string              `db:"default_value" json:"default_value,omitempty"`
-	Options       json.RawMessage      `db:"options" json:"options,omitempty"`
-	DisplayOrder  int                  `db:"display_order" json:"display_order"`
-	CreatedAt     time.Time            `db:"created_at" json:"created_at"`
+	ID            int64                `json:"id"`
+	ReportTypeID  int64                `json:"report_type_id"`
+	ParameterName string               `json:"parameter_name"`
+	ParameterType domain.ParameterType `json:"parameter_type"`
+	IsRequired    bool                 `json:"is_required"`
+	DefaultValue  *string              `json:"default_value,omitempty"`
+	Options       json.RawMessage      `json:"options,omitempty"`
+	DisplayOrder  int                  `json:"display_order"`
+	CreatedAt     time.Time            `json:"created_at"`
 }
 
 // NewReportParameter creates a new report parameter
@@ -98,16 +96,15 @@ func (rp *ReportParameter) GetOptions(target any) error {
 }
 
 // ReportTemplate represents a template for generating reports
-// Aligned with migrations/006_create_reports_schema.up.sql - report_templates table
 type ReportTemplate struct {
-	ID           int64     `db:"id" json:"id"`
-	ReportTypeID int64     `db:"report_type_id" json:"report_type_id"`
-	Name         string    `db:"name" json:"name"`
-	Content      string    `db:"content" json:"content"`
-	IsDefault    bool      `db:"is_default" json:"is_default"`
-	CreatedBy    int64     `db:"created_by" json:"created_by"`
-	CreatedAt    time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
+	ID           int64     `json:"id"`
+	ReportTypeID int64     `json:"report_type_id"`
+	Name         string    `json:"name"`
+	Content      string    `json:"content"`
+	IsDefault    bool      `json:"is_default"`
+	CreatedBy    int64     `json:"created_by"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // NewReportTemplate creates a new report template

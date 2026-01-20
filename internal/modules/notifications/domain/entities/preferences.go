@@ -22,33 +22,33 @@ type ChannelPreferences struct {
 
 // UserNotificationPreferences represents user notification preferences
 type UserNotificationPreferences struct {
-	ID     int64 `db:"id" json:"id"`
-	UserID int64 `db:"user_id" json:"user_id"`
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
 
 	// Channel preferences
-	EmailEnabled    bool `db:"email_enabled" json:"email_enabled"`
-	PushEnabled     bool `db:"push_enabled" json:"push_enabled"`
-	InAppEnabled    bool `db:"in_app_enabled" json:"in_app_enabled"`
-	TelegramEnabled bool `db:"telegram_enabled" json:"telegram_enabled"`
-	SlackEnabled    bool `db:"slack_enabled" json:"slack_enabled"`
+	EmailEnabled    bool `json:"email_enabled"`
+	PushEnabled     bool `json:"push_enabled"`
+	InAppEnabled    bool `json:"in_app_enabled"`
+	TelegramEnabled bool `json:"telegram_enabled"`
+	SlackEnabled    bool `json:"slack_enabled"`
 
 	// Quiet hours
-	QuietHoursEnabled bool   `db:"quiet_hours_enabled" json:"quiet_hours_enabled"`
-	QuietHoursStart   string `db:"quiet_hours_start" json:"quiet_hours_start"` // HH:MM format
-	QuietHoursEnd     string `db:"quiet_hours_end" json:"quiet_hours_end"`     // HH:MM format
-	Timezone          string `db:"timezone" json:"timezone"`
+	QuietHoursEnabled bool   `json:"quiet_hours_enabled"`
+	QuietHoursStart   string `json:"quiet_hours_start"` // HH:MM format
+	QuietHoursEnd     string `json:"quiet_hours_end"`   // HH:MM format
+	Timezone          string `json:"timezone"`
 
 	// Digest settings
-	DigestEnabled   bool   `db:"digest_enabled" json:"digest_enabled"`
-	DigestFrequency string `db:"digest_frequency" json:"digest_frequency"` // "daily", "weekly"
-	DigestTime      string `db:"digest_time" json:"digest_time"`           // HH:MM format
+	DigestEnabled   bool   `json:"digest_enabled"`
+	DigestFrequency string `json:"digest_frequency"` // "daily", "weekly"
+	DigestTime      string `json:"digest_time"`      // HH:MM format
 
 	// Notification type preferences (stored as JSONB)
-	TypePreferences map[NotificationType]TypePreference `db:"type_preferences" json:"type_preferences,omitempty"`
+	TypePreferences map[NotificationType]TypePreference `json:"type_preferences,omitempty"`
 
 	// Timestamps
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // TypePreference represents preferences for a specific notification type

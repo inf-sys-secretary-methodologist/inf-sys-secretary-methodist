@@ -38,34 +38,34 @@ const MaxMessageLength = 10000
 
 // Message represents a chat message.
 type Message struct {
-	ID             int64         `db:"id" json:"id"`
-	ConversationID int64         `db:"conversation_id" json:"conversation_id"`
-	SenderID       int64         `db:"sender_id" json:"sender_id"`
-	Type           MessageType   `db:"type" json:"type"`
-	Content        string        `db:"content" json:"content"`
-	ReplyToID      *int64        `db:"reply_to_id" json:"reply_to_id,omitempty"`
-	ReplyTo        *Message      `db:"-" json:"reply_to,omitempty"`
-	Attachments    []Attachment  `db:"-" json:"attachments,omitempty"`
-	IsEdited       bool          `db:"is_edited" json:"is_edited"`
-	EditedAt       *time.Time    `db:"edited_at" json:"edited_at,omitempty"`
-	IsDeleted      bool          `db:"is_deleted" json:"is_deleted"`
-	DeletedAt      *time.Time    `db:"deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt      time.Time     `db:"created_at" json:"created_at"`
+	ID             int64        `json:"id"`
+	ConversationID int64        `json:"conversation_id"`
+	SenderID       int64        `json:"sender_id"`
+	Type           MessageType  `json:"type"`
+	Content        string       `json:"content"`
+	ReplyToID      *int64       `json:"reply_to_id,omitempty"`
+	ReplyTo        *Message     `json:"reply_to,omitempty"`
+	Attachments    []Attachment `json:"attachments,omitempty"`
+	IsEdited       bool         `json:"is_edited"`
+	EditedAt       *time.Time   `json:"edited_at,omitempty"`
+	IsDeleted      bool         `json:"is_deleted"`
+	DeletedAt      *time.Time   `json:"deleted_at,omitempty"`
+	CreatedAt      time.Time    `json:"created_at"`
 	// Sender info (joined)
-	SenderName      string  `db:"sender_name" json:"sender_name,omitempty"`
-	SenderAvatarURL *string `db:"sender_avatar_url" json:"sender_avatar_url,omitempty"`
+	SenderName      string  `json:"sender_name,omitempty"`
+	SenderAvatarURL *string `json:"sender_avatar_url,omitempty"`
 }
 
 // Attachment represents a file attached to a message.
 type Attachment struct {
-	ID        int64     `db:"id" json:"id"`
-	MessageID int64     `db:"message_id" json:"message_id"`
-	FileID    int64     `db:"file_id" json:"file_id"`
-	FileName  string    `db:"file_name" json:"file_name"`
-	FileSize  int64     `db:"file_size" json:"file_size"`
-	MimeType  string    `db:"mime_type" json:"mime_type"`
-	URL       string    `db:"url" json:"url"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        int64     `json:"id"`
+	MessageID int64     `json:"message_id"`
+	FileID    int64     `json:"file_id"`
+	FileName  string    `json:"file_name"`
+	FileSize  int64     `json:"file_size"`
+	MimeType  string    `json:"mime_type"`
+	URL       string    `json:"url"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // NewTextMessage creates a new text message.
@@ -170,8 +170,8 @@ type MessageFilter struct {
 
 // MessageReadReceipt tracks when a user read messages in a conversation.
 type MessageReadReceipt struct {
-	ConversationID int64     `db:"conversation_id" json:"conversation_id"`
-	UserID         int64     `db:"user_id" json:"user_id"`
-	LastReadAt     time.Time `db:"last_read_at" json:"last_read_at"`
-	LastMessageID  int64     `db:"last_message_id" json:"last_message_id"`
+	ConversationID int64     `json:"conversation_id"`
+	UserID         int64     `json:"user_id"`
+	LastReadAt     time.Time `json:"last_read_at"`
+	LastMessageID  int64     `json:"last_message_id"`
 }

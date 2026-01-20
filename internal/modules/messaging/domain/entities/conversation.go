@@ -27,17 +27,17 @@ var (
 
 // Conversation represents a chat conversation (direct or group).
 type Conversation struct {
-	ID           int64            `db:"id" json:"id"`
-	Type         ConversationType `db:"type" json:"type"`
-	Title        *string          `db:"title" json:"title,omitempty"`
-	Description  *string          `db:"description" json:"description,omitempty"`
-	AvatarURL    *string          `db:"avatar_url" json:"avatar_url,omitempty"`
-	CreatedBy    int64            `db:"created_by" json:"created_by"`
-	LastMessage  *Message         `db:"-" json:"last_message,omitempty"`
-	UnreadCount  int              `db:"-" json:"unread_count"`
-	Participants []Participant    `db:"-" json:"participants,omitempty"`
-	CreatedAt    time.Time        `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time        `db:"updated_at" json:"updated_at"`
+	ID           int64            `json:"id"`
+	Type         ConversationType `json:"type"`
+	Title        *string          `json:"title,omitempty"`
+	Description  *string          `json:"description,omitempty"`
+	AvatarURL    *string          `json:"avatar_url,omitempty"`
+	CreatedBy    int64            `json:"created_by"`
+	LastMessage  *Message         `json:"last_message,omitempty"`
+	UnreadCount  int              `json:"unread_count"`
+	Participants []Participant    `json:"participants,omitempty"`
+	CreatedAt    time.Time        `json:"created_at"`
+	UpdatedAt    time.Time        `json:"updated_at"`
 }
 
 // ParticipantRole represents the role of a participant in a conversation.
@@ -50,17 +50,17 @@ const (
 
 // Participant represents a user's participation in a conversation.
 type Participant struct {
-	ID             int64           `db:"id" json:"id"`
-	ConversationID int64           `db:"conversation_id" json:"conversation_id"`
-	UserID         int64           `db:"user_id" json:"user_id"`
-	Role           ParticipantRole `db:"role" json:"role"`
-	LastReadAt     *time.Time      `db:"last_read_at" json:"last_read_at,omitempty"`
-	IsMuted        bool            `db:"is_muted" json:"is_muted"`
-	JoinedAt       time.Time       `db:"joined_at" json:"joined_at"`
-	LeftAt         *time.Time      `db:"left_at" json:"left_at,omitempty"`
+	ID             int64           `json:"id"`
+	ConversationID int64           `json:"conversation_id"`
+	UserID         int64           `json:"user_id"`
+	Role           ParticipantRole `json:"role"`
+	LastReadAt     *time.Time      `json:"last_read_at,omitempty"`
+	IsMuted        bool            `json:"is_muted"`
+	JoinedAt       time.Time       `json:"joined_at"`
+	LeftAt         *time.Time      `json:"left_at,omitempty"`
 	// Joined user info
-	UserName      string  `db:"user_name" json:"user_name,omitempty"`
-	UserAvatarURL *string `db:"user_avatar_url" json:"user_avatar_url,omitempty"`
+	UserName      string  `json:"user_name,omitempty"`
+	UserAvatarURL *string `json:"user_avatar_url,omitempty"`
 }
 
 // NewDirectConversation creates a new direct conversation between two users.

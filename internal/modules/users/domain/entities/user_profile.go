@@ -10,15 +10,15 @@ import (
 // UserProfile extends the auth User with organizational information.
 type UserProfile struct {
 	*authEntities.User
-	DepartmentID *int64 `db:"department_id" json:"department_id,omitempty"`
-	PositionID   *int64 `db:"position_id" json:"position_id,omitempty"`
-	Phone        string `db:"phone" json:"phone,omitempty"`
-	Avatar       string `db:"avatar" json:"avatar,omitempty"`
-	Bio          string `db:"bio" json:"bio,omitempty"`
+	DepartmentID *int64 `json:"department_id,omitempty"`
+	PositionID   *int64 `json:"position_id,omitempty"`
+	Phone        string `json:"phone,omitempty"`
+	Avatar       string `json:"avatar,omitempty"`
+	Bio          string `json:"bio,omitempty"`
 
 	// Denormalized fields for convenience (populated from joins)
-	DepartmentName string `db:"-" json:"department_name,omitempty"`
-	PositionName   string `db:"-" json:"position_name,omitempty"`
+	DepartmentName string `json:"department_name,omitempty"`
+	PositionName   string `json:"position_name,omitempty"`
 }
 
 // UserWithOrg represents a user with organizational details for list/detail views.

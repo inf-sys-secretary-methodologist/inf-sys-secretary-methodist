@@ -6,21 +6,21 @@ import (
 
 // SyncConflict represents a data conflict during synchronization
 type SyncConflict struct {
-	ID             int64              `db:"id" json:"id"`
-	SyncLogID      int64              `db:"sync_log_id" json:"sync_log_id"`
-	EntityType     SyncEntityType     `db:"entity_type" json:"entity_type"`
-	EntityID       string             `db:"entity_id" json:"entity_id"`             // External ID or local ID
-	LocalData      string             `db:"local_data" json:"local_data"`           // JSON of local record
-	ExternalData   string             `db:"external_data" json:"external_data"`     // JSON of external record
-	ConflictType   string             `db:"conflict_type" json:"conflict_type"`     // update, delete, create
-	ConflictFields []string           `db:"conflict_fields" json:"conflict_fields"` // Fields with conflicts
-	Resolution     ConflictResolution `db:"resolution" json:"resolution"`
-	ResolvedBy     *int64             `db:"resolved_by" json:"resolved_by,omitempty"`
-	ResolvedAt     *time.Time         `db:"resolved_at" json:"resolved_at,omitempty"`
-	ResolvedData   string             `db:"resolved_data" json:"resolved_data,omitempty"` // Final merged data
-	Notes          string             `db:"notes" json:"notes,omitempty"`
-	CreatedAt      time.Time          `db:"created_at" json:"created_at"`
-	UpdatedAt      time.Time          `db:"updated_at" json:"updated_at"`
+	ID             int64              `json:"id"`
+	SyncLogID      int64              `json:"sync_log_id"`
+	EntityType     SyncEntityType     `json:"entity_type"`
+	EntityID       string             `json:"entity_id"`       // External ID or local ID
+	LocalData      string             `json:"local_data"`      // JSON of local record
+	ExternalData   string             `json:"external_data"`   // JSON of external record
+	ConflictType   string             `json:"conflict_type"`   // update, delete, create
+	ConflictFields []string           `json:"conflict_fields"` // Fields with conflicts
+	Resolution     ConflictResolution `json:"resolution"`
+	ResolvedBy     *int64             `json:"resolved_by,omitempty"`
+	ResolvedAt     *time.Time         `json:"resolved_at,omitempty"`
+	ResolvedData   string             `json:"resolved_data,omitempty"` // Final merged data
+	Notes          string             `json:"notes,omitempty"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
 }
 
 // Conflict types

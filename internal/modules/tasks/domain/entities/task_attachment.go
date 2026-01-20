@@ -4,14 +4,14 @@ import "time"
 
 // TaskAttachment represents a file attachment to a task.
 type TaskAttachment struct {
-	ID         int64     `db:"id" json:"id"`
-	TaskID     int64     `db:"task_id" json:"task_id"`
-	FileName   string    `db:"file_name" json:"file_name"`
-	FilePath   string    `db:"file_path" json:"file_path"`
-	FileSize   int64     `db:"file_size" json:"file_size"`
-	MimeType   *string   `db:"mime_type" json:"mime_type,omitempty"`
-	UploadedBy int64     `db:"uploaded_by" json:"uploaded_by"`
-	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+	ID         int64     `json:"id"`
+	TaskID     int64     `json:"task_id"`
+	FileName   string    `json:"file_name"`
+	FilePath   string    `json:"file_path"`
+	FileSize   int64     `json:"file_size"`
+	MimeType   *string   `json:"mime_type,omitempty"`
+	UploadedBy int64     `json:"uploaded_by"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 // NewTaskAttachment creates a new task attachment.

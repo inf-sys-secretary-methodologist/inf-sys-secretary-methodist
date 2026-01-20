@@ -8,18 +8,18 @@ import (
 
 // Project represents a project for grouping tasks.
 type Project struct {
-	ID          int64                `db:"id" json:"id"`
-	Name        string               `db:"name" json:"name"`
-	Description *string              `db:"description" json:"description,omitempty"`
-	OwnerID     int64                `db:"owner_id" json:"owner_id"`
-	Status      domain.ProjectStatus `db:"status" json:"status"`
-	StartDate   *time.Time           `db:"start_date" json:"start_date,omitempty"`
-	EndDate     *time.Time           `db:"end_date" json:"end_date,omitempty"`
-	CreatedAt   time.Time            `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time            `db:"updated_at" json:"updated_at"`
+	ID          int64                `json:"id"`
+	Name        string               `json:"name"`
+	Description *string              `json:"description,omitempty"`
+	OwnerID     int64                `json:"owner_id"`
+	Status      domain.ProjectStatus `json:"status"`
+	StartDate   *time.Time           `json:"start_date,omitempty"`
+	EndDate     *time.Time           `json:"end_date,omitempty"`
+	CreatedAt   time.Time            `json:"created_at"`
+	UpdatedAt   time.Time            `json:"updated_at"`
 
 	// Associations
-	Tasks []Task `db:"-" json:"tasks,omitempty"`
+	Tasks []Task `json:"tasks,omitempty"`
 }
 
 // NewProject creates a new project with default values.
