@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -587,4 +588,385 @@ func TestEventUseCase_GetUpcoming(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, result, 2)
 	assert.Equal(t, "Upcoming 1", result[0].Title)
+}
+
+func TestEventUseCase_GetByDateRange(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	start := time.Now()
+	end := time.Now().Add(7 * 24 * time.Hour)
+	userID := int64(1)
+
+	events := []*entities.Event{
+		{ID: 1, Title: "Event 1", EventType: entities.EventTypeMeeting, Status: entities.EventStatusScheduled, OrganizerID: 1, StartTime: time.Now().Add(1 * time.Hour)},
+		{ID: 2, Title: "Event 2", EventType: entities.EventTypeDeadline, Status: entities.EventStatusScheduled, OrganizerID: 1, StartTime: time.Now().Add(3 * 24 * time.Hour)},
+	}
+
+	mockEventRepo.On("GetByDateRange", ctx, start, end, &userID).Return(events, nil)
+	mockParticipantRepo.On("GetByEventID", ctx, int64(1)).Return([]*entities.EventParticipant{}, nil)
+	mockParticipantRepo.On("GetByEventID", ctx, int64(2)).Return([]*entities.EventParticipant{}, nil)
+	mockReminderRepo.On("GetByEventID", ctx, int64(1)).Return([]*entities.EventReminder{}, nil)
+	mockReminderRepo.On("GetByEventID", ctx, int64(2)).Return([]*entities.EventReminder{}, nil)
+
+	result, err := uc.GetByDateRange(ctx, start, end, &userID)
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+	assert.Equal(t, "Event 1", result[0].Title)
+	assert.Equal(t, "Event 2", result[1].Title)
+}
+
+func TestEventUseCase_GetByDateRange_NoUserFilter(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	start := time.Now()
+	end := time.Now().Add(7 * 24 * time.Hour)
+
+	events := []*entities.Event{
+		{ID: 1, Title: "Public Event", EventType: entities.EventTypeMeeting, Status: entities.EventStatusScheduled, OrganizerID: 1, StartTime: time.Now().Add(1 * time.Hour)},
+	}
+
+	mockEventRepo.On("GetByDateRange", ctx, start, end, (*int64)(nil)).Return(events, nil)
+	mockParticipantRepo.On("GetByEventID", ctx, int64(1)).Return([]*entities.EventParticipant{}, nil)
+	mockReminderRepo.On("GetByEventID", ctx, int64(1)).Return([]*entities.EventReminder{}, nil)
+
+	result, err := uc.GetByDateRange(ctx, start, end, nil)
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 1)
+}
+
+func TestEventUseCase_AddParticipants(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	event := &entities.Event{
+		ID:          1,
+		Title:       "Team Meeting",
+		OrganizerID: 1,
+		EventType:   entities.EventTypeMeeting,
+		Status:      entities.EventStatusScheduled,
+		StartTime:   time.Now().Add(24 * time.Hour),
+	}
+
+	input := dto.AddParticipantsInput{
+		UserIDs: []int64{2, 3, 4},
+		Role:    "required",
+	}
+
+	mockEventRepo.On("GetByID", ctx, int64(1)).Return(event, nil)
+	mockParticipantRepo.On("AddParticipants", ctx, int64(1), []int64{2, 3, 4}, entities.ParticipantRole("required")).Return(nil)
+
+	err := uc.AddParticipants(ctx, 1, input, 1)
+
+	assert.NoError(t, err)
+	mockParticipantRepo.AssertCalled(t, "AddParticipants", ctx, int64(1), []int64{2, 3, 4}, entities.ParticipantRole("required"))
+}
+
+func TestEventUseCase_AddParticipants_NotOrganizer(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	event := &entities.Event{
+		ID:          1,
+		Title:       "Team Meeting",
+		OrganizerID: 1, // Organizer is user 1
+	}
+
+	input := dto.AddParticipantsInput{
+		UserIDs: []int64{3, 4},
+		Role:    "required",
+	}
+
+	mockEventRepo.On("GetByID", ctx, int64(1)).Return(event, nil)
+
+	err := uc.AddParticipants(ctx, 1, input, 2) // User 2 tries to add
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "только организатор")
+}
+
+func TestEventUseCase_RemoveParticipant_ByOrganizer(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	event := &entities.Event{
+		ID:          1,
+		Title:       "Team Meeting",
+		OrganizerID: 1,
+	}
+
+	mockEventRepo.On("GetByID", ctx, int64(1)).Return(event, nil)
+	mockParticipantRepo.On("RemoveParticipants", ctx, int64(1), []int64{2}).Return(nil)
+
+	err := uc.RemoveParticipant(ctx, 1, 2, 1) // Organizer (user 1) removes participant (user 2)
+
+	assert.NoError(t, err)
+	mockParticipantRepo.AssertCalled(t, "RemoveParticipants", ctx, int64(1), []int64{2})
+}
+
+func TestEventUseCase_RemoveParticipant_SelfRemoval(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	event := &entities.Event{
+		ID:          1,
+		Title:       "Team Meeting",
+		OrganizerID: 1,
+	}
+
+	mockEventRepo.On("GetByID", ctx, int64(1)).Return(event, nil)
+	mockParticipantRepo.On("RemoveParticipants", ctx, int64(1), []int64{2}).Return(nil)
+
+	err := uc.RemoveParticipant(ctx, 1, 2, 2) // User 2 removes themselves
+
+	assert.NoError(t, err)
+	mockParticipantRepo.AssertCalled(t, "RemoveParticipants", ctx, int64(1), []int64{2})
+}
+
+func TestEventUseCase_RemoveParticipant_NotAllowed(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	event := &entities.Event{
+		ID:          1,
+		Title:       "Team Meeting",
+		OrganizerID: 1, // Organizer is user 1
+	}
+
+	mockEventRepo.On("GetByID", ctx, int64(1)).Return(event, nil)
+
+	err := uc.RemoveParticipant(ctx, 1, 2, 3) // User 3 tries to remove user 2
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "недостаточно прав")
+}
+
+func TestEventUseCase_GetPendingInvitations(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	participations := []*entities.EventParticipant{
+		{ID: 1, EventID: 1, UserID: 2, ResponseStatus: entities.ParticipantStatusPending},
+		{ID: 2, EventID: 3, UserID: 2, ResponseStatus: entities.ParticipantStatusPending},
+	}
+
+	event1 := &entities.Event{
+		ID:          1,
+		Title:       "Meeting 1",
+		EventType:   entities.EventTypeMeeting,
+		Status:      entities.EventStatusScheduled,
+		OrganizerID: 1,
+		StartTime:   time.Now().Add(1 * time.Hour),
+	}
+	event3 := &entities.Event{
+		ID:          3,
+		Title:       "Meeting 3",
+		EventType:   entities.EventTypeMeeting,
+		Status:      entities.EventStatusScheduled,
+		OrganizerID: 1,
+		StartTime:   time.Now().Add(3 * time.Hour),
+	}
+
+	mockParticipantRepo.On("GetPendingInvitations", ctx, int64(2)).Return(participations, nil)
+	mockEventRepo.On("GetByID", ctx, int64(1)).Return(event1, nil)
+	mockEventRepo.On("GetByID", ctx, int64(3)).Return(event3, nil)
+	mockParticipantRepo.On("GetByEventID", ctx, int64(1)).Return([]*entities.EventParticipant{}, nil)
+	mockParticipantRepo.On("GetByEventID", ctx, int64(3)).Return([]*entities.EventParticipant{}, nil)
+	mockReminderRepo.On("GetByEventID", ctx, int64(1)).Return([]*entities.EventReminder{}, nil)
+	mockReminderRepo.On("GetByEventID", ctx, int64(3)).Return([]*entities.EventReminder{}, nil)
+
+	result, err := uc.GetPendingInvitations(ctx, 2)
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+	assert.Equal(t, "Meeting 1", result[0].Title)
+	assert.Equal(t, "Meeting 3", result[1].Title)
+}
+
+func TestEventUseCase_GetPendingInvitations_Empty(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	mockParticipantRepo.On("GetPendingInvitations", ctx, int64(2)).Return([]*entities.EventParticipant{}, nil)
+
+	result, err := uc.GetPendingInvitations(ctx, 2)
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 0)
+}
+
+func TestEventUseCase_Delete_NotOrganizer(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	existingEvent := &entities.Event{
+		ID:          1,
+		OrganizerID: 1, // Organizer is user 1
+	}
+
+	mockEventRepo.On("GetByID", ctx, int64(1)).Return(existingEvent, nil)
+
+	err := uc.Delete(ctx, 1, 2) // User 2 tries to delete
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "только организатор")
+}
+
+func TestEventUseCase_Cancel_NotOrganizer(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	event := &entities.Event{
+		ID:          1,
+		Title:       "Meeting",
+		OrganizerID: 1, // Organizer is user 1
+		Status:      entities.EventStatusScheduled,
+	}
+
+	mockEventRepo.On("GetByID", ctx, int64(1)).Return(event, nil)
+
+	result, err := uc.Cancel(ctx, 1, 2) // User 2 tries to cancel
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "только организатор")
+}
+
+func TestEventUseCase_Reschedule_NotOrganizer(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	event := &entities.Event{
+		ID:          1,
+		Title:       "Meeting",
+		OrganizerID: 1, // Organizer is user 1
+		Status:      entities.EventStatusScheduled,
+		StartTime:   time.Now(),
+	}
+
+	newStart := time.Now().Add(48 * time.Hour)
+
+	mockEventRepo.On("GetByID", ctx, int64(1)).Return(event, nil)
+
+	result, err := uc.Reschedule(ctx, 1, newStart, nil, 2) // User 2 tries to reschedule
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "только организатор")
+}
+
+func TestEventUseCase_Reschedule_InvalidTime(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	event := &entities.Event{
+		ID:          1,
+		Title:       "Meeting",
+		OrganizerID: 1,
+		Status:      entities.EventStatusScheduled,
+		StartTime:   time.Now(),
+	}
+
+	newStart := time.Now().Add(48 * time.Hour)
+	newEnd := time.Now().Add(24 * time.Hour) // End before start
+
+	mockEventRepo.On("GetByID", ctx, int64(1)).Return(event, nil)
+
+	result, err := uc.Reschedule(ctx, 1, newStart, &newEnd, 1)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "время окончания")
+}
+
+func TestEventUseCase_GetByID_NotFound(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	mockEventRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found"))
+
+	result, err := uc.GetByID(ctx, 999)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "событие не найдено")
+}
+
+func TestEventUseCase_UpdateParticipantStatus_NotParticipant(t *testing.T) {
+	ctx := context.Background()
+	mockEventRepo := new(MockEventRepository)
+	mockParticipantRepo := new(MockEventParticipantRepository)
+	mockReminderRepo := new(MockEventReminderRepository)
+
+	uc := NewEventUseCase(mockEventRepo, mockParticipantRepo, mockReminderRepo, nil, nil)
+
+	input := dto.UpdateParticipantStatusInput{
+		Status: "accepted",
+	}
+
+	mockParticipantRepo.On("GetByEventAndUser", ctx, int64(1), int64(99)).Return(nil, errors.New("not found"))
+
+	err := uc.UpdateParticipantStatus(ctx, 1, input, 99) // User 99 is not a participant
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "не являетесь участником")
 }
