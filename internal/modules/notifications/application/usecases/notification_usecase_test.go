@@ -467,4 +467,549 @@ func TestNotificationUseCase_CreateBulk(t *testing.T) {
 		assert.Len(t, output, 3)
 		mockNotifRepo.AssertExpectations(t)
 	})
+
+	t.Run("uses default priority when not specified", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		input := &dto.CreateBulkNotificationInput{
+			UserIDs: []int64{1},
+			Type:    entities.NotificationTypeSystem,
+			Title:   "Test",
+			Message: "Test message",
+		}
+
+		mockNotifRepo.On("CreateBulk", ctx, mock.AnythingOfType("[]*entities.Notification")).Return(nil)
+
+		output, err := uc.CreateBulk(ctx, input)
+
+		assert.NoError(t, err)
+		assert.Len(t, output, 1)
+		mockNotifRepo.AssertExpectations(t)
+	})
+
+	t.Run("returns error when repository fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		input := &dto.CreateBulkNotificationInput{
+			UserIDs: []int64{1, 2},
+			Type:    entities.NotificationTypeSystem,
+			Title:   "Test",
+			Message: "Test message",
+		}
+
+		mockNotifRepo.On("CreateBulk", ctx, mock.AnythingOfType("[]*entities.Notification")).Return(assert.AnError)
+
+		output, err := uc.CreateBulk(ctx, input)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create bulk notifications")
+		assert.Nil(t, output)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_DeleteAll(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("successfully deletes all notifications for user", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("DeleteByUserID", ctx, int64(1)).Return(nil)
+
+		err := uc.DeleteAll(ctx, 1)
+
+		assert.NoError(t, err)
+		mockNotifRepo.AssertExpectations(t)
+	})
+
+	t.Run("returns error when repository fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("DeleteByUserID", ctx, int64(1)).Return(assert.AnError)
+
+		err := uc.DeleteAll(ctx, 1)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete all notifications")
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_CleanupExpired(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("successfully cleans up expired notifications", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("DeleteExpired", ctx).Return(int64(5), nil)
+
+		count, err := uc.CleanupExpired(ctx)
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(5), count)
+		mockNotifRepo.AssertExpectations(t)
+	})
+
+	t.Run("returns zero when no expired notifications", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("DeleteExpired", ctx).Return(int64(0), nil)
+
+		count, err := uc.CleanupExpired(ctx)
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), count)
+		mockNotifRepo.AssertExpectations(t)
+	})
+
+	t.Run("returns error when repository fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("DeleteExpired", ctx).Return(int64(0), assert.AnError)
+
+		count, err := uc.CleanupExpired(ctx)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to cleanup expired")
+		assert.Equal(t, int64(0), count)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_SendTaskNotification(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("successfully sends task notification", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(nil)
+
+		err := uc.SendTaskNotification(ctx, 1, "Task Assigned", "You have been assigned a new task", "/tasks/1")
+
+		assert.NoError(t, err)
+		mockNotifRepo.AssertExpectations(t)
+	})
+
+	t.Run("returns error when create fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(assert.AnError)
+
+		err := uc.SendTaskNotification(ctx, 1, "Task Assigned", "You have been assigned a new task", "/tasks/1")
+
+		assert.Error(t, err)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_SendDocumentNotification(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("successfully sends document notification", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(nil)
+
+		err := uc.SendDocumentNotification(ctx, 1, "Document Shared", "A document has been shared with you", "/documents/1")
+
+		assert.NoError(t, err)
+		mockNotifRepo.AssertExpectations(t)
+	})
+
+	t.Run("returns error when create fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(assert.AnError)
+
+		err := uc.SendDocumentNotification(ctx, 1, "Document Shared", "A document has been shared with you", "/documents/1")
+
+		assert.Error(t, err)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_SendSystemNotification(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("successfully sends system notification", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(nil)
+
+		err := uc.SendSystemNotification(ctx, 1, "System Update", "System will be under maintenance")
+
+		assert.NoError(t, err)
+		mockNotifRepo.AssertExpectations(t)
+	})
+
+	t.Run("returns error when create fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(assert.AnError)
+
+		err := uc.SendSystemNotification(ctx, 1, "System Update", "System will be under maintenance")
+
+		assert.Error(t, err)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_BroadcastSystemNotification(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("successfully broadcasts system notification", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("CreateBulk", ctx, mock.AnythingOfType("[]*entities.Notification")).Return(nil)
+
+		err := uc.BroadcastSystemNotification(ctx, []int64{1, 2, 3}, "System Announcement", "Important update for all users")
+
+		assert.NoError(t, err)
+		mockNotifRepo.AssertExpectations(t)
+	})
+
+	t.Run("returns error when bulk create fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("CreateBulk", ctx, mock.AnythingOfType("[]*entities.Notification")).Return(assert.AnError)
+
+		err := uc.BroadcastSystemNotification(ctx, []int64{1, 2, 3}, "System Announcement", "Important update for all users")
+
+		assert.Error(t, err)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_Create_Error(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("returns error when repository fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		input := &dto.CreateNotificationInput{
+			UserID:   1,
+			Type:     entities.NotificationTypeSystem,
+			Priority: entities.PriorityNormal,
+			Title:    "Test Notification",
+			Message:  "Test message",
+		}
+
+		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(assert.AnError)
+
+		output, err := uc.Create(ctx, input)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create notification")
+		assert.Nil(t, output)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_List_Errors(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("returns error when list fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		input := &dto.NotificationListInput{
+			UserID: 1,
+			Limit:  50,
+		}
+
+		mockNotifRepo.On("List", ctx, mock.AnythingOfType("*entities.NotificationFilter")).Return([]*entities.Notification(nil), assert.AnError)
+
+		output, err := uc.List(ctx, input)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to list notifications")
+		assert.Nil(t, output)
+		mockNotifRepo.AssertExpectations(t)
+	})
+
+	t.Run("returns error when get unread count fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		input := &dto.NotificationListInput{
+			UserID: 1,
+			Limit:  50,
+		}
+
+		mockNotifRepo.On("List", ctx, mock.AnythingOfType("*entities.NotificationFilter")).Return([]*entities.Notification{}, nil)
+		mockNotifRepo.On("GetUnreadCount", ctx, int64(1)).Return(int64(0), assert.AnError)
+
+		output, err := uc.List(ctx, input)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get unread count")
+		assert.Nil(t, output)
+		mockNotifRepo.AssertExpectations(t)
+	})
+
+	t.Run("returns error when get stats fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		input := &dto.NotificationListInput{
+			UserID: 1,
+			Limit:  50,
+		}
+
+		mockNotifRepo.On("List", ctx, mock.AnythingOfType("*entities.NotificationFilter")).Return([]*entities.Notification{}, nil)
+		mockNotifRepo.On("GetUnreadCount", ctx, int64(1)).Return(int64(0), nil)
+		mockNotifRepo.On("GetStats", ctx, int64(1)).Return(nil, assert.AnError)
+
+		output, err := uc.List(ctx, input)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get stats")
+		assert.Nil(t, output)
+		mockNotifRepo.AssertExpectations(t)
+	})
+
+	t.Run("applies default limit when limit is zero", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		input := &dto.NotificationListInput{
+			UserID: 1,
+			Limit:  0,
+		}
+
+		stats := &entities.NotificationStats{TotalCount: 0}
+
+		mockNotifRepo.On("List", ctx, mock.MatchedBy(func(f *entities.NotificationFilter) bool {
+			return f.Limit == 50
+		})).Return([]*entities.Notification{}, nil)
+		mockNotifRepo.On("GetUnreadCount", ctx, int64(1)).Return(int64(0), nil)
+		mockNotifRepo.On("GetStats", ctx, int64(1)).Return(stats, nil)
+
+		output, err := uc.List(ctx, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, 50, output.Limit)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_GetByID_Error(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("returns error when repository fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("GetByID", ctx, int64(1)).Return(nil, assert.AnError)
+
+		output, err := uc.GetByID(ctx, 1)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get notification")
+		assert.Nil(t, output)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_MarkAsRead_Error(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("returns error when repository fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("MarkAsRead", ctx, int64(1)).Return(assert.AnError)
+
+		err := uc.MarkAsRead(ctx, 1)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to mark as read")
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_MarkAllAsRead_Error(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("returns error when repository fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("MarkAllAsRead", ctx, int64(1)).Return(assert.AnError)
+
+		err := uc.MarkAllAsRead(ctx, 1)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to mark all as read")
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_Delete_Error(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("returns error when repository fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("Delete", ctx, int64(1)).Return(assert.AnError)
+
+		err := uc.Delete(ctx, 1)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete notification")
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_GetUnreadCount_Error(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("returns error when repository fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("GetUnreadCount", ctx, int64(1)).Return(int64(0), assert.AnError)
+
+		output, err := uc.GetUnreadCount(ctx, 1)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get unread count")
+		assert.Nil(t, output)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_GetStats_Error(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("returns error when repository fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		mockNotifRepo.On("GetStats", ctx, int64(1)).Return(nil, assert.AnError)
+
+		output, err := uc.GetStats(ctx, 1)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get stats")
+		assert.Nil(t, output)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_SendEventReminderNotification_Error(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("returns error when create fails", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockEmailSvc := new(MockEmailService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+
+		eventTime := time.Now().Add(time.Hour)
+
+		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(assert.AnError)
+
+		err := uc.SendEventReminderNotification(ctx, 1, "Test Event", eventTime, "/events/1")
+
+		assert.Error(t, err)
+		mockNotifRepo.AssertExpectations(t)
+	})
 }

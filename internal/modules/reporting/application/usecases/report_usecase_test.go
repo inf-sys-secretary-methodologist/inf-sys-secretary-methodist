@@ -547,3 +547,442 @@ func TestReportUseCase_GetReportTypes(t *testing.T) {
 		assert.Len(t, output.ReportTypes, 2)
 	})
 }
+
+func TestReportUseCase_Update(t *testing.T) {
+	mockReportRepo := new(MockReportRepository)
+	mockTypeRepo := new(MockReportTypeRepository)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
+
+	t.Run("update report successfully", func(t *testing.T) {
+		report := &entities.Report{
+			ID:           1,
+			ReportTypeID: 1,
+			Title:        "Original Title",
+			AuthorID:     1,
+			Status:       domain.ReportStatusDraft,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+		mockReportRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.Report")).Return(nil).Once()
+		mockReportRepo.On("AddHistory", mock.Anything, mock.AnythingOfType("*entities.ReportHistory")).Return(nil).Once()
+
+		newTitle := "Updated Title"
+		newDesc := "New description"
+		input := &dto.UpdateReportInput{
+			Title:       &newTitle,
+			Description: &newDesc,
+		}
+
+		output, err := usecase.Update(context.Background(), 1, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, "Updated Title", output.Title)
+	})
+
+	t.Run("update by non-author without access", func(t *testing.T) {
+		report := &entities.Report{
+			ID:           1,
+			ReportTypeID: 1,
+			Title:        "Original Title",
+			AuthorID:     1,
+			Status:       domain.ReportStatusDraft,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+		mockReportRepo.On("HasAccess", mock.Anything, int64(1), int64(2), domain.ReportPermissionWrite).Return(false, nil).Once()
+
+		newTitle := "Updated Title"
+		input := &dto.UpdateReportInput{
+			Title: &newTitle,
+		}
+
+		output, err := usecase.Update(context.Background(), 1, 2, input)
+
+		assert.Error(t, err)
+		assert.Nil(t, output)
+		assert.Equal(t, ErrUnauthorized, err)
+	})
+
+	t.Run("update non-existing report", func(t *testing.T) {
+		mockReportRepo.On("GetByID", mock.Anything, int64(999)).Return(nil, nil).Once()
+
+		newTitle := "Updated Title"
+		input := &dto.UpdateReportInput{
+			Title: &newTitle,
+		}
+
+		output, err := usecase.Update(context.Background(), 999, 1, input)
+
+		assert.Error(t, err)
+		assert.Nil(t, output)
+		assert.Equal(t, ErrReportNotFound, err)
+	})
+}
+
+func TestReportUseCase_GetReportTypeByID(t *testing.T) {
+	mockReportRepo := new(MockReportRepository)
+	mockTypeRepo := new(MockReportTypeRepository)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
+
+	t.Run("get existing report type", func(t *testing.T) {
+		reportType := &entities.ReportType{
+			ID:           1,
+			Name:         "Test Type",
+			Code:         "test-type",
+			OutputFormat: domain.OutputFormatPDF,
+		}
+		mockTypeRepo.On("GetByID", mock.Anything, int64(1)).Return(reportType, nil).Once()
+		mockTypeRepo.On("GetParametersByReportType", mock.Anything, int64(1)).Return([]*entities.ReportParameter{}, nil).Once()
+		mockTypeRepo.On("GetTemplatesByReportType", mock.Anything, int64(1)).Return([]*entities.ReportTemplate{}, nil).Once()
+
+		output, err := usecase.GetReportTypeByID(context.Background(), 1)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, int64(1), output.ID)
+		assert.Equal(t, "Test Type", output.Name)
+	})
+
+	t.Run("get non-existing report type", func(t *testing.T) {
+		mockTypeRepo.On("GetByID", mock.Anything, int64(999)).Return(nil, nil).Once()
+
+		output, err := usecase.GetReportTypeByID(context.Background(), 999)
+
+		assert.Error(t, err)
+		assert.Nil(t, output)
+		assert.Equal(t, ErrReportTypeNotFound, err)
+	})
+}
+
+func TestReportUseCase_AddAccess(t *testing.T) {
+	mockReportRepo := new(MockReportRepository)
+	mockTypeRepo := new(MockReportTypeRepository)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
+
+	t.Run("add user access successfully", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+			Status:   domain.ReportStatusDraft,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+		mockReportRepo.On("AddAccess", mock.Anything, mock.AnythingOfType("*entities.ReportAccess")).Return(nil).Once()
+
+		targetUserID := int64(2)
+		input := &dto.AddAccessInput{
+			UserID:     &targetUserID,
+			Permission: string(domain.ReportPermissionRead),
+		}
+
+		output, err := usecase.AddAccess(context.Background(), 1, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+	})
+
+	t.Run("add role access successfully", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+			Status:   domain.ReportStatusDraft,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+		mockReportRepo.On("AddAccess", mock.Anything, mock.AnythingOfType("*entities.ReportAccess")).Return(nil).Once()
+
+		input := &dto.AddAccessInput{
+			Role:       "admin",
+			Permission: string(domain.ReportPermissionWrite),
+		}
+
+		output, err := usecase.AddAccess(context.Background(), 1, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+	})
+
+	t.Run("add access by non-author", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+			Status:   domain.ReportStatusDraft,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+
+		targetUserID := int64(3)
+		input := &dto.AddAccessInput{
+			UserID:     &targetUserID,
+			Permission: string(domain.ReportPermissionRead),
+		}
+
+		output, err := usecase.AddAccess(context.Background(), 1, 2, input)
+
+		assert.Error(t, err)
+		assert.Nil(t, output)
+		assert.Equal(t, ErrUnauthorized, err)
+	})
+
+	t.Run("add access with invalid input", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+			Status:   domain.ReportStatusDraft,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+
+		input := &dto.AddAccessInput{
+			Permission: string(domain.ReportPermissionRead),
+		}
+
+		output, err := usecase.AddAccess(context.Background(), 1, 1, input)
+
+		assert.Error(t, err)
+		assert.Nil(t, output)
+		assert.Equal(t, ErrInvalidInput, err)
+	})
+}
+
+func TestReportUseCase_RemoveAccess(t *testing.T) {
+	mockReportRepo := new(MockReportRepository)
+	mockTypeRepo := new(MockReportTypeRepository)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
+
+	t.Run("remove access successfully", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+		mockReportRepo.On("RemoveAccess", mock.Anything, int64(1), int64(5)).Return(nil).Once()
+
+		err := usecase.RemoveAccess(context.Background(), 1, 5, 1)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("remove access by non-author", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+
+		err := usecase.RemoveAccess(context.Background(), 1, 5, 2)
+
+		assert.Error(t, err)
+		assert.Equal(t, ErrUnauthorized, err)
+	})
+}
+
+func TestReportUseCase_GetAccess(t *testing.T) {
+	mockReportRepo := new(MockReportRepository)
+	mockTypeRepo := new(MockReportTypeRepository)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
+
+	t.Run("get access successfully", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+		}
+		userID := int64(2)
+		accesses := []*entities.ReportAccess{
+			{ID: 1, ReportID: 1, UserID: &userID, Permission: domain.ReportPermissionRead},
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+		mockReportRepo.On("GetAccessByReport", mock.Anything, int64(1)).Return(accesses, nil).Once()
+
+		output, err := usecase.GetAccess(context.Background(), 1, 1)
+
+		assert.NoError(t, err)
+		assert.Len(t, output, 1)
+	})
+
+	t.Run("get access by non-author", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+
+		output, err := usecase.GetAccess(context.Background(), 1, 2)
+
+		assert.Error(t, err)
+		assert.Nil(t, output)
+		assert.Equal(t, ErrUnauthorized, err)
+	})
+}
+
+func TestReportUseCase_AddComment(t *testing.T) {
+	mockReportRepo := new(MockReportRepository)
+	mockTypeRepo := new(MockReportTypeRepository)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
+
+	t.Run("add comment by author", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+		mockReportRepo.On("HasAccess", mock.Anything, int64(1), int64(1), domain.ReportPermissionRead).Return(false, nil).Once()
+		mockReportRepo.On("AddComment", mock.Anything, mock.AnythingOfType("*entities.ReportComment")).Return(nil).Once()
+
+		input := &dto.AddCommentInput{
+			Content: "Test comment",
+		}
+
+		output, err := usecase.AddComment(context.Background(), 1, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, "Test comment", output.Content)
+	})
+
+	t.Run("add comment by user with access", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+		mockReportRepo.On("HasAccess", mock.Anything, int64(1), int64(2), domain.ReportPermissionRead).Return(true, nil).Once()
+		mockReportRepo.On("AddComment", mock.Anything, mock.AnythingOfType("*entities.ReportComment")).Return(nil).Once()
+
+		input := &dto.AddCommentInput{
+			Content: "Another comment",
+		}
+
+		output, err := usecase.AddComment(context.Background(), 1, 2, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+	})
+}
+
+func TestReportUseCase_GetComments(t *testing.T) {
+	mockReportRepo := new(MockReportRepository)
+	mockTypeRepo := new(MockReportTypeRepository)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
+
+	t.Run("get comments by author", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+		}
+		comments := []*entities.ReportComment{
+			{ID: 1, ReportID: 1, AuthorID: 1, Content: "Comment 1"},
+			{ID: 2, ReportID: 1, AuthorID: 2, Content: "Comment 2"},
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+		mockReportRepo.On("HasAccess", mock.Anything, int64(1), int64(1), domain.ReportPermissionRead).Return(false, nil).Once()
+		mockReportRepo.On("GetCommentsByReport", mock.Anything, int64(1)).Return(comments, nil).Once()
+
+		output, err := usecase.GetComments(context.Background(), 1, 1)
+
+		assert.NoError(t, err)
+		assert.Len(t, output, 2)
+	})
+}
+
+func TestReportUseCase_GetHistory(t *testing.T) {
+	mockReportRepo := new(MockReportRepository)
+	mockTypeRepo := new(MockReportTypeRepository)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
+
+	t.Run("get history by author", func(t *testing.T) {
+		userID := int64(1)
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+		}
+		history := []*entities.ReportHistory{
+			{ID: 1, ReportID: 1, UserID: &userID, Action: entities.ReportActionCreated},
+			{ID: 2, ReportID: 1, UserID: &userID, Action: entities.ReportActionUpdated},
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+		mockReportRepo.On("GetHistoryByReport", mock.Anything, int64(1), 50, 0).Return(history, nil).Once()
+
+		output, err := usecase.GetHistory(context.Background(), 1, 1, 0, 0)
+
+		assert.NoError(t, err)
+		assert.Len(t, output, 2)
+	})
+
+	t.Run("get history by non-author", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+
+		output, err := usecase.GetHistory(context.Background(), 1, 2, 0, 0)
+
+		assert.Error(t, err)
+		assert.Nil(t, output)
+		assert.Equal(t, ErrUnauthorized, err)
+	})
+}
+
+func TestReportUseCase_SubmitForReview(t *testing.T) {
+	mockReportRepo := new(MockReportRepository)
+	mockTypeRepo := new(MockReportTypeRepository)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
+
+	t.Run("submit for review successfully", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+			Status:   domain.ReportStatusReady,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+		mockReportRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.Report")).Return(nil).Once()
+		mockReportRepo.On("AddHistory", mock.Anything, mock.AnythingOfType("*entities.ReportHistory")).Return(nil).Once()
+
+		output, err := usecase.SubmitForReview(context.Background(), 1, 1)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+	})
+
+	t.Run("submit by non-author", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+			Status:   domain.ReportStatusReady,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+
+		output, err := usecase.SubmitForReview(context.Background(), 1, 2)
+
+		assert.Error(t, err)
+		assert.Nil(t, output)
+		assert.Equal(t, ErrUnauthorized, err)
+	})
+}
+
+func TestReportUseCase_Generate(t *testing.T) {
+	mockReportRepo := new(MockReportRepository)
+	mockTypeRepo := new(MockReportTypeRepository)
+	usecase := NewReportUseCase(mockReportRepo, mockTypeRepo, nil, nil, nil)
+
+	t.Run("generate report non-existing", func(t *testing.T) {
+		mockReportRepo.On("GetByID", mock.Anything, int64(999)).Return(nil, nil).Once()
+
+		output, err := usecase.Generate(context.Background(), 999, 1, nil)
+
+		assert.Error(t, err)
+		assert.Nil(t, output)
+		assert.Equal(t, ErrReportNotFound, err)
+	})
+
+	t.Run("generate by non-author", func(t *testing.T) {
+		report := &entities.Report{
+			ID:       1,
+			AuthorID: 1,
+			Status:   domain.ReportStatusDraft,
+		}
+		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
+
+		output, err := usecase.Generate(context.Background(), 1, 2, nil)
+
+		assert.Error(t, err)
+		assert.Nil(t, output)
+		assert.Equal(t, ErrUnauthorized, err)
+	})
+}

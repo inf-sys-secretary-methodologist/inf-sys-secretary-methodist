@@ -842,6 +842,139 @@ func TestMessagingUseCase_AddParticipants(t *testing.T) {
 	})
 }
 
+func TestMessagingUseCase_UpdateConversation(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("successfully updates group conversation", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		title := "Test Group"
+		conv := &entities.Conversation{
+			ID:    1,
+			Type:  entities.ConversationTypeGroup,
+			Title: &title,
+			Participants: []entities.Participant{
+				{UserID: 1, Role: entities.ParticipantRoleAdmin},
+				{UserID: 2, Role: entities.ParticipantRoleMember},
+			},
+		}
+
+		newTitle := "Updated Group"
+		newDescription := "New description"
+		input := dto.UpdateConversationInput{
+			Title:       &newTitle,
+			Description: &newDescription,
+		}
+
+		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+		mockConvRepo.On("Update", ctx, mock.AnythingOfType("*entities.Conversation")).Return(nil)
+
+		result, err := uc.UpdateConversation(ctx, 1, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "Updated Group", *result.Title)
+		assert.Equal(t, "New description", *result.Description)
+		mockConvRepo.AssertExpectations(t)
+	})
+
+	t.Run("non-admin cannot update group conversation", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		title := "Test Group"
+		conv := &entities.Conversation{
+			ID:    1,
+			Type:  entities.ConversationTypeGroup,
+			Title: &title,
+			Participants: []entities.Participant{
+				{UserID: 1, Role: entities.ParticipantRoleMember}, // Not admin
+				{UserID: 2, Role: entities.ParticipantRoleAdmin},
+			},
+		}
+
+		newTitle := "Updated Group"
+		input := dto.UpdateConversationInput{
+			Title: &newTitle,
+		}
+
+		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+
+		result, err := uc.UpdateConversation(ctx, 1, 1, input)
+
+		assert.Error(t, err)
+		assert.Equal(t, entities.ErrNotParticipant, err)
+		assert.Nil(t, result)
+		mockConvRepo.AssertExpectations(t)
+	})
+
+	t.Run("error when conversation not found", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		newTitle := "Updated Group"
+		input := dto.UpdateConversationInput{
+			Title: &newTitle,
+		}
+
+		mockConvRepo.On("GetByID", ctx, int64(1)).Return(nil, entities.ErrConversationNotFound)
+
+		result, err := uc.UpdateConversation(ctx, 1, 1, input)
+
+		assert.Error(t, err)
+		assert.Equal(t, entities.ErrConversationNotFound, err)
+		assert.Nil(t, result)
+		mockConvRepo.AssertExpectations(t)
+	})
+
+	t.Run("updates avatar URL", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		title := "Test Group"
+		conv := &entities.Conversation{
+			ID:    1,
+			Type:  entities.ConversationTypeGroup,
+			Title: &title,
+			Participants: []entities.Participant{
+				{UserID: 1, Role: entities.ParticipantRoleAdmin},
+			},
+		}
+
+		newAvatarURL := "https://example.com/avatar.png"
+		input := dto.UpdateConversationInput{
+			AvatarURL: &newAvatarURL,
+		}
+
+		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+		mockConvRepo.On("Update", ctx, mock.AnythingOfType("*entities.Conversation")).Return(nil)
+
+		result, err := uc.UpdateConversation(ctx, 1, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "https://example.com/avatar.png", *result.AvatarURL)
+		mockConvRepo.AssertExpectations(t)
+	})
+}
+
 func TestMessagingUseCase_LeaveConversation(t *testing.T) {
 	ctx := context.Background()
 
@@ -918,6 +1051,391 @@ func TestMessagingUseCase_LeaveConversation(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, entities.ErrCannotRemoveLastAdmin, err)
+		mockConvRepo.AssertExpectations(t)
+	})
+
+	t.Run("fails when user is not participant", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		conv := &entities.Conversation{
+			ID:   1,
+			Type: entities.ConversationTypeGroup,
+			Participants: []entities.Participant{
+				{UserID: 2, Role: entities.ParticipantRoleAdmin},
+				{UserID: 3, Role: entities.ParticipantRoleMember},
+			},
+		}
+
+		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+
+		err := uc.LeaveConversation(ctx, 1, 1)
+
+		assert.Error(t, err)
+		assert.Equal(t, entities.ErrNotParticipant, err)
+		mockConvRepo.AssertExpectations(t)
+	})
+}
+
+func TestMessagingUseCase_SendMessage_ErrorCases(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("fails when user is not participant", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		input := dto.SendMessageInput{
+			Content: "Hello, World!",
+		}
+
+		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
+
+		msg, err := uc.SendMessage(ctx, 1, 1, input)
+
+		assert.Error(t, err)
+		assert.Nil(t, msg)
+		mockConvRepo.AssertExpectations(t)
+	})
+
+	t.Run("sends message with attachments", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		participant := &entities.Participant{
+			ConversationID: 1,
+			UserID:         1,
+			UserName:       "Test User",
+			Role:           entities.ParticipantRoleMember,
+		}
+
+		input := dto.SendMessageInput{
+			Content: "Check this image",
+			Attachments: []dto.AttachmentInput{
+				{
+					FileID:   123,
+					FileName: "image.png",
+					FileSize: 1024,
+					MimeType: "image/png",
+					URL:      "https://example.com/image.png",
+				},
+			},
+		}
+
+		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
+		mockMsgRepo.On("CreateAttachment", ctx, mock.AnythingOfType("*entities.Attachment")).Return(nil)
+
+		msg, err := uc.SendMessage(ctx, 1, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, msg)
+		assert.Equal(t, entities.MessageTypeImage, msg.Type)
+		assert.Len(t, msg.Attachments, 1)
+		mockConvRepo.AssertExpectations(t)
+		mockMsgRepo.AssertExpectations(t)
+	})
+
+	t.Run("sends message with file attachment", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		participant := &entities.Participant{
+			ConversationID: 1,
+			UserID:         1,
+			UserName:       "Test User",
+			Role:           entities.ParticipantRoleMember,
+		}
+
+		input := dto.SendMessageInput{
+			Content: "Check this file",
+			Attachments: []dto.AttachmentInput{
+				{
+					FileID:   456,
+					FileName: "document.pdf",
+					FileSize: 2048,
+					MimeType: "application/pdf",
+					URL:      "https://example.com/document.pdf",
+				},
+			},
+		}
+
+		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
+		mockMsgRepo.On("CreateAttachment", ctx, mock.AnythingOfType("*entities.Attachment")).Return(nil)
+
+		msg, err := uc.SendMessage(ctx, 1, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, msg)
+		assert.Equal(t, entities.MessageTypeFile, msg.Type)
+		mockConvRepo.AssertExpectations(t)
+		mockMsgRepo.AssertExpectations(t)
+	})
+}
+
+func TestMessagingUseCase_GetMessages_ErrorCases(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("fails when user is not participant", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		input := dto.MessageFilterInput{
+			Limit: 50,
+		}
+
+		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
+
+		result, hasMore, err := uc.GetMessages(ctx, 1, 1, input)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.False(t, hasMore)
+		mockConvRepo.AssertExpectations(t)
+	})
+
+	t.Run("uses default limit when not specified", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		participant := &entities.Participant{
+			ConversationID: 1,
+			UserID:         1,
+			Role:           entities.ParticipantRoleMember,
+		}
+
+		input := dto.MessageFilterInput{
+			Limit: 0, // Should default to 50
+		}
+
+		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("List", ctx, mock.AnythingOfType("entities.MessageFilter")).Return([]*entities.Message{}, nil)
+
+		result, hasMore, err := uc.GetMessages(ctx, 1, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.False(t, hasMore)
+		mockConvRepo.AssertExpectations(t)
+		mockMsgRepo.AssertExpectations(t)
+	})
+}
+
+func TestMessagingUseCase_SearchMessages_ErrorCases(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("fails when user is not participant", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
+
+		result, total, err := uc.SearchMessages(ctx, 1, 1, "test", 20, 0)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Equal(t, int64(0), total)
+		mockConvRepo.AssertExpectations(t)
+	})
+
+	t.Run("uses default limit when not specified", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		participant := &entities.Participant{
+			ConversationID: 1,
+			UserID:         1,
+			Role:           entities.ParticipantRoleMember,
+		}
+
+		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("Search", ctx, int64(1), "test", 20, 0).Return([]*entities.Message{}, int64(0), nil)
+
+		result, total, err := uc.SearchMessages(ctx, 1, 1, "test", 0, 0) // Should use default 20
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, int64(0), total)
+		mockConvRepo.AssertExpectations(t)
+		mockMsgRepo.AssertExpectations(t)
+	})
+}
+
+func TestMessagingUseCase_MarkAsRead_ErrorCases(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("fails when user is not participant", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
+
+		err := uc.MarkAsRead(ctx, 1, 1, 10)
+
+		assert.Error(t, err)
+		mockConvRepo.AssertExpectations(t)
+	})
+}
+
+func TestMessagingUseCase_ListConversations_WithFilters(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("lists with type filter", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		now := time.Now()
+		conversations := []*entities.Conversation{
+			{ID: 1, Type: entities.ConversationTypeGroup, CreatedAt: now, UpdatedAt: now},
+		}
+
+		convType := string(entities.ConversationTypeGroup)
+		input := dto.ConversationFilterInput{
+			Type:   &convType,
+			Limit:  20,
+			Offset: 0,
+		}
+
+		mockConvRepo.On("List", ctx, mock.AnythingOfType("entities.ConversationFilter")).Return(conversations, int64(1), nil)
+
+		result, total, err := uc.ListConversations(ctx, 1, input)
+
+		assert.NoError(t, err)
+		assert.Len(t, result, 1)
+		assert.Equal(t, int64(1), total)
+		mockConvRepo.AssertExpectations(t)
+	})
+
+	t.Run("uses default limit when not specified", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		input := dto.ConversationFilterInput{
+			Limit: 0, // Should default to 20
+		}
+
+		mockConvRepo.On("List", ctx, mock.AnythingOfType("entities.ConversationFilter")).Return([]*entities.Conversation{}, int64(0), nil)
+
+		result, total, err := uc.ListConversations(ctx, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, int64(0), total)
+		mockConvRepo.AssertExpectations(t)
+	})
+}
+
+func TestMessagingUseCase_EditMessage_ErrorCases(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("fails when message not found", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		input := dto.EditMessageInput{
+			Content: "Edited message",
+		}
+
+		mockMsgRepo.On("GetByID", ctx, int64(1)).Return(nil, entities.ErrMessageNotFound)
+
+		result, err := uc.EditMessage(ctx, 1, 1, input)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockMsgRepo.AssertExpectations(t)
+	})
+}
+
+func TestMessagingUseCase_DeleteMessage_ErrorCases(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("fails when message not found", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		mockMsgRepo.On("GetByID", ctx, int64(1)).Return(nil, entities.ErrMessageNotFound)
+
+		err := uc.DeleteMessage(ctx, 1, 1)
+
+		assert.Error(t, err)
+		mockMsgRepo.AssertExpectations(t)
+	})
+}
+
+func TestMessagingUseCase_CreateDirectConversation_Errors(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("error when checking existing conversation", func(t *testing.T) {
+		mockConvRepo := new(MockConversationRepository)
+		mockMsgRepo := new(MockMessageRepository)
+		logger := createTestLogger()
+		hub := websocket.NewHub(logger)
+
+		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+		input := dto.CreateDirectConversationInput{
+			RecipientID: 2,
+		}
+
+		mockConvRepo.On("GetDirectConversation", ctx, int64(1), int64(2)).Return(nil, assert.AnError)
+
+		conv, err := uc.CreateDirectConversation(ctx, 1, input)
+
+		assert.Error(t, err)
+		assert.Nil(t, conv)
+		assert.Contains(t, err.Error(), "failed to check existing conversation")
 		mockConvRepo.AssertExpectations(t)
 	})
 }
