@@ -74,11 +74,13 @@ func (uc *AnnouncementUseCase) Create(ctx context.Context, userID int64, req *dt
 		return nil, err
 	}
 
-	uc.auditLogger.LogAuditEvent(ctx, "announcement.created", "announcement", map[string]interface{}{
-		"announcement_id": announcement.ID,
-		"title":           announcement.Title,
-		"author_id":       userID,
-	})
+	if uc.auditLogger != nil {
+		uc.auditLogger.LogAuditEvent(ctx, "announcement.created", "announcement", map[string]interface{}{
+			"announcement_id": announcement.ID,
+			"title":           announcement.Title,
+			"author_id":       userID,
+		})
+	}
 
 	return announcement, nil
 }
@@ -175,10 +177,12 @@ func (uc *AnnouncementUseCase) Update(ctx context.Context, userID int64, id int6
 		return nil, err
 	}
 
-	uc.auditLogger.LogAuditEvent(ctx, "announcement.updated", "announcement", map[string]interface{}{
-		"announcement_id": announcement.ID,
-		"updated_by":      userID,
-	})
+	if uc.auditLogger != nil {
+		uc.auditLogger.LogAuditEvent(ctx, "announcement.updated", "announcement", map[string]interface{}{
+			"announcement_id": announcement.ID,
+			"updated_by":      userID,
+		})
+	}
 
 	return announcement, nil
 }
@@ -201,10 +205,12 @@ func (uc *AnnouncementUseCase) Delete(ctx context.Context, userID int64, id int6
 		return err
 	}
 
-	uc.auditLogger.LogAuditEvent(ctx, "announcement.deleted", "announcement", map[string]interface{}{
-		"announcement_id": id,
-		"deleted_by":      userID,
-	})
+	if uc.auditLogger != nil {
+		uc.auditLogger.LogAuditEvent(ctx, "announcement.deleted", "announcement", map[string]interface{}{
+			"announcement_id": id,
+			"deleted_by":      userID,
+		})
+	}
 
 	return nil
 }
@@ -304,10 +310,12 @@ func (uc *AnnouncementUseCase) Publish(ctx context.Context, userID int64, id int
 		return nil, err
 	}
 
-	uc.auditLogger.LogAuditEvent(ctx, "announcement.published", "announcement", map[string]interface{}{
-		"announcement_id": announcement.ID,
-		"published_by":    userID,
-	})
+	if uc.auditLogger != nil {
+		uc.auditLogger.LogAuditEvent(ctx, "announcement.published", "announcement", map[string]interface{}{
+			"announcement_id": announcement.ID,
+			"published_by":    userID,
+		})
+	}
 
 	// Send broadcast notification to all users
 	if uc.notificationUseCase != nil && uc.userIDsProvider != nil {
@@ -356,10 +364,12 @@ func (uc *AnnouncementUseCase) Unpublish(ctx context.Context, userID int64, id i
 		return nil, err
 	}
 
-	uc.auditLogger.LogAuditEvent(ctx, "announcement.unpublished", "announcement", map[string]interface{}{
-		"announcement_id": announcement.ID,
-		"unpublished_by":  userID,
-	})
+	if uc.auditLogger != nil {
+		uc.auditLogger.LogAuditEvent(ctx, "announcement.unpublished", "announcement", map[string]interface{}{
+			"announcement_id": announcement.ID,
+			"unpublished_by":  userID,
+		})
+	}
 
 	return announcement, nil
 }
@@ -386,10 +396,12 @@ func (uc *AnnouncementUseCase) Archive(ctx context.Context, userID int64, id int
 		return nil, err
 	}
 
-	uc.auditLogger.LogAuditEvent(ctx, "announcement.archived", "announcement", map[string]interface{}{
-		"announcement_id": announcement.ID,
-		"archived_by":     userID,
-	})
+	if uc.auditLogger != nil {
+		uc.auditLogger.LogAuditEvent(ctx, "announcement.archived", "announcement", map[string]interface{}{
+			"announcement_id": announcement.ID,
+			"archived_by":     userID,
+		})
+	}
 
 	return announcement, nil
 }

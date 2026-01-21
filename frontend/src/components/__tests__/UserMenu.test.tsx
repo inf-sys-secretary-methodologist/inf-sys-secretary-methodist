@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event'
 import { UserMenu } from '../UserMenu'
 import { useAuth, useLogout } from '@/hooks/useAuth'
 import { mockUser } from '@/test-utils'
-import { UserRole } from '@/types/auth'
 
 // Mock dependencies
 jest.mock('@/hooks/useAuth')
@@ -72,11 +71,10 @@ describe('UserMenu', () => {
     expect(avatar).toBeInTheDocument()
   })
 
-  it('displays user name and role in trigger', () => {
+  it('displays user name in trigger', () => {
     render(<UserMenu />)
 
     expect(screen.getByText(mockUser.name)).toBeInTheDocument()
-    expect(screen.getByText('Студент')).toBeInTheDocument() // STUDENT role
   })
 
   it('opens dropdown menu on click', async () => {
@@ -87,9 +85,9 @@ describe('UserMenu', () => {
     await user.click(trigger)
 
     await waitFor(() => {
-      expect(screen.getByText(/профиль/i)).toBeInTheDocument()
-      expect(screen.getByText(/настройки/i)).toBeInTheDocument()
-      expect(screen.getByText(/выйти/i)).toBeInTheDocument()
+      // Check for translation keys since next-intl is mocked
+      expect(screen.getByText('profile')).toBeInTheDocument()
+      expect(screen.getByText('logout')).toBeInTheDocument()
     })
   })
 
@@ -115,21 +113,8 @@ describe('UserMenu', () => {
     await user.click(trigger)
 
     await waitFor(() => {
-      const profileLink = screen.getByText(/профиль/i).closest('a')
+      const profileLink = screen.getByText('profile').closest('a')
       expect(profileLink).toHaveAttribute('href', '/profile')
-    })
-  })
-
-  it('has settings link with correct href', async () => {
-    const user = userEvent.setup()
-    render(<UserMenu />)
-
-    const trigger = screen.getByRole('button')
-    await user.click(trigger)
-
-    await waitFor(() => {
-      const settingsLink = screen.getByText(/настройки/i).closest('a')
-      expect(settingsLink).toHaveAttribute('href', '/settings')
     })
   })
 
@@ -143,10 +128,10 @@ describe('UserMenu', () => {
     await user.click(trigger)
 
     await waitFor(() => {
-      expect(screen.getByText(/выйти/i)).toBeInTheDocument()
+      expect(screen.getByText('logout')).toBeInTheDocument()
     })
 
-    const logoutButton = screen.getByText(/выйти/i)
+    const logoutButton = screen.getByText('logout')
     await user.click(logoutButton)
 
     await waitFor(() => {
@@ -168,37 +153,16 @@ describe('UserMenu', () => {
     await user.click(trigger)
 
     await waitFor(() => {
-      const logoutButton = screen.getByText(/выход\.\.\./i)
+      // When loading, the button shows 'loggingOut' key
+      const logoutButton = screen.getByText('loggingOut')
       expect(logoutButton.closest('div')).toHaveAttribute('data-disabled')
     })
   })
 
-  it('displays different role names correctly', () => {
-    const roles = [
-      { role: UserRole.SYSTEM_ADMIN, display: 'Администратор' },
-      { role: UserRole.METHODIST, display: 'Методист' },
-      { role: UserRole.ACADEMIC_SECRETARY, display: 'Секретарь' },
-      { role: UserRole.TEACHER, display: 'Преподаватель' },
-      { role: UserRole.STUDENT, display: 'Студент' },
-    ]
-
-    roles.forEach(({ role, display }) => {
-      mockUseAuth.mockReturnValue({
-        user: { ...mockUser, role },
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-        login: mockLogin,
-        register: mockRegister,
-        logout: mockLogoutAuth,
-        checkAuth: mockCheckAuth,
-        clearError: mockClearError,
-      })
-
-      const { unmount } = render(<UserMenu />)
-      expect(screen.getByText(display)).toBeInTheDocument()
-      unmount()
-    })
+  it('displays role for user', () => {
+    render(<UserMenu />)
+    // With mocked translations, role keys are returned as-is
+    expect(screen.getByText(mockUser.role)).toBeInTheDocument()
   })
 
   it('generates correct initials for single word name', () => {

@@ -1,6 +1,21 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
+// Мокируем next-intl для тестов
+jest.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+  useLocale: () => 'ru',
+  useFormatter: () => ({
+    dateTime: (date: Date) => date.toISOString(),
+    number: (num: number) => num.toString(),
+    relativeTime: (date: Date) => date.toISOString(),
+  }),
+  useMessages: () => ({}),
+  useNow: () => new Date(),
+  useTimeZone: () => 'Europe/Moscow',
+  NextIntlClientProvider: ({ children }: { children: React.ReactNode }) => children,
+}))
+
 // Мокируем next/navigation для тестов
 jest.mock('next/navigation', () => ({
   useRouter() {
@@ -29,7 +44,7 @@ const localStorageMock = {
   removeItem: jest.fn(),
   clear: jest.fn(),
 }
-global.localStorage = localStorageMock as any
+global.localStorage = localStorageMock as unknown as Storage
 
 // Мокируем window.matchMedia (для responsive компонентов)
 Object.defineProperty(window, 'matchMedia', {
@@ -48,11 +63,14 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Мокируем IntersectionObserver (для lazy loading компонентов)
 global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
+  readonly root: Element | null = null
+  readonly rootMargin: string = ''
+  readonly thresholds: ReadonlyArray<number> = []
+  constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {}
   disconnect() {}
-  observe() {}
-  takeRecords() {
+  observe(_target: Element) {}
+  takeRecords(): IntersectionObserverEntry[] {
     return []
   }
-  unobserve() {}
-} as any
+  unobserve(_target: Element) {}
+}
