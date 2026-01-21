@@ -14,6 +14,9 @@ import {
   useEditMessage,
   useDeleteMessage,
   useSearchMessages,
+  useAddParticipants,
+  useMessagingWebSocket,
+  useConversationWithMessages,
 } from '../useMessaging'
 import { apiClient } from '@/lib/api'
 
@@ -31,11 +34,16 @@ jest.mock('@/lib/api', () => ({
 // Mock the WebSocket
 jest.mock('@/lib/api/messaging', () => ({
   MessagingWebSocket: jest.fn().mockImplementation(() => ({
-    connect: jest.fn(),
+    connect: jest.fn().mockResolvedValue(undefined),
     disconnect: jest.fn(),
     sendMessage: jest.fn(),
+    subscribe: jest.fn(),
+    unsubscribe: jest.fn(),
+    sendTyping: jest.fn(),
+    sendStopTyping: jest.fn(),
     on: jest.fn(),
     off: jest.fn(),
+    isConnected: false,
   })),
 }))
 
@@ -331,6 +339,141 @@ describe('useMessaging hooks', () => {
     it('does not search without conversation id', () => {
       renderHook(() => useSearchMessages(null, 'hello'), { wrapper })
       expect(mockedApiClient.get).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('useAddParticipants', () => {
+    it('adds participants to conversation', async () => {
+      mockedApiClient.post.mockResolvedValue({ success: true })
+
+      const { result } = renderHook(() => useAddParticipants(), { wrapper })
+
+      await act(async () => {
+        await result.current.mutateAsync(1, { user_ids: [2, 3, 4] })
+      })
+
+      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/conversations/1/participants', {
+        user_ids: [2, 3, 4],
+      })
+    })
+
+    it('returns isPending state', async () => {
+      let resolvePromise: () => void
+      const pendingPromise = new Promise<{ success: boolean }>((resolve) => {
+        resolvePromise = () => resolve({ success: true })
+      })
+      mockedApiClient.post.mockReturnValue(pendingPromise)
+
+      const { result } = renderHook(() => useAddParticipants(), { wrapper })
+
+      expect(result.current.isPending).toBe(false)
+
+      const addPromise = result.current.mutateAsync(1, { user_ids: [2] })
+
+      await waitFor(() => {
+        expect(result.current.isPending).toBe(true)
+      })
+
+      resolvePromise!()
+      await addPromise
+
+      await waitFor(() => {
+        expect(result.current.isPending).toBe(false)
+      })
+    })
+  })
+
+  describe('useMessagingWebSocket', () => {
+    it('returns initial state', () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      expect(result.current.isConnected).toBe(false)
+      expect(typeof result.current.connect).toBe('function')
+      expect(typeof result.current.disconnect).toBe('function')
+      expect(typeof result.current.subscribe).toBe('function')
+      expect(typeof result.current.unsubscribe).toBe('function')
+      expect(typeof result.current.sendTyping).toBe('function')
+      expect(typeof result.current.sendStopTyping).toBe('function')
+      expect(typeof result.current.getTypingUsers).toBe('function')
+    })
+
+    it('returns empty typing users for conversation', () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      const typingUsers = result.current.getTypingUsers(1)
+      expect(typingUsers).toEqual([])
+    })
+  })
+
+  describe('useConversationWithMessages', () => {
+    it('returns combined state for conversation', async () => {
+      const mockConversation = { id: 1, name: 'Test', type: 'direct' }
+      const mockMessages = {
+        messages: [{ id: 1, content: 'Hello', sender_id: 1 }],
+        has_more: false,
+      }
+
+      mockedApiClient.get.mockImplementation((url: string) => {
+        if (url.includes('/messages')) {
+          return Promise.resolve({ success: true, data: mockMessages })
+        }
+        return Promise.resolve({ success: true, data: mockConversation })
+      })
+
+      const { result } = renderHook(() => useConversationWithMessages(1), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.conversation).toBeDefined()
+      })
+
+      expect(typeof result.current.sendMessage).toBe('function')
+      expect(typeof result.current.sendTyping).toBe('function')
+      expect(typeof result.current.sendStopTyping).toBe('function')
+    })
+
+    it('returns null conversation when id is null', () => {
+      const { result } = renderHook(() => useConversationWithMessages(null), { wrapper })
+
+      expect(result.current.conversation).toBeUndefined()
+      expect(result.current.messages).toEqual([])
+    })
+
+    it('provides sendMessage function that sends to correct conversation', async () => {
+      const mockConversation = { id: 1, name: 'Test', type: 'direct' }
+      const mockMessages = {
+        messages: [],
+        has_more: false,
+      }
+      const mockSentMessage = { id: 1, content: 'Hello', sender_id: 1 }
+
+      mockedApiClient.get.mockImplementation((url: string) => {
+        if (url.includes('/messages')) {
+          return Promise.resolve({ success: true, data: mockMessages })
+        }
+        return Promise.resolve({ success: true, data: mockConversation })
+      })
+
+      mockedApiClient.post.mockImplementation((url: string) => {
+        if (url.includes('/messages')) {
+          return Promise.resolve({ success: true, data: mockSentMessage })
+        }
+        return Promise.resolve({ success: true })
+      })
+
+      const { result } = renderHook(() => useConversationWithMessages(1), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.conversation).toBeDefined()
+      })
+
+      await act(async () => {
+        await result.current.sendMessage('Hello')
+      })
+
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/conversations/1/messages',
+        expect.objectContaining({ content: 'Hello' })
+      )
     })
   })
 })
