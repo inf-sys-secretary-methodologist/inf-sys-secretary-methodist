@@ -93,3 +93,6 @@ runtime-state/
 
 # Taskmaster
 .taskmaster/.taskmaster/tasks/tasks.json
+
+# Server admin docs (contains sensitive data)
+SERVER_ADMIN.md
