@@ -1,5 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const createNextIntlPlugin = require('next-intl/plugin')
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { withSentryConfig } = require('@sentry/nextjs')
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
@@ -43,4 +45,19 @@ const nextConfig = {
   },
 }
 
-module.exports = withNextIntl(nextConfig)
+const sentryConfig = {
+  // Подавить предупреждения о source maps
+  silent: true,
+
+  // Отключить телеметрию Sentry
+  telemetry: false,
+
+  // Скрыть source maps от пользователей
+  hideSourceMaps: true,
+
+  // Отключить расширение source maps в dev
+  disableServerWebpackPlugin: process.env.NODE_ENV !== 'production',
+  disableClientWebpackPlugin: process.env.NODE_ENV !== 'production',
+}
+
+module.exports = withSentryConfig(withNextIntl(nextConfig), sentryConfig)

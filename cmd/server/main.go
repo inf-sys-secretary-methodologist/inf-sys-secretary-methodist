@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/getsentry/sentry-go"
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 
@@ -82,6 +84,24 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	// Initialize Sentry for error tracking
+	sentryDSN := os.Getenv("SENTRY_DSN")
+	if sentryDSN != "" {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn:              sentryDSN,
+			Environment:      cfg.Environment,
+			Release:          cfg.Version,
+			TracesSampleRate: 0.1, // 10% трассировки в production
+			EnableTracing:    true,
+		})
+		if err != nil {
+			log.Printf("Sentry initialization failed: %v", err)
+		} else {
+			log.Println("Sentry initialized successfully")
+			defer sentry.Flush(2 * time.Second)
+		}
 	}
 
 	// Initialize logger
@@ -609,6 +629,12 @@ func setupRoutes(
 
 	// Global middleware stack (order matters!)
 	router.Use(gin.Recovery())
+	// Sentry middleware для отслеживания ошибок
+	if os.Getenv("SENTRY_DSN") != "" {
+		router.Use(sentrygin.New(sentrygin.Options{
+			Repanic: true, // Перевыбрасывать панику после обработки
+		}))
+	}
 	router.Use(corsMiddleware.Handler())         // CORS должен быть первым для обработки OPTIONS
 	router.Use(middleware.RequestIDMiddleware()) // Request ID для трейсинга
 	router.Use(middleware.RequestContextMiddleware())
