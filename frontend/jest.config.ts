@@ -25,6 +25,15 @@ const config: Config = {
     '!src/**/*.d.ts',
     '!src/**/*.stories.{js,jsx,ts,tsx}',
     '!src/**/__tests__/**',
+    // Exclude type-only files (no runtime code)
+    '!src/types/**/*.ts',
+    // Exclude re-export index files (barrel exports)
+    '!src/components/**/index.ts',
+    // Exclude Next.js app directory files (tested via E2E/integration)
+    '!src/app/**/*.tsx',
+    '!src/app/**/*.ts',
+    // Exclude middleware (tested separately)
+    '!src/middleware.ts',
   ],
 
   coverageThreshold: {

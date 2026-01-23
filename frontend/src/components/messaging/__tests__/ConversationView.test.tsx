@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { ConversationView } from '../ConversationView'
+import { useConversationWithMessages } from '@/hooks/useMessaging'
 
 // Mock next-intl
 jest.mock('next-intl', () => ({
@@ -86,6 +87,8 @@ jest.mock('@/hooks/useMessaging', () => ({
     isConnected: true,
   })),
 }))
+
+const mockedUseConversationWithMessages = jest.mocked(useConversationWithMessages)
 
 // Mock MessageBubble
 jest.mock('../MessageBubble', () => ({
@@ -174,8 +177,8 @@ describe('ConversationView', () => {
   })
 
   it('shows loading state', () => {
-    const { useConversationWithMessages } = await import('@/hooks/useMessaging')
-    useConversationWithMessages.mockReturnValueOnce({
+    // Using mockedUseConversationWithMessages from top of file
+    mockedUseConversationWithMessages.mockReturnValueOnce({
       conversation: null,
       messages: [],
       hasMore: false,

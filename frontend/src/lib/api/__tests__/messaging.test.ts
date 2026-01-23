@@ -1,3 +1,44 @@
+// Set up WebSocket mock BEFORE importing the module
+let lastCreatedWebSocket: {
+  readyState: number
+  send: jest.Mock
+  close: jest.Mock
+  onopen: (() => void) | null
+  onmessage: ((event: { data: string }) => void) | null
+  onclose: ((event: { code: number; reason: string }) => void) | null
+  onerror: (() => void) | null
+} | null = null
+
+const MockWebSocketConstructor = jest.fn().mockImplementation(function () {
+  const ws = {
+    readyState: 0, // CONNECTING
+    send: jest.fn(),
+    close: jest.fn(),
+    onopen: null as (() => void) | null,
+    onmessage: null as ((event: { data: string }) => void) | null,
+    onclose: null as ((event: { code: number; reason: string }) => void) | null,
+    onerror: null as (() => void) | null,
+  }
+  lastCreatedWebSocket = ws
+  return ws
+})
+
+// Set up WebSocket constants
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+;(MockWebSocketConstructor as any).CONNECTING = 0
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+;(MockWebSocketConstructor as any).OPEN = 1
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+;(MockWebSocketConstructor as any).CLOSING = 2
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+;(MockWebSocketConstructor as any).CLOSED = 3
+
+Object.defineProperty(global, 'WebSocket', {
+  value: MockWebSocketConstructor,
+  writable: true,
+  configurable: true,
+})
+
 import { messagingApi, MessagingWebSocket } from '../messaging'
 import { apiClient } from '../../api'
 
@@ -229,29 +270,9 @@ describe('messagingApi', () => {
 })
 
 describe('MessagingWebSocket', () => {
-  let mockWebSocket: {
-    readyState: number
-    send: jest.Mock
-    close: jest.Mock
-    onopen: (() => void) | null
-    onmessage: ((event: { data: string }) => void) | null
-    onclose: (() => void) | null
-    onerror: ((error: Error) => void) | null
-  }
-
   beforeEach(() => {
-    mockWebSocket = {
-      readyState: WebSocket.CONNECTING,
-      send: jest.fn(),
-      close: jest.fn(),
-      onopen: null,
-      onmessage: null,
-      onclose: null,
-      onerror: null,
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(global as any).WebSocket = jest.fn(() => mockWebSocket)
+    lastCreatedWebSocket = null
+    MockWebSocketConstructor.mockClear()
   })
 
   it('creates websocket instance', () => {
@@ -265,9 +286,9 @@ describe('MessagingWebSocket', () => {
     const connectPromise = ws.connect()
 
     // Simulate successful connection
-    mockWebSocket.readyState = WebSocket.OPEN
-    if (mockWebSocket.onopen) {
-      mockWebSocket.onopen()
+    if (lastCreatedWebSocket) {
+      lastCreatedWebSocket.readyState = WebSocket.OPEN
+      lastCreatedWebSocket.onopen?.()
     }
 
     await connectPromise
@@ -279,9 +300,9 @@ describe('MessagingWebSocket', () => {
     const ws = new MessagingWebSocket(() => 'test-token')
 
     const connectPromise = ws.connect()
-    mockWebSocket.readyState = WebSocket.OPEN
-    if (mockWebSocket.onopen) {
-      mockWebSocket.onopen()
+    if (lastCreatedWebSocket) {
+      lastCreatedWebSocket.readyState = WebSocket.OPEN
+      lastCreatedWebSocket.onopen?.()
     }
     await connectPromise
 
@@ -300,5 +321,297 @@ describe('MessagingWebSocket', () => {
 
     // No errors should be thrown
     expect(true).toBe(true)
+  })
+
+  it('rejects connect when no token available', async () => {
+    const ws = new MessagingWebSocket(() => null)
+
+    await expect(ws.connect()).rejects.toThrow('No auth token available')
+  })
+
+  it('resolves immediately when already connected', async () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    // First connect
+    const connectPromise1 = ws.connect()
+    if (lastCreatedWebSocket) {
+      lastCreatedWebSocket.readyState = WebSocket.OPEN
+      lastCreatedWebSocket.onopen?.()
+    }
+    await connectPromise1
+
+    // Second connect should resolve immediately
+    await expect(ws.connect()).resolves.toBeUndefined()
+  })
+
+  it('handles incoming messages', async () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+    const callback = jest.fn()
+
+    ws.on('new_message', callback)
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    // Simulate incoming message
+    lastCreatedWebSocket!.onmessage?.({
+      data: JSON.stringify({ type: 'new_message', content: 'hello' }),
+    })
+
+    expect(callback).toHaveBeenCalledWith({ type: 'new_message', content: 'hello' })
+  })
+
+  it('handles wildcard event listeners', async () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+    const callback = jest.fn()
+
+    ws.on('*', callback)
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    lastCreatedWebSocket!.onmessage?.({ data: JSON.stringify({ type: 'any_event', data: 'test' }) })
+
+    expect(callback).toHaveBeenCalled()
+  })
+
+  it('handles message parse errors gracefully', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    // Send invalid JSON
+    lastCreatedWebSocket!.onmessage?.({ data: 'not valid json' })
+
+    expect(consoleSpy).toHaveBeenCalledWith('Failed to parse WebSocket message:', expect.any(Error))
+    consoleSpy.mockRestore()
+  })
+
+  it('handles WebSocket errors', async () => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation()
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    // Simulate error (onerror doesn't receive useful info)
+    lastCreatedWebSocket!.onerror?.()
+
+    expect(consoleSpy).toHaveBeenCalledWith('⚠️ WebSocket connection error')
+    consoleSpy.mockRestore()
+  })
+
+  it('rejects when connection fails before opening', async () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+
+    // Simulate close before open (connection failed)
+    lastCreatedWebSocket!.onclose?.({ code: 1006, reason: 'Connection failed' })
+
+    await expect(connectPromise).rejects.toThrow('WebSocket connection failed: 1006')
+  })
+
+  it('attempts reconnect when connection closes after being open', async () => {
+    jest.useFakeTimers()
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation()
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    // Simulate unexpected close
+    lastCreatedWebSocket!.onclose?.({ code: 1006, reason: '' })
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('WebSocket reconnecting'))
+
+    consoleSpy.mockRestore()
+    jest.useRealTimers()
+  })
+
+  it('sends messages when connected', async () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    ws.send({ type: 'test', data: 'hello' })
+
+    expect(lastCreatedWebSocket!.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: 'test', data: 'hello' })
+    )
+  })
+
+  it('does not send messages when not connected', () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    // Trigger connect to create the WebSocket instance but don't complete the connection
+    ws.connect()
+    // Send before connection completes - WebSocket exists but is not OPEN
+    ws.send({ type: 'test' })
+
+    expect(lastCreatedWebSocket!.send).not.toHaveBeenCalled()
+  })
+
+  it('subscribes to conversation', async () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    ws.subscribe(123)
+
+    expect(lastCreatedWebSocket!.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: 'subscribe', conversation_id: 123 })
+    )
+  })
+
+  it('unsubscribes from conversation', async () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    ws.unsubscribe(123)
+
+    expect(lastCreatedWebSocket!.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: 'unsubscribe', conversation_id: 123 })
+    )
+  })
+
+  it('sends typing indicator', async () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    ws.sendTyping(123)
+
+    expect(lastCreatedWebSocket!.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: 'typing', conversation_id: 123 })
+    )
+  })
+
+  it('sends stop typing indicator', async () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    ws.sendStopTyping(123)
+
+    expect(lastCreatedWebSocket!.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: 'stop_typing', conversation_id: 123 })
+    )
+  })
+
+  it('closes WebSocket on disconnect', async () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    ws.disconnect()
+
+    expect(lastCreatedWebSocket!.close).toHaveBeenCalled()
+  })
+
+  it('returns unsubscribe function from on()', () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+    const callback = jest.fn()
+
+    const unsubscribe = ws.on('test_event', callback)
+
+    expect(typeof unsubscribe).toBe('function')
+
+    // Should be able to unsubscribe
+    unsubscribe()
+  })
+
+  it('starts ping interval on connect', async () => {
+    jest.useFakeTimers()
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    // Advance by 30 seconds (ping interval)
+    jest.advanceTimersByTime(30000)
+
+    expect(lastCreatedWebSocket!.send).toHaveBeenCalledWith(JSON.stringify({ type: 'ping' }))
+
+    jest.useRealTimers()
+  })
+
+  it('stops ping interval on disconnect', async () => {
+    jest.useFakeTimers()
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    const connectPromise = ws.connect()
+    lastCreatedWebSocket!.readyState = WebSocket.OPEN
+    lastCreatedWebSocket!.onopen?.()
+    await connectPromise
+
+    ws.disconnect()
+
+    // Clear mocks after disconnect
+    lastCreatedWebSocket!.send.mockClear()
+
+    // Advance by 30 seconds
+    jest.advanceTimersByTime(30000)
+
+    // Should not have sent ping after disconnect
+    expect(lastCreatedWebSocket!.send).not.toHaveBeenCalled()
+
+    jest.useRealTimers()
+  })
+
+  it('handles off() for non-existing listener gracefully', () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+    const callback = jest.fn()
+
+    // Should not throw when removing non-existing listener
+    expect(() => ws.off('non_existing', callback)).not.toThrow()
+  })
+
+  it('isConnected returns false when WebSocket is null', () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+    expect(ws.isConnected).toBe(false)
+  })
+
+  it('isConnected returns false when WebSocket is not OPEN', async () => {
+    const ws = new MessagingWebSocket(() => 'test-token')
+
+    ws.connect()
+    // Still connecting
+    lastCreatedWebSocket!.readyState = WebSocket.CONNECTING
+
+    expect(ws.isConnected).toBe(false)
   })
 })

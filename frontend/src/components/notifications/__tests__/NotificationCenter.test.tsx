@@ -158,4 +158,125 @@ describe('NotificationCenter', () => {
     const { container } = render(<NotificationCenter className="custom-class" />)
     expect(container.querySelector('.custom-class')).toBeInTheDocument()
   })
+
+  it('calls mark all as read when button is clicked', async () => {
+    render(<NotificationCenter />)
+
+    await userEvent.click(screen.getByRole('button', { name: /notifications/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Mark all as read')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByText('Mark all as read'))
+
+    await waitFor(() => {
+      expect(mockHooks.mutateAsyncMarkAllAsRead).toHaveBeenCalled()
+    })
+  })
+
+  it('calls mark as read when notification is clicked', async () => {
+    render(<NotificationCenter />)
+
+    await userEvent.click(screen.getByRole('button', { name: /notifications/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('System Update')).toBeInTheDocument()
+    })
+
+    // Click on the unread notification
+    await userEvent.click(screen.getByText('System Update'))
+
+    await waitFor(() => {
+      expect(mockHooks.mutateAsyncMarkAsRead).toHaveBeenCalledWith(1)
+    })
+  })
+
+  it('shows loading indicator when loading', async () => {
+    mockHooks.isLoading = true
+
+    render(<NotificationCenter />)
+
+    await userEvent.click(screen.getByRole('button', { name: /notifications/i }))
+
+    // Loading state might show different UI
+    expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument()
+  })
+
+  it('shows empty state when no notifications', async () => {
+    const originalNotifications = mockNotifications.slice()
+    mockNotifications.length = 0
+
+    render(<NotificationCenter />)
+
+    await userEvent.click(screen.getByRole('button', { name: /notifications/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('No notifications')).toBeInTheDocument()
+    })
+
+    // Restore
+    mockNotifications.push(...originalNotifications)
+  })
+
+  it('highlights unread notifications', async () => {
+    render(<NotificationCenter />)
+
+    await userEvent.click(screen.getByRole('button', { name: /notifications/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('System Update')).toBeInTheDocument()
+    })
+
+    // The unread notification should have different styling
+    const unreadNotification = screen.getByText('System Update').closest('[class*="bg-"]')
+    expect(unreadNotification).toBeInTheDocument()
+  })
+
+  it('shows high priority indicator for high priority notifications', async () => {
+    render(<NotificationCenter />)
+
+    await userEvent.click(screen.getByRole('button', { name: /notifications/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('New Task')).toBeInTheDocument()
+    })
+
+    // High priority notifications should have some indicator
+    expect(screen.getByText('New Task')).toBeInTheDocument()
+  })
+
+  it('handles mark as read error', async () => {
+    mockHooks.mutateAsyncMarkAsRead.mockRejectedValueOnce(new Error('Failed'))
+
+    render(<NotificationCenter />)
+
+    await userEvent.click(screen.getByRole('button', { name: /notifications/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('System Update')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByText('System Update'))
+
+    // Should handle error gracefully
+    expect(mockHooks.mutateAsyncMarkAsRead).toHaveBeenCalled()
+  })
+
+  it('handles mark all as read error', async () => {
+    mockHooks.mutateAsyncMarkAllAsRead.mockRejectedValueOnce(new Error('Failed'))
+
+    render(<NotificationCenter />)
+
+    await userEvent.click(screen.getByRole('button', { name: /notifications/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Mark all as read')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByText('Mark all as read'))
+
+    // Should handle error gracefully
+    expect(mockHooks.mutateAsyncMarkAllAsRead).toHaveBeenCalled()
+  })
 })

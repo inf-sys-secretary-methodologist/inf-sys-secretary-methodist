@@ -19,6 +19,7 @@ import {
   useConversationWithMessages,
 } from '../useMessaging'
 import { apiClient } from '@/lib/api'
+import { MessagingWebSocket } from '@/lib/api/messaging'
 
 // Mock the API client
 jest.mock('@/lib/api', () => ({
@@ -48,6 +49,7 @@ jest.mock('@/lib/api/messaging', () => ({
 }))
 
 const mockedApiClient = jest.mocked(apiClient)
+const mockedMessagingWebSocket = jest.mocked(MessagingWebSocket)
 
 // Wrapper to reset SWR cache between tests
 const wrapper = ({ children }: { children: React.ReactNode }) =>
@@ -384,6 +386,41 @@ describe('useMessaging hooks', () => {
   })
 
   describe('useMessagingWebSocket', () => {
+    let mockWsInstance: {
+      connect: jest.Mock
+      disconnect: jest.Mock
+      sendMessage: jest.Mock
+      subscribe: jest.Mock
+      unsubscribe: jest.Mock
+      sendTyping: jest.Mock
+      sendStopTyping: jest.Mock
+      on: jest.Mock
+      off: jest.Mock
+      isConnected: boolean
+    }
+    let eventHandlers: Map<string, (data: unknown) => void>
+
+    beforeEach(() => {
+      eventHandlers = new Map()
+      mockWsInstance = {
+        connect: jest.fn().mockResolvedValue(undefined),
+        disconnect: jest.fn(),
+        sendMessage: jest.fn(),
+        subscribe: jest.fn(),
+        unsubscribe: jest.fn(),
+        sendTyping: jest.fn(),
+        sendStopTyping: jest.fn(),
+        on: jest.fn((event: string, handler: (data: unknown) => void) => {
+          eventHandlers.set(event, handler)
+        }),
+        off: jest.fn(),
+        isConnected: false,
+      }
+
+      // Using mockedMessagingWebSocket from top of file
+      mockedMessagingWebSocket.mockImplementation(() => mockWsInstance)
+    })
+
     it('returns initial state', () => {
       const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
 
@@ -402,6 +439,257 @@ describe('useMessaging hooks', () => {
 
       const typingUsers = result.current.getTypingUsers(1)
       expect(typingUsers).toEqual([])
+    })
+
+    it('connects to WebSocket', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      expect(mockWsInstance.connect).toHaveBeenCalled()
+    })
+
+    it('disconnects from WebSocket', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      act(() => {
+        result.current.disconnect()
+      })
+
+      expect(mockWsInstance.disconnect).toHaveBeenCalled()
+    })
+
+    it('subscribes to conversation', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      act(() => {
+        result.current.subscribe(1)
+      })
+
+      expect(mockWsInstance.subscribe).toHaveBeenCalledWith(1)
+    })
+
+    it('unsubscribes from conversation', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      act(() => {
+        result.current.unsubscribe(1)
+      })
+
+      expect(mockWsInstance.unsubscribe).toHaveBeenCalledWith(1)
+    })
+
+    it('sends typing indicator', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      act(() => {
+        result.current.sendTyping(1)
+      })
+
+      expect(mockWsInstance.sendTyping).toHaveBeenCalledWith(1)
+    })
+
+    it('sends stop typing indicator', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      act(() => {
+        result.current.sendStopTyping(1)
+      })
+
+      expect(mockWsInstance.sendStopTyping).toHaveBeenCalledWith(1)
+    })
+
+    it('handles typing event and updates typing users', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      // Simulate typing event
+      const typingHandler = eventHandlers.get('typing')
+      if (typingHandler) {
+        act(() => {
+          typingHandler({ conversation_id: 1, user_id: 2 })
+        })
+      }
+
+      await waitFor(() => {
+        const typingUsers = result.current.getTypingUsers(1)
+        expect(typingUsers).toContain(2)
+      })
+    })
+
+    it('handles stop_typing event and removes typing user', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      // First add a typing user
+      const typingHandler = eventHandlers.get('typing')
+      if (typingHandler) {
+        act(() => {
+          typingHandler({ conversation_id: 1, user_id: 2 })
+        })
+      }
+
+      // Then remove typing
+      const stopTypingHandler = eventHandlers.get('stop_typing')
+      if (stopTypingHandler) {
+        act(() => {
+          stopTypingHandler({ conversation_id: 1, user_id: 2 })
+        })
+      }
+
+      await waitFor(() => {
+        const typingUsers = result.current.getTypingUsers(1)
+        expect(typingUsers).not.toContain(2)
+      })
+    })
+
+    it('handles new_message event', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      // Simulate new_message event
+      const handler = eventHandlers.get('new_message')
+      expect(handler).toBeDefined()
+    })
+
+    it('handles message_updated event', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      // Verify event handler was registered
+      const handler = eventHandlers.get('message_updated')
+      expect(handler).toBeDefined()
+    })
+
+    it('handles message_deleted event', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      // Verify event handler was registered
+      const handler = eventHandlers.get('message_deleted')
+      expect(handler).toBeDefined()
+    })
+
+    it('handles read event', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      // Verify event handler was registered
+      const handler = eventHandlers.get('read')
+      expect(handler).toBeDefined()
+    })
+
+    it('handles connection error gracefully', async () => {
+      mockWsInstance.connect.mockRejectedValueOnce(new Error('Connection failed'))
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      expect(consoleSpy).toHaveBeenCalled()
+      consoleSpy.mockRestore()
+    })
+
+    it('does not reconnect if already connected', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      // Mark as connected
+      mockWsInstance.isConnected = true
+
+      // Try to connect again
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      // connect() should only be called once
+      expect(mockWsInstance.connect).toHaveBeenCalledTimes(1)
+    })
+
+    it('calls connect method when connecting', async () => {
+      const { result } = renderHook(() => useMessagingWebSocket(), { wrapper })
+
+      await act(async () => {
+        await result.current.connect()
+      })
+
+      // The connection method should have been called
+      expect(result.current.isConnected).toBeDefined()
+    })
+  })
+
+  describe('API response handling', () => {
+    it('handles API error response', async () => {
+      mockedApiClient.get.mockResolvedValueOnce({
+        success: false,
+        error: { message: 'API Error' },
+      })
+
+      const { result } = renderHook(() => useConversations(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.error).toBeDefined()
+      })
+    })
+
+    it('handles unwrapped API response', async () => {
+      // Return data directly without wrapper
+      mockedApiClient.get.mockResolvedValueOnce({
+        conversations: [{ id: 1, name: 'Test' }],
+        total: 1,
+      })
+
+      const { result } = renderHook(() => useConversations(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.conversations).toBeDefined()
+      })
     })
   })
 
@@ -474,6 +762,169 @@ describe('useMessaging hooks', () => {
         '/api/conversations/1/messages',
         expect.objectContaining({ content: 'Hello' })
       )
+    })
+
+    it('returns typing users for conversation', async () => {
+      const mockConversation = { id: 1, name: 'Test', type: 'direct' }
+      const mockMessages = { messages: [], has_more: false }
+
+      mockedApiClient.get.mockImplementation((url: string) => {
+        if (url.includes('/messages')) {
+          return Promise.resolve({ success: true, data: mockMessages })
+        }
+        return Promise.resolve({ success: true, data: mockConversation })
+      })
+
+      const { result } = renderHook(() => useConversationWithMessages(1), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.conversation).toBeDefined()
+      })
+
+      expect(result.current.typingUsers).toEqual([])
+    })
+
+    it('provides sendTyping and sendStopTyping functions', async () => {
+      const mockConversation = { id: 1, name: 'Test', type: 'direct' }
+      const mockMessages = { messages: [], has_more: false }
+
+      mockedApiClient.get.mockImplementation((url: string) => {
+        if (url.includes('/messages')) {
+          return Promise.resolve({ success: true, data: mockMessages })
+        }
+        return Promise.resolve({ success: true, data: mockConversation })
+      })
+
+      const { result } = renderHook(() => useConversationWithMessages(1), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.conversation).toBeDefined()
+      })
+
+      // These should be callable without error
+      result.current.sendTyping()
+      result.current.sendStopTyping()
+    })
+
+    it('does not send message when conversation id is null', async () => {
+      const { result } = renderHook(() => useConversationWithMessages(null), { wrapper })
+
+      await act(async () => {
+        const response = await result.current.sendMessage('Hello')
+        expect(response).toBeUndefined()
+      })
+
+      expect(mockedApiClient.post).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('useConversations with various filters', () => {
+    it('passes offset parameter', async () => {
+      mockedApiClient.get.mockResolvedValue({
+        success: true,
+        data: { conversations: [], total: 0 },
+      })
+
+      renderHook(() => useConversations({ offset: 20 }), { wrapper })
+
+      await waitFor(() => {
+        expect(mockedApiClient.get).toHaveBeenCalledWith(expect.stringContaining('offset=20'))
+      })
+    })
+  })
+
+  describe('useMessages with filters', () => {
+    it('passes before_id filter', async () => {
+      mockedApiClient.get.mockResolvedValue({
+        success: true,
+        data: { messages: [], has_more: false },
+      })
+
+      renderHook(() => useMessages(1, { before_id: 100 }), { wrapper })
+
+      await waitFor(() => {
+        expect(mockedApiClient.get).toHaveBeenCalledWith(expect.stringContaining('before_id=100'))
+      })
+    })
+
+    it('passes after_id filter', async () => {
+      mockedApiClient.get.mockResolvedValue({
+        success: true,
+        data: { messages: [], has_more: false },
+      })
+
+      renderHook(() => useMessages(1, { after_id: 50 }), { wrapper })
+
+      await waitFor(() => {
+        expect(mockedApiClient.get).toHaveBeenCalledWith(expect.stringContaining('after_id=50'))
+      })
+    })
+
+    it('passes search filter', async () => {
+      mockedApiClient.get.mockResolvedValue({
+        success: true,
+        data: { messages: [], has_more: false },
+      })
+
+      renderHook(() => useMessages(1, { search: 'hello' }), { wrapper })
+
+      await waitFor(() => {
+        expect(mockedApiClient.get).toHaveBeenCalledWith(expect.stringContaining('search=hello'))
+      })
+    })
+
+    it('passes limit filter', async () => {
+      mockedApiClient.get.mockResolvedValue({
+        success: true,
+        data: { messages: [], has_more: false },
+      })
+
+      renderHook(() => useMessages(1, { limit: 25 }), { wrapper })
+
+      await waitFor(() => {
+        expect(mockedApiClient.get).toHaveBeenCalledWith(expect.stringContaining('limit=25'))
+      })
+    })
+  })
+
+  describe('Mark as read deduplication', () => {
+    it('does not call API twice for same message', async () => {
+      mockedApiClient.post.mockResolvedValue({ success: true })
+
+      const { result } = renderHook(() => useMarkConversationAsRead(), { wrapper })
+
+      await act(async () => {
+        await result.current.mutateAsync(1, 10)
+      })
+
+      expect(mockedApiClient.post).toHaveBeenCalledTimes(1)
+
+      // Try to mark the same message again
+      await act(async () => {
+        await result.current.mutateAsync(1, 10)
+      })
+
+      // Should still only have been called once
+      expect(mockedApiClient.post).toHaveBeenCalledTimes(1)
+    })
+
+    it('calls API for different message', async () => {
+      mockedApiClient.post.mockResolvedValue({ success: true })
+
+      const { result } = renderHook(() => useMarkConversationAsRead(), { wrapper })
+
+      await act(async () => {
+        await result.current.mutateAsync(1, 10)
+      })
+
+      expect(mockedApiClient.post).toHaveBeenCalledTimes(1)
+
+      // Mark a different message
+      await act(async () => {
+        await result.current.mutateAsync(1, 11)
+      })
+
+      expect(mockedApiClient.post).toHaveBeenCalledTimes(2)
     })
   })
 })

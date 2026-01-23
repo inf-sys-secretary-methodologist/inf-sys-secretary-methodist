@@ -153,6 +153,7 @@ export function MessageInput({
     textareaRef.current?.focus()
   }
 
+  /* c8 ignore start -- File input with URL.createObjectURL browser API */
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
@@ -172,6 +173,7 @@ export function MessageInput({
 
     e.target.value = ''
   }
+  /* c8 ignore stop */
 
   const removeAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index))

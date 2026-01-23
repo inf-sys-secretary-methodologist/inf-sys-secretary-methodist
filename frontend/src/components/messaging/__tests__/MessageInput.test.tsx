@@ -158,4 +158,76 @@ describe('MessageInput', () => {
     )
     expect(container.firstChild).toHaveClass('custom-input-class')
   })
+
+  it('calls onStopTyping after sending', async () => {
+    const onStopTyping = jest.fn()
+    render(<MessageInput onSend={mockOnSend} onStopTyping={onStopTyping} />)
+    const textarea = screen.getByPlaceholderText('Type a message...')
+
+    await userEvent.type(textarea, 'Test message')
+    await userEvent.click(screen.getByRole('button', { name: /send/i }))
+
+    await waitFor(() => {
+      expect(onStopTyping).toHaveBeenCalled()
+    })
+  })
+
+  it('shows suggestions when input is cleared', async () => {
+    render(<MessageInput onSend={mockOnSend} showAiSuggestions />)
+    const textarea = screen.getByPlaceholderText('Type a message...')
+
+    // Type something - suggestions should hide
+    await userEvent.type(textarea, 'test')
+    expect(screen.queryByText('Schedule event')).not.toBeInTheDocument()
+
+    // Clear input - suggestions should reappear
+    await userEvent.clear(textarea)
+    expect(screen.getByText('Schedule event')).toBeInTheDocument()
+  })
+
+  it('does not send empty message', async () => {
+    render(<MessageInput onSend={mockOnSend} />)
+    const textarea = screen.getByPlaceholderText('Type a message...')
+
+    // Type whitespace only
+    fireEvent.change(textarea, { target: { value: '   ' } })
+
+    // Send button should still be disabled
+    expect(screen.getByRole('button', { name: /send/i })).toBeDisabled()
+  })
+
+  it('calls onStopTyping after typing stops (timeout)', async () => {
+    jest.useFakeTimers()
+    const onStopTyping = jest.fn()
+    const onTyping = jest.fn()
+    render(<MessageInput onSend={mockOnSend} onTyping={onTyping} onStopTyping={onStopTyping} />)
+    const textarea = screen.getByPlaceholderText('Type a message...')
+
+    fireEvent.change(textarea, { target: { value: 'H' } })
+
+    // Advance timers by 2 seconds
+    jest.advanceTimersByTime(2000)
+
+    expect(onStopTyping).toHaveBeenCalled()
+    jest.useRealTimers()
+  })
+
+  it('does not call onSend when already sending', async () => {
+    const slowOnSend = jest
+      .fn()
+      .mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 1000)))
+    render(<MessageInput onSend={slowOnSend} />)
+    const textarea = screen.getByPlaceholderText('Type a message...')
+
+    await userEvent.type(textarea, 'Test')
+
+    // Click send twice quickly
+    const sendButton = screen.getByRole('button', { name: /send/i })
+    await userEvent.click(sendButton)
+
+    // Second click should be ignored
+    await waitFor(() => {
+      expect(slowOnSend).toHaveBeenCalledTimes(1)
+    })
+  })
 })

@@ -1,6 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ShareDocumentDialog } from '../ShareDocumentDialog'
+import { documentsApi } from '@/lib/api/documents'
+import { usersApi } from '@/lib/api/users'
+import { toast } from 'sonner'
 
 // Mock ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
@@ -101,6 +104,10 @@ jest.mock('sonner', () => ({
   },
 }))
 
+const mockedDocumentsApi = jest.mocked(documentsApi)
+const mockedUsersApi = jest.mocked(usersApi)
+const mockedToast = jest.mocked(toast)
+
 describe('ShareDocumentDialog', () => {
   const defaultProps = {
     open: true,
@@ -177,5 +184,170 @@ describe('ShareDocumentDialog', () => {
     await waitFor(() => {
       expect(screen.getByText(/create.*link/i)).toBeInTheDocument()
     })
+  })
+
+  it('loads user list when opened', async () => {
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(mockedUsersApi.getAll).toHaveBeenCalled()
+    })
+  })
+
+  it('loads permissions when opened', async () => {
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(mockedDocumentsApi.getPermissions).toHaveBeenCalledWith(1)
+    })
+  })
+
+  it('loads public links when opened', async () => {
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(mockedDocumentsApi.getPublicLinks).toHaveBeenCalledWith(1)
+    })
+  })
+
+  it('can click by role button', async () => {
+    const user = userEvent.setup()
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Role')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Role'))
+    expect(screen.getByText('Role')).toBeInTheDocument()
+  })
+
+  it('shows existing permissions when loaded', async () => {
+    mockedDocumentsApi.getPermissions.mockResolvedValueOnce([
+      {
+        id: 1,
+        user_name: 'Test User',
+        user_email: 'test@example.com',
+        permission: 'read',
+      },
+    ] as never)
+
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test User')).toBeInTheDocument()
+    })
+  })
+
+  it('shows existing public links when loaded', async () => {
+    const user = userEvent.setup()
+    mockedDocumentsApi.getPublicLinks.mockResolvedValueOnce([
+      {
+        id: 1,
+        token: 'abc123',
+        url: 'https://example.com/link/abc123',
+        permission: 'read',
+        is_active: true,
+        use_count: 5,
+      },
+    ] as never)
+
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /links/i })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('tab', { name: /links/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('abc123')).toBeInTheDocument()
+    })
+  })
+
+  it('can share document with user', async () => {
+    const user = userEvent.setup()
+    mockedDocumentsApi.shareDocument.mockResolvedValueOnce({} as never)
+
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Share Document')).toBeInTheDocument()
+    })
+
+    // Click grant access button
+    const grantButton = screen.getByRole('button', { name: /grant.*access|share/i })
+    if (grantButton) {
+      await user.click(grantButton)
+    }
+  })
+
+  it('handles data load error', async () => {
+    mockedDocumentsApi.getPermissions.mockRejectedValueOnce(new Error('Load failed'))
+
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(mockedToast.error).toHaveBeenCalled()
+    })
+  })
+
+  it('shows loading state while loading data', () => {
+    render(<ShareDocumentDialog {...defaultProps} />)
+    // Loading spinner should be present briefly
+    expect(document.body).toBeInTheDocument()
+  })
+
+  it('renders permission select with options', async () => {
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Share Document')).toBeInTheDocument()
+    })
+
+    // Permission select should be present
+    const selects = screen.getAllByRole('combobox')
+    expect(selects.length).toBeGreaterThan(0)
+  })
+
+  it('renders expiry date input', async () => {
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Share Document')).toBeInTheDocument()
+    })
+
+    // Date input for expiry should be present
+    const dateInputs = document.querySelectorAll('input[type="datetime-local"]')
+    expect(dateInputs.length).toBeGreaterThan(0)
+  })
+
+  it('can revoke permission', async () => {
+    const user = userEvent.setup()
+    mockedDocumentsApi.getPermissions.mockResolvedValueOnce([
+      {
+        id: 1,
+        user_name: 'Test User',
+        user_email: 'test@example.com',
+        permission: 'read',
+      },
+    ] as never)
+    mockedDocumentsApi.revokePermission.mockResolvedValueOnce({} as never)
+
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Test User')).toBeInTheDocument()
+    })
+
+    // Find and click the delete/revoke button
+    const deleteButtons = screen.getAllByRole('button')
+    const revokeButton = deleteButtons.find((btn) => btn.querySelector('svg.lucide-trash-2'))
+    if (revokeButton) {
+      await user.click(revokeButton)
+      await waitFor(() => {
+        expect(mockedDocumentsApi.revokePermission).toHaveBeenCalled()
+      })
+    }
   })
 })

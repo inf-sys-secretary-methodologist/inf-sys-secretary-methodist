@@ -113,13 +113,34 @@ describe('LoginForm', () => {
     })
   })
 
-  it('has submit button that can be disabled during submission', () => {
+  it('has submit button enabled by default', () => {
     render(<LoginForm />)
 
     // Check that submit button exists and is not disabled by default
     const submitButton = screen.getByRole('button', { name: 'login' })
     expect(submitButton).toBeInTheDocument()
     expect(submitButton).not.toBeDisabled()
+  })
+
+  it('disables submit button during form submission', async () => {
+    const user = userEvent.setup()
+    // Make login hang to keep isSubmitting true
+    mockLogin.mockImplementation(() => new Promise(() => {}))
+
+    render(<LoginForm />)
+
+    const emailInput = screen.getByLabelText('email')
+    const passwordInput = screen.getByLabelText('password')
+    const submitButton = screen.getByRole('button', { name: 'login' })
+
+    await user.type(emailInput, 'test@example.com')
+    await user.type(passwordInput, 'Password123!')
+    await user.click(submitButton)
+
+    // Button should be disabled during submission
+    await waitFor(() => {
+      expect(submitButton).toBeDisabled()
+    })
   })
 
   it('clears errors when form is submitted', async () => {
@@ -153,5 +174,107 @@ describe('LoginForm', () => {
 
     const forgotPasswordLink = screen.getByText('forgotPassword')
     expect(forgotPasswordLink.closest('a')).toHaveAttribute('href', '/forgot-password')
+  })
+
+  it('shows loading indicator during form submission', async () => {
+    const user = userEvent.setup()
+    // Make login hang to keep isSubmitting true
+    mockLogin.mockImplementation(() => new Promise(() => {}))
+
+    render(<LoginForm />)
+
+    const emailInput = screen.getByLabelText('email')
+    const passwordInput = screen.getByLabelText('password')
+    const submitButton = screen.getByRole('button', { name: 'login' })
+
+    await user.type(emailInput, 'test@example.com')
+    await user.type(passwordInput, 'Password123!')
+    await user.click(submitButton)
+
+    // Should show loading indicator
+    await waitFor(() => {
+      expect(document.querySelector('.animate-spin')).toBeInTheDocument()
+    })
+  })
+
+  it('handles login error gracefully', async () => {
+    const user = userEvent.setup()
+    mockLogin.mockRejectedValueOnce(new Error('Network error'))
+
+    render(<LoginForm />)
+
+    const emailInput = screen.getByLabelText('email')
+    const passwordInput = screen.getByLabelText('password')
+    const submitButton = screen.getByRole('button', { name: 'login' })
+
+    await user.type(emailInput, 'test@example.com')
+    await user.type(passwordInput, 'Password123!')
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalled()
+    })
+  })
+
+  it('uses custom redirect URL when provided', async () => {
+    const user = userEvent.setup()
+    mockLogin.mockResolvedValueOnce(undefined)
+
+    render(<LoginForm redirectTo="/dashboard" />)
+
+    const emailInput = screen.getByLabelText('email')
+    const passwordInput = screen.getByLabelText('password')
+    const submitButton = screen.getByRole('button', { name: 'login' })
+
+    await user.type(emailInput, 'test@example.com')
+    await user.type(passwordInput, 'Password123!')
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'test@example.com',
+          password: 'Password123!',
+        }),
+        '/dashboard'
+      )
+    })
+  })
+
+  it('renders all form elements with proper structure', () => {
+    const { container } = render(<LoginForm />)
+
+    // Check form structure
+    const form = container.querySelector('form')
+    expect(form).toBeInTheDocument()
+
+    // Check inputs have proper attributes
+    const emailInput = screen.getByLabelText('email')
+    expect(emailInput).toHaveAttribute('type', 'email')
+
+    const passwordInput = screen.getByLabelText('password')
+    expect(passwordInput).toHaveAttribute('type', 'password')
+  })
+
+  it('disables inputs during form submission', async () => {
+    const user = userEvent.setup()
+    // Make login hang to keep isSubmitting true
+    mockLogin.mockImplementation(() => new Promise(() => {}))
+
+    render(<LoginForm />)
+
+    const emailInput = screen.getByLabelText('email')
+    const passwordInput = screen.getByLabelText('password')
+    const submitButton = screen.getByRole('button', { name: 'login' })
+
+    await user.type(emailInput, 'test@example.com')
+    await user.type(passwordInput, 'Password123!')
+    await user.click(submitButton)
+
+    // Inputs should be disabled during submission
+    await waitFor(() => {
+      expect(emailInput).toBeDisabled()
+      expect(passwordInput).toBeDisabled()
+    })
   })
 })

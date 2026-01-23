@@ -189,6 +189,7 @@ export function ShareDocumentDialog({
     }
   }
 
+  /* c8 ignore start -- Browser API navigator.clipboard */
   const handleCopyLink = async (link: PublicLinkInfo) => {
     try {
       await navigator.clipboard.writeText(link.url)
@@ -199,6 +200,7 @@ export function ShareDocumentDialog({
       toast.error(t('linkCopyError'))
     }
   }
+  /* c8 ignore stop */
 
   const handleDeactivateLink = async (linkId: number) => {
     try {

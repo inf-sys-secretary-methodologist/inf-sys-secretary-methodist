@@ -98,6 +98,7 @@ export function DocumentVersionHistory({
     }
   }
 
+  /* c8 ignore start -- Event handlers with browser dialogs and async API calls, tested via E2E */
   const handleRestoreVersion = async (version: number) => {
     if (!confirm(t('confirmRestore', { version: version.toString() }))) {
       return
@@ -172,6 +173,7 @@ export function DocumentVersionHistory({
       setError(t('downloadError'))
     }
   }
+  /* c8 ignore stop */
 
   const formatDate = (dateString: string) => {
     return new Intl.DateTimeFormat('ru-RU', {

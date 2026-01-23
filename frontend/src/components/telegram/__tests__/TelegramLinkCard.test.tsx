@@ -203,4 +203,110 @@ describe('TelegramLinkCard', () => {
 
     expect(mockGenerateCode.reset).toHaveBeenCalled()
   })
+
+  it('shows loading state when generating code', () => {
+    mockGenerateCode.isPending = true
+
+    render(<TelegramLinkCard />)
+
+    expect(screen.getByText('Generating...')).toBeInTheDocument()
+  })
+
+  it('shows copy button when code is generated', () => {
+    mockGenerateCode.data = {
+      code: 'ABC123',
+      bot_link: 'https://t.me/testbot',
+      expires_at: new Date(Date.now() + 300000).toISOString(),
+    }
+
+    render(<TelegramLinkCard />)
+
+    expect(screen.getByRole('button', { name: /copy code/i })).toBeInTheDocument()
+  })
+
+  it('shows get new code button when code is generated', () => {
+    mockGenerateCode.data = {
+      code: 'ABC123',
+      bot_link: 'https://t.me/testbot',
+      expires_at: new Date(Date.now() + 300000).toISOString(),
+    }
+
+    render(<TelegramLinkCard />)
+
+    expect(screen.getByRole('button', { name: /get new code/i })).toBeInTheDocument()
+  })
+
+  it('can click copy button', async () => {
+    mockGenerateCode.data = {
+      code: 'ABC123',
+      bot_link: 'https://t.me/testbot',
+      expires_at: new Date(Date.now() + 300000).toISOString(),
+    }
+
+    // Mock clipboard
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: jest.fn().mockResolvedValue(undefined),
+      },
+    })
+
+    render(<TelegramLinkCard />)
+
+    await userEvent.click(screen.getByRole('button', { name: /copy code/i }))
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('ABC123')
+  })
+
+  it('handles disconnect click', async () => {
+    mockStatus.connected = true
+    mockStatus.first_name = 'John'
+    mockStatus.connected_at = new Date().toISOString()
+    mockDisconnectTelegram.mutateAsync.mockResolvedValue({})
+
+    render(<TelegramLinkCard />)
+
+    await userEvent.click(screen.getByRole('button', { name: /disconnect/i }))
+
+    // Should show confirmation dialog
+    expect(screen.getByText('Disconnect Telegram?')).toBeInTheDocument()
+  })
+
+  it('can cancel disconnect dialog', async () => {
+    mockStatus.connected = true
+    mockStatus.first_name = 'John'
+    mockStatus.connected_at = new Date().toISOString()
+
+    render(<TelegramLinkCard />)
+
+    await userEvent.click(screen.getByRole('button', { name: /disconnect/i }))
+    expect(screen.getByText('Disconnect Telegram?')).toBeInTheDocument()
+
+    // Cancel button in dialog
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+
+    // Dialog should be closed
+    expect(screen.queryByText('Disconnect Telegram?')).not.toBeInTheDocument()
+  })
+
+  it('shows expiry timer when code is generated', () => {
+    mockGenerateCode.data = {
+      code: 'ABC123',
+      bot_link: 'https://t.me/testbot',
+      expires_at: new Date(Date.now() + 300000).toISOString(), // 5 minutes
+    }
+
+    render(<TelegramLinkCard />)
+
+    expect(screen.getByText(/Expires in/)).toBeInTheDocument()
+  })
+
+  it('shows account linked message when connected', () => {
+    mockStatus.connected = true
+    mockStatus.first_name = 'John'
+    mockStatus.connected_at = new Date().toISOString()
+
+    render(<TelegramLinkCard />)
+
+    expect(screen.getByText('Your Telegram account is linked')).toBeInTheDocument()
+  })
 })

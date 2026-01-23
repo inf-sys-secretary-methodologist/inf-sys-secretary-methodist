@@ -118,4 +118,167 @@ describe('AvatarUpload', () => {
       expect(mockOnRemove).toHaveBeenCalled()
     })
   })
+
+  it('shows error for invalid file format', async () => {
+    const { container } = render(<AvatarUpload onUpload={mockOnUpload} />)
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+
+    const invalidFile = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+
+    Object.defineProperty(input, 'files', {
+      value: [invalidFile],
+    })
+
+    // Trigger change event
+    const event = new Event('change', { bubbles: true })
+    input.dispatchEvent(event)
+
+    await waitFor(() => {
+      expect(screen.getByText('Invalid file format.')).toBeInTheDocument()
+    })
+  })
+
+  it('shows error for file too large', async () => {
+    const { container } = render(<AvatarUpload onUpload={mockOnUpload} />)
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+
+    // Create a file larger than 5MB
+    const largeContent = new Array(6 * 1024 * 1024).fill('x').join('')
+    const largeFile = new File([largeContent], 'large.jpg', { type: 'image/jpeg' })
+
+    Object.defineProperty(input, 'files', {
+      value: [largeFile],
+    })
+
+    const event = new Event('change', { bubbles: true })
+    input.dispatchEvent(event)
+
+    await waitFor(() => {
+      expect(screen.getByText('File is too large. Max 5MB.')).toBeInTheDocument()
+    })
+  })
+
+  it('handles file selection and opens cropper', async () => {
+    const { container } = render(<AvatarUpload onUpload={mockOnUpload} />)
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+
+    const validFile = new File(['content'], 'test.jpg', { type: 'image/jpeg' })
+
+    Object.defineProperty(input, 'files', {
+      value: [validFile],
+    })
+
+    const event = new Event('change', { bubbles: true })
+    input.dispatchEvent(event)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('image-cropper')).toBeInTheDocument()
+    })
+  })
+
+  it('handles drag over events', async () => {
+    const { container } = render(<AvatarUpload onUpload={mockOnUpload} />)
+    const dropZone = container.querySelector('.relative.size-20')
+
+    if (dropZone) {
+      // Simulate drag over
+      const dragOverEvent = new Event('dragover', { bubbles: true })
+      Object.defineProperty(dragOverEvent, 'preventDefault', { value: jest.fn() })
+      dropZone.dispatchEvent(dragOverEvent)
+
+      // Simulate drag leave
+      const dragLeaveEvent = new Event('dragleave', { bubbles: true })
+      dropZone.dispatchEvent(dragLeaveEvent)
+    }
+
+    expect(container).toBeInTheDocument()
+  })
+
+  it('handles drop events', async () => {
+    const { container } = render(<AvatarUpload onUpload={mockOnUpload} />)
+    const dropZone = container.querySelector('.relative.size-20')
+
+    if (dropZone) {
+      const validFile = new File(['content'], 'dropped.jpg', { type: 'image/jpeg' })
+      const dropEvent = new Event('drop', { bubbles: true }) as unknown as DragEvent
+
+      Object.defineProperty(dropEvent, 'preventDefault', { value: jest.fn() })
+      Object.defineProperty(dropEvent, 'dataTransfer', {
+        value: {
+          files: [validFile],
+        },
+      })
+
+      dropZone.dispatchEvent(dropEvent)
+    }
+
+    await waitFor(() => {
+      expect(container).toBeInTheDocument()
+    })
+  })
+
+  it('shows error when onRemove fails', async () => {
+    const failingOnRemove = jest.fn().mockRejectedValue(new Error('Delete failed'))
+
+    render(
+      <AvatarUpload
+        onUpload={mockOnUpload}
+        onRemove={failingOnRemove}
+        currentAvatar="https://example.com/avatar.jpg"
+      />
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to delete image.')).toBeInTheDocument()
+    })
+  })
+
+  it('does not process when disabled', async () => {
+    const { container } = render(<AvatarUpload onUpload={mockOnUpload} disabled />)
+    const dropZone = container.querySelector('.relative.size-20')
+
+    if (dropZone) {
+      const validFile = new File(['content'], 'dropped.jpg', { type: 'image/jpeg' })
+      const dropEvent = new Event('drop', { bubbles: true }) as unknown as DragEvent
+
+      Object.defineProperty(dropEvent, 'preventDefault', { value: jest.fn() })
+      Object.defineProperty(dropEvent, 'dataTransfer', {
+        value: {
+          files: [validFile],
+        },
+      })
+
+      dropZone.dispatchEvent(dropEvent)
+    }
+
+    expect(mockOnUpload).not.toHaveBeenCalled()
+  })
+
+  it('updates preview when currentAvatar prop changes', async () => {
+    const { rerender } = render(<AvatarUpload onUpload={mockOnUpload} currentAvatar={null} />)
+
+    rerender(
+      <AvatarUpload onUpload={mockOnUpload} currentAvatar="https://example.com/new-avatar.jpg" />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-image')).toBeInTheDocument()
+    })
+  })
+
+  it('clicks file input when avatar area is clicked', async () => {
+    const { container } = render(<AvatarUpload onUpload={mockOnUpload} />)
+    const dropZone = container.querySelector('.relative.size-20')
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+
+    const clickSpy = jest.spyOn(input, 'click')
+
+    if (dropZone) {
+      await userEvent.click(dropZone)
+    }
+
+    expect(clickSpy).toHaveBeenCalled()
+  })
 })

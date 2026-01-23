@@ -1,5 +1,6 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { DocumentUploadComponent } from '../DocumentUpload'
+import { tagsApi } from '@/lib/api/documents'
 
 // Mock next-intl
 jest.mock('next-intl', () => ({
@@ -45,6 +46,8 @@ jest.mock('@/lib/api/documents', () => ({
     getAll: jest.fn().mockResolvedValue([]),
   },
 }))
+
+const mockedTagsApi = jest.mocked(tagsApi)
 
 describe('DocumentUploadComponent', () => {
   const defaultProps = {
@@ -117,5 +120,223 @@ describe('DocumentUploadComponent', () => {
     expect(input).toBeInTheDocument()
     expect(input).toHaveClass('hidden')
     expect(input).toHaveAttribute('type', 'file')
+  })
+
+  it('handles file selection through input change', async () => {
+    render(<DocumentUploadComponent {...defaultProps} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    const validFile = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+    Object.defineProperty(input, 'files', { value: [validFile] })
+
+    fireEvent.change(input)
+
+    await screen.findByText(/Selected files/)
+    expect(screen.getByText('test.pdf')).toBeInTheDocument()
+  })
+
+  it('handles file drop', async () => {
+    const { container } = render(<DocumentUploadComponent {...defaultProps} />)
+    const dropZone = container.querySelector('[class*="border-dashed"]')
+
+    if (dropZone) {
+      const validFile = new File(['content'], 'dropped.pdf', { type: 'application/pdf' })
+
+      fireEvent.drop(dropZone, {
+        dataTransfer: {
+          files: [validFile],
+        },
+      })
+
+      await screen.findByText(/Selected files/)
+      expect(screen.getByText('dropped.pdf')).toBeInTheDocument()
+    }
+  })
+
+  it('shows validation error for invalid file type', async () => {
+    render(<DocumentUploadComponent {...defaultProps} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    const invalidFile = new File(['content'], 'test.exe', { type: 'application/x-executable' })
+    Object.defineProperty(input, 'files', { value: [invalidFile] })
+
+    fireEvent.change(input)
+
+    await screen.findByText(/Selected files/)
+    expect(screen.getByText('File type not supported')).toBeInTheDocument()
+  })
+
+  it('shows validation error for file too large', async () => {
+    render(<DocumentUploadComponent {...defaultProps} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    // Create large file content
+    const largeContent = new Array(11 * 1024 * 1024).fill('x').join('')
+    const largeFile = new File([largeContent], 'large.pdf', { type: 'application/pdf' })
+    Object.defineProperty(input, 'files', { value: [largeFile] })
+
+    fireEvent.change(input)
+
+    await screen.findByText(/Selected files/)
+    expect(screen.getByText('File size exceeded')).toBeInTheDocument()
+  })
+
+  it('removes file when X button clicked', async () => {
+    render(<DocumentUploadComponent {...defaultProps} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    const validFile = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+    Object.defineProperty(input, 'files', { value: [validFile] })
+
+    fireEvent.change(input)
+
+    await screen.findByText('test.pdf')
+
+    // Find and click the remove button
+    const removeButton = screen.getByRole('button', { name: '' }) // X button has no accessible name
+    fireEvent.click(removeButton)
+
+    expect(screen.queryByText('test.pdf')).not.toBeInTheDocument()
+  })
+
+  it('shows category select when files are selected', async () => {
+    render(<DocumentUploadComponent {...defaultProps} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    const validFile = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+    Object.defineProperty(input, 'files', { value: [validFile] })
+
+    fireEvent.change(input)
+
+    await screen.findByText('Category')
+    expect(screen.getByRole('combobox')).toBeInTheDocument()
+  })
+
+  it('shows description textarea when files are selected', async () => {
+    render(<DocumentUploadComponent {...defaultProps} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    const validFile = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+    Object.defineProperty(input, 'files', { value: [validFile] })
+
+    fireEvent.change(input)
+
+    await screen.findByText('Description (optional)')
+    expect(screen.getByPlaceholderText('Enter description')).toBeInTheDocument()
+  })
+
+  it('calls onUpload when submit button clicked', async () => {
+    const onUpload = jest.fn().mockResolvedValue(undefined)
+    render(<DocumentUploadComponent onUpload={onUpload} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    const validFile = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+    Object.defineProperty(input, 'files', { value: [validFile] })
+
+    fireEvent.change(input)
+
+    await screen.findByText('Upload 1 files')
+    fireEvent.click(screen.getByText('Upload 1 files'))
+
+    await waitFor(() => {
+      expect(onUpload).toHaveBeenCalled()
+    })
+  })
+
+  it('shows cancel button when onCancel prop is provided', async () => {
+    const onCancel = jest.fn()
+    render(<DocumentUploadComponent {...defaultProps} onCancel={onCancel} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    const validFile = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+    Object.defineProperty(input, 'files', { value: [validFile] })
+
+    fireEvent.change(input)
+
+    await screen.findByText('Cancel')
+    fireEvent.click(screen.getByText('Cancel'))
+
+    expect(onCancel).toHaveBeenCalled()
+  })
+
+  it('changes category when selected', async () => {
+    render(<DocumentUploadComponent {...defaultProps} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    const validFile = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+    Object.defineProperty(input, 'files', { value: [validFile] })
+
+    fireEvent.change(input)
+
+    await screen.findByRole('combobox')
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'administrative' } })
+
+    expect(screen.getByRole('combobox')).toHaveValue('administrative')
+  })
+
+  it('allows entering description', async () => {
+    render(<DocumentUploadComponent {...defaultProps} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    const validFile = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+    Object.defineProperty(input, 'files', { value: [validFile] })
+
+    fireEvent.change(input)
+
+    await screen.findByPlaceholderText('Enter description')
+    fireEvent.change(screen.getByPlaceholderText('Enter description'), {
+      target: { value: 'Test description' },
+    })
+
+    expect(screen.getByDisplayValue('Test description')).toBeInTheDocument()
+  })
+})
+
+describe('DocumentUploadComponent with tags', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    // Mock tagsApi to return some tags
+    mockedTagsApi.getAll.mockResolvedValue([
+      { id: 1, name: 'Important', color: '#ff0000' },
+      { id: 2, name: 'Draft', color: '#00ff00' },
+    ] as never)
+  })
+
+  it('loads and displays tags', async () => {
+    render(<DocumentUploadComponent onUpload={jest.fn()} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    const validFile = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+    Object.defineProperty(input, 'files', { value: [validFile] })
+
+    fireEvent.change(input)
+
+    await waitFor(() => {
+      expect(screen.getByText('Important')).toBeInTheDocument()
+      expect(screen.getByText('Draft')).toBeInTheDocument()
+    })
+  })
+
+  it('toggles tag selection', async () => {
+    render(<DocumentUploadComponent onUpload={jest.fn()} />)
+    const input = document.getElementById('file-upload') as HTMLInputElement
+
+    const validFile = new File(['content'], 'test.pdf', { type: 'application/pdf' })
+    Object.defineProperty(input, 'files', { value: [validFile] })
+
+    fireEvent.change(input)
+
+    await waitFor(() => {
+      expect(screen.getByText('Important')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('Important'))
+
+    expect(screen.getByText('Selected tags: 1')).toBeInTheDocument()
+
+    // Toggle off
+    fireEvent.click(screen.getByText('Important'))
+
+    expect(screen.queryByText('Selected tags: 1')).not.toBeInTheDocument()
   })
 })
