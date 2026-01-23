@@ -144,6 +144,9 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       VERSION: ${VERSION:-0.2.0}
 
+      # Sentry Error Tracking
+      SENTRY_DSN: ${SENTRY_DSN:-}
+
       # 1C Integration Configuration
       INTEGRATION_1C_ENABLED: ${INTEGRATION_1C_ENABLED:-false}
       INTEGRATION_1C_BASE_URL: ${INTEGRATION_1C_BASE_URL:-}
@@ -177,6 +180,7 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
       NODE_ENV: ${NODE_ENV:-development}
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
     depends_on:
       - backend
     # Для Linux раскомментируйте в compose.override.yml:
