@@ -92,7 +92,7 @@ frontend/storybook-static/
 runtime-state/
 
 # Taskmaster
-.taskmaster/.taskmaster/tasks/tasks.json
+.taskmaster/
 
 # Server admin docs (contains sensitive data)
 SERVER_ADMIN.md
