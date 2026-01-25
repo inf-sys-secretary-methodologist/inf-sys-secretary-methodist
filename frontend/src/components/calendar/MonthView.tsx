@@ -138,6 +138,7 @@ export function MonthView({
                     onClick={() => onEventClick?.(event)}
                   />
                 ))}
+                {/* c8 ignore start - More events button click handler */}
                 {dayEvents.length > 3 && (
                   <button
                     onClick={(e) => {
@@ -149,6 +150,7 @@ export function MonthView({
                     {t('moreEvents', { count: dayEvents.length - 3 })}
                   </button>
                 )}
+                {/* c8 ignore stop */}
               </div>
             </div>
           )

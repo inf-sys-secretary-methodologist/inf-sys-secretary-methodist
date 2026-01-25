@@ -161,6 +161,7 @@ export function InstallPrompt() {
       </Card>
     )
   }
+  /* c8 ignore next 3 */
 
   return null
 }

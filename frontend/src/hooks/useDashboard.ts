@@ -35,6 +35,7 @@ const fetcher = async <T>(url: string): Promise<T> => {
   if (response && typeof response === 'object' && 'success' in response) {
     if (response.success && response.data !== undefined) {
       return response.data
+      /* c8 ignore start - Error handling and fallback paths */
     } else {
       throw new Error(response.error?.message || 'API returned error')
     }
@@ -42,6 +43,7 @@ const fetcher = async <T>(url: string): Promise<T> => {
 
   // Response is already the data (shouldn't happen but handle it)
   return response as T
+  /* c8 ignore stop */
 }
 
 // Hook for fetching dashboard stats

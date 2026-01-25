@@ -107,6 +107,22 @@ describe('FilterBuilder', () => {
     expect(screen.getByText('Select field')).toBeInTheDocument()
   })
 
+  it('cancels adding filter when X button clicked', () => {
+    render(<FilterBuilder {...defaultProps} />)
+    // Open add filter form
+    fireEvent.click(screen.getByRole('button', { name: /Add Filter/i }))
+    expect(screen.getByText('Select field')).toBeInTheDocument()
+
+    // Click X button to cancel
+    const buttons = screen.getAllByRole('button')
+    const cancelButton = buttons.find((btn) => btn.querySelector('svg.lucide-x'))
+    if (cancelButton) {
+      fireEvent.click(cancelButton)
+    }
+    // Form should be closed, empty state should show
+    expect(screen.getByText('No filters')).toBeInTheDocument()
+  })
+
   it('shows filter count when filters exist', () => {
     const stringField: ReportField = {
       id: 'name',
@@ -286,5 +302,164 @@ describe('FilterBuilder', () => {
     fireEvent.change(input, { target: { value: 'new value' } })
 
     expect(mockOnUpdateFilter).toHaveBeenCalledWith('filter-1', { value: 'new value' })
+  })
+
+  it('renders enum field with select value', () => {
+    const enumField: ReportField = {
+      id: 'status',
+      name: 'status',
+      label: 'Status',
+      type: 'enum',
+      source: 'users',
+      enumValues: ['active', 'inactive'],
+    }
+    const filters: ReportFilter[] = [
+      { id: 'filter-1', field: enumField, operator: 'equals', value: 'active' },
+    ]
+
+    render(<FilterBuilder {...defaultProps} filters={filters} />)
+    expect(screen.getByText('Status')).toBeInTheDocument()
+  })
+
+  it('renders boolean field with select', () => {
+    const booleanField: ReportField = {
+      id: 'active',
+      name: 'active',
+      label: 'Active',
+      type: 'boolean',
+      source: 'users',
+    }
+    const filters: ReportFilter[] = [
+      { id: 'filter-1', field: booleanField, operator: 'equals', value: true },
+    ]
+
+    render(<FilterBuilder {...defaultProps} filters={filters} />)
+    expect(screen.getByText('Active')).toBeInTheDocument()
+  })
+
+  it('renders between operator with two inputs for number', () => {
+    const numberField: ReportField = {
+      id: 'age',
+      name: 'age',
+      label: 'Age',
+      type: 'number',
+      source: 'users',
+    }
+    const filters: ReportFilter[] = [
+      { id: 'filter-1', field: numberField, operator: 'between', value: 18, value2: 65 },
+    ]
+
+    render(<FilterBuilder {...defaultProps} filters={filters} />)
+    const inputs = screen.getAllByPlaceholderText('Enter value')
+    expect(inputs.length).toBe(2)
+  })
+
+  it('renders between operator with two date inputs', () => {
+    const dateField: ReportField = {
+      id: 'created_at',
+      name: 'created_at',
+      label: 'Created At',
+      type: 'date',
+      source: 'users',
+    }
+    const filters: ReportFilter[] = [
+      {
+        id: 'filter-1',
+        field: dateField,
+        operator: 'between',
+        value: '2024-01-01',
+        value2: '2024-12-31',
+      },
+    ]
+
+    render(<FilterBuilder {...defaultProps} filters={filters} />)
+    const dateInputs = document.querySelectorAll('input[type="date"]')
+    expect(dateInputs.length).toBe(2)
+  })
+
+  it('calls onUpdateFilter when number input changes', () => {
+    const numberField: ReportField = {
+      id: 'age',
+      name: 'age',
+      label: 'Age',
+      type: 'number',
+      source: 'users',
+    }
+    const filters: ReportFilter[] = [
+      { id: 'filter-1', field: numberField, operator: 'equals', value: 0 },
+    ]
+
+    render(<FilterBuilder {...defaultProps} filters={filters} />)
+
+    const input = screen.getByPlaceholderText('Enter value')
+    fireEvent.change(input, { target: { value: '25' } })
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith('filter-1', { value: 25 })
+  })
+
+  it('calls onUpdateFilter when date input changes', () => {
+    const dateField: ReportField = {
+      id: 'created_at',
+      name: 'created_at',
+      label: 'Created At',
+      type: 'date',
+      source: 'users',
+    }
+    const filters: ReportFilter[] = [
+      { id: 'filter-1', field: dateField, operator: 'equals', value: '' },
+    ]
+
+    render(<FilterBuilder {...defaultProps} filters={filters} />)
+
+    const input = document.querySelector('input[type="date"]') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '2024-06-15' } })
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith('filter-1', { value: '2024-06-15' })
+  })
+
+  it('calls onUpdateFilter when between number value2 changes', () => {
+    const numberField: ReportField = {
+      id: 'age',
+      name: 'age',
+      label: 'Age',
+      type: 'number',
+      source: 'users',
+    }
+    const filters: ReportFilter[] = [
+      { id: 'filter-1', field: numberField, operator: 'between', value: 18, value2: 65 },
+    ]
+
+    render(<FilterBuilder {...defaultProps} filters={filters} />)
+
+    const inputs = screen.getAllByPlaceholderText('Enter value')
+    fireEvent.change(inputs[1], { target: { value: '70' } })
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith('filter-1', { value2: 70 })
+  })
+
+  it('calls onUpdateFilter when between date value2 changes', () => {
+    const dateField: ReportField = {
+      id: 'created_at',
+      name: 'created_at',
+      label: 'Created At',
+      type: 'date',
+      source: 'users',
+    }
+    const filters: ReportFilter[] = [
+      {
+        id: 'filter-1',
+        field: dateField,
+        operator: 'between',
+        value: '2024-01-01',
+        value2: '2024-12-31',
+      },
+    ]
+
+    render(<FilterBuilder {...defaultProps} filters={filters} />)
+
+    const dateInputs = document.querySelectorAll('input[type="date"]')
+    fireEvent.change(dateInputs[1], { target: { value: '2025-01-01' } })
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith('filter-1', { value2: '2025-01-01' })
   })
 })

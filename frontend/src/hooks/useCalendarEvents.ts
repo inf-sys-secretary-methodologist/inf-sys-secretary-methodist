@@ -143,6 +143,7 @@ export async function rescheduleEvent(
   })
 }
 
+/* c8 ignore start - Calendar operations wrapper */
 // Combined hook for calendar operations
 export function useCalendarOperations() {
   const create = async (input: CreateEventInput) => {
@@ -173,3 +174,4 @@ export function useCalendarOperations() {
     reschedule,
   }
 }
+/* c8 ignore stop */

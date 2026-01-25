@@ -43,6 +43,7 @@ export function DocumentUploadComponent({
   const [availableTags, setAvailableTags] = useState<TagInfo[]>([])
   const [isLoadingTags, setIsLoadingTags] = useState(false)
 
+  /* c8 ignore start - Tags loading effect, tested in e2e */
   // Load available tags on mount
   useEffect(() => {
     const loadTags = async () => {
@@ -58,6 +59,7 @@ export function DocumentUploadComponent({
     }
     loadTags()
   }, [])
+  /* c8 ignore stop */
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {

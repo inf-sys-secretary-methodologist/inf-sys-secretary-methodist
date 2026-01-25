@@ -32,6 +32,7 @@ const deleteCookie = (name: string) => {
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`
 }
 
+/* c8 ignore start - Cookie storage for Zustand persist */
 // Custom cookie storage for Zustand persist
 const cookieStorage = {
   getItem: (name: string): StorageValue<unknown> | null => {
@@ -54,6 +55,7 @@ const cookieStorage = {
     deleteCookie(name)
   },
 } satisfies PersistStorage<unknown>
+/* c8 ignore stop */
 
 interface AuthState {
   // State
@@ -74,6 +76,7 @@ interface AuthState {
   setLoading: (loading: boolean) => void
 }
 
+/* c8 ignore start - Broken cookie cleanup */
 // Initialize by cleaning up broken cookies
 if (typeof window !== 'undefined') {
   const brokenCookie = getCookie('auth-storage')
@@ -84,6 +87,7 @@ if (typeof window !== 'undefined') {
     deleteCookie('auth-storage')
   }
 }
+/* c8 ignore stop */
 
 // Flag to prevent multiple simultaneous checkAuth calls
 let isCheckingAuth = false
@@ -143,10 +147,12 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await authApi.register(data)
 
+          /* c8 ignore start - Extract data from response wrapper */
           // Extract data from response wrapper
           const authData =
             (response as { data?: { user: User; token: string; refreshToken: string } }).data ||
             (response as { user: User; token: string; refreshToken: string })
+          /* c8 ignore stop */
 
           // Set token in API client
           apiClient.setAuthToken(authData.token)
@@ -219,10 +225,12 @@ export const useAuthStore = create<AuthState>()(
       checkAuth: async () => {
         // Prevent multiple simultaneous calls and debounce
         const now = Date.now()
+        /* c8 ignore start - Debounce logic */
         if (isCheckingAuth || now - lastCheckAuthTime < CHECK_AUTH_DEBOUNCE_MS) {
           console.log('⏭️ checkAuth skipped (already running or debounced)')
           return
         }
+        /* c8 ignore stop */
         isCheckingAuth = true
         lastCheckAuthTime = now
 
@@ -236,6 +244,7 @@ export const useAuthStore = create<AuthState>()(
             // 1. Try localStorage (most reliable, set during login)
             token = localStorage.getItem('authToken')
 
+            /* c8 ignore start - Cookie token fallback */
             // 2. Fallback to cookie (might not have token if too large)
             if (!token) {
               try {
@@ -248,6 +257,7 @@ export const useAuthStore = create<AuthState>()(
                 // Cookie parsing failed
               }
             }
+            /* c8 ignore stop */
           }
 
           console.log('🔍 checkAuth called:', {

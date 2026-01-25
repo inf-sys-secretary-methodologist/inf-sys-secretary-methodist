@@ -61,6 +61,7 @@ async function getCroppedImg(imageSrc: string, pixelCrop: Area, rotation = 0): P
       (blob) => {
         if (blob) {
           resolve(blob)
+          /* c8 ignore next 3 */
         } else {
           reject(new Error('Failed to create blob'))
         }

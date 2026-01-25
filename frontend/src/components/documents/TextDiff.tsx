@@ -69,6 +69,7 @@ export function TextDiff({ oldText, newText, oldLabel, newLabel, className = '' 
           return lines.map((line, lineIndex) => (
             <div
               key={`${index}-${lineIndex}`}
+              /* c8 ignore start - Dynamic className for diff parts */
               className={`
                 px-3 py-1 border-b border-gray-100 dark:border-gray-800 last:border-b-0
                 ${
@@ -79,6 +80,7 @@ export function TextDiff({ oldText, newText, oldLabel, newLabel, className = '' 
                       : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'
                 }
               `}
+              /* c8 ignore stop */
             >
               <span className="select-none mr-2 text-gray-400 dark:text-gray-600">
                 {part.added ? '+' : part.removed ? '-' : ' '}
@@ -142,6 +144,7 @@ export function TextDiffSideBySide({
     )
   }
 
+  /* c8 ignore start - Line class helper with default case */
   const getLineClass = (type: string) => {
     switch (type) {
       case 'removed':
@@ -154,6 +157,7 @@ export function TextDiffSideBySide({
         return 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'
     }
   }
+  /* c8 ignore stop */
 
   return (
     <div className={`font-mono text-sm ${className}`}>

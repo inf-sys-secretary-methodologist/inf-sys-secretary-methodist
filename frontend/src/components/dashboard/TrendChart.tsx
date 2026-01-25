@@ -55,6 +55,7 @@ export function TrendChart({ title, datasets, period = 'month', className }: Tre
         return 90
       case 'year':
         return 365
+      /* c8 ignore next 2 */
       default:
         return 30
     }

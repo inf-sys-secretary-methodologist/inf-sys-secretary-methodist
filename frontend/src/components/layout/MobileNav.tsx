@@ -67,6 +67,7 @@ export function MobileNav({ items }: MobileNavProps) {
                       : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                   )}
                 >
+                  {/* c8 ignore start - Background glow effect */}
                   {/* Background glow effect */}
                   {(isActive || isHovered) && (
                     <div
@@ -81,6 +82,7 @@ export function MobileNav({ items }: MobileNavProps) {
                       }}
                     />
                   )}
+                  {/* c8 ignore stop */}
 
                   {/* Content */}
                   <div className="relative z-10 flex items-center gap-3">

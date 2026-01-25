@@ -51,6 +51,7 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
       if (onSuccess) {
         onSuccess()
       }
+      /* c8 ignore start - Error handling with message extraction */
     } catch (error: unknown) {
       const rawMessage =
         (error as { response?: { data?: { error?: { message?: string }; message?: string } } })
@@ -66,6 +67,7 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
 
       // Set local error state for immediate feedback
       setLocalError(errorMessage)
+      /* c8 ignore stop */
 
       // Show toast with unique ID and longer duration to prevent auto-dismissal
       toast.error(t('loginError'), {

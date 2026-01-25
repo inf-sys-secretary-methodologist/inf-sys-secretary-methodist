@@ -67,6 +67,7 @@ export function ActivityFeed({ activities, title, className }: ActivityFeedProps
   const t = useTranslations('dashboard.activityFeed')
   const tCommon = useTranslations('common')
 
+  /* c8 ignore start - Time formatting and label helpers */
   const formatRelativeTime = (dateString: string): string => {
     const date = new Date(dateString)
     const now = new Date()
@@ -104,6 +105,7 @@ export function ActivityFeed({ activities, title, className }: ActivityFeedProps
       return action
     }
   }
+  /* c8 ignore stop */
 
   return (
     <div

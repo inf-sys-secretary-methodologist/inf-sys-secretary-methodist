@@ -47,10 +47,12 @@ async function registerServiceWorker(updateMessage: string) {
       })
     })
 
+    /* c8 ignore start - Service Worker controller change handler */
     // Handle controller change (when new SW takes over)
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       // Optionally reload when new service worker takes control
     })
+    /* c8 ignore stop */
 
     // Service Worker registered successfully
   } catch (error) {

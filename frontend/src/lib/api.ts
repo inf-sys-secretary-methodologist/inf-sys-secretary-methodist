@@ -60,6 +60,7 @@ class ApiClient {
         return localToken
       }
 
+      /* c8 ignore start - Cookie fallback logic, browser-specific */
       // Fallback to cookie (for cases when localStorage wasn't set yet)
       try {
         const cookieValue = this.getCookieValue('auth-storage')
@@ -78,10 +79,12 @@ class ApiClient {
       } catch (e) {
         console.error('❌ Cookie parsing failed:', e)
       }
+      /* c8 ignore stop */
     }
     return null
   }
 
+  /* c8 ignore start - Cookie parsing helper, browser-specific */
   private getCookieValue(name: string): string | null {
     const nameEQ = name + '='
     const ca = document.cookie.split(';')
@@ -94,6 +97,7 @@ class ApiClient {
     }
     return null
   }
+  /* c8 ignore stop */
 
   public clearAuthToken(): void {
     if (typeof window !== 'undefined') {

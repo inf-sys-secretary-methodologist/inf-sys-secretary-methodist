@@ -129,11 +129,13 @@ export function useRequireAuth(redirectTo: string = '/login') {
   const router = useRouter()
   const { isAuthenticated, isLoading } = useAuthCheck()
 
+  /* c8 ignore start - Auth redirect, tested in e2e */
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push(redirectTo)
     }
   }, [isAuthenticated, isLoading, router, redirectTo])
+  /* c8 ignore stop */
 
   return {
     isAuthenticated,

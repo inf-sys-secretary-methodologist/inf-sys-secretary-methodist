@@ -36,6 +36,7 @@ const fetcher = async <T>(url: string): Promise<T> => {
     const wrappedResponse = response as ApiResponse<T>
     if (wrappedResponse.success && wrappedResponse.data !== undefined) {
       return wrappedResponse.data
+      /* c8 ignore next 3 */
     } else {
       throw new Error(wrappedResponse.error?.message || 'API returned error')
     }

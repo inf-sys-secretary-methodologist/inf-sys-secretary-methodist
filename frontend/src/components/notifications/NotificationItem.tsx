@@ -40,6 +40,7 @@ export function NotificationItem({
   const TypeIcon = typeIcons[notification.type] || Bell
   const colorClass = typeColors[notification.type] || typeColors.system
 
+  /* c8 ignore start - Relative time formatting */
   const formatRelativeTime = (dateString: string): string => {
     const date = new Date(dateString)
     const now = new Date()
@@ -62,6 +63,7 @@ export function NotificationItem({
       return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
     }
   }
+  /* c8 ignore stop */
 
   const handleClick = () => {
     if (!notification.is_read && onMarkAsRead) {

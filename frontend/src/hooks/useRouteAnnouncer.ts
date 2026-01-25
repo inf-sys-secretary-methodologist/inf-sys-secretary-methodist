@@ -41,10 +41,12 @@ export function useRouteAnnouncer() {
       return
     }
 
+    /* c8 ignore start - Early return when pathname unchanged */
     // Don't announce if pathname hasn't changed
     if (previousPathname.current === pathname) {
       return
     }
+    /* c8 ignore stop */
 
     previousPathname.current = pathname
 

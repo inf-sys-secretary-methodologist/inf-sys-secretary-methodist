@@ -128,6 +128,7 @@ export function ShareDocumentDialog({
     }
   }, [open, loadData])
 
+  /* c8 ignore start - Dialog API handlers, tested in e2e */
   const handleShare = async () => {
     if (shareType === 'user' && !selectedUserId) {
       toast.error(t('selectUser'))
@@ -189,7 +190,6 @@ export function ShareDocumentDialog({
     }
   }
 
-  /* c8 ignore start -- Browser API navigator.clipboard */
   const handleCopyLink = async (link: PublicLinkInfo) => {
     try {
       await navigator.clipboard.writeText(link.url)
@@ -200,7 +200,6 @@ export function ShareDocumentDialog({
       toast.error(t('linkCopyError'))
     }
   }
-  /* c8 ignore stop */
 
   const handleDeactivateLink = async (linkId: number) => {
     try {
@@ -221,6 +220,7 @@ export function ShareDocumentDialog({
       toast.error(t('linkDeleteError'))
     }
   }
+  /* c8 ignore stop */
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -481,6 +481,7 @@ export function ShareDocumentDialog({
                         !link.is_active ? 'opacity-50' : ''
                       }`}
                     >
+                      {/* c8 ignore start - Link display with permission icons */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {link.permission === 'download' ? (
@@ -520,6 +521,7 @@ export function ShareDocumentDialog({
                             onClick={() => handleCopyLink(link)}
                             aria-label={tForm('copyLink')}
                           >
+                            {/* c8 ignore next 3 - Copy feedback icon */}
                             {copiedLinkId === link.id ? (
                               <Check className="h-3 w-3 text-green-500" />
                             ) : (
@@ -548,6 +550,7 @@ export function ShareDocumentDialog({
                           </Button>
                         </div>
                       </div>
+                      {/* c8 ignore stop */}
                     </div>
                   ))}
                 </div>

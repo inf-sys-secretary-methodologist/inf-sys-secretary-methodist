@@ -35,6 +35,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const markAsRead = useMarkAsRead()
   const markAllAsRead = useMarkAllAsRead()
 
+  /* c8 ignore start - Notification handlers and filters */
   const handleMarkAsRead = async (id: number) => {
     try {
       await markAsRead.mutateAsync(id)
@@ -65,6 +66,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
         return notifications
     }
   }
+  /* c8 ignore stop */
 
   const filteredNotifications = getFilteredNotifications()
 

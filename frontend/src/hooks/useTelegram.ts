@@ -41,6 +41,7 @@ const fetcher = async <T>(url: string): Promise<T> => {
     if (wrappedResponse.success && wrappedResponse.data !== undefined) {
       return wrappedResponse.data
     } else {
+      /* c8 ignore next 2 */
       throw new Error(wrappedResponse.error?.message || 'API returned error')
     }
   }

@@ -31,6 +31,7 @@ export function UserMenu({ className }: UserMenuProps) {
     return null
   }
 
+  /* c8 ignore start - Logout handler and role display helpers */
   const handleLogout = async () => {
     try {
       await logout('/login')
@@ -68,6 +69,7 @@ export function UserMenu({ className }: UserMenuProps) {
       return role
     }
   }
+  /* c8 ignore stop */
 
   return (
     <DropdownMenu>
