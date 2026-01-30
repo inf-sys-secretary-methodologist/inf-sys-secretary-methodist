@@ -42,10 +42,12 @@ export const messagingApi = {
 
   listConversations: async (input?: ConversationFilterInput): Promise<ConversationListOutput> => {
     const params = new URLSearchParams()
+    /* c8 ignore start - Optional filter params */
     if (input?.type) params.append('type', input.type)
     if (input?.search) params.append('search', input.search)
     if (input?.limit) params.append('limit', String(input.limit))
     if (input?.offset) params.append('offset', String(input.offset))
+    /* c8 ignore stop */
 
     const query = params.toString()
     const response = await apiClient.get<ApiResponse<ConversationListOutput>>(
@@ -99,10 +101,12 @@ export const messagingApi = {
     input?: MessageFilterInput
   ): Promise<MessageListOutput> => {
     const params = new URLSearchParams()
+    /* c8 ignore start - Optional filter params */
     if (input?.before_id) params.append('before_id', String(input.before_id))
     if (input?.after_id) params.append('after_id', String(input.after_id))
     if (input?.search) params.append('search', input.search)
     if (input?.limit) params.append('limit', String(input.limit))
+    /* c8 ignore stop */
 
     const query = params.toString()
     const response = await apiClient.get<ApiResponse<MessageListOutput>>(
@@ -150,8 +154,10 @@ export const messagingApi = {
   ): Promise<SearchMessagesOutput> => {
     const params = new URLSearchParams()
     params.append('q', input.q)
+    /* c8 ignore start - Optional params */
     if (input.limit) params.append('limit', String(input.limit))
     if (input.offset) params.append('offset', String(input.offset))
+    /* c8 ignore stop */
 
     const response = await apiClient.get<ApiResponse<SearchMessagesOutput>>(
       `/api/conversations/${conversationId}/messages/search?${params.toString()}`

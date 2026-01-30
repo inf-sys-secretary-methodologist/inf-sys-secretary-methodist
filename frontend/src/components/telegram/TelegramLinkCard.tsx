@@ -280,6 +280,7 @@ export function TelegramLinkCard() {
                 disabled={generateCode.isPending}
                 aria-label={t('getNewCode')}
               >
+                {/* c8 ignore next */}
                 <RefreshCw className={`h-4 w-4 ${generateCode.isPending ? 'animate-spin' : ''}`} />
               </Button>
             </div>

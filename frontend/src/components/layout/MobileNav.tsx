@@ -54,6 +54,7 @@ export function MobileNav({ items }: MobileNavProps) {
                 key={item.url}
                 href={item.url}
                 aria-current={isActive ? 'page' : undefined}
+                /* c8 ignore next 3 - event handlers for mobile nav, tested in e2e */
                 onClick={() => setOpen(false)}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}

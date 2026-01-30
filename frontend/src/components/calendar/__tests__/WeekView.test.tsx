@@ -131,6 +131,15 @@ describe('WeekView', () => {
     expect(onEventClick).toHaveBeenCalledWith(mockEvents[0])
   })
 
+  it('calls onEventClick when all-day event is clicked', async () => {
+    const user = userEvent.setup()
+    const onEventClick = jest.fn()
+    render(<WeekView {...defaultProps} onEventClick={onEventClick} />)
+
+    await user.click(screen.getByText('All Week Conference'))
+    expect(onEventClick).toHaveBeenCalledWith(mockEvents[1])
+  })
+
   it('calls onTimeSlotClick when time slot is clicked', async () => {
     const user = userEvent.setup()
     const onTimeSlotClick = jest.fn()

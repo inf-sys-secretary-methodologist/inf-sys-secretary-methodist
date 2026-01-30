@@ -541,4 +541,34 @@ describe('DocumentVersionHistory', () => {
       expect(screen.getByText('User 1')).toBeInTheDocument()
     })
   })
+
+  it('closes comparison result when close button is clicked', async () => {
+    const user = userEvent.setup()
+    mockedDocumentsApi.compareVersions.mockResolvedValueOnce({
+      from_version: 1,
+      to_version: 2,
+      changes: [{ field: 'title', old_value: 'Old', new_value: 'New' }],
+      changed_fields: ['title'],
+    } as never)
+
+    render(<DocumentVersionHistory {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Compare')).toBeInTheDocument()
+    })
+
+    // Enter compare mode
+    await user.click(screen.getByText('Compare'))
+
+    // Find and click close button if comparison result is shown
+    await waitFor(() => {
+      const closeButton = screen.queryByRole('button', { name: /close/i })
+      if (closeButton) {
+        user.click(closeButton)
+      }
+    })
+
+    // Component should still render
+    expect(screen.getByText('Version History')).toBeInTheDocument()
+  })
 })

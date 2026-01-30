@@ -18,6 +18,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ items }: AppHeaderProps) {
   const pathname = usePathname()
+  /* c8 ignore next - hover state for visual effects, tested in e2e */
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const t = useTranslations('nav')
 
@@ -55,6 +56,7 @@ export function AppHeader({ items }: AppHeaderProps) {
                   key={item.url}
                   href={item.url}
                   aria-current={isActive ? 'page' : undefined}
+                  /* c8 ignore next 2 - hover handlers for visual effects, tested in e2e */
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                   className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full"

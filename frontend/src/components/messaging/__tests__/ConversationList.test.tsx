@@ -118,6 +118,12 @@ jest.mock('@/hooks/useAuth', () => ({
 jest.mock('@/lib/api/users', () => ({
   usersApi: {
     getUsers: jest.fn(() => Promise.resolve({ data: [], total: 0 })),
+    getAll: jest.fn(() =>
+      Promise.resolve([
+        { id: 10, name: 'Test User 1', email: 'test1@example.com' },
+        { id: 11, name: 'Test User 2', email: 'test2@example.com' },
+      ])
+    ),
   },
 }))
 
@@ -288,6 +294,137 @@ describe('ConversationList', () => {
         expect(screen.getByText('Direct message')).toBeInTheDocument()
         expect(screen.getByText('Create group')).toBeInTheDocument()
       })
+    }
+  })
+
+  it('navigates to direct message step in dialog', async () => {
+    const user = userEvent.setup()
+    render(<ConversationList />)
+
+    // Open dialog
+    const buttons = screen.getAllByRole('button')
+    const triggerButton = buttons.find((btn) => btn.getAttribute('aria-haspopup') === 'dialog')
+
+    if (triggerButton) {
+      await user.click(triggerButton)
+
+      await waitFor(() => {
+        expect(screen.getByText('Direct message')).toBeInTheDocument()
+      })
+
+      // Click Direct message button
+      const directMessageButton = screen.getByText('Direct message').closest('button')
+      if (directMessageButton) {
+        await user.click(directMessageButton)
+      }
+
+      // Should show direct message step
+      await waitFor(() => {
+        expect(screen.getByText(/direct.*message/i)).toBeInTheDocument()
+      })
+    }
+  })
+
+  it('navigates to create group step in dialog', async () => {
+    const user = userEvent.setup()
+    render(<ConversationList />)
+
+    // Open dialog
+    const buttons = screen.getAllByRole('button')
+    const triggerButton = buttons.find((btn) => btn.getAttribute('aria-haspopup') === 'dialog')
+
+    if (triggerButton) {
+      await user.click(triggerButton)
+
+      await waitFor(() => {
+        expect(screen.getByText('Create group')).toBeInTheDocument()
+      })
+
+      // Click Create group button
+      const createGroupButton = screen.getByText('Create group').closest('button')
+      if (createGroupButton) {
+        await user.click(createGroupButton)
+      }
+
+      // Should show group name input
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Group name')).toBeInTheDocument()
+      })
+    }
+  })
+
+  it('can go back from group step to choose step', async () => {
+    const user = userEvent.setup()
+    render(<ConversationList />)
+
+    // Open dialog
+    const buttons = screen.getAllByRole('button')
+    const triggerButton = buttons.find((btn) => btn.getAttribute('aria-haspopup') === 'dialog')
+
+    if (triggerButton) {
+      await user.click(triggerButton)
+
+      await waitFor(() => {
+        expect(screen.getByText('Create group')).toBeInTheDocument()
+      })
+
+      // Click Create group button
+      const createGroupButton = screen.getByText('Create group').closest('button')
+      if (createGroupButton) {
+        await user.click(createGroupButton)
+      }
+
+      // Should show group step
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Group name')).toBeInTheDocument()
+      })
+
+      // Click back button (ArrowLeft icon button)
+      const backButton = screen
+        .getAllByRole('button')
+        .find((btn) => btn.querySelector('svg.lucide-arrow-left'))
+      if (backButton) {
+        await user.click(backButton)
+      }
+
+      // Should be back at choose step
+      await waitFor(() => {
+        expect(screen.getByText('Direct message')).toBeInTheDocument()
+        expect(screen.getByText('Create group')).toBeInTheDocument()
+      })
+    }
+  })
+
+  it('can type group name in create group step', async () => {
+    const user = userEvent.setup()
+    render(<ConversationList />)
+
+    // Open dialog
+    const buttons = screen.getAllByRole('button')
+    const triggerButton = buttons.find((btn) => btn.getAttribute('aria-haspopup') === 'dialog')
+
+    if (triggerButton) {
+      await user.click(triggerButton)
+
+      await waitFor(() => {
+        expect(screen.getByText('Create group')).toBeInTheDocument()
+      })
+
+      // Click Create group button
+      const createGroupButton = screen.getByText('Create group').closest('button')
+      if (createGroupButton) {
+        await user.click(createGroupButton)
+      }
+
+      // Type in group name input
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Group name')).toBeInTheDocument()
+      })
+
+      const groupNameInput = screen.getByPlaceholderText('Group name')
+      await user.type(groupNameInput, 'My Group')
+
+      expect(groupNameInput).toHaveValue('My Group')
     }
   })
 })

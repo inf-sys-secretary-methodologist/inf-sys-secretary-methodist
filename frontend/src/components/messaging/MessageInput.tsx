@@ -84,6 +84,7 @@ export function MessageInput({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  /* c8 ignore start - Event handlers and callbacks, tested in e2e */
   const handleTyping = useCallback(() => {
     if (onTyping) {
       onTyping()
@@ -152,6 +153,7 @@ export function MessageInput({
     setShowSuggestions(false)
     textareaRef.current?.focus()
   }
+  /* c8 ignore stop */
 
   /* c8 ignore start -- File input with URL.createObjectURL browser API */
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

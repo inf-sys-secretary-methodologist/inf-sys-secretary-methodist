@@ -281,4 +281,17 @@ describe('AvatarUpload', () => {
 
     expect(clickSpy).toHaveBeenCalled()
   })
+
+  it('clicks file input when upload/change button is clicked', async () => {
+    const { container } = render(<AvatarUpload onUpload={mockOnUpload} />)
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+
+    const clickSpy = jest.spyOn(input, 'click')
+
+    const uploadButton = screen.getByRole('button', { name: /upload photo/i })
+    await userEvent.click(uploadButton)
+
+    expect(clickSpy).toHaveBeenCalled()
+    clickSpy.mockRestore()
+  })
 })

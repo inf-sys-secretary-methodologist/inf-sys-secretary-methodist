@@ -37,6 +37,7 @@ export function NotificationItem({
   compact = false,
 }: NotificationItemProps) {
   const tCommon = useTranslations('common')
+  /* c8 ignore next 2 - Fallback icon and color */
   const TypeIcon = typeIcons[notification.type] || Bell
   const colorClass = typeColors[notification.type] || typeColors.system
 

@@ -135,4 +135,20 @@ describe('DocumentPreview', () => {
     render(<DocumentPreview {...defaultProps} />)
     expect(screen.getByText('Test description')).toBeInTheDocument()
   })
+
+  it('opens document in new tab when open button is clicked', async () => {
+    const user = userEvent.setup()
+    const mockOpen = jest.fn()
+    const originalOpen = window.open
+    window.open = mockOpen
+
+    render(<DocumentPreview {...defaultProps} />)
+
+    const openButton = screen.getByText('Open in new tab')
+    await user.click(openButton)
+
+    expect(mockOpen).toHaveBeenCalledWith(expect.any(String), '_blank')
+
+    window.open = originalOpen
+  })
 })

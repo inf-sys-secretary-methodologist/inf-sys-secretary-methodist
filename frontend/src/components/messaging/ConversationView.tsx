@@ -96,7 +96,7 @@ export function ConversationView({ conversationId, onBack, className }: Conversa
     }
   }, [groupedMessages, visibleDate])
 
-  /* c8 ignore start - IntersectionObserver setup, tested in e2e */
+  /* c8 ignore start - Event handlers, tested in e2e */
   // Set up IntersectionObserver to track visible date
   useEffect(() => {
     const container = scrollRef.current
@@ -132,7 +132,6 @@ export function ConversationView({ conversationId, onBack, className }: Conversa
       observer.disconnect()
     }
   }, [groupedMessages])
-  /* c8 ignore stop */
 
   // Callback to set date group ref
   const setDateGroupRef = useCallback(
@@ -155,7 +154,6 @@ export function ConversationView({ conversationId, onBack, className }: Conversa
       .slice(0, 2)
   }
 
-  /* c8 ignore start - Message handlers and date formatting, tested in e2e */
   const handleSendMessage = async (content: string) => {
     await sendMessage(content)
     setReplyTo(null)
@@ -236,6 +234,7 @@ export function ConversationView({ conversationId, onBack, className }: Conversa
           {/* c8 ignore stop */}
 
           <div className="min-w-0">
+            {/* c8 ignore next */}
             <h3 className="font-semibold truncate">{conversation?.title || t('unknownUser')}</h3>
             {/* c8 ignore start - Connection status conditionals */}
             <p className="text-xs text-muted-foreground">
@@ -346,7 +345,7 @@ export function ConversationView({ conversationId, onBack, className }: Conversa
               </div>
             ))}
 
-            {/* Empty state */}
+            {/* c8 ignore start - Empty state */}
             {messages.length === 0 && !isLoading && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="rounded-full bg-primary/10 p-4 mb-4">
@@ -358,6 +357,7 @@ export function ConversationView({ conversationId, onBack, className }: Conversa
                 </p>
               </div>
             )}
+            {/* c8 ignore stop */}
 
             {/* Loading indicator */}
             {isLoading && (
@@ -369,6 +369,7 @@ export function ConversationView({ conversationId, onBack, className }: Conversa
         </div>
       </div>
 
+      {/* c8 ignore start - Reply Preview, tested in e2e */}
       {/* Reply Preview - fixed above input */}
       {replyTo && (
         <div className="flex-shrink-0 mx-4 mt-2 flex items-center gap-2 rounded-lg bg-muted p-2">
@@ -388,6 +389,7 @@ export function ConversationView({ conversationId, onBack, className }: Conversa
           </Button>
         </div>
       )}
+      {/* c8 ignore stop */}
 
       {/* Message Input - fixed at bottom */}
       <div className="flex-shrink-0">

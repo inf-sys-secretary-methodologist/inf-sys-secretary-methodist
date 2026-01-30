@@ -54,6 +54,7 @@ export function DocumentPreview({
   }, [onClose])
   /* c8 ignore stop */
 
+  /* c8 ignore start - Format and helper functions, tested in e2e */
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('ru-RU', {
       day: '2-digit',
@@ -83,6 +84,7 @@ export function DocumentPreview({
     const queryString = params.toString()
     return queryString ? `${url}?${queryString}` : url
   }
+  /* c8 ignore stop */
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">

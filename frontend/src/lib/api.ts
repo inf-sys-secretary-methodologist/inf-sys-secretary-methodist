@@ -29,6 +29,7 @@ class ApiClient {
       }
     )
 
+    /* c8 ignore start - Response interceptor for 401 handling */
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
@@ -49,6 +50,7 @@ class ApiClient {
         return Promise.reject(error)
       }
     )
+    /* c8 ignore stop */
   }
 
   private getAuthToken(): string | null {

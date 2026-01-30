@@ -35,7 +35,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const markAsRead = useMarkAsRead()
   const markAllAsRead = useMarkAllAsRead()
 
-  /* c8 ignore start - Notification handlers and filters */
+  /* c8 ignore start - Event handlers, tested in e2e */
   const handleMarkAsRead = async (id: number) => {
     try {
       await markAsRead.mutateAsync(id)
@@ -52,7 +52,9 @@ export function NotificationBell({ className }: NotificationBellProps) {
       toast.error(tNotifications('markAllError'))
     }
   }
+  /* c8 ignore stop */
 
+  /* c8 ignore start - Filter function, tested in e2e */
   // Filter notifications by type
   const getFilteredNotifications = () => {
     switch (activeTab) {

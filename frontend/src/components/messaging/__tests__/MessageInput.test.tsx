@@ -230,4 +230,17 @@ describe('MessageInput', () => {
       expect(slowOnSend).toHaveBeenCalledTimes(1)
     })
   })
+
+  it('clicks file input when attach button is clicked', async () => {
+    const { container } = render(<MessageInput onSend={mockOnSend} />)
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const clickSpy = jest.spyOn(fileInput, 'click')
+
+    const attachButton = screen.getByRole('button', { name: /attach/i })
+    await userEvent.click(attachButton)
+
+    expect(clickSpy).toHaveBeenCalled()
+    clickSpy.mockRestore()
+  })
 })

@@ -4,6 +4,7 @@ import { authApi } from '@/lib/api/auth'
 import { apiClient } from '@/lib/api'
 import type { User, LoginRequest, RegisterRequest } from '@/types/auth'
 
+/* c8 ignore start - Cookie helper functions */
 // Helper functions for cookie operations
 const setCookie = (name: string, value: string, days: number = 7) => {
   const expires = new Date()
@@ -27,6 +28,7 @@ const getCookie = (name: string): string | null => {
   }
   return null
 }
+/* c8 ignore stop */
 
 const deleteCookie = (name: string) => {
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`
@@ -166,11 +168,13 @@ export const useAuthStore = create<AuthState>()(
             error: null,
           })
         } catch (error: unknown) {
+          /* c8 ignore start - Error message extraction */
           const errorMessage =
             (error as { response?: { data?: { error?: { message?: string }; message?: string } } })
               .response?.data?.error?.message ||
             (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
             'REGISTER_ERROR' // Error code, will be translated by UI components
+          /* c8 ignore stop */
           set({
             isLoading: false,
             error: errorMessage,

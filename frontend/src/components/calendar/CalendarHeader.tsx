@@ -33,6 +33,7 @@ export function CalendarHeader({
 }: CalendarHeaderProps) {
   const t = useTranslations('calendarView')
   const locale = useLocale()
+  /* c8 ignore next */
   const dateLocale = localeMap[locale as keyof typeof localeMap] || enUS
 
   const handlePrevious = () => {

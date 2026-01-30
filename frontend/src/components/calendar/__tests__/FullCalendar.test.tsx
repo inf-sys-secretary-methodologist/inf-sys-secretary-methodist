@@ -277,4 +277,20 @@ describe('FullCalendar mobile view', () => {
     const monthTabs = screen.getAllByRole('tab', { name: /month/i })
     expect(monthTabs.length).toBeGreaterThan(0)
   })
+
+  it('handles mobile tabs onValueChange', async () => {
+    const user = userEvent.setup()
+    // Mock mobile view
+    jest.spyOn(useMediaQueryModule, 'useIsMobile').mockReturnValue(true)
+
+    render(<FullCalendar events={mockEvents} isLoading={false} />)
+
+    // Find mobile tabs and click week tab to trigger onValueChange
+    const weekTabs = screen.getAllByRole('tab', { name: /week/i })
+    // Click the last week tab (mobile one)
+    await user.click(weekTabs[weekTabs.length - 1])
+
+    // Verify view changed - week view should now show day names
+    expect(screen.getByText('Mon')).toBeInTheDocument()
+  })
 })

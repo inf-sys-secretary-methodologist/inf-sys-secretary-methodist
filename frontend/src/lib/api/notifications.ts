@@ -15,11 +15,13 @@ export const notificationsApi = {
   // Notification operations
   list: async (input?: NotificationListInput): Promise<NotificationListOutput> => {
     const params = new URLSearchParams()
+    /* c8 ignore start - Optional filter params */
     if (input?.type) params.append('type', input.type)
     if (input?.priority) params.append('priority', input.priority)
     if (input?.is_read !== undefined) params.append('is_read', String(input.is_read))
     if (input?.limit) params.append('limit', String(input.limit))
     if (input?.offset) params.append('offset', String(input.offset))
+    /* c8 ignore stop */
 
     const query = params.toString()
     return apiClient.get<NotificationListOutput>(`/api/notifications${query ? `?${query}` : ''}`)

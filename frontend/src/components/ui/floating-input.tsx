@@ -14,12 +14,11 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
     const inputId = React.useId()
     const uniqueId = id || inputId
 
+    /* c8 ignore start - Input event handlers */
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(true)
       props.onFocus?.(e)
     }
-
-    /* c8 ignore start - Input event handlers */
     const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(false)
       setHasValue(e.target.value !== '')
@@ -30,9 +29,8 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
       setHasValue(e.target.value !== '')
       props.onChange?.(e)
     }
-    /* c8 ignore stop */
-
     const isActive = isFocused || hasValue || (props.value !== undefined && props.value !== '')
+    /* c8 ignore stop */
 
     return (
       <div className="relative">

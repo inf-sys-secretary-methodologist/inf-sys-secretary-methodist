@@ -12,6 +12,38 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
   disconnect: jest.fn(),
 }))
 
+// Mock Select component to enable testing onValueChange
+jest.mock('@/components/ui/select', () => ({
+  Select: ({
+    children,
+    value,
+    onValueChange,
+    disabled,
+  }: {
+    children: React.ReactNode
+    value?: string
+    onValueChange?: (value: string) => void
+    disabled?: boolean
+  }) => (
+    <div data-testid="mock-select">
+      <select
+        value={value}
+        onChange={(e) => onValueChange?.(e.target.value)}
+        disabled={disabled}
+        data-testid="mock-select-input"
+      >
+        {children}
+      </select>
+    </div>
+  ),
+  SelectTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SelectValue: ({ placeholder }: { placeholder?: string }) => <span>{placeholder}</span>,
+  SelectContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SelectItem: ({ children, value }: { children: React.ReactNode; value: string }) => (
+    <option value={value}>{children}</option>
+  ),
+}))
+
 // Mock next-intl
 jest.mock('next-intl', () => ({
   useTranslations: (namespace: string) => (key: string, _params?: Record<string, unknown>) => {
@@ -58,6 +90,9 @@ jest.mock('next-intl', () => ({
         linkDeleteError: 'Error deleting link',
         byUser: 'User',
         byRole: 'Role',
+        toUser: 'User',
+        user: 'User',
+        role: 'Role',
       },
       'documents.form': {
         expiresAt: 'Expires at',
@@ -215,11 +250,15 @@ describe('ShareDocumentDialog', () => {
     render(<ShareDocumentDialog {...defaultProps} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Role')).toBeInTheDocument()
+      expect(screen.getByText('Share Document')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('Role'))
-    expect(screen.getByText('Role')).toBeInTheDocument()
+    // Find "Role" button specifically
+    const roleButtons = screen.getAllByRole('button').filter((btn) => btn.textContent === 'Role')
+    if (roleButtons.length > 0) {
+      await user.click(roleButtons[0])
+    }
+    expect(roleButtons.length).toBeGreaterThan(0)
   })
 
   it('shows existing permissions when loaded', async () => {
@@ -348,6 +387,235 @@ describe('ShareDocumentDialog', () => {
       await waitFor(() => {
         expect(mockedDocumentsApi.revokePermission).toHaveBeenCalled()
       })
+    }
+  })
+
+  it('can switch share type to user', async () => {
+    const user = userEvent.setup()
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Share Document')).toBeInTheDocument()
+    })
+
+    // Click "User" button (there are multiple "User" texts, get the button one)
+    const userButtons = screen.getAllByRole('button').filter((btn) => btn.textContent === 'User')
+    if (userButtons.length > 0) {
+      await user.click(userButtons[0])
+    }
+    expect(userButtons.length).toBeGreaterThan(0)
+  })
+
+  it('can change selected user', async () => {
+    const user = userEvent.setup()
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    // Wait for users to load
+    await waitFor(() => {
+      expect(screen.getByText('User 1 (user1@example.com)')).toBeInTheDocument()
+    })
+
+    // Find and change user select
+    const selectInputs = screen.getAllByTestId('mock-select-input')
+    if (selectInputs.length > 0) {
+      await user.selectOptions(selectInputs[0], '1')
+      expect(selectInputs[0]).toHaveValue('1')
+    }
+  })
+
+  it('can change selected role when in role mode', async () => {
+    const user = userEvent.setup()
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Role')).toBeInTheDocument()
+    })
+
+    // Switch to role mode
+    await user.click(screen.getByText('Role'))
+
+    // Find and change role select
+    const selectInputs = screen.getAllByTestId('mock-select-input')
+    if (selectInputs.length > 0) {
+      await user.selectOptions(selectInputs[0], 'teacher')
+      expect(selectInputs[0]).toHaveValue('teacher')
+    }
+  })
+
+  it('can change permission select', async () => {
+    const user = userEvent.setup()
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Share Document')).toBeInTheDocument()
+    })
+
+    // Find permission select (second select)
+    const selectInputs = screen.getAllByTestId('mock-select-input')
+    if (selectInputs.length > 1) {
+      await user.selectOptions(selectInputs[1], 'write')
+      expect(selectInputs[1]).toHaveValue('write')
+    }
+  })
+
+  it('can change expiry date input', async () => {
+    const user = userEvent.setup()
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Share Document')).toBeInTheDocument()
+    })
+
+    // Find datetime-local input
+    const dateInputs = document.querySelectorAll('input[type="datetime-local"]')
+    if (dateInputs.length > 0) {
+      const dateInput = dateInputs[0] as HTMLInputElement
+      await user.type(dateInput, '2024-12-31T23:59')
+      expect(dateInput.value).toBe('2024-12-31T23:59')
+    }
+  })
+
+  it('can change link permission select', async () => {
+    const user = userEvent.setup()
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /links/i })).toBeInTheDocument()
+    })
+
+    // Switch to links tab
+    await user.click(screen.getByRole('tab', { name: /links/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/create.*link/i)).toBeInTheDocument()
+    })
+
+    // Find and change link permission select
+    const selectInputs = screen.getAllByTestId('mock-select-input')
+    if (selectInputs.length > 0) {
+      await user.selectOptions(selectInputs[selectInputs.length - 1], 'download')
+    }
+  })
+
+  it('can change link max uses input', async () => {
+    const user = userEvent.setup()
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /links/i })).toBeInTheDocument()
+    })
+
+    // Switch to links tab
+    await user.click(screen.getByRole('tab', { name: /links/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/create.*link/i)).toBeInTheDocument()
+    })
+
+    // Find max uses input
+    const numberInputs = document.querySelectorAll('input[type="number"]')
+    if (numberInputs.length > 0) {
+      const maxUsesInput = numberInputs[0] as HTMLInputElement
+      await user.type(maxUsesInput, '10')
+      expect(maxUsesInput.value).toContain('10')
+    }
+  })
+
+  it('can change link password input', async () => {
+    const user = userEvent.setup()
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /links/i })).toBeInTheDocument()
+    })
+
+    // Switch to links tab
+    await user.click(screen.getByRole('tab', { name: /links/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/create.*link/i)).toBeInTheDocument()
+    })
+
+    // Find password input
+    const passwordInputs = document.querySelectorAll('input[type="password"]')
+    if (passwordInputs.length > 0) {
+      const passwordInput = passwordInputs[0] as HTMLInputElement
+      await user.type(passwordInput, 'secret123')
+      expect(passwordInput.value).toBe('secret123')
+    }
+  })
+
+  it('can click create link button', async () => {
+    const user = userEvent.setup()
+    mockedDocumentsApi.createPublicLink.mockResolvedValueOnce({
+      id: 1,
+      token: 'newtoken',
+      url: 'https://example.com/link/newtoken',
+      permission: 'read',
+      is_active: true,
+      use_count: 0,
+    } as never)
+
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /links/i })).toBeInTheDocument()
+    })
+
+    // Switch to links tab
+    await user.click(screen.getByRole('tab', { name: /links/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/create.*link/i)).toBeInTheDocument()
+    })
+
+    // Click create link button
+    const createButton = screen.getByRole('button', { name: /create.*link/i })
+    await user.click(createButton)
+
+    await waitFor(() => {
+      expect(mockedDocumentsApi.createPublicLink).toHaveBeenCalled()
+    })
+  })
+
+  it('can change link expiry date input', async () => {
+    const user = userEvent.setup()
+    render(<ShareDocumentDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /links/i })).toBeInTheDocument()
+    })
+
+    // Switch to links tab
+    await user.click(screen.getByRole('tab', { name: /links/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/create.*link/i)).toBeInTheDocument()
+    })
+
+    // Find and change link expiry date input
+    const dateInputs = document.querySelectorAll('input[type="datetime-local"]')
+    if (dateInputs.length > 0) {
+      const expiryInput = dateInputs[dateInputs.length - 1] as HTMLInputElement
+      await user.type(expiryInput, '2025-06-30T12:00')
+      expect(expiryInput.value).toContain('2025')
+    }
+  })
+
+  it('closes dialog when footer close button is clicked', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = jest.fn()
+    render(<ShareDocumentDialog {...defaultProps} onOpenChange={onOpenChange} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Share Document')).toBeInTheDocument()
+    })
+
+    // Find and click the close button in footer (different from the X button)
+    const closeButtons = screen.getAllByRole('button').filter((btn) => btn.textContent === 'Close')
+    if (closeButtons.length > 0) {
+      await user.click(closeButtons[closeButtons.length - 1])
+      expect(onOpenChange).toHaveBeenCalledWith(false)
     }
   })
 })

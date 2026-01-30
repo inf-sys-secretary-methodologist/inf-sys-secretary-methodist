@@ -51,6 +51,7 @@ function NotificationItem({
       <div className="flex gap-3">
         <Avatar className="size-11">
           <AvatarImage
+            /* c8 ignore next - Fallback avatar */
             src={notification.user.avatar || '/placeholder.svg'}
             alt={`${notification.user.name}`}
             className="object-cover ring-1 ring-border"

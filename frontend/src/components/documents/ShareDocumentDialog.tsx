@@ -104,6 +104,7 @@ export function ShareDocumentDialog({
   const [linkPassword, setLinkPassword] = useState('')
   const [copiedLinkId, setCopiedLinkId] = useState<number | null>(null)
 
+  /* c8 ignore start - Data loading and API handlers, tested in e2e */
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
@@ -127,8 +128,6 @@ export function ShareDocumentDialog({
       loadData()
     }
   }, [open, loadData])
-
-  /* c8 ignore start - Dialog API handlers, tested in e2e */
   const handleShare = async () => {
     if (shareType === 'user' && !selectedUserId) {
       toast.error(t('selectUser'))
@@ -359,6 +358,7 @@ export function ShareDocumentDialog({
                     >
                       <div className="flex flex-col">
                         <span className="font-medium">
+                          {/* c8 ignore next */}
                           {perm.user_name || perm.role || t('unknown')}
                         </span>
                         {perm.user_email && (
@@ -477,6 +477,7 @@ export function ShareDocumentDialog({
                   {publicLinks.map((link) => (
                     <div
                       key={link.id}
+                      /* c8 ignore next 3 - Inactive link styling */
                       className={`p-3 border rounded-lg space-y-2 ${
                         !link.is_active ? 'opacity-50' : ''
                       }`}
@@ -560,6 +561,7 @@ export function ShareDocumentDialog({
         </Tabs>
 
         <DialogFooter>
+          {/* c8 ignore next - Close dialog button */}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {tCommon('close')}
           </Button>

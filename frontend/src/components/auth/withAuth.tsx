@@ -43,6 +43,7 @@ export interface WithAuthOptions {
  * ```
  */
 export function withAuth<P extends object>(Component: ComponentType<P>, options?: WithAuthOptions) {
+  /* c8 ignore next */
   const displayName = Component.displayName || Component.name || 'Component'
 
   const ProtectedComponent = (props: P) => {

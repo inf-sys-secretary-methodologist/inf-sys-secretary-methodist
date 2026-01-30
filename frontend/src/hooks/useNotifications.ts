@@ -141,6 +141,7 @@ export function useMarkAsRead() {
     try {
       await apiClient.put(`${NOTIFICATIONS_BASE_URL}/${id}/read`)
       // Revalidate all notification-related caches
+      /* c8 ignore next 3 -- SWR cache key matcher callback */
       mutate((key) => typeof key === 'string' && key.includes('/notifications'), undefined, {
         revalidate: true,
       })
@@ -160,6 +161,7 @@ export function useMarkAllAsRead() {
     setIsPending(true)
     try {
       await apiClient.put(`${NOTIFICATIONS_BASE_URL}/read-all`)
+      /* c8 ignore next 3 -- SWR cache key matcher callback */
       mutate((key) => typeof key === 'string' && key.includes('/notifications'), undefined, {
         revalidate: true,
       })
@@ -179,6 +181,7 @@ export function useDeleteNotification() {
     setIsPending(true)
     try {
       await apiClient.delete(`${NOTIFICATIONS_BASE_URL}/${id}`)
+      /* c8 ignore next 3 -- SWR cache key matcher callback */
       mutate((key) => typeof key === 'string' && key.includes('/notifications'), undefined, {
         revalidate: true,
       })
@@ -198,6 +201,7 @@ export function useDeleteAllNotifications() {
     setIsPending(true)
     try {
       await apiClient.delete(NOTIFICATIONS_BASE_URL)
+      /* c8 ignore next 3 -- SWR cache key matcher callback */
       mutate((key) => typeof key === 'string' && key.includes('/notifications'), undefined, {
         revalidate: true,
       })

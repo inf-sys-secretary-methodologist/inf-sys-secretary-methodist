@@ -27,6 +27,7 @@ export function ThemeToggleButton() {
   return (
     <button
       onClick={() => {
+        /* c8 ignore next */
         const newTheme = theme === 'dark' ? 'light' : 'dark'
         setTheme(newTheme)
       }}

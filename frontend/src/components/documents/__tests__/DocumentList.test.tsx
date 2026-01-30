@@ -171,4 +171,41 @@ describe('DocumentList', () => {
       expect(onDelete).toHaveBeenCalledWith(mockDocuments[0])
     }
   })
+
+  it('calls onEdit when edit button is clicked', async () => {
+    const user = userEvent.setup()
+    const onEdit = jest.fn()
+    render(<DocumentList {...defaultProps} onEdit={onEdit} canEdit={() => true} />)
+
+    const editButton = screen.getByTitle('Edit')
+    await user.click(editButton)
+    expect(onEdit).toHaveBeenCalledWith(mockDocuments[0])
+  })
+
+  it('calls onShare when share button is clicked', async () => {
+    const user = userEvent.setup()
+    const onShare = jest.fn()
+    render(<DocumentList {...defaultProps} onShare={onShare} canShare={() => true} />)
+
+    const shareButton = screen.getByTitle('Share')
+    await user.click(shareButton)
+    expect(onShare).toHaveBeenCalledWith(mockDocuments[0])
+  })
+
+  it('calls onDownload when download button is clicked', async () => {
+    const user = userEvent.setup()
+    const onDownload = jest.fn()
+    const { container } = render(<DocumentList {...defaultProps} onDownload={onDownload} />)
+
+    // Find download button (it's next to the view button for READY documents)
+    const downloadButtons = container.querySelectorAll('button')
+    const downloadButton = Array.from(downloadButtons).find((btn) =>
+      btn.querySelector('svg.lucide-download')
+    )
+
+    if (downloadButton) {
+      await user.click(downloadButton)
+      expect(onDownload).toHaveBeenCalledWith(mockDocuments[0])
+    }
+  })
 })

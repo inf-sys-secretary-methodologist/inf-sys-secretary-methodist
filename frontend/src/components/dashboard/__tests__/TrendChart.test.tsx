@@ -2,6 +2,10 @@ import { render, screen } from '@testing-library/react'
 import { TrendChart } from '../TrendChart'
 import type { TrendPoint } from '@/types/dashboard'
 
+// Track domain function calls - used in test assertions
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let lastDomainFunction: ((dataMax: number) => number) | null = null
+
 // Mock recharts
 jest.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
@@ -16,7 +20,13 @@ jest.mock('recharts', () => ({
     <div data-testid={`area-${dataKey}`} data-stroke={stroke} />
   ),
   XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
+  YAxis: ({ domain }: { domain?: [number, (dataMax: number) => number] }) => {
+    // Call the domain function to cover the code
+    if (domain && typeof domain[1] === 'function') {
+      lastDomainFunction = domain[1]
+    }
+    return <div data-testid="y-axis" />
+  },
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   Tooltip: () => <div data-testid="tooltip" />,
   Legend: () => <div data-testid="legend" />,
@@ -120,5 +130,21 @@ describe('TrendChart', () => {
     render(<TrendChart title="Empty Chart" datasets={[]} />)
     expect(screen.getByText('Empty Chart')).toBeInTheDocument()
     expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+  })
+
+  it('YAxis domain function calculates correct max value', () => {
+    render(<TrendChart title="Test Chart" datasets={mockDatasets} />)
+
+    // The domain function should have been captured
+    expect(lastDomainFunction).not.toBeNull()
+
+    // Test the domain function with various data max values
+    if (lastDomainFunction) {
+      // Math.ceil(100 * 1.1) can be 110 or 111 due to floating point
+      expect(lastDomainFunction(100)).toBeGreaterThanOrEqual(110)
+      expect(lastDomainFunction(100)).toBeLessThanOrEqual(111)
+      expect(lastDomainFunction(50)).toBeGreaterThanOrEqual(55)
+      expect(lastDomainFunction(0)).toBe(1) // fallback to 1 when dataMax is 0
+    }
   })
 })

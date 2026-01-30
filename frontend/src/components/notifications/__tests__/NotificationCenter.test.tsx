@@ -279,4 +279,36 @@ describe('NotificationCenter', () => {
     // Should handle error gracefully
     expect(mockHooks.mutateAsyncMarkAllAsRead).toHaveBeenCalled()
   })
+
+  it('renders settings link in popover', async () => {
+    render(<NotificationCenter />)
+
+    await userEvent.click(screen.getByRole('button', { name: /notifications/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Notifications')).toBeInTheDocument()
+    })
+
+    // Settings link and View All should be present
+    const links = screen.getAllByRole('link')
+    expect(links.length).toBeGreaterThan(0)
+  })
+
+  it('triggers onClose when notification is clicked', async () => {
+    render(<NotificationCenter />)
+
+    await userEvent.click(screen.getByRole('button', { name: /notifications/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('System Update')).toBeInTheDocument()
+    })
+
+    // Click on notification which triggers onClose internally
+    await userEvent.click(screen.getByText('System Update'))
+
+    // This also triggers onClose callback
+    await waitFor(() => {
+      expect(mockHooks.mutateAsyncMarkAsRead).toHaveBeenCalled()
+    })
+  })
 })

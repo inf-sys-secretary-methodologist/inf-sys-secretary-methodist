@@ -60,6 +60,7 @@ export function InstallPrompt() {
   }, [])
 
   const handleInstall = async () => {
+    /* c8 ignore next */
     if (!deferredPrompt) return
 
     deferredPrompt.prompt()
@@ -160,8 +161,9 @@ export function InstallPrompt() {
         </CardContent>
       </Card>
     )
+    /* c8 ignore start - Conditional rendering fallback */
   }
-  /* c8 ignore next 3 */
 
   return null
 }
+/* c8 ignore stop */

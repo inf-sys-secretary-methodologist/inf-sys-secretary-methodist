@@ -203,6 +203,42 @@ describe('NotificationBell', () => {
     })
   })
 
+  it('filters notifications by document type when Documents tab is clicked', async () => {
+    const user = userEvent.setup()
+    render(<NotificationBell />)
+
+    await user.click(screen.getByRole('button', { name: /notifications/i }))
+    await waitFor(() => {
+      expect(screen.getByText('Documents')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Documents'))
+
+    await waitFor(() => {
+      const items = screen.getAllByTestId('notification-item')
+      expect(items.length).toBe(1)
+      expect(screen.getByText('Document notification')).toBeInTheDocument()
+    })
+  })
+
+  it('filters notifications by events/reminders when Events tab is clicked', async () => {
+    const user = userEvent.setup()
+    render(<NotificationBell />)
+
+    await user.click(screen.getByRole('button', { name: /notifications/i }))
+    await waitFor(() => {
+      expect(screen.getByText('Events')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Events'))
+
+    await waitFor(() => {
+      const items = screen.getAllByTestId('notification-item')
+      expect(items.length).toBe(1)
+      expect(screen.getByText('Reminder')).toBeInTheDocument()
+    })
+  })
+
   it('shows "Show all" link in footer', async () => {
     const user = userEvent.setup()
     render(<NotificationBell />)
@@ -315,5 +351,53 @@ describe('NotificationBell', () => {
   it('applies custom className', () => {
     const { container } = render(<NotificationBell className="custom-class" />)
     expect(container.querySelector('.custom-class')).toBeInTheDocument()
+  })
+
+  it('closes popover when settings link is clicked', async () => {
+    const user = userEvent.setup()
+    render(<NotificationBell />)
+
+    // Open popover
+    await user.click(screen.getByRole('button', { name: /notifications/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Notifications')).toBeInTheDocument()
+    })
+
+    // Find and click settings link by href
+    const links = screen.getAllByRole('link')
+    const settingsLink = links.find(
+      (link) => link.getAttribute('href') === '/settings/notifications'
+    )
+    expect(settingsLink).toBeInTheDocument()
+    await user.click(settingsLink!)
+
+    // onClick was triggered - popover should close
+    await waitFor(() => {
+      expect(screen.queryByText('Notifications')).not.toBeInTheDocument()
+    })
+  })
+
+  it('closes popover when show all link is clicked', async () => {
+    const user = userEvent.setup()
+    render(<NotificationBell />)
+
+    // Open popover
+    await user.click(screen.getByRole('button', { name: /notifications/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Show all')).toBeInTheDocument()
+    })
+
+    // Click show all link by finding link to /notifications
+    const links = screen.getAllByRole('link')
+    const showAllLink = links.find((link) => link.getAttribute('href') === '/notifications')
+    expect(showAllLink).toBeInTheDocument()
+    await user.click(showAllLink!)
+
+    // onClick was triggered - popover should close
+    await waitFor(() => {
+      expect(screen.queryByText('Show all')).not.toBeInTheDocument()
+    })
   })
 })

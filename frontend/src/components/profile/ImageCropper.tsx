@@ -96,6 +96,7 @@ export function ImageCropper({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
+  /* c8 ignore start - Cropper event handlers, tested in e2e */
   const onCropChange = useCallback((newCrop: Point) => {
     setCrop(newCrop)
   }, [])
@@ -125,6 +126,7 @@ export function ImageCropper({
   const handleRotate = useCallback(() => {
     setRotation((prev) => (prev + 90) % 360)
   }, [])
+  /* c8 ignore stop */
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>

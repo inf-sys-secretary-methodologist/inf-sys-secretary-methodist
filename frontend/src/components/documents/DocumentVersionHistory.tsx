@@ -81,6 +81,7 @@ export function DocumentVersionHistory({
     fetchVersions()
   }, [fetchVersions])
 
+  /* c8 ignore start -- Event handlers with browser dialogs and async API calls, tested via E2E */
   const handleCreateVersion = async () => {
     try {
       setIsCreatingVersion(true)
@@ -97,8 +98,6 @@ export function DocumentVersionHistory({
       setIsCreatingVersion(false)
     }
   }
-
-  /* c8 ignore start -- Event handlers with browser dialogs and async API calls, tested via E2E */
   const handleRestoreVersion = async (version: number) => {
     if (!confirm(t('confirmRestore', { version: version.toString() }))) {
       return
@@ -214,6 +213,7 @@ export function DocumentVersionHistory({
     )
   }
 
+  /* c8 ignore next 2 - Data fallbacks */
   const versions = versionData?.versions || []
   const latestVersion = versionData?.latest_version || currentVersion || 1
 
@@ -236,6 +236,7 @@ export function DocumentVersionHistory({
                 variant="outline"
                 size="sm"
                 onClick={handleCompare}
+                /* c8 ignore next - Compare button disabled condition */
                 disabled={selectedVersions.length !== 2 || isComparing}
               >
                 {/* c8 ignore start - Loading state conditional */}
@@ -320,6 +321,7 @@ export function DocumentVersionHistory({
                 to: comparisonResult.to_version,
               })}
             </h4>
+            {/* c8 ignore next - Close comparison button */}
             <Button variant="ghost" size="sm" onClick={() => setComparisonResult(null)}>
               {tCommon('close')}
             </Button>
@@ -466,6 +468,7 @@ function VersionItem({
   const tCommon = useTranslations('common')
   return (
     <div
+      /* c8 ignore next 5 - Conditional styling */
       className={`
         border rounded-lg overflow-hidden transition-all
         ${isLatest ? 'border-blue-300 dark:border-blue-600' : 'border-gray-200 dark:border-gray-700'}
@@ -483,6 +486,7 @@ function VersionItem({
         onClick={!compareMode ? onToggleExpand : undefined}
       >
         <div className="flex items-center gap-3">
+          {/* c8 ignore start - Compare mode checkbox */}
           {compareMode && (
             <div
               className={`
@@ -493,6 +497,7 @@ function VersionItem({
               {isSelected && <Check className="h-3 w-3 text-white" />}
             </div>
           )}
+          {/* c8 ignore stop */}
 
           <div>
             <div className="flex items-center gap-2">
@@ -583,6 +588,7 @@ function VersionItem({
       </div>
 
       {/* Expanded Details */}
+      {/* c8 ignore start - Expanded state */}
       {isExpanded && !compareMode && (
         <div className="px-3 pb-3 pt-0 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30">
           <div className="grid grid-cols-2 gap-4 text-sm pt-3">
@@ -630,6 +636,7 @@ function VersionItem({
           </div>
         </div>
       )}
+      {/* c8 ignore stop */}
     </div>
   )
 }

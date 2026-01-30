@@ -411,4 +411,64 @@ describe('DocumentEditDialog', () => {
     render(<DocumentEditDialog {...defaultProps} />)
     expect(screen.getByText('Uploading a new file will create a new version')).toBeInTheDocument()
   })
+
+  it('allows changing subject field', async () => {
+    const user = userEvent.setup()
+    render(<DocumentEditDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Enter subject')).toBeInTheDocument()
+    })
+
+    const subjectInput = screen.getByPlaceholderText('Enter subject')
+    await user.type(subjectInput, 'New Subject Content')
+
+    expect(subjectInput).toHaveValue('New Subject Content')
+  })
+
+  it('allows changing content field', async () => {
+    const user = userEvent.setup()
+    render(<DocumentEditDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Enter content')).toBeInTheDocument()
+    })
+
+    const contentInput = screen.getByPlaceholderText('Enter content')
+    await user.type(contentInput, 'New content text here')
+
+    expect(contentInput).toHaveValue('New content text here')
+  })
+
+  it('closes tag dropdown when clicking outside', async () => {
+    const user = userEvent.setup()
+    mockedTagsApi.getAll.mockResolvedValueOnce([
+      { id: 1, name: 'Important', color: '#ff0000' },
+      { id: 2, name: 'Review', color: '#00ff00' },
+    ] as never)
+    mockedTagsApi.getDocumentTags.mockResolvedValueOnce([])
+
+    render(<DocumentEditDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search tags')).toBeInTheDocument()
+    })
+
+    // Click on the search tags input to open dropdown
+    const tagSearchInput = screen.getByPlaceholderText('Search tags')
+    await user.click(tagSearchInput)
+
+    // Type to trigger dropdown
+    await user.type(tagSearchInput, 'Imp')
+
+    // The dropdown should be visible, click outside to close it
+    // The overlay div with fixed inset-0 should close the dropdown
+    const overlay = document.querySelector('.fixed.inset-0')
+    if (overlay) {
+      await user.click(overlay)
+    }
+
+    // Dropdown should be closed now
+    expect(tagSearchInput).toBeInTheDocument()
+  })
 })

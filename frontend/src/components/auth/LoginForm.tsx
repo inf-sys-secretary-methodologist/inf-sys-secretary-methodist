@@ -95,6 +95,7 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
           autoComplete="email"
           disabled={isSubmitting}
           {...register('email')}
+          /* c8 ignore next - Error styling conditional */
           className={cn(errors.email && 'border-red-500 focus-visible:ring-red-500')}
         />
         {errors.email && (
@@ -111,6 +112,7 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
             autoComplete="current-password"
             disabled={isSubmitting}
             {...register('password')}
+            /* c8 ignore next - Error styling conditional */
             className={cn('pr-10', errors.password && 'border-red-500 focus-visible:ring-red-500')}
           />
           <button

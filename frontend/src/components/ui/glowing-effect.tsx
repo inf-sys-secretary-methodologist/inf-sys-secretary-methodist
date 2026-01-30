@@ -35,6 +35,7 @@ const GlowingEffect = memo(
 
     const handleMove = useCallback(
       (e?: MouseEvent | { x: number; y: number }) => {
+        /* c8 ignore next */
         if (!containerRef.current) return
 
         if (animationFrameRef.current) {
@@ -43,6 +44,7 @@ const GlowingEffect = memo(
 
         animationFrameRef.current = requestAnimationFrame(() => {
           const element = containerRef.current
+          /* c8 ignore next */
           if (!element) return
 
           const { left, top, width, height } = element.getBoundingClientRect()

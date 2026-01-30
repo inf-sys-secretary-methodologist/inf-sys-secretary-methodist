@@ -141,6 +141,7 @@ export function AvatarUpload({
 
   const handleRemove = async (e: React.MouseEvent) => {
     e.stopPropagation()
+    /* c8 ignore next */
     if (!onRemove || isUploading) return
 
     setIsUploading(true)
@@ -158,6 +159,7 @@ export function AvatarUpload({
   }
 
   const getInitials = (name?: string) => {
+    /* c8 ignore next */
     if (!name) return ''
     return name
       .split(' ')

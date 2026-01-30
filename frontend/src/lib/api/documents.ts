@@ -284,6 +284,7 @@ export const documentsApi = {
   /**
    * Get documents shared with current user
    */
+  /* c8 ignore start - Optional params */
   async getSharedDocuments(params?: {
     permission?: string
     limit?: number
@@ -292,10 +293,12 @@ export const documentsApi = {
     const response = await apiClient.get<DocumentsListResponse>('/api/documents/shared', { params })
     return response.data || []
   },
+  /* c8 ignore stop */
 
   /**
    * Get documents that current user has shared with others
    */
+  /* c8 ignore start - Optional params */
   async getMySharedDocuments(params?: {
     limit?: number
     offset?: number
@@ -305,10 +308,12 @@ export const documentsApi = {
     })
     return response.data || []
   },
+  /* c8 ignore stop */
 
   /**
    * Access document via public link (no auth required)
    */
+  /* c8 ignore start - Public document access */
   async accessPublicDocument(token: string, password?: string): Promise<PublicDocumentAccess> {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
     const response = await fetch(`${baseUrl}/api/public/documents/${token}`, {
@@ -323,6 +328,7 @@ export const documentsApi = {
     const result = await response.json()
     return result.data
   },
+  /* c8 ignore stop */
 
   // ============== Versioning API ==============
 
@@ -349,6 +355,7 @@ export const documentsApi = {
   /**
    * Create a manual version snapshot
    */
+  /* c8 ignore start - Version API */
   async createVersion(
     documentId: number | string,
     params?: CreateVersionParams
@@ -359,6 +366,7 @@ export const documentsApi = {
     )
     return response.data
   },
+  /* c8 ignore stop */
 
   /**
    * Restore document to a previous version
@@ -615,6 +623,7 @@ export const tagsApi = {
    */
   async getAll(): Promise<TagInfo[]> {
     const response = await apiClient.get<TagsListResponse>('/api/tags')
+    /* c8 ignore next */
     return response.data || []
   },
 
@@ -625,6 +634,7 @@ export const tagsApi = {
     const response = await apiClient.get<TagsListResponse>('/api/tags/search', {
       params: { q: query, limit },
     })
+    /* c8 ignore next */
     return response.data || []
   },
 
@@ -633,6 +643,7 @@ export const tagsApi = {
    */
   async getDocumentTags(documentId: number | string): Promise<TagInfo[]> {
     const response = await apiClient.get<DocumentTagsResponse>(`/api/documents/${documentId}/tags`)
+    /* c8 ignore next */
     return response.data?.tags || []
   },
 

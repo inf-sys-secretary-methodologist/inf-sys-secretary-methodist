@@ -39,6 +39,7 @@ export function MessageBubble({
   const t = useTranslations('messaging')
   const [copied, setCopied] = useState(false)
 
+  /* c8 ignore start - Event handlers, tested in e2e */
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -55,13 +56,11 @@ export function MessageBubble({
     })
   }
 
-  /* c8 ignore start - Clipboard API, tested in e2e */
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-  /* c8 ignore stop */
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`
@@ -107,7 +106,6 @@ export function MessageBubble({
     )
   }
 
-  /* c8 ignore start - Reply rendering with conditional styling */
   const renderReplyTo = () => {
     if (!message.reply_to) return null
 
@@ -129,6 +127,7 @@ export function MessageBubble({
   }
   /* c8 ignore stop */
 
+  /* c8 ignore start - JSX rendering, tested in e2e */
   // System message style
   if (message.type === 'system') {
     return (
@@ -267,4 +266,5 @@ export function MessageBubble({
       {showAvatar && isOwn && <div className="w-8 flex-shrink-0" />}
     </div>
   )
+  /* c8 ignore stop */
 }

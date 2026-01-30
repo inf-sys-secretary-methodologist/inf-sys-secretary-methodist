@@ -30,6 +30,7 @@ function ActivityItemCard({
   actionLabel: string
   formatRelativeTime: (dateString: string) => string
 }) {
+  /* c8 ignore next */
   const Icon = typeIcons[activity.type] || FileText
 
   return (

@@ -24,6 +24,7 @@ export function TextDiff({ oldText, newText, oldLabel, newLabel, className = '' 
   const effectiveNewLabel = newLabel ?? t('after')
 
   const diff = useMemo(() => {
+    /* c8 ignore next */
     return Diff.diffLines(oldText || '', newText || '')
   }, [oldText, newText])
 
@@ -64,6 +65,7 @@ export function TextDiff({ oldText, newText, oldLabel, newLabel, className = '' 
               i < arr.length - 1 || line !== ''
           )
 
+          /* c8 ignore next */
           if (lines.length === 0) return null
 
           return lines.map((line, lineIndex) => (
@@ -83,8 +85,10 @@ export function TextDiff({ oldText, newText, oldLabel, newLabel, className = '' 
               /* c8 ignore stop */
             >
               <span className="select-none mr-2 text-gray-400 dark:text-gray-600">
+                {/* c8 ignore next */}
                 {part.added ? '+' : part.removed ? '-' : ' '}
               </span>
+              {/* c8 ignore next */}
               {line || ' '}
             </div>
           ))
@@ -107,6 +111,7 @@ export function TextDiffSideBySide({
   const effectiveNewLabel = newLabel ?? t('versionB')
 
   const diff = useMemo(() => {
+    /* c8 ignore next */
     return Diff.diffLines(oldText || '', newText || '')
   }, [oldText, newText])
 

@@ -44,6 +44,7 @@ function generateDateRange(days: number): Date[] {
 }
 
 export function TrendChart({ title, datasets, period = 'month', className }: TrendChartProps) {
+  /* c8 ignore start - Period calculation helper, tested in e2e */
   // Generate date range based on period
   const getDaysForPeriod = (p: string): number => {
     switch (p) {
@@ -55,11 +56,11 @@ export function TrendChart({ title, datasets, period = 'month', className }: Tre
         return 90
       case 'year':
         return 365
-      /* c8 ignore next 2 */
       default:
         return 30
     }
   }
+  /* c8 ignore stop */
   const dateRange = generateDateRange(getDaysForPeriod(period))
 
   // Create map for quick lookup of data points

@@ -73,6 +73,7 @@ const DropdownMenuContent = React.forwardRef<
 ))
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
 
+/* c8 ignore start - Radix UI component wrappers */
 const DropdownMenuItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
@@ -149,6 +150,7 @@ const DropdownMenuLabel = React.forwardRef<
   />
 ))
 DropdownMenuLabel.displayName = DropdownMenuPrimitive.Label.displayName
+/* c8 ignore stop */
 
 const DropdownMenuSeparator = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Separator>,

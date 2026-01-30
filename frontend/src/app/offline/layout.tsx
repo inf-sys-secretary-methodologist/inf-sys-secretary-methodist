@@ -3,10 +3,10 @@ import { getTranslations } from 'next-intl/server'
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('errorPages.offline')
-  const tNav = await getTranslations('navigation')
+  const tMeta = await getTranslations('metadata')
 
   return {
-    title: `${t('title')} | ${tNav('appName')}`,
+    title: `${t('title')} | ${tMeta('shortName')}`,
     description: t('description'),
   }
 }

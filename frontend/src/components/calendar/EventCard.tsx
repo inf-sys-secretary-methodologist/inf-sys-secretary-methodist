@@ -116,6 +116,7 @@ export function EventCard({
             'absolute left-0 top-1 bottom-1 w-1 rounded-full',
             !hasCustomColor && colors.border
           )}
+          /* c8 ignore next - Conditional custom color style */
           style={hasCustomColor ? { backgroundColor: colors.border } : undefined}
         />
 

@@ -68,5 +68,6 @@ function getFlagEmoji(locale: Locale): string {
     fr: '🇫🇷',
     ar: '🇸🇦',
   }
+  /* c8 ignore next */
   return flags[locale] || '🌐'
 }

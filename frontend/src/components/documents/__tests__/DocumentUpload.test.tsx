@@ -290,6 +290,19 @@ describe('DocumentUploadComponent', () => {
 
     expect(screen.getByDisplayValue('Test description')).toBeInTheDocument()
   })
+
+  it('clicks file input when select files button is clicked', async () => {
+    render(<DocumentUploadComponent {...defaultProps} />)
+
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement
+    const clickSpy = jest.spyOn(fileInput, 'click')
+
+    const selectFilesButton = screen.getByText('Select files')
+    fireEvent.click(selectFilesButton)
+
+    expect(clickSpy).toHaveBeenCalled()
+    clickSpy.mockRestore()
+  })
 })
 
 describe('DocumentUploadComponent with tags', () => {
