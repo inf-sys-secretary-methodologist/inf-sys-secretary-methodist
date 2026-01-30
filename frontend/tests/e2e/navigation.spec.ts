@@ -4,8 +4,8 @@ test.describe('Навигация', () => {
   test('главная страница загружается', async ({ page }) => {
     await page.goto('/')
 
-    // Проверяем что страница загрузилась
-    await expect(page).toHaveTitle(/information system|secretary|methodist/i)
+    // Проверяем что страница загрузилась (title на русском)
+    await expect(page).toHaveTitle(/Секретарь-Методист|Информационная система/i)
 
     // Ожидаем загрузки контента
     await page.waitForLoadState('networkidle')
