@@ -36,6 +36,7 @@ import {
   useTimezones,
 } from '@/hooks/useNotifications'
 import { TelegramLinkCard } from '@/components/telegram/TelegramLinkCard'
+import { PushNotificationSettings } from '@/components/notifications'
 
 const _CHANNEL_KEYS = ['in_app', 'email', 'push', 'slack'] as const
 
@@ -229,6 +230,9 @@ export default function NotificationSettingsPage() {
 
         {/* Telegram Integration */}
         <TelegramLinkCard />
+
+        {/* Push Notifications */}
+        <PushNotificationSettings />
 
         {/* Quiet Hours */}
         <Card>
