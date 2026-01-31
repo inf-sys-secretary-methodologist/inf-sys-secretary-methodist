@@ -176,7 +176,7 @@ func TestNotificationUseCase_Create(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		input := &dto.CreateNotificationInput{
 			UserID:   1,
@@ -206,7 +206,7 @@ func TestNotificationUseCase_List(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		now := time.Now()
 		notifications := []*entities.Notification{
@@ -268,7 +268,7 @@ func TestNotificationUseCase_GetByID(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		now := time.Now()
 		notification := &entities.Notification{
@@ -297,7 +297,7 @@ func TestNotificationUseCase_GetByID(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("GetByID", ctx, int64(999)).Return(nil, nil)
 
@@ -317,7 +317,7 @@ func TestNotificationUseCase_MarkAsRead(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("MarkAsRead", ctx, int64(1)).Return(nil)
 
@@ -336,7 +336,7 @@ func TestNotificationUseCase_MarkAllAsRead(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("MarkAllAsRead", ctx, int64(1)).Return(nil)
 
@@ -355,7 +355,7 @@ func TestNotificationUseCase_Delete(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("Delete", ctx, int64(1)).Return(nil)
 
@@ -374,7 +374,7 @@ func TestNotificationUseCase_GetUnreadCount(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("GetUnreadCount", ctx, int64(1)).Return(int64(5), nil)
 
@@ -395,7 +395,7 @@ func TestNotificationUseCase_GetStats(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		stats := &entities.NotificationStats{
 			TotalCount:   10,
@@ -428,7 +428,7 @@ func TestNotificationUseCase_SendEventReminderNotification(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		eventTime := time.Now().Add(time.Hour)
 
@@ -449,7 +449,7 @@ func TestNotificationUseCase_CreateBulk(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		input := &dto.CreateBulkNotificationInput{
 			UserIDs:  []int64{1, 2, 3},
@@ -473,7 +473,7 @@ func TestNotificationUseCase_CreateBulk(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		input := &dto.CreateBulkNotificationInput{
 			UserIDs: []int64{1},
@@ -496,7 +496,7 @@ func TestNotificationUseCase_CreateBulk(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		input := &dto.CreateBulkNotificationInput{
 			UserIDs: []int64{1, 2},
@@ -524,7 +524,7 @@ func TestNotificationUseCase_DeleteAll(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("DeleteByUserID", ctx, int64(1)).Return(nil)
 
@@ -539,7 +539,7 @@ func TestNotificationUseCase_DeleteAll(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("DeleteByUserID", ctx, int64(1)).Return(assert.AnError)
 
@@ -559,7 +559,7 @@ func TestNotificationUseCase_CleanupExpired(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("DeleteExpired", ctx).Return(int64(5), nil)
 
@@ -575,7 +575,7 @@ func TestNotificationUseCase_CleanupExpired(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("DeleteExpired", ctx).Return(int64(0), nil)
 
@@ -591,7 +591,7 @@ func TestNotificationUseCase_CleanupExpired(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("DeleteExpired", ctx).Return(int64(0), assert.AnError)
 
@@ -612,7 +612,7 @@ func TestNotificationUseCase_SendTaskNotification(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(nil)
 
@@ -627,7 +627,7 @@ func TestNotificationUseCase_SendTaskNotification(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(assert.AnError)
 
@@ -646,7 +646,7 @@ func TestNotificationUseCase_SendDocumentNotification(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(nil)
 
@@ -661,7 +661,7 @@ func TestNotificationUseCase_SendDocumentNotification(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(assert.AnError)
 
@@ -680,7 +680,7 @@ func TestNotificationUseCase_SendSystemNotification(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(nil)
 
@@ -695,7 +695,7 @@ func TestNotificationUseCase_SendSystemNotification(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(assert.AnError)
 
@@ -714,7 +714,7 @@ func TestNotificationUseCase_BroadcastSystemNotification(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("CreateBulk", ctx, mock.AnythingOfType("[]*entities.Notification")).Return(nil)
 
@@ -729,7 +729,7 @@ func TestNotificationUseCase_BroadcastSystemNotification(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("CreateBulk", ctx, mock.AnythingOfType("[]*entities.Notification")).Return(assert.AnError)
 
@@ -748,7 +748,7 @@ func TestNotificationUseCase_Create_Error(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		input := &dto.CreateNotificationInput{
 			UserID:   1,
@@ -777,7 +777,7 @@ func TestNotificationUseCase_List_Errors(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		input := &dto.NotificationListInput{
 			UserID: 1,
@@ -799,7 +799,7 @@ func TestNotificationUseCase_List_Errors(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		input := &dto.NotificationListInput{
 			UserID: 1,
@@ -822,7 +822,7 @@ func TestNotificationUseCase_List_Errors(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		input := &dto.NotificationListInput{
 			UserID: 1,
@@ -846,7 +846,7 @@ func TestNotificationUseCase_List_Errors(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		input := &dto.NotificationListInput{
 			UserID: 1,
@@ -878,7 +878,7 @@ func TestNotificationUseCase_GetByID_Error(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("GetByID", ctx, int64(1)).Return(nil, assert.AnError)
 
@@ -899,7 +899,7 @@ func TestNotificationUseCase_MarkAsRead_Error(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("MarkAsRead", ctx, int64(1)).Return(assert.AnError)
 
@@ -919,7 +919,7 @@ func TestNotificationUseCase_MarkAllAsRead_Error(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("MarkAllAsRead", ctx, int64(1)).Return(assert.AnError)
 
@@ -939,7 +939,7 @@ func TestNotificationUseCase_Delete_Error(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("Delete", ctx, int64(1)).Return(assert.AnError)
 
@@ -959,7 +959,7 @@ func TestNotificationUseCase_GetUnreadCount_Error(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("GetUnreadCount", ctx, int64(1)).Return(int64(0), assert.AnError)
 
@@ -980,7 +980,7 @@ func TestNotificationUseCase_GetStats_Error(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		mockNotifRepo.On("GetStats", ctx, int64(1)).Return(nil, assert.AnError)
 
@@ -1001,7 +1001,7 @@ func TestNotificationUseCase_SendEventReminderNotification_Error(t *testing.T) {
 		mockPrefsRepo := new(MockPreferencesRepository)
 		mockEmailSvc := new(MockEmailService)
 
-		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil)
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, mockEmailSvc, nil, nil)
 
 		eventTime := time.Now().Add(time.Hour)
 
