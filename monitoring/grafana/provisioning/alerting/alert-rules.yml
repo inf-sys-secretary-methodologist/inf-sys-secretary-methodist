@@ -1,0 +1,285 @@
+# Grafana Alert Rules
+# Docs: https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/file-provisioning/
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: Infrastructure
+    folder: Alerts
+    interval: 1m
+    rules:
+      # CPU Alert
+      - uid: cpu-high
+        title: High CPU Usage
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: 100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [80]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: threshold
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU usage is above 80%"
+          description: "CPU usage has been above 80% for more than 5 minutes"
+
+      # Memory Alert
+      - uid: memory-high
+        title: High Memory Usage
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [85]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: threshold
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory usage is above 85%"
+          description: "Memory usage has been above 85% for more than 5 minutes"
+
+      # Disk Alert
+      - uid: disk-high
+        title: High Disk Usage
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [85]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: threshold
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk usage is above 85%"
+          description: "Disk usage on root partition is above 85%"
+
+  - orgId: 1
+    name: Application
+    folder: Alerts
+    interval: 1m
+    rules:
+      # API Error Rate
+      - uid: api-errors
+        title: High API Error Rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) * 100
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: threshold
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API error rate is above 1%"
+          description: "More than 1% of API requests are returning 5xx errors"
+
+      # API Response Time
+      - uid: api-latency
+        title: High API Latency
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [2]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: threshold
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API p95 latency is above 2 seconds"
+          description: "95th percentile of API response time is above 2 seconds"
+
+  - orgId: 1
+    name: Backup
+    folder: Alerts
+    interval: 5m
+    rules:
+      # Backup Failed
+      - uid: backup-failed
+        title: Backup Failed
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: backup_last_run_success
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: threshold
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup failed"
+          description: "Last backup run was not successful"
+
+      # Backup Stale
+      - uid: backup-stale
+        title: Backup Stale
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: backup_age_seconds
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [86400]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+              refId: C
+              type: threshold
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "No successful backup for 24 hours"
+          description: "Last successful backup was more than 24 hours ago"
