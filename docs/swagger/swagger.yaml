@@ -1,0 +1,4268 @@
+basePath: /api
+definitions:
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.ActivityItem:
+    properties:
+      action:
+        description: '"created", "updated", "deleted", "completed", etc.'
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      title:
+        type: string
+      type:
+        description: '"document", "report", "task", "event", "announcement"'
+        type: string
+      user_id:
+        type: integer
+      user_name:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.DashboardActivityOutput
+  : properties:
+      activities:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.ActivityItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.DashboardStatsOutput
+  : properties:
+      documents:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.StatItem'
+      events:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.StatItem'
+      reports:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.StatItem'
+      students:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.StatItem'
+      tasks:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.StatItem'
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.DashboardTrendsOutput
+  : properties:
+      documents_trend:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.TrendPoint'
+        type: array
+      events_trend:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.TrendPoint'
+        type: array
+      reports_trend:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.TrendPoint'
+        type: array
+      tasks_trend:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.TrendPoint'
+        type: array
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.ExportDashboardInput
+  : properties:
+      end_date:
+        type: string
+      format:
+        enum:
+        - pdf
+        - xlsx
+        type: string
+      sections:
+        description: '"stats", "trends", "activity"'
+        items:
+          type: string
+        type: array
+      start_date:
+        type: string
+    required:
+    - format
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.ExportDashboardOutput
+  : properties:
+      expires_at:
+        type: string
+      file_name:
+        type: string
+      file_size:
+        type: integer
+      file_url:
+        type: string
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.StatItem:
+    properties:
+      change:
+        description: percentage change from previous period
+        type: number
+      period:
+        description: '"week" or "month"'
+        type: string
+      total:
+        type: integer
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.TrendPoint:
+    properties:
+      date:
+        type: string
+      value:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.AccessPublicLinkInput
+  : properties:
+      password:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.CreatePublicLinkInput
+  : properties:
+      expires_at:
+        type: string
+      max_uses:
+        minimum: 1
+        type: integer
+      password:
+        minLength: 4
+        type: string
+      permission:
+        enum:
+        - read
+        - download
+        type: string
+    required:
+    - permission
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.CreateVersionInput
+  : properties:
+      change_description:
+        maxLength: 500
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentAccessOutput
+  : properties:
+      author_name:
+        type: string
+      can_download:
+        type: boolean
+      content:
+        type: string
+      created_at:
+        type: string
+      file_name:
+        type: string
+      file_size:
+        type: integer
+      id:
+        type: integer
+      mime_type:
+        type: string
+      registration_date:
+        type: string
+      registration_number:
+        type: string
+      subject:
+        type: string
+      title:
+        type: string
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentOutput:
+    properties:
+      author_id:
+        type: integer
+      author_name:
+        type: string
+      category_id:
+        type: integer
+      category_name:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      deadline:
+        type: string
+      document_type_id:
+        type: integer
+      document_type_name:
+        type: string
+      execution_date:
+        type: string
+      file_name:
+        type: string
+      file_size:
+        type: integer
+      has_file:
+        type: boolean
+      id:
+        type: integer
+      importance:
+        type: string
+      is_public:
+        type: boolean
+      metadata:
+        additionalProperties: true
+        type: object
+      mime_type:
+        type: string
+      recipient_id:
+        type: integer
+      recipient_name:
+        type: string
+      registration_date:
+        type: string
+      registration_number:
+        type: string
+      status:
+        type: string
+      subject:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      version:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentVersionListOutput
+  : properties:
+      document_id:
+        type: integer
+      latest_version:
+        type: integer
+      total:
+        type: integer
+      versions:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentVersionOutput'
+        type: array
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentVersionOutput
+  : properties:
+      change_description:
+        type: string
+      changed_by:
+        type: integer
+      changed_by_name:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      document_id:
+        type: integer
+      file_name:
+        type: string
+      file_path:
+        type: string
+      file_size:
+        type: integer
+      id:
+        type: integer
+      metadata:
+        additionalProperties: true
+        type: object
+      mime_type:
+        type: string
+      status:
+        type: string
+      subject:
+        type: string
+      title:
+        type: string
+      version:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.MySharedDocumentOutput
+  : properties:
+      document_id:
+        type: integer
+      document_title:
+        type: string
+      shared_with:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.SharedWithInfo'
+        type: array
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.PermissionOutput
+  : properties:
+      created_at:
+        type: string
+      document_id:
+        type: integer
+      expires_at:
+        type: string
+      granted_by:
+        type: integer
+      granted_by_name:
+        type: string
+      id:
+        type: integer
+      permission:
+        type: string
+      role:
+        type: string
+      user_email:
+        type: string
+      user_id:
+        type: integer
+      user_name:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.PublicLinkOutput
+  : properties:
+      created_at:
+        type: string
+      created_by:
+        type: integer
+      created_by_name:
+        type: string
+      document_id:
+        type: integer
+      document_title:
+        type: string
+      expires_at:
+        type: string
+      has_password:
+        type: boolean
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      max_uses:
+        type: integer
+      permission:
+        type: string
+      token:
+        type: string
+      updated_at:
+        type: string
+      url:
+        description: Full URL for sharing
+        type: string
+      use_count:
+        type: integer
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.SearchOutput:
+    properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      query:
+        type: string
+      results:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.SearchResultOutput'
+        type: array
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.SearchResultOutput
+  : properties:
+      document:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentOutput'
+      highlighted_content:
+        type: string
+      highlighted_subject:
+        type: string
+      highlighted_title:
+        type: string
+      rank:
+        type: number
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.ShareDocumentInput
+  : properties:
+      expires_at:
+        type: string
+      permission:
+        enum:
+        - read
+        - write
+        - delete
+        - admin
+        type: string
+      role:
+        enum:
+        - admin
+        - secretary
+        - methodist
+        - teacher
+        - student
+        type: string
+      user_id:
+        type: integer
+    required:
+    - permission
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.SharedWithInfo:
+    properties:
+      expires_at:
+        type: string
+      granted_at:
+        type: string
+      permission:
+        type: string
+      permission_id:
+        type: integer
+      role:
+        type: string
+      user_email:
+        type: string
+      user_id:
+        type: integer
+      user_name:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.VersionDiffOutput
+  : properties:
+      changed_fields:
+        items:
+          type: string
+        type: array
+      created_at:
+        type: string
+      diff_data:
+        additionalProperties: true
+        type: object
+      document_id:
+        type: integer
+      from_version:
+        type: integer
+      to_version:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.VersionFileDownloadOutput
+  : properties:
+      download_url:
+        type: string
+      file_name:
+        type: string
+      file_path:
+        type: string
+      file_size:
+        type: integer
+      mime_type:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.AddParticipantsInput
+  : properties:
+      user_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - user_ids
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.AttachmentInput
+  : properties:
+      file_id:
+        type: integer
+      file_name:
+        maxLength: 500
+        minLength: 1
+        type: string
+      file_size:
+        type: integer
+      mime_type:
+        maxLength: 100
+        minLength: 1
+        type: string
+      url:
+        type: string
+    required:
+    - file_id
+    - file_name
+    - file_size
+    - mime_type
+    - url
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.AttachmentOutput
+  : properties:
+      file_name:
+        type: string
+      file_size:
+        type: integer
+      id:
+        type: integer
+      mime_type:
+        type: string
+      url:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.ConversationListOutput
+  : properties:
+      conversations:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.ConversationOutput'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.ConversationOutput
+  : properties:
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      last_message:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.MessageOutput'
+      participants:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.ParticipantOutput'
+        type: array
+      title:
+        type: string
+      type:
+        type: string
+      unread_count:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.CreateDirectConversationInput
+  : properties:
+      recipient_id:
+        type: integer
+    required:
+    - recipient_id
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.CreateGroupConversationInput
+  : properties:
+      description:
+        maxLength: 1000
+        type: string
+      participant_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+      title:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - participant_ids
+    - title
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.EditMessageInput
+  : properties:
+      content:
+        maxLength: 10000
+        minLength: 1
+        type: string
+    required:
+    - content
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.MarkReadInput:
+    properties:
+      message_id:
+        type: integer
+    required:
+    - message_id
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.MessageListOutput
+  : properties:
+      has_more:
+        type: boolean
+      messages:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.MessageOutput'
+        type: array
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.MessageOutput:
+    properties:
+      attachments:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.AttachmentOutput'
+        type: array
+      content:
+        type: string
+      conversation_id:
+        type: integer
+      created_at:
+        type: string
+      edited_at:
+        type: string
+      id:
+        type: integer
+      is_deleted:
+        type: boolean
+      is_edited:
+        type: boolean
+      reply_to:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.MessageOutput'
+      sender_avatar:
+        type: string
+      sender_id:
+        type: integer
+      sender_name:
+        type: string
+      type:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.ParticipantOutput
+  : properties:
+      avatar_url:
+        type: string
+      id:
+        type: integer
+      is_muted:
+        type: boolean
+      joined_at:
+        type: string
+      left_at:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.SearchMessagesOutput
+  : properties:
+      limit:
+        type: integer
+      messages:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.MessageOutput'
+        type: array
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.SendMessageInput
+  : properties:
+      attachments:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.AttachmentInput'
+        maxItems: 10
+        type: array
+      content:
+        maxLength: 10000
+        minLength: 1
+        type: string
+      reply_to_id:
+        type: integer
+      type:
+        enum:
+        - text
+        - image
+        - file
+        type: string
+    required:
+    - content
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.UpdateConversationInput
+  : properties:
+      avatar_url:
+        maxLength: 500
+        type: string
+      description:
+        maxLength: 1000
+        type: string
+      title:
+        maxLength: 255
+        minLength: 1
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.ChannelToggleInput
+  : properties:
+      channel:
+        enum:
+        - email
+        - push
+        - in_app
+        - telegram
+        - slack
+        type: string
+      enabled:
+        type: boolean
+    required:
+    - channel
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.CreateBulkNotificationInput
+  : properties:
+      expires_at:
+        type: string
+      image_url:
+        maxLength: 1000
+        type: string
+      link:
+        maxLength: 1000
+        type: string
+      message:
+        type: string
+      metadata:
+        additionalProperties: {}
+        type: object
+      priority:
+        allOf:
+        - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.NotificationPriority'
+        enum:
+        - low
+        - normal
+        - high
+        - urgent
+      title:
+        maxLength: 500
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.NotificationType'
+        enum:
+        - info
+        - success
+        - warning
+        - error
+        - reminder
+        - task
+        - document
+        - event
+        - system
+      user_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - message
+    - title
+    - type
+    - user_ids
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.CreateNotificationInput
+  : properties:
+      expires_at:
+        type: string
+      image_url:
+        maxLength: 1000
+        type: string
+      link:
+        maxLength: 1000
+        type: string
+      message:
+        type: string
+      metadata:
+        additionalProperties: {}
+        type: object
+      priority:
+        allOf:
+        - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.NotificationPriority'
+        enum:
+        - low
+        - normal
+        - high
+        - urgent
+      title:
+        maxLength: 500
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.NotificationType'
+        enum:
+        - info
+        - success
+        - warning
+        - error
+        - reminder
+        - task
+        - document
+        - event
+        - system
+      user_id:
+        type: integer
+    required:
+    - message
+    - title
+    - type
+    - user_id
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.NotificationListOutput
+  : properties:
+      limit:
+        type: integer
+      notifications:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.NotificationOutput'
+        type: array
+      offset:
+        type: integer
+      total_count:
+        type: integer
+      unread_count:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.NotificationOutput
+  : properties:
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_read:
+        type: boolean
+      link:
+        type: string
+      message:
+        type: string
+      metadata:
+        additionalProperties: {}
+        type: object
+      priority:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.NotificationPriority'
+      read_at:
+        type: string
+      time_ago:
+        type: string
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.NotificationType'
+      user_id:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.NotificationStatsOutput
+  : properties:
+      expired_count:
+        type: integer
+      today_count:
+        type: integer
+      total_count:
+        type: integer
+      unread_count:
+        type: integer
+      urgent_count:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.PreferencesInput
+  : properties:
+      digest_enabled:
+        type: boolean
+      digest_frequency:
+        enum:
+        - daily
+        - weekly
+        type: string
+      digest_time:
+        type: string
+      email_enabled:
+        type: boolean
+      in_app_enabled:
+        type: boolean
+      push_enabled:
+        type: boolean
+      quiet_hours_enabled:
+        type: boolean
+      quiet_hours_end:
+        type: string
+      quiet_hours_start:
+        type: string
+      slack_enabled:
+        type: boolean
+      telegram_enabled:
+        type: boolean
+      timezone:
+        maxLength: 50
+        type: string
+      type_preferences:
+        additionalProperties:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.TypePreference'
+        type: object
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.PreferencesOutput
+  : properties:
+      created_at:
+        type: string
+      digest_enabled:
+        type: boolean
+      digest_frequency:
+        type: string
+      digest_time:
+        type: string
+      email_enabled:
+        type: boolean
+      id:
+        type: integer
+      in_app_enabled:
+        type: boolean
+      push_enabled:
+        type: boolean
+      quiet_hours_enabled:
+        type: boolean
+      quiet_hours_end:
+        type: string
+      quiet_hours_start:
+        type: string
+      slack_connected:
+        type: boolean
+      slack_enabled:
+        type: boolean
+      telegram_connected:
+        type: boolean
+      telegram_enabled:
+        type: boolean
+      timezone:
+        type: string
+      type_preferences:
+        additionalProperties:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.TypePreference'
+        type: object
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.QuietHoursInput
+  : properties:
+      enabled:
+        type: boolean
+      end_time:
+        type: string
+      start_time:
+        type: string
+      timezone:
+        maxLength: 50
+        type: string
+    required:
+    - end_time
+    - start_time
+    - timezone
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.UnreadCountOutput
+  : properties:
+      count:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.NotificationPriority
+  : enum:
+    - low
+    - normal
+    - high
+    - urgent
+    type: string
+    x-enum-varnames:
+    - PriorityLow
+    - PriorityNormal
+    - PriorityHigh
+    - PriorityUrgent
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.NotificationType
+  : enum:
+    - info
+    - success
+    - warning
+    - error
+    - reminder
+    - task
+    - document
+    - event
+    - system
+    type: string
+    x-enum-varnames:
+    - NotificationTypeInfo
+    - NotificationTypeSuccess
+    - NotificationTypeWarning
+    - NotificationTypeError
+    - NotificationTypeReminder
+    - NotificationTypeTask
+    - NotificationTypeDocument
+    - NotificationTypeEvent
+    - NotificationTypeSystem
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.TypePreference
+  : properties:
+      channels:
+        description: which channels to use for this type
+        items:
+          type: string
+        type: array
+      enabled:
+        type: boolean
+      priority:
+        description: minimum priority to notify
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.CreateCustomReportInput
+  : properties:
+      dataSource:
+        enum:
+        - documents
+        - users
+        - events
+        - tasks
+        - students
+        type: string
+      description:
+        maxLength: 1000
+        type: string
+      fields:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.SelectedFieldDTO'
+        minItems: 1
+        type: array
+      filters:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportFilterDTO'
+        type: array
+      groupings:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportGroupingDTO'
+        type: array
+      isPublic:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      sortings:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportSortingDTO'
+        type: array
+    required:
+    - dataSource
+    - fields
+    - name
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.CustomReportListOutput
+  : properties:
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      reports:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.CustomReportOutput'
+        type: array
+      total:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.CustomReportOutput
+  : properties:
+      createdAt:
+        type: string
+      createdBy:
+        type: integer
+      dataSource:
+        type: string
+      description:
+        type: string
+      fields:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.SelectedFieldDTO'
+        type: array
+      filters:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportFilterDTO'
+        type: array
+      groupings:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportGroupingDTO'
+        type: array
+      id:
+        type: string
+      isPublic:
+        type: boolean
+      name:
+        type: string
+      sortings:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportSortingDTO'
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ExecuteReportInput
+  : properties:
+      page:
+        minimum: 1
+        type: integer
+      pageSize:
+        maximum: 1000
+        minimum: 1
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ExecuteReportOutput
+  : properties:
+      columns:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportColumnOutput'
+        type: array
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      rows:
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+      totalCount:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ExportReportInput
+  : properties:
+      format:
+        enum:
+        - pdf
+        - xlsx
+        - csv
+        type: string
+      includeHeaders:
+        type: boolean
+      orientation:
+        enum:
+        - portrait
+        - landscape
+        type: string
+      pageSize:
+        enum:
+        - A4
+        - A3
+        - Letter
+        type: string
+    required:
+    - format
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportColumnOutput
+  : properties:
+      key:
+        type: string
+      label:
+        type: string
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportFieldDTO:
+    properties:
+      enumValues:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      label:
+        type: string
+      name:
+        type: string
+      source:
+        type: string
+      type:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportFilterDTO
+  : properties:
+      field:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportFieldDTO'
+      id:
+        type: string
+      operator:
+        type: string
+      value: {}
+      value2: {}
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportGroupingDTO
+  : properties:
+      field:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportFieldDTO'
+      order:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportSortingDTO
+  : properties:
+      field:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportFieldDTO'
+      order:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.SelectedFieldDTO
+  : properties:
+      aggregation:
+        type: string
+      alias:
+        type: string
+      field:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportFieldDTO'
+      order:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.UpdateCustomReportInput
+  : properties:
+      dataSource:
+        enum:
+        - documents
+        - users
+        - events
+        - tasks
+        - students
+        type: string
+      description:
+        maxLength: 1000
+        type: string
+      fields:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.SelectedFieldDTO'
+        type: array
+      filters:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportFilterDTO'
+        type: array
+      groupings:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportGroupingDTO'
+        type: array
+      isPublic:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      sortings:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportSortingDTO'
+        type: array
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.AddParticipantsInput
+  : properties:
+      role:
+        enum:
+        - required
+        - optional
+        - resource
+        type: string
+      user_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - role
+    - user_ids
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.CreateEventInput
+  : properties:
+      all_day:
+        type: boolean
+      color:
+        type: string
+      description:
+        maxLength: 5000
+        type: string
+      end_time:
+        type: string
+      event_type:
+        enum:
+        - meeting
+        - deadline
+        - task
+        - reminder
+        - holiday
+        - personal
+        type: string
+      is_recurring:
+        description: Recurrence
+        type: boolean
+      location:
+        maxLength: 500
+        type: string
+      participant_ids:
+        items:
+          type: integer
+        type: array
+      priority:
+        maximum: 5
+        minimum: 1
+        type: integer
+      recurrence_rule:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.RecurrenceRuleInput'
+      reminders:
+        description: Reminders
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.ReminderInput'
+        type: array
+      start_time:
+        type: string
+      timezone:
+        maxLength: 50
+        type: string
+      title:
+        maxLength: 500
+        minLength: 1
+        type: string
+    required:
+    - event_type
+    - start_time
+    - title
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventListOutput:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventOutput'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventOutput:
+    properties:
+      all_day:
+        type: boolean
+      color:
+        description: Display
+        type: string
+      created_at:
+        description: Audit
+        type: string
+      description:
+        type: string
+      end_time:
+        type: string
+      event_type:
+        type: string
+      id:
+        type: integer
+      is_recurring:
+        description: Recurrence
+        type: boolean
+      location:
+        description: Location
+        type: string
+      organizer_id:
+        description: Organizer
+        type: integer
+      organizer_name:
+        type: string
+      parent_event_id:
+        type: integer
+      participants:
+        description: Participants
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.ParticipantOutput'
+        type: array
+      priority:
+        type: integer
+      recurrence_rule:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.RecurrenceRuleOutput'
+      reminders:
+        description: Reminders
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.ReminderOutput'
+        type: array
+      start_time:
+        description: Time
+        type: string
+      status:
+        type: string
+      timezone:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.ParticipantOutput
+  : properties:
+      email:
+        type: string
+      responded_at:
+        type: string
+      response_status:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: integer
+      user_name:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.RecurrenceRuleInput
+  : properties:
+      by_month:
+        items:
+          type: integer
+        type: array
+      by_monthday:
+        items:
+          type: integer
+        type: array
+      by_weekday:
+        items:
+          type: string
+        type: array
+      count:
+        maximum: 999
+        minimum: 1
+        type: integer
+      frequency:
+        enum:
+        - daily
+        - weekly
+        - monthly
+        - yearly
+        type: string
+      interval:
+        maximum: 365
+        minimum: 1
+        type: integer
+      until:
+        type: string
+      week_start:
+        enum:
+        - MO
+        - TU
+        - WE
+        - TH
+        - FR
+        - SA
+        - SU
+        type: string
+    required:
+    - frequency
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.RecurrenceRuleOutput
+  : properties:
+      by_month:
+        items:
+          type: integer
+        type: array
+      by_monthday:
+        items:
+          type: integer
+        type: array
+      by_weekday:
+        items:
+          type: string
+        type: array
+      count:
+        type: integer
+      frequency:
+        type: string
+      interval:
+        type: integer
+      until:
+        type: string
+      week_start:
+        type: string
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.ReminderInput:
+    properties:
+      minutes_before:
+        description: max 4 weeks
+        maximum: 40320
+        minimum: 0
+        type: integer
+      reminder_type:
+        enum:
+        - email
+        - push
+        - in_app
+        - telegram
+        type: string
+    required:
+    - minutes_before
+    - reminder_type
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.ReminderOutput:
+    properties:
+      id:
+        type: integer
+      is_sent:
+        type: boolean
+      minutes_before:
+        type: integer
+      reminder_type:
+        type: string
+      sent_at:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.UpdateEventInput
+  : properties:
+      all_day:
+        type: boolean
+      color:
+        type: string
+      description:
+        maxLength: 5000
+        type: string
+      end_time:
+        type: string
+      event_type:
+        enum:
+        - meeting
+        - deadline
+        - task
+        - reminder
+        - holiday
+        - personal
+        type: string
+      is_recurring:
+        description: Recurrence update
+        type: boolean
+      location:
+        maxLength: 500
+        type: string
+      priority:
+        maximum: 5
+        minimum: 1
+        type: integer
+      recurrence_rule:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.RecurrenceRuleInput'
+      start_time:
+        type: string
+      status:
+        enum:
+        - scheduled
+        - ongoing
+        - completed
+        - cancelled
+        - postponed
+        type: string
+      timezone:
+        maxLength: 50
+        type: string
+      title:
+        maxLength: 500
+        minLength: 1
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.UpdateParticipantStatusInput
+  : properties:
+      status:
+        enum:
+        - accepted
+        - declined
+        - tentative
+        type: string
+    required:
+    - status
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Error:
+    properties:
+      code:
+        type: string
+      details: {}
+      message:
+        type: string
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Meta:
+    properties:
+      pagination:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Pagination'
+      request_id:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Pagination:
+    properties:
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Error'
+      meta:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Meta'
+      success:
+        type: boolean
+    type: object
+  internal_modules_notifications_interfaces_http.GenerateVerificationCodeResponse:
+    properties:
+      bot_link:
+        type: string
+      bot_username:
+        type: string
+      code:
+        type: string
+      expires_at:
+        type: string
+    type: object
+  internal_modules_notifications_interfaces_http.TelegramConnectionResponse:
+    properties:
+      connected:
+        type: boolean
+      connected_at:
+        type: string
+      first_name:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: API Support
+    url: https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist
+  description: |-
+    API для информационной системы академического секретаря/методиста.
+    Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: Inf-Sys Secretary-Methodist API
+  version: 0.3.0
+paths:
+  /api/admin/notifications:
+    post:
+      consumes:
+      - application/json
+      description: Create a new notification for a user (admin only)
+      parameters:
+      - description: Notification data
+        in: body
+        name: notification
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.CreateNotificationInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.NotificationOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create notification (admin only)
+      tags:
+      - notifications
+  /api/admin/notifications/bulk:
+    post:
+      consumes:
+      - application/json
+      description: Create notifications for multiple users (admin only)
+      parameters:
+      - description: Bulk notification data
+        in: body
+        name: notifications
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.CreateBulkNotificationInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.NotificationOutput'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create bulk notifications (admin only)
+      tags:
+      - notifications
+  /api/conversations:
+    get:
+      parameters:
+      - description: Conversation type (direct/group)
+        in: query
+        name: type
+        type: string
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.ConversationListOutput'
+      summary: List conversations
+      tags:
+      - Messaging
+  /api/conversations/{id}:
+    get:
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.ConversationOutput'
+      summary: Get conversation
+      tags:
+      - Messaging
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.UpdateConversationInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.ConversationOutput'
+      summary: Update conversation
+      tags:
+      - Messaging
+  /api/conversations/{id}/leave:
+    post:
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Leave conversation
+      tags:
+      - Messaging
+  /api/conversations/{id}/messages:
+    get:
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Before message ID
+        in: query
+        name: before_id
+        type: integer
+      - description: After message ID
+        in: query
+        name: after_id
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.MessageListOutput'
+      summary: Get messages
+      tags:
+      - Messaging
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Message
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.SendMessageInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.MessageOutput'
+      summary: Send message
+      tags:
+      - Messaging
+  /api/conversations/{id}/messages/{messageId}:
+    delete:
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Message ID
+        in: path
+        name: messageId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Delete message
+      tags:
+      - Messaging
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Message ID
+        in: path
+        name: messageId
+        required: true
+        type: integer
+      - description: New content
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.EditMessageInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.MessageOutput'
+      summary: Edit message
+      tags:
+      - Messaging
+  /api/conversations/{id}/messages/search:
+    get:
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.SearchMessagesOutput'
+      summary: Search messages
+      tags:
+      - Messaging
+  /api/conversations/{id}/participants:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Participants
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.AddParticipantsInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Add participants
+      tags:
+      - Messaging
+  /api/conversations/{id}/read:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Last read message
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.MarkReadInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Mark as read
+      tags:
+      - Messaging
+  /api/conversations/direct:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Recipient info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.CreateDirectConversationInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.ConversationOutput'
+      summary: Create direct conversation
+      tags:
+      - Messaging
+  /api/conversations/group:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Group info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.CreateGroupConversationInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.ConversationOutput'
+      summary: Create group conversation
+      tags:
+      - Messaging
+  /api/dashboard/activity:
+    get:
+      consumes:
+      - application/json
+      description: Returns recent activity across all modules (documents, reports,
+        tasks, events, announcements)
+      parameters:
+      - default: 10
+        description: Number of items to return (max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.DashboardActivityOutput'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get recent activity
+      tags:
+      - Dashboard
+  /api/dashboard/export:
+    post:
+      consumes:
+      - application/json
+      description: Exports dashboard statistics and trends to PDF or Excel format
+      parameters:
+      - description: Export parameters
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.ExportDashboardInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.ExportDashboardOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Export dashboard data
+      tags:
+      - Dashboard
+  /api/dashboard/stats:
+    get:
+      consumes:
+      - application/json
+      description: Returns KPI statistics including documents, reports, tasks, events,
+        and students counts
+      parameters:
+      - default: month
+        description: Period for comparison (week, month, quarter, year)
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.DashboardStatsOutput'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get dashboard statistics
+      tags:
+      - Dashboard
+  /api/dashboard/trends:
+    get:
+      consumes:
+      - application/json
+      description: Returns trend data for documents, reports, tasks, and events for
+        charting
+      parameters:
+      - default: month
+        description: Period (week, month, quarter, year)
+        in: query
+        name: period
+        type: string
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.DashboardTrendsOutput'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get dashboard trends
+      tags:
+      - Dashboard
+  /api/documents/{id}/versions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves version history for a specific document
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentVersionListOutput'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Get all versions of a document
+      tags:
+      - Document Versions
+    post:
+      consumes:
+      - application/json
+      description: Creates a new version snapshot of the current document state
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Version input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.CreateVersionInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentVersionOutput'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Create a manual version snapshot
+      tags:
+      - Document Versions
+  /api/documents/{id}/versions/{version}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a specific version (cannot delete current version)
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Version number to delete
+        in: path
+        name: version
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Delete a specific version
+      tags:
+      - Document Versions
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific version
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Version number
+        in: path
+        name: version
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentVersionOutput'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Get a specific version of a document
+      tags:
+      - Document Versions
+  /api/documents/{id}/versions/{version}/file:
+    get:
+      consumes:
+      - application/json
+      description: Gets file information and download URL from a specific version
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Version number
+        in: path
+        name: version
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.VersionFileDownloadOutput'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Get file from a specific version
+      tags:
+      - Document Versions
+  /api/documents/{id}/versions/{version}/restore:
+    post:
+      consumes:
+      - application/json
+      description: Restores the document to a specific previous version
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Version number to restore
+        in: path
+        name: version
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentOutput'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Restore document to a previous version
+      tags:
+      - Document Versions
+  /api/documents/{id}/versions/compare:
+    get:
+      consumes:
+      - application/json
+      description: Compares two versions and returns the differences
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: From version number
+        in: query
+        name: from
+        required: true
+        type: integer
+      - description: To version number
+        in: query
+        name: to
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.VersionDiffOutput'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Compare two versions
+      tags:
+      - Document Versions
+  /api/notifications:
+    delete:
+      consumes:
+      - application/json
+      description: Delete all notifications for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete all notifications
+      tags:
+      - notifications
+    get:
+      consumes:
+      - application/json
+      description: Get a list of notifications for the authenticated user
+      parameters:
+      - description: Filter by notification type
+        in: query
+        name: type
+        type: string
+      - description: Filter by priority
+        in: query
+        name: priority
+        type: string
+      - description: Filter by read status
+        in: query
+        name: is_read
+        type: boolean
+      - default: 50
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.NotificationListOutput'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List notifications
+      tags:
+      - notifications
+  /api/notifications/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a notification by its ID
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete notification
+      tags:
+      - notifications
+    get:
+      consumes:
+      - application/json
+      description: Get a single notification by its ID
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.NotificationOutput'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get notification by ID
+      tags:
+      - notifications
+  /api/notifications/{id}/read:
+    put:
+      consumes:
+      - application/json
+      description: Mark a single notification as read
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Mark notification as read
+      tags:
+      - notifications
+  /api/notifications/preferences:
+    get:
+      consumes:
+      - application/json
+      description: Get notification preferences for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.PreferencesOutput'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get notification preferences
+      tags:
+      - notifications
+    put:
+      consumes:
+      - application/json
+      description: Update notification preferences for the authenticated user
+      parameters:
+      - description: Preferences data
+        in: body
+        name: preferences
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.PreferencesInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.PreferencesOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update notification preferences
+      tags:
+      - notifications
+  /api/notifications/preferences/channel:
+    put:
+      consumes:
+      - application/json
+      description: Enable or disable a specific notification channel
+      parameters:
+      - description: Channel toggle data
+        in: body
+        name: toggle
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.ChannelToggleInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.PreferencesOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Toggle notification channel
+      tags:
+      - notifications
+  /api/notifications/preferences/quiet-hours:
+    put:
+      consumes:
+      - application/json
+      description: Update quiet hours settings for the authenticated user
+      parameters:
+      - description: Quiet hours data
+        in: body
+        name: quiet_hours
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.QuietHoursInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.PreferencesOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update quiet hours
+      tags:
+      - notifications
+  /api/notifications/preferences/reset:
+    post:
+      consumes:
+      - application/json
+      description: Reset notification preferences to defaults for the authenticated
+        user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.PreferencesOutput'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Reset notification preferences
+      tags:
+      - notifications
+  /api/notifications/read-all:
+    put:
+      consumes:
+      - application/json
+      description: Mark all notifications as read for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Mark all notifications as read
+      tags:
+      - notifications
+  /api/notifications/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get notification statistics for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.NotificationStatsOutput'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get notification statistics
+      tags:
+      - notifications
+  /api/notifications/timezones:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of available timezones for quiet hours configuration
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Get available timezones
+      tags:
+      - notifications
+  /api/notifications/unread-count:
+    get:
+      consumes:
+      - application/json
+      description: Get the count of unread notifications for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.UnreadCountOutput'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get unread count
+      tags:
+      - notifications
+  /api/reports/custom:
+    get:
+      description: List custom reports with filtering and pagination
+      parameters:
+      - description: Filter by data source
+        in: query
+        name: dataSource
+        type: string
+      - description: Filter by public status
+        in: query
+        name: isPublic
+        type: boolean
+      - description: Search in name and description
+        in: query
+        name: search
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.CustomReportListOutput'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List custom reports
+      tags:
+      - custom-reports
+    post:
+      consumes:
+      - application/json
+      description: Create a new custom report template
+      parameters:
+      - description: Report configuration
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.CreateCustomReportInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.CustomReportOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create custom report
+      tags:
+      - custom-reports
+  /api/reports/custom/{id}:
+    delete:
+      description: Delete a custom report
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete custom report
+      tags:
+      - custom-reports
+    get:
+      description: Get a custom report by ID
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.CustomReportOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get custom report
+      tags:
+      - custom-reports
+    put:
+      consumes:
+      - application/json
+      description: Update an existing custom report
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.UpdateCustomReportInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.CustomReportOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update custom report
+      tags:
+      - custom-reports
+  /api/reports/custom/{id}/execute:
+    post:
+      consumes:
+      - application/json
+      description: Execute a custom report and get data
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Execution options
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ExecuteReportInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ExecuteReportOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Execute custom report
+      tags:
+      - custom-reports
+  /api/reports/custom/{id}/export:
+    post:
+      consumes:
+      - application/json
+      description: Export a custom report to PDF, Excel, or CSV
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Export options
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ExportReportInput'
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Export custom report
+      tags:
+      - custom-reports
+  /api/reports/custom/fields:
+    get:
+      description: Get available fields for custom report builder
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.ReportFieldDTO'
+              type: array
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get available fields
+      tags:
+      - custom-reports
+  /api/reports/custom/my:
+    get:
+      description: Get all custom reports created by the current user
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.CustomReportListOutput'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get my reports
+      tags:
+      - custom-reports
+  /api/reports/custom/public:
+    get:
+      description: Get all public custom reports
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_reporting_application_dto.CustomReportListOutput'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get public reports
+      tags:
+      - custom-reports
+  /api/telegram/disconnect:
+    post:
+      consumes:
+      - application/json
+      description: Removes the Telegram connection for the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Disconnect Telegram account
+      tags:
+      - telegram
+  /api/telegram/status:
+    get:
+      consumes:
+      - application/json
+      description: Returns the current Telegram connection status for the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_notifications_interfaces_http.TelegramConnectionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get Telegram connection status
+      tags:
+      - telegram
+  /api/telegram/verification-code:
+    post:
+      consumes:
+      - application/json
+      description: Generates a verification code for linking Telegram account
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_notifications_interfaces_http.GenerateVerificationCodeResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Generate Telegram verification code
+      tags:
+      - telegram
+  /api/telegram/webhook:
+    post:
+      consumes:
+      - application/json
+      description: Receives and processes updates from Telegram Bot API
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Handle Telegram webhook
+      tags:
+      - telegram
+  /api/v1/events:
+    get:
+      parameters:
+      - description: Organizer ID
+        in: query
+        name: organizer_id
+        type: integer
+      - description: Event type
+        in: query
+        name: event_type
+        type: string
+      - description: Event status
+        in: query
+        name: status
+        type: string
+      - description: Start from (RFC3339)
+        in: query
+        name: start_from
+        type: string
+      - description: Start to (RFC3339)
+        in: query
+        name: start_to
+        type: string
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventListOutput'
+              type: object
+      summary: List events
+      tags:
+      - Events
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.CreateEventInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventOutput'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Create a new event
+      tags:
+      - Events
+  /api/v1/events/{id}:
+    delete:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Delete an event
+      tags:
+      - Events
+    get:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventOutput'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Get an event by ID
+      tags:
+      - Events
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Event data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.UpdateEventInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventOutput'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Update an event
+      tags:
+      - Events
+  /api/v1/events/{id}/cancel:
+    post:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventOutput'
+              type: object
+      summary: Cancel an event
+      tags:
+      - Events
+  /api/v1/events/{id}/participants:
+    post:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Participants
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.AddParticipantsInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Add participants to an event
+      tags:
+      - Events
+  /api/v1/events/{id}/participants/{user_id}:
+    delete:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Remove a participant from an event
+      tags:
+      - Events
+  /api/v1/events/{id}/reschedule:
+    post:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New times
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            end_time:
+              type: string
+            start_time:
+              type: string
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventOutput'
+              type: object
+      summary: Reschedule an event
+      tags:
+      - Events
+  /api/v1/events/{id}/respond:
+    post:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.UpdateParticipantStatusInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Update participant status (accept/decline)
+      tags:
+      - Events
+  /api/v1/events/invitations:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventOutput'
+                  type: array
+              type: object
+      summary: Get pending event invitations
+      tags:
+      - Events
+  /api/v1/events/range:
+    get:
+      parameters:
+      - description: Start date (RFC3339)
+        in: query
+        name: start
+        required: true
+        type: string
+      - description: End date (RFC3339)
+        in: query
+        name: end
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventOutput'
+                  type: array
+              type: object
+      summary: Get events by date range
+      tags:
+      - Events
+  /api/v1/events/upcoming:
+    get:
+      parameters:
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_schedule_application_dto.EventOutput'
+                  type: array
+              type: object
+      summary: Get upcoming events
+      tags:
+      - Events
+  /api/ws:
+    get:
+      responses:
+        "101":
+          description: Switching Protocols
+      summary: WebSocket connection
+      tags:
+      - Messaging
+  /documents/{id}/permissions:
+    get:
+      description: Get all permissions for a document
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.PermissionOutput'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Get document permissions
+      tags:
+      - sharing
+  /documents/{id}/permissions/{permissionId}:
+    delete:
+      description: Revoke a document permission
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Permission ID
+        in: path
+        name: permissionId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Revoke permission
+      tags:
+      - sharing
+  /documents/{id}/public-links:
+    get:
+      description: Get all public links for a document
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.PublicLinkOutput'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Get document public links
+      tags:
+      - sharing
+    post:
+      consumes:
+      - application/json
+      description: Create a public link for a document
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Public link input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.CreatePublicLinkInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.PublicLinkOutput'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Create public link
+      tags:
+      - sharing
+  /documents/{id}/public-links/{linkId}:
+    delete:
+      description: Delete a public link
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Link ID
+        in: path
+        name: linkId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Delete public link
+      tags:
+      - sharing
+  /documents/{id}/public-links/{linkId}/deactivate:
+    post:
+      description: Deactivate a public link
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Link ID
+        in: path
+        name: linkId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Deactivate public link
+      tags:
+      - sharing
+  /documents/{id}/share:
+    post:
+      consumes:
+      - application/json
+      description: Share a document with a user or role
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Share input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.ShareDocumentInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.PermissionOutput'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Share document
+      tags:
+      - sharing
+  /documents/my-shared:
+    get:
+      description: Get documents that the current user owns and has shared with others
+      parameters:
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.MySharedDocumentOutput'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Get my shared documents
+      tags:
+      - sharing
+  /documents/search:
+    get:
+      consumes:
+      - application/json
+      description: Perform full-text search on documents with ranking and highlighting
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - description: Filter by document type ID
+        in: query
+        name: document_type_id
+        type: integer
+      - description: Filter by category ID
+        in: query
+        name: category_id
+        type: integer
+      - description: Filter by author ID
+        in: query
+        name: author_id
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by importance
+        in: query
+        name: importance
+        type: string
+      - description: Filter by creation date from (YYYY-MM-DD)
+        in: query
+        name: from_date
+        type: string
+      - description: Filter by creation date to (YYYY-MM-DD)
+        in: query
+        name: to_date
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Results per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.SearchOutput'
+      summary: Search documents
+      tags:
+      - documents
+  /documents/shared:
+    get:
+      description: Get documents shared with the current user
+      parameters:
+      - description: Filter by permission level
+        in: query
+        name: permission
+        type: string
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentOutput'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Get shared documents
+      tags:
+      - sharing
+  /public/documents/{token}:
+    post:
+      consumes:
+      - application/json
+      description: Access a document via public link
+      parameters:
+      - description: Public link token
+        in: path
+        name: token
+        required: true
+        type: string
+      - description: Password if required
+        in: body
+        name: input
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.AccessPublicLinkInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentAccessOutput'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      summary: Access public document
+      tags:
+      - public
+schemes:
+- http
+- https
+securityDefinitions:
+  Bearer:
+    description: 'JWT Bearer token. Format: "Bearer {token}"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
