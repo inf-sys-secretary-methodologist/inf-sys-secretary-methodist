@@ -21,6 +21,7 @@ type NotificationUseCase struct {
 	telegramRepo     repositories.TelegramRepository
 	emailService     services.EmailService
 	telegramService  services.TelegramService
+	webpushService   services.WebPushService
 }
 
 // NewNotificationUseCase creates a new notification use case
@@ -30,6 +31,7 @@ func NewNotificationUseCase(
 	telegramRepo repositories.TelegramRepository,
 	emailService services.EmailService,
 	telegramService services.TelegramService,
+	webpushService services.WebPushService,
 ) *NotificationUseCase {
 	return &NotificationUseCase{
 		notificationRepo: notificationRepo,
@@ -37,6 +39,7 @@ func NewNotificationUseCase(
 		telegramRepo:     telegramRepo,
 		emailService:     emailService,
 		telegramService:  telegramService,
+		webpushService:   webpushService,
 	}
 }
 
@@ -50,6 +53,9 @@ func (uc *NotificationUseCase) Create(ctx context.Context, input *dto.CreateNoti
 
 	// Send to Telegram if user has connected account and service is available
 	uc.sendToTelegram(ctx, notification)
+
+	// Send to Web Push if user has subscriptions (async)
+	go uc.sendToWebPush(ctx, notification)
 
 	return dto.ToOutput(notification), nil
 }
@@ -96,6 +102,40 @@ func (uc *NotificationUseCase) sendToTelegram(ctx context.Context, notification 
 	}
 }
 
+// sendToWebPush sends notification to Web Push if user has subscriptions
+func (uc *NotificationUseCase) sendToWebPush(ctx context.Context, notification *entities.Notification) {
+	if uc.webpushService == nil {
+		return
+	}
+
+	// Check user preferences for push notifications
+	prefs, err := uc.preferencesRepo.GetByUserID(ctx, notification.UserID)
+	if err != nil {
+		slog.Debug("Failed to get notification preferences", "user_id", notification.UserID, "error", err)
+		return
+	}
+	if prefs != nil && !prefs.PushEnabled {
+		return
+	}
+
+	// Create web push payload from notification
+	payload := entities.WebPushPayloadFromNotification(notification)
+
+	// Send notification to all user's subscribed devices
+	if err := uc.webpushService.SendToUser(ctx, notification.UserID, payload); err != nil {
+		slog.Error("Failed to send Web Push notification",
+			"user_id", notification.UserID,
+			"notification_id", notification.ID,
+			"error", err,
+		)
+	} else {
+		slog.Info("Web Push notification sent",
+			"user_id", notification.UserID,
+			"notification_id", notification.ID,
+		)
+	}
+}
+
 // CreateBulk creates notifications for multiple users
 func (uc *NotificationUseCase) CreateBulk(ctx context.Context, input *dto.CreateBulkNotificationInput) ([]*dto.NotificationOutput, error) {
 	now := time.Now()
@@ -127,9 +167,10 @@ func (uc *NotificationUseCase) CreateBulk(ctx context.Context, input *dto.Create
 		return nil, fmt.Errorf("failed to create bulk notifications: %w", err)
 	}
 
-	// Send to Telegram for each notification (async)
+	// Send to Telegram and Web Push for each notification (async)
 	for _, notification := range notifications {
 		go uc.sendToTelegram(ctx, notification)
+		go uc.sendToWebPush(ctx, notification)
 	}
 
 	return dto.ToOutputList(notifications), nil
