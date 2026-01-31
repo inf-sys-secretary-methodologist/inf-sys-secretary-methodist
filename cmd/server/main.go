@@ -1,4 +1,47 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
+//
+// @title           Inf-Sys Secretary-Methodist API
+// @version         0.3.0
+// @description     API для информационной системы академического секретаря/методиста.
+// @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
+//
+// @contact.name    API Support
+// @contact.url     https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist
+//
+// @license.name    MIT
+// @license.url     https://opensource.org/licenses/MIT
+//
+// @host            localhost:8080
+// @BasePath        /api
+// @schemes         http https
+//
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
+// @description JWT Bearer token. Format: "Bearer {token}"
+//
+// @tag.name auth
+// @tag.description Аутентификация и авторизация
+// @tag.name documents
+// @tag.description Управление документами
+// @tag.name tasks
+// @tag.description Управление задачами и проектами
+// @tag.name schedule
+// @tag.description Управление расписанием и событиями
+// @tag.name reports
+// @tag.description Отчёты и аналитика
+// @tag.name notifications
+// @tag.description Уведомления и настройки
+// @tag.name users
+// @tag.description Управление пользователями
+// @tag.name messaging
+// @tag.description Внутренний мессенджер
+// @tag.name files
+// @tag.description Загрузка и управление файлами
+// @tag.name announcements
+// @tag.description Объявления
+// @tag.name dashboard
+// @tag.description Дашборд и статистика
 package main
 
 import (
@@ -17,6 +60,10 @@ import (
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/docs/swagger"
 
 	announcementUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
 	announcementPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/infrastructure/persistence"
@@ -38,6 +85,7 @@ import (
 	integration "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration"
 	notifServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
+	notifRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 	emailDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	notifPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/infrastructure/persistence"
 	notifScheduler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/infrastructure/scheduler"
@@ -208,7 +256,23 @@ func main() {
 		logger.Warn("Telegram service not configured - COMPOSIO_API_KEY or COMPOSIO_ENTITY_ID not set", nil)
 	}
 
-	notificationUseCase := notifUsecases.NewNotificationUseCase(notificationRepo, preferencesRepo, telegramRepo, notifEmailService, telegramService)
+	// Initialize Web Push service
+	webpushRepo := notifPersistence.NewWebPushRepositoryPG(db)
+	var webpushService emailDomain.WebPushService
+	if cfg.WebPush.VAPIDPublicKey != "" && cfg.WebPush.VAPIDPrivateKey != "" {
+		webpushService = notifServices.NewWebPushService(
+			webpushRepo,
+			cfg.WebPush.VAPIDPublicKey,
+			cfg.WebPush.VAPIDPrivateKey,
+			cfg.WebPush.VAPIDSubject,
+			auditLogger,
+		)
+		logger.Info("Web Push service initialized", nil)
+	} else {
+		logger.Warn("Web Push service not configured - VAPID keys not set", nil)
+	}
+
+	notificationUseCase := notifUsecases.NewNotificationUseCase(notificationRepo, preferencesRepo, telegramRepo, notifEmailService, telegramService, webpushService)
 	preferencesUseCase := notifUsecases.NewPreferencesUseCase(preferencesRepo)
 	logger.Info("Notifications module initialized", nil)
 
@@ -398,6 +462,8 @@ func main() {
 		preferencesUseCase,
 		telegramVerificationService,
 		telegramService,
+		webpushRepo,
+		webpushService,
 		messagingUseCase,
 		messagingHub,
 		s3Client,
@@ -608,6 +674,8 @@ func setupRoutes(
 	preferencesUseCase *notifUsecases.PreferencesUseCase,
 	telegramVerificationService *notifServices.TelegramVerificationService,
 	telegramService emailDomain.TelegramService,
+	webpushRepo notifRepositories.WebPushRepository,
+	webpushService emailDomain.WebPushService,
 	messagingUseCase *messagingUsecases.MessagingUseCase,
 	messagingHub *messagingWebsocket.Hub,
 	s3Client *storage.S3Client,
@@ -659,6 +727,9 @@ func setupRoutes(
 
 	// Prometheus metrics endpoint
 	router.GET("/metrics", metrics.MetricsHandler())
+
+	// Swagger documentation endpoint
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Загрузка конфигурации rate limiting
 	rateLimitConfig := middleware.LoadRateLimitConfig()
@@ -846,6 +917,29 @@ func setupRoutes(
 					telegramGroup.OPTIONS("/disconnect", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				}
 				logger.Info("Telegram API routes registered", nil)
+			}
+
+			// Web Push routes (protected - for browser push notifications)
+			if webpushService != nil && webpushService.IsConfigured() {
+				webpushHandler := notifHttp.NewWebPushHandler(webpushRepo, webpushService)
+				pushGroup := notificationsGroup.Group("/push")
+				{
+					pushGroup.GET("/vapid-key", webpushHandler.GetVAPIDKey)
+					pushGroup.POST("/subscribe", webpushHandler.Subscribe)
+					pushGroup.POST("/unsubscribe", webpushHandler.Unsubscribe)
+					pushGroup.GET("/status", webpushHandler.GetStatus)
+					pushGroup.DELETE("/subscriptions/:id", webpushHandler.DeleteSubscription)
+					pushGroup.POST("/test", webpushHandler.TestPush)
+
+					// CORS preflight handlers
+					pushGroup.OPTIONS("/vapid-key", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					pushGroup.OPTIONS("/subscribe", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					pushGroup.OPTIONS("/unsubscribe", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					pushGroup.OPTIONS("/status", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					pushGroup.OPTIONS("/subscriptions/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					pushGroup.OPTIONS("/test", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				}
+				logger.Info("Web Push API routes registered", nil)
 			}
 		}
 

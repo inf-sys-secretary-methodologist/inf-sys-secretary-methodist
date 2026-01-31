@@ -22,6 +22,7 @@ type Config struct {
 	Composio    ComposioConfig
 	Telegram    TelegramConfig
 	Integration IntegrationConfig
+	WebPush     WebPushConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -102,6 +103,14 @@ type IntegrationConfig struct {
 	SyncCronEmployee string        // Cron expression for employee sync (e.g., "0 */6 * * *")
 	SyncCronStudent  string        // Cron expression for student sync (e.g., "0 */6 * * *")
 	BatchSize        int           // Batch size for sync operations
+}
+
+
+// WebPushConfig contains VAPID configuration for Web Push notifications
+type WebPushConfig struct {
+	VAPIDPublicKey  string
+	VAPIDPrivateKey string
+	VAPIDSubject    string // Usually mailto: or https:// URL
 }
 
 // S3Config holds S3/MinIO storage configuration
@@ -194,6 +203,11 @@ func Load() (*Config, error) {
 			SyncCronEmployee: getEnv("INTEGRATION_1C_SYNC_CRON_EMPLOYEE", "0 */6 * * *"),
 			SyncCronStudent:  getEnv("INTEGRATION_1C_SYNC_CRON_STUDENT", "0 */6 * * *"),
 			BatchSize:        getEnvAsInt("INTEGRATION_1C_BATCH_SIZE", 100),
+		},
+		WebPush: WebPushConfig{
+			VAPIDPublicKey:  getEnv("VAPID_PUBLIC_KEY", ""),
+			VAPIDPrivateKey: getEnv("VAPID_PRIVATE_KEY", ""),
+			VAPIDSubject:    getEnv("VAPID_SUBJECT", ""),
 		},
 	}
 

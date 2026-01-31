@@ -50,7 +50,8 @@ temp/
 
 # Documentation
 README.md
-docs/
+docs/*
+!docs/swagger/
 *.md
 
 # CI/CD

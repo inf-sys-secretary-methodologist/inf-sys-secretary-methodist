@@ -15,6 +15,7 @@ RUN go mod download && go mod verify
 # Копируем только необходимый код
 COPY cmd/ ./cmd/
 COPY internal/ ./internal/
+COPY docs/swagger/ ./docs/swagger/
 
 # Собираем статический бинарник с оптимизациями
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
