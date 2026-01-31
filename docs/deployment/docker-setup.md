@@ -14,7 +14,7 @@
 - **minio** - S3-совместимое хранилище файлов
 - **backup** - Сервис резервного копирования (PostgreSQL + MinIO)
 
-Дополнительно доступен **мониторинг стек** (Prometheus, Grafana, Loki, Promtail).
+Дополнительно доступен **мониторинг стек** (Prometheus, Grafana, Loki, Promtail, Uptime Kuma).
 
 ---
 
@@ -283,6 +283,24 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 - **Grafana**: http://localhost:3001 (admin/admin)
 - **Prometheus**: http://localhost:9090
 - **Loki**: http://localhost:3100
+- **Uptime Kuma**: http://localhost:3002
+
+### Grafana Alerting:
+Настроены алерты с уведомлениями в Telegram:
+- High CPU Usage (> 80%)
+- High Memory Usage (> 85%)
+- High Disk Usage (> 85%)
+- High API Error Rate (5xx > 1%)
+- High API Latency (p95 > 2s)
+- Backup Failed / Stale
+
+Для настройки добавьте в `.env`:
+```bash
+TELEGRAM_BOT_TOKEN=your-bot-token
+TELEGRAM_CHAT_ID=your-chat-id
+```
+
+Подробнее: [grafana-alerting.md](../grafana-alerting.md)
 
 ---
 
@@ -556,6 +574,6 @@ services:
 
 ---
 
-**Последнее обновление**: 2025-12-20
+**Последнее обновление**: 2026-01-30
 **Версия проекта**: 0.3.0
 **Статус**: Актуальный

@@ -287,6 +287,7 @@ internal/modules/<module>/
 | `backend` | Custom | 8080 | Go API |
 | `frontend` | Custom | 3000 | Next.js |
 | `backup` | Custom | — | Бэкап-сервис |
+| `uptime-kuma` | louislam/uptime-kuma:2 | 3002 | Status page |
 
 ### Система резервного копирования
 
@@ -335,14 +336,25 @@ internal/modules/<module>/
 | **Уровни** | debug, info, warn, error |
 | **Labels** | service=backend, logging=promtail |
 
-### Опциональный стек мониторинга
+### Стек мониторинга
 
-| Компонент | Назначение |
-|-----------|------------|
-| Prometheus | Сбор метрик |
-| Grafana | Дашборды |
-| Promtail | Сбор логов |
-| Loki | Хранение логов |
+| Компонент | Порт | Назначение |
+|-----------|------|------------|
+| Prometheus | 9090 | Сбор метрик |
+| Grafana | 3001 | Дашборды и алерты |
+| Loki | 3100 | Хранение логов |
+| Promtail | — | Сбор логов |
+| Uptime Kuma | 3002 | Status page и uptime мониторинг |
+
+### Grafana Alerting
+
+Настроенные алерты с Telegram уведомлениями:
+- High CPU Usage (> 80%, 5 мин)
+- High Memory Usage (> 85%, 5 мин)
+- High Disk Usage (> 85%, 5 мин)
+- High API Error Rate (5xx > 1%, 5 мин)
+- High API Latency (p95 > 2s, 5 мин)
+- Backup Failed / Stale (> 24h)
 
 ---
 
@@ -563,6 +575,7 @@ S3_MAX_FILE_SIZE=104857600
 # Telegram Bot
 TELEGRAM_BOT_TOKEN=<bot_token>
 TELEGRAM_BOT_USERNAME=<bot_username>
+TELEGRAM_CHAT_ID=<chat_id>  # Для Grafana алертов
 
 # 1C Integration
 INTEGRATION_1C_ENABLED=false

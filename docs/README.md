@@ -42,7 +42,9 @@ docs/
 ├── 🔒 security/              # Рекомендации по безопасности
 │   └── security-guidelines.md
 ├── LOGGING_AND_PERFORMANCE.md # Логирование и оптимизация
-└── project-overview.md       # Бизнес-требования
+├── project-overview.md       # Бизнес-требования
+├── uptime-kuma.md            # Status page и мониторинг uptime
+└── grafana-alerting.md       # Алерты с Telegram уведомлениями
 ```
 
 ## 🚀 Быстрая навигация
@@ -73,19 +75,36 @@ docs/
 
 ### Мониторинг стек
 
-Проект включает полный стек мониторинга (запускается через `compose.monitoring.yml`):
+Проект включает полный стек мониторинга (запускается через `compose.monitoring.yml` или `--profile monitoring`):
 
 | Сервис | Порт | Назначение |
 |--------|------|------------|
 | Prometheus | 9090 | Сбор метрик |
-| Grafana | 3001 | Визуализация (admin/admin) |
+| Grafana | 3001 | Визуализация и алерты (admin/admin) |
 | Loki | 3100 | Агрегация логов |
 | Promtail | - | Сбор логов из контейнеров |
+| Uptime Kuma | 3002 | Status page и мониторинг uptime |
 
 **Запуск с мониторингом:**
 ```bash
-docker compose -f compose.yml -f compose.monitoring.yml up -d
+# Полный стек мониторинга
+docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up -d
 ```
+
+**Документация:**
+- [Uptime Kuma](uptime-kuma.md) - Настройка status page
+- [Grafana Alerting](grafana-alerting.md) - Алерты с Telegram уведомлениями
+
+**Настроенные алерты Grafana:**
+| Алерт | Условие | Severity |
+|-------|---------|----------|
+| High CPU Usage | CPU > 80% (5 мин) | warning |
+| High Memory Usage | RAM > 85% (5 мин) | warning |
+| High Disk Usage | Disk > 85% (5 мин) | warning |
+| High API Error Rate | 5xx > 1% (5 мин) | critical |
+| High API Latency | p95 > 2s (5 мин) | warning |
+| Backup Failed | success = 0 | critical |
+| Backup Stale | age > 24h | warning |
 
 **Health endpoints:**
 - `/health` - Полный health check (DB + Redis)
@@ -236,7 +255,7 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-12-22
+**Последнее обновление**: 2026-01-30
 **Версия проекта**: 0.3.0
 **Статус**: Актуальный
 
