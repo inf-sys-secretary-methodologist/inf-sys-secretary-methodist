@@ -8,7 +8,7 @@ import { UserRole } from '@/types/auth'
 import { AppLayout } from '@/components/layout'
 import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import { Button } from '@/components/ui/button'
-import { Upload, FileText, Users } from 'lucide-react'
+import { Upload, FileText, Users, LayoutTemplate } from 'lucide-react'
 import Link from 'next/link'
 import { DocumentUploadComponent } from '@/components/documents/DocumentUpload'
 import { DocumentList } from '@/components/documents/DocumentList'
@@ -421,6 +421,12 @@ export default function DocumentsPage() {
 
         {/* Action Buttons */}
         <div className="flex justify-end gap-2">
+          <Link href="/documents/templates">
+            <Button variant="outline" className="flex items-center gap-2">
+              <LayoutTemplate className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('templates')}</span>
+            </Button>
+          </Link>
           <Link href="/documents/shared">
             <Button variant="outline" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
