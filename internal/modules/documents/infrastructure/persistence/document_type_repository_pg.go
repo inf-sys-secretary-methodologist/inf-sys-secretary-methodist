@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
@@ -22,8 +23,9 @@ func NewDocumentTypeRepositoryPG(db *sql.DB) *DocumentTypeRepositoryPG {
 // GetAll retrieves all document types
 func (r *DocumentTypeRepositoryPG) GetAll(ctx context.Context) ([]*entities.DocumentType, error) {
 	query := `
-		SELECT id, name, code, description, template_path, requires_approval,
-			requires_registration, numbering_pattern, retention_period, created_at, updated_at
+		SELECT id, name, code, description, template_path, template_content, template_variables,
+			requires_approval, requires_registration, numbering_pattern, retention_period,
+			created_at, updated_at
 		FROM document_types ORDER BY name`
 
 	rows, err := r.db.QueryContext(ctx, query)
@@ -35,13 +37,20 @@ func (r *DocumentTypeRepositoryPG) GetAll(ctx context.Context) ([]*entities.Docu
 	var types []*entities.DocumentType
 	for rows.Next() {
 		t := &entities.DocumentType{}
+		var templateVariablesJSON []byte
 		err := rows.Scan(
 			&t.ID, &t.Name, &t.Code, &t.Description, &t.TemplatePath,
+			&t.TemplateContent, &templateVariablesJSON,
 			&t.RequiresApproval, &t.RequiresRegistration, &t.NumberingPattern,
 			&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan document type: %w", err)
+		}
+		if len(templateVariablesJSON) > 0 {
+			if err := json.Unmarshal(templateVariablesJSON, &t.TemplateVariables); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal template variables: %w", err)
+			}
 		}
 		types = append(types, t)
 	}
@@ -51,13 +60,16 @@ func (r *DocumentTypeRepositoryPG) GetAll(ctx context.Context) ([]*entities.Docu
 // GetByID retrieves a document type by ID
 func (r *DocumentTypeRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.DocumentType, error) {
 	query := `
-		SELECT id, name, code, description, template_path, requires_approval,
-			requires_registration, numbering_pattern, retention_period, created_at, updated_at
+		SELECT id, name, code, description, template_path, template_content, template_variables,
+			requires_approval, requires_registration, numbering_pattern, retention_period,
+			created_at, updated_at
 		FROM document_types WHERE id = $1`
 
 	t := &entities.DocumentType{}
+	var templateVariablesJSON []byte
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&t.ID, &t.Name, &t.Code, &t.Description, &t.TemplatePath,
+		&t.TemplateContent, &templateVariablesJSON,
 		&t.RequiresApproval, &t.RequiresRegistration, &t.NumberingPattern,
 		&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt,
 	)
@@ -66,6 +78,11 @@ func (r *DocumentTypeRepositoryPG) GetByID(ctx context.Context, id int64) (*enti
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document type: %w", err)
+	}
+	if len(templateVariablesJSON) > 0 {
+		if err := json.Unmarshal(templateVariablesJSON, &t.TemplateVariables); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal template variables: %w", err)
+		}
 	}
 	return t, nil
 }
@@ -73,13 +90,16 @@ func (r *DocumentTypeRepositoryPG) GetByID(ctx context.Context, id int64) (*enti
 // GetByCode retrieves a document type by code
 func (r *DocumentTypeRepositoryPG) GetByCode(ctx context.Context, code string) (*entities.DocumentType, error) {
 	query := `
-		SELECT id, name, code, description, template_path, requires_approval,
-			requires_registration, numbering_pattern, retention_period, created_at, updated_at
+		SELECT id, name, code, description, template_path, template_content, template_variables,
+			requires_approval, requires_registration, numbering_pattern, retention_period,
+			created_at, updated_at
 		FROM document_types WHERE code = $1`
 
 	t := &entities.DocumentType{}
+	var templateVariablesJSON []byte
 	err := r.db.QueryRowContext(ctx, query, code).Scan(
 		&t.ID, &t.Name, &t.Code, &t.Description, &t.TemplatePath,
+		&t.TemplateContent, &templateVariablesJSON,
 		&t.RequiresApproval, &t.RequiresRegistration, &t.NumberingPattern,
 		&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt,
 	)
@@ -89,7 +109,115 @@ func (r *DocumentTypeRepositoryPG) GetByCode(ctx context.Context, code string) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document type: %w", err)
 	}
+	if len(templateVariablesJSON) > 0 {
+		if err := json.Unmarshal(templateVariablesJSON, &t.TemplateVariables); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal template variables: %w", err)
+		}
+	}
 	return t, nil
+}
+
+// UpdateTemplate updates a document type's template content and variables
+func (r *DocumentTypeRepositoryPG) UpdateTemplate(ctx context.Context, id int64, content *string, variables []entities.TemplateVariable) error {
+	var variablesJSON []byte
+	var err error
+	if variables != nil {
+		variablesJSON, err = json.Marshal(variables)
+		if err != nil {
+			return fmt.Errorf("failed to marshal template variables: %w", err)
+		}
+	}
+
+	query := `
+		UPDATE document_types
+		SET template_content = $1, template_variables = $2, updated_at = NOW()
+		WHERE id = $3`
+
+	result, err := r.db.ExecContext(ctx, query, content, variablesJSON, id)
+	if err != nil {
+		return fmt.Errorf("failed to update template: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("document type not found")
+	}
+	return nil
+}
+
+// TemplateRepositoryAdapter adapts DocumentTypeRepositoryPG for TemplateRepository interface
+type TemplateRepositoryAdapter struct {
+	repo *DocumentTypeRepositoryPG
+}
+
+// NewTemplateRepositoryAdapter creates a new TemplateRepositoryAdapter
+func NewTemplateRepositoryAdapter(repo *DocumentTypeRepositoryPG) *TemplateRepositoryAdapter {
+	return &TemplateRepositoryAdapter{repo: repo}
+}
+
+// GetAll returns all document types (adapts for TemplateRepository interface)
+func (a *TemplateRepositoryAdapter) GetAll(ctx context.Context) ([]entities.DocumentType, error) {
+	types, err := a.repo.GetAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]entities.DocumentType, len(types))
+	for i, t := range types {
+		result[i] = *t
+	}
+	return result, nil
+}
+
+// GetByID returns a document type by ID (adapts for TemplateRepository interface)
+func (a *TemplateRepositoryAdapter) GetByID(ctx context.Context, id int64) (*entities.DocumentType, error) {
+	return a.repo.GetByID(ctx, id)
+}
+
+// UpdateTemplate updates a document type's template
+func (a *TemplateRepositoryAdapter) UpdateTemplate(ctx context.Context, id int64, content *string, variables []entities.TemplateVariable) error {
+	return a.repo.UpdateTemplate(ctx, id, content, variables)
+}
+
+// GetAllWithTemplates retrieves all document types that have templates
+func (r *DocumentTypeRepositoryPG) GetAllWithTemplates(ctx context.Context) ([]entities.DocumentType, error) {
+	query := `
+		SELECT id, name, code, description, template_path, template_content, template_variables,
+			requires_approval, requires_registration, numbering_pattern, retention_period,
+			created_at, updated_at
+		FROM document_types
+		WHERE template_content IS NOT NULL AND template_content != ''
+		ORDER BY name`
+
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get document types with templates: %w", err)
+	}
+	defer rows.Close()
+
+	var types []entities.DocumentType
+	for rows.Next() {
+		t := entities.DocumentType{}
+		var templateVariablesJSON []byte
+		err := rows.Scan(
+			&t.ID, &t.Name, &t.Code, &t.Description, &t.TemplatePath,
+			&t.TemplateContent, &templateVariablesJSON,
+			&t.RequiresApproval, &t.RequiresRegistration, &t.NumberingPattern,
+			&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan document type: %w", err)
+		}
+		if len(templateVariablesJSON) > 0 {
+			if err := json.Unmarshal(templateVariablesJSON, &t.TemplateVariables); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal template variables: %w", err)
+			}
+		}
+		types = append(types, t)
+	}
+	return types, nil
 }
 
 // DocumentCategoryRepositoryPG implements DocumentCategoryRepository using PostgreSQL
