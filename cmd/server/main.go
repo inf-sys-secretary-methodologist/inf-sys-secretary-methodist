@@ -76,6 +76,9 @@ import (
 	dashboardUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/application/usecases"
 	dashboardPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/infrastructure/persistence"
 	dashboardHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/interfaces/http/handlers"
+	analyticsUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/usecases"
+	analyticsPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/infrastructure/persistence"
+	analyticsHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/interfaces/http/handlers"
 	docUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	docPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/infrastructure/persistence"
 	docHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
@@ -118,6 +121,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/telegram"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/tracing"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
@@ -162,6 +166,36 @@ func main() {
 		"environment": cfg.Environment,
 		"version":     cfg.Version,
 	})
+
+	// Initialize OpenTelemetry tracing if enabled
+	var tracer *tracing.Tracer
+	if cfg.Tracing.Enabled {
+		tracerCfg := tracing.TracerConfig{
+			ServiceName:  cfg.Tracing.ServiceName,
+			Version:      cfg.Version,
+			Environment:  cfg.Environment,
+			OTLPEndpoint: cfg.Tracing.OTLPEndpoint,
+			SamplingRate: cfg.Tracing.SamplingRate,
+		}
+		tracer, err = tracing.InitTracer(context.Background(), tracerCfg)
+		if err != nil {
+			logger.Warn("Failed to initialize tracing, running without distributed tracing", map[string]interface{}{
+				"error": err.Error(),
+			})
+		} else {
+			defer func() {
+				if err := tracer.Shutdown(context.Background()); err != nil {
+					logger.Error("Failed to shutdown tracer", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}()
+			logger.Info("Distributed tracing initialized", map[string]interface{}{
+				"endpoint":      cfg.Tracing.OTLPEndpoint,
+				"sampling_rate": cfg.Tracing.SamplingRate,
+			})
+		}
+	}
 
 	// Initialize database
 	db, err := initDatabase(cfg, logger)
@@ -292,6 +326,7 @@ func main() {
 	var sharingUseCase *docUsecases.SharingUseCase
 	var docVersionUseCase *docUsecases.DocumentVersionUseCase
 	var tagUseCase *docUsecases.TagUseCase
+	var templateUseCase *docUsecases.TemplateUseCase
 	if s3Client != nil {
 		docRepo := docPersistence.NewDocumentRepositoryPG(db)
 		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
@@ -303,6 +338,8 @@ func main() {
 		sharingUseCase = docUsecases.NewSharingUseCase(docRepo, permissionRepo, publicLinkRepo, auditLogger, cfg.Server.BaseURL, notificationUseCase)
 		docVersionUseCase = docUsecases.NewDocumentVersionUseCase(docRepo, s3Client, auditLogger)
 		tagUseCase = docUsecases.NewTagUseCase(docTagRepo, docRepo, auditLogger)
+		templateRepo := docPersistence.NewTemplateRepositoryAdapter(docTypeRepo)
+		templateUseCase = docUsecases.NewTemplateUseCase(templateRepo, docRepo, auditLogger)
 		logger.Info("Documents module initialized", nil)
 	} else {
 		logger.Warn("Documents module not initialized - S3 storage not available", nil)
@@ -368,6 +405,13 @@ func main() {
 	dashboardRepo := dashboardPersistence.NewDashboardRepositoryPG(db)
 	dashboardUseCase := dashboardUsecases.NewDashboardUseCase(dashboardRepo)
 	logger.Info("Dashboard module initialized", nil)
+
+	// Initialize analytics module (predictive analytics for student risk assessment)
+	analyticsRepo := analyticsPersistence.NewAnalyticsRepositoryPG(db)
+	attendanceRepo := analyticsPersistence.NewAttendanceRepositoryPG(db)
+	gradeRepo := analyticsPersistence.NewGradeRepositoryPG(db)
+	analyticsUseCase := analyticsUsecases.NewAnalyticsUseCase(analyticsRepo, attendanceRepo, gradeRepo, auditLogger)
+	logger.Info("Analytics module initialized", nil)
 
 	// Initialize users module
 	departmentRepo := usersPersistence.NewDepartmentRepositoryPG(db)
@@ -446,6 +490,7 @@ func main() {
 		sharingUseCase,
 		docVersionUseCase,
 		tagUseCase,
+		templateUseCase,
 		reportUseCase,
 		customReportUseCase,
 		taskUseCase,
@@ -453,6 +498,7 @@ func main() {
 		eventUseCase,
 		announcementUseCase,
 		dashboardUseCase,
+		analyticsUseCase,
 		userUseCase,
 		departmentUseCase,
 		positionUseCase,
@@ -606,7 +652,8 @@ func initDatabase(cfg *config.Config, _ *logging.Logger) (*sql.DB, error) {
 
 func initRedisCache(cfg *config.Config, _ *logging.Logger) (*cache.RedisCache, error) {
 	redisAddr := fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port)
-	redisCache, err := cache.NewRedisCache(redisAddr, cfg.Redis.Password, cfg.Redis.DB)
+	// Enable Redis tracing if distributed tracing is enabled
+	redisCache, err := cache.NewRedisCacheWithTracing(redisAddr, cfg.Redis.Password, cfg.Redis.DB, cfg.Tracing.Enabled)
 	if err != nil {
 		return nil, err
 	}
@@ -658,6 +705,7 @@ func setupRoutes(
 	sharingUseCase *docUsecases.SharingUseCase,
 	docVersionUseCase *docUsecases.DocumentVersionUseCase,
 	tagUseCase *docUsecases.TagUseCase,
+	templateUseCase *docUsecases.TemplateUseCase,
 	reportUseCase *reportUsecases.ReportUseCase,
 	customReportUseCase *reportUsecases.CustomReportUseCase,
 	taskUseCase *taskUsecases.TaskUseCase,
@@ -665,6 +713,7 @@ func setupRoutes(
 	eventUseCase *scheduleUsecases.EventUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
 	dashboardUseCase *dashboardUsecases.DashboardUseCase,
+	analyticsUseCase *analyticsUsecases.AnalyticsUseCase,
 	userUseCase *usersUsecases.UserUseCase,
 	departmentUseCase *usersUsecases.DepartmentUseCase,
 	positionUseCase *usersUsecases.PositionUseCase,
@@ -705,6 +754,10 @@ func setupRoutes(
 	}
 	router.Use(corsMiddleware.Handler())         // CORS должен быть первым для обработки OPTIONS
 	router.Use(middleware.RequestIDMiddleware()) // Request ID для трейсинга
+	// OpenTelemetry tracing middleware (if enabled)
+	if cfg.Tracing.Enabled {
+		router.Use(middleware.TracingMiddleware(cfg.Tracing.ServiceName))
+	}
 	router.Use(middleware.RequestContextMiddleware())
 	router.Use(authMiddleware.SecurityHeadersMiddleware())
 	router.Use(metrics.PrometheusMiddleware()) // Prometheus метрики
@@ -1088,6 +1141,27 @@ func setupRoutes(
 			protectedGroup.OPTIONS("/document-types", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			protectedGroup.OPTIONS("/document-categories", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 
+			// Document templates routes
+			if templateUseCase != nil {
+				templateHandlerInstance := docHandler.NewTemplateHandler(templateUseCase, validator)
+
+				templatesGroup := protectedGroup.Group("/templates")
+				{
+					templatesGroup.GET("", templateHandlerInstance.GetTemplates)
+					templatesGroup.GET("/:id", templateHandlerInstance.GetTemplate)
+					templatesGroup.POST("/:id/preview", templateHandlerInstance.PreviewTemplate)
+					templatesGroup.POST("/:id/create", templateHandlerInstance.CreateDocumentFromTemplate)
+					templatesGroup.PUT("/:id", templateHandlerInstance.UpdateTemplate)
+
+					// CORS preflight handlers
+					templatesGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					templatesGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					templatesGroup.OPTIONS("/:id/preview", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					templatesGroup.OPTIONS("/:id/create", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				}
+				logger.Info("Document templates routes registered", nil)
+			}
+
 			logger.Info("Documents module routes registered", nil)
 		} else {
 			logger.Warn("Documents module routes not registered - S3 storage not available", nil)
@@ -1371,6 +1445,48 @@ func setupRoutes(
 			}
 
 			logger.Info("Dashboard module routes registered", nil)
+		}
+
+		// Analytics module routes (predictive analytics for students)
+		if analyticsUseCase != nil {
+			analyticsHandlerInstance := analyticsHandler.NewAnalyticsHandler(analyticsUseCase)
+			attendanceHandlerInstance := analyticsHandler.NewAttendanceHandler(analyticsUseCase)
+
+			// Analytics routes
+			analyticsGroup := protectedGroup.Group("/analytics")
+			{
+				analyticsGroup.GET("/at-risk-students", analyticsHandlerInstance.GetAtRiskStudents)
+				analyticsGroup.GET("/students/:id/risk", analyticsHandlerInstance.GetStudentRisk)
+				analyticsGroup.GET("/groups/summary", analyticsHandlerInstance.GetAllGroupsSummary)
+				analyticsGroup.GET("/groups/:name/summary", analyticsHandlerInstance.GetGroupSummary)
+				analyticsGroup.GET("/risk-level/:level", analyticsHandlerInstance.GetStudentsByRiskLevel)
+				analyticsGroup.GET("/attendance-trend", analyticsHandlerInstance.GetAttendanceTrend)
+
+				// CORS preflight handlers
+				analyticsGroup.OPTIONS("/at-risk-students", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				analyticsGroup.OPTIONS("/students/:id/risk", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				analyticsGroup.OPTIONS("/groups/summary", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				analyticsGroup.OPTIONS("/groups/:name/summary", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				analyticsGroup.OPTIONS("/risk-level/:level", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				analyticsGroup.OPTIONS("/attendance-trend", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			// Attendance routes
+			attendanceGroup := protectedGroup.Group("/attendance")
+			{
+				attendanceGroup.POST("/mark", attendanceHandlerInstance.MarkAttendance)
+				attendanceGroup.POST("/bulk", attendanceHandlerInstance.BulkMarkAttendance)
+				attendanceGroup.GET("/lesson/:id/date/:date", attendanceHandlerInstance.GetLessonAttendance)
+				attendanceGroup.POST("/lessons", attendanceHandlerInstance.CreateLesson)
+
+				// CORS preflight handlers
+				attendanceGroup.OPTIONS("/mark", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				attendanceGroup.OPTIONS("/bulk", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				attendanceGroup.OPTIONS("/lesson/:id/date/:date", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				attendanceGroup.OPTIONS("/lessons", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			logger.Info("Analytics module routes registered", nil)
 		}
 
 		// Users module routes (system admin only for management)
