@@ -4,8 +4,8 @@
 
 **Информационная система для секретаря-методиста** — система управления образовательным учреждением, включающая документооборот, отчётность, расписание, уведомления и внутренний мессенджер.
 
-**Версия проекта:** 0.3.0
-**Последнее обновление:** Январь 2026
+**Версия проекта:** 0.3.2
+**Последнее обновление:** Февраль 2026
 
 ---
 
@@ -94,6 +94,16 @@ internal/modules/<module>/
 | **Планировщик** | gocron | v2.19.0 | Cron-задачи (напоминания, синхронизация) |
 | **Cron** | robfig/cron | v3.0.1 | Парсинг cron-выражений |
 | **Prometheus** | client_golang | 1.23.2 | Экспорт метрик |
+
+### Distributed Tracing (OpenTelemetry)
+
+| Компонент | Технология | Версия | Назначение |
+|-----------|------------|--------|------------|
+| **OTEL SDK** | go.opentelemetry.io/otel | 1.28+ | Core OpenTelemetry SDK |
+| **OTEL Trace** | go.opentelemetry.io/otel/sdk/trace | 1.28+ | Трассировка |
+| **OTLP Exporter** | otlptrace/otlptracegrpc | 1.28+ | Экспорт в Collector |
+| **Gin Instrumentation** | otelgin | 0.54+ | Автоматический трейсинг HTTP |
+| **Redis Hooks** | otelredis | - | Трейсинг Redis операций |
 
 ### Генерация документов
 
@@ -197,8 +207,8 @@ internal/modules/<module>/
 | **Версия** | PostgreSQL 17 Alpine |
 | **Кодировка** | UTF-8 |
 | **Коллация** | ru_RU.UTF-8 |
-| **Количество миграций** | 18 |
-| **Количество таблиц** | ~35 |
+| **Количество миграций** | 22 |
+| **Количество таблиц** | ~40 |
 
 ### Конфигурация подключения
 
@@ -344,6 +354,8 @@ internal/modules/<module>/
 | Grafana | 3001 | Дашборды и алерты |
 | Loki | 3100 | Хранение логов |
 | Promtail | — | Сбор логов |
+| **Tempo** | 3200 | Distributed tracing |
+| **OTEL Collector** | 4317/4318 | Сбор и экспорт трейсов |
 | Uptime Kuma | 3002 | Status page и uptime мониторинг |
 
 ### Grafana Alerting
@@ -499,6 +511,21 @@ npm run test:e2e       # E2E Playwright
 |---------|----------|
 | `integration_sync_logs` | Логи синхронизации с 1С |
 | `integration_conflicts` | Конфликты синхронизации |
+
+#### Модуль Analytics (Аналитика)
+
+| Таблица | Описание |
+|---------|----------|
+| `attendance_records` | Записи посещаемости |
+| `grades` | Оценки студентов |
+| `v_student_risk_score` | SQL View: риск-скоры студентов |
+
+#### Расширения Documents (Шаблоны)
+
+| Поле в document_types | Описание |
+|---------|----------|
+| `template_content` | Содержимое шаблона с переменными |
+| `template_variables` | JSONB: описание переменных шаблона |
 
 #### Модуль Messaging (Мессенджер)
 

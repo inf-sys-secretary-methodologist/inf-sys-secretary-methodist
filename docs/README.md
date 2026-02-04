@@ -83,6 +83,8 @@ docs/
 | Grafana | 3001 | Визуализация и алерты (admin/admin) |
 | Loki | 3100 | Агрегация логов |
 | Promtail | - | Сбор логов из контейнеров |
+| **Tempo** | 3200 | Distributed tracing (OpenTelemetry) |
+| **OTEL Collector** | 4317 | Сбор и экспорт трейсов |
 | Uptime Kuma | 3002 | Status page и мониторинг uptime |
 
 **Запуск с мониторингом:**
@@ -94,6 +96,22 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
 **Документация:**
 - [Uptime Kuma](uptime-kuma.md) - Настройка status page
 - [Grafana Alerting](grafana-alerting.md) - Алерты с Telegram уведомлениями
+
+### Distributed Tracing (OpenTelemetry + Tempo)
+
+Система поддерживает распределённую трассировку запросов через все компоненты:
+
+| Компонент | Назначение |
+|-----------|------------|
+| **OpenTelemetry SDK** | Инструментирование Go-кода |
+| **OTEL Collector** | Сбор и экспорт трейсов |
+| **Grafana Tempo** | Хранение и поиск трейсов |
+| **Grafana Explore** | Визуализация трейсов |
+
+**Корреляция данных:**
+- Traces → Logs (по trace_id)
+- Traces → Metrics (по tags)
+- Service Map в Grafana
 
 **Настроенные алерты Grafana:**
 | Алерт | Условие | Severity |
@@ -255,7 +273,7 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2026-01-30
-**Версия проекта**: 0.3.0
+**Последнее обновление**: 2026-02-04
+**Версия проекта**: 0.3.2
 **Статус**: Актуальный
 

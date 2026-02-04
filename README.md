@@ -8,8 +8,10 @@
 ## 🎯 Основные возможности
 
 * **Управление документами**: Полный жизненный цикл от создания до архивирования
+* **Шаблоны документов**: Быстрое создание типовых документов с переменными
 * **Автоматизация рабочих процессов**: Процессы согласования с маршрутизацией по ролям
 * **Управление расписанием**: Академическое планирование и оптимизация ресурсов
+* **Предиктивная аналитика**: Раннее выявление студентов в зоне риска
 * **Отчетность и аналитика**: Комплексная бизнес-аналитика
 * **Внутренние сообщения**: Real-time чаты, прямые и групповые сообщения через WebSocket
 * **Мультиканальные уведомления**: Email (Composio Gmail) и Telegram Bot интеграция
@@ -139,6 +141,7 @@ docker-compose up -d
 
 - **Оркестрация**: Kubernetes (GKE/AKS)
 - **Мониторинг**: Prometheus + Grafana + Loki + Uptime Kuma
+- **Distributed Tracing**: OpenTelemetry SDK + OTEL Collector + Grafana Tempo
 - **Алерты**: Grafana Alerting → Telegram (CPU, RAM, Disk, API errors, Backup)
 - **Логирование**: Loki + Promtail (агрегация логов из контейнеров)
 - **CI/CD**: GitHub Actions (Backend CI, Security, Database, PR Validation, Dependabot)
@@ -178,7 +181,7 @@ docker-compose up -d
 
 ---
 
-**Стек технологий (обновлено 2026-01-30)**:
+**Стек технологий (обновлено 2026-02-04)**:
 - Backend: Go 1.25 • PostgreSQL 17 • Redis 7 • Gin • DDD • Clean Architecture
 - Frontend: Next.js 15 • React 19 • TypeScript 5.7 • MUI 6 • Zustand 5
 - DevOps: Docker • Kubernetes • GitHub Actions • Prometheus • Grafana

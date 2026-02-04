@@ -1436,6 +1436,232 @@ X-RateLimit-Reset: 1732878000
 
 ---
 
+## Templates API
+
+### Base URL: `/api/templates`
+
+Модуль шаблонов документов для быстрого создания типовых документов с переменными.
+
+### GET `/api/templates`
+Получение списка доступных шаблонов.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Служебная записка",
+      "code": "memo",
+      "template_content": "СЛУЖЕБНАЯ ЗАПИСКА\n\nКому: {{recipient}}\nОт: {{author}}\n\n{{content}}",
+      "template_variables": [
+        {"name": "recipient", "label": "Получатель", "type": "string", "required": true},
+        {"name": "author", "label": "Автор", "type": "string", "required": true},
+        {"name": "content", "label": "Содержание", "type": "text", "required": true}
+      ]
+    }
+  ]
+}
+```
+
+### GET `/api/templates/:id`
+Получение шаблона по ID.
+
+### POST `/api/templates/:id/preview`
+Предпросмотр документа с заполненными переменными.
+
+**Request:**
+```json
+{
+  "variables": {
+    "recipient": "Иванов И.И.",
+    "author": "Петров П.П.",
+    "content": "Текст служебной записки"
+  }
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "preview": "СЛУЖЕБНАЯ ЗАПИСКА\n\nКому: Иванов И.И.\nОт: Петров П.П.\n\nТекст служебной записки"
+  }
+}
+```
+
+### POST `/api/templates/:id/create`
+Создание документа из шаблона.
+
+**Request:**
+```json
+{
+  "title": "Служебная записка от 01.02.2026",
+  "variables": {
+    "recipient": "Иванов И.И.",
+    "author": "Петров П.П.",
+    "content": "Текст служебной записки"
+  }
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 42,
+    "title": "Служебная записка от 01.02.2026",
+    "content": "СЛУЖЕБНАЯ ЗАПИСКА\n\nКому: Иванов И.И.\nОт: Петров П.П.\n\nТекст служебной записки",
+    "document_type_id": 1,
+    "created_at": "2026-02-01T10:00:00Z"
+  }
+}
+```
+
+---
+
+## Analytics API (Predictive Analytics)
+
+### Base URL: `/api/analytics`
+
+Модуль предиктивной аналитики для раннего выявления проблемных студентов на основе посещаемости и оценок.
+
+### GET `/api/analytics/at-risk-students`
+Получение списка студентов в зоне риска.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `risk_level` | string | Фильтр: critical, high, medium, low |
+| `group_name` | string | Фильтр по группе |
+| `limit` | int | Лимит (default: 50) |
+| `offset` | int | Смещение |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "students": [
+      {
+        "student_id": 123,
+        "student_name": "Иванов Иван",
+        "group_name": "ИТ-21",
+        "attendance_rate": 58.5,
+        "grade_average": 45.2,
+        "risk_level": "critical",
+        "risk_factors": ["low_attendance", "low_grades"]
+      }
+    ],
+    "total": 15,
+    "by_risk_level": {
+      "critical": 3,
+      "high": 5,
+      "medium": 7,
+      "low": 0
+    }
+  }
+}
+```
+
+### GET `/api/analytics/students/:id/risk`
+Получение детального риск-профиля конкретного студента.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "student_id": 123,
+    "student_name": "Иванов Иван",
+    "group_name": "ИТ-21",
+    "attendance_rate": 58.5,
+    "grade_average": 45.2,
+    "risk_level": "critical",
+    "attendance_trend": "declining",
+    "grade_trend": "stable",
+    "last_attendance": "2026-01-28",
+    "recommendations": [
+      "Связаться с куратором группы",
+      "Назначить индивидуальную консультацию"
+    ]
+  }
+}
+```
+
+### GET `/api/analytics/groups/:name/summary`
+Сводка по группе.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "group_name": "ИТ-21",
+    "total_students": 25,
+    "average_attendance": 78.5,
+    "average_grade": 72.3,
+    "at_risk_count": 3,
+    "risk_distribution": {
+      "critical": 1,
+      "high": 2,
+      "medium": 5,
+      "low": 17
+    }
+  }
+}
+```
+
+### GET `/api/analytics/my-students-at-risk`
+Студенты в зоне риска для текущего куратора.
+
+---
+
+## Attendance API
+
+### Base URL: `/api/attendance`
+
+Модуль учёта посещаемости студентов.
+
+### POST `/api/attendance/mark`
+Отметить посещаемость студента.
+
+**Request:**
+```json
+{
+  "student_id": 123,
+  "lesson_id": 45,
+  "lesson_date": "2026-02-01",
+  "status": "present"
+}
+```
+
+**Статусы:** `present`, `absent`, `late`, `excused`
+
+### GET `/api/attendance/lesson/:id/date/:date`
+Посещаемость на конкретном занятии.
+
+### POST `/api/attendance/bulk`
+Массовая отметка посещаемости.
+
+**Request:**
+```json
+{
+  "lesson_id": 45,
+  "lesson_date": "2026-02-01",
+  "records": [
+    {"student_id": 123, "status": "present"},
+    {"student_id": 124, "status": "absent"},
+    {"student_id": 125, "status": "late"}
+  ]
+}
+```
+
+---
+
 ## CORS
 
 Настроен через переменные окружения:
@@ -1484,6 +1710,8 @@ curl -X POST http://localhost:8080/api/documents/1/file \
 
 ---
 
-**Последнее обновление**: 2025-12-23
-**Версия проекта**: 0.3.1
+**Последнее обновление**: 2026-02-04
+**Версия проекта**: 0.3.2
 **Статус**: Актуальный
+**Task #3**: Добавлен Templates API
+**Task #21**: Добавлен Analytics API (Predictive Analytics)
