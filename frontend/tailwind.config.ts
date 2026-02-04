@@ -78,8 +78,21 @@ const config: Config = {
       keyframes: {
         // Анимации для Magic UI компонентов
         shimmer: {
-          '0%, 100%': { transform: 'translateX(-100%)' },
-          '50%': { transform: 'translateX(100%)' },
+          '0%': { backgroundPosition: '200% center' },
+          '100%': { backgroundPosition: '0% center' },
+        },
+        'bounce-dots': {
+          '0%, 80%, 100%': { transform: 'scale(0)' },
+          '40%': { transform: 'scale(1)' },
+        },
+        wave: {
+          '0%, 100%': { transform: 'scaleY(0.5)' },
+          '50%': { transform: 'scaleY(1)' },
+        },
+        'loading-dots': {
+          '0%': { opacity: '0' },
+          '50%': { opacity: '1' },
+          '100%': { opacity: '0' },
         },
         'accordion-down': {
           from: { height: '0' },
