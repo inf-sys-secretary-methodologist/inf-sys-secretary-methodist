@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { MessageCircle, Sparkles, Users, Send } from 'lucide-react'
 import { useAuthCheck } from '@/hooks/useAuth'
-import { getAvailableNavItems } from '@/config/navigation'
+import { getAvailableNavEntries } from '@/config/navigation'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { SkipToContent } from '@/components/ui/skip-to-content'
 import { ConversationList } from '@/components/messaging/ConversationList'
@@ -25,8 +25,8 @@ export default function MessagesPage() {
     setSelectedConversation(null)
   }
 
-  // Get navigation items filtered by user role
-  const navItems = getAvailableNavItems(user?.role)
+  // Get navigation entries filtered by user role
+  const navEntries = getAvailableNavEntries(user?.role)
 
   if (isLoading) {
     return (
@@ -42,7 +42,7 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <SkipToContent />
-      <AppHeader items={navItems} />
+      <AppHeader entries={navEntries} />
       <main id="main-content" tabIndex={-1} className="flex-1 flex focus:outline-none">
         {/* Conversation List - Hidden on mobile when conversation is selected */}
         <div

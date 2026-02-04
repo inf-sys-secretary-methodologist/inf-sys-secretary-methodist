@@ -7,6 +7,9 @@ import {
   Calendar,
   MessageCircle,
   Database,
+  TrendingUp,
+  FileCheck,
+  Settings,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -18,29 +21,32 @@ export interface NavItem {
   roles?: UserRole[] // If undefined, available to all authenticated users
 }
 
+export interface NavGroup {
+  /** Translation key for the group name */
+  nameKey: string
+  icon: LucideIcon
+  items: NavItem[]
+  roles?: UserRole[] // If undefined, available to all authenticated users
+}
+
+export type NavEntry = NavItem | NavGroup
+
+export function isNavGroup(entry: NavEntry): entry is NavGroup {
+  return 'items' in entry
+}
+
 // Define which roles can access which pages
 // nameKey corresponds to keys in messages/*.json under "nav" namespace
-export const navigationConfig: NavItem[] = [
+export const navigationConfig: NavEntry[] = [
+  // Dashboard - standalone
   {
     nameKey: 'dashboard',
     url: '/dashboard',
     icon: LayoutDashboard,
-    // Available to all authenticated users
   },
+  // Documents group
   {
-    nameKey: 'users',
-    url: '/users',
-    icon: Users,
-    roles: [
-      UserRole.SYSTEM_ADMIN,
-      UserRole.METHODIST,
-      UserRole.ACADEMIC_SECRETARY,
-      UserRole.TEACHER,
-    ],
-  },
-  {
-    nameKey: 'documents',
-    url: '/documents',
+    nameKey: 'documentsGroup',
     icon: FileText,
     roles: [
       UserRole.SYSTEM_ADMIN,
@@ -49,13 +55,48 @@ export const navigationConfig: NavItem[] = [
       UserRole.TEACHER,
       UserRole.STUDENT,
     ],
+    items: [
+      {
+        nameKey: 'documents',
+        url: '/documents',
+        icon: FileText,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+          UserRole.STUDENT,
+        ],
+      },
+      {
+        nameKey: 'templates',
+        url: '/documents/templates',
+        icon: FileCheck,
+        roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+      },
+    ],
   },
+  // Analytics group
   {
-    nameKey: 'reports',
-    url: '/reports',
+    nameKey: 'analyticsGroup',
     icon: BarChart3,
     roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+    items: [
+      {
+        nameKey: 'reports',
+        url: '/reports',
+        icon: BarChart3,
+        roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+      },
+      {
+        nameKey: 'analytics',
+        url: '/analytics',
+        icon: TrendingUp,
+        roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+      },
+    ],
   },
+  // Calendar - standalone
   {
     nameKey: 'calendar',
     url: '/calendar',
@@ -68,33 +109,94 @@ export const navigationConfig: NavItem[] = [
       UserRole.STUDENT,
     ],
   },
+  // Messages - standalone
   {
     nameKey: 'messages',
     url: '/messages',
     icon: MessageCircle,
-    // Available to all authenticated users
   },
+  // Admin group
   {
-    nameKey: 'integration',
-    url: '/integration',
-    icon: Database,
-    roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST],
+    nameKey: 'adminGroup',
+    icon: Settings,
+    roles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+    ],
+    items: [
+      {
+        nameKey: 'users',
+        url: '/users',
+        icon: Users,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+        ],
+      },
+      {
+        nameKey: 'integration',
+        url: '/integration',
+        icon: Database,
+        roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST],
+      },
+    ],
   },
 ]
 
 /**
- * Filter navigation items based on user role
+ * Filter navigation entries based on user role
  */
-export function getAvailableNavItems(userRole?: UserRole | string): NavItem[] {
+export function getAvailableNavEntries(userRole?: UserRole | string): NavEntry[] {
   if (!userRole) return []
 
-  return navigationConfig.filter((item) => {
-    // If no roles specified, item is available to all authenticated users
-    if (!item.roles || item.roles.length === 0) {
+  return navigationConfig
+    .filter((entry) => {
+      // Check if entry is available for user's role
+      if (entry.roles && entry.roles.length > 0) {
+        if (!entry.roles.includes(userRole as UserRole)) {
+          return false
+        }
+      }
       return true
-    }
+    })
+    .map((entry) => {
+      // If it's a group, filter its items too
+      if (isNavGroup(entry)) {
+        const filteredItems = entry.items.filter((item) => {
+          if (item.roles && item.roles.length > 0) {
+            return item.roles.includes(userRole as UserRole)
+          }
+          return true
+        })
+        // Only return group if it has available items
+        if (filteredItems.length === 0) return null
+        // If only one item, return as direct link instead of group
+        if (filteredItems.length === 1) {
+          return filteredItems[0]
+        }
+        return { ...entry, items: filteredItems }
+      }
+      return entry
+    })
+    .filter((entry): entry is NavEntry => entry !== null)
+}
 
-    // Check if user's role is in the allowed roles
-    return item.roles.includes(userRole as UserRole)
-  })
+// Legacy function for backwards compatibility
+export function getAvailableNavItems(userRole?: UserRole | string): NavItem[] {
+  const entries = getAvailableNavEntries(userRole)
+  const items: NavItem[] = []
+
+  for (const entry of entries) {
+    if (isNavGroup(entry)) {
+      items.push(...entry.items)
+    } else {
+      items.push(entry)
+    }
+  }
+
+  return items
 }

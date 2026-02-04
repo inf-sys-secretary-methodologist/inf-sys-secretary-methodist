@@ -3,7 +3,7 @@
 import { ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAuthCheck } from '@/hooks/useAuth'
-import { getAvailableNavItems } from '@/config/navigation'
+import { getAvailableNavEntries } from '@/config/navigation'
 import { useRouteAnnouncer } from '@/hooks/useRouteAnnouncer'
 import { AppHeader } from './AppHeader'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
@@ -20,8 +20,8 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Announce route changes for screen readers
   useRouteAnnouncer()
 
-  // Get navigation items filtered by user role
-  const navItems = getAvailableNavItems(user?.role)
+  // Get navigation entries (items and groups) filtered by user role
+  const navEntries = getAvailableNavEntries(user?.role)
 
   if (isLoading) {
     return (
@@ -37,7 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="min-h-screen">
       <SkipToContent />
-      <AppHeader items={navItems} />
+      <AppHeader entries={navEntries} />
       <main
         id="main-content"
         tabIndex={-1}

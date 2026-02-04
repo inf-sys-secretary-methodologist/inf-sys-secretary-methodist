@@ -4,7 +4,7 @@ import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAuthCheck } from '@/hooks/useAuth'
-import { getAvailableNavItems } from '@/config/navigation'
+import { getAvailableNavEntries } from '@/config/navigation'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { SkipToContent } from '@/components/ui/skip-to-content'
 import { ConversationList } from '@/components/messaging/ConversationList'
@@ -30,8 +30,8 @@ export default function ConversationPage({ params }: PageProps) {
     router.push('/messages')
   }
 
-  // Get navigation items filtered by user role
-  const navItems = getAvailableNavItems(user?.role)
+  // Get navigation entries filtered by user role
+  const navEntries = getAvailableNavEntries(user?.role)
 
   if (isLoading) {
     return (
@@ -52,7 +52,7 @@ export default function ConversationPage({ params }: PageProps) {
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <SkipToContent />
-      <AppHeader items={navItems} />
+      <AppHeader entries={navEntries} />
       <main
         id="main-content"
         tabIndex={-1}
