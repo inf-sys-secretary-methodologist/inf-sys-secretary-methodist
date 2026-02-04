@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -18,6 +19,11 @@ type RedisCache struct {
 
 // NewRedisCache creates a new Redis cache instance
 func NewRedisCache(addr string, password string, db int) (*RedisCache, error) {
+	return NewRedisCacheWithTracing(addr, password, db, false)
+}
+
+// NewRedisCacheWithTracing creates a new Redis cache instance with optional OpenTelemetry tracing
+func NewRedisCacheWithTracing(addr string, password string, db int, enableTracing bool) (*RedisCache, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:         addr,
 		Password:     password,
@@ -29,6 +35,13 @@ func NewRedisCache(addr string, password string, db int) (*RedisCache, error) {
 		ReadTimeout:  3 * time.Second,
 		WriteTimeout: 3 * time.Second,
 	})
+
+	// Enable OpenTelemetry tracing if requested
+	if enableTracing {
+		if err := redisotel.InstrumentTracing(client); err != nil {
+			return nil, fmt.Errorf("failed to enable Redis tracing: %w", err)
+		}
+	}
 
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

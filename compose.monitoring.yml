@@ -1,5 +1,5 @@
 # compose.monitoring.yml
-# Monitoring stack: Prometheus, Grafana, Loki, Promtail
+# Monitoring stack: Prometheus, Grafana, Loki, Promtail, Tempo, OTEL Collector
 # Usage: docker compose -f compose.yml -f compose.monitoring.yml up -d
 
 services:
@@ -78,6 +78,42 @@ services:
       - loki
     restart: unless-stopped
 
+  # Grafana Tempo for distributed tracing
+  tempo:
+    image: grafana/tempo:2.3.1
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo/tempo.yaml" ]
+    volumes:
+      - ./monitoring/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "${TEMPO_HTTP_PORT:-3200}:3200"   # HTTP
+      - "${TEMPO_GRPC_PORT:-9095}:9095"   # gRPC
+    networks:
+      - monitoring
+      - default
+    restart: unless-stopped
+
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.92.0
+    container_name: otel-collector
+    command: [ "--config=/etc/otel-collector/otel-collector.yaml" ]
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+    volumes:
+      - ./monitoring/otel-collector/otel-collector.yaml:/etc/otel-collector/otel-collector.yaml:ro
+    ports:
+      - "${OTEL_GRPC_PORT:-4317}:4317"    # OTLP gRPC
+      - "${OTEL_HTTP_PORT:-4318}:4318"    # OTLP HTTP
+      - "${OTEL_HEALTH_PORT:-13133}:13133" # Health check
+    networks:
+      - monitoring
+      - default
+    depends_on:
+      - tempo
+    restart: unless-stopped
+
 networks:
   monitoring:
     driver: bridge
@@ -88,4 +124,6 @@ volumes:
   grafana_data:
     driver: local
   loki_data:
+    driver: local
+  tempo_data:
     driver: local

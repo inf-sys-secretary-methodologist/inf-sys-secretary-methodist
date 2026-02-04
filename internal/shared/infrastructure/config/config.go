@@ -23,6 +23,7 @@ type Config struct {
 	Telegram    TelegramConfig
 	Integration IntegrationConfig
 	WebPush     WebPushConfig
+	Tracing     TracingConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -111,6 +112,15 @@ type WebPushConfig struct {
 	VAPIDPublicKey  string
 	VAPIDPrivateKey string
 	VAPIDSubject    string // Usually mailto: or https:// URL
+}
+
+
+// TracingConfig holds tracing (OpenTelemetry) configuration
+type TracingConfig struct {
+	Enabled      bool    // Enable distributed tracing
+	OTLPEndpoint string  // OTLP collector endpoint (e.g., "otel-collector:4317")
+	SamplingRate float64 // Sampling rate (0.0 - 1.0, default 0.1 = 10%)
+	ServiceName  string  // Service name for traces
 }
 
 // S3Config holds S3/MinIO storage configuration
@@ -209,6 +219,12 @@ func Load() (*Config, error) {
 			VAPIDPrivateKey: getEnv("VAPID_PRIVATE_KEY", ""),
 			VAPIDSubject:    getEnv("VAPID_SUBJECT", ""),
 		},
+		Tracing: TracingConfig{
+			Enabled:      getEnvAsBool("TRACING_ENABLED", false),
+			OTLPEndpoint: getEnv("TRACING_OTLP_ENDPOINT", "otel-collector:4317"),
+			SamplingRate: getEnvAsFloat("TRACING_SAMPLING_RATE", 0.1),
+			ServiceName:  getEnv("TRACING_SERVICE_NAME", "inf-sys-secretary-methodist"),
+		},
 	}
 
 	// Validate JWT secrets in production
@@ -258,6 +274,15 @@ func getEnvAsInt64(key string, defaultValue int64) int64 {
 func getEnvAsBool(key string, defaultValue bool) bool {
 	valueStr := os.Getenv(key)
 	if value, err := strconv.ParseBool(valueStr); err == nil {
+		return value
+	}
+	return defaultValue
+}
+
+
+func getEnvAsFloat(key string, defaultValue float64) float64 {
+	valueStr := os.Getenv(key)
+	if value, err := strconv.ParseFloat(valueStr, 64); err == nil {
 		return value
 	}
 	return defaultValue
