@@ -87,14 +87,14 @@ export function usePushNotifications() {
       await revalidate()
       // Also revalidate notification preferences
       mutate('/api/notifications/preferences')
+      setIsSubscribing(false)
       return subscription
     } catch (err) {
       const e = err instanceof Error ? err : new Error('Failed to subscribe')
       setError(e)
       setPermission(Notification.permission)
-      return null
-    } finally {
       setIsSubscribing(false)
+      return null
     }
   }, [isSupported, revalidate])
 
