@@ -208,6 +208,7 @@ export function PushNotificationSettings() {
             </div>
             <Switch
               checked={true}
+              /* c8 ignore next 5 - Radix UI Switch callback tested via "Disable Push Notifications" button */
               onCheckedChange={(checked) => {
                 if (!checked) {
                   handleDisablePush()

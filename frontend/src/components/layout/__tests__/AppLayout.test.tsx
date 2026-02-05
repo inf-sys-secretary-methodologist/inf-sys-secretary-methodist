@@ -17,11 +17,11 @@ jest.mock('@/hooks/useAuth', () => ({
   useAuthCheck: () => mockUseAuthCheck(),
 }))
 
-// Mock getAvailableNavItems
+// Mock getAvailableNavEntries
 jest.mock('@/config/navigation', () => ({
-  getAvailableNavItems: jest.fn(() => [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/documents', label: 'Documents' },
+  getAvailableNavEntries: jest.fn(() => [
+    { nameKey: 'dashboard', url: '/dashboard', icon: () => null },
+    { nameKey: 'documents', url: '/documents', icon: () => null },
   ]),
 }))
 
@@ -32,8 +32,8 @@ jest.mock('@/hooks/useRouteAnnouncer', () => ({
 
 // Mock AppHeader
 jest.mock('../AppHeader', () => ({
-  AppHeader: ({ items }: { items: unknown[] }) => (
-    <header data-testid="app-header">AppHeader with {items.length} items</header>
+  AppHeader: ({ entries }: { entries: unknown[] }) => (
+    <header data-testid="app-header">AppHeader with {entries.length} entries</header>
   ),
 }))
 
@@ -97,7 +97,7 @@ describe('AppLayout', () => {
     )
 
     expect(screen.getByTestId('app-header')).toBeInTheDocument()
-    expect(screen.getByText('AppHeader with 2 items')).toBeInTheDocument()
+    expect(screen.getByText('AppHeader with 2 entries')).toBeInTheDocument()
   })
 
   it('renders SkipToContent component', () => {

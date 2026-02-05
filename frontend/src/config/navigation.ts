@@ -170,6 +170,7 @@ export function getAvailableNavEntries(userRole?: UserRole | string): NavEntry[]
           if (item.roles && item.roles.length > 0) {
             return item.roles.includes(userRole as UserRole)
           }
+          /* c8 ignore next 2 - defensive: all config items have roles, but handle undefined for future-proofing */
           return true
         })
         // Only return group if it has available items
