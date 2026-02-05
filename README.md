@@ -43,15 +43,17 @@
 ### Структура репозитория
 
 Это **монорепозиторий**, содержащий:
-- `backend/` - Backend на Go (модульный монолит)
-- `frontend/` - Frontend на Next.js 15
+- `/` - Backend на Go (модульный монолит)
+- `frontend/` - Frontend на Next.js 15.1 с Turbopack
 - `docs/` - Документация проекта
+- `migrations/` - SQL миграции базы данных (22 миграции)
+- `monitoring/` - Конфигурации Prometheus, Grafana, Tempo, OTEL Collector
+- `backup/` - Система резервного копирования
 
 ### Быстрый запуск
 
 **Backend:**
 ```bash
-cd backend
 cp .env.example .env
 go mod download
 go run cmd/server/main.go
@@ -127,14 +129,15 @@ docker-compose up -d
 
 ### Frontend
 
-- **Фреймворк**: Next.js 15 + TypeScript 5.7
-- **UI библиотека**: Material-UI 6
+- **Фреймворк**: Next.js 15.1 + TypeScript 5.7 + Turbopack
+- **UI библиотека**: Radix UI + Tailwind CSS 4
 - **Управление состоянием**: Zustand 5
 - **Загрузка данных**: SWR 2.3 + axios 1.7
-- **Тестирование**: Jest 29 + React Testing Library 16 + Playwright 1.49
+- **Формы**: React Hook Form 7 + Zod 4
+- **Тестирование**: Jest 29 + React Testing Library 16 + Playwright 1.49 (100% покрытие)
 - **Интернационализация**: next-intl (ru, en, fr, ar с RTL)
-- **PWA**: Service Worker, офлайн-режим, manifest.json
-- **Темы**: next-themes с анимированными shader-фонами
+- **PWA**: Service Worker, офлайн-режим, manifest.json, Web Push
+- **Темы**: next-themes с анимированными shader-фонами (@paper-design/shaders-react)
 - **Доступность**: ARIA-атрибуты, клавиатурная навигация, фокус-менеджмент
 
 ### Инфраструктура
@@ -181,9 +184,9 @@ docker-compose up -d
 
 ---
 
-**Стек технологий (обновлено 2026-02-04)**:
-- Backend: Go 1.25 • PostgreSQL 17 • Redis 7 • Gin • DDD • Clean Architecture
-- Frontend: Next.js 15 • React 19 • TypeScript 5.7 • MUI 6 • Zustand 5
-- DevOps: Docker • Kubernetes • GitHub Actions • Prometheus • Grafana
+**Стек технологий (обновлено 2026-02-05)**:
+- Backend: Go 1.25 • PostgreSQL 17 • Redis 7 • Gin • DDD • Clean Architecture • OpenTelemetry
+- Frontend: Next.js 15.1 • React 19 • TypeScript 5.7 • Tailwind 4 • Zustand 5 • Turbopack
+- DevOps: Docker • Kubernetes • GitHub Actions • Prometheus • Grafana • Tempo • Sentry
 
 *"Повышение эффективности организации через автоматизацию и методическую поддержку."*

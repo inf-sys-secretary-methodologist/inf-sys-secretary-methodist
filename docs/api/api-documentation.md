@@ -1662,6 +1662,231 @@ X-RateLimit-Reset: 1732878000
 
 ---
 
+## Dashboard API
+
+### Base URL: `/api/dashboard`
+
+Требует JWT аутентификации. Модуль статистики и KPI для быстрого обзора состояния системы.
+
+### GET `/api/dashboard/stats`
+Получение общей статистики системы.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "total_users": 3250,
+    "total_documents": 15420,
+    "total_students": 2800,
+    "active_sessions": 127,
+    "documents_today": 45,
+    "at_risk_students": 23
+  }
+}
+```
+
+### GET `/api/dashboard/trends`
+Получение трендов за период.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `period` | string | Период: day, week, month (default: week) |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "period": "week",
+    "documents": [
+      {"date": "2026-01-30", "count": 42},
+      {"date": "2026-01-31", "count": 38},
+      {"date": "2026-02-01", "count": 55}
+    ],
+    "users_active": [
+      {"date": "2026-01-30", "count": 850},
+      {"date": "2026-01-31", "count": 920},
+      {"date": "2026-02-01", "count": 780}
+    ]
+  }
+}
+```
+
+### GET `/api/dashboard/activity`
+Получение последней активности в системе.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `limit` | int | Количество записей (default: 20, max: 100) |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "activities": [
+      {
+        "id": 1,
+        "type": "document_created",
+        "user_id": 15,
+        "user_name": "Иванов И.И.",
+        "description": "Создан документ 'Приказ №123'",
+        "created_at": "2026-02-05T09:15:00Z"
+      }
+    ]
+  }
+}
+```
+
+### POST `/api/dashboard/export`
+Экспорт статистики в файл.
+
+**Request:**
+```json
+{
+  "format": "xlsx",
+  "period": "month",
+  "include_charts": true
+}
+```
+
+**Response:** Бинарный файл с заголовком `Content-Disposition: attachment`
+
+---
+
+## Announcements API
+
+### Base URL: `/api/announcements`
+
+Требует JWT аутентификации. Модуль новостей и объявлений для информирования пользователей.
+
+### POST `/api/announcements`
+Создание нового объявления.
+
+**Request:**
+```json
+{
+  "title": "Важное объявление",
+  "content": "Текст объявления с поддержкой **markdown**",
+  "priority": "high",
+  "target_roles": ["student", "teacher"],
+  "publish_at": "2026-02-05T10:00:00Z",
+  "expires_at": "2026-02-28T23:59:59Z",
+  "is_pinned": false
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "title": "Важное объявление",
+    "content": "Текст объявления с поддержкой **markdown**",
+    "priority": "high",
+    "status": "draft",
+    "author_id": 5,
+    "target_roles": ["student", "teacher"],
+    "publish_at": "2026-02-05T10:00:00Z",
+    "expires_at": "2026-02-28T23:59:59Z",
+    "is_pinned": false,
+    "created_at": "2026-02-05T09:00:00Z"
+  }
+}
+```
+
+### GET `/api/announcements`
+Получение списка объявлений с пагинацией.
+
+**Query Parameters:**
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `page` | int | Номер страницы (default: 1) |
+| `limit` | int | Размер страницы (default: 20, max: 100) |
+| `status` | string | Фильтр: draft, published, archived |
+| `priority` | string | Фильтр: low, normal, high, urgent |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "announcements": [...],
+    "total": 50,
+    "page": 1,
+    "limit": 20
+  }
+}
+```
+
+### GET `/api/announcements/:id`
+Получение объявления по ID.
+
+### PUT `/api/announcements/:id`
+Обновление объявления (только автор).
+
+### DELETE `/api/announcements/:id`
+Удаление объявления (только автор или admin).
+
+### GET `/api/announcements/published`
+Получение опубликованных объявлений для текущего пользователя (по его ролям).
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "announcements": [
+      {
+        "id": 1,
+        "title": "Важное объявление",
+        "content": "...",
+        "priority": "high",
+        "is_pinned": true,
+        "published_at": "2026-02-05T10:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+### GET `/api/announcements/pinned`
+Получение закреплённых объявлений.
+
+### POST `/api/announcements/:id/publish`
+Опубликовать объявление.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Announcement published",
+    "published_at": "2026-02-05T10:00:00Z"
+  }
+}
+```
+
+### POST `/api/announcements/:id/archive`
+Архивировать объявление.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Announcement archived",
+    "archived_at": "2026-02-05T10:00:00Z"
+  }
+}
+```
+
+---
+
 ## CORS
 
 Настроен через переменные окружения:
@@ -1710,8 +1935,6 @@ curl -X POST http://localhost:8080/api/documents/1/file \
 
 ---
 
-**Последнее обновление**: 2026-02-04
-**Версия проекта**: 0.3.2
+**Последнее обновление**: 2026-02-05
+**Версия проекта**: 0.3.3
 **Статус**: Актуальный
-**Task #3**: Добавлен Templates API
-**Task #21**: Добавлен Analytics API (Predictive Analytics)

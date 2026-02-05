@@ -27,7 +27,7 @@ docs/
 │   ├── environment.md
 │   └── production-deploy.md
 ├── 📊 api/                   # Документация API
-│   ├── api-documentation.md
+│   ├── api-documentation.md  # Полная документация (включает Dashboard, Announcements, Analytics)
 │   ├── authentication.md
 │   ├── documents.md
 │   ├── messaging.md
@@ -147,7 +147,7 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
 2. **📱 PWA (Progressive Web App)**
    - Установка как нативное приложение
    - Офлайн-режим через Service Worker
-   - Push-уведомления
+   - Web Push уведомления (VAPID)
    - manifest.json для мобильных устройств
 
 3. **🎨 Настройки внешнего вида** (`/settings/appearance`)
@@ -166,6 +166,7 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
 5. **🔔 Настройки уведомлений** (`/settings/notifications`)
    - Привязка Telegram аккаунта
    - Настройка типов уведомлений
+   - Web Push подписки
 
 6. **💬 Сообщения** (`/messages`)
    - Прямые сообщения и групповые чаты
@@ -175,7 +176,20 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
    - Ответы, редактирование, удаление сообщений
    - Индикаторы набора и статус прочтения
 
-7. **💾 Резервное копирование** (DevOps)
+7. **📊 Предиктивная аналитика** (`/analytics`) - **НОВОЕ**
+   - Список студентов в зоне риска
+   - Risk score: Critical/High/Medium/Low
+   - Детальный профиль риска студента
+   - Тренды посещаемости и успеваемости
+   - Dashboard для кураторов
+
+8. **📝 Шаблоны документов** (`/documents/templates`) - **НОВОЕ**
+   - Шаблоны с переменными `{{variable}}`
+   - Типы: string, text, date, number, select
+   - Валидация обязательных полей
+   - Предпросмотр перед созданием
+
+9. **💾 Резервное копирование** (DevOps)
    - Автоматический бэкап PostgreSQL и MinIO
    - Cron расписание (по умолчанию 2:00 ежедневно)
    - Offsite sync на внешний S3
@@ -273,7 +287,7 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2026-02-04
-**Версия проекта**: 0.3.2
+**Последнее обновление**: 2026-02-05
+**Версия проекта**: 0.3.3
 **Статус**: Актуальный
 

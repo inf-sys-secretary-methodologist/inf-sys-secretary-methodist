@@ -8,17 +8,18 @@
 
 ### Frontend
 
-- **Next.js 15.1.0** - React фреймворк
+- **Next.js 15.1.0** + **Turbopack** - React фреймворк с быстрой dev сборкой
 - **TypeScript 5.7** - Типизация
 - **Tailwind CSS 4.1** - Стилизация
 - **Zustand** - Управление состоянием
 - **React Hook Form** + **Zod** - Формы и валидация
-- **Playwright** - E2E тестирование
-- **Jest** + **React Testing Library** - Unit тестирование
+- **Playwright** - E2E тестирование (100% покрытие)
+- **Jest** + **React Testing Library** - Unit тестирование (379 тестов)
 - **@paper-design/shaders-react** - Анимированные шейдерные фоны
 - **next-themes** - Управление темами (light/dark/system)
 - **next-intl** - Интернационализация (ru, en, fr, ar с RTL)
 - **PWA** - Service Worker, офлайн-режим, установка как приложение
+- **Skeleton Loaders** - Плавная загрузка для всех страниц
 
 ### Backend
 
@@ -105,4 +106,4 @@ VDV001 и контрибьюторы
 
 ---
 
-_Последнее обновление: 2025-12-22_
+_Последнее обновление: 2026-02-05_
