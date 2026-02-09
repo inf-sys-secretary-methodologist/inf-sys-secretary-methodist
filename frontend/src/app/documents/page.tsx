@@ -32,17 +32,23 @@ import { documentsApi, DocumentInfo, SearchResultItem, tagsApi, TagInfo } from '
 // Map backend status to frontend status
 const mapBackendStatus = (status: string): DocumentStatus => {
   const statusMap: Record<string, DocumentStatus> = {
-    draft: DocumentStatus.PROCESSING,
-    registered: DocumentStatus.READY,
-    routing: DocumentStatus.PROCESSING,
-    approval: DocumentStatus.PROCESSING,
-    approved: DocumentStatus.READY,
-    rejected: DocumentStatus.ERROR,
-    execution: DocumentStatus.PROCESSING,
-    executed: DocumentStatus.READY,
-    archived: DocumentStatus.READY,
+    // Workflow statuses - use actual values
+    draft: DocumentStatus.DRAFT,
+    registered: DocumentStatus.REGISTERED,
+    routing: DocumentStatus.ROUTING,
+    approval: DocumentStatus.APPROVAL,
+    approved: DocumentStatus.APPROVED,
+    rejected: DocumentStatus.REJECTED,
+    execution: DocumentStatus.EXECUTION,
+    executed: DocumentStatus.EXECUTED,
+    archived: DocumentStatus.ARCHIVED,
+    // Upload statuses
+    uploading: DocumentStatus.UPLOADING,
+    processing: DocumentStatus.PROCESSING,
+    ready: DocumentStatus.READY,
+    error: DocumentStatus.ERROR,
   }
-  return statusMap[status] || DocumentStatus.PROCESSING
+  return statusMap[status] || DocumentStatus.DRAFT
 }
 
 // Map backend category_id to frontend DocumentCategory

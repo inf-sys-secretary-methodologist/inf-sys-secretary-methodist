@@ -12,6 +12,7 @@ import {
   TemplateList,
   CreateFromTemplateDialog,
   TemplatePreviewDialog,
+  TemplateEditorDialog,
 } from '@/components/templates'
 import { TemplateInfo } from '@/lib/api/templates'
 import { canEdit } from '@/lib/auth/permissions'
@@ -23,6 +24,8 @@ export default function TemplatesPage() {
 
   const [previewTemplate, setPreviewTemplate] = useState<TemplateInfo | null>(null)
   const [createTemplate, setCreateTemplate] = useState<TemplateInfo | null>(null)
+  const [editTemplate, setEditTemplate] = useState<TemplateInfo | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const handlePreview = (template: TemplateInfo) => {
     setPreviewTemplate(template)
@@ -32,9 +35,18 @@ export default function TemplatesPage() {
     setCreateTemplate(template)
   }
 
+  const handleEdit = (template: TemplateInfo) => {
+    setEditTemplate(template)
+  }
+
   const handleCreateFromPreview = (template: TemplateInfo) => {
     setPreviewTemplate(null)
     setCreateTemplate(template)
+  }
+
+  const handleEditorSave = () => {
+    // Refresh the template list after saving
+    setRefreshKey((prev) => prev + 1)
   }
 
   return (
@@ -79,7 +91,13 @@ export default function TemplatesPage() {
               </div>
             </div>
 
-            <TemplateList onPreview={handlePreview} onCreate={handleCreate} canEdit={userCanEdit} />
+            <TemplateList
+              key={refreshKey}
+              onPreview={handlePreview}
+              onCreate={handleCreate}
+              onEdit={handleEdit}
+              canEdit={userCanEdit}
+            />
           </div>
         </div>
       </div>
@@ -97,6 +115,14 @@ export default function TemplatesPage() {
         template={createTemplate}
         open={createTemplate !== null}
         onOpenChange={(open) => !open && setCreateTemplate(null)}
+      />
+
+      {/* Editor Dialog */}
+      <TemplateEditorDialog
+        template={editTemplate}
+        open={editTemplate !== null}
+        onOpenChange={(open) => !open && setEditTemplate(null)}
+        onSave={handleEditorSave}
       />
     </AppLayout>
   )
