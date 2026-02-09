@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
@@ -115,6 +116,7 @@ func (uc *TemplateUseCase) CreateDocumentFromTemplate(
 	}
 
 	// Create document
+	now := time.Now()
 	doc := &entities.Document{
 		DocumentTypeID: typeID,
 		CategoryID:     req.CategoryID,
@@ -124,6 +126,9 @@ func (uc *TemplateUseCase) CreateDocumentFromTemplate(
 		AuthorID:       authorID,
 		Status:         entities.DocumentStatusDraft,
 		Version:        1,
+		Importance:     entities.ImportanceNormal,
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 
 	err = uc.docRepo.Create(ctx, doc)
