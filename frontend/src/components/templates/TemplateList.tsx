@@ -1,11 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Search, FileText, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { BlurFade } from '@/components/ui/blur-fade'
 import { TemplateCard } from './TemplateCard'
+import {
+  TemplateCategoryTabs,
+  TemplateCategory,
+  filterTemplatesByCategory,
+  countTemplatesByCategory,
+} from './TemplateCategoryTabs'
 import { templatesApi, TemplateInfo } from '@/lib/api/templates'
+import { useFavoriteTemplates } from '@/hooks/useFavoriteTemplates'
 
 interface TemplateListProps {
   onPreview: (template: TemplateInfo) => void
@@ -20,6 +28,10 @@ export function TemplateList({ onPreview, onCreate, onEdit, canEdit = false }: T
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeCategory, setActiveCategory] = useState<TemplateCategory>('all')
+
+  const { favorites, recentlyUsed, isFavorite, toggleFavorite, addToRecent } =
+    useFavoriteTemplates()
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -39,14 +51,41 @@ export function TemplateList({ onPreview, onCreate, onEdit, canEdit = false }: T
     fetchTemplates()
   }, [t])
 
-  const filteredTemplates = templates.filter((template) => {
+  // Filter templates by search query
+  const searchFilteredTemplates = useMemo(() => {
+    if (!searchQuery) return templates
     const query = searchQuery.toLowerCase()
-    return (
-      template.name.toLowerCase().includes(query) ||
-      template.code.toLowerCase().includes(query) ||
-      template.description?.toLowerCase().includes(query)
+    return templates.filter(
+      (template) =>
+        template.name.toLowerCase().includes(query) ||
+        template.code.toLowerCase().includes(query) ||
+        template.description?.toLowerCase().includes(query)
     )
-  })
+  }, [templates, searchQuery])
+
+  // Filter by category
+  const filteredTemplates = useMemo(() => {
+    return filterTemplatesByCategory(
+      searchFilteredTemplates,
+      activeCategory,
+      favorites,
+      recentlyUsed
+    )
+  }, [searchFilteredTemplates, activeCategory, favorites, recentlyUsed])
+
+  // Count templates per category
+  const categoryCounts = useMemo(() => {
+    return countTemplatesByCategory(searchFilteredTemplates, favorites, recentlyUsed)
+  }, [searchFilteredTemplates, favorites, recentlyUsed])
+
+  const handleCreate = (template: TemplateInfo) => {
+    addToRecent(template.id)
+    onCreate(template)
+  }
+
+  const handleToggleFavorite = (template: TemplateInfo) => {
+    toggleFavorite(template.id)
+  }
 
   if (isLoading) {
     return (
@@ -66,36 +105,58 @@ export function TemplateList({ onPreview, onCreate, onEdit, canEdit = false }: T
 
   return (
     <div className="space-y-6">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-        <Input
-          placeholder={t('searchPlaceholder')}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
+      {/* Category Tabs */}
+      <BlurFade delay={0.1}>
+        <TemplateCategoryTabs
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+          counts={categoryCounts}
         />
-      </div>
+      </BlurFade>
+
+      {/* Search */}
+      <BlurFade delay={0.15}>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Input
+            placeholder={t('searchPlaceholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </BlurFade>
 
       {/* Templates Grid */}
       {filteredTemplates.length === 0 ? (
-        <div className="text-center py-12">
-          <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">
-            {searchQuery ? t('noSearchResults') : t('noTemplates')}
-          </p>
-        </div>
+        <BlurFade delay={0.2}>
+          <div className="text-center py-12">
+            <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">
+              {searchQuery
+                ? t('noSearchResults')
+                : activeCategory === 'favorites'
+                  ? t('noFavorites')
+                  : activeCategory === 'recent'
+                    ? t('noRecent')
+                    : t('noTemplates')}
+            </p>
+          </div>
+        </BlurFade>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredTemplates.map((template) => (
-            <TemplateCard
-              key={template.id}
-              template={template}
-              onPreview={onPreview}
-              onCreate={onCreate}
-              onEdit={onEdit}
-              canEdit={canEdit}
-            />
+          {filteredTemplates.map((template, index) => (
+            <BlurFade key={template.id} delay={0.2 + index * 0.05} inView>
+              <TemplateCard
+                template={template}
+                onPreview={onPreview}
+                onCreate={handleCreate}
+                onEdit={onEdit}
+                canEdit={canEdit}
+                isFavorite={isFavorite(template.id)}
+                onToggleFavorite={handleToggleFavorite}
+              />
+            </BlurFade>
           ))}
         </div>
       )}

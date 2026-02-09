@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { Loader2, FileText, CheckCircle } from 'lucide-react'
+import { Loader2, FileText, CheckCircle, Download, ExternalLink } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import { templatesApi, TemplateInfo, TemplateVariable } from '@/lib/api/templates'
+import { documentsApi, DocumentInfo } from '@/lib/api/documents'
+import { SmartVariableInput, getVariableTypeIcon } from './pickers'
 
 interface CreateFromTemplateDialogProps {
   template: TemplateInfo | null
@@ -38,6 +41,7 @@ export function CreateFromTemplateDialog({
   const [variables, setVariables] = useState<Record<string, string>>({})
   const [previewContent, setPreviewContent] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [createdDocument, setCreatedDocument] = useState<DocumentInfo | null>(null)
 
   // Initialize variables from template
   useEffect(() => {
@@ -52,6 +56,7 @@ export function CreateFromTemplateDialog({
     setPreviewContent(null)
     setError(null)
     setSuccess(false)
+    setCreatedDocument(null)
   }, [template])
 
   const handleVariableChange = (name: string, value: string) => {
@@ -81,15 +86,12 @@ export function CreateFromTemplateDialog({
     try {
       setIsLoading(true)
       setError(null)
-      await templatesApi.createDocument(template.id, {
+      const doc = await templatesApi.createDocument(template.id, {
         title: documentTitle.trim(),
         variables,
       })
+      setCreatedDocument(doc)
       setSuccess(true)
-      setTimeout(() => {
-        onOpenChange(false)
-        router.push(`/documents`)
-      }, 1500)
     } catch (err) {
       console.error('Create failed:', err)
       setError(t('createError'))
@@ -98,70 +100,67 @@ export function CreateFromTemplateDialog({
     }
   }
 
+  const handleDownload = () => {
+    if (!createdDocument) return
+    const downloadUrl = documentsApi.getFileDownloadUrl(createdDocument.id)
+    window.open(downloadUrl, '_blank')
+  }
+
+  const handleViewDocument = () => {
+    if (!createdDocument) return
+    onOpenChange(false)
+    router.push(`/documents`)
+  }
+
+  const handleClose = () => {
+    setSuccess(false)
+    setCreatedDocument(null)
+    onOpenChange(false)
+  }
+
+  // Check if variable is a smart type (requires data from database)
+  const isSmartType = (type: TemplateVariable['variable_type']) => {
+    return ['student', 'employee', 'user', 'department', 'current_date', 'current_user'].includes(
+      type
+    )
+  }
+
   const renderVariableInput = (variable: TemplateVariable) => {
     const value = variables[variable.name] || ''
 
-    if (variable.variable_type === 'select' && variable.options) {
-      return (
-        <select
-          id={variable.name}
-          value={value}
-          onChange={(e) => handleVariableChange(variable.name, e.target.value)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="">{t('selectOption')}</option>
-          {variable.options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-      )
-    }
-
-    if (variable.variable_type === 'date') {
-      return (
-        <Input
-          id={variable.name}
-          type="date"
-          value={value}
-          onChange={(e) => handleVariableChange(variable.name, e.target.value)}
-        />
-      )
-    }
-
-    if (variable.variable_type === 'number') {
-      return (
-        <Input
-          id={variable.name}
-          type="number"
-          value={value}
-          onChange={(e) => handleVariableChange(variable.name, e.target.value)}
-        />
-      )
-    }
-
     return (
-      <Input
-        id={variable.name}
-        type="text"
+      <SmartVariableInput
+        variable={variable}
         value={value}
-        onChange={(e) => handleVariableChange(variable.name, e.target.value)}
-        placeholder={variable.description || ''}
+        onChange={(val) => handleVariableChange(variable.name, val)}
       />
     )
   }
 
-  if (success) {
+  if (success && createdDocument) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-lg">
-          <div className="flex flex-col items-center justify-center py-8">
+          <div className="flex flex-col items-center justify-center py-6">
             <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               {t('createSuccess')}
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">{t('redirecting')}</p>
+            <p className="text-gray-600 dark:text-gray-400 mt-2 text-center">
+              {t('documentCreatedDescription')}
+            </p>
+
+            {/* Export options */}
+            <div className="flex flex-col gap-3 mt-6 w-full max-w-xs">
+              <Button onClick={handleDownload} variant="outline" className="w-full gap-2">
+                <Download className="h-4 w-4" />
+                {t('downloadDocument')}
+              </Button>
+              <Button onClick={handleViewDocument} className="w-full gap-2">
+                <ExternalLink className="h-4 w-4" />
+                {t('viewInDocuments')}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -201,9 +200,15 @@ export function CreateFromTemplateDialog({
               </h3>
               {template.template_variables.map((variable) => (
                 <div key={variable.name} className="space-y-2">
-                  <Label htmlFor={variable.name} className="flex items-center gap-1">
-                    {variable.name}
+                  <Label htmlFor={variable.name} className="flex items-center gap-2">
+                    <span className="text-base">{getVariableTypeIcon(variable.variable_type)}</span>
+                    <span>{variable.name}</span>
                     {variable.required && <span className="text-red-500">*</span>}
+                    {isSmartType(variable.variable_type) && (
+                      <Badge variant="outline" className="text-xs font-normal">
+                        {t(`variableTypes.${variable.variable_type}`)}
+                      </Badge>
+                    )}
                   </Label>
                   {variable.description && (
                     <p className="text-xs text-gray-500">{variable.description}</p>
