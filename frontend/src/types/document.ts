@@ -25,10 +25,21 @@ export const DocumentCategoryToId: Record<DocumentCategory, number> = {
 }
 
 export enum DocumentStatus {
+  // Upload statuses
   UPLOADING = 'uploading',
   PROCESSING = 'processing',
   READY = 'ready',
   ERROR = 'error',
+  // Workflow statuses (from backend)
+  DRAFT = 'draft',
+  REGISTERED = 'registered',
+  ROUTING = 'routing',
+  APPROVAL = 'approval',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  EXECUTION = 'execution',
+  EXECUTED = 'executed',
+  ARCHIVED = 'archived',
 }
 
 export interface DocumentMetadata {

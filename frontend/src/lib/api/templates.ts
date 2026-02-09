@@ -1,14 +1,31 @@
 import { apiClient } from '../api'
 import { DocumentInfo, DocumentResponse } from './documents'
 
+// Variable types for templates
+export type TemplateVariableType =
+  | 'text'
+  | 'date'
+  | 'number'
+  | 'select'
+  // Smart types with data source
+  | 'student' // Select student from database
+  | 'employee' // Select employee/teacher from database
+  | 'user' // Select system user
+  | 'department' // Select department
+  | 'current_date' // Auto-fill with current date
+  | 'current_user' // Auto-fill with current user name
+
 // Template variable definition
 export interface TemplateVariable {
   name: string
   description?: string
   default_value?: string
   required: boolean
-  variable_type: 'text' | 'date' | 'number' | 'select'
+  variable_type: TemplateVariableType
   options?: string[] // For select type
+  // For smart types - specifies which field to use from the selected entity
+  // e.g., 'full_name', 'email', 'group_name', etc.
+  data_field?: string
 }
 
 // Template response from API
