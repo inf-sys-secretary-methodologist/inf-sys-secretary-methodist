@@ -1619,6 +1619,246 @@ func TestCreateDocument(t *testing.T) {
 
 ---
 
+## 📝 Document Templates API (Issue #75)
+
+Система шаблонов документов для быстрого создания типовых документов с подстановкой переменных.
+
+### Ключевые возможности
+
+- **Шаблоны с переменными**: Создание документов из шаблонов с синтаксисом `{{variable}}`
+- **Типизированные переменные**: Поддержка различных типов данных (text, date, number, select)
+- **Smart-переменные**: Автоматический выбор данных из БД (student, employee, department)
+- **Предпросмотр**: Рендеринг шаблона без создания документа
+- **Валидация**: Проверка обязательных полей и форматов
+
+### Типы переменных
+
+| Тип | Описание |
+|-----|----------|
+| `text` | Однострочный текст |
+| `date` | Дата в формате ISO |
+| `number` | Числовое значение |
+| `select` | Выбор из списка опций |
+| `student` | Выбор студента из базы данных |
+| `employee` | Выбор сотрудника/преподавателя |
+| `user` | Выбор пользователя системы |
+| `department` | Выбор подразделения |
+| `current_date` | Автозаполнение текущей датой |
+| `current_user` | Автозаполнение именем текущего пользователя |
+
+### GET `/api/templates`
+Получение списка всех доступных шаблонов документов.
+
+**Response (200):**
+```json
+{
+  "templates": [
+    {
+      "id": 1,
+      "name": "Справка об обучении",
+      "code": "study_certificate",
+      "description": "Справка для подтверждения факта обучения студента",
+      "template_content": "СПРАВКА\n\nДана {{student_name}}, студенту группы {{group}}, ...",
+      "template_variables": [
+        {
+          "name": "student_name",
+          "label": "ФИО студента",
+          "type": "student",
+          "required": true,
+          "data_field": "full_name"
+        },
+        {
+          "name": "group",
+          "label": "Группа",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "issue_date",
+          "label": "Дата выдачи",
+          "type": "current_date",
+          "required": true
+        }
+      ],
+      "has_template": true
+    }
+  ],
+  "total": 5
+}
+```
+
+### GET `/api/templates/{id}`
+Получение конкретного шаблона по ID.
+
+**Response (200):**
+```json
+{
+  "id": 1,
+  "name": "Справка об обучении",
+  "code": "study_certificate",
+  "description": "Справка для подтверждения факта обучения студента",
+  "template_content": "СПРАВКА\n\nДана {{student_name}}, студенту группы {{group}}, в том, что он(а) действительно является студентом {{department}} с {{enrollment_date}}.\n\nСправка выдана для предъявления по месту требования.\n\nДата: {{issue_date}}\nПодпись: _______________",
+  "template_variables": [
+    {
+      "name": "student_name",
+      "label": "ФИО студента",
+      "type": "student",
+      "required": true,
+      "data_field": "full_name"
+    },
+    {
+      "name": "group",
+      "label": "Группа",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "department",
+      "label": "Факультет",
+      "type": "department",
+      "required": true
+    },
+    {
+      "name": "enrollment_date",
+      "label": "Дата зачисления",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "issue_date",
+      "label": "Дата выдачи",
+      "type": "current_date",
+      "required": true
+    }
+  ],
+  "has_template": true
+}
+```
+
+### POST `/api/templates/{id}/preview`
+Предпросмотр шаблона с подставленными переменными (без создания документа).
+
+**Request Body:**
+```json
+{
+  "variables": {
+    "student_name": "Иванов Иван Иванович",
+    "group": "ИС-21",
+    "department": "Информационных технологий",
+    "enrollment_date": "2021-09-01",
+    "issue_date": "2025-01-15"
+  }
+}
+```
+
+**Response (200):**
+```json
+{
+  "content": "СПРАВКА\n\nДана Иванов Иван Иванович, студенту группы ИС-21, в том, что он(а) действительно является студентом Информационных технологий с 2021-09-01.\n\nСправка выдана для предъявления по месту требования.\n\nДата: 2025-01-15\nПодпись: _______________"
+}
+```
+
+### POST `/api/templates/{id}/create`
+Создание нового документа из шаблона.
+
+**Request Body:**
+```json
+{
+  "title": "Справка об обучении - Иванов И.И.",
+  "variables": {
+    "student_name": "Иванов Иван Иванович",
+    "group": "ИС-21",
+    "department": "Информационных технологий",
+    "enrollment_date": "2021-09-01",
+    "issue_date": "2025-01-15"
+  },
+  "category_id": 1
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "title": "Справка об обучении - Иванов И.И.",
+    "document_type_id": 1,
+    "document_type_name": "Справка об обучении",
+    "content": "СПРАВКА\n\nДана Иванов Иван Иванович, студенту группы ИС-21...",
+    "author_id": 1,
+    "author_name": "Администратор",
+    "status": "draft",
+    "created_at": "2025-01-15T10:00:00Z"
+  }
+}
+```
+
+### PUT `/api/templates/{id}`
+Обновление шаблона (только для admin/secretary).
+
+**Request Body:**
+```json
+{
+  "template_content": "Обновленный текст шаблона с {{переменными}}",
+  "template_variables": [
+    {
+      "name": "student_name",
+      "label": "ФИО студента",
+      "type": "student",
+      "required": true,
+      "data_field": "full_name"
+    }
+  ]
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "template updated successfully"
+}
+```
+
+**Ошибки:**
+- `403` - Недостаточно прав (требуется роль admin или secretary)
+
+---
+
+### Frontend компоненты шаблонов
+
+| Компонент | Описание |
+|-----------|----------|
+| `TemplateList` | Список всех доступных шаблонов с поиском и фильтрацией |
+| `TemplateCard` | Карточка шаблона с описанием и кнопкой создания |
+| `TemplateCategoryTabs` | Табы для фильтрации по категориям шаблонов |
+| `CreateFromTemplateDialog` | Диалог создания документа с формой переменных |
+| `TemplatePreviewDialog` | Диалог предпросмотра заполненного шаблона |
+
+### Пример использования (Frontend)
+
+```typescript
+import { templatesApi } from '@/lib/api/templates'
+
+// Получить список шаблонов
+const templates = await templatesApi.getAll()
+
+// Предпросмотр шаблона
+const preview = await templatesApi.preview(1, {
+  student_name: 'Иванов И.И.',
+  group: 'ИС-21'
+})
+
+// Создать документ из шаблона
+const document = await templatesApi.createDocument(1, {
+  title: 'Справка об обучении - Иванов И.И.',
+  variables: { student_name: 'Иванов И.И.', group: 'ИС-21' },
+  category_id: 1
+})
+```
+
+---
+
 ## 🚨 Error Codes
 
 | Code | Message | Description |
@@ -1635,6 +1875,8 @@ func TestCreateDocument(t *testing.T) {
 | DOC_010 | Public link expired | Публичная ссылка истекла |
 | DOC_011 | Invalid password | Неверный пароль для публичной ссылки |
 | DOC_012 | Link usage limit exceeded | Исчерпан лимит использований ссылки |
+| DOC_013 | Template not found | Шаблон не найден |
+| DOC_014 | Missing required variable | Не заполнена обязательная переменная шаблона |
 ---
 
 ## 🏷️ Advanced Filtering System (Issue #26)
@@ -1702,12 +1944,13 @@ GET /api/documents?category_id=1&tag_ids=2,3&author_id=5&date_from=2025-01-01&pa
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2025-12-20
-**Версия проекта**: 0.3.0
+**Последнее обновление**: 2026-02-09
+**Версия проекта**: 0.3.3
 **Статус**: Актуальный
 **Issue #9**: Реализовано API для загрузки файлов (MinIO/S3)
 **Issue #10**: Реализована система категоризации и тегирования документов
 **Issue #12**: Реализована полная система версионирования документов
 **Issue #13**: Реализована система шаринга документов и публичных ссылок
 **Issue #26**: Реализована расширенная система фильтрации с визуальным выбором тегов
+**Issue #75**: Реализована система шаблонов документов с переменными и smart-типами
 

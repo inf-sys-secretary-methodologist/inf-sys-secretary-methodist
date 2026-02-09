@@ -1436,11 +1436,25 @@ X-RateLimit-Reset: 1732878000
 
 ---
 
-## Templates API
+## Templates API (Issue #75)
 
 ### Base URL: `/api/templates`
 
-Модуль шаблонов документов для быстрого создания типовых документов с переменными.
+Модуль шаблонов документов для быстрого создания типовых документов с переменными. Поддерживает базовые типы и smart-типы с автозаполнением из базы данных.
+
+### Типы переменных
+
+| Тип | Описание |
+|-----|----------|
+| `text` | Однострочный или многострочный текст |
+| `date` | Дата в формате ISO |
+| `number` | Числовое значение |
+| `select` | Выбор из предустановленных опций |
+| `student` | Выбор студента из БД (smart-тип) |
+| `employee` | Выбор сотрудника из БД (smart-тип) |
+| `department` | Выбор подразделения из БД (smart-тип) |
+| `current_date` | Автозаполнение текущей датой |
+| `current_user` | Автозаполнение именем текущего пользователя |
 
 ### GET `/api/templates`
 Получение списка доступных шаблонов.
@@ -1448,20 +1462,22 @@ X-RateLimit-Reset: 1732878000
 **Response (200):**
 ```json
 {
-  "success": true,
-  "data": [
+  "templates": [
     {
       "id": 1,
-      "name": "Служебная записка",
-      "code": "memo",
-      "template_content": "СЛУЖЕБНАЯ ЗАПИСКА\n\nКому: {{recipient}}\nОт: {{author}}\n\n{{content}}",
+      "name": "Справка об обучении",
+      "code": "study_certificate",
+      "description": "Справка для подтверждения факта обучения",
+      "template_content": "СПРАВКА\n\nДана {{student_name}}, студенту группы {{group}}...",
       "template_variables": [
-        {"name": "recipient", "label": "Получатель", "type": "string", "required": true},
-        {"name": "author", "label": "Автор", "type": "string", "required": true},
-        {"name": "content", "label": "Содержание", "type": "text", "required": true}
-      ]
+        {"name": "student_name", "label": "ФИО студента", "type": "student", "required": true, "data_field": "full_name"},
+        {"name": "group", "label": "Группа", "type": "text", "required": true},
+        {"name": "issue_date", "label": "Дата выдачи", "type": "current_date", "required": true}
+      ],
+      "has_template": true
     }
-  ]
+  ],
+  "total": 5
 }
 ```
 
@@ -1469,15 +1485,15 @@ X-RateLimit-Reset: 1732878000
 Получение шаблона по ID.
 
 ### POST `/api/templates/:id/preview`
-Предпросмотр документа с заполненными переменными.
+Предпросмотр документа с заполненными переменными (без создания документа).
 
 **Request:**
 ```json
 {
   "variables": {
-    "recipient": "Иванов И.И.",
-    "author": "Петров П.П.",
-    "content": "Текст служебной записки"
+    "student_name": "Иванов Иван Иванович",
+    "group": "ИС-21",
+    "issue_date": "2026-02-09"
   }
 }
 ```
@@ -1485,10 +1501,7 @@ X-RateLimit-Reset: 1732878000
 **Response (200):**
 ```json
 {
-  "success": true,
-  "data": {
-    "preview": "СЛУЖЕБНАЯ ЗАПИСКА\n\nКому: Иванов И.И.\nОт: Петров П.П.\n\nТекст служебной записки"
-  }
+  "content": "СПРАВКА\n\nДана Иванов Иван Иванович, студенту группы ИС-21..."
 }
 ```
 
@@ -1498,12 +1511,13 @@ X-RateLimit-Reset: 1732878000
 **Request:**
 ```json
 {
-  "title": "Служебная записка от 01.02.2026",
+  "title": "Справка об обучении - Иванов И.И.",
   "variables": {
-    "recipient": "Иванов И.И.",
-    "author": "Петров П.П.",
-    "content": "Текст служебной записки"
-  }
+    "student_name": "Иванов Иван Иванович",
+    "group": "ИС-21",
+    "issue_date": "2026-02-09"
+  },
+  "category_id": 1
 }
 ```
 
@@ -1513,13 +1527,36 @@ X-RateLimit-Reset: 1732878000
   "success": true,
   "data": {
     "id": 42,
-    "title": "Служебная записка от 01.02.2026",
-    "content": "СЛУЖЕБНАЯ ЗАПИСКА\n\nКому: Иванов И.И.\nОт: Петров П.П.\n\nТекст служебной записки",
+    "title": "Справка об обучении - Иванов И.И.",
+    "content": "СПРАВКА\n\nДана Иванов Иван Иванович, студенту группы ИС-21...",
     "document_type_id": 1,
-    "created_at": "2026-02-01T10:00:00Z"
+    "author_id": 1,
+    "created_at": "2026-02-09T10:00:00Z"
   }
 }
 ```
+
+### PUT `/api/templates/:id`
+Обновление шаблона (только admin/secretary).
+
+**Request:**
+```json
+{
+  "template_content": "Обновлённый текст шаблона с {{переменными}}",
+  "template_variables": [
+    {"name": "student_name", "label": "ФИО", "type": "student", "required": true}
+  ]
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "template updated successfully"
+}
+```
+
+Подробная документация: [documents.md#templates-api](documents.md#-document-templates-api-issue-75)
 
 ---
 
@@ -1935,6 +1972,7 @@ curl -X POST http://localhost:8080/api/documents/1/file \
 
 ---
 
-**Последнее обновление**: 2026-02-05
+**Последнее обновление**: 2026-02-09
 **Версия проекта**: 0.3.3
 **Статус**: Актуальный
+**Issue #75**: Реализована система шаблонов документов

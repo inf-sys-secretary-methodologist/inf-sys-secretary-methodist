@@ -183,11 +183,14 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
    - Тренды посещаемости и успеваемости
    - Dashboard для кураторов
 
-8. **📝 Шаблоны документов** (`/documents/templates`) - **НОВОЕ**
+8. **📝 Шаблоны документов** (`/documents/templates`) - **Issue #75**
    - Шаблоны с переменными `{{variable}}`
-   - Типы: string, text, date, number, select
+   - Базовые типы: text, date, number, select
+   - Smart-типы: student, employee, department, current_date, current_user
    - Валидация обязательных полей
-   - Предпросмотр перед созданием
+   - Предпросмотр заполненного шаблона
+   - Создание документа из шаблона одним кликом
+   - Категоризация и избранные шаблоны
 
 9. **💾 Резервное копирование** (DevOps)
    - Автоматический бэкап PostgreSQL и MinIO
@@ -287,7 +290,7 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2026-02-05
+**Последнее обновление**: 2026-02-09
 **Версия проекта**: 0.3.3
 **Статус**: Актуальный
 
