@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Копируем только package файлы для кэширования
 COPY package.json package-lock.json ./
-RUN npm ci --production=false --ignore-scripts
+RUN npm ci --production=false
 
 # Stage 2: Builder
 FROM node:24-alpine AS builder
