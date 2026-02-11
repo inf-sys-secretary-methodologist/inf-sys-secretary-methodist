@@ -170,7 +170,8 @@
     "navigation": "Navigation",
     "openMenu": "Open menu",
     "mainNavigation": "Main navigation",
-    "mobileNavigation": "Mobile navigation"
+    "mobileNavigation": "Mobile navigation",
+    "aiAssistant": "AI Assistant"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -1843,6 +1844,48 @@
       "riskDistribution": "Risk Distribution"
     },
     "noStudents": "No at-risk students found",
-    "noStudentsHint": "Students at risk will appear here"
+    "noStudentsHint": "Students at risk will appear here",
+    "noAtRiskStudents": "No students at risk"
+  },
+  "ai": {
+    "title": "AI Assistant",
+    "history": "Chat History",
+    "newConversation": "New Chat",
+    "noConversations": "No conversations yet",
+    "deleteConversation": "Delete Conversation",
+    "deleteConversationConfirm": "Are you sure you want to delete this conversation? This action cannot be undone.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "inputPlaceholder": "Ask me anything about your documents...",
+    "disclaimer": "AI can make mistakes. Verify important information.",
+    "thinking": "Thinking...",
+    "error": "An error occurred. Please try again.",
+    "sources": "Sources",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "daysAgo": "{days} days ago",
+    "welcomeTitle": "Welcome to AI Assistant",
+    "welcomeDescription": "I can help you search documents, answer questions, summarize content, and more. Just ask!",
+    "quickActionsTitle": "Try asking about:",
+    "quickActions": {
+      "searchDocuments": "Search documents",
+      "searchDocumentsPrompt": "Find documents related to...",
+      "summarizeDocument": "Summarize document",
+      "summarizeDocumentPrompt": "Summarize the document...",
+      "scheduleHelp": "Schedule help",
+      "scheduleHelpPrompt": "What events do I have this week?",
+      "studentAnalytics": "Student analytics",
+      "studentAnalyticsPrompt": "Show me students at risk in...",
+      "findTemplate": "Find template",
+      "findTemplatePrompt": "Find a template for...",
+      "help": "Help",
+      "helpPrompt": "What can you help me with?"
+    },
+    "chips": {
+      "search": "Search",
+      "summarize": "Summarize",
+      "schedule": "Schedule",
+      "analytics": "Analytics"
+    }
   }
 }

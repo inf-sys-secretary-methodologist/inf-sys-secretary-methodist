@@ -1813,5 +1813,46 @@
     },
     "noStudents": "Aucun étudiant à risque trouvé",
     "noStudentsHint": "Les étudiants à risque apparaîtront ici"
+  },
+  "ai": {
+    "title": "Assistant IA",
+    "history": "Historique des conversations",
+    "newConversation": "Nouvelle conversation",
+    "noConversations": "Aucune conversation",
+    "deleteConversation": "Supprimer la conversation",
+    "deleteConversationConfirm": "Êtes-vous sûr de vouloir supprimer cette conversation ? Cette action est irréversible.",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "inputPlaceholder": "Posez-moi une question sur vos documents...",
+    "disclaimer": "L'IA peut faire des erreurs. Vérifiez les informations importantes.",
+    "thinking": "Réflexion...",
+    "error": "Une erreur s'est produite. Veuillez réessayer.",
+    "sources": "Sources",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "daysAgo": "Il y a {days} jours",
+    "welcomeTitle": "Bienvenue dans l'Assistant IA",
+    "welcomeDescription": "Je peux vous aider à rechercher des documents, répondre à vos questions, résumer du contenu et plus encore. Demandez simplement !",
+    "quickActionsTitle": "Essayez de demander :",
+    "quickActions": {
+      "searchDocuments": "Rechercher des documents",
+      "searchDocumentsPrompt": "Trouver des documents liés à...",
+      "summarizeDocument": "Résumer un document",
+      "summarizeDocumentPrompt": "Résumez le document...",
+      "scheduleHelp": "Aide planning",
+      "scheduleHelpPrompt": "Quels événements ai-je cette semaine ?",
+      "studentAnalytics": "Analytique étudiants",
+      "studentAnalyticsPrompt": "Montrez-moi les étudiants à risque...",
+      "findTemplate": "Trouver un modèle",
+      "findTemplatePrompt": "Trouvez un modèle pour...",
+      "help": "Aide",
+      "helpPrompt": "Comment pouvez-vous m'aider ?"
+    },
+    "chips": {
+      "search": "Rechercher",
+      "summarize": "Résumer",
+      "schedule": "Planning",
+      "analytics": "Analytique"
+    }
   }
 }

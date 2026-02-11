@@ -170,7 +170,8 @@
     "navigation": "Навигация",
     "openMenu": "Открыть меню",
     "mainNavigation": "Основная навигация",
-    "mobileNavigation": "Мобильная навигация"
+    "mobileNavigation": "Мобильная навигация",
+    "aiAssistant": "AI Ассистент"
   },
   "roles": {
     "system_admin": "Администратор",
@@ -1811,6 +1812,48 @@
     "group": "Группа",
     "noStudentsFound": "Студенты не найдены",
     "page": "Страница",
-    "of": "из"
+    "of": "из",
+    "noAtRiskStudents": "Нет студентов в зоне риска"
+  },
+  "ai": {
+    "title": "AI Ассистент",
+    "history": "История чатов",
+    "newConversation": "Новый чат",
+    "noConversations": "Пока нет бесед",
+    "deleteConversation": "Удалить беседу",
+    "deleteConversationConfirm": "Вы уверены, что хотите удалить эту беседу? Это действие нельзя отменить.",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "inputPlaceholder": "Задайте вопрос о ваших документах...",
+    "disclaimer": "ИИ может ошибаться. Проверяйте важную информацию.",
+    "thinking": "Думаю...",
+    "error": "Произошла ошибка. Попробуйте ещё раз.",
+    "sources": "Источники",
+    "today": "Сегодня",
+    "yesterday": "Вчера",
+    "daysAgo": "{days} дней назад",
+    "welcomeTitle": "Добро пожаловать в AI Ассистент",
+    "welcomeDescription": "Я могу помочь вам искать документы, отвечать на вопросы, создавать сводки и многое другое. Просто спросите!",
+    "quickActionsTitle": "Попробуйте спросить:",
+    "quickActions": {
+      "searchDocuments": "Поиск документов",
+      "searchDocumentsPrompt": "Найти документы, связанные с...",
+      "summarizeDocument": "Краткое содержание",
+      "summarizeDocumentPrompt": "Сделай краткое содержание документа...",
+      "scheduleHelp": "Расписание",
+      "scheduleHelpPrompt": "Какие события у меня на этой неделе?",
+      "studentAnalytics": "Аналитика студентов",
+      "studentAnalyticsPrompt": "Покажи студентов в зоне риска...",
+      "findTemplate": "Найти шаблон",
+      "findTemplatePrompt": "Найди шаблон для...",
+      "help": "Помощь",
+      "helpPrompt": "Чем ты можешь мне помочь?"
+    },
+    "chips": {
+      "search": "Поиск",
+      "summarize": "Сводка",
+      "schedule": "Расписание",
+      "analytics": "Аналитика"
+    }
   }
 }

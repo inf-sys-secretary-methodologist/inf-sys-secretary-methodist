@@ -1813,5 +1813,46 @@
     },
     "noStudents": "لم يتم العثور على طلاب معرضين للخطر",
     "noStudentsHint": "سيظهر الطلاب المعرضون للخطر هنا"
+  },
+  "ai": {
+    "title": "مساعد الذكاء الاصطناعي",
+    "history": "سجل المحادثات",
+    "newConversation": "محادثة جديدة",
+    "noConversations": "لا توجد محادثات بعد",
+    "deleteConversation": "حذف المحادثة",
+    "deleteConversationConfirm": "هل أنت متأكد من حذف هذه المحادثة؟ لا يمكن التراجع عن هذا الإجراء.",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "inputPlaceholder": "اسألني أي شيء عن مستنداتك...",
+    "disclaimer": "قد يخطئ الذكاء الاصطناعي. تحقق من المعلومات المهمة.",
+    "thinking": "جارٍ التفكير...",
+    "error": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    "sources": "المصادر",
+    "today": "اليوم",
+    "yesterday": "أمس",
+    "daysAgo": "منذ {days} أيام",
+    "welcomeTitle": "مرحباً بك في مساعد الذكاء الاصطناعي",
+    "welcomeDescription": "يمكنني مساعدتك في البحث عن المستندات والإجابة على الأسئلة وتلخيص المحتوى والمزيد. فقط اسأل!",
+    "quickActionsTitle": "جرب أن تسأل عن:",
+    "quickActions": {
+      "searchDocuments": "البحث في المستندات",
+      "searchDocumentsPrompt": "ابحث عن المستندات المتعلقة بـ...",
+      "summarizeDocument": "تلخيص المستند",
+      "summarizeDocumentPrompt": "لخص المستند...",
+      "scheduleHelp": "مساعدة الجدول",
+      "scheduleHelpPrompt": "ما هي الأحداث المقررة لي هذا الأسبوع؟",
+      "studentAnalytics": "تحليلات الطلاب",
+      "studentAnalyticsPrompt": "أظهر لي الطلاب المعرضين للخطر...",
+      "findTemplate": "البحث عن قالب",
+      "findTemplatePrompt": "ابحث عن قالب لـ...",
+      "help": "مساعدة",
+      "helpPrompt": "كيف يمكنك مساعدتي؟"
+    },
+    "chips": {
+      "search": "بحث",
+      "summarize": "تلخيص",
+      "schedule": "جدول",
+      "analytics": "تحليلات"
+    }
   }
 }
