@@ -39,7 +39,7 @@ describe('i18n request config', () => {
     const requestConfig = await import('../request')
     const configFn = requestConfig.default
 
-    const result = await configFn()
+    const result = await configFn({ requestLocale: Promise.resolve('ru') })
 
     expect(result.locale).toBe('ru')
   })
@@ -50,7 +50,7 @@ describe('i18n request config', () => {
     const requestConfig = await import('../request')
     const configFn = requestConfig.default
 
-    const result = await configFn()
+    const result = await configFn({ requestLocale: Promise.resolve('en') })
 
     expect(result.messages).toBeDefined()
   })
@@ -61,7 +61,7 @@ describe('i18n request config', () => {
     const requestConfig = await import('../request')
     const configFn = requestConfig.default
 
-    await configFn()
+    await configFn({ requestLocale: Promise.resolve('en') })
 
     expect(mockGetUserLocale).toHaveBeenCalled()
   })
@@ -73,7 +73,7 @@ describe('i18n request config', () => {
     jest.resetModules()
     const requestConfigRu = await import('../request')
     const configFnRu = requestConfigRu.default
-    const resultRu = await configFnRu()
+    const resultRu = await configFnRu({ requestLocale: Promise.resolve('ru') })
 
     expect(resultRu.locale).toBe('ru')
 
@@ -83,7 +83,7 @@ describe('i18n request config', () => {
     jest.resetModules()
     const requestConfigEn = await import('../request')
     const configFnEn = requestConfigEn.default
-    const resultEn = await configFnEn()
+    const resultEn = await configFnEn({ requestLocale: Promise.resolve('en') })
 
     expect(resultEn.locale).toBe('en')
   })

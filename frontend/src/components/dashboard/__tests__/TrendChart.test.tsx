@@ -3,7 +3,7 @@ import { TrendChart } from '../TrendChart'
 import type { TrendPoint } from '@/types/dashboard'
 
 // Track domain function calls - used in test assertions
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 let lastDomainFunction: ((dataMax: number) => number) | null = null
 
 // Mock recharts

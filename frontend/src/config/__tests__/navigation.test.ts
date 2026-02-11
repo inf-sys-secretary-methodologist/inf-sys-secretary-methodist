@@ -13,7 +13,7 @@ describe('navigationConfig', () => {
     const dashboardEntry = navigationConfig.find((entry) => entry.nameKey === 'dashboard')
     expect(dashboardEntry).toBeDefined()
     expect(isNavGroup(dashboardEntry!)).toBe(false)
-    if (!isNavGroup(dashboardEntry!)) {
+    if (dashboardEntry && !isNavGroup(dashboardEntry)) {
       expect(dashboardEntry.url).toBe('/dashboard')
     }
   })
@@ -25,6 +25,7 @@ describe('navigationConfig', () => {
       'analyticsGroup',
       'calendar',
       'messages',
+      'aiAssistant',
       'adminGroup',
     ]
     const actualKeys = navigationConfig.map((entry) => entry.nameKey)
@@ -112,12 +113,14 @@ describe('getAvailableNavEntries', () => {
   it('returns entries without role restrictions for any authenticated user', () => {
     const entries = getAvailableNavEntries(UserRole.STUDENT)
 
-    // Dashboard and messages should be available to all
+    // Dashboard, messages, and aiAssistant should be available to all
     const dashboardEntry = entries.find((e) => e.nameKey === 'dashboard')
     const messagesEntry = entries.find((e) => e.nameKey === 'messages')
+    const aiAssistantEntry = entries.find((e) => e.nameKey === 'aiAssistant')
 
     expect(dashboardEntry).toBeDefined()
     expect(messagesEntry).toBeDefined()
+    expect(aiAssistantEntry).toBeDefined()
   })
 
   it('returns all entries for SYSTEM_ADMIN role', () => {
@@ -131,10 +134,11 @@ describe('getAvailableNavEntries', () => {
     const entries = getAvailableNavEntries(UserRole.STUDENT)
     const entryKeys = entries.map((e) => e.nameKey)
 
-    // Student should have dashboard, documents group (only documents item), calendar, messages
+    // Student should have dashboard, documents group (only documents item), calendar, messages, aiAssistant
     expect(entryKeys).toContain('dashboard')
     expect(entryKeys).toContain('calendar')
     expect(entryKeys).toContain('messages')
+    expect(entryKeys).toContain('aiAssistant')
 
     // Documents group should be flattened to single item since student only has access to documents
     const docsEntry = entries.find((e) => e.nameKey === 'documents')
@@ -151,10 +155,11 @@ describe('getAvailableNavEntries', () => {
     const entries = getAvailableNavEntries(UserRole.TEACHER)
     const entryKeys = entries.map((e) => e.nameKey)
 
-    // Teacher should have dashboard, documents group, calendar, messages, and users from admin
+    // Teacher should have dashboard, documents group, calendar, messages, aiAssistant, and users from admin
     expect(entryKeys).toContain('dashboard')
     expect(entryKeys).toContain('calendar')
     expect(entryKeys).toContain('messages')
+    expect(entryKeys).toContain('aiAssistant')
 
     // Teacher should have access to users (from admin group) but not integration
     // Since only users is available, admin group should be flattened to users item
@@ -177,6 +182,7 @@ describe('getAvailableNavEntries', () => {
     expect(entryKeys).toContain('analyticsGroup')
     expect(entryKeys).toContain('calendar')
     expect(entryKeys).toContain('messages')
+    expect(entryKeys).toContain('aiAssistant')
     expect(entryKeys).toContain('adminGroup')
   })
 
@@ -190,6 +196,7 @@ describe('getAvailableNavEntries', () => {
     expect(entryKeys).toContain('analyticsGroup')
     expect(entryKeys).toContain('calendar')
     expect(entryKeys).toContain('messages')
+    expect(entryKeys).toContain('aiAssistant')
 
     // Academic Secretary should have users but not integration
     // So admin group should be flattened to users item
@@ -232,6 +239,7 @@ describe('getAvailableNavItems (legacy)', () => {
     expect(itemKeys).toContain('analytics')
     expect(itemKeys).toContain('calendar')
     expect(itemKeys).toContain('messages')
+    expect(itemKeys).toContain('aiAssistant')
     expect(itemKeys).toContain('users')
     expect(itemKeys).toContain('integration')
   })
@@ -244,6 +252,7 @@ describe('getAvailableNavItems (legacy)', () => {
     expect(itemKeys).toContain('documents')
     expect(itemKeys).toContain('calendar')
     expect(itemKeys).toContain('messages')
+    expect(itemKeys).toContain('aiAssistant')
 
     expect(itemKeys).not.toContain('templates')
     expect(itemKeys).not.toContain('reports')

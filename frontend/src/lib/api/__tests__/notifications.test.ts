@@ -33,7 +33,7 @@ describe('notificationsApi', () => {
       mockedApiClient.get.mockResolvedValue(mockResponse)
 
       await notificationsApi.list({
-        type: 'message',
+        type: 'system',
         priority: 'high',
         is_read: false,
         limit: 10,
@@ -155,7 +155,7 @@ describe('notificationsApi', () => {
 
   describe('toggleChannel', () => {
     it('toggles notification channel', async () => {
-      const input = { channel: 'email', enabled: false }
+      const input = { channel: 'email' as const, enabled: false }
       mockedApiClient.put.mockResolvedValue({ email_enabled: false })
 
       await notificationsApi.toggleChannel(input)

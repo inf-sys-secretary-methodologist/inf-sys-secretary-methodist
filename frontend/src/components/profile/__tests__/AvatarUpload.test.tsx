@@ -29,7 +29,7 @@ jest.mock('next/dynamic', () => () => {
 // Mock next/image
 jest.mock('next/image', () => ({
   __esModule: true,
-  // eslint-disable-next-line @next/next/no-img-element
+
   default: function MockImage({ alt, src }: { alt: string; src: string }) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img alt={alt} src={src} data-testid="avatar-image" />

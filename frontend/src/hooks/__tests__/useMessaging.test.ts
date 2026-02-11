@@ -386,23 +386,22 @@ describe('useMessaging hooks', () => {
   })
 
   describe('useMessagingWebSocket', () => {
-    let mockWsInstance: {
-      connect: jest.Mock
-      disconnect: jest.Mock
-      sendMessage: jest.Mock
-      subscribe: jest.Mock
-      unsubscribe: jest.Mock
-      sendTyping: jest.Mock
-      sendStopTyping: jest.Mock
-      on: jest.Mock
-      off: jest.Mock
-      isConnected: boolean
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let mockWsInstance: any
     let eventHandlers: Map<string, (data: unknown) => void>
 
     beforeEach(() => {
       eventHandlers = new Map()
       mockWsInstance = {
+        // Required private properties for MessagingWebSocket class
+        ws: null,
+        reconnectAttempts: 0,
+        maxReconnectAttempts: 5,
+        reconnectDelay: 1000,
+        listeners: new Map(),
+        pingInterval: null,
+        getToken: jest.fn(() => 'test-token'),
+        // Methods
         connect: jest.fn().mockResolvedValue(undefined),
         disconnect: jest.fn(),
         sendMessage: jest.fn(),
@@ -415,10 +414,17 @@ describe('useMessaging hooks', () => {
         }),
         off: jest.fn(),
         isConnected: false,
+        // Additional methods that might be needed
+        emit: jest.fn(),
+        handleReconnect: jest.fn(),
+        startPing: jest.fn(),
+        stopPing: jest.fn(),
       }
 
       // Using mockedMessagingWebSocket from top of file
-      mockedMessagingWebSocket.mockImplementation(() => mockWsInstance)
+      mockedMessagingWebSocket.mockImplementation(
+        () => mockWsInstance as unknown as MessagingWebSocket
+      )
     })
 
     it('returns initial state', () => {

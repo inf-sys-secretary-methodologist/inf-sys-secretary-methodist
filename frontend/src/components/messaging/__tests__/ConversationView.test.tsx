@@ -179,7 +179,7 @@ describe('ConversationView', () => {
   it('shows loading state', () => {
     // Using mockedUseConversationWithMessages from top of file
     mockedUseConversationWithMessages.mockReturnValueOnce({
-      conversation: null,
+      conversation: undefined,
       messages: [],
       hasMore: false,
       isLoading: true,
@@ -189,6 +189,8 @@ describe('ConversationView', () => {
       sendTyping: jest.fn(),
       sendStopTyping: jest.fn(),
       isConnected: true,
+      mutateConversation: jest.fn(),
+      mutateMessages: jest.fn(),
     })
 
     render(<ConversationView conversationId={1} />)

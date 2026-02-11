@@ -454,7 +454,7 @@ describe('ImageCropper', () => {
   it('handles canvas context error gracefully', async () => {
     // Temporarily override getContext to return null
     const originalGetContext = mockGetContext
-    mockGetContext.mockReturnValueOnce(null)
+    ;(mockGetContext as jest.Mock).mockReturnValueOnce(null)
 
     const user = userEvent.setup()
     const onCropComplete = jest.fn()

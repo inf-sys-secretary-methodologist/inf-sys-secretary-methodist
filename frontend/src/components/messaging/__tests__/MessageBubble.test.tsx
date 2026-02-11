@@ -163,7 +163,8 @@ describe('MessageBubble', () => {
     }
     render(<MessageBubble message={messageWithImage} isOwn={false} />)
     const image = screen.getByRole('img')
-    expect(image).toHaveAttribute('src', 'https://example.com/image.png')
+    // Next.js Image optimizes src, so just check it contains the URL
+    expect(image.getAttribute('src')).toContain('example.com')
   })
 
   it('renders file attachments with download link', () => {

@@ -186,14 +186,22 @@ describe('messagingApi', () => {
       const mockMessage = { id: 1, content: 'With file', attachments: [] }
       mockedApiClient.post.mockResolvedValue({ data: mockMessage })
 
+      const mockAttachment = {
+        file_id: 123,
+        file_name: 'doc.pdf',
+        file_size: 1024,
+        mime_type: 'application/pdf',
+        url: '/files/doc.pdf',
+      }
+
       await messagingApi.sendMessage(1, {
         content: 'With file',
-        attachments: [{ file_id: 'abc123', filename: 'doc.pdf' }],
+        attachments: [mockAttachment],
       })
 
       expect(mockedApiClient.post).toHaveBeenCalledWith('/api/conversations/1/messages', {
         content: 'With file',
-        attachments: [{ file_id: 'abc123', filename: 'doc.pdf' }],
+        attachments: [mockAttachment],
       })
     })
   })
@@ -407,7 +415,7 @@ describe('MessagingWebSocket', () => {
     // Simulate error (onerror doesn't receive useful info)
     lastCreatedWebSocket!.onerror?.()
 
-    expect(consoleSpy).toHaveBeenCalledWith('⚠️ WebSocket connection error')
+    expect(consoleSpy).toHaveBeenCalledWith('WebSocket connection error')
     consoleSpy.mockRestore()
   })
 

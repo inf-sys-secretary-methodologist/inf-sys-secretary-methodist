@@ -6,6 +6,22 @@ import { useMotionValue, useSpring, useInView } from 'motion/react'
 let changeListener: ((value: number) => void) | null = null
 let currentMotionValue = 0
 
+// Helper to create partial MotionValue mocks
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const createMotionValueMock = (getValue: () => number, setValue?: (v: number) => void): any => ({
+  get: getValue,
+  set: setValue ?? jest.fn(),
+})
+
+const createSpringMock = (
+  onFn: (event: string, callback: (value: number) => void) => () => void,
+  getValue: () => number
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any => ({
+  on: onFn,
+  get: getValue,
+})
+
 // Mock motion/react
 jest.mock('motion/react', () => ({
   useInView: jest.fn(() => true),
@@ -87,10 +103,7 @@ describe('NumberTicker', () => {
   it('starts animation after delay', () => {
     // Using mockedUseMotionValue from top of file
     const mockSet = jest.fn()
-    mockedUseMotionValue.mockReturnValue({
-      get: () => 0,
-      set: mockSet,
-    })
+    mockedUseMotionValue.mockReturnValue(createMotionValueMock(() => 0, mockSet))
 
     render(<NumberTicker value={100} delay={1} />)
 
@@ -128,10 +141,7 @@ describe('NumberTicker', () => {
   it('animates to value when direction is up', () => {
     // Using mockedUseMotionValue from top of file
     const mockSet = jest.fn()
-    mockedUseMotionValue.mockReturnValue({
-      get: () => 0,
-      set: mockSet,
-    })
+    mockedUseMotionValue.mockReturnValue(createMotionValueMock(() => 0, mockSet))
 
     render(<NumberTicker value={100} direction="up" />)
 
@@ -145,10 +155,7 @@ describe('NumberTicker', () => {
   it('animates to startValue when direction is down', () => {
     // Using mockedUseMotionValue from top of file
     const mockSet = jest.fn()
-    mockedUseMotionValue.mockReturnValue({
-      get: () => 100,
-      set: mockSet,
-    })
+    mockedUseMotionValue.mockReturnValue(createMotionValueMock(() => 100, mockSet))
 
     render(<NumberTicker value={100} direction="down" startValue={0} />)
 
@@ -162,16 +169,18 @@ describe('NumberTicker', () => {
   it('formats number with decimal places', () => {
     // Reset and set up mock to trigger change
     // Using mockedUseSpring from top of file
-    mockedUseSpring.mockImplementation(() => ({
-      on: (event: string, callback: (value: number) => void) => {
-        if (event === 'change') {
-          // Call with a value that has decimals
-          callback(123.456)
-        }
-        return () => {}
-      },
-      get: () => 123.456,
-    }))
+    mockedUseSpring.mockImplementation(() =>
+      createSpringMock(
+        (event: string, callback: (value: number) => void) => {
+          if (event === 'change') {
+            // Call with a value that has decimals
+            callback(123.456)
+          }
+          return () => {}
+        },
+        () => 123.456
+      )
+    )
 
     render(<NumberTicker value={123.456} decimalPlaces={2} />)
 
@@ -181,15 +190,17 @@ describe('NumberTicker', () => {
 
   it('formats number without decimal places by default', () => {
     // Using mockedUseSpring from top of file
-    mockedUseSpring.mockImplementation(() => ({
-      on: (event: string, callback: (value: number) => void) => {
-        if (event === 'change') {
-          callback(100)
-        }
-        return () => {}
-      },
-      get: () => 100,
-    }))
+    mockedUseSpring.mockImplementation(() =>
+      createSpringMock(
+        (event: string, callback: (value: number) => void) => {
+          if (event === 'change') {
+            callback(100)
+          }
+          return () => {}
+        },
+        () => 100
+      )
+    )
 
     render(<NumberTicker value={100} />)
 
@@ -200,10 +211,7 @@ describe('NumberTicker', () => {
     // Using mockedUseInView, mockedUseMotionValue from top of file
     mockedUseInView.mockReturnValue(false)
     const mockSet = jest.fn()
-    mockedUseMotionValue.mockReturnValue({
-      get: () => 0,
-      set: mockSet,
-    })
+    mockedUseMotionValue.mockReturnValue(createMotionValueMock(() => 0, mockSet))
 
     render(<NumberTicker value={100} />)
 
@@ -256,15 +264,17 @@ describe('NumberTicker', () => {
 
   it('formats large numbers with locale', () => {
     // Using mockedUseSpring from top of file
-    mockedUseSpring.mockImplementation(() => ({
-      on: (event: string, callback: (value: number) => void) => {
-        if (event === 'change') {
-          callback(1234567)
-        }
-        return () => {}
-      },
-      get: () => 1234567,
-    }))
+    mockedUseSpring.mockImplementation(() =>
+      createSpringMock(
+        (event: string, callback: (value: number) => void) => {
+          if (event === 'change') {
+            callback(1234567)
+          }
+          return () => {}
+        },
+        () => 1234567
+      )
+    )
 
     render(<NumberTicker value={1234567} />)
 
@@ -275,10 +285,12 @@ describe('NumberTicker', () => {
   it('unsubscribes from spring value changes on unmount', () => {
     const unsubscribe = jest.fn()
     // Using mockedUseSpring from top of file
-    mockedUseSpring.mockImplementation(() => ({
-      on: () => unsubscribe,
-      get: () => 0,
-    }))
+    mockedUseSpring.mockImplementation(() =>
+      createSpringMock(
+        () => unsubscribe,
+        () => 0
+      )
+    )
 
     const { unmount } = render(<NumberTicker value={100} />)
 

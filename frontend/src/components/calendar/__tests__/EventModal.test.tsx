@@ -97,7 +97,6 @@ jest.mock('next-intl', () => ({
 
 // Mock next/dynamic to return Calendar synchronously with onSelect support
 jest.mock('next/dynamic', () => () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const MockCalendar = ({ onSelect }: { onSelect?: (date: Date) => void }) => (
     <div data-testid="calendar">
       <button data-testid="mock-calendar-select" onClick={() => onSelect?.(new Date(2024, 5, 20))}>

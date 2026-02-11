@@ -52,19 +52,84 @@ jest.mock('next-intl', () => ({
 }))
 
 // Mock the conversations hook
+import type { ParticipantRole, Conversation, Message, MessageType } from '@/types/messaging'
+
+const mockParticipant = (id: number, name: string) => ({
+  id,
+  user_id: id,
+  name,
+  role: 'member' as ParticipantRole,
+  is_muted: false,
+  joined_at: '2024-01-01T00:00:00Z',
+})
+
+const createMockMessage = (
+  id: number,
+  content: string,
+  type: MessageType = 'text',
+  options: { is_deleted?: boolean; created_at?: string } = {}
+): Message => ({
+  id,
+  conversation_id: 1,
+  sender_id: 1,
+  sender_name: 'User',
+  content,
+  type,
+  attachments: [],
+  is_edited: false,
+  is_deleted: options.is_deleted ?? false,
+  created_at: options.created_at ?? new Date().toISOString(),
+})
+
+const createMockConversation = (
+  id: number,
+  title: string,
+  options: {
+    type?: 'direct' | 'group'
+    last_message?: Message
+    created_at?: string
+    updated_at?: string
+  } = {}
+): Conversation => ({
+  id,
+  type: options.type ?? 'direct',
+  title,
+  created_by: 1,
+  participants: [mockParticipant(1, 'User')],
+  last_message: options.last_message,
+  unread_count: 0,
+  created_at: options.created_at ?? new Date().toISOString(),
+  updated_at: options.updated_at ?? new Date().toISOString(),
+})
+
+const createMockHookReturn = (
+  conversations: Conversation[],
+  options: { isLoading?: boolean; error?: Error | null } = {}
+) => ({
+  conversations,
+  data: undefined,
+  total: conversations.length,
+  isLoading: options.isLoading ?? false,
+  error: options.error ?? null,
+  mutate: jest.fn(),
+})
+
 const mockConversations = [
   {
-    id: '1',
+    id: 1,
     type: 'direct' as const,
     title: 'John Doe',
-    participants: [
-      { id: 1, name: 'John Doe', is_online: true },
-      { id: 2, name: 'Jane Smith', is_online: false },
-    ],
+    created_by: 1,
+    participants: [mockParticipant(1, 'John Doe'), mockParticipant(2, 'Jane Smith')],
     last_message: {
-      id: '101',
+      id: 101,
+      conversation_id: 1,
+      sender_id: 1,
+      sender_name: 'John Doe',
       content: 'Hello there!',
       type: 'text' as const,
+      attachments: [],
+      is_edited: false,
       is_deleted: false,
       created_at: new Date().toISOString(),
     },
@@ -73,15 +138,16 @@ const mockConversations = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: '2',
+    id: 2,
     type: 'group' as const,
     title: 'Team Chat',
+    created_by: 1,
     participants: [
-      { id: 1, name: 'John Doe', is_online: true },
-      { id: 2, name: 'Jane Smith', is_online: false },
-      { id: 3, name: 'Bob Johnson', is_online: true },
+      mockParticipant(1, 'John Doe'),
+      mockParticipant(2, 'Jane Smith'),
+      mockParticipant(3, 'Bob Johnson'),
     ],
-    last_message: null,
+    last_message: undefined,
     unread_count: 0,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -91,8 +157,11 @@ const mockConversations = [
 jest.mock('@/hooks/useMessaging', () => ({
   useConversations: jest.fn(() => ({
     conversations: mockConversations,
+    data: undefined,
+    total: 0,
     isLoading: false,
     error: null,
+    mutate: jest.fn(),
   })),
   useCreateDirectConversation: jest.fn(() => ({
     createConversation: jest.fn(),
@@ -437,28 +506,16 @@ describe('ConversationList date formatting', () => {
   it('formats time as hours for today messages', () => {
     // Using mockedUseConversations from top of file
     const today = new Date()
-    mockedUseConversations.mockReturnValue({
-      conversations: [
-        {
-          id: '1',
-          type: 'direct',
-          title: 'Today Chat',
-          participants: [{ id: 1, name: 'User', is_online: true }],
-          last_message: {
-            id: '1',
-            content: 'Today message',
-            type: 'text',
-            is_deleted: false,
-            created_at: today.toISOString(),
-          },
-          unread_count: 0,
-          created_at: today.toISOString(),
-          updated_at: today.toISOString(),
-        },
-      ],
-      isLoading: false,
-      error: null,
-    })
+    const todayStr = today.toISOString()
+    mockedUseConversations.mockReturnValue(
+      createMockHookReturn([
+        createMockConversation(1, 'Today Chat', {
+          last_message: createMockMessage(1, 'Today message', 'text', { created_at: todayStr }),
+          created_at: todayStr,
+          updated_at: todayStr,
+        }),
+      ])
+    )
 
     render(<ConversationList />)
     expect(screen.getByText('Today message')).toBeInTheDocument()
@@ -468,28 +525,18 @@ describe('ConversationList date formatting', () => {
     // Using mockedUseConversations from top of file
     const yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
-    mockedUseConversations.mockReturnValue({
-      conversations: [
-        {
-          id: '1',
-          type: 'direct',
-          title: 'Yesterday Chat',
-          participants: [{ id: 1, name: 'User', is_online: true }],
-          last_message: {
-            id: '1',
-            content: 'Yesterday message',
-            type: 'text',
-            is_deleted: false,
-            created_at: yesterday.toISOString(),
-          },
-          unread_count: 0,
-          created_at: yesterday.toISOString(),
-          updated_at: yesterday.toISOString(),
-        },
-      ],
-      isLoading: false,
-      error: null,
-    })
+    const yesterdayStr = yesterday.toISOString()
+    mockedUseConversations.mockReturnValue(
+      createMockHookReturn([
+        createMockConversation(1, 'Yesterday Chat', {
+          last_message: createMockMessage(1, 'Yesterday message', 'text', {
+            created_at: yesterdayStr,
+          }),
+          created_at: yesterdayStr,
+          updated_at: yesterdayStr,
+        }),
+      ])
+    )
 
     render(<ConversationList />)
     expect(screen.getByText('Yesterday')).toBeInTheDocument()
@@ -499,28 +546,18 @@ describe('ConversationList date formatting', () => {
     // Using mockedUseConversations from top of file
     const threeDaysAgo = new Date()
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
-    mockedUseConversations.mockReturnValue({
-      conversations: [
-        {
-          id: '1',
-          type: 'direct',
-          title: 'Week Chat',
-          participants: [{ id: 1, name: 'User', is_online: true }],
-          last_message: {
-            id: '1',
-            content: 'Week message',
-            type: 'text',
-            is_deleted: false,
-            created_at: threeDaysAgo.toISOString(),
-          },
-          unread_count: 0,
-          created_at: threeDaysAgo.toISOString(),
-          updated_at: threeDaysAgo.toISOString(),
-        },
-      ],
-      isLoading: false,
-      error: null,
-    })
+    const threeDaysAgoStr = threeDaysAgo.toISOString()
+    mockedUseConversations.mockReturnValue(
+      createMockHookReturn([
+        createMockConversation(1, 'Week Chat', {
+          last_message: createMockMessage(1, 'Week message', 'text', {
+            created_at: threeDaysAgoStr,
+          }),
+          created_at: threeDaysAgoStr,
+          updated_at: threeDaysAgoStr,
+        }),
+      ])
+    )
 
     render(<ConversationList />)
     expect(screen.getByText('Week message')).toBeInTheDocument()
@@ -530,28 +567,16 @@ describe('ConversationList date formatting', () => {
     // Using mockedUseConversations from top of file
     const twoWeeksAgo = new Date()
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
-    mockedUseConversations.mockReturnValue({
-      conversations: [
-        {
-          id: '1',
-          type: 'direct',
-          title: 'Old Chat',
-          participants: [{ id: 1, name: 'User', is_online: true }],
-          last_message: {
-            id: '1',
-            content: 'Old message',
-            type: 'text',
-            is_deleted: false,
-            created_at: twoWeeksAgo.toISOString(),
-          },
-          unread_count: 0,
-          created_at: twoWeeksAgo.toISOString(),
-          updated_at: twoWeeksAgo.toISOString(),
-        },
-      ],
-      isLoading: false,
-      error: null,
-    })
+    const twoWeeksAgoStr = twoWeeksAgo.toISOString()
+    mockedUseConversations.mockReturnValue(
+      createMockHookReturn([
+        createMockConversation(1, 'Old Chat', {
+          last_message: createMockMessage(1, 'Old message', 'text', { created_at: twoWeeksAgoStr }),
+          created_at: twoWeeksAgoStr,
+          updated_at: twoWeeksAgoStr,
+        }),
+      ])
+    )
 
     render(<ConversationList />)
     expect(screen.getByText('Old message')).toBeInTheDocument()
@@ -565,28 +590,13 @@ describe('ConversationList message type previews', () => {
 
   it('shows deleted message preview', () => {
     // Using mockedUseConversations from top of file
-    mockedUseConversations.mockReturnValue({
-      conversations: [
-        {
-          id: '1',
-          type: 'direct',
-          title: 'Deleted Chat',
-          participants: [{ id: 1, name: 'User', is_online: true }],
-          last_message: {
-            id: '1',
-            content: 'Original content',
-            type: 'text',
-            is_deleted: true,
-            created_at: new Date().toISOString(),
-          },
-          unread_count: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ],
-      isLoading: false,
-      error: null,
-    })
+    mockedUseConversations.mockReturnValue(
+      createMockHookReturn([
+        createMockConversation(1, 'Deleted Chat', {
+          last_message: createMockMessage(1, 'Original content', 'text', { is_deleted: true }),
+        }),
+      ])
+    )
 
     render(<ConversationList />)
     expect(screen.getByText('Message deleted')).toBeInTheDocument()
@@ -594,28 +604,13 @@ describe('ConversationList message type previews', () => {
 
   it('shows image message preview with emoji', () => {
     // Using mockedUseConversations from top of file
-    mockedUseConversations.mockReturnValue({
-      conversations: [
-        {
-          id: '1',
-          type: 'direct',
-          title: 'Image Chat',
-          participants: [{ id: 1, name: 'User', is_online: true }],
-          last_message: {
-            id: '1',
-            content: 'image.jpg',
-            type: 'image',
-            is_deleted: false,
-            created_at: new Date().toISOString(),
-          },
-          unread_count: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ],
-      isLoading: false,
-      error: null,
-    })
+    mockedUseConversations.mockReturnValue(
+      createMockHookReturn([
+        createMockConversation(1, 'Image Chat', {
+          last_message: createMockMessage(1, 'image.jpg', 'image'),
+        }),
+      ])
+    )
 
     render(<ConversationList />)
     expect(screen.getByText('📷 Image')).toBeInTheDocument()
@@ -623,28 +618,13 @@ describe('ConversationList message type previews', () => {
 
   it('shows file message preview with emoji', () => {
     // Using mockedUseConversations from top of file
-    mockedUseConversations.mockReturnValue({
-      conversations: [
-        {
-          id: '1',
-          type: 'direct',
-          title: 'File Chat',
-          participants: [{ id: 1, name: 'User', is_online: true }],
-          last_message: {
-            id: '1',
-            content: 'document.pdf',
-            type: 'file',
-            is_deleted: false,
-            created_at: new Date().toISOString(),
-          },
-          unread_count: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ],
-      isLoading: false,
-      error: null,
-    })
+    mockedUseConversations.mockReturnValue(
+      createMockHookReturn([
+        createMockConversation(1, 'File Chat', {
+          last_message: createMockMessage(1, 'document.pdf', 'file'),
+        }),
+      ])
+    )
 
     render(<ConversationList />)
     expect(screen.getByText('📎 File')).toBeInTheDocument()
@@ -652,28 +632,13 @@ describe('ConversationList message type previews', () => {
 
   it('shows system message preview with emoji', () => {
     // Using mockedUseConversations from top of file
-    mockedUseConversations.mockReturnValue({
-      conversations: [
-        {
-          id: '1',
-          type: 'direct',
-          title: 'System Chat',
-          participants: [{ id: 1, name: 'User', is_online: true }],
-          last_message: {
-            id: '1',
-            content: 'User joined the chat',
-            type: 'system',
-            is_deleted: false,
-            created_at: new Date().toISOString(),
-          },
-          unread_count: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ],
-      isLoading: false,
-      error: null,
-    })
+    mockedUseConversations.mockReturnValue(
+      createMockHookReturn([
+        createMockConversation(1, 'System Chat', {
+          last_message: createMockMessage(1, 'User joined the chat', 'system'),
+        }),
+      ])
+    )
 
     render(<ConversationList />)
     expect(screen.getByText('⚙️ User joined the chat')).toBeInTheDocument()
@@ -687,11 +652,7 @@ describe('ConversationList loading and error states', () => {
 
   it('shows loading state with spinner', () => {
     // Using mockedUseConversations from top of file
-    mockedUseConversations.mockReturnValue({
-      conversations: [],
-      isLoading: true,
-      error: null,
-    })
+    mockedUseConversations.mockReturnValue(createMockHookReturn([], { isLoading: true }))
 
     const { container } = render(<ConversationList />)
 
@@ -701,11 +662,9 @@ describe('ConversationList loading and error states', () => {
 
   it('shows error state', () => {
     // Using mockedUseConversations from top of file
-    mockedUseConversations.mockReturnValue({
-      conversations: [],
-      isLoading: false,
-      error: new Error('Network error'),
-    })
+    mockedUseConversations.mockReturnValue(
+      createMockHookReturn([], { error: new Error('Network error') })
+    )
 
     render(<ConversationList />)
 
@@ -714,11 +673,7 @@ describe('ConversationList loading and error states', () => {
 
   it('shows empty state when no conversations', () => {
     // Using mockedUseConversations from top of file
-    mockedUseConversations.mockReturnValue({
-      conversations: [],
-      isLoading: false,
-      error: null,
-    })
+    mockedUseConversations.mockReturnValue(createMockHookReturn([]))
 
     render(<ConversationList />)
 
