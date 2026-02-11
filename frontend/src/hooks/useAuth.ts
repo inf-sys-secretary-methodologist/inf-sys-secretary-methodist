@@ -44,6 +44,8 @@ export function useLogin() {
   const handleLogin = async (credentials: LoginRequest, redirectTo: string = '/') => {
     try {
       await login(credentials)
+      // Small delay to ensure cookie is written before redirect
+      await new Promise((resolve) => setTimeout(resolve, 100))
       router.push(redirectTo)
     } catch (error) {
       // Error is already set in store
@@ -141,4 +143,57 @@ export function useRequireAuth(redirectTo: string = '/login') {
     isAuthenticated,
     isLoading,
   }
+}
+
+// ============================================================================
+// Granular Selector Hooks
+// These hooks use Zustand's selector pattern to prevent cascading re-renders
+// by only subscribing to specific slices of state.
+// ============================================================================
+
+/**
+ * Hook to access only the user object
+ * Components using this will only re-render when user changes
+ */
+export function useUser() {
+  return useAuthStore((state) => state.user)
+}
+
+/**
+ * Hook to access only authentication status
+ * Components using this will only re-render when isAuthenticated changes
+ */
+export function useIsAuthenticated() {
+  return useAuthStore((state) => state.isAuthenticated)
+}
+
+/**
+ * Hook to access only loading state
+ * Components using this will only re-render when isLoading changes
+ */
+export function useAuthLoading() {
+  return useAuthStore((state) => state.isLoading)
+}
+
+/**
+ * Hook to access only error state
+ * Components using this will only re-render when error changes
+ */
+export function useAuthError() {
+  return useAuthStore((state) => state.error)
+}
+
+/**
+ * Hook to access only auth action functions
+ * Returns a stable object of action functions that won't cause re-renders
+ * since Zustand action functions are stable references
+ */
+export function useAuthActions() {
+  return useAuthStore((state) => ({
+    login: state.login,
+    register: state.register,
+    logout: state.logout,
+    checkAuth: state.checkAuth,
+    clearError: state.clearError,
+  }))
 }

@@ -231,7 +231,6 @@ export const useAuthStore = create<AuthState>()(
         const now = Date.now()
         /* c8 ignore start - Debounce logic */
         if (isCheckingAuth || now - lastCheckAuthTime < CHECK_AUTH_DEBOUNCE_MS) {
-          console.log('⏭️ checkAuth skipped (already running or debounced)')
           return
         }
         /* c8 ignore stop */
@@ -264,15 +263,7 @@ export const useAuthStore = create<AuthState>()(
             /* c8 ignore stop */
           }
 
-          console.log('🔍 checkAuth called:', {
-            hasToken: !!token,
-            hasUser: !!state.user,
-            userName: state.user?.name,
-            isAuthenticated: state.isAuthenticated,
-          })
-
           if (!token) {
-            console.log('❌ No token found')
             set({ isAuthenticated: false, isLoading: false })
             return
           }
@@ -282,9 +273,7 @@ export const useAuthStore = create<AuthState>()(
           apiClient.setAuthToken(token)
 
           // Verify token and get user
-          console.log('📡 Calling getCurrentUser API...')
           const user = await authApi.getCurrentUser()
-          console.log('✅ User loaded:', user)
 
           set({
             user,
