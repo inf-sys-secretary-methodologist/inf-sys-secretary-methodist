@@ -2,7 +2,7 @@
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     container_name: postgres-dev
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-inf_sys_db}
@@ -151,6 +151,22 @@ services:
 
       # Sentry Error Tracking
       SENTRY_DSN: ${SENTRY_DSN:-}
+
+      # AI/RAG Configuration
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-text-embedding-3-small}
+      AI_CHAT_MODEL: ${AI_CHAT_MODEL:-gpt-4o-mini}
+      AI_MAX_TOKENS: ${AI_MAX_TOKENS:-2048}
+      AI_TEMPERATURE: ${AI_TEMPERATURE:-0.7}
+      AI_CHUNK_SIZE: ${AI_CHUNK_SIZE:-512}
+      AI_CHUNK_OVERLAP: ${AI_CHUNK_OVERLAP:-51}
+      AI_SEARCH_TOP_K: ${AI_SEARCH_TOP_K:-5}
+      AI_SEARCH_THRESHOLD: ${AI_SEARCH_THRESHOLD:-0.7}
+      AI_TIMEOUT: ${AI_TIMEOUT:-60s}
 
       # 1C Integration Configuration
       INTEGRATION_1C_ENABLED: ${INTEGRATION_1C_ENABLED:-false}

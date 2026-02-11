@@ -6,7 +6,7 @@
 CREATE OR REPLACE VIEW v_student_attendance_stats AS
 SELECT
     es.id AS student_id,
-    es.full_name AS student_name,
+    CONCAT(es.last_name, ' ', es.first_name, ' ', COALESCE(es.middle_name, '')) AS student_name,
     es.group_name,
     COUNT(DISTINCT ar.id) AS total_records,
     COUNT(DISTINCT CASE WHEN ar.status = 'present' THEN ar.id END) AS present_count,
@@ -25,13 +25,13 @@ SELECT
 FROM external_students es
 LEFT JOIN attendance_records ar ON ar.student_id = es.id
 WHERE es.is_active = true
-GROUP BY es.id, es.full_name, es.group_name;
+GROUP BY es.id, CONCAT(es.last_name, ' ', es.first_name, ' ', COALESCE(es.middle_name, '')), es.group_name;
 
 -- View: Student grade statistics
 CREATE OR REPLACE VIEW v_student_grade_stats AS
 SELECT
     es.id AS student_id,
-    es.full_name AS student_name,
+    CONCAT(es.last_name, ' ', es.first_name, ' ', COALESCE(es.middle_name, '')) AS student_name,
     es.group_name,
     COUNT(g.id) AS total_grades,
     ROUND(AVG(g.grade_value), 2) AS grade_average,
@@ -45,13 +45,13 @@ SELECT
 FROM external_students es
 LEFT JOIN grades g ON g.student_id = es.id
 WHERE es.is_active = true
-GROUP BY es.id, es.full_name, es.group_name;
+GROUP BY es.id, CONCAT(es.last_name, ' ', es.first_name, ' ', COALESCE(es.middle_name, '')), es.group_name;
 
 -- View: Student risk score calculation
 CREATE OR REPLACE VIEW v_student_risk_score AS
 SELECT
     es.id AS student_id,
-    es.full_name AS student_name,
+    CONCAT(es.last_name, ' ', es.first_name, ' ', COALESCE(es.middle_name, '')) AS student_name,
     es.group_name,
     COALESCE(att.attendance_rate, 0) AS attendance_rate,
     COALESCE(grd.grade_average, 0) AS grade_average,
