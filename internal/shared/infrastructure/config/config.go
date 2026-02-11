@@ -24,6 +24,7 @@ type Config struct {
 	Integration IntegrationConfig
 	WebPush     WebPushConfig
 	Tracing     TracingConfig
+	AI          AIConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -121,6 +122,24 @@ type TracingConfig struct {
 	OTLPEndpoint string  // OTLP collector endpoint (e.g., "otel-collector:4317")
 	SamplingRate float64 // Sampling rate (0.0 - 1.0, default 0.1 = 10%)
 	ServiceName  string  // Service name for traces
+}
+
+// AIConfig holds AI/RAG configuration
+type AIConfig struct {
+	Enabled        bool          // Enable AI features
+	Provider       string        // Primary provider: "openai" or "ollama"
+	OpenAIAPIKey   string        // OpenAI API key
+	OpenAIBaseURL  string        // OpenAI API base URL (for custom endpoints)
+	OllamaBaseURL  string        // Ollama API base URL
+	EmbeddingModel string        // Model for embeddings (e.g., "text-embedding-3-small")
+	ChatModel      string        // Model for chat (e.g., "gpt-4o-mini")
+	MaxTokens      int           // Max tokens for chat response
+	Temperature    float64       // Temperature for chat (0.0 - 2.0)
+	ChunkSize      int           // Chunk size in tokens for document splitting
+	ChunkOverlap   int           // Overlap between chunks in tokens
+	SearchTopK     int           // Number of similar chunks to retrieve
+	SearchThreshold float64      // Minimum similarity threshold (0.0 - 1.0)
+	Timeout        time.Duration // API request timeout
 }
 
 // S3Config holds S3/MinIO storage configuration
@@ -224,6 +243,22 @@ func Load() (*Config, error) {
 			OTLPEndpoint: getEnv("TRACING_OTLP_ENDPOINT", "otel-collector:4317"),
 			SamplingRate: getEnvAsFloat("TRACING_SAMPLING_RATE", 0.1),
 			ServiceName:  getEnv("TRACING_SERVICE_NAME", "inf-sys-secretary-methodist"),
+		},
+		AI: AIConfig{
+			Enabled:         getEnvAsBool("AI_ENABLED", false),
+			Provider:        getEnv("AI_PROVIDER", "openai"),
+			OpenAIAPIKey:    getEnv("OPENAI_API_KEY", ""),
+			OpenAIBaseURL:   getEnv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+			OllamaBaseURL:   getEnv("OLLAMA_BASE_URL", "http://localhost:11434"),
+			EmbeddingModel:  getEnv("AI_EMBEDDING_MODEL", "text-embedding-3-small"),
+			ChatModel:       getEnv("AI_CHAT_MODEL", "gpt-4o-mini"),
+			MaxTokens:       getEnvAsInt("AI_MAX_TOKENS", 2048),
+			Temperature:     getEnvAsFloat("AI_TEMPERATURE", 0.7),
+			ChunkSize:       getEnvAsInt("AI_CHUNK_SIZE", 512),
+			ChunkOverlap:    getEnvAsInt("AI_CHUNK_OVERLAP", 51),
+			SearchTopK:      getEnvAsInt("AI_SEARCH_TOP_K", 5),
+			SearchThreshold: getEnvAsFloat("AI_SEARCH_THRESHOLD", 0.7),
+			Timeout:         getEnvAsDuration("AI_TIMEOUT", 60*time.Second),
 		},
 	}
 

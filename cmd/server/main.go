@@ -42,6 +42,8 @@
 // @tag.description Объявления
 // @tag.name dashboard
 // @tag.description Дашборд и статистика
+// @tag.name AI
+// @tag.description AI-ассистент и семантический поиск
 package main
 
 import (
@@ -113,6 +115,11 @@ import (
 	messagingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/persistence"
 	messagingWebsocket "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
 	messagingHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http"
+	aiUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
+	aiAdapters "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/adapters"
+	aiPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/persistence"
+	aiProviders "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/providers"
+	aiHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/interfaces/http/handlers"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -547,6 +554,77 @@ func main() {
 			})
 		}
 		logger.Info("Integration module initialized", nil)
+	}
+
+	// Initialize AI module (RAG/Chat functionality)
+	if cfg.AI.Enabled {
+		// Initialize AI repositories
+		aiEmbeddingRepo := aiPersistence.NewEmbeddingRepositoryPg(db)
+		aiConversationRepo := aiPersistence.NewConversationRepositoryPg(db)
+		aiMessageRepo := aiPersistence.NewMessageRepositoryPg(db)
+
+		// Initialize document adapter for AI (uses documents module)
+		aiDocRepo := docPersistence.NewDocumentRepositoryPG(db)
+		documentAdapter := aiAdapters.NewDocumentAdapter(aiDocRepo)
+
+		// Initialize AI providers based on configuration
+		var embeddingProvider aiUsecases.EmbeddingProvider
+		var llmProvider aiUsecases.LLMProvider
+
+		if cfg.AI.Provider == "ollama" {
+			ollamaProvider := aiProviders.NewOllamaProvider(aiProviders.OllamaConfig{
+				BaseURL:        cfg.AI.OllamaBaseURL,
+				EmbeddingModel: cfg.AI.EmbeddingModel,
+				ChatModel:      cfg.AI.ChatModel,
+				Timeout:        cfg.AI.Timeout,
+			})
+			embeddingProvider = ollamaProvider
+			llmProvider = ollamaProvider
+		} else {
+			// Default to OpenAI
+			openaiProvider := aiProviders.NewOpenAIProvider(aiProviders.OpenAIConfig{
+				APIKey:         cfg.AI.OpenAIAPIKey,
+				BaseURL:        cfg.AI.OpenAIBaseURL,
+				EmbeddingModel: cfg.AI.EmbeddingModel,
+				ChatModel:      cfg.AI.ChatModel,
+				MaxTokens:      cfg.AI.MaxTokens,
+				Temperature:    cfg.AI.Temperature,
+				Timeout:        cfg.AI.Timeout,
+			})
+			embeddingProvider = openaiProvider
+			llmProvider = openaiProvider
+		}
+
+		// Initialize AI use cases
+		aiEmbeddingUseCase := aiUsecases.NewEmbeddingUseCase(
+			aiEmbeddingRepo,
+			embeddingProvider,
+			documentAdapter,
+			auditLogger,
+		)
+
+		aiChatUseCase := aiUsecases.NewChatUseCase(
+			aiConversationRepo,
+			aiMessageRepo,
+			aiEmbeddingRepo,
+			aiEmbeddingUseCase,
+			llmProvider,
+			auditLogger,
+		)
+
+		// Initialize AI handler
+		aiHandlerInstance := aiHandler.NewAIHandler(aiChatUseCase, aiEmbeddingUseCase, auditLogger)
+
+		// Register AI routes under protected API group
+		aiApiGroup := router.Group("/api")
+		aiApiGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
+		aiHandlerInstance.RegisterRoutes(aiApiGroup)
+
+		logger.Info("AI module initialized", map[string]interface{}{
+			"provider":        cfg.AI.Provider,
+			"embedding_model": cfg.AI.EmbeddingModel,
+			"chat_model":      cfg.AI.ChatModel,
+		})
 	}
 
 	// Create HTTP server
