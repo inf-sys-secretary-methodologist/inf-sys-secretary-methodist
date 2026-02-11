@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { AlertCircle, Home, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTranslations } from 'next-intl'
+import * as Sentry from '@sentry/nextjs'
 
 export default function Error({
   error,
@@ -23,8 +24,19 @@ export default function Error({
       timestamp: new Date().toISOString(),
     })
 
-    // TODO: Send to error tracking service (e.g., Sentry)
-    // logErrorToService(error)
+    // Send to Sentry error tracking service
+    Sentry.captureException(error, {
+      level: 'error',
+      tags: {
+        errorBoundary: 'app-error',
+      },
+      contexts: {
+        errorInfo: {
+          digest: error.digest,
+          timestamp: new Date().toISOString(),
+        },
+      },
+    })
   }, [error])
 
   return (

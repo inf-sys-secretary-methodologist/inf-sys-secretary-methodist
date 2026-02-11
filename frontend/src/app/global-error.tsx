@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
+import * as Sentry from '@sentry/nextjs'
 
 type Locale = 'ru' | 'en' | 'fr' | 'ar'
 
@@ -88,8 +89,20 @@ export default function GlobalError({
       timestamp: new Date().toISOString(),
     })
 
-    // TODO: Send to error tracking service (e.g., Sentry) with high priority
-    // logCriticalError(error)
+    // Send to Sentry error tracking service with high priority
+    Sentry.captureException(error, {
+      level: 'fatal',
+      tags: {
+        errorBoundary: 'global-error',
+        critical: 'true',
+      },
+      contexts: {
+        errorInfo: {
+          digest: error.digest,
+          timestamp: new Date().toISOString(),
+        },
+      },
+    })
   }, [error])
 
   return (

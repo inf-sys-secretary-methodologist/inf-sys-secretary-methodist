@@ -16,6 +16,7 @@ const nextConfig = {
 
   // Optimize heavy packages - tree-shaking for icons and charts
   experimental: {
+    instrumentationHook: true,
     optimizePackageImports: [
       'lucide-react',
       'recharts',
@@ -33,6 +34,16 @@ const nextConfig = {
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
 
   // Security and PWA headers

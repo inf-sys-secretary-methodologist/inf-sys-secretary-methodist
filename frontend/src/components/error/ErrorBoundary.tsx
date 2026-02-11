@@ -4,6 +4,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import * as Sentry from '@sentry/nextjs'
 
 interface Props {
   children: ReactNode
@@ -104,8 +105,18 @@ export class ErrorBoundary extends Component<Props, State> {
     // Call custom error handler if provided
     this.props.onError?.(error, errorInfo)
 
-    // TODO: Send to error tracking service (e.g., Sentry)
-    // logErrorToService(error, errorInfo)
+    // Send to Sentry error tracking service
+    Sentry.captureException(error, {
+      level: 'error',
+      tags: {
+        errorBoundary: 'component',
+      },
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack,
+        },
+      },
+    })
   }
 
   handleReset = () => {
