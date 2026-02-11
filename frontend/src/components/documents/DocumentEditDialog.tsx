@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { X, Save, Loader2, Upload, FileText, Trash2, Tag, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -56,15 +56,8 @@ export function DocumentEditDialog({
     }
   }, [document])
 
-  // Load full document data including content
-  useEffect(() => {
-    if (document && open) {
-      loadDocumentDetails()
-    }
-  }, [document, open])
-
   /* c8 ignore start - Document loading, tested in e2e */
-  const loadDocumentDetails = async () => {
+  const loadDocumentDetails = useCallback(async () => {
     if (!document) return
     try {
       const [fullDoc, tags, availableTags] = await Promise.all([
@@ -81,8 +74,15 @@ export function DocumentEditDialog({
     } catch (err) {
       console.error('Failed to load document details:', err)
     }
-  }
+  }, [document])
   /* c8 ignore stop */
+
+  // Load full document data including content
+  useEffect(() => {
+    if (document && open) {
+      loadDocumentDetails()
+    }
+  }, [document, open, loadDocumentDetails])
 
   /* c8 ignore start - File handlers, tested in e2e */
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

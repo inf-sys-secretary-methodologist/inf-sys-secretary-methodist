@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import { X, Download, ExternalLink, FileText, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Document } from '@/types/document'
@@ -185,11 +186,13 @@ export function DocumentPreview({
                   />
                 </div>
               ) : isImage && doc.url ? (
-                <div className="flex items-center justify-center">
-                  <img
+                <div className="flex items-center justify-center relative w-full min-h-[400px]">
+                  <Image
                     src={getAuthenticatedUrl(doc.url, true)}
                     alt={doc.name}
-                    className="max-w-[600px] max-h-[400px] object-contain rounded shadow-lg"
+                    width={600}
+                    height={400}
+                    className="object-contain rounded shadow-lg"
                   />
                 </div>
               ) : (

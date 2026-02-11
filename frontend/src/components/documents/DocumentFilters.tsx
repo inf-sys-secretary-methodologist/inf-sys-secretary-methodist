@@ -1,23 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import dynamic from 'next/dynamic'
 import { useTranslations, useLocale } from 'next-intl'
-import { Search, Filter, X, Calendar as CalendarIcon, Loader2 } from 'lucide-react'
+import { Search, Filter, X } from 'lucide-react'
 import { format, Locale } from 'date-fns'
 import { ru, enUS, fr, ar } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-
-// Lazy load Calendar to reduce initial bundle (react-day-picker ~100KB)
-const Calendar = dynamic(() => import('@/components/ui/calendar').then((mod) => mod.Calendar), {
-  loading: () => (
-    <div className="flex items-center justify-center p-4">
-      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-    </div>
-  ),
-  ssr: false,
-})
 import {
   DocumentCategory,
   DocumentStatus,
@@ -25,7 +13,7 @@ import {
   type DocumentSortOptions,
 } from '@/types/document'
 import { usersApi } from '@/lib/api/users'
-import { cn } from '@/lib/utils'
+import { DateRangeFilter, CategoryFilter, StatusFilter, AuthorFilter, TagsFilter } from './filters'
 
 interface Author {
   id: number
@@ -247,190 +235,28 @@ export function DocumentFilters({
       {isExpanded && (
         <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Category Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('category')}
-              </label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => handleCategoryChange(e.target.value as DocumentCategory | 'all')}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
-                         bg-white dark:bg-gray-900 text-gray-900 dark:text-white
-                         focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">{t('allCategories')}</option>
-                {Object.values(DocumentCategory).map((value) => (
-                  <option key={value} value={value}>
-                    {tDocs(`categories.${value}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <CategoryFilter
+              selectedCategory={selectedCategory}
+              onCategoryChange={handleCategoryChange}
+            />
 
-            {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('status')}
-              </label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => handleStatusChange(e.target.value as DocumentStatus | 'all')}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
-                         bg-white dark:bg-gray-900 text-gray-900 dark:text-white
-                         focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">{t('allStatuses')}</option>
-                {Object.values(DocumentStatus).map((value) => (
-                  <option key={value} value={value}>
-                    {tDocs(`statuses.${value}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <StatusFilter selectedStatus={selectedStatus} onStatusChange={handleStatusChange} />
 
-            {/* Author Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('author')}
-              </label>
-              {/* c8 ignore start - Author select change handler */}
-              <select
-                value={selectedAuthorId}
-                onChange={(e) =>
-                  handleAuthorChange(e.target.value === 'all' ? 'all' : Number(e.target.value))
-                }
-                disabled={isLoadingAuthors}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
-                         bg-white dark:bg-gray-900 text-gray-900 dark:text-white
-                         focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {/* c8 ignore stop */}
-                {/* c8 ignore next */}
-                <option value="all">{isLoadingAuthors ? t('loading') : t('allAuthors')}</option>
-                {authors.map((author) => (
-                  <option key={author.id} value={author.id}>
-                    {author.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <AuthorFilter
+              selectedAuthorId={selectedAuthorId}
+              authors={authors}
+              isLoadingAuthors={isLoadingAuthors}
+              onAuthorChange={handleAuthorChange}
+            />
 
-            {/* Date From Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('dateFrom')}
-              </label>
-              <div className="flex gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    {/* c8 ignore start - Date from button */}
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'flex-1 justify-start text-left font-normal',
-                        !dateFrom && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateFrom
-                        ? format(dateFrom, 'dd.MM.yyyy', { locale: dateLocale })
-                        : t('selectDate')}
-                    </Button>
-                    {/* c8 ignore stop */}
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    {/* c8 ignore start - Calendar disabled callback */}
-                    <Calendar
-                      mode="single"
-                      selected={dateFrom}
-                      onSelect={handleDateFromChange}
-                      disabled={(date) => (dateTo ? date > dateTo : false)}
-                      locale={dateLocale}
-                    />
-                    {/* c8 ignore stop */}
-                  </PopoverContent>
-                </Popover>
-                {dateFrom && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDateFromChange(undefined)}
-                    className="flex-shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    aria-label={tForm('resetDate')}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={handleDateFromChange}
+              onDateToChange={handleDateToChange}
+            />
 
-            {/* Date To Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('dateTo')}
-              </label>
-              <div className="flex gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    {/* c8 ignore start - Date to button */}
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'flex-1 justify-start text-left font-normal',
-                        !dateTo && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateTo
-                        ? format(dateTo, 'dd.MM.yyyy', { locale: dateLocale })
-                        : t('selectDate')}
-                    </Button>
-                    {/* c8 ignore stop */}
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    {/* c8 ignore start - Calendar disabled callback */}
-                    <Calendar
-                      mode="single"
-                      selected={dateTo}
-                      onSelect={handleDateToChange}
-                      disabled={(date) => (dateFrom ? date < dateFrom : false)}
-                      locale={dateLocale}
-                    />
-                    {/* c8 ignore stop */}
-                  </PopoverContent>
-                </Popover>
-                {dateTo && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDateToChange(undefined)}
-                    className="flex-shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    aria-label={tForm('resetDate')}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Tags Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('tags')}
-              </label>
-              <input
-                type="text"
-                value={tagInput}
-                onChange={(e) => handleTagsChange(e.target.value)}
-                placeholder={t('tagsPlaceholder')}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
-                         bg-white dark:bg-gray-900 text-gray-900 dark:text-white
-                         focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                         placeholder:text-gray-400 dark:placeholder:text-gray-500"
-              />
-            </div>
+            <TagsFilter tagInput={tagInput} onTagsChange={handleTagsChange} />
           </div>
 
           {/* Sort Options */}

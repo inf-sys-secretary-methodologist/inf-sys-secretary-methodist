@@ -220,7 +220,7 @@ export default function DocumentsPage() {
     if (!isSearchMode) {
       fetchDocuments(filters)
     }
-  }, [fetchDocuments, filters.status, filters.authorId, filters.dateFrom, filters.dateTo])
+  }, [fetchDocuments, filters])
 
   // Debounced search effect with filters
   useEffect(() => {
@@ -336,31 +336,23 @@ export default function DocumentsPage() {
 
         // 3. Save tags if provided
         if (upload.tags && upload.tags.length > 0) {
-          console.log('Upload tags:', upload.tags)
           // Get all available tags to match by name
           const availableTags = await tagsApi.getAll()
-          console.log('Available tags:', availableTags)
           const tagIds: number[] = []
 
           for (const tagName of upload.tags) {
             const matchingTag = availableTags.find(
               (t) => t.name.toLowerCase() === tagName.toLowerCase()
             )
-            console.log(`Matching tag "${tagName}":`, matchingTag)
             if (matchingTag) {
               tagIds.push(matchingTag.id)
             }
           }
 
-          console.log('Tag IDs to save:', tagIds)
           // Add matched tags to document
           if (tagIds.length > 0) {
-            console.log(`Saving tags to document ${docInfo.id}:`, tagIds)
             await tagsApi.setDocumentTags(docInfo.id, tagIds)
-            console.log('Tags saved successfully')
           }
-        } else {
-          console.log('No tags provided in upload:', upload)
         }
       }
 

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import {
   FileText,
   Download,
@@ -30,6 +31,24 @@ interface DocumentListProps {
   canEdit?: (document: Document) => boolean
   isLoading?: boolean
   className?: string
+}
+
+interface DocumentItemProps {
+  document: Document
+  onPreview?: (document: Document) => void
+  onDownload?: (document: Document) => void
+  onDelete?: (document: Document) => void
+  onShare?: (document: Document) => void
+  onEdit?: (document: Document) => void
+  canDelete?: (document: Document) => boolean
+  canShare?: (document: Document) => boolean
+  canEdit?: (document: Document) => boolean
+  formatDate: (date: Date) => string
+  formatFileSize: (bytes: number) => string
+  getStatusColor: (status: DocumentStatus) => string
+  tDocs: (key: string) => string
+  tList: (key: string) => string
+  t: (key: string) => string
 }
 
 type ViewMode = 'grid' | 'list'
@@ -63,6 +82,246 @@ const getFileIcon = (mimeType: string, size: 'sm' | 'lg' = 'lg') => {
   }
   return <File className={`${sizeClass} text-gray-400`} />
 }
+/* c8 ignore stop */
+
+/* c8 ignore start - Grid item component */
+const DocumentGridItem = memo(function DocumentGridItem({
+  document: doc,
+  onPreview,
+  onDownload,
+  onDelete,
+  onShare,
+  onEdit,
+  canDelete,
+  canShare,
+  canEdit,
+  formatDate,
+  formatFileSize,
+  getStatusColor,
+  tDocs,
+  tList,
+  t,
+}: DocumentItemProps) {
+  return (
+    <div
+      className="relative group border border-gray-200 dark:border-gray-700 rounded-lg p-4
+                 bg-white dark:bg-gray-900 hover:shadow-lg transition-all"
+    >
+      {/* Document Icon/Thumbnail */}
+      <div className="mb-4 flex items-center justify-center h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden relative">
+        {doc.thumbnailUrl ? (
+          <Image
+            src={getAuthenticatedUrl(doc.thumbnailUrl)}
+            alt={doc.name}
+            fill
+            className="object-contain"
+            onError={(e) => {
+              // Hide broken image and show icon instead
+              e.currentTarget.style.display = 'none'
+              e.currentTarget.nextElementSibling?.classList.remove('hidden')
+            }}
+          />
+        ) : null}
+        <div className={doc.thumbnailUrl ? 'hidden' : ''}>{getFileIcon(doc.metadata.mimeType)}</div>
+      </div>
+
+      {/* Document Info */}
+      <div className="space-y-2">
+        <h4 className="font-semibold text-gray-900 dark:text-white truncate" title={doc.name}>
+          {doc.name}
+        </h4>
+
+        <div className="flex items-center gap-2">
+          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(doc.status)}`}>
+            {tDocs(`statuses.${doc.status}`)}
+          </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {tDocs(`categories.${doc.category}`)}
+          </span>
+        </div>
+
+        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+          <p>
+            {tDocs('filters.size')}: {formatFileSize(doc.metadata.size)}
+          </p>
+          <p>
+            {t('uploaded')}: {formatDate(doc.metadata.uploadedAt)}
+          </p>
+        </div>
+
+        {doc.description && (
+          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{doc.description}</p>
+        )}
+
+        {doc.tags && doc.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {doc.tags.slice(0, 3).map((tag, idx) => (
+              <span
+                key={idx}
+                className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded"
+              >
+                {tag}
+              </span>
+            ))}
+            {doc.tags.length > 3 && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                +{doc.tags.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="mt-4 flex gap-2">
+        {onPreview && doc.status === DocumentStatus.READY && (
+          <Button variant="outline" size="sm" onClick={() => onPreview(doc)} className="flex-1">
+            <Eye className="h-4 w-4 mr-1" />
+            {tList('view')}
+          </Button>
+        )}
+        {onEdit && doc.status === DocumentStatus.READY && (!canEdit || canEdit(doc)) && (
+          <Button variant="outline" size="sm" onClick={() => onEdit(doc)} title={tList('edit')}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
+        {onShare && doc.status === DocumentStatus.READY && (!canShare || canShare(doc)) && (
+          <Button variant="outline" size="sm" onClick={() => onShare(doc)} title={tList('share')}>
+            <Share2 className="h-4 w-4" />
+          </Button>
+        )}
+        {onDownload && doc.status === DocumentStatus.READY && (
+          <Button variant="outline" size="sm" onClick={() => onDownload(doc)}>
+            <Download className="h-4 w-4" />
+          </Button>
+        )}
+        {onDelete && (!canDelete || canDelete(doc)) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDelete(doc)}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+})
+/* c8 ignore stop */
+
+/* c8 ignore start - List item component */
+const DocumentListItem = memo(function DocumentListItem({
+  document: doc,
+  onPreview,
+  onDownload,
+  onDelete,
+  onShare,
+  onEdit,
+  canDelete,
+  canShare,
+  canEdit,
+  formatDate,
+  formatFileSize,
+  getStatusColor,
+  tDocs,
+  tList,
+}: DocumentItemProps) {
+  return (
+    <div
+      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700
+                 rounded-lg bg-white dark:bg-gray-900 hover:shadow-md transition-all"
+    >
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        {/* Icon */}
+        <div className="flex-shrink-0 h-12 w-12 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded overflow-hidden relative">
+          {doc.thumbnailUrl ? (
+            <Image
+              src={getAuthenticatedUrl(doc.thumbnailUrl)}
+              alt={doc.name}
+              fill
+              className="object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+                e.currentTarget.nextElementSibling?.classList.remove('hidden')
+              }}
+            />
+          ) : null}
+          <div className={`flex items-center justify-center ${doc.thumbnailUrl ? 'hidden' : ''}`}>
+            {getFileIcon(doc.metadata.mimeType, 'sm')}
+          </div>
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-gray-900 dark:text-white truncate">{doc.name}</h4>
+          <div className="flex items-center gap-3 mt-1">
+            <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(doc.status)}`}>
+              {tDocs(`statuses.${doc.status}`)}
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {tDocs(`categories.${doc.category}`)}
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {formatFileSize(doc.metadata.size)}
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {formatDate(doc.metadata.uploadedAt)}
+            </span>
+          </div>
+          {doc.tags && doc.tags.length > 0 && (
+            <div className="flex gap-1 mt-2">
+              {doc.tags.slice(0, 5).map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {onPreview && doc.status === DocumentStatus.READY && (
+          <Button variant="outline" size="sm" onClick={() => onPreview(doc)}>
+            <Eye className="h-4 w-4 mr-1" />
+            {tList('view')}
+          </Button>
+        )}
+        {onEdit && doc.status === DocumentStatus.READY && (!canEdit || canEdit(doc)) && (
+          <Button variant="outline" size="sm" onClick={() => onEdit(doc)} title={tList('edit')}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
+        {onShare && doc.status === DocumentStatus.READY && (!canShare || canShare(doc)) && (
+          <Button variant="outline" size="sm" onClick={() => onShare(doc)} title={tList('share')}>
+            <Share2 className="h-4 w-4" />
+          </Button>
+        )}
+        {onDownload && doc.status === DocumentStatus.READY && (
+          <Button variant="outline" size="sm" onClick={() => onDownload(doc)}>
+            <Download className="h-4 w-4" />
+          </Button>
+        )}
+        {onDelete && (!canDelete || canDelete(doc)) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDelete(doc)}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+})
 /* c8 ignore stop */
 
 export function DocumentList({
@@ -174,136 +433,24 @@ export function DocumentList({
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {documents.map((doc) => (
-            <div
+            <DocumentGridItem
               key={doc.id}
-              className="relative group border border-gray-200 dark:border-gray-700 rounded-lg p-4
-                       bg-white dark:bg-gray-900 hover:shadow-lg transition-all"
-            >
-              {/* c8 ignore start - Document thumbnail rendering */}
-              {/* Document Icon/Thumbnail */}
-              <div className="mb-4 flex items-center justify-center h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
-                {doc.thumbnailUrl ? (
-                  <img
-                    src={getAuthenticatedUrl(doc.thumbnailUrl)}
-                    alt={doc.name}
-                    className="max-h-full max-w-full object-contain"
-                    onError={(e) => {
-                      // Hide broken image and show icon instead
-                      e.currentTarget.style.display = 'none'
-                      e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                    }}
-                  />
-                ) : null}
-                <div className={doc.thumbnailUrl ? 'hidden' : ''}>
-                  {getFileIcon(doc.metadata.mimeType)}
-                </div>
-              </div>
-              {/* c8 ignore stop */}
-
-              {/* Document Info */}
-              <div className="space-y-2">
-                <h4
-                  className="font-semibold text-gray-900 dark:text-white truncate"
-                  title={doc.name}
-                >
-                  {doc.name}
-                </h4>
-
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(doc.status)}`}>
-                    {tDocs(`statuses.${doc.status}`)}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {tDocs(`categories.${doc.category}`)}
-                  </span>
-                </div>
-
-                <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                  <p>
-                    {tDocs('filters.size')}: {formatFileSize(doc.metadata.size)}
-                  </p>
-                  <p>
-                    {t('uploaded')}: {formatDate(doc.metadata.uploadedAt)}
-                  </p>
-                </div>
-
-                {doc.description && (
-                  <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                    {doc.description}
-                  </p>
-                )}
-
-                {/* c8 ignore start - Tags display */}
-                {doc.tags && doc.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {doc.tags.slice(0, 3).map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    {/* c8 ignore stop */}
-                    {doc.tags.length > 3 && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        +{doc.tags.length - 3}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="mt-4 flex gap-2">
-                {onPreview && doc.status === DocumentStatus.READY && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onPreview(doc)}
-                    className="flex-1"
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    {tList('view')}
-                  </Button>
-                )}
-                {onEdit && doc.status === DocumentStatus.READY && (!canEdit || canEdit(doc)) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEdit(doc)}
-                    title={tList('edit')}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                )}
-                {onShare && doc.status === DocumentStatus.READY && (!canShare || canShare(doc)) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onShare(doc)}
-                    title={tList('share')}
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                )}
-                {onDownload && doc.status === DocumentStatus.READY && (
-                  <Button variant="outline" size="sm" onClick={() => onDownload(doc)}>
-                    <Download className="h-4 w-4" />
-                  </Button>
-                )}
-                {onDelete && (!canDelete || canDelete(doc)) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onDelete(doc)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
+              document={doc}
+              onPreview={onPreview}
+              onDownload={onDownload}
+              onDelete={onDelete}
+              onShare={onShare}
+              onEdit={onEdit}
+              canDelete={canDelete}
+              canShare={canShare}
+              canEdit={canEdit}
+              formatDate={formatDate}
+              formatFileSize={formatFileSize}
+              getStatusColor={getStatusColor}
+              tDocs={tDocs}
+              tList={tList}
+              t={t}
+            />
           ))}
         </div>
       )}
@@ -313,114 +460,24 @@ export function DocumentList({
       {viewMode === 'list' && (
         <div className="space-y-2">
           {documents.map((doc) => (
-            <div
+            <DocumentListItem
               key={doc.id}
-              className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700
-                       rounded-lg bg-white dark:bg-gray-900 hover:shadow-md transition-all"
-            >
-              {/* c8 ignore stop */}
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                {/* Icon */}
-                <div className="flex-shrink-0 h-12 w-12 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded overflow-hidden">
-                  {doc.thumbnailUrl ? (
-                    <img
-                      src={getAuthenticatedUrl(doc.thumbnailUrl)}
-                      alt={doc.name}
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                        e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                      }}
-                    />
-                  ) : null}
-                  <div
-                    className={`flex items-center justify-center ${doc.thumbnailUrl ? 'hidden' : ''}`}
-                  >
-                    {getFileIcon(doc.metadata.mimeType, 'sm')}
-                  </div>
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-gray-900 dark:text-white truncate">
-                    {doc.name}
-                  </h4>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(doc.status)}`}
-                    >
-                      {tDocs(`statuses.${doc.status}`)}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {tDocs(`categories.${doc.category}`)}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatFileSize(doc.metadata.size)}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatDate(doc.metadata.uploadedAt)}
-                    </span>
-                  </div>
-                  {doc.tags && doc.tags.length > 0 && (
-                    <div className="flex gap-1 mt-2">
-                      {doc.tags.slice(0, 5).map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {onPreview && doc.status === DocumentStatus.READY && (
-                  <Button variant="outline" size="sm" onClick={() => onPreview(doc)}>
-                    <Eye className="h-4 w-4 mr-1" />
-                    {tList('view')}
-                  </Button>
-                )}
-                {onEdit && doc.status === DocumentStatus.READY && (!canEdit || canEdit(doc)) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEdit(doc)}
-                    title={tList('edit')}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                )}
-                {onShare && doc.status === DocumentStatus.READY && (!canShare || canShare(doc)) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onShare(doc)}
-                    title={tList('share')}
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                )}
-                {onDownload && doc.status === DocumentStatus.READY && (
-                  <Button variant="outline" size="sm" onClick={() => onDownload(doc)}>
-                    <Download className="h-4 w-4" />
-                  </Button>
-                )}
-                {onDelete && (!canDelete || canDelete(doc)) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onDelete(doc)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
+              document={doc}
+              onPreview={onPreview}
+              onDownload={onDownload}
+              onDelete={onDelete}
+              onShare={onShare}
+              onEdit={onEdit}
+              canDelete={canDelete}
+              canShare={canShare}
+              canEdit={canEdit}
+              formatDate={formatDate}
+              formatFileSize={formatFileSize}
+              getStatusColor={getStatusColor}
+              tDocs={tDocs}
+              tList={tList}
+              t={t}
+            />
           ))}
         </div>
       )}

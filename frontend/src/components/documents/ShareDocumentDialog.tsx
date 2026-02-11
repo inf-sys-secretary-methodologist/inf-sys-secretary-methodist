@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useTranslations, useLocale } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import {
   Dialog,
   DialogContent,
@@ -11,29 +11,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import {
-  Trash2,
-  Users,
-  Link2,
-  Copy,
-  Check,
-  Loader2,
-  Calendar,
-  Lock,
-  Eye,
-  Download,
-} from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Users, Link2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   documentsApi,
@@ -43,6 +22,8 @@ import {
   UserRole,
 } from '@/lib/api/documents'
 import { usersApi, User } from '@/lib/api/users'
+import { PermissionsTab } from './PermissionsTab'
+import { PublicLinksTab } from './PublicLinksTab'
 
 interface ShareDocumentDialogProps {
   open: boolean
@@ -59,8 +40,6 @@ export function ShareDocumentDialog({
 }: ShareDocumentDialogProps) {
   const t = useTranslations('documents.share')
   const tCommon = useTranslations('common')
-  const tForm = useTranslations('documents.form')
-  const locale = useLocale()
 
   const PERMISSION_LABELS = useMemo<Record<PermissionLevel, string>>(
     () => ({
@@ -121,14 +100,15 @@ export function ShareDocumentDialog({
     } finally {
       setLoading(false)
     }
-  }, [documentId])
+  }, [documentId, t])
 
   useEffect(() => {
     if (open) {
       loadData()
     }
   }, [open, loadData])
-  const handleShare = async () => {
+
+  const handleShare = useCallback(async () => {
     if (shareType === 'user' && !selectedUserId) {
       toast.error(t('selectUser'))
       return
@@ -156,19 +136,31 @@ export function ShareDocumentDialog({
     } finally {
       setSaving(false)
     }
-  }
+  }, [
+    shareType,
+    selectedUserId,
+    selectedRole,
+    selectedPermission,
+    expiresAt,
+    documentId,
+    t,
+    loadData,
+  ])
 
-  const handleRevokePermission = async (permissionId: number) => {
-    try {
-      await documentsApi.revokePermission(documentId, permissionId)
-      toast.success(t('accessRevoked'))
-      setPermissions((prev) => prev.filter((p) => p.id !== permissionId))
-    } catch (_error) {
-      toast.error(t('revokeError'))
-    }
-  }
+  const handleRevokePermission = useCallback(
+    async (permissionId: number) => {
+      try {
+        await documentsApi.revokePermission(documentId, permissionId)
+        toast.success(t('accessRevoked'))
+        setPermissions((prev) => prev.filter((p) => p.id !== permissionId))
+      } catch (_error) {
+        toast.error(t('revokeError'))
+      }
+    },
+    [documentId, t]
+  )
 
-  const handleCreatePublicLink = async () => {
+  const handleCreatePublicLink = useCallback(async () => {
     setSaving(true)
     try {
       const newLink = await documentsApi.createPublicLink(documentId, {
@@ -187,38 +179,49 @@ export function ShareDocumentDialog({
     } finally {
       setSaving(false)
     }
-  }
+  }, [documentId, linkPermission, linkExpiresAt, linkMaxUses, linkPassword, t])
 
-  const handleCopyLink = async (link: PublicLinkInfo) => {
-    try {
-      await navigator.clipboard.writeText(link.url)
-      setCopiedLinkId(link.id)
-      toast.success(t('linkCopied'))
-      setTimeout(() => setCopiedLinkId(null), 2000)
-    } catch {
-      toast.error(t('linkCopyError'))
-    }
-  }
+  const handleCopyLink = useCallback(
+    async (link: PublicLinkInfo) => {
+      try {
+        await navigator.clipboard.writeText(link.url)
+        setCopiedLinkId(link.id)
+        toast.success(t('linkCopied'))
+        setTimeout(() => setCopiedLinkId(null), 2000)
+      } catch {
+        toast.error(t('linkCopyError'))
+      }
+    },
+    [t]
+  )
 
-  const handleDeactivateLink = async (linkId: number) => {
-    try {
-      await documentsApi.deactivatePublicLink(documentId, linkId)
-      toast.success(t('linkDeactivated'))
-      setPublicLinks((prev) => prev.map((l) => (l.id === linkId ? { ...l, is_active: false } : l)))
-    } catch (_error) {
-      toast.error(t('linkDeactivateError'))
-    }
-  }
+  const handleDeactivateLink = useCallback(
+    async (linkId: number) => {
+      try {
+        await documentsApi.deactivatePublicLink(documentId, linkId)
+        toast.success(t('linkDeactivated'))
+        setPublicLinks((prev) =>
+          prev.map((l) => (l.id === linkId ? { ...l, is_active: false } : l))
+        )
+      } catch (_error) {
+        toast.error(t('linkDeactivateError'))
+      }
+    },
+    [documentId, t]
+  )
 
-  const handleDeleteLink = async (linkId: number) => {
-    try {
-      await documentsApi.deletePublicLink(documentId, linkId)
-      toast.success(t('linkDeleted'))
-      setPublicLinks((prev) => prev.filter((l) => l.id !== linkId))
-    } catch (_error) {
-      toast.error(t('linkDeleteError'))
-    }
-  }
+  const handleDeleteLink = useCallback(
+    async (linkId: number) => {
+      try {
+        await documentsApi.deletePublicLink(documentId, linkId)
+        toast.success(t('linkDeleted'))
+        setPublicLinks((prev) => prev.filter((l) => l.id !== linkId))
+      } catch (_error) {
+        toast.error(t('linkDeleteError'))
+      }
+    },
+    [documentId, t]
+  )
   /* c8 ignore stop */
 
   return (
@@ -241,323 +244,45 @@ export function ShareDocumentDialog({
             </TabsTrigger>
           </TabsList>
 
-          {/* Users/Roles Tab */}
-          <TabsContent value="users" className="space-y-4">
-            {/* Add permission form */}
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-              <div className="flex gap-2">
-                <Button
-                  variant={shareType === 'user' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setShareType('user')}
-                >
-                  {t('toUser')}
-                </Button>
-                <Button
-                  variant={shareType === 'role' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setShareType('role')}
-                >
-                  {t('byRole')}
-                </Button>
-              </div>
+          <PermissionsTab
+            shareType={shareType}
+            onShareTypeChange={setShareType}
+            selectedUserId={selectedUserId}
+            onSelectedUserIdChange={setSelectedUserId}
+            selectedRole={selectedRole}
+            onSelectedRoleChange={setSelectedRole}
+            selectedPermission={selectedPermission}
+            onSelectedPermissionChange={setSelectedPermission}
+            expiresAt={expiresAt}
+            onExpiresAtChange={setExpiresAt}
+            users={users}
+            permissions={permissions}
+            loading={loading}
+            saving={saving}
+            permissionLabels={PERMISSION_LABELS}
+            roleLabels={ROLE_LABELS}
+            onShare={handleShare}
+            onRevokePermission={handleRevokePermission}
+          />
 
-              <div className="grid grid-cols-2 gap-4">
-                {shareType === 'user' ? (
-                  <div className="space-y-2">
-                    <Label>{t('user')}</Label>
-                    <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('selectUser')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {users.map((user) => (
-                          <SelectItem key={user.id} value={String(user.id)}>
-                            {user.name} ({user.email})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label>{t('role')}</Label>
-                    <Select
-                      value={selectedRole}
-                      onValueChange={(v) => setSelectedRole(v as UserRole)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('selectRole')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(Object.keys(ROLE_LABELS) as UserRole[]).map((role) => (
-                          <SelectItem key={role} value={role}>
-                            {ROLE_LABELS[role]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label>{t('accessLevel')}</Label>
-                  <Select
-                    value={selectedPermission}
-                    onValueChange={(v) => setSelectedPermission(v as PermissionLevel)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(PERMISSION_LABELS) as PermissionLevel[]).map((perm) => (
-                        <SelectItem key={perm} value={perm}>
-                          {PERMISSION_LABELS[perm]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  {t('expiryOptional')}
-                </Label>
-                <Input
-                  type="datetime-local"
-                  value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
-                />
-              </div>
-
-              <Button onClick={handleShare} disabled={saving} className="w-full">
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t('grantAccess')}
-              </Button>
-            </div>
-
-            {/* Existing permissions */}
-            <div className="space-y-2">
-              <Label>{t('currentPermissions')}</Label>
-              {loading ? (
-                <div className="flex justify-center p-4">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : permissions.length === 0 ? (
-                <p className="text-sm text-muted-foreground p-4 text-center">
-                  {t('noAccessGranted')}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {permissions.map((perm) => (
-                    <div
-                      key={perm.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium">
-                          {/* c8 ignore next */}
-                          {perm.user_name || perm.role || t('unknown')}
-                        </span>
-                        {perm.user_email && (
-                          <span className="text-sm text-muted-foreground">{perm.user_email}</span>
-                        )}
-                        {perm.expires_at && (
-                          <span className="text-xs text-muted-foreground">
-                            {t('until')}: {new Date(perm.expires_at).toLocaleDateString(locale)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{PERMISSION_LABELS[perm.permission]}</Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRevokePermission(perm.id)}
-                          aria-label={tForm('revokeAccess')}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* Public Links Tab */}
-          <TabsContent value="links" className="space-y-4">
-            {/* Create link form */}
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    {linkPermission === 'read' ? (
-                      <Eye className="h-4 w-4" />
-                    ) : (
-                      <Download className="h-4 w-4" />
-                    )}
-                    {t('accessType')}
-                  </Label>
-                  <Select
-                    value={linkPermission}
-                    onValueChange={(v) => setLinkPermission(v as 'read' | 'download')}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="read">{t('viewOnly')}</SelectItem>
-                      <SelectItem value="download">{t('viewAndDownload')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {t('expiry')}
-                  </Label>
-                  <Input
-                    type="datetime-local"
-                    value={linkExpiresAt}
-                    onChange={(e) => setLinkExpiresAt(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t('maxUses')}</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder={t('noLimitPlaceholder')}
-                    value={linkMaxUses}
-                    onChange={(e) => setLinkMaxUses(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Lock className="h-4 w-4" />
-                    {t('passwordOptional')}
-                  </Label>
-                  <Input
-                    type="password"
-                    placeholder={t('noPasswordPlaceholder')}
-                    value={linkPassword}
-                    onChange={(e) => setLinkPassword(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <Button onClick={handleCreatePublicLink} disabled={saving} className="w-full">
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t('createPublicLink')}
-              </Button>
-            </div>
-
-            {/* Existing links */}
-            <div className="space-y-2">
-              <Label>{t('existingLinks')}</Label>
-              {loading ? (
-                <div className="flex justify-center p-4">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : publicLinks.length === 0 ? (
-                <p className="text-sm text-muted-foreground p-4 text-center">
-                  {t('noPublicLinks')}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {publicLinks.map((link) => (
-                    <div
-                      key={link.id}
-                      /* c8 ignore next 3 - Inactive link styling */
-                      className={`p-3 border rounded-lg space-y-2 ${
-                        !link.is_active ? 'opacity-50' : ''
-                      }`}
-                    >
-                      {/* c8 ignore start - Link display with permission icons */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {link.permission === 'download' ? (
-                            <Download className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                          <span className="text-sm font-mono truncate max-w-[200px]">
-                            {link.token}
-                          </span>
-                          {link.has_password && <Lock className="h-3 w-3" />}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {!link.is_active && (
-                            <Badge variant="outline" className="text-xs">
-                              {t('inactive')}
-                            </Badge>
-                          )}
-                          <Badge variant="secondary" className="text-xs">
-                            {link.use_count} {t('uses')}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>
-                          {link.expires_at
-                            ? `${t('until')} ${new Date(link.expires_at).toLocaleDateString(locale)}`
-                            : t('unlimited')}
-                          {link.max_uses && ` • ${t('maxUsesLabel', { count: link.max_uses })}`}
-                        </span>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleCopyLink(link)}
-                            aria-label={tForm('copyLink')}
-                          >
-                            {/* c8 ignore next 3 - Copy feedback icon */}
-                            {copiedLinkId === link.id ? (
-                              <Check className="h-3 w-3 text-green-500" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
-                          {link.is_active && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleDeactivateLink(link.id)}
-                              aria-label={tForm('deactivateLink')}
-                            >
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleDeleteLink(link.id)}
-                            aria-label={tForm('deleteLink')}
-                          >
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                          </Button>
-                        </div>
-                      </div>
-                      {/* c8 ignore stop */}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
+          <PublicLinksTab
+            linkPermission={linkPermission}
+            onLinkPermissionChange={setLinkPermission}
+            linkExpiresAt={linkExpiresAt}
+            onLinkExpiresAtChange={setLinkExpiresAt}
+            linkMaxUses={linkMaxUses}
+            onLinkMaxUsesChange={setLinkMaxUses}
+            linkPassword={linkPassword}
+            onLinkPasswordChange={setLinkPassword}
+            publicLinks={publicLinks}
+            loading={loading}
+            saving={saving}
+            copiedLinkId={copiedLinkId}
+            onCreatePublicLink={handleCreatePublicLink}
+            onCopyLink={handleCopyLink}
+            onDeactivateLink={handleDeactivateLink}
+            onDeleteLink={handleDeleteLink}
+          />
         </Tabs>
 
         <DialogFooter>

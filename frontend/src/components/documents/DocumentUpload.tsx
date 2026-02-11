@@ -61,30 +61,36 @@ export function DocumentUploadComponent({
   }, [])
   /* c8 ignore stop */
 
-  const validateFile = (file: File): string | null => {
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      const ext = '.' + file.name.split('.').pop()?.toLowerCase()
-      if (!ALLOWED_FILE_EXTENSIONS.includes(ext)) {
-        return t('typeNotSupported', { extensions: ALLOWED_FILE_EXTENSIONS.join(', ') })
+  const validateFile = useCallback(
+    (file: File): string | null => {
+      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+        const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+        if (!ALLOWED_FILE_EXTENSIONS.includes(ext)) {
+          return t('typeNotSupported', { extensions: ALLOWED_FILE_EXTENSIONS.join(', ') })
+        }
       }
-    }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return t('sizeExceeded', { size: String(MAX_FILE_SIZE / 1024 / 1024) })
-    }
+      if (file.size > MAX_FILE_SIZE) {
+        return t('sizeExceeded', { size: String(MAX_FILE_SIZE / 1024 / 1024) })
+      }
 
-    return null
-  }
+      return null
+    },
+    [t]
+  )
 
-  const handleFiles = useCallback((newFiles: FileList | File[]) => {
-    const fileArray = Array.from(newFiles)
-    const validatedFiles: FileWithPreview[] = fileArray.map((file) => {
-      const error = validateFile(file)
-      return { file, error: error || undefined }
-    })
+  const handleFiles = useCallback(
+    (newFiles: FileList | File[]) => {
+      const fileArray = Array.from(newFiles)
+      const validatedFiles: FileWithPreview[] = fileArray.map((file) => {
+        const error = validateFile(file)
+        return { file, error: error || undefined }
+      })
 
-    setFiles((prev) => [...prev, ...validatedFiles])
-  }, [])
+      setFiles((prev) => [...prev, ...validatedFiles])
+    },
+    [validateFile]
+  )
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
