@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import { MoreVertical, Pencil, Trash2, Reply, Copy, Check, FileText, Download } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -26,7 +27,30 @@ interface MessageBubbleProps {
   className?: string
 }
 
-export function MessageBubble({
+// Helper functions moved to module level to prevent recreation on every render
+const getInitials = (name: string) => {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
+
+const formatTime = (dateString: string) => {
+  return new Date(dateString).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const formatFileSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+const MessageBubbleComponent = ({
   message,
   isOwn,
   showAvatar = true,
@@ -35,37 +59,15 @@ export function MessageBubble({
   onEdit,
   onDelete,
   className,
-}: MessageBubbleProps) {
+}: MessageBubbleProps) => {
   const t = useTranslations('messaging')
   const [copied, setCopied] = useState(false)
 
   /* c8 ignore start - Event handlers, tested in e2e */
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
   const renderAttachment = (attachment: Attachment) => {
@@ -77,11 +79,13 @@ export function MessageBubble({
           href={attachment.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block mt-2 rounded-lg overflow-hidden max-w-xs"
+          className="block mt-2 rounded-lg overflow-hidden max-w-xs relative"
         >
-          <img
+          <Image
             src={attachment.url}
             alt={attachment.file_name}
+            width={300}
+            height={200}
             className="w-full h-auto object-cover"
           />
         </a>
@@ -268,3 +272,5 @@ export function MessageBubble({
   )
   /* c8 ignore stop */
 }
+
+export const MessageBubble = memo(MessageBubbleComponent)

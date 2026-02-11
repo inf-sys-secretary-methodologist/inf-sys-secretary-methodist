@@ -28,21 +28,30 @@ export function AttendanceTrendChart({ months = 6, className }: AttendanceTrendC
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const abortController = new AbortController()
+
     const fetchTrends = async () => {
       try {
         setIsLoading(true)
         setError(null)
         const data = await analyticsApi.getAttendanceTrend(months)
-        setTrends(data)
+        if (!abortController.signal.aborted) {
+          setTrends(data)
+        }
       } catch (err) {
-        console.error('Failed to fetch attendance trend:', err)
-        setError(t('loadError'))
+        if (!abortController.signal.aborted) {
+          console.error('Failed to fetch attendance trend:', err)
+          setError(t('loadError'))
+        }
       } finally {
-        setIsLoading(false)
+        if (!abortController.signal.aborted) {
+          setIsLoading(false)
+        }
       }
     }
 
     fetchTrends()
+    return () => abortController.abort()
   }, [months, t])
 
   // Transform data for chart
@@ -137,7 +146,9 @@ export function AttendanceTrendChart({ months = 6, className }: AttendanceTrendC
                   borderRadius: '8px',
                   color: '#fff',
                 }}
-                formatter={(value: number) => [`${value.toFixed(1)}%`, t('attendanceRate')]}
+                formatter={(value: number | undefined) =>
+                  value ? [`${value.toFixed(1)}%`, t('attendanceRate')] : ['', '']
+                }
               />
               <Legend />
               <Area

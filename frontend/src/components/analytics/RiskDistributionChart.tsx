@@ -25,21 +25,30 @@ export function RiskDistributionChart({ className }: RiskDistributionChartProps)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const abortController = new AbortController()
+
     const fetchGroups = async () => {
       try {
         setIsLoading(true)
         setError(null)
         const data = await analyticsApi.getAllGroupsSummary()
-        setGroups(data)
+        if (!abortController.signal.aborted) {
+          setGroups(data)
+        }
       } catch (err) {
-        console.error('Failed to fetch groups summary:', err)
-        setError(t('loadError'))
+        if (!abortController.signal.aborted) {
+          console.error('Failed to fetch groups summary:', err)
+          setError(t('loadError'))
+        }
       } finally {
-        setIsLoading(false)
+        if (!abortController.signal.aborted) {
+          setIsLoading(false)
+        }
       }
     }
 
     fetchGroups()
+    return () => abortController.abort()
   }, [t])
 
   // Aggregate risk distribution across all groups
@@ -140,10 +149,11 @@ export function RiskDistributionChart({ className }: RiskDistributionChartProps)
                       borderRadius: '8px',
                       color: '#fff',
                     }}
-                    formatter={(value: number) => [
-                      `${value} (${((value / total) * 100).toFixed(1)}%)`,
-                      t('students'),
-                    ]}
+                    formatter={(value: number | undefined) =>
+                      value
+                        ? [`${value} (${((value / total) * 100).toFixed(1)}%)`, t('students')]
+                        : ['', '']
+                    }
                   />
                   <Legend
                     formatter={(value) => (

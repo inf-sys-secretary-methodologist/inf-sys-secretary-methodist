@@ -10,6 +10,7 @@ import {
   TrendingUp,
   FileCheck,
   Settings,
+  Sparkles,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -114,6 +115,12 @@ export const navigationConfig: NavEntry[] = [
     nameKey: 'messages',
     url: '/messages',
     icon: MessageCircle,
+  },
+  // AI Assistant - standalone
+  {
+    nameKey: 'aiAssistant',
+    url: '/ai',
+    icon: Sparkles,
   },
   // Admin group
   {

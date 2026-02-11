@@ -58,7 +58,6 @@ class ApiClient {
       // Try localStorage first
       const localToken = localStorage.getItem('authToken')
       if (localToken) {
-        console.log('🔑 Token from localStorage:', localToken.substring(0, 20) + '...')
         return localToken
       }
 
@@ -66,12 +65,10 @@ class ApiClient {
       // Fallback to cookie (for cases when localStorage wasn't set yet)
       try {
         const cookieValue = this.getCookieValue('auth-storage')
-        console.log('🍪 Cookie value exists:', !!cookieValue)
         if (cookieValue) {
           const decoded = decodeURIComponent(cookieValue)
           const parsed = JSON.parse(decoded)
           const token = parsed.state?.token
-          console.log('🔑 Token from cookie:', token ? token.substring(0, 20) + '...' : 'null')
           if (token) {
             // Also save to localStorage for future requests
             localStorage.setItem('authToken', token)

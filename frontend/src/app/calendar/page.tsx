@@ -1,9 +1,11 @@
 'use client'
 
 import * as React from 'react'
+import dynamic from 'next/dynamic'
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths } from 'date-fns'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
+import { Loader2 } from 'lucide-react'
 
 import { useAuthCheck } from '@/hooks/useAuth'
 import {
@@ -12,11 +14,23 @@ import {
   updateEvent,
   deleteEvent,
 } from '@/hooks/useCalendarEvents'
-import { FullCalendar } from '@/components/calendar'
 import { AppLayout } from '@/components/layout'
 import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import type { CreateEventInput } from '@/types/calendar'
 import { canEdit } from '@/lib/auth/permissions'
+
+// Динамический импорт FullCalendar - тяжелый компонент
+const FullCalendar = dynamic(
+  () => import('@/components/calendar').then((mod) => ({ default: mod.FullCalendar })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+      </div>
+    ),
+    ssr: false,
+  }
+)
 
 export default function CalendarPage() {
   const { user } = useAuthCheck()

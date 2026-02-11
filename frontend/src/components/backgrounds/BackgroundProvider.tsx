@@ -2,10 +2,23 @@
 
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
+import dynamic from 'next/dynamic'
 import { useAppearanceStore, useAppearanceHydrated } from '@/stores/appearanceStore'
-import { GrainGradientBackground } from './GrainGradientBackground'
-import { WarpBackground } from './WarpBackground'
-import { MeshGradientBackground } from './MeshGradientBackground'
+
+const GrainGradientBackground = dynamic(
+  () => import('./GrainGradientBackground').then((mod) => mod.GrainGradientBackground),
+  { ssr: false, loading: () => null }
+)
+
+const WarpBackground = dynamic(() => import('./WarpBackground').then((mod) => mod.WarpBackground), {
+  ssr: false,
+  loading: () => null,
+})
+
+const MeshGradientBackground = dynamic(
+  () => import('./MeshGradientBackground').then((mod) => mod.MeshGradientBackground),
+  { ssr: false, loading: () => null }
+)
 
 export function BackgroundProvider() {
   const { resolvedTheme } = useTheme()

@@ -2,6 +2,7 @@
 
 import useSWR, { mutate } from 'swr'
 import { apiClient } from '@/lib/api'
+import { swrFetcher } from '@/lib/api/fetchers'
 import { useState, useCallback } from 'react'
 import type {
   Notification,
@@ -16,35 +17,6 @@ import type {
 } from '@/types/notification'
 
 const NOTIFICATIONS_BASE_URL = '/api/notifications'
-
-// API Response wrapper type from backend
-interface ApiResponse<T> {
-  success: boolean
-  data: T
-  error?: {
-    code: string
-    message: string
-  }
-}
-
-// Fetcher for SWR - extracts data from wrapped response
-const fetcher = async <T>(url: string): Promise<T> => {
-  const response = await apiClient.get<ApiResponse<T> | T>(url)
-
-  // Check if response is the API wrapper format
-  if (response && typeof response === 'object' && 'success' in response) {
-    const wrappedResponse = response as ApiResponse<T>
-    if (wrappedResponse.success && wrappedResponse.data !== undefined) {
-      return wrappedResponse.data
-      /* c8 ignore next 3 */
-    } else {
-      throw new Error(wrappedResponse.error?.message || 'API returned error')
-    }
-  }
-
-  // Response is already the data
-  return response as T
-}
 
 // Build URL with query params
 function buildNotificationsUrl(input?: NotificationListInput): string {
@@ -68,7 +40,7 @@ export function useNotifications(input?: NotificationListInput) {
     error,
     isLoading,
     mutate: revalidate,
-  } = useSWR<NotificationListOutput>(url, fetcher, {
+  } = useSWR<NotificationListOutput>(url, swrFetcher<NotificationListOutput>, {
     revalidateOnFocus: false,
     dedupingInterval: 30000,
     refreshInterval: 60000,
@@ -89,7 +61,7 @@ export function useNotifications(input?: NotificationListInput) {
 export function useNotification(id: number) {
   const { data, error, isLoading } = useSWR<Notification>(
     id ? `${NOTIFICATIONS_BASE_URL}/${id}` : null,
-    fetcher
+    swrFetcher<Notification>
   )
 
   return { notification: data, isLoading, error }
@@ -102,11 +74,15 @@ export function useUnreadCount() {
     error,
     isLoading,
     mutate: revalidate,
-  } = useSWR<UnreadCountOutput>(`${NOTIFICATIONS_BASE_URL}/unread-count`, fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 15000,
-    refreshInterval: 30000,
-  })
+  } = useSWR<UnreadCountOutput>(
+    `${NOTIFICATIONS_BASE_URL}/unread-count`,
+    swrFetcher<UnreadCountOutput>,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 15000,
+      refreshInterval: 30000,
+    }
+  )
 
   return {
     data,
@@ -124,10 +100,14 @@ export function useNotificationStats() {
     error,
     isLoading,
     mutate: revalidate,
-  } = useSWR<NotificationStatsOutput>(`${NOTIFICATIONS_BASE_URL}/stats`, fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 60000,
-  })
+  } = useSWR<NotificationStatsOutput>(
+    `${NOTIFICATIONS_BASE_URL}/stats`,
+    swrFetcher<NotificationStatsOutput>,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    }
+  )
 
   return { stats: data, isLoading, error, mutate: revalidate }
 }
@@ -220,7 +200,10 @@ export function useNotificationPreferences() {
     error,
     isLoading,
     mutate: revalidate,
-  } = useSWR<NotificationPreferences>(`${NOTIFICATIONS_BASE_URL}/preferences`, fetcher)
+  } = useSWR<NotificationPreferences>(
+    `${NOTIFICATIONS_BASE_URL}/preferences`,
+    swrFetcher<NotificationPreferences>
+  )
 
   return { data, isLoading, error, mutate: revalidate }
 }
@@ -298,7 +281,7 @@ export function useResetPreferences() {
 export function useTimezones() {
   const { data, error, isLoading } = useSWR<{ timezones: string[] }>(
     `${NOTIFICATIONS_BASE_URL}/timezones`,
-    fetcher,
+    swrFetcher<{ timezones: string[] }>,
     {
       revalidateOnFocus: false,
       dedupingInterval: Infinity,

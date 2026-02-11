@@ -194,12 +194,10 @@ export class MessagingWebSocket {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
       const wsUrl = baseUrl.replace(/^http/, 'ws') + `/api/ws?token=${encodeURIComponent(token)}`
 
-      console.log('🔌 Connecting to WebSocket:', wsUrl.replace(/token=[^&]+/, 'token=***'))
       this.ws = new WebSocket(wsUrl)
       let connected = false
 
       this.ws.onopen = () => {
-        console.log('✅ WebSocket connected')
         connected = true
         this.reconnectAttempts = 0
         this.startPing()
@@ -217,11 +215,10 @@ export class MessagingWebSocket {
 
       this.ws.onerror = () => {
         // WebSocket error events don't contain useful info due to browser security
-        console.warn('⚠️ WebSocket connection error')
+        console.warn('WebSocket connection error')
       }
 
       this.ws.onclose = (event) => {
-        console.log('🔌 WebSocket closed:', event.code, event.reason || 'No reason')
         this.stopPing()
         if (!connected) {
           // Failed to connect

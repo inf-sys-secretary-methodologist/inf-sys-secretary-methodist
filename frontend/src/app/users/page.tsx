@@ -104,7 +104,7 @@ function UsersManagementPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, limit, roleFilter, statusFilter, departmentFilter, effectiveSearch])
+  }, [page, limit, roleFilter, statusFilter, departmentFilter, effectiveSearch, t])
 
   const fetchReferenceData = useCallback(async () => {
     try {

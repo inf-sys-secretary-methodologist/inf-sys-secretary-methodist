@@ -3,6 +3,7 @@
 import useSWR, { mutate } from 'swr'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { apiClient } from '@/lib/api'
+import { swrFetcher } from '@/lib/api/fetchers'
 import { MessagingWebSocket } from '@/lib/api/messaging'
 import type {
   Conversation,
@@ -31,24 +32,6 @@ interface ApiResponse<T> {
     code: string
     message: string
   }
-}
-
-// Fetcher for SWR - extracts data from wrapped response
-const fetcher = async <T>(url: string): Promise<T> => {
-  const response = await apiClient.get<ApiResponse<T> | T>(url)
-
-  // Check if response is the API wrapper format
-  if (response && typeof response === 'object' && 'success' in response) {
-    const wrappedResponse = response as ApiResponse<T>
-    if (wrappedResponse.success && wrappedResponse.data !== undefined) {
-      return wrappedResponse.data
-      /* c8 ignore next 3 - Error handling branch, tested in e2e/integration */
-    } else {
-      throw new Error(wrappedResponse.error?.message || 'API returned error')
-    }
-  }
-
-  return response as T
 }
 
 // Build URL with query params
@@ -83,7 +66,7 @@ export function useConversations(input?: ConversationFilterInput) {
     error,
     isLoading,
     mutate: revalidate,
-  } = useSWR<ConversationListOutput>(url, fetcher, {
+  } = useSWR<ConversationListOutput>(url, swrFetcher<ConversationListOutput>, {
     revalidateOnFocus: false,
     dedupingInterval: 10000,
     refreshInterval: 30000,
@@ -106,9 +89,13 @@ export function useConversation(id: number | null) {
     error,
     isLoading,
     mutate: revalidate,
-  } = useSWR<Conversation>(id ? `${CONVERSATIONS_BASE_URL}/${id}` : null, fetcher, {
-    revalidateOnFocus: false,
-  })
+  } = useSWR<Conversation>(
+    id ? `${CONVERSATIONS_BASE_URL}/${id}` : null,
+    swrFetcher<Conversation>,
+    {
+      revalidateOnFocus: false,
+    }
+  )
 
   return { conversation: data, isLoading, error, mutate: revalidate }
 }
@@ -122,7 +109,7 @@ export function useMessages(conversationId: number | null, input?: MessageFilter
     error,
     isLoading,
     mutate: revalidate,
-  } = useSWR<MessageListOutput>(url, fetcher, {
+  } = useSWR<MessageListOutput>(url, swrFetcher<MessageListOutput>, {
     revalidateOnFocus: false,
     dedupingInterval: 5000,
   })
@@ -368,10 +355,14 @@ export function useSearchMessages(conversationId: number | null, query: string) 
       ? `${CONVERSATIONS_BASE_URL}/${conversationId}/messages/search?${params.toString()}`
       : null
 
-  const { data, error, isLoading } = useSWR<SearchMessagesOutput>(url, fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 1000,
-  })
+  const { data, error, isLoading } = useSWR<SearchMessagesOutput>(
+    url,
+    swrFetcher<SearchMessagesOutput>,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 1000,
+    }
+  )
 
   return {
     messages: data?.messages || [],

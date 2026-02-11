@@ -20,7 +20,8 @@ function ReportBuilderContent() {
 
   // Get initial values from URL params
   const initialSource = (searchParams.get('source') as DataSourceType) || 'documents'
-  const _templateId = searchParams.get('template') // TODO: Use for loading template data
+  // TODO: Planned feature - Use templateId for loading template data from backend
+  const _templateId = searchParams.get('template')
 
   // State
   const [reportName, setReportName] = useState(t('untitledReport'))
@@ -66,7 +67,8 @@ function ReportBuilderContent() {
   }, [])
 
   const handleSave = useCallback(() => {
-    // TODO: Implement save to backend
+    // TODO: Planned feature - Implement save to backend API
+    // This will persist the report configuration to the database
     console.warn('Save not implemented yet:', {
       name: reportName,
       dataSource,
@@ -76,7 +78,8 @@ function ReportBuilderContent() {
   }, [reportName, dataSource, selectedFields, filters])
 
   const handleExport = useCallback((format: 'pdf' | 'xlsx' | 'csv') => {
-    // TODO: Implement export
+    // TODO: Planned feature - Implement export functionality
+    // This will generate report in the specified format (pdf/xlsx/csv)
     console.warn('Export not implemented yet:', format)
   }, [])
 

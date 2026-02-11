@@ -160,8 +160,9 @@ export function MessageInput({
     const files = e.target.files
     if (!files) return
 
-    // TODO: Implement file upload through files API
-    // For now, just show a placeholder
+    // TODO: Planned feature - Implement file upload through files API
+    // Currently using client-side preview with URL.createObjectURL
+    // Future: Upload to backend first, get file_id, then attach to message
     Array.from(files).forEach((file) => {
       const attachment: AttachmentInput = {
         file_id: Date.now(), // Placeholder - should come from file upload

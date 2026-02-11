@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { AppLayout } from '@/components/layout'
@@ -15,13 +16,45 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { AlertTriangle, Users, TrendingUp, BarChart3, Loader2 } from 'lucide-react'
-import {
-  AtRiskStudentsList,
-  GroupSummaryCard,
-  AttendanceTrendChart,
-  RiskDistributionChart,
-} from '@/components/analytics'
 import { analyticsApi, GroupSummaryInfo, RiskLevel } from '@/lib/api/analytics'
+
+// Динамический импорт тяжелых компонентов с графиками
+const AtRiskStudentsList = dynamic(
+  () => import('@/components/analytics').then((mod) => ({ default: mod.AtRiskStudentsList })),
+  {
+    loading: () => (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    ),
+  }
+)
+const GroupSummaryCard = dynamic(
+  () => import('@/components/analytics').then((mod) => ({ default: mod.GroupSummaryCard })),
+  { loading: () => <div className="animate-pulse h-32 bg-gray-200 dark:bg-gray-800 rounded-lg" /> }
+)
+const AttendanceTrendChart = dynamic(
+  () => import('@/components/analytics').then((mod) => ({ default: mod.AttendanceTrendChart })),
+  {
+    loading: () => (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    ),
+    ssr: false,
+  }
+)
+const RiskDistributionChart = dynamic(
+  () => import('@/components/analytics').then((mod) => ({ default: mod.RiskDistributionChart })),
+  {
+    loading: () => (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    ),
+    ssr: false,
+  }
+)
 
 export default function AnalyticsPage() {
   useAuthCheck()
