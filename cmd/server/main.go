@@ -115,10 +115,12 @@ import (
 	messagingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/persistence"
 	messagingWebsocket "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
 	messagingHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http"
+	aiServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
 	aiUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
 	aiAdapters "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/adapters"
 	aiPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/persistence"
 	aiProviders "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/providers"
+	aiScheduler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/scheduler"
 	aiHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/interfaces/http/handlers"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
@@ -603,6 +605,9 @@ func main() {
 			auditLogger,
 		)
 
+		// Initialize Metodych personality service
+		personalityService := aiServices.NewPersonalityService()
+
 		aiChatUseCase := aiUsecases.NewChatUseCase(
 			aiConversationRepo,
 			aiMessageRepo,
@@ -610,10 +615,64 @@ func main() {
 			aiEmbeddingUseCase,
 			llmProvider,
 			auditLogger,
+			aiUsecases.ChatUseCaseOptions{
+				PersonalityService: personalityService,
+				ModelName:          cfg.AI.ChatModel,
+			},
 		)
 
+		// Initialize Mood Engine
+		moodUseCase := aiUsecases.NewMoodUseCase(
+			dashboardRepo,
+			analyticsRepo,
+			redisCache,
+			personalityService,
+		)
+
+		// Initialize Fun Facts
+		funFactRepo := aiPersistence.NewFunFactRepositoryPg(db)
+		funFactUseCase := aiUsecases.NewFunFactUseCase(funFactRepo, personalityService)
+
+		// Seed fun facts if table is empty
+		funFactSeeder := aiAdapters.NewFunFactSeeder(funFactRepo, slog.Default())
+		if err := funFactSeeder.SeedIfEmpty(context.Background()); err != nil {
+			logger.Warn("Failed to seed fun facts", map[string]interface{}{"error": err.Error()})
+		}
+
+		// Set personality on notification use case
+		notificationUseCase.SetPersonalityService(personalityService)
+
+		// Initialize Telegram personality service (decorator)
+		var telegramPersonalityService *aiServices.TelegramPersonalityService
+		if telegramService != nil {
+			telegramPersonalityService = aiServices.NewTelegramPersonalityService(
+				telegramService,
+				personalityService,
+			)
+		}
+
+		// Initialize fact scheduler for daily fact delivery
+		if telegramPersonalityService != nil {
+			factScheduler, err := aiScheduler.NewFactScheduler(
+				funFactUseCase,
+				moodUseCase,
+				telegramPersonalityService,
+				telegramRepo,
+				slog.Default(),
+			)
+			if err != nil {
+				logger.Warn("Failed to create fact scheduler", map[string]interface{}{"error": err.Error()})
+			} else {
+				if err := factScheduler.Start(); err != nil {
+					logger.Warn("Failed to start fact scheduler", map[string]interface{}{"error": err.Error()})
+				} else {
+					logger.Info("Fact scheduler started", nil)
+				}
+			}
+		}
+
 		// Initialize AI handler
-		aiHandlerInstance := aiHandler.NewAIHandler(aiChatUseCase, aiEmbeddingUseCase, auditLogger)
+		aiHandlerInstance := aiHandler.NewAIHandler(aiChatUseCase, aiEmbeddingUseCase, moodUseCase, funFactUseCase, auditLogger)
 
 		// Register AI routes under protected API group
 		aiApiGroup := router.Group("/api")
@@ -624,6 +683,7 @@ func main() {
 			"provider":        cfg.AI.Provider,
 			"embedding_model": cfg.AI.EmbeddingModel,
 			"chat_model":      cfg.AI.ChatModel,
+			"personality":     "Metodych",
 		})
 	}
 
@@ -922,6 +982,8 @@ func setupRoutes(
 			telegramService,
 			cfg.Telegram.WebhookSecret,
 			slog.Default(),
+			nil, // telegramPersonalityService - set later if AI module is enabled
+			nil, // moodUseCase - set later if AI module is enabled
 		)
 		router.POST("/api/telegram/webhook", webhookHandler.HandleWebhook)
 		logger.Info("Telegram webhook route registered", nil)
