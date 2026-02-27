@@ -4,6 +4,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	aiServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
+	aiUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	domainServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/telegram"
@@ -23,6 +26,8 @@ type TelegramWebhookHandler struct {
 	telegramService     domainServices.TelegramService // Composio for sending messages
 	webhookSecret       string
 	logger              *slog.Logger
+	personalityService  *aiServices.TelegramPersonalityService
+	moodUseCase         *aiUsecases.MoodUseCase
 }
 
 // NewTelegramWebhookHandler creates a new Telegram webhook handler
@@ -31,12 +36,16 @@ func NewTelegramWebhookHandler(
 	telegramService domainServices.TelegramService,
 	webhookSecret string,
 	logger *slog.Logger,
+	personalityService *aiServices.TelegramPersonalityService,
+	moodUseCase *aiUsecases.MoodUseCase,
 ) *TelegramWebhookHandler {
 	return &TelegramWebhookHandler{
 		verificationService: verificationService,
 		telegramService:     telegramService,
 		webhookSecret:       webhookSecret,
 		logger:              logger,
+		personalityService:  personalityService,
+		moodUseCase:         moodUseCase,
 	}
 }
 
@@ -119,6 +128,18 @@ func (h *TelegramWebhookHandler) ProcessUpdate(update *telegram.Update) {
 	// Handle /status command
 	if text == "/status" {
 		h.handleStatusCommand(chatID)
+		return
+	}
+
+	// Handle /fact command
+	if text == "/fact" {
+		h.handleFactCommand(chatID)
+		return
+	}
+
+	// Handle /mood command
+	if text == "/mood" {
+		h.handleMoodCommand(chatID)
 		return
 	}
 
@@ -210,33 +231,36 @@ func (h *TelegramWebhookHandler) handleStatusCommand(chatID int64) {
 
 // sendStartMessage sends the start message
 func (h *TelegramWebhookHandler) sendStartMessage(chatID int64) {
-	message := "👋 <b>Добро пожаловать!</b>\n\n" +
-		"Этот бот отправляет уведомления из системы управления документами.\n\n" +
+	message := "👋 <b>Здравствуйте! Я — Методыч!</b>\n\n" +
+		"Ветеран-методист с 40-летним стажем, теперь ещё и в цифровом формате! 😄\n\n" +
+		"Я отправляю уведомления из системы управления документами и делюсь интересными фактами об образовании.\n\n" +
 		"<b>Как привязать аккаунт:</b>\n" +
 		"1. Зайдите в «Настройки» → «Уведомления»\n" +
 		"2. Нажмите «Привязать Telegram»\n" +
 		"3. Отправьте полученный код сюда\n\n" +
-		"Или перейдите по ссылке с кодом, которую вы получите в настройках."
-
+		"Или перейдите по ссылке с кодом из настроек.\n\n" +
+		"<i>— Ваш Методыч</i>"
 	h.sendHTMLMessage(chatID, message)
 }
 
 // sendHelpMessage sends the help message
 func (h *TelegramWebhookHandler) sendHelpMessage(chatID int64) {
-	message := "ℹ️ <b>Справка</b>\n\n" +
-		"<b>Доступные команды:</b>\n" +
-		"/start - Начать работу с ботом\n" +
-		"/status - Проверить статус подключения\n" +
-		"/help - Показать эту справку\n\n" +
+	message := "📚 <b>Справка от Методыча</b>\n\n" +
+		"За 40 лет я выучил все команды наизусть:\n\n" +
+		"/start — Познакомиться с Методычем\n" +
+		"/status — Проверить статус подключения\n" +
+		"/mood — Узнать моё настроение 🎭\n" +
+		"/fact — Получить интересный факт 💡\n" +
+		"/help — Эта справка\n\n" +
 		"<b>Привязка аккаунта:</b>\n" +
-		"Отправьте код верификации, полученный в настройках уведомлений."
-
+		"Отправьте код верификации из настроек уведомлений.\n\n" +
+		"<i>— Методыч всегда на связи!</i>"
 	h.sendHTMLMessage(chatID, message)
 }
 
 // sendUnknownCommandMessage sends a message for unknown commands
 func (h *TelegramWebhookHandler) sendUnknownCommandMessage(chatID int64) {
-	message := "🤔 Не понимаю эту команду.\n\nИспользуйте /help для справки."
+	message := "🤔 Хм, за 40 лет такой команды не встречал!\n\nПопробуйте /help — там всё расписано."
 	h.sendMessage(chatID, message)
 }
 
@@ -267,6 +291,58 @@ func (h *TelegramWebhookHandler) sendHTMLMessage(chatID int64, text string) {
 	if err := h.telegramService.SendMessage(ctx, req); err != nil {
 		h.logger.Error("failed to send HTML message", "error", err, "chat_id", chatID)
 	}
+}
+
+// handleFactCommand handles the /fact command
+func (h *TelegramWebhookHandler) handleFactCommand(chatID int64) {
+	if h.personalityService == nil || h.moodUseCase == nil {
+		h.sendMessage(chatID, "💡 Функция фактов пока настраивается. Заходите позже!\n\n— Методыч")
+		return
+	}
+
+	ctx := context.Background()
+	mood, err := h.moodUseCase.GetCurrentMood(ctx)
+	if err != nil {
+		h.logger.Error("failed to get mood for fact command", "error", err)
+		h.sendMessage(chatID, "😅 Что-то пошло не так... Попробуйте позже!\n\n— Методыч")
+		return
+	}
+
+	// For now, send a mood-based response since fun facts are in Part 6
+	h.sendHTMLMessage(chatID, fmt.Sprintf("💡 <b>Факт от Методыча</b>\n\n"+
+		"Знаете ли вы, что слово «методист» происходит от греческого «methodos» — путь исследования? "+
+		"За 40 лет работы я прошёл этот путь не один раз!\n\n"+
+		"<i>Настроение: %s</i>\n\n"+
+		"<i>— Ваш Методыч</i>", mood.State))
+}
+
+// handleMoodCommand handles the /mood command
+func (h *TelegramWebhookHandler) handleMoodCommand(chatID int64) {
+	if h.moodUseCase == nil {
+		h.sendMessage(chatID, "🎭 Mood Engine пока настраивается. Заходите позже!\n\n— Методыч")
+		return
+	}
+
+	ctx := context.Background()
+	mood, err := h.moodUseCase.GetCurrentMood(ctx)
+	if err != nil {
+		h.logger.Error("failed to get mood", "error", err)
+		h.sendMessage(chatID, "😅 Не могу определить настроение... Попробуйте позже!\n\n— Методыч")
+		return
+	}
+
+	text := fmt.Sprintf("🎭 <b>Настроение Методыча</b>\n\n%s\n\n%s\n\n", mood.Greeting, mood.Message)
+
+	if mood.OverdueDocuments > 0 {
+		text += fmt.Sprintf("📋 Просроченных документов: %d\n", mood.OverdueDocuments)
+	}
+	if mood.AtRiskStudents > 0 {
+		text += fmt.Sprintf("⚠️ Студентов в зоне риска: %d\n", mood.AtRiskStudents)
+	}
+
+	text += fmt.Sprintf("\n<i>Состояние: %s</i>", mood.State)
+
+	h.sendHTMLMessage(chatID, text)
 }
 
 // isHexString checks if a string contains only hexadecimal characters

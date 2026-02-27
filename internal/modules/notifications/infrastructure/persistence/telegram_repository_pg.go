@@ -218,6 +218,48 @@ func (r *TelegramRepositoryPG) GetConnectionByChatID(ctx context.Context, chatID
 	return conn, nil
 }
 
+// GetActiveConnections retrieves all active Telegram connections
+func (r *TelegramRepositoryPG) GetActiveConnections(ctx context.Context) ([]entities.TelegramConnection, error) {
+	query := `
+		SELECT user_id, telegram_chat_id, telegram_username, telegram_first_name, is_active, connected_at, updated_at
+		FROM user_telegram_connections
+		WHERE is_active = true`
+
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get active connections: %w", err)
+	}
+	defer rows.Close()
+
+	var connections []entities.TelegramConnection
+	for rows.Next() {
+		conn := entities.TelegramConnection{}
+		var username, firstName sql.NullString
+
+		if err := rows.Scan(
+			&conn.UserID,
+			&conn.TelegramChatID,
+			&username,
+			&firstName,
+			&conn.IsActive,
+			&conn.ConnectedAt,
+			&conn.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan connection: %w", err)
+		}
+
+		conn.TelegramUsername = username.String
+		conn.TelegramFirstName = firstName.String
+		connections = append(connections, conn)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating connections: %w", err)
+	}
+
+	return connections, nil
+}
+
 // UpdateConnection updates an existing Telegram connection
 func (r *TelegramRepositoryPG) UpdateConnection(ctx context.Context, conn *entities.TelegramConnection) error {
 	query := `

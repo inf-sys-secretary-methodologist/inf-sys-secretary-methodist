@@ -20,6 +20,7 @@ type TelegramRepository interface {
 	CreateConnection(ctx context.Context, conn *entities.TelegramConnection) error
 	GetConnectionByUserID(ctx context.Context, userID int64) (*entities.TelegramConnection, error)
 	GetConnectionByChatID(ctx context.Context, chatID int64) (*entities.TelegramConnection, error)
+	GetActiveConnections(ctx context.Context) ([]entities.TelegramConnection, error)
 	UpdateConnection(ctx context.Context, conn *entities.TelegramConnection) error
 	DeleteConnection(ctx context.Context, userID int64) error
 }

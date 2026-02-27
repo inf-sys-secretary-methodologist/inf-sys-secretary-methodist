@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	aiServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
+	aiEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
@@ -16,12 +18,13 @@ import (
 
 // NotificationUseCase handles notification operations
 type NotificationUseCase struct {
-	notificationRepo repositories.NotificationRepository
-	preferencesRepo  repositories.PreferencesRepository
-	telegramRepo     repositories.TelegramRepository
-	emailService     services.EmailService
-	telegramService  services.TelegramService
-	webpushService   services.WebPushService
+	notificationRepo   repositories.NotificationRepository
+	preferencesRepo    repositories.PreferencesRepository
+	telegramRepo       repositories.TelegramRepository
+	emailService       services.EmailService
+	telegramService    services.TelegramService
+	webpushService     services.WebPushService
+	personalityService *aiServices.PersonalityService
 }
 
 // NewNotificationUseCase creates a new notification use case
@@ -41,6 +44,11 @@ func NewNotificationUseCase(
 		telegramService:  telegramService,
 		webpushService:   webpushService,
 	}
+}
+
+// SetPersonalityService sets the optional personality service for Metodych formatting
+func (uc *NotificationUseCase) SetPersonalityService(ps *aiServices.PersonalityService) {
+	uc.personalityService = ps
 }
 
 // Create creates a new notification and optionally sends it via other channels
@@ -88,7 +96,21 @@ func (uc *NotificationUseCase) sendToTelegram(ctx context.Context, notification 
 
 	// Send notification via Telegram
 	chatID := strconv.FormatInt(conn.TelegramChatID, 10)
-	if err := uc.telegramService.SendNotification(ctx, chatID, notification.Title, notification.Message, string(notification.Priority)); err != nil {
+
+	title := notification.Title
+	message := notification.Message
+
+	// Format with Metodych personality if available
+	if uc.personalityService != nil {
+		mood := aiEntities.MoodContext{State: aiEntities.MoodContent}
+		formattedMessage := uc.personalityService.FormatNotification(
+			string(notification.Type), title, message, mood,
+		)
+		message = formattedMessage
+		title = "" // Title is now part of the formatted message
+	}
+
+	if err := uc.telegramService.SendNotification(ctx, chatID, title, message, string(notification.Priority)); err != nil {
 		slog.Error("Failed to send Telegram notification",
 			"user_id", notification.UserID,
 			"chat_id", chatID,
