@@ -1855,5 +1855,20 @@
       "schedule": "Расписание",
       "analytics": "Аналитика"
     }
+  },
+  "metodych": {
+    "title": "Методыч",
+    "chatButton": "Поговорить с Методычем",
+    "overdueDocuments": "Просрочено: {count}",
+    "atRiskStudents": "В зоне риска: {count}",
+    "states": {
+      "happy": "Отличное настроение",
+      "content": "Спокойное настроение",
+      "worried": "Немного переживает",
+      "stressed": "В стрессе",
+      "panicking": "Паника!",
+      "relaxed": "Расслаблен",
+      "inspired": "Вдохновлён"
+    }
   }
 }

@@ -1887,5 +1887,20 @@
       "schedule": "Schedule",
       "analytics": "Analytics"
     }
+  },
+  "metodych": {
+    "title": "Metodych",
+    "chatButton": "Chat with Metodych",
+    "overdueDocuments": "Overdue: {count}",
+    "atRiskStudents": "At risk: {count}",
+    "states": {
+      "happy": "Great mood",
+      "content": "Calm mood",
+      "worried": "A bit worried",
+      "stressed": "Stressed",
+      "panicking": "Panicking!",
+      "relaxed": "Relaxed",
+      "inspired": "Inspired"
+    }
   }
 }

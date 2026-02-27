@@ -1854,5 +1854,20 @@
       "schedule": "جدول",
       "analytics": "تحليلات"
     }
+  },
+  "metodych": {
+    "title": "ميتوديتش",
+    "chatButton": "تحدث مع ميتوديتش",
+    "overdueDocuments": "متأخر: {count}",
+    "atRiskStudents": "في خطر: {count}",
+    "states": {
+      "happy": "مزاج ممتاز",
+      "content": "مزاج هادئ",
+      "worried": "قلق قليلاً",
+      "stressed": "متوتر",
+      "panicking": "ذعر!",
+      "relaxed": "مسترخي",
+      "inspired": "ملهم"
+    }
   }
 }

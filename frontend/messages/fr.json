@@ -1854,5 +1854,20 @@
       "schedule": "Planning",
       "analytics": "Analytique"
     }
+  },
+  "metodych": {
+    "title": "Metodych",
+    "chatButton": "Parler avec Metodych",
+    "overdueDocuments": "En retard: {count}",
+    "atRiskStudents": "À risque: {count}",
+    "states": {
+      "happy": "Excellente humeur",
+      "content": "Humeur calme",
+      "worried": "Un peu inquiet",
+      "stressed": "Stressé",
+      "panicking": "Panique!",
+      "relaxed": "Détendu",
+      "inspired": "Inspiré"
+    }
   }
 }
