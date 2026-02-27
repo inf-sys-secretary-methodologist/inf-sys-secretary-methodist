@@ -12,6 +12,25 @@ import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import { StatsCard, ActivityFeed, ExportButton } from '@/components/dashboard'
 import { FileText, Users, Calendar, TrendingUp, ClipboardList } from 'lucide-react'
 
+// Lazy load MetodychWidget
+const MetodychWidget = dynamic(
+  () => import('@/components/dashboard/MetodychWidget').then((mod) => mod.MetodychWidget),
+  {
+    loading: () => (
+      <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
+        <div className="flex items-start gap-4">
+          <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
+          <div className="flex-1 space-y-3">
+            <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded" />
+            <div className="h-3 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+          </div>
+        </div>
+      </div>
+    ),
+    ssr: false,
+  }
+)
+
 // Lazy load TrendChart to reduce initial bundle (recharts ~200KB)
 const TrendChart = dynamic(
   () => import('@/components/dashboard/TrendChart').then((mod) => mod.TrendChart),
@@ -145,6 +164,9 @@ export default function DashboardPage() {
             )}
           </div>
         </section>
+
+        {/* Metodych AI Assistant */}
+        <MetodychWidget />
 
         {/* Charts Row */}
         <section aria-labelledby="trends-heading">

@@ -121,10 +121,10 @@ export function AIAssistantCard({
   const hasMessages = messages.length > 0
 
   return (
-    <div className={cn('flex h-full', className)}>
+    <div className={cn('flex h-full overflow-hidden', className)}>
       {/* Sidebar - Conversation History */}
       {showHistory && (
-        <div className="hidden md:flex md:w-64 lg:w-72 flex-col border-r">
+        <div className="hidden md:flex md:w-72 lg:w-80 flex-col border-r">
           <ConversationSidebar
             conversations={conversations}
             currentId={conversationId}
@@ -137,7 +137,7 @@ export function AIAssistantCard({
       )}
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-3 border-b">
           <div className="flex items-center gap-3">
@@ -328,29 +328,27 @@ function ConversationSidebar({
               <div
                 key={conv.id}
                 className={cn(
-                  'group flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-colors',
+                  'group relative flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-colors',
                   currentId === conv.id ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
                 )}
                 onClick={() => onSelect(conv)}
               >
                 <MessageSquare className="h-4 w-4 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pr-6">
                   <p className="text-sm font-medium truncate">{conv.title}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {formatDate(conv.updated_at)}
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                <button
+                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
                   onClick={(e) => {
                     e.stopPropagation()
                     onDelete(conv.id)
                   }}
                 >
-                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                </Button>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
             ))
           )}

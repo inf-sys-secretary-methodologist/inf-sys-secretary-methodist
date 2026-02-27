@@ -26,10 +26,14 @@ export default function AIPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
       <SkipToContent />
       <AppHeader entries={navEntries} />
-      <main id="main-content" tabIndex={-1} className="flex-1 flex focus:outline-none">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-1 flex overflow-hidden focus:outline-none"
+      >
         <AIAssistantCard className="flex-1" showHistory={true} />
       </main>
     </div>

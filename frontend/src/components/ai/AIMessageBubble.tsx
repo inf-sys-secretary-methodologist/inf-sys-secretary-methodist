@@ -14,7 +14,6 @@ import {
   Loader2,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { AIMessage, DocumentSource } from '@/types/ai'
 
@@ -91,14 +90,19 @@ export function AIMessageBubble({ message, className }: AIMessageBubbleProps) {
                 <span>{formatTime(message.created_at)}</span>
                 {message.model && !isUser && <span className="opacity-60">{message.model}</span>}
                 {!isStreaming && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  <button
+                    className={cn(
+                      'opacity-0 group-hover:opacity-100 transition-all p-0.5 rounded',
+                      copied
+                        ? 'text-green-500'
+                        : isUser
+                          ? 'text-primary-foreground/50 hover:text-primary-foreground/80'
+                          : 'text-muted-foreground/50 hover:text-muted-foreground'
+                    )}
                     onClick={handleCopy}
                   >
                     {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  </Button>
+                  </button>
                 )}
               </div>
             </>
