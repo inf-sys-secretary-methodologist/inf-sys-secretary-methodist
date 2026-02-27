@@ -11,6 +11,7 @@ docs/
 │   ├── ddd-domain-modeling.md          # 🆕 DDD: Bounded Contexts, Aggregates, Events
 │   ├── module-interaction-guide.md     # 🆕 Взаимодействие модулей, Event-Driven Architecture
 │   ├── tech-stack-rationale.md         # 🆕 Обоснование выбора технологий
+│   ├── ai-ml-integration.md           # 🆕 Внедрение моделей ML и нейросетей
 │   └── microservices-migration-guide.md
 ├── 💻 development/           # Руководства и практики разработки
 │   ├── development-guide.md
@@ -41,6 +42,8 @@ docs/
 │   └── document-lifecycle.md
 ├── 🔒 security/              # Рекомендации по безопасности
 │   └── security-guidelines.md
+├── 🎭 features/               # Спецификации функций
+│   └── metodych-personality-assistant.md  # AI-ассистент "Методыч"
 ├── LOGGING_AND_PERFORMANCE.md # Логирование и оптимизация
 ├── project-overview.md       # Бизнес-требования
 ├── uptime-kuma.md            # Status page и мониторинг uptime
@@ -62,9 +65,11 @@ docs/
 1. [🏛️ DDD Domain Modeling](architecture/ddd-domain-modeling.md) - **НОВОЕ**: Bounded Contexts, Aggregates, Events
 2. [🔄 Module Interaction Guide](architecture/module-interaction-guide.md) - **НОВОЕ**: Event-Driven Architecture, Saga Patterns
 3. [⚙️ Tech Stack Rationale](architecture/tech-stack-rationale.md) - **НОВОЕ**: Почему Go, PostgreSQL, React, TypeScript
-4. [🧩 Модульная архитектура](architecture/modular-architecture.md) - Паттерны модульного монолита
-5. [🧩 Clean Code и паттерны](development/clean-code-patterns.md) - Принципы SOLID
-6. [🚀 Миграция на микросервисы](architecture/microservices-migration-guide.md) - Стратегия миграции
+4. [🤖 AI/ML Integration](architecture/ai-ml-integration.md) - **НОВОЕ**: Внедрение моделей ML и нейросетей
+5. [🧩 Модульная архитектура](architecture/modular-architecture.md) - Паттерны модульного монолита
+6. [🧩 Clean Code и паттерны](development/clean-code-patterns.md) - Принципы SOLID
+7. [🚀 Миграция на микросервисы](architecture/microservices-migration-guide.md) - Стратегия миграции
+8. [🎭 AI-ассистент Методыч](features/metodych-personality-assistant.md) - Personality-driven уведомления
 
 ### Для DevOps
 
