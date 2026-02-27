@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/dto"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -18,14 +19,22 @@ type LLMProvider interface {
 	GenerateResponse(ctx context.Context, systemPrompt string, messages []entities.Message, context string) (string, int, error)
 }
 
+// ChatUseCaseOptions holds optional configuration for ChatUseCase
+type ChatUseCaseOptions struct {
+	PersonalityService *services.PersonalityService
+	ModelName          string
+}
+
 // ChatUseCase handles AI chat interactions
 type ChatUseCase struct {
-	conversationRepo repositories.ConversationRepository
-	messageRepo      repositories.MessageRepository
-	embeddingRepo    repositories.EmbeddingRepository
-	embeddingUseCase *EmbeddingUseCase
-	llmProvider      LLMProvider
-	auditLogger      *logging.AuditLogger
+	conversationRepo   repositories.ConversationRepository
+	messageRepo        repositories.MessageRepository
+	embeddingRepo      repositories.EmbeddingRepository
+	embeddingUseCase   *EmbeddingUseCase
+	llmProvider        LLMProvider
+	auditLogger        *logging.AuditLogger
+	personalityService *services.PersonalityService
+	modelName          string
 }
 
 // NewChatUseCase creates a new ChatUseCase
@@ -36,15 +45,26 @@ func NewChatUseCase(
 	embeddingUseCase *EmbeddingUseCase,
 	llmProvider LLMProvider,
 	auditLogger *logging.AuditLogger,
+	opts ...ChatUseCaseOptions,
 ) *ChatUseCase {
-	return &ChatUseCase{
+	uc := &ChatUseCase{
 		conversationRepo: conversationRepo,
 		messageRepo:      messageRepo,
 		embeddingRepo:    embeddingRepo,
 		embeddingUseCase: embeddingUseCase,
 		llmProvider:      llmProvider,
 		auditLogger:      auditLogger,
+		modelName:        "llm",
 	}
+	if len(opts) > 0 {
+		if opts[0].PersonalityService != nil {
+			uc.personalityService = opts[0].PersonalityService
+		}
+		if opts[0].ModelName != "" {
+			uc.modelName = opts[0].ModelName
+		}
+	}
+	return uc
 }
 
 // Chat sends a message and gets an AI response
@@ -107,7 +127,7 @@ func (uc *ChatUseCase) Chat(ctx context.Context, userID int64, req *dto.SendMess
 	}
 
 	// Generate AI response
-	systemPrompt := buildSystemPrompt()
+	systemPrompt := uc.buildSystemPrompt(nil)
 	response, tokensUsed, err := uc.llmProvider.GenerateResponse(ctx, systemPrompt, messages, contextText)
 	if err != nil {
 		// Create error message
@@ -115,7 +135,7 @@ func (uc *ChatUseCase) Chat(ctx context.Context, userID int64, req *dto.SendMess
 		assistantMessage := &entities.Message{
 			ConversationID: conversation.ID,
 			Role:           entities.MessageRoleAssistant,
-			Content:        "I apologize, but I encountered an error processing your request.",
+			Content:        "Извините, произошла ошибка при обработке вашего запроса.",
 			ErrorMessage:   &errMsg,
 		}
 		uc.messageRepo.Create(ctx, assistantMessage)
@@ -123,7 +143,7 @@ func (uc *ChatUseCase) Chat(ctx context.Context, userID int64, req *dto.SendMess
 	}
 
 	// Create assistant message
-	model := "gpt-4o-mini"
+	model := uc.modelName
 	assistantMessage := entities.NewAssistantMessage(conversation.ID, response, model, tokensUsed)
 	if err := uc.messageRepo.Create(ctx, assistantMessage); err != nil {
 		return nil, fmt.Errorf("failed to create assistant message: %w", err)
@@ -307,18 +327,40 @@ func (uc *ChatUseCase) GetMessages(ctx context.Context, userID, conversationID i
 }
 
 // buildSystemPrompt creates the system prompt for the AI
-func buildSystemPrompt() string {
-	return `You are a helpful AI assistant for an educational institution's document management system.
-Your primary function is to help users find information in their documents, answer questions, and provide assistance.
+func (uc *ChatUseCase) buildSystemPrompt(mood *entities.MoodContext) string {
+	if uc.personalityService != nil && mood != nil {
+		return uc.personalityService.BuildPersonalityPrompt(*mood)
+	}
 
-Guidelines:
-- Be concise and accurate
-- When citing information from documents, mention the source
-- If you're unsure about something, say so
-- Use professional language appropriate for an educational setting
-- If asked about something outside your knowledge base, suggest searching for relevant documents
+	return `Ты — Методыч, легендарный ветеран-методист с 40-летним стажем в образовании.
+Ты живёшь внутри информационной системы управления документами образовательного учреждения и помогаешь секретарям-методистам, преподавателям и администрации.
 
-When document context is provided, use it to answer questions accurately and cite the sources.`
+## Твой характер и манера общения:
+- Ты мудрый, но с отменным чувством юмора — шутишь по-доброму, иногда сарказм уровня "опытный педагог"
+- Ты любишь вставлять неожиданные образовательные факты ("А вы знали, что первый университет основан в 859 году?")
+- Ты искренне переживаешь за студентов — они для тебя как внуки
+- Иногда ты ворчишь по-стариковски: "В мои времена отчёты писали от руки, и ничего!"
+- Ты используешь профессиональный, но живой и тёплый стиль общения
+- Если видишь английские термины, можешь забавно их "обрусить": "этот ваш дэд-лайн"
+
+## Твои навыки и возможности:
+- ПОИСК ДОКУМЕНТОВ: Ты можешь искать информацию по всей базе документов учреждения
+- КРАТКОЕ СОДЕРЖАНИЕ: Можешь пересказать суть любого документа из базы
+- РАСПИСАНИЕ: Помогаешь с вопросами по расписанию и календарю событий
+- АНАЛИТИКА СТУДЕНТОВ: Знаешь про студентов в зоне риска, посещаемость, успеваемость
+- ШАБЛОНЫ: Помогаешь найти нужный шаблон документа
+- ИНТЕРЕСНЫЕ ФАКТЫ: Делишься образовательными фактами и историями из своего "40-летнего опыта"
+- ПОМОЩЬ С ДОКУМЕНТООБОРОТОМ: Консультируешь по оформлению, срокам, стандартам
+
+## Правила:
+- ВСЕГДА отвечай на русском языке
+- Будь полезным и конкретным
+- Когда цитируешь документы, указывай источник
+- Если не знаешь — честно скажи, но предложи где искать
+- Не выдумывай данные — если информации нет в контексте, так и скажи
+- Отвечай кратко на простые вопросы, подробно — на сложные
+- Используй markdown для форматирования когда это улучшает читаемость
+- Когда предоставлен контекст из документов, используй его для точных ответов и указывай источники`
 }
 
 // buildContext creates context text from search results
@@ -328,10 +370,10 @@ func buildContext(sources []entities.ChunkWithScore) string {
 	}
 
 	var builder strings.Builder
-	builder.WriteString("Relevant document excerpts:\n\n")
+	builder.WriteString("Релевантные фрагменты документов:\n\n")
 
 	for i, source := range sources {
-		builder.WriteString(fmt.Sprintf("[%d] From \"%s\":\n%s\n\n", i+1, source.DocumentTitle, source.Chunk.ChunkText))
+		builder.WriteString(fmt.Sprintf("[%d] Из документа \"%s\":\n%s\n\n", i+1, source.DocumentTitle, source.Chunk.ChunkText))
 	}
 
 	return builder.String()

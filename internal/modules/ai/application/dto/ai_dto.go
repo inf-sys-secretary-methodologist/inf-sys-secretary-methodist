@@ -81,6 +81,8 @@ type ChatResponse struct {
 	Message        MessageResponse  `json:"message"`
 	ConversationID int64            `json:"conversation_id"`
 	Sources        []SourceResponse `json:"sources,omitempty"`
+	MoodState      string           `json:"mood_state,omitempty"`
+	MoodMessage    string           `json:"mood_message,omitempty"`
 }
 
 // SearchRequest represents a semantic search request

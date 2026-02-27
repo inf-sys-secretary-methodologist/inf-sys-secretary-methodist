@@ -2,8 +2,11 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -16,6 +19,8 @@ import (
 type AIHandler struct {
 	chatUseCase      *usecases.ChatUseCase
 	embeddingUseCase *usecases.EmbeddingUseCase
+	moodUseCase      *usecases.MoodUseCase
+	funFactUseCase   *usecases.FunFactUseCase
 	logger           *logging.AuditLogger
 }
 
@@ -23,11 +28,15 @@ type AIHandler struct {
 func NewAIHandler(
 	chatUseCase *usecases.ChatUseCase,
 	embeddingUseCase *usecases.EmbeddingUseCase,
+	moodUseCase *usecases.MoodUseCase,
+	funFactUseCase *usecases.FunFactUseCase,
 	logger *logging.AuditLogger,
 ) *AIHandler {
 	return &AIHandler{
 		chatUseCase:      chatUseCase,
 		embeddingUseCase: embeddingUseCase,
+		moodUseCase:      moodUseCase,
+		funFactUseCase:   funFactUseCase,
 		logger:           logger,
 	}
 }
@@ -36,8 +45,13 @@ func NewAIHandler(
 func (h *AIHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	ai := rg.Group("/ai")
 	{
+		// Metodych personality endpoints
+		ai.GET("/mood", h.GetMood)
+		ai.GET("/fact", h.GetFact)
+
 		// Chat endpoints
 		ai.POST("/chat", h.Chat)
+		ai.GET("/chat/stream", h.ChatStream)
 
 		// Conversation endpoints
 		ai.GET("/conversations", h.ListConversations)
@@ -67,7 +81,7 @@ func (h *AIHandler) RegisterRoutes(rg *gin.RouterGroup) {
 // @Success 200 {object} dto.ChatResponse
 // @Router /api/ai/chat [post]
 func (h *AIHandler) Chat(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
@@ -88,6 +102,116 @@ func (h *AIHandler) Chat(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": response})
 }
 
+// ChatStream handles the streaming chat endpoint via Server-Sent Events
+// @Summary Stream a chat response
+// @Description Send a message and get a streamed AI response via SSE
+// @Tags AI
+// @Produce text/event-stream
+// @Param content query string true "Message content"
+// @Param conversation_id query int false "Conversation ID"
+// @Param include_sources query bool false "Include document sources"
+// @Param max_sources query int false "Max sources to include"
+// @Param token query string true "JWT token (EventSource cannot set headers)"
+// @Success 200 {string} string "SSE stream"
+// @Router /api/ai/chat/stream [get]
+func (h *AIHandler) ChatStream(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	content := c.Query("content")
+	if content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "content is required"})
+		return
+	}
+
+	// Build request from query params
+	req := &dto.SendMessageRequest{
+		Content:        content,
+		IncludeSources: c.Query("include_sources") == "true",
+	}
+
+	if convIDStr := c.Query("conversation_id"); convIDStr != "" {
+		convID, err := strconv.ParseInt(convIDStr, 10, 64)
+		if err == nil {
+			req.ConversationID = &convID
+		}
+	}
+
+	if maxStr := c.Query("max_sources"); maxStr != "" {
+		maxSources, err := strconv.Atoi(maxStr)
+		if err == nil {
+			req.MaxSources = maxSources
+		}
+	}
+
+	// Extend write deadline for long-running LLM requests
+	rc := http.NewResponseController(c.Writer)
+	rc.SetWriteDeadline(time.Now().Add(5 * time.Minute))
+
+	// Set SSE headers
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("X-Accel-Buffering", "no")
+	c.Writer.Flush()
+
+	// Helper to send SSE event
+	sendEvent := func(data interface{}) {
+		jsonBytes, err := json.Marshal(data)
+		if err != nil {
+			return
+		}
+		fmt.Fprintf(c.Writer, "data: %s\n\n", jsonBytes)
+		c.Writer.Flush()
+	}
+
+	// Call the chat usecase
+	response, err := h.chatUseCase.Chat(c.Request.Context(), userID.(int64), req)
+	if err != nil {
+		sendEvent(map[string]interface{}{"type": "error", "error": err.Error()})
+		return
+	}
+
+	// Stream the content in chunks to simulate streaming
+	content = response.Message.Content
+	chunkSize := 20 // characters per chunk
+	for i := 0; i < len(content); {
+		end := i + chunkSize
+		if end > len(content) {
+			end = len(content)
+		}
+		// Split on rune boundary
+		chunk := content[i:end]
+		sendEvent(map[string]interface{}{"type": "content", "content": chunk})
+		i = end
+	}
+
+	// Send sources
+	if response.Sources != nil {
+		for _, source := range response.Sources {
+			sendEvent(map[string]interface{}{
+				"type": "source",
+				"source": map[string]interface{}{
+					"document_id":    source.DocumentID,
+					"document_title": source.DocumentTitle,
+					"chunk_text":     source.ChunkText,
+					"score":          source.SimilarityScore,
+					"page_number":    source.PageNumber,
+				},
+			})
+		}
+	}
+
+	// Send done event
+	sendEvent(map[string]interface{}{
+		"type":       "done",
+		"message_id": response.Message.ID,
+	})
+}
+
 // ListConversations handles listing conversations
 // @Summary List conversations
 // @Description Get a list of AI conversations for the current user
@@ -99,7 +223,7 @@ func (h *AIHandler) Chat(c *gin.Context) {
 // @Success 200 {object} dto.ConversationListResponse
 // @Router /api/ai/conversations [get]
 func (h *AIHandler) ListConversations(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
@@ -128,7 +252,7 @@ func (h *AIHandler) ListConversations(c *gin.Context) {
 // @Success 201 {object} dto.ConversationResponse
 // @Router /api/ai/conversations [post]
 func (h *AIHandler) CreateConversation(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
@@ -165,7 +289,7 @@ func (h *AIHandler) CreateConversation(c *gin.Context) {
 // @Success 200 {object} dto.ConversationResponse
 // @Router /api/ai/conversations/{id} [get]
 func (h *AIHandler) GetConversation(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
@@ -197,7 +321,7 @@ func (h *AIHandler) GetConversation(c *gin.Context) {
 // @Success 200 {object} dto.ConversationResponse
 // @Router /api/ai/conversations/{id} [patch]
 func (h *AIHandler) UpdateConversation(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
@@ -232,7 +356,7 @@ func (h *AIHandler) UpdateConversation(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Router /api/ai/conversations/{id} [delete]
 func (h *AIHandler) DeleteConversation(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
@@ -263,7 +387,7 @@ func (h *AIHandler) DeleteConversation(c *gin.Context) {
 // @Success 200 {object} dto.MessageListResponse
 // @Router /api/ai/conversations/{id}/messages [get]
 func (h *AIHandler) GetMessages(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
@@ -394,6 +518,50 @@ func (h *AIHandler) IndexDocumentsBatch(c *gin.Context) {
 // @Router /api/ai/index/status [get]
 func (h *AIHandler) GetIndexingStatus(c *gin.Context) {
 	response, err := h.embeddingUseCase.GetIndexingStatus(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": response})
+}
+
+// GetMood handles getting the current Metodych mood
+// @Summary Get Metodych mood
+// @Description Get the current mood state of the Metodych AI character
+// @Tags AI
+// @Produce json
+// @Success 200 {object} dto.MoodResponse
+// @Router /api/ai/mood [get]
+func (h *AIHandler) GetMood(c *gin.Context) {
+	if h.moodUseCase == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "mood service not available"})
+		return
+	}
+
+	response, err := h.moodUseCase.GetCurrentMood(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": response})
+}
+
+// GetFact handles getting a random fun fact
+// @Summary Get fun fact
+// @Description Get a random educational fun fact from Metodych
+// @Tags AI
+// @Produce json
+// @Success 200 {object} dto.FunFactResponse
+// @Router /api/ai/fact [get]
+func (h *AIHandler) GetFact(c *gin.Context) {
+	if h.funFactUseCase == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "fun facts not available"})
+		return
+	}
+
+	response, err := h.funFactUseCase.GetRandomFact(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

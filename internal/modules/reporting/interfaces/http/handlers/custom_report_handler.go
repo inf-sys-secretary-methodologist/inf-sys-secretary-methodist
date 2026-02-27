@@ -29,7 +29,7 @@ func NewCustomReportHandler(usecase *usecases.CustomReportUseCase) *CustomReport
 
 // getUserID extracts user ID from context
 func (h *CustomReportHandler) getUserID(c *gin.Context) (int64, bool) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		return 0, false
 	}
