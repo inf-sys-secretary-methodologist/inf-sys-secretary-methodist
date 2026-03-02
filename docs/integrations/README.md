@@ -141,9 +141,8 @@ AI-ассистент на базе LLM для автоматизации рут
 - Генерация отчётов
 
 **Варианты реализации:**
-- Claude API + MCP (рекомендуется)
-- OpenAI + Composio SDK
-- Ollama (локально, бесплатно)
+- Anthropic Claude API (используется, Claude Haiku)
+- OpenAI API (fallback)
 
 **Документация:** [Полный план внедрения](./ai-assistant-roadmap.md)
 

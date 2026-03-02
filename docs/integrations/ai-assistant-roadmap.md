@@ -30,7 +30,7 @@
 │   Go Backend                                            │
 │       │ POST /api/assistant/chat                       │
 │       ▼                                                 │
-│   AI Provider (Claude/GPT/Ollama)                      │
+│   AI Provider (Claude/GPT)                              │
 │       │                                                 │
 │       ├── Tools: внутренние API системы                │
 │       │   • tasks.list, tasks.create                   │
@@ -74,22 +74,6 @@
 **Технологии:**
 - `github.com/sashabaranov/go-openai`
 - `github.com/composiohq/composio-go`
-
-### Вариант 3: Локальная модель (Ollama)
-
-**Плюсы:**
-- Полностью бесплатно
-- Данные не уходят наружу
-- Независимость от внешних сервисов
-
-**Минусы:**
-- Требуется GPU для быстрой работы (или мощный CPU)
-- Модели слабее Claude/GPT
-- Сложнее настроить tools
-
-**Технологии:**
-- Ollama (llama3.1:8b, mistral, qwen2.5)
-- LangChain или LlamaIndex
 
 ## План реализации
 
@@ -159,10 +143,10 @@ Content-Type: application/json
 
 | Вариант | Стоимость | Производительность |
 |---------|-----------|-------------------|
+| Claude Haiku | ~$1-3/мес | Хорошая |
 | Claude Sonnet | ~$3-10/мес | Отличная |
 | GPT-4o | ~$5-15/мес | Отличная |
 | GPT-4o-mini | ~$1-3/мес | Хорошая |
-| Ollama (локально) | $0 | Зависит от железа |
 
 ## Связанные документы
 
