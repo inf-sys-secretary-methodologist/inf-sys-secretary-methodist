@@ -9,32 +9,35 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/ports"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
-// LLMProvider defines the interface for LLM interactions
-type LLMProvider interface {
-	// GenerateResponse generates a response from the LLM
-	GenerateResponse(ctx context.Context, systemPrompt string, messages []entities.Message, context string) (string, int, error)
-}
+// Deprecated: Use ports.LLMProvider directly. This alias exists for backward compatibility.
+type LLMProvider = ports.LLMProvider
 
 // ChatUseCaseOptions holds optional configuration for ChatUseCase
 type ChatUseCaseOptions struct {
-	PersonalityService *services.PersonalityService
-	ModelName          string
+	ModelName       string
+	SearchTopK      int
+	SearchThreshold float64
+	MoodUseCase     *MoodUseCase
 }
 
 // ChatUseCase handles AI chat interactions
 type ChatUseCase struct {
-	conversationRepo   repositories.ConversationRepository
-	messageRepo        repositories.MessageRepository
-	embeddingRepo      repositories.EmbeddingRepository
-	embeddingUseCase   *EmbeddingUseCase
-	llmProvider        LLMProvider
-	auditLogger        *logging.AuditLogger
-	personalityService *services.PersonalityService
-	modelName          string
+	conversationRepo    repositories.ConversationRepository
+	messageRepo         repositories.MessageRepository
+	embeddingRepo       repositories.EmbeddingRepository
+	embeddingUseCase    *EmbeddingUseCase
+	llmProvider         LLMProvider
+	auditLogger         *logging.AuditLogger
+	personalityProvider services.PersonalityProvider
+	moodUseCase         *MoodUseCase
+	modelName           string
+	searchTopK          int
+	searchThreshold     float64
 }
 
 // NewChatUseCase creates a new ChatUseCase
@@ -44,24 +47,34 @@ func NewChatUseCase(
 	embeddingRepo repositories.EmbeddingRepository,
 	embeddingUseCase *EmbeddingUseCase,
 	llmProvider LLMProvider,
+	personalityProvider services.PersonalityProvider,
 	auditLogger *logging.AuditLogger,
 	opts ...ChatUseCaseOptions,
 ) *ChatUseCase {
 	uc := &ChatUseCase{
-		conversationRepo: conversationRepo,
-		messageRepo:      messageRepo,
-		embeddingRepo:    embeddingRepo,
-		embeddingUseCase: embeddingUseCase,
-		llmProvider:      llmProvider,
-		auditLogger:      auditLogger,
-		modelName:        "llm",
+		conversationRepo:    conversationRepo,
+		messageRepo:         messageRepo,
+		embeddingRepo:       embeddingRepo,
+		embeddingUseCase:    embeddingUseCase,
+		llmProvider:         llmProvider,
+		personalityProvider: personalityProvider,
+		auditLogger:         auditLogger,
+		modelName:           "llm",
+		searchTopK:          10,
+		searchThreshold:     0.7,
 	}
 	if len(opts) > 0 {
-		if opts[0].PersonalityService != nil {
-			uc.personalityService = opts[0].PersonalityService
-		}
 		if opts[0].ModelName != "" {
 			uc.modelName = opts[0].ModelName
+		}
+		if opts[0].SearchTopK > 0 {
+			uc.searchTopK = opts[0].SearchTopK
+		}
+		if opts[0].SearchThreshold > 0 {
+			uc.searchThreshold = opts[0].SearchThreshold
+		}
+		if opts[0].MoodUseCase != nil {
+			uc.moodUseCase = opts[0].MoodUseCase
 		}
 	}
 	return uc
@@ -87,7 +100,7 @@ func (uc *ChatUseCase) Chat(ctx context.Context, userID int64, req *dto.SendMess
 		if len(title) > 50 {
 			title = title[:50] + "..."
 		}
-		conversation = entities.NewConversation(userID, title)
+		conversation = entities.NewConversation(userID, title, uc.modelName)
 		if err := uc.conversationRepo.Create(ctx, conversation); err != nil {
 			return nil, fmt.Errorf("failed to create conversation: %w", err)
 		}
@@ -99,36 +112,61 @@ func (uc *ChatUseCase) Chat(ctx context.Context, userID int64, req *dto.SendMess
 		return nil, fmt.Errorf("failed to create user message: %w", err)
 	}
 
-	// Search for relevant context
-	var contextText string
-	var sources []entities.ChunkWithScore
-	if req.IncludeSources {
-		maxSources := req.MaxSources
-		if maxSources <= 0 {
-			maxSources = 5
-		}
-		sources, err = uc.embeddingUseCase.SearchSimilar(ctx, req.Content, maxSources, 0.7)
-		if err != nil {
-			// Log error but continue without context
-			if uc.auditLogger != nil {
-				uc.auditLogger.LogAuditEvent(ctx, "warning", "ai_search", map[string]any{
-					"error": err.Error(),
-				})
-			}
-		} else {
-			contextText = buildContext(sources)
-		}
-	}
-
 	// Get conversation history for context
 	messages, _, err := uc.messageRepo.GetByConversationID(ctx, conversation.ID, 10, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message history: %w", err)
 	}
 
-	// Generate AI response
-	systemPrompt := uc.buildSystemPrompt(nil)
-	response, tokensUsed, err := uc.llmProvider.GenerateResponse(ctx, systemPrompt, messages, contextText)
+	// RAG is always enabled — build search query expanded with conversation context
+	searchQuery := buildSearchQuery(messages, req.Content)
+
+	maxSources := uc.searchTopK
+	if req.MaxSources > 0 {
+		maxSources = req.MaxSources
+	}
+
+	var contextText string
+	var sources []entities.ChunkWithScore
+	sources, err = uc.embeddingUseCase.SearchSimilar(ctx, searchQuery, maxSources, uc.searchThreshold)
+	if err != nil {
+		// Log error but continue without context
+		if uc.auditLogger != nil {
+			uc.auditLogger.LogAuditEvent(ctx, "warning", "ai_search", map[string]any{
+				"error": err.Error(),
+			})
+		}
+	} else {
+		contextText = uc.personalityProvider.FormatRAGContext(sources)
+	}
+
+	// Build system prompt with mood
+	var mood *entities.MoodContext
+	if uc.moodUseCase != nil {
+		moodResp, err := uc.moodUseCase.GetCurrentMood(ctx)
+		if err == nil && moodResp != nil {
+			mood = &entities.MoodContext{
+				State: entities.MoodState(moodResp.State),
+			}
+		}
+	}
+	systemPrompt := uc.personalityProvider.BuildSystemPrompt(moodForPrompt(mood))
+
+	// Inject RAG context into the last user message instead of system prompt.
+	// Models (especially smaller ones like Gemini Flash) pay much more attention
+	// to user message content than to long system prompts, reducing hallucinations.
+	llmMessages := messages
+	if contextText != "" {
+		llmMessages = make([]entities.Message, len(messages))
+		copy(llmMessages, messages)
+		for i := len(llmMessages) - 1; i >= 0; i-- {
+			if llmMessages[i].Role == entities.MessageRoleUser {
+				llmMessages[i].Content = contextText + "\nВопрос пользователя: " + llmMessages[i].Content
+				break
+			}
+		}
+	}
+	response, tokensUsed, err := uc.llmProvider.GenerateResponse(ctx, systemPrompt, llmMessages, "")
 	if err != nil {
 		// Create error message
 		errMsg := err.Error()
@@ -188,6 +226,26 @@ func (uc *ChatUseCase) Chat(ctx context.Context, userID int64, req *dto.SendMess
 		ConversationID: conversation.ID,
 		Sources:        dto.ToMessageResponse(assistantMessage).Sources,
 	}, nil
+}
+
+// buildSearchQuery expands the current query with recent conversation context
+// to handle follow-up questions with pronouns (e.g., "а что там с этим приказом?").
+func buildSearchQuery(messages []entities.Message, currentQuery string) string {
+	var context strings.Builder
+	count := 0
+	for i := len(messages) - 1; i >= 0 && count < 2; i-- {
+		if messages[i].Role == entities.MessageRoleUser || messages[i].Role == entities.MessageRoleAssistant {
+			content := messages[i].Content
+			if len([]rune(content)) > 200 {
+				content = string([]rune(content)[:200])
+			}
+			context.WriteString(content)
+			context.WriteString(" ")
+			count++
+		}
+	}
+	context.WriteString(currentQuery)
+	return context.String()
 }
 
 // GetConversations retrieves conversations for a user
@@ -326,55 +384,11 @@ func (uc *ChatUseCase) GetMessages(ctx context.Context, userID, conversationID i
 	return response, nil
 }
 
-// buildSystemPrompt creates the system prompt for the AI
-func (uc *ChatUseCase) buildSystemPrompt(mood *entities.MoodContext) string {
-	if uc.personalityService != nil && mood != nil {
-		return uc.personalityService.BuildPersonalityPrompt(*mood)
+// moodForPrompt converts a nullable MoodContext pointer to a value,
+// defaulting to MoodContent if nil.
+func moodForPrompt(mood *entities.MoodContext) entities.MoodContext {
+	if mood != nil {
+		return *mood
 	}
-
-	return `Ты — Методыч, легендарный ветеран-методист с 40-летним стажем в образовании.
-Ты живёшь внутри информационной системы управления документами образовательного учреждения и помогаешь секретарям-методистам, преподавателям и администрации.
-
-## Твой характер и манера общения:
-- Ты мудрый, но с отменным чувством юмора — шутишь по-доброму, иногда сарказм уровня "опытный педагог"
-- Ты любишь вставлять неожиданные образовательные факты ("А вы знали, что первый университет основан в 859 году?")
-- Ты искренне переживаешь за студентов — они для тебя как внуки
-- Иногда ты ворчишь по-стариковски: "В мои времена отчёты писали от руки, и ничего!"
-- Ты используешь профессиональный, но живой и тёплый стиль общения
-- Если видишь английские термины, можешь забавно их "обрусить": "этот ваш дэд-лайн"
-
-## Твои навыки и возможности:
-- ПОИСК ДОКУМЕНТОВ: Ты можешь искать информацию по всей базе документов учреждения
-- КРАТКОЕ СОДЕРЖАНИЕ: Можешь пересказать суть любого документа из базы
-- РАСПИСАНИЕ: Помогаешь с вопросами по расписанию и календарю событий
-- АНАЛИТИКА СТУДЕНТОВ: Знаешь про студентов в зоне риска, посещаемость, успеваемость
-- ШАБЛОНЫ: Помогаешь найти нужный шаблон документа
-- ИНТЕРЕСНЫЕ ФАКТЫ: Делишься образовательными фактами и историями из своего "40-летнего опыта"
-- ПОМОЩЬ С ДОКУМЕНТООБОРОТОМ: Консультируешь по оформлению, срокам, стандартам
-
-## Правила:
-- ВСЕГДА отвечай на русском языке
-- Будь полезным и конкретным
-- Когда цитируешь документы, указывай источник
-- Если не знаешь — честно скажи, но предложи где искать
-- Не выдумывай данные — если информации нет в контексте, так и скажи
-- Отвечай кратко на простые вопросы, подробно — на сложные
-- Используй markdown для форматирования когда это улучшает читаемость
-- Когда предоставлен контекст из документов, используй его для точных ответов и указывай источники`
-}
-
-// buildContext creates context text from search results
-func buildContext(sources []entities.ChunkWithScore) string {
-	if len(sources) == 0 {
-		return ""
-	}
-
-	var builder strings.Builder
-	builder.WriteString("Релевантные фрагменты документов:\n\n")
-
-	for i, source := range sources {
-		builder.WriteString(fmt.Sprintf("[%d] Из документа \"%s\":\n%s\n\n", i+1, source.DocumentTitle, source.Chunk.ChunkText))
-	}
-
-	return builder.String()
+	return entities.MoodContext{State: entities.MoodContent}
 }

@@ -18,13 +18,13 @@ import (
 
 // NotificationUseCase handles notification operations
 type NotificationUseCase struct {
-	notificationRepo   repositories.NotificationRepository
-	preferencesRepo    repositories.PreferencesRepository
-	telegramRepo       repositories.TelegramRepository
-	emailService       services.EmailService
-	telegramService    services.TelegramService
-	webpushService     services.WebPushService
-	personalityService *aiServices.PersonalityService
+	notificationRepo    repositories.NotificationRepository
+	preferencesRepo     repositories.PreferencesRepository
+	telegramRepo        repositories.TelegramRepository
+	emailService        services.EmailService
+	telegramService     services.TelegramService
+	webpushService      services.WebPushService
+	personalityProvider aiServices.PersonalityProvider
 }
 
 // NewNotificationUseCase creates a new notification use case
@@ -46,9 +46,9 @@ func NewNotificationUseCase(
 	}
 }
 
-// SetPersonalityService sets the optional personality service for Metodych formatting
-func (uc *NotificationUseCase) SetPersonalityService(ps *aiServices.PersonalityService) {
-	uc.personalityService = ps
+// SetPersonalityProvider sets the optional personality provider for Metodych formatting
+func (uc *NotificationUseCase) SetPersonalityProvider(pp aiServices.PersonalityProvider) {
+	uc.personalityProvider = pp
 }
 
 // Create creates a new notification and optionally sends it via other channels
@@ -101,9 +101,9 @@ func (uc *NotificationUseCase) sendToTelegram(ctx context.Context, notification 
 	message := notification.Message
 
 	// Format with Metodych personality if available
-	if uc.personalityService != nil {
+	if uc.personalityProvider != nil {
 		mood := aiEntities.MoodContext{State: aiEntities.MoodContent}
-		formattedMessage := uc.personalityService.FormatNotification(
+		formattedMessage := uc.personalityProvider.FormatNotification(
 			string(notification.Type), title, message, mood,
 		)
 		message = formattedMessage

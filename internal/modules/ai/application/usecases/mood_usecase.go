@@ -24,7 +24,7 @@ type MoodUseCase struct {
 	dashboardRepo dashboardRepos.DashboardRepository
 	analyticsRepo analyticsRepos.AnalyticsRepository
 	cache         *cache.RedisCache
-	personality   *services.PersonalityService
+	personality   services.PersonalityProvider
 }
 
 // NewMoodUseCase creates a new MoodUseCase
@@ -32,7 +32,7 @@ func NewMoodUseCase(
 	dashboardRepo dashboardRepos.DashboardRepository,
 	analyticsRepo analyticsRepos.AnalyticsRepository,
 	cache *cache.RedisCache,
-	personality *services.PersonalityService,
+	personality services.PersonalityProvider,
 ) *MoodUseCase {
 	return &MoodUseCase{
 		dashboardRepo: dashboardRepo,
@@ -89,12 +89,11 @@ func (uc *MoodUseCase) ComputeMood(ctx context.Context) (*entities.MoodContext, 
 		ComputedAt: now,
 	}
 
-	// Get overdue documents count (documents created but not processed in 30 days)
+	// Get new documents count (difference between current and previous period)
 	docCount, err := uc.dashboardRepo.GetDocumentsCount(ctx, 30)
 	if err == nil && docCount != nil {
-		// Use the difference as a rough approximation of overdue
-		overdue := max(int(docCount.Total-docCount.PreviousTotal), 0)
-		mood.OverdueDocuments = overdue
+		newDocs := max(int(docCount.Total-docCount.PreviousTotal), 0)
+		mood.OverdueDocuments = newDocs
 	}
 
 	// Get at-risk students
@@ -129,15 +128,15 @@ func (uc *MoodUseCase) ComputeMood(ctx context.Context) (*entities.MoodContext, 
 		case mood.OverdueDocuments > 10 || criticalCount > 5:
 			mood.State = entities.MoodPanicking
 			mood.Intensity = 1.0
-			mood.Reason = fmt.Sprintf("Критическая ситуация: %d просроченных документов, %d студентов в критической зоне", mood.OverdueDocuments, criticalCount)
+			mood.Reason = fmt.Sprintf("Критическая ситуация: %d новых документов, %d студентов в критической зоне", mood.OverdueDocuments, criticalCount)
 		case mood.OverdueDocuments > 5 || criticalCount > 3:
 			mood.State = entities.MoodStressed
 			mood.Intensity = 0.8
-			mood.Reason = fmt.Sprintf("Много дел: %d просроченных документов, %d студентов в зоне риска", mood.OverdueDocuments, criticalCount)
+			mood.Reason = fmt.Sprintf("Много дел: %d новых документов, %d студентов в зоне риска", mood.OverdueDocuments, criticalCount)
 		case mood.AttendanceTrend == "improving" && mood.OverdueDocuments == 0:
 			mood.State = entities.MoodInspired
 			mood.Intensity = 0.9
-			mood.Reason = "Посещаемость растёт, просрочек нет — всё отлично!"
+			mood.Reason = "Посещаемость растёт, новых документов нет — всё отлично!"
 		case mood.OverdueDocuments == 0 && int(totalAtRisk) == 0:
 			mood.State = entities.MoodHappy
 			mood.Intensity = 0.8

@@ -12,17 +12,17 @@ import (
 // TelegramPersonalityService decorates TelegramService with Metodych personality
 type TelegramPersonalityService struct {
 	telegramService    domainServices.TelegramService
-	personalityService *PersonalityService
+	personalityProvider PersonalityProvider
 }
 
 // NewTelegramPersonalityService creates a new TelegramPersonalityService
 func NewTelegramPersonalityService(
 	telegramService domainServices.TelegramService,
-	personalityService *PersonalityService,
+	personalityProvider PersonalityProvider,
 ) *TelegramPersonalityService {
 	return &TelegramPersonalityService{
 		telegramService:    telegramService,
-		personalityService: personalityService,
+		personalityProvider: personalityProvider,
 	}
 }
 
@@ -35,7 +35,7 @@ func (s *TelegramPersonalityService) SendPersonalizedNotification(
 	message string,
 	mood entities.MoodContext,
 ) error {
-	formattedMessage := s.personalityService.FormatNotification(notifType, title, message, mood)
+	formattedMessage := s.personalityProvider.FormatNotification(notifType, title, message, mood)
 
 	req := &domainServices.SendTelegramMessageRequest{
 		ChatID:    chatID,
@@ -69,13 +69,13 @@ func (s *TelegramPersonalityService) SendFactMessage(ctx context.Context, chatID
 
 // SendMoodMessage sends the current mood status through Telegram
 func (s *TelegramPersonalityService) SendMoodMessage(ctx context.Context, chatID string, mood entities.MoodContext) error {
-	comment := s.personalityService.GetMoodComment(mood)
-	greeting := s.personalityService.GetGreeting(mood.TimeOfDay)
+	comment := s.personalityProvider.GetMoodComment(mood)
+	greeting := s.personalityProvider.GetGreeting(mood.TimeOfDay)
 
 	text := fmt.Sprintf("🎭 <b>Настроение Методыча</b>\n\n%s\n\n%s\n\n", greeting, comment)
 
 	if mood.OverdueDocuments > 0 {
-		text += fmt.Sprintf("📋 Просроченных документов: %d\n", mood.OverdueDocuments)
+		text += fmt.Sprintf("📋 Новых документов: %d\n", mood.OverdueDocuments)
 	}
 	if mood.AtRiskStudents > 0 {
 		text += fmt.Sprintf("⚠️ Студентов в зоне риска: %d\n", mood.AtRiskStudents)

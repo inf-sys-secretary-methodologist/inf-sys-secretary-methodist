@@ -15,13 +15,13 @@ type Conversation struct {
 	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
-// NewConversation creates a new conversation with default values
-func NewConversation(userID int64, title string) *Conversation {
+// NewConversation creates a new conversation with the given model name.
+func NewConversation(userID int64, title, model string) *Conversation {
 	now := time.Now()
 	return &Conversation{
 		UserID:       userID,
 		Title:        title,
-		Model:        "gpt-4o-mini",
+		Model:        model,
 		MessageCount: 0,
 		CreatedAt:    now,
 		UpdatedAt:    now,

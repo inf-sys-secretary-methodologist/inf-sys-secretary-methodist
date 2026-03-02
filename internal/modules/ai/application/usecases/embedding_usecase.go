@@ -4,22 +4,19 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/ports"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
-// EmbeddingProvider defines the interface for embedding generation
-type EmbeddingProvider interface {
-	// GenerateEmbedding generates an embedding vector for text
-	GenerateEmbedding(ctx context.Context, text string) ([]float32, error)
-
-	// GenerateEmbeddings generates embedding vectors for multiple texts
-	GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, error)
-}
+// Deprecated: Use ports.EmbeddingProvider directly. This alias exists for backward compatibility.
+type EmbeddingProvider = ports.EmbeddingProvider
 
 // DocumentProvider defines the interface for accessing document content
 type DocumentProvider interface {
@@ -34,6 +31,7 @@ type EmbeddingUseCase struct {
 	documentProvider  DocumentProvider
 	chunkingService   *services.ChunkingService
 	auditLogger       *logging.AuditLogger
+	embeddingModel    string
 }
 
 // NewEmbeddingUseCase creates a new EmbeddingUseCase
@@ -42,13 +40,23 @@ func NewEmbeddingUseCase(
 	embeddingProvider EmbeddingProvider,
 	documentProvider DocumentProvider,
 	auditLogger *logging.AuditLogger,
+	embeddingModel string,
+	chunkingConfig ...services.ChunkingConfig,
 ) *EmbeddingUseCase {
+	if embeddingModel == "" {
+		embeddingModel = "text-embedding-3-small"
+	}
+	cfg := services.DefaultChunkingConfig()
+	if len(chunkingConfig) > 0 {
+		cfg = chunkingConfig[0]
+	}
 	return &EmbeddingUseCase{
 		embeddingRepo:     embeddingRepo,
 		embeddingProvider: embeddingProvider,
 		documentProvider:  documentProvider,
-		chunkingService:   services.NewChunkingService(services.DefaultChunkingConfig()),
+		chunkingService:   services.NewChunkingService(cfg),
 		auditLogger:       auditLogger,
+		embeddingModel:    embeddingModel,
 	}
 }
 
@@ -141,7 +149,7 @@ func (uc *EmbeddingUseCase) IndexDocument(ctx context.Context, documentID int64,
 	// Create embeddings in database
 	embeddings := make([]entities.Embedding, len(chunks))
 	for i, chunk := range chunks {
-		embeddings[i] = *entities.NewEmbedding(chunk.ID, vectors[i], "text-embedding-3-small")
+		embeddings[i] = *entities.NewEmbedding(chunk.ID, vectors[i], uc.embeddingModel)
 	}
 
 	if err := uc.embeddingRepo.CreateEmbeddings(ctx, embeddings); err != nil {
@@ -175,28 +183,136 @@ func (uc *EmbeddingUseCase) IndexDocument(ctx context.Context, documentID int64,
 	}, nil
 }
 
-// SearchSimilar performs semantic search for similar document chunks
+// SearchSimilar performs hybrid semantic + full-text search for similar document chunks.
+// It combines vector and FTS results, expands context with adjacent chunks, and applies keyword reranking.
 func (uc *EmbeddingUseCase) SearchSimilar(ctx context.Context, query string, limit int, threshold float64) ([]entities.ChunkWithScore, error) {
 	if limit <= 0 {
-		limit = 5
+		limit = 10
 	}
 	if threshold <= 0 {
 		threshold = 0.7
 	}
 
-	// Generate embedding for query
-	embedding, err := uc.embeddingProvider.GenerateEmbedding(ctx, query)
+	// Generate embedding for query (using RETRIEVAL_QUERY task type for Gemini)
+	embedding, err := uc.embeddingProvider.GenerateQueryEmbedding(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate query embedding: %w", err)
 	}
 
-	// Search for similar chunks
-	results, err := uc.embeddingRepo.SearchSimilar(ctx, embedding, limit, threshold)
+	// Use hybrid search (vector + FTS with RRF)
+	results, err := uc.embeddingRepo.SearchHybrid(ctx, embedding, query, limit, threshold)
 	if err != nil {
-		return nil, fmt.Errorf("failed to search similar chunks: %w", err)
+		// Fallback to vector-only search if hybrid fails (e.g. search_vector column not yet migrated)
+		results, err = uc.embeddingRepo.SearchSimilar(ctx, embedding, limit, threshold)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search similar chunks: %w", err)
+		}
+	}
+
+	if len(results) == 0 {
+		return results, nil
+	}
+
+	// Expand context with adjacent chunks (±1 neighbor)
+	results = uc.expandWithAdjacentChunks(ctx, results)
+
+	// Apply keyword reranking
+	results = rerankByKeywords(results, query)
+
+	// Limit to requested count
+	if len(results) > limit {
+		results = results[:limit]
 	}
 
 	return results, nil
+}
+
+// expandWithAdjacentChunks fetches neighboring chunks and merges their text into results.
+func (uc *EmbeddingUseCase) expandWithAdjacentChunks(ctx context.Context, results []entities.ChunkWithScore) []entities.ChunkWithScore {
+	chunkIDs := make([]int64, len(results))
+	for i, r := range results {
+		chunkIDs[i] = r.Chunk.ID
+	}
+
+	adjacentChunks, err := uc.embeddingRepo.GetAdjacentChunks(ctx, chunkIDs, 1)
+	if err != nil || len(adjacentChunks) == 0 {
+		return results
+	}
+
+	// Index adjacent chunks by (document_id, chunk_index)
+	type chunkKey struct {
+		docID      int64
+		chunkIndex int
+	}
+	adjacentMap := make(map[chunkKey]*entities.DocumentChunk, len(adjacentChunks))
+	for i := range adjacentChunks {
+		c := &adjacentChunks[i]
+		adjacentMap[chunkKey{c.DocumentID, c.ChunkIndex}] = c
+	}
+
+	// Merge adjacent text into each result
+	for i := range results {
+		chunk := results[i].Chunk
+		var parts []string
+
+		// Previous chunk
+		if prev, ok := adjacentMap[chunkKey{chunk.DocumentID, chunk.ChunkIndex - 1}]; ok {
+			parts = append(parts, prev.ChunkText)
+		}
+		parts = append(parts, chunk.ChunkText)
+		// Next chunk
+		if next, ok := adjacentMap[chunkKey{chunk.DocumentID, chunk.ChunkIndex + 1}]; ok {
+			parts = append(parts, next.ChunkText)
+		}
+
+		if len(parts) > 1 {
+			results[i].Chunk.ChunkText = strings.Join(parts, "\n\n")
+		}
+	}
+
+	return results
+}
+
+// rerankByKeywords applies a simple keyword overlap boost to search results.
+func rerankByKeywords(results []entities.ChunkWithScore, query string) []entities.ChunkWithScore {
+	if len(results) == 0 || query == "" {
+		return results
+	}
+
+	// Extract unique query words (lowercased)
+	queryWords := strings.Fields(strings.ToLower(query))
+	uniqueWords := make(map[string]struct{}, len(queryWords))
+	for _, w := range queryWords {
+		if len([]rune(w)) > 2 { // skip very short words
+			uniqueWords[w] = struct{}{}
+		}
+	}
+
+	if len(uniqueWords) == 0 {
+		return results
+	}
+
+	totalQueryWords := float64(len(uniqueWords))
+
+	for i := range results {
+		chunkLower := strings.ToLower(results[i].Chunk.ChunkText)
+		matched := 0
+		for word := range uniqueWords {
+			if strings.Contains(chunkLower, word) {
+				matched++
+			}
+		}
+		keywordScore := float64(matched) / totalQueryWords
+		// Blend: 70% original score + 30% keyword score
+		results[i].SimilarityScore = 0.7*results[i].SimilarityScore + 0.3*keywordScore
+	}
+
+	// Re-sort by updated score
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].SimilarityScore > results[j].SimilarityScore
+	})
+
+	return results
 }
 
 // Search performs semantic search with optional document type filter
@@ -211,8 +327,8 @@ func (uc *EmbeddingUseCase) Search(ctx context.Context, req *dto.SearchRequest) 
 		threshold = 0.7
 	}
 
-	// Generate embedding for query
-	embedding, err := uc.embeddingProvider.GenerateEmbedding(ctx, req.Query)
+	// Generate embedding for query (using RETRIEVAL_QUERY task type for Gemini)
+	embedding, err := uc.embeddingProvider.GenerateQueryEmbedding(ctx, req.Query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate query embedding: %w", err)
 	}

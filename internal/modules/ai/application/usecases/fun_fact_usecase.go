@@ -13,13 +13,13 @@ import (
 // FunFactUseCase handles fun fact operations
 type FunFactUseCase struct {
 	factRepo    repositories.FunFactRepository
-	personality *services.PersonalityService
+	personality services.PersonalityProvider
 }
 
 // NewFunFactUseCase creates a new FunFactUseCase
 func NewFunFactUseCase(
 	factRepo repositories.FunFactRepository,
-	personality *services.PersonalityService,
+	personality services.PersonalityProvider,
 ) *FunFactUseCase {
 	return &FunFactUseCase{
 		factRepo:    factRepo,
