@@ -44,4 +44,10 @@ type EmbeddingRepository interface {
 
 	// GetIndexingStats retrieves indexing statistics
 	GetIndexingStats(ctx context.Context) (totalDocuments, indexedDocuments, pendingDocuments int, lastIndexedAt *string, err error)
+
+	// SearchHybrid performs hybrid search combining vector similarity and full-text search with RRF.
+	SearchHybrid(ctx context.Context, embedding []float32, queryText string, limit int, threshold float64) ([]entities.ChunkWithScore, error)
+
+	// GetAdjacentChunks retrieves neighboring chunks (±windowSize) for the given chunk IDs.
+	GetAdjacentChunks(ctx context.Context, chunkIDs []int64, windowSize int) ([]entities.DocumentChunk, error)
 }

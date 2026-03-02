@@ -2,8 +2,8 @@
 package services
 
 import (
+	"regexp"
 	"strings"
-	"unicode"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 )
@@ -11,14 +11,14 @@ import (
 // ChunkingConfig holds configuration for text chunking
 type ChunkingConfig struct {
 	MaxTokens    int     // Maximum tokens per chunk (default: 512)
-	OverlapRatio float64 // Overlap ratio between chunks (default: 0.1)
+	OverlapRatio float64 // Overlap ratio between chunks (default: 0.2)
 }
 
 // DefaultChunkingConfig returns the default chunking configuration
 func DefaultChunkingConfig() ChunkingConfig {
 	return ChunkingConfig{
 		MaxTokens:    512,
-		OverlapRatio: 0.1,
+		OverlapRatio: 0.2,
 	}
 }
 
@@ -32,6 +32,17 @@ func NewChunkingService(config ChunkingConfig) *ChunkingService {
 	return &ChunkingService{config: config}
 }
 
+// estimateTokens estimates the number of tokens in a string.
+// Uses rune count / 2 which is more accurate for multilingual text
+// (Cyrillic characters are 2 bytes in UTF-8 but ~0.5 tokens each).
+func estimateTokens(s string) int {
+	n := len([]rune(s))
+	if n == 0 {
+		return 0
+	}
+	return max(n/2, 1)
+}
+
 // ChunkDocument splits document text into chunks
 func (s *ChunkingService) ChunkDocument(documentID int64, text string) []entities.DocumentChunk {
 	// Clean and normalize text
@@ -43,11 +54,6 @@ func (s *ChunkingService) ChunkDocument(documentID int64, text string) []entitie
 
 	// Split into sentences
 	sentences := splitIntoSentences(text)
-
-	// Estimate tokens (rough approximation: 4 chars = 1 token)
-	estimateTokens := func(s string) int {
-		return len(s) / 4
-	}
 
 	chunks := make([]entities.DocumentChunk, 0)
 	var currentChunk strings.Builder
@@ -128,54 +134,141 @@ func (s *ChunkingService) ChunkDocument(documentID int64, text string) []entitie
 	return chunks
 }
 
-// normalizeText cleans and normalizes text for chunking
+// normalizeText cleans and normalizes text for chunking.
+// Preserves paragraph breaks (\n\n) while collapsing single newlines to spaces.
 func normalizeText(text string) string {
-	// Replace multiple whitespace with single space
-	var builder strings.Builder
-	prevSpace := false
+	// 1. Normalize line endings
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	text = strings.ReplaceAll(text, "\r", "\n")
 
-	for _, r := range text {
-		if unicode.IsSpace(r) {
-			if !prevSpace {
-				builder.WriteRune(' ')
-				prevSpace = true
-			}
-		} else {
-			builder.WriteRune(r)
-			prevSpace = false
-		}
+	// 2. Replace tabs with spaces
+	text = strings.ReplaceAll(text, "\t", " ")
+
+	// 3. Collapse 3+ newlines into exactly \n\n (paragraph break)
+	for strings.Contains(text, "\n\n\n") {
+		text = strings.ReplaceAll(text, "\n\n\n", "\n\n")
 	}
 
-	return strings.TrimSpace(builder.String())
+	// 4. Process text: preserve \n\n, replace single \n with space
+	var builder strings.Builder
+	runes := []rune(text)
+	i := 0
+	for i < len(runes) {
+		if runes[i] == '\n' && i+1 < len(runes) && runes[i+1] == '\n' {
+			builder.WriteString("\n\n")
+			i += 2
+			// Skip any spaces after paragraph break
+			for i < len(runes) && runes[i] == ' ' {
+				i++
+			}
+		} else if runes[i] == '\n' {
+			builder.WriteRune(' ')
+			i++
+		} else {
+			builder.WriteRune(runes[i])
+			i++
+		}
+	}
+	text = builder.String()
+
+	// 5. Collapse multiple spaces into one
+	text = multiSpaceRe.ReplaceAllString(text, " ")
+
+	return strings.TrimSpace(text)
 }
 
-// splitIntoSentences splits text into sentences
+// Pre-compiled regexps for hot paths
+var (
+	multiSpaceRe = regexp.MustCompile(`  +`)
+	sentenceRe   = regexp.MustCompile(`([.!?])\s+`)
+)
+
+// abbreviation placeholders for sentence splitting
+const placeholder = "\x00"
+
+// abbreviationPatterns maps Russian abbreviation patterns to their replacements.
+// We use \x00 as a placeholder for dots inside abbreviations.
+// Note: Go regexp doesn't support lookbehinds, so we use simpler approaches.
+var abbreviationPatterns = []struct {
+	pattern     *regexp.Regexp
+	replacement string
+}{
+	// "и т.д." / "и т.п." — most specific, match first
+	{regexp.MustCompile(`(?i)и\s+т\.\s*д\.`), "и т" + placeholder + "д" + placeholder},
+	{regexp.MustCompile(`(?i)и\s+т\.\s*п\.`), "и т" + placeholder + "п" + placeholder},
+	// Multi-char abbreviations
+	{regexp.MustCompile(`(?i)т\.д\.`), "т" + placeholder + "д" + placeholder},
+	{regexp.MustCompile(`(?i)т\.п\.`), "т" + placeholder + "п" + placeholder},
+	{regexp.MustCompile(`(?i)т\.е\.`), "т" + placeholder + "е" + placeholder},
+	{regexp.MustCompile(`(?i)проф\.`), "проф" + placeholder},
+	{regexp.MustCompile(`(?i)доц\.`), "доц" + placeholder},
+	{regexp.MustCompile(`(?i)акад\.`), "акад" + placeholder},
+	{regexp.MustCompile(`(?i)др\.`), "др" + placeholder},
+	{regexp.MustCompile(`(?i)ул\.`), "ул" + placeholder},
+	{regexp.MustCompile(`(?i)пр\.`), "пр" + placeholder},
+	// Abbreviations with context guards (followed by digit or uppercase)
+	{regexp.MustCompile(`(?i)ст\.\s*(\d)`), "ст" + placeholder + " ${1}"},
+	{regexp.MustCompile(`(?i)п\.\s*(\d)`), "п" + placeholder + " ${1}"},
+	{regexp.MustCompile(`(?i)г\.\s*([А-ЯA-Z\d])`), "г" + placeholder + " ${1}"},
+	{regexp.MustCompile(`(?i)д\.\s*(\d)`), "д" + placeholder + " ${1}"},
+}
+
+// protectAbbreviations replaces dots in known abbreviations with placeholders
+func protectAbbreviations(text string) string {
+	for _, ap := range abbreviationPatterns {
+		text = ap.pattern.ReplaceAllString(text, ap.replacement)
+	}
+	return text
+}
+
+// restoreAbbreviations restores dots from placeholders
+func restoreAbbreviations(text string) string {
+	return strings.ReplaceAll(text, placeholder, ".")
+}
+
+// splitIntoSentences splits text into sentences, respecting paragraph boundaries
+// and Russian abbreviations.
 func splitIntoSentences(text string) []string {
-	// Simple sentence splitting by common delimiters
-	delimiters := []string{". ", "! ", "? ", ".\n", "!\n", "?\n"}
-
-	sentences := []string{text}
-
-	for _, delim := range delimiters {
-		var newSentences []string
-		for _, s := range sentences {
-			parts := strings.Split(s, delim)
-			for i, part := range parts {
-				part = strings.TrimSpace(part)
-				if len(part) == 0 {
-					continue
-				}
-				// Add back the delimiter (except for the last part)
-				if i < len(parts)-1 {
-					part += string(delim[0])
-				}
-				newSentences = append(newSentences, part)
-			}
-		}
-		sentences = newSentences
+	if len(text) == 0 {
+		return nil
 	}
 
-	return sentences
+	// First split by paragraph breaks — these are highest priority boundaries
+	paragraphs := strings.Split(text, "\n\n")
+
+	var allSentences []string
+	for _, paragraph := range paragraphs {
+		paragraph = strings.TrimSpace(paragraph)
+		if paragraph == "" {
+			continue
+		}
+
+		// Protect abbreviations
+		protected := protectAbbreviations(paragraph)
+
+		// Split by sentence-ending punctuation followed by whitespace
+		parts := sentenceRe.Split(protected, -1)
+		delimiters := sentenceRe.FindAllStringSubmatch(protected, -1)
+
+		var sentences []string
+		for i, part := range parts {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			// Re-attach the delimiter to the sentence (except for the last part)
+			if i < len(delimiters) {
+				part += delimiters[i][1] // add back the punctuation mark
+			}
+			// Restore abbreviation dots
+			part = restoreAbbreviations(part)
+			sentences = append(sentences, part)
+		}
+
+		allSentences = append(allSentences, sentences...)
+	}
+
+	return allSentences
 }
 
 // getOverlapText extracts overlap text from the end of a chunk
@@ -184,25 +277,33 @@ func getOverlapText(text string, overlapTokens int) string {
 		return ""
 	}
 
-	// Estimate characters based on token count
-	overlapChars := overlapTokens * 4
-	if overlapChars >= len(text) {
+	// Estimate characters based on token count (rune count = tokens * 2)
+	overlapChars := overlapTokens * 2
+	runes := []rune(text)
+	if overlapChars >= len(runes) {
 		return text
 	}
 
 	// Find the last sentence boundary within overlap range
-	overlapStart := len(text) - overlapChars
-	lastSentence := strings.LastIndex(text[:overlapStart], ". ")
+	overlapStart := len(runes) - overlapChars
+	prefix := string(runes[:overlapStart])
+	lastSentence := strings.LastIndex(prefix, ". ")
 
-	if lastSentence > 0 && lastSentence < overlapStart {
-		return strings.TrimSpace(text[lastSentence+2:])
+	if lastSentence > 0 && lastSentence < len(prefix) {
+		return strings.TrimSpace(string([]rune(text)[runeIndex(text, lastSentence+2):]))
 	}
 
 	// Fall back to word boundary
-	lastSpace := strings.LastIndex(text[:overlapStart], " ")
+	lastSpace := strings.LastIndex(prefix, " ")
 	if lastSpace > 0 {
-		return strings.TrimSpace(text[lastSpace+1:])
+		return strings.TrimSpace(string([]rune(text)[runeIndex(text, lastSpace+1):]))
 	}
 
-	return strings.TrimSpace(text[overlapStart:])
+	return strings.TrimSpace(string(runes[overlapStart:]))
 }
+
+// runeIndex converts a byte offset to a rune offset
+func runeIndex(s string, byteOffset int) int {
+	return len([]rune(s[:byteOffset]))
+}
+

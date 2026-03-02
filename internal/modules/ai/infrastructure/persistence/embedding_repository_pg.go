@@ -404,3 +404,118 @@ func (r *EmbeddingRepositoryPg) GetIndexingStats(ctx context.Context) (totalDocu
 
 	return totalDocuments, indexedDocuments, pendingDocuments, lastIndexedAt, nil
 }
+
+// SearchHybrid performs hybrid search combining vector similarity and full-text search using RRF.
+func (r *EmbeddingRepositoryPg) SearchHybrid(ctx context.Context, embedding []float32, queryText string, limit int, threshold float64) ([]entities.ChunkWithScore, error) {
+	query := `
+		WITH vector_results AS (
+			SELECT c.id, ROW_NUMBER() OVER (ORDER BY e.embedding <=> $1) as rank
+			FROM ai_embeddings e
+			JOIN ai_document_chunks c ON e.chunk_id = c.id
+			WHERE 1 - (e.embedding <=> $1) >= $2
+			LIMIT $3 * 3
+		),
+		fts_results AS (
+			SELECT c.id, ROW_NUMBER() OVER (ORDER BY ts_rank(c.search_vector, plainto_tsquery('russian', $4)) DESC) as rank
+			FROM ai_document_chunks c
+			WHERE c.search_vector @@ plainto_tsquery('russian', $4)
+			LIMIT $3 * 3
+		),
+		combined AS (
+			SELECT COALESCE(v.id, f.id) as chunk_id,
+				   1.0/(60 + COALESCE(v.rank, 1000)) + 1.0/(60 + COALESCE(f.rank, 1000)) as rrf_score
+			FROM vector_results v
+			FULL OUTER JOIN fts_results f ON v.id = f.id
+		)
+		SELECT c.id, c.document_id, c.chunk_index, c.chunk_text, c.chunk_tokens, c.page_number, c.metadata, c.created_at,
+			   d.title as document_title,
+			   cm.rrf_score as similarity
+		FROM combined cm
+		JOIN ai_document_chunks c ON cm.chunk_id = c.id
+		JOIN documents d ON c.document_id = d.id
+		ORDER BY cm.rrf_score DESC
+		LIMIT $3`
+
+	vec := pgvector.NewVector(embedding)
+	rows, err := r.db.QueryContext(ctx, query, vec, threshold, limit, queryText)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search hybrid: %w", err)
+	}
+	defer rows.Close()
+
+	results := make([]entities.ChunkWithScore, 0)
+	for rows.Next() {
+		var result entities.ChunkWithScore
+		result.Chunk = &entities.DocumentChunk{}
+		var metadata []byte
+
+		if err := rows.Scan(
+			&result.Chunk.ID,
+			&result.Chunk.DocumentID,
+			&result.Chunk.ChunkIndex,
+			&result.Chunk.ChunkText,
+			&result.Chunk.ChunkTokens,
+			&result.Chunk.PageNumber,
+			&metadata,
+			&result.Chunk.CreatedAt,
+			&result.DocumentTitle,
+			&result.SimilarityScore,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan result: %w", err)
+		}
+
+		if len(metadata) > 0 {
+			json.Unmarshal(metadata, &result.Chunk.Metadata)
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
+// GetAdjacentChunks retrieves neighboring chunks (±windowSize) for the given chunk IDs.
+func (r *EmbeddingRepositoryPg) GetAdjacentChunks(ctx context.Context, chunkIDs []int64, windowSize int) ([]entities.DocumentChunk, error) {
+	if len(chunkIDs) == 0 || windowSize <= 0 {
+		return nil, nil
+	}
+
+	query := `
+		SELECT DISTINCT ac.id, ac.document_id, ac.chunk_index, ac.chunk_text, ac.chunk_tokens, ac.page_number, ac.metadata, ac.created_at
+		FROM ai_document_chunks c
+		JOIN ai_document_chunks ac ON ac.document_id = c.document_id
+			AND ac.chunk_index BETWEEN c.chunk_index - $2 AND c.chunk_index + $2
+			AND ac.id != c.id
+		WHERE c.id = ANY($1)
+		ORDER BY ac.document_id, ac.chunk_index`
+
+	rows, err := r.db.QueryContext(ctx, query, pq.Array(chunkIDs), windowSize)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get adjacent chunks: %w", err)
+	}
+	defer rows.Close()
+
+	chunks := make([]entities.DocumentChunk, 0)
+	for rows.Next() {
+		var c entities.DocumentChunk
+		var metadata []byte
+		if err := rows.Scan(
+			&c.ID,
+			&c.DocumentID,
+			&c.ChunkIndex,
+			&c.ChunkText,
+			&c.ChunkTokens,
+			&c.PageNumber,
+			&metadata,
+			&c.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan adjacent chunk: %w", err)
+		}
+		if len(metadata) > 0 {
+			json.Unmarshal(metadata, &c.Metadata)
+		}
+		chunks = append(chunks, c)
+	}
+
+	return chunks, nil
+}
