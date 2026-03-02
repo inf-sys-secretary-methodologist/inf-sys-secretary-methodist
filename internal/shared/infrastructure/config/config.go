@@ -126,20 +126,47 @@ type TracingConfig struct {
 
 // AIConfig holds AI/RAG configuration
 type AIConfig struct {
-	Enabled        bool          // Enable AI features
-	Provider       string        // Primary provider: "openai" or "ollama"
-	OpenAIAPIKey   string        // OpenAI API key
-	OpenAIBaseURL  string        // OpenAI API base URL (for custom endpoints)
-	OllamaBaseURL  string        // Ollama API base URL
-	EmbeddingModel string        // Model for embeddings (e.g., "text-embedding-3-small")
-	ChatModel      string        // Model for chat (e.g., "gpt-4o-mini")
-	MaxTokens      int           // Max tokens for chat response
-	Temperature    float64       // Temperature for chat (0.0 - 2.0)
-	ChunkSize      int           // Chunk size in tokens for document splitting
-	ChunkOverlap   int           // Overlap between chunks in tokens
-	SearchTopK     int           // Number of similar chunks to retrieve
-	SearchThreshold float64      // Minimum similarity threshold (0.0 - 1.0)
-	Timeout        time.Duration // API request timeout
+	Enabled  bool   // Enable AI features
+	Provider string // Chat provider: "anthropic" or "openai"
+	Timeout  time.Duration
+
+	// Primary provider keys
+	OpenAIAPIKey     string // OpenAI API key (used for embeddings)
+	OpenAIBaseURL    string // OpenAI API base URL
+	AnthropicAPIKey  string // Anthropic API key
+	AnthropicBaseURL string // Anthropic API base URL
+
+	// Chat configuration
+	ChatAPIKey  string  // Chat provider API key (overrides OpenAI key for chat)
+	ChatBaseURL string  // Chat provider base URL (overrides OpenAI URL for chat)
+	ChatModel   string  // Model for chat (e.g., "gemini-2.5-flash")
+	MaxTokens   int     // Max tokens for chat response
+	Temperature float64 // Temperature for chat (0.0 - 2.0)
+
+	// Embedding configuration
+	EmbeddingProvider       string // Embedding provider: "openai" or "gemini"
+	EmbeddingAPIKey         string // Embedding provider API key
+	EmbeddingModel          string // Model for embeddings (e.g., "gemini-embedding-001")
+	EmbeddingDimensionality int    // Embedding output dimensionality (e.g., 1536)
+
+	// RAG configuration
+	ChunkSize       int     // Chunk size in tokens for document splitting
+	ChunkOverlap    int     // Overlap between chunks in tokens
+	SearchTopK      int     // Number of similar chunks to retrieve
+	SearchThreshold float64 // Minimum similarity threshold (0.0 - 1.0)
+
+	// Fallback chat provider
+	FallbackProvider  string // Fallback chat provider: "groq", "openai", "anthropic", "" (disabled)
+	FallbackAPIKey    string // Fallback chat API key
+	FallbackBaseURL   string // Fallback chat base URL
+	FallbackChatModel string // Fallback chat model name
+
+	// Fallback embedding provider
+	FallbackEmbeddingProvider       string // Fallback embedding provider: "openai", "gemini", "" (disabled)
+	FallbackEmbeddingAPIKey         string // Fallback embedding API key
+	FallbackEmbeddingBaseURL        string // Fallback embedding base URL
+	FallbackEmbeddingModel          string // Fallback embedding model
+	FallbackEmbeddingDimensionality int    // Fallback embedding dimensionality
 }
 
 // S3Config holds S3/MinIO storage configuration
@@ -245,20 +272,41 @@ func Load() (*Config, error) {
 			ServiceName:  getEnv("TRACING_SERVICE_NAME", "inf-sys-secretary-methodist"),
 		},
 		AI: AIConfig{
-			Enabled:         getEnvAsBool("AI_ENABLED", false),
-			Provider:        getEnv("AI_PROVIDER", "openai"),
-			OpenAIAPIKey:    getEnv("OPENAI_API_KEY", ""),
-			OpenAIBaseURL:   getEnv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
-			OllamaBaseURL:   getEnv("OLLAMA_BASE_URL", "http://localhost:11434"),
-			EmbeddingModel:  getEnv("AI_EMBEDDING_MODEL", "text-embedding-3-small"),
-			ChatModel:       getEnv("AI_CHAT_MODEL", "gpt-4o-mini"),
-			MaxTokens:       getEnvAsInt("AI_MAX_TOKENS", 2048),
-			Temperature:     getEnvAsFloat("AI_TEMPERATURE", 0.7),
+			Enabled:  getEnvAsBool("AI_ENABLED", false),
+			Provider: getEnv("AI_PROVIDER", "openai"),
+			Timeout:  getEnvAsDuration("AI_TIMEOUT", 60*time.Second),
+
+			OpenAIAPIKey:     getEnv("OPENAI_API_KEY", ""),
+			OpenAIBaseURL:    getEnv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+			AnthropicAPIKey:  getEnv("ANTHROPIC_API_KEY", ""),
+			AnthropicBaseURL: getEnv("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
+
+			ChatAPIKey:  getEnv("AI_CHAT_API_KEY", ""),
+			ChatBaseURL: getEnv("AI_CHAT_BASE_URL", ""),
+			ChatModel:   getEnv("AI_CHAT_MODEL", "gemini-2.5-flash"),
+			MaxTokens:   getEnvAsInt("AI_MAX_TOKENS", 2048),
+			Temperature: getEnvAsFloat("AI_TEMPERATURE", 0.7),
+
+			EmbeddingProvider:       getEnv("AI_EMBEDDING_PROVIDER", "openai"),
+			EmbeddingAPIKey:         getEnv("AI_EMBEDDING_API_KEY", ""),
+			EmbeddingModel:          getEnv("AI_EMBEDDING_MODEL", "gemini-embedding-001"),
+			EmbeddingDimensionality: getEnvAsInt("AI_EMBEDDING_DIMENSIONALITY", 1536),
+
 			ChunkSize:       getEnvAsInt("AI_CHUNK_SIZE", 512),
-			ChunkOverlap:    getEnvAsInt("AI_CHUNK_OVERLAP", 51),
-			SearchTopK:      getEnvAsInt("AI_SEARCH_TOP_K", 5),
+			ChunkOverlap:    getEnvAsInt("AI_CHUNK_OVERLAP", 102),
+			SearchTopK:      getEnvAsInt("AI_SEARCH_TOP_K", 10),
 			SearchThreshold: getEnvAsFloat("AI_SEARCH_THRESHOLD", 0.7),
-			Timeout:         getEnvAsDuration("AI_TIMEOUT", 60*time.Second),
+
+			FallbackProvider:  getEnv("AI_FALLBACK_PROVIDER", ""),
+			FallbackAPIKey:    getEnv("AI_FALLBACK_API_KEY", ""),
+			FallbackBaseURL:   getEnv("AI_FALLBACK_BASE_URL", ""),
+			FallbackChatModel: getEnv("AI_FALLBACK_CHAT_MODEL", ""),
+
+			FallbackEmbeddingProvider:     getEnv("AI_FALLBACK_EMBEDDING_PROVIDER", ""),
+			FallbackEmbeddingAPIKey:       getEnv("AI_FALLBACK_EMBEDDING_API_KEY", ""),
+			FallbackEmbeddingBaseURL:      getEnv("AI_FALLBACK_EMBEDDING_BASE_URL", ""),
+			FallbackEmbeddingModel:        getEnv("AI_FALLBACK_EMBEDDING_MODEL", ""),
+			FallbackEmbeddingDimensionality: getEnvAsInt("AI_FALLBACK_EMBEDDING_DIMENSIONALITY", 0),
 		},
 	}
 

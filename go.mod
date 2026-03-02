@@ -5,6 +5,7 @@ go 1.25
 require (
 	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/alicebob/miniredis/v2 v2.35.0
+	github.com/dslipak/pdf v0.0.2
 	github.com/getsentry/sentry-go v0.41.0
 	github.com/getsentry/sentry-go/gin v0.41.0
 	github.com/gin-gonic/gin v1.11.0

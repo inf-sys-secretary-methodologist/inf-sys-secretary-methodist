@@ -119,6 +119,7 @@ import (
 	aiUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
 	aiAdapters "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/adapters"
 	aiPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/persistence"
+	aiPrompts "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/prompts"
 	aiProviders "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/providers"
 	aiScheduler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/scheduler"
 	aiHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/interfaces/http/handlers"
@@ -567,46 +568,159 @@ func main() {
 
 		// Initialize document adapter for AI (uses documents module)
 		aiDocRepo := docPersistence.NewDocumentRepositoryPG(db)
-		documentAdapter := aiAdapters.NewDocumentAdapter(aiDocRepo)
+		textExtractionService := aiServices.NewTextExtractionService()
+		documentAdapter := aiAdapters.NewDocumentAdapter(aiDocRepo, s3Client, textExtractionService, db, slog.Default())
 
 		// Initialize AI providers based on configuration
-		var embeddingProvider aiUsecases.EmbeddingProvider
-		var llmProvider aiUsecases.LLMProvider
 
-		if cfg.AI.Provider == "ollama" {
-			ollamaProvider := aiProviders.NewOllamaProvider(aiProviders.OllamaConfig{
-				BaseURL:        cfg.AI.OllamaBaseURL,
-				EmbeddingModel: cfg.AI.EmbeddingModel,
-				ChatModel:      cfg.AI.ChatModel,
-				Timeout:        cfg.AI.Timeout,
+		// Embeddings provider
+		var embeddingProvider aiUsecases.EmbeddingProvider
+		if cfg.AI.EmbeddingProvider == "gemini" {
+			embeddingProvider = aiProviders.NewGeminiEmbeddingProvider(aiProviders.GeminiEmbeddingConfig{
+				APIKey:              cfg.AI.EmbeddingAPIKey,
+				Model:               cfg.AI.EmbeddingModel,
+				OutputDimensionality: cfg.AI.EmbeddingDimensionality,
+				Timeout:             cfg.AI.Timeout,
 			})
-			embeddingProvider = ollamaProvider
-			llmProvider = ollamaProvider
 		} else {
-			// Default to OpenAI
-			openaiProvider := aiProviders.NewOpenAIProvider(aiProviders.OpenAIConfig{
+			embeddingProvider = aiProviders.NewOpenAIProvider(aiProviders.OpenAIConfig{
 				APIKey:         cfg.AI.OpenAIAPIKey,
 				BaseURL:        cfg.AI.OpenAIBaseURL,
 				EmbeddingModel: cfg.AI.EmbeddingModel,
-				ChatModel:      cfg.AI.ChatModel,
-				MaxTokens:      cfg.AI.MaxTokens,
-				Temperature:    cfg.AI.Temperature,
 				Timeout:        cfg.AI.Timeout,
 			})
-			embeddingProvider = openaiProvider
-			llmProvider = openaiProvider
+		}
+
+		// Wrap embedding provider with fallback if configured
+		if cfg.AI.FallbackEmbeddingProvider != "" && cfg.AI.FallbackEmbeddingAPIKey != "" {
+			fallbackDim := cfg.AI.FallbackEmbeddingDimensionality
+			if fallbackDim == 0 {
+				fallbackDim = cfg.AI.EmbeddingDimensionality
+			}
+			if fallbackDim != cfg.AI.EmbeddingDimensionality {
+				slog.Warn("fallback embedding dimensionality differs from primary — similarity search may produce incorrect results",
+					"primary", cfg.AI.EmbeddingDimensionality,
+					"fallback", fallbackDim)
+			}
+
+			var fallbackEmbedding aiUsecases.EmbeddingProvider
+			if cfg.AI.FallbackEmbeddingProvider == "gemini" {
+				fallbackEmbedding = aiProviders.NewGeminiEmbeddingProvider(aiProviders.GeminiEmbeddingConfig{
+					APIKey:              cfg.AI.FallbackEmbeddingAPIKey,
+					Model:               cfg.AI.FallbackEmbeddingModel,
+					OutputDimensionality: fallbackDim,
+					Timeout:             cfg.AI.Timeout,
+				})
+			} else {
+				fallbackEmbedding = aiProviders.NewOpenAIProvider(aiProviders.OpenAIConfig{
+					APIKey:         cfg.AI.FallbackEmbeddingAPIKey,
+					BaseURL:        cfg.AI.FallbackEmbeddingBaseURL,
+					EmbeddingModel: cfg.AI.FallbackEmbeddingModel,
+					Timeout:        cfg.AI.Timeout,
+				})
+			}
+			embeddingProvider = aiProviders.NewFallbackEmbeddingProvider(embeddingProvider, fallbackEmbedding, slog.Default())
+			slog.Info("AI fallback embedding provider configured",
+				"provider", cfg.AI.FallbackEmbeddingProvider,
+				"model", cfg.AI.FallbackEmbeddingModel)
+		} else if cfg.AI.FallbackEmbeddingProvider != "" && cfg.AI.FallbackEmbeddingAPIKey == "" {
+			slog.Warn("AI_FALLBACK_EMBEDDING_PROVIDER is set but AI_FALLBACK_EMBEDDING_API_KEY is empty, skipping embedding fallback")
+		}
+
+		// Chat (LLM) provider
+		var llmProvider aiUsecases.LLMProvider
+		if cfg.AI.Provider == "anthropic" {
+			llmProvider = aiProviders.NewAnthropicProvider(aiProviders.AnthropicConfig{
+				APIKey:      cfg.AI.AnthropicAPIKey,
+				BaseURL:     cfg.AI.AnthropicBaseURL,
+				ChatModel:   cfg.AI.ChatModel,
+				MaxTokens:   cfg.AI.MaxTokens,
+				Temperature: cfg.AI.Temperature,
+				Timeout:     cfg.AI.Timeout,
+			})
+		} else if cfg.AI.ChatAPIKey != "" {
+			// Separate OpenAI-compatible provider for chat (e.g. Gemini, Groq)
+			llmProvider = aiProviders.NewOpenAIProvider(aiProviders.OpenAIConfig{
+				APIKey:      cfg.AI.ChatAPIKey,
+				BaseURL:     cfg.AI.ChatBaseURL,
+				ChatModel:   cfg.AI.ChatModel,
+				MaxTokens:   cfg.AI.MaxTokens,
+				Temperature: cfg.AI.Temperature,
+				Timeout:     cfg.AI.Timeout,
+			})
+		} else {
+			llmProvider = aiProviders.NewOpenAIProvider(aiProviders.OpenAIConfig{
+				APIKey:      cfg.AI.OpenAIAPIKey,
+				BaseURL:     cfg.AI.OpenAIBaseURL,
+				ChatModel:   cfg.AI.ChatModel,
+				MaxTokens:   cfg.AI.MaxTokens,
+				Temperature: cfg.AI.Temperature,
+				Timeout:     cfg.AI.Timeout,
+			})
+		}
+
+		// Wrap LLM with fallback provider if configured
+		if cfg.AI.FallbackProvider != "" && cfg.AI.FallbackAPIKey != "" {
+			var fallbackLLM aiUsecases.LLMProvider
+			if cfg.AI.FallbackProvider == "anthropic" {
+				fallbackLLM = aiProviders.NewAnthropicProvider(aiProviders.AnthropicConfig{
+					APIKey:      cfg.AI.FallbackAPIKey,
+					BaseURL:     cfg.AI.FallbackBaseURL,
+					ChatModel:   cfg.AI.FallbackChatModel,
+					MaxTokens:   cfg.AI.MaxTokens,
+					Temperature: cfg.AI.Temperature,
+					Timeout:     cfg.AI.Timeout,
+				})
+			} else {
+				// OpenAI-compatible: groq, openai, etc.
+				fallbackLLM = aiProviders.NewOpenAIProvider(aiProviders.OpenAIConfig{
+					APIKey:      cfg.AI.FallbackAPIKey,
+					BaseURL:     cfg.AI.FallbackBaseURL,
+					ChatModel:   cfg.AI.FallbackChatModel,
+					MaxTokens:   cfg.AI.MaxTokens,
+					Temperature: cfg.AI.Temperature,
+					Timeout:     cfg.AI.Timeout,
+				})
+			}
+			llmProvider = aiProviders.NewFallbackLLMProvider(llmProvider, fallbackLLM, slog.Default())
+			slog.Info("AI fallback LLM provider configured",
+				"provider", cfg.AI.FallbackProvider,
+				"model", cfg.AI.FallbackChatModel)
+		} else if cfg.AI.FallbackProvider != "" && cfg.AI.FallbackAPIKey == "" {
+			slog.Warn("AI_FALLBACK_PROVIDER is set but AI_FALLBACK_API_KEY is empty, skipping LLM fallback")
 		}
 
 		// Initialize AI use cases
+		chunkSize := cfg.AI.ChunkSize
+		if chunkSize <= 0 {
+			chunkSize = 512
+		}
+		chunkOverlap := cfg.AI.ChunkOverlap
+		if chunkOverlap <= 0 {
+			chunkOverlap = 102
+		}
 		aiEmbeddingUseCase := aiUsecases.NewEmbeddingUseCase(
 			aiEmbeddingRepo,
 			embeddingProvider,
 			documentAdapter,
 			auditLogger,
+			cfg.AI.EmbeddingModel,
+			aiServices.ChunkingConfig{
+				MaxTokens:    chunkSize,
+				OverlapRatio: float64(chunkOverlap) / float64(chunkSize),
+			},
 		)
 
-		// Initialize Metodych personality service
-		personalityService := aiServices.NewPersonalityService()
+		// Initialize Metodych personality (prompt provider)
+		promptProvider := aiPrompts.NewPromptProvider()
+
+		// Initialize Mood Engine (before ChatUseCase so it can be wired in)
+		moodUseCase := aiUsecases.NewMoodUseCase(
+			dashboardRepo,
+			analyticsRepo,
+			redisCache,
+			promptProvider,
+		)
 
 		aiChatUseCase := aiUsecases.NewChatUseCase(
 			aiConversationRepo,
@@ -614,24 +728,19 @@ func main() {
 			aiEmbeddingRepo,
 			aiEmbeddingUseCase,
 			llmProvider,
+			promptProvider,
 			auditLogger,
 			aiUsecases.ChatUseCaseOptions{
-				PersonalityService: personalityService,
-				ModelName:          cfg.AI.ChatModel,
+				ModelName:       cfg.AI.ChatModel,
+				SearchTopK:      cfg.AI.SearchTopK,
+				SearchThreshold: cfg.AI.SearchThreshold,
+				MoodUseCase:     moodUseCase,
 			},
-		)
-
-		// Initialize Mood Engine
-		moodUseCase := aiUsecases.NewMoodUseCase(
-			dashboardRepo,
-			analyticsRepo,
-			redisCache,
-			personalityService,
 		)
 
 		// Initialize Fun Facts
 		funFactRepo := aiPersistence.NewFunFactRepositoryPg(db)
-		funFactUseCase := aiUsecases.NewFunFactUseCase(funFactRepo, personalityService)
+		funFactUseCase := aiUsecases.NewFunFactUseCase(funFactRepo, promptProvider)
 
 		// Seed fun facts if table is empty
 		funFactSeeder := aiAdapters.NewFunFactSeeder(funFactRepo, slog.Default())
@@ -640,14 +749,14 @@ func main() {
 		}
 
 		// Set personality on notification use case
-		notificationUseCase.SetPersonalityService(personalityService)
+		notificationUseCase.SetPersonalityProvider(promptProvider)
 
 		// Initialize Telegram personality service (decorator)
 		var telegramPersonalityService *aiServices.TelegramPersonalityService
 		if telegramService != nil {
 			telegramPersonalityService = aiServices.NewTelegramPersonalityService(
 				telegramService,
-				personalityService,
+				promptProvider,
 			)
 		}
 
@@ -668,6 +777,22 @@ func main() {
 				} else {
 					logger.Info("Fact scheduler started", nil)
 				}
+			}
+		}
+
+		// Initialize indexing scheduler for automatic document indexing
+		indexingScheduler, err := aiScheduler.NewIndexingScheduler(
+			aiEmbeddingUseCase,
+			10,
+			slog.Default(),
+		)
+		if err != nil {
+			logger.Warn("Failed to create indexing scheduler", map[string]interface{}{"error": err.Error()})
+		} else {
+			if err := indexingScheduler.Start(); err != nil {
+				logger.Warn("Failed to start indexing scheduler", map[string]interface{}{"error": err.Error()})
+			} else {
+				logger.Info("Indexing scheduler started", nil)
 			}
 		}
 
