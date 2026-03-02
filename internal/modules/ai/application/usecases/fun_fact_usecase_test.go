@@ -8,9 +8,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 )
+
+// mockPersonalityProvider is a stub PersonalityProvider for unit tests.
+type mockPersonalityProvider struct{}
+
+func (m *mockPersonalityProvider) BuildSystemPrompt(_ entities.MoodContext) string            { return "" }
+func (m *mockPersonalityProvider) FormatRAGContext(_ []entities.ChunkWithScore) string         { return "" }
+func (m *mockPersonalityProvider) GetGreeting(_ string) string                                { return "Приветствую!" }
+func (m *mockPersonalityProvider) GetMoodComment(_ entities.MoodContext) string                { return "Всё под контролем!" }
+func (m *mockPersonalityProvider) FormatNotification(_, title, msg string, _ entities.MoodContext) string {
+	return title + "\n" + msg
+}
 
 // MockFunFactRepo is a mock implementation of FunFactRepository
 type MockFunFactRepo struct {
@@ -55,8 +65,8 @@ func (m *MockFunFactRepo) Count(_ context.Context) (int64, error) {
 
 func TestGetRandomFact_Success(t *testing.T) {
 	mockRepo := new(MockFunFactRepo)
-	ps := services.NewPersonalityService()
-	uc := NewFunFactUseCase(mockRepo, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewFunFactUseCase(mockRepo, pp)
 
 	fact := &entities.FunFact{
 		ID:       1,
@@ -81,8 +91,8 @@ func TestGetRandomFact_Success(t *testing.T) {
 
 func TestGetRandomFact_EmptyTable(t *testing.T) {
 	mockRepo := new(MockFunFactRepo)
-	ps := services.NewPersonalityService()
-	uc := NewFunFactUseCase(mockRepo, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewFunFactUseCase(mockRepo, pp)
 
 	mockRepo.On("GetRandom").Return(nil, nil)
 
@@ -97,8 +107,8 @@ func TestGetRandomFact_EmptyTable(t *testing.T) {
 
 func TestGetRandomFact_RepoError(t *testing.T) {
 	mockRepo := new(MockFunFactRepo)
-	ps := services.NewPersonalityService()
-	uc := NewFunFactUseCase(mockRepo, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewFunFactUseCase(mockRepo, pp)
 
 	mockRepo.On("GetRandom").Return(nil, errors.New("database error"))
 
@@ -112,8 +122,8 @@ func TestGetRandomFact_RepoError(t *testing.T) {
 
 func TestGetRandomFact_IncrementError(t *testing.T) {
 	mockRepo := new(MockFunFactRepo)
-	ps := services.NewPersonalityService()
-	uc := NewFunFactUseCase(mockRepo, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewFunFactUseCase(mockRepo, pp)
 
 	fact := &entities.FunFact{
 		ID:       2,

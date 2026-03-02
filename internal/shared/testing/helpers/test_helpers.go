@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	_ "github.com/lib/pq" // PostgreSQL driver for integration tests
+
 	"github.com/stretchr/testify/require"
 )
 

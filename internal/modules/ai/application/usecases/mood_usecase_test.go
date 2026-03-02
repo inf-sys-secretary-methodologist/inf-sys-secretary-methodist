@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 	analyticsEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
 	dashboardRepos "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/domain/repositories"
@@ -113,8 +112,8 @@ func TestComputeMood_Panicking(t *testing.T) {
 		atRiskStudents: makeCriticalStudents(6),
 		totalAtRisk:    10,
 	}
-	ps := services.NewPersonalityService()
-	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, pp)
 
 	mood, err := uc.ComputeMood(context.Background())
 
@@ -131,8 +130,8 @@ func TestComputeMood_Stressed(t *testing.T) {
 		atRiskStudents: makeCriticalStudents(4),
 		totalAtRisk:    6,
 	}
-	ps := services.NewPersonalityService()
-	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, pp)
 
 	mood, err := uc.ComputeMood(context.Background())
 
@@ -153,8 +152,8 @@ func TestComputeMood_Happy(t *testing.T) {
 			{AttendanceRate: 80}, // stable, not improving
 		},
 	}
-	ps := services.NewPersonalityService()
-	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, pp)
 
 	mood, err := uc.ComputeMood(context.Background())
 
@@ -175,8 +174,8 @@ func TestComputeMood_Inspired(t *testing.T) {
 			{AttendanceRate: 85}, // improving (+15 > +2 threshold)
 		},
 	}
-	ps := services.NewPersonalityService()
-	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, pp)
 
 	mood, err := uc.ComputeMood(context.Background())
 
@@ -199,8 +198,8 @@ func TestComputeMood_DefaultContent(t *testing.T) {
 			{AttendanceRate: 80}, // stable
 		},
 	}
-	ps := services.NewPersonalityService()
-	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, pp)
 
 	mood, err := uc.ComputeMood(context.Background())
 
@@ -224,8 +223,8 @@ func TestComputeMood_DashboardRepoError(t *testing.T) {
 		atRiskStudents: []analyticsEntities.StudentRiskScore{},
 		totalAtRisk:    0,
 	}
-	ps := services.NewPersonalityService()
-	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, pp)
 
 	mood, err := uc.ComputeMood(context.Background())
 
@@ -242,8 +241,8 @@ func TestComputeMood_AnalyticsRepoError(t *testing.T) {
 	analyticsRepo := &mockAnalyticsRepo{
 		err: errors.New("analytics service unavailable"),
 	}
-	ps := services.NewPersonalityService()
-	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, pp)
 
 	mood, err := uc.ComputeMood(context.Background())
 
@@ -260,8 +259,8 @@ func TestGetCurrentMood_NilCache(t *testing.T) {
 		atRiskStudents: []analyticsEntities.StudentRiskScore{},
 		totalAtRisk:    0,
 	}
-	ps := services.NewPersonalityService()
-	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, ps)
+	pp := &mockPersonalityProvider{}
+	uc := NewMoodUseCase(dashRepo, analyticsRepo, nil, pp)
 
 	response, err := uc.GetCurrentMood(context.Background())
 
