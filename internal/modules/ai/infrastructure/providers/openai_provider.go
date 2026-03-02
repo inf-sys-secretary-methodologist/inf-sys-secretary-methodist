@@ -30,9 +30,9 @@ func DefaultOpenAIConfig() OpenAIConfig {
 	return OpenAIConfig{
 		BaseURL:        "https://api.openai.com/v1",
 		EmbeddingModel: "text-embedding-3-small",
-		ChatModel:      "gpt-4o-mini",
+		ChatModel:      "gemini-2.5-flash",
 		MaxTokens:      2048,
-		Temperature:    0.7,
+		Temperature:    0.3,
 		Timeout:        60 * time.Second,
 	}
 }
@@ -52,7 +52,7 @@ func NewOpenAIProvider(config OpenAIConfig) *OpenAIProvider {
 		config.EmbeddingModel = "text-embedding-3-small"
 	}
 	if config.ChatModel == "" {
-		config.ChatModel = "gpt-4o-mini"
+		config.ChatModel = "gemini-2.5-flash"
 	}
 	if config.Timeout == 0 {
 		config.Timeout = 60 * time.Second
@@ -85,6 +85,12 @@ type embeddingResponse struct {
 		Type    string `json:"type"`
 		Code    string `json:"code"`
 	} `json:"error,omitempty"`
+}
+
+// GenerateQueryEmbedding generates an embedding for search queries.
+// OpenAI doesn't distinguish task types, so this delegates to GenerateEmbedding.
+func (p *OpenAIProvider) GenerateQueryEmbedding(ctx context.Context, text string) ([]float32, error) {
+	return p.GenerateEmbedding(ctx, text)
 }
 
 // GenerateEmbedding generates an embedding vector for text
