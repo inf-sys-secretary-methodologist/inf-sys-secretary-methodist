@@ -1891,7 +1891,7 @@
   "metodych": {
     "title": "Metodych",
     "chatButton": "Chat with Metodych",
-    "overdueDocuments": "Overdue: {count}",
+    "overdueDocuments": "New documents: {count}",
     "atRiskStudents": "At risk: {count}",
     "states": {
       "happy": "Great mood",

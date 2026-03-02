@@ -1859,7 +1859,7 @@
   "metodych": {
     "title": "Методыч",
     "chatButton": "Поговорить с Методычем",
-    "overdueDocuments": "Просрочено: {count}",
+    "overdueDocuments": "Новых документов: {count}",
     "atRiskStudents": "В зоне риска: {count}",
     "states": {
       "happy": "Отличное настроение",

@@ -1858,7 +1858,7 @@
   "metodych": {
     "title": "ميتوديتش",
     "chatButton": "تحدث مع ميتوديتش",
-    "overdueDocuments": "متأخر: {count}",
+    "overdueDocuments": "مستندات جديدة: {count}",
     "atRiskStudents": "في خطر: {count}",
     "states": {
       "happy": "مزاج ممتاز",

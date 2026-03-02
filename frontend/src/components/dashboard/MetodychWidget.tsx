@@ -4,17 +4,21 @@ import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useMood } from '@/hooks/useMood'
 import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
-import { MessageCircle, AlertTriangle, FileWarning } from 'lucide-react'
+import { Bot, MessageCircle, AlertTriangle, FilePlus2, Sparkles } from 'lucide-react'
 import type { MoodState } from '@/types/mood'
 
-const moodConfig: Record<MoodState, { emoji: string; color: string; animation: string }> = {
-  happy: { emoji: '\u{1F604}', color: 'text-green-500', animation: 'animate-bounce' },
-  content: { emoji: '\u{1F60A}', color: 'text-blue-500', animation: '' },
-  worried: { emoji: '\u{1F61F}', color: 'text-yellow-500', animation: 'animate-pulse' },
-  stressed: { emoji: '\u{1F630}', color: 'text-orange-500', animation: 'animate-pulse' },
-  panicking: { emoji: '\u{1F92F}', color: 'text-red-500', animation: 'animate-ping-slow' },
-  relaxed: { emoji: '\u{1F60C}', color: 'text-indigo-400', animation: '' },
-  inspired: { emoji: '\u2728', color: 'text-purple-500', animation: 'animate-spin-slow' },
+const moodConfig: Record<MoodState, { color: string; animation: string; badgeColor: string }> = {
+  happy: { color: 'text-green-500', animation: 'animate-bounce', badgeColor: 'text-green-400' },
+  content: { color: 'text-blue-500', animation: '', badgeColor: 'text-blue-400' },
+  worried: { color: 'text-yellow-500', animation: 'animate-pulse', badgeColor: 'text-yellow-400' },
+  stressed: { color: 'text-orange-500', animation: 'animate-pulse', badgeColor: 'text-orange-400' },
+  panicking: { color: 'text-red-500', animation: 'animate-ping-slow', badgeColor: 'text-red-400' },
+  relaxed: { color: 'text-indigo-400', animation: '', badgeColor: 'text-indigo-400' },
+  inspired: {
+    color: 'text-purple-500',
+    animation: 'animate-spin-slow',
+    badgeColor: 'text-purple-400',
+  },
 }
 
 export function MetodychWidget() {
@@ -25,7 +29,7 @@ export function MetodychWidget() {
     return (
       <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white dark:bg-black/95 border border-gray-200 dark:border-gray-700 animate-pulse">
         <div className="flex items-start gap-4">
-          <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
+          <div className="h-16 w-16 bg-gray-200 dark:bg-gray-700 rounded-2xl" />
           <div className="flex-1 space-y-3">
             <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded" />
             <div className="h-3 w-full bg-gray-200 dark:bg-gray-700 rounded" />
@@ -52,9 +56,14 @@ export function MetodychWidget() {
       />
       <div className="relative z-10">
         <div className="flex items-start gap-3 sm:gap-4">
-          {/* Avatar */}
-          <div className={`text-4xl sm:text-5xl ${config.animation} flex-shrink-0`}>
-            {config.emoji}
+          {/* Avatar — matches AIAssistantCard style */}
+          <div className={`relative flex-shrink-0 ${config.animation}`}>
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 shadow-lg">
+              <Bot className="h-8 w-8 text-primary" />
+            </div>
+            <div className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/10">
+              <Sparkles className={`h-3 w-3 ${config.badgeColor}`} />
+            </div>
           </div>
 
           {/* Speech Bubble */}
@@ -74,8 +83,8 @@ export function MetodychWidget() {
             {/* Metrics */}
             <div className="flex flex-wrap gap-3 mt-3">
               {mood.overdue_documents > 0 && (
-                <div className="flex items-center gap-1.5 text-xs sm:text-sm text-orange-600 dark:text-orange-400">
-                  <FileWarning className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-1.5 text-xs sm:text-sm text-blue-600 dark:text-blue-400">
+                  <FilePlus2 className="w-3.5 h-3.5" />
                   <span>{t('overdueDocuments', { count: mood.overdue_documents })}</span>
                 </div>
               )}

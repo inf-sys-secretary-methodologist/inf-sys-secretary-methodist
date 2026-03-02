@@ -1858,7 +1858,7 @@
   "metodych": {
     "title": "Metodych",
     "chatButton": "Parler avec Metodych",
-    "overdueDocuments": "En retard: {count}",
+    "overdueDocuments": "Nouveaux documents: {count}",
     "atRiskStudents": "À risque: {count}",
     "states": {
       "happy": "Excellente humeur",
