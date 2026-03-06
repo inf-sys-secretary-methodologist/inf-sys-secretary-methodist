@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
+import { getStoredToken } from '@/lib/auth/token'
 
 class ApiClient {
   private client: AxiosInstance
@@ -18,7 +19,7 @@ class ApiClient {
   private setupInterceptors() {
     this.client.interceptors.request.use(
       (config) => {
-        const token = this.getAuthToken()
+        const token = getStoredToken()
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
@@ -52,51 +53,6 @@ class ApiClient {
     )
     /* c8 ignore stop */
   }
-
-  private getAuthToken(): string | null {
-    if (typeof window !== 'undefined') {
-      // Try localStorage first
-      const localToken = localStorage.getItem('authToken')
-      if (localToken) {
-        return localToken
-      }
-
-      /* c8 ignore start - Cookie fallback logic, browser-specific */
-      // Fallback to cookie (for cases when localStorage wasn't set yet)
-      try {
-        const cookieValue = this.getCookieValue('auth-storage')
-        if (cookieValue) {
-          const decoded = decodeURIComponent(cookieValue)
-          const parsed = JSON.parse(decoded)
-          const token = parsed.state?.token
-          if (token) {
-            // Also save to localStorage for future requests
-            localStorage.setItem('authToken', token)
-            return token
-          }
-        }
-      } catch (e) {
-        console.error('❌ Cookie parsing failed:', e)
-      }
-      /* c8 ignore stop */
-    }
-    return null
-  }
-
-  /* c8 ignore start - Cookie parsing helper, browser-specific */
-  private getCookieValue(name: string): string | null {
-    const nameEQ = name + '='
-    const ca = document.cookie.split(';')
-    for (let i = 0; i < ca.length; i++) {
-      let c = ca[i]
-      while (c.charAt(0) === ' ') c = c.substring(1, c.length)
-      if (c.indexOf(nameEQ) === 0) {
-        return c.substring(nameEQ.length, c.length)
-      }
-    }
-    return null
-  }
-  /* c8 ignore stop */
 
   public clearAuthToken(): void {
     if (typeof window !== 'undefined') {

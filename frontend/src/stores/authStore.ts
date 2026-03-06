@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, PersistStorage, StorageValue } from 'zustand/middleware'
 import { authApi } from '@/lib/api/auth'
 import { apiClient } from '@/lib/api'
+import { getStoredToken } from '@/lib/auth/token'
 import type { User, LoginRequest, RegisterRequest } from '@/types/auth'
 
 /* c8 ignore start - Cookie helper functions */
@@ -240,28 +241,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           const state = get()
 
-          // Try to get token from multiple sources (in order of preference)
-          let token = state.token
-
-          if (!token && typeof window !== 'undefined') {
-            // 1. Try localStorage (most reliable, set during login)
-            token = localStorage.getItem('authToken')
-
-            /* c8 ignore start - Cookie token fallback */
-            // 2. Fallback to cookie (might not have token if too large)
-            if (!token) {
-              try {
-                const cookieValue = getCookie('auth-storage')
-                if (cookieValue) {
-                  const parsed = JSON.parse(cookieValue)
-                  token = parsed.state?.token
-                }
-              } catch {
-                // Cookie parsing failed
-              }
-            }
-            /* c8 ignore stop */
-          }
+          // Try to get token from state or storage
+          const token = state.token || getStoredToken()
 
           if (!token) {
             set({ isAuthenticated: false, isLoading: false })
