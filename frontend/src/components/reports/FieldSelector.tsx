@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { motion, AnimatePresence, Reorder } from 'framer-motion'
+import { motion, AnimatePresence, Reorder } from 'motion/react'
 import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import { GripVertical, Plus, X, Hash, Type, Calendar, ToggleLeft, List, Search } from 'lucide-react'
 import type { DataSourceType, ReportField, SelectedField } from '@/types/reports'

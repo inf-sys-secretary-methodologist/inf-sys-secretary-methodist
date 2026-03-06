@@ -1,17 +1,12 @@
-import { dirname } from 'path'
-import { fileURLToPath } from 'url'
-import { FlatCompat } from '@eslint/eslintrc'
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals'
+import nextTypescript from 'eslint-config-next/typescript'
+import eslintConfigPrettier from 'eslint-config-prettier'
 import eslintPluginPrettier from 'eslint-plugin-prettier'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-})
-
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript', 'prettier'),
+  ...nextCoreWebVitals,
+  ...nextTypescript,
+  eslintConfigPrettier,
   {
     plugins: {
       prettier: eslintPluginPrettier,
@@ -26,6 +21,17 @@ const eslintConfig = [
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+      // React Compiler rules from Next.js 16 — too strict for common patterns
+      // like setState in useEffect for initialization / hydration
+      'react-hooks/set-state-in-effect': 'off',
+    },
+  },
+  {
+    // Disable React Compiler rules in test files — mock components
+    // legitimately reassign outer variables for test assertions
+    files: ['**/__tests__/**', '**/*.test.*'],
+    rules: {
+      'react-hooks/globals': 'off',
     },
   },
   {
@@ -34,6 +40,7 @@ const eslintConfig = [
       'node_modules/',
       'coverage/',
       'public/',
+      'storybook-static/',
       '*.config.js',
       '*.config.mjs',
       'jest.setup.ts',

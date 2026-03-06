@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'motion/react'
 import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import { Button } from '@/components/ui/button'
 import {
