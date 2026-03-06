@@ -170,7 +170,8 @@
     "navigation": "Navigation",
     "openMenu": "Ouvrir le menu",
     "mainNavigation": "Navigation principale",
-    "mobileNavigation": "Navigation mobile"
+    "mobileNavigation": "Navigation mobile",
+    "aiAssistant": "Assistant IA"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -1154,6 +1155,44 @@
     "openBot": "Ouvrir le bot",
     "getNewCode": "Obtenir un nouveau code"
   },
+  "push": {
+    "title": "Notifications push du navigateur",
+    "description": "Recevez des notifications directement dans votre navigateur",
+    "notSupported": "Notifications push non prises en charge",
+    "notSupportedDescription": "Votre navigateur ne prend pas en charge les notifications push. Essayez d'utiliser un navigateur moderne comme Chrome, Firefox ou Edge.",
+    "permissionBlocked": "Notifications bloquées",
+    "permissionBlockedTitle": "Autorisation requise",
+    "permissionBlockedDescription": "Les notifications push sont bloquées dans les paramètres de votre navigateur. Pour les activer, cliquez sur l'icône de cadenas dans la barre d'adresse et autorisez les notifications.",
+    "permissionDenied": "L'autorisation de notification a été refusée",
+    "enabledDescription": "Vous recevrez des notifications dans ce navigateur",
+    "enabled": "Activé",
+    "browserNotifications": "Notifications du navigateur",
+    "browserNotificationsDesc": "Recevoir des notifications push dans ce navigateur",
+    "devices": "{count, plural, =1 {1 appareil abonné} other {# appareils abonnés}}",
+    "unknownDevice": "Appareil inconnu",
+    "addedOn": "Ajouté le {date}",
+    "removeDeviceTitle": "Supprimer l'appareil ?",
+    "removeDeviceDescription": "Cet appareil ne recevra plus de notifications push.",
+    "cancel": "Annuler",
+    "remove": "Supprimer",
+    "sendTest": "Envoyer une notification test",
+    "sendingTest": "Envoi...",
+    "testSent": "Notification test envoyée",
+    "testError": "Échec de l'envoi de la notification test",
+    "disableAll": "Désactiver les notifications push",
+    "disableTitle": "Désactiver les notifications push ?",
+    "disableDescription": "Vous ne recevrez plus de notifications du navigateur. Vous pouvez les réactiver à tout moment.",
+    "confirmDisable": "Désactiver",
+    "enableInstructions": "Cliquez sur le bouton ci-dessous pour activer les notifications push du navigateur. Il vous sera peut-être demandé d'autoriser les notifications dans votre navigateur.",
+    "enable": "Activer les notifications push",
+    "enabling": "Activation...",
+    "enabledSuccess": "Notifications push activées",
+    "enableError": "Échec de l'activation des notifications push",
+    "disabledSuccess": "Notifications push désactivées",
+    "disableError": "Échec de la désactivation des notifications push",
+    "deviceRemoved": "Appareil supprimé",
+    "removeError": "Échec de la suppression de l'appareil"
+  },
   "avatarUpload": {
     "sizeError": "La taille du fichier doit être inférieure à 5 Mo",
     "formatError": "Seuls JPG, PNG, GIF, WebP sont pris en charge",
@@ -1812,7 +1851,8 @@
       "riskDistribution": "Répartition des risques"
     },
     "noStudents": "Aucun étudiant à risque trouvé",
-    "noStudentsHint": "Les étudiants à risque apparaîtront ici"
+    "noStudentsHint": "Les étudiants à risque apparaîtront ici",
+    "noAtRiskStudents": "Aucun étudiant à risque"
   },
   "ai": {
     "title": "Assistant IA",

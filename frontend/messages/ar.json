@@ -170,7 +170,8 @@
     "navigation": "التنقل",
     "openMenu": "فتح القائمة",
     "mainNavigation": "التنقل الرئيسي",
-    "mobileNavigation": "التنقل للجوال"
+    "mobileNavigation": "التنقل للجوال",
+    "aiAssistant": "مساعد الذكاء الاصطناعي"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -1154,6 +1155,44 @@
     "openBot": "فتح البوت",
     "getNewCode": "الحصول على كود جديد"
   },
+  "push": {
+    "title": "إشعارات المتصفح الفورية",
+    "description": "تلقي الإشعارات مباشرة في متصفحك",
+    "notSupported": "الإشعارات الفورية غير مدعومة",
+    "notSupportedDescription": "متصفحك لا يدعم الإشعارات الفورية. جرب استخدام متصفح حديث مثل Chrome أو Firefox أو Edge.",
+    "permissionBlocked": "الإشعارات محظورة",
+    "permissionBlockedTitle": "الإذن مطلوب",
+    "permissionBlockedDescription": "الإشعارات الفورية محظورة في إعدادات متصفحك. لتفعيلها، انقر على أيقونة القفل في شريط العنوان واسمح بالإشعارات.",
+    "permissionDenied": "تم رفض إذن الإشعارات",
+    "enabledDescription": "ستتلقى إشعارات في هذا المتصفح",
+    "enabled": "مفعّل",
+    "browserNotifications": "إشعارات المتصفح",
+    "browserNotificationsDesc": "تلقي الإشعارات الفورية في هذا المتصفح",
+    "devices": "{count, plural, =1 {جهاز مشترك واحد} other {# أجهزة مشتركة}}",
+    "unknownDevice": "جهاز غير معروف",
+    "addedOn": "أُضيف في {date}",
+    "removeDeviceTitle": "إزالة الجهاز؟",
+    "removeDeviceDescription": "لن يتلقى هذا الجهاز إشعارات فورية بعد الآن.",
+    "cancel": "إلغاء",
+    "remove": "إزالة",
+    "sendTest": "إرسال إشعار تجريبي",
+    "sendingTest": "جارٍ الإرسال...",
+    "testSent": "تم إرسال الإشعار التجريبي",
+    "testError": "فشل في إرسال الإشعار التجريبي",
+    "disableAll": "تعطيل الإشعارات الفورية",
+    "disableTitle": "تعطيل الإشعارات الفورية؟",
+    "disableDescription": "لن تتلقى إشعارات المتصفح بعد الآن. يمكنك إعادة تفعيلها في أي وقت.",
+    "confirmDisable": "تعطيل",
+    "enableInstructions": "انقر على الزر أدناه لتفعيل إشعارات المتصفح الفورية. قد يُطلب منك السماح بالإشعارات في متصفحك.",
+    "enable": "تفعيل الإشعارات الفورية",
+    "enabling": "جارٍ التفعيل...",
+    "enabledSuccess": "تم تفعيل الإشعارات الفورية",
+    "enableError": "فشل في تفعيل الإشعارات الفورية",
+    "disabledSuccess": "تم تعطيل الإشعارات الفورية",
+    "disableError": "فشل في تعطيل الإشعارات الفورية",
+    "deviceRemoved": "تمت إزالة الجهاز",
+    "removeError": "فشل في إزالة الجهاز"
+  },
   "avatarUpload": {
     "sizeError": "يجب أن يكون حجم الملف أقل من 5 ميجابايت",
     "formatError": "يُدعم فقط JPG، PNG، GIF، WebP",
@@ -1812,7 +1851,8 @@
       "riskDistribution": "توزيع المخاطر"
     },
     "noStudents": "لم يتم العثور على طلاب معرضين للخطر",
-    "noStudentsHint": "سيظهر الطلاب المعرضون للخطر هنا"
+    "noStudentsHint": "سيظهر الطلاب المعرضون للخطر هنا",
+    "noAtRiskStudents": "لا يوجد طلاب معرضون للخطر"
   },
   "ai": {
     "title": "مساعد الذكاء الاصطناعي",
