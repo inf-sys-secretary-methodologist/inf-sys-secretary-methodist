@@ -247,7 +247,7 @@ export default function DashboardPage() {
                     {t('quickActions.uploadDocument')}
                   </button>
                   <button
-                    onClick={() => router.push('/students')}
+                    onClick={() => router.push('/integration')}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 bg-white dark:bg-white text-gray-900 hover:bg-gray-900 dark:hover:bg-gray-900 hover:text-white dark:hover:text-white border border-gray-200 hover:border-gray-900 dark:hover:border-gray-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg text-left"
                   >
                     {t('quickActions.addStudent')}
