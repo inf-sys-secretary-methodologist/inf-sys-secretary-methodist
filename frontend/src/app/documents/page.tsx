@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { format } from 'date-fns'
 import { useTranslations } from 'next-intl'
+import { getStoredToken } from '@/lib/auth/token'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { UserRole } from '@/types/auth'
 import { AppLayout } from '@/components/layout'
@@ -374,7 +375,7 @@ export default function DocumentsPage() {
   const handleDownload = (doc: Document) => {
     const downloadUrl = documentsApi.getFileDownloadUrl(doc.id)
     // Open in new tab with auth token
-    const token = localStorage.getItem('authToken')
+    const token = getStoredToken()
     if (token) {
       window.open(`${downloadUrl}?token=${token}`, '_blank')
     } else {

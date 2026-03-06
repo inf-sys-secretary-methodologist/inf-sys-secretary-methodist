@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
-import { getStoredToken } from '@/lib/auth/token'
+import { getStoredToken, setStoredToken, clearStoredToken } from '@/lib/auth/token'
 
 class ApiClient {
   private client: AxiosInstance
@@ -55,15 +55,11 @@ class ApiClient {
   }
 
   public clearAuthToken(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('authToken')
-    }
+    clearStoredToken()
   }
 
   public setAuthToken(token: string): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('authToken', token)
-    }
+    setStoredToken(token)
   }
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {

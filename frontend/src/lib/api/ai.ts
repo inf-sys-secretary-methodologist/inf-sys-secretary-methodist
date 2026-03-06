@@ -1,4 +1,5 @@
 import { apiClient } from '../api'
+import { getStoredToken } from '@/lib/auth/token'
 import type {
   AIConversation,
   AIConversationListOutput,
@@ -94,7 +95,7 @@ export const aiApi = {
 
   // Streaming chat - returns EventSource URL
   chatStream: (input: SendAIMessageInput): EventSource => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+    const token = getStoredToken()
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
     // Build URL with query params for GET request (SSE doesn't support POST body)

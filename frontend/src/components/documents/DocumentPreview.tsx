@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { X, Download, ExternalLink, FileText, History } from 'lucide-react'
+import { getStoredToken } from '@/lib/auth/token'
 import { Button } from '@/components/ui/button'
 import { Document } from '@/types/document'
 import { DocumentVersionHistory } from './DocumentVersionHistory'
@@ -78,7 +79,7 @@ export function DocumentPreview({
   // Helper to add auth token to URL for file access
   // inline=true tells backend to use Content-Disposition: inline for preview
   const getAuthenticatedUrl = (url: string, inline: boolean = false) => {
-    const token = localStorage.getItem('authToken')
+    const token = getStoredToken()
     const params = new URLSearchParams()
     if (token) params.set('token', token)
     if (inline) params.set('inline', 'true')

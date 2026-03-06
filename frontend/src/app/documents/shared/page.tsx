@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
+import { getStoredToken } from '@/lib/auth/token'
 import { useAuthCheck, useAuth } from '@/hooks/useAuth'
 import { UserRole } from '@/types/auth'
 import { AppLayout } from '@/components/layout'
@@ -159,7 +160,7 @@ export default function SharedDocumentsPage() {
 
   const handleDownload = (doc: Document) => {
     const downloadUrl = documentsApi.getFileDownloadUrl(doc.id)
-    const token = localStorage.getItem('authToken')
+    const token = getStoredToken()
     if (token) {
       window.open(`${downloadUrl}?token=${token}`, '_blank')
     } else {

@@ -3,6 +3,7 @@
 import { useState, memo } from 'react'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
+import { getStoredToken } from '@/lib/auth/token'
 import {
   FileText,
   Download,
@@ -56,7 +57,7 @@ type ViewMode = 'grid' | 'list'
 /* c8 ignore start - Helper functions */
 // Helper to add auth token to URL for file access
 const getAuthenticatedUrl = (url: string) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+  const token = getStoredToken()
   return token ? `${url}?token=${token}&inline=true` : `${url}?inline=true`
 }
 

@@ -1,6 +1,6 @@
 import Cookies from 'js-cookie'
 
-const AUTH_TOKEN_KEY = 'authToken'
+export const AUTH_TOKEN_KEY = 'authToken'
 const AUTH_COOKIE_NAME = 'auth-storage'
 
 /**
@@ -44,4 +44,16 @@ export function getStoredToken(): string | null {
   /* c8 ignore stop */
 
   return null
+}
+
+export function setStoredToken(token: string): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(AUTH_TOKEN_KEY, token)
+  }
+}
+
+export function clearStoredToken(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(AUTH_TOKEN_KEY)
+  }
 }

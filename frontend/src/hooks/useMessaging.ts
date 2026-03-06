@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { apiClient } from '@/lib/api'
 import { swrFetcher } from '@/lib/api/fetchers'
 import { SWR_DEDUPING, SWR_REFRESH } from '@/config/swr'
+import { getStoredToken } from '@/lib/auth/token'
 import { MessagingWebSocket } from '@/lib/api/messaging'
 import type {
   Conversation,
@@ -382,14 +383,9 @@ export function useMessagingWebSocket() {
   const [isConnected, setIsConnected] = useState(false)
   const [typingUsers, setTypingUsers] = useState<Map<number, Set<number>>>(new Map())
 
-  /* c8 ignore start -- Browser-only localStorage access */
   const getToken = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('authToken')
-    }
-    return null
+    return getStoredToken()
   }, [])
-  /* c8 ignore stop */
 
   const connect = useCallback(async () => {
     // Already connected

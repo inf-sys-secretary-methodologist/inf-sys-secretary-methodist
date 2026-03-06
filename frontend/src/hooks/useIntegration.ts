@@ -3,6 +3,7 @@
 import useSWR from 'swr'
 import { apiClient } from '@/lib/api'
 import { SWR_DEDUPING, SWR_REFRESH } from '@/config/swr'
+import { getStoredToken } from '@/lib/auth/token'
 import { useAuthStore } from '@/stores/authStore'
 import type {
   SyncLog,
@@ -37,7 +38,7 @@ function useAuthenticatedKey(url: string | null): string | null {
   const { isAuthenticated, isLoading } = useAuthStore()
 
   // Check if token exists in localStorage (more reliable than waiting for Zustand hydration)
-  const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('authToken')
+  const hasToken = !!getStoredToken()
 
   // Skip fetch if:
   // 1. Explicitly loading auth state AND no token in storage
