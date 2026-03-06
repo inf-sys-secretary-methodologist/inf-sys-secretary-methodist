@@ -38,8 +38,8 @@ jest.mock('@/components/ui/glowing-effect-lazy', () => ({
   GlowingEffect: () => null,
 }))
 
-// Mock framer-motion
-jest.mock('framer-motion', () => ({
+// Mock motion/react
+jest.mock('motion/react', () => ({
   motion: {
     div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
       <div {...props}>{children}</div>

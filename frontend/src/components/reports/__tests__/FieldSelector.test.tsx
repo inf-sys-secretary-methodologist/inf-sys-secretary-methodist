@@ -20,8 +20,8 @@ jest.mock('next-intl', () => ({
   },
 }))
 
-// Mock framer-motion
-jest.mock('framer-motion', () => ({
+// Mock motion/react
+jest.mock('motion/react', () => ({
   motion: {
     button: ({ children, onClick, className }: React.ComponentProps<'button'>) => (
       <button onClick={onClick} className={className}>

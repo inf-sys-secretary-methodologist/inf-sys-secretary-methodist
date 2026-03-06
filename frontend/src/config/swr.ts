@@ -17,7 +17,7 @@ export const SWR_DEDUPING = {
   LONG: 30000,
   /** 60 seconds - for rarely changing data (e.g. notification stats) */
   EXTRA_LONG: 60000,
-  /** Never dedupe - for static data that should always be fetched fresh */
+  /** Dedupe forever - for truly static data that never changes (e.g. timezone lists) */
   NONE: Infinity,
 } as const
 
