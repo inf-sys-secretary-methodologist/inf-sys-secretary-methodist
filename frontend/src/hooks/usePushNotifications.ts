@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import useSWR, { mutate } from 'swr'
 import { apiClient } from '@/lib/api'
+import { SWR_DEDUPING } from '@/config/swr'
 import {
   isPushSupported,
   getPermissionStatus,
@@ -43,7 +44,7 @@ export function usePushNotifications() {
     mutate: revalidate,
   } = useSWR<WebPushStatus>(isSupported ? PUSH_STATUS_URL : null, fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 30000,
+    dedupingInterval: SWR_DEDUPING.LONG,
   })
 
   // Check local subscription status on mount

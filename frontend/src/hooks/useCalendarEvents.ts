@@ -2,6 +2,7 @@
 
 import useSWR from 'swr'
 import { apiClient } from '@/lib/api'
+import { SWR_DEDUPING } from '@/config/swr'
 import type {
   CalendarEvent,
   EventListResponse,
@@ -49,7 +50,7 @@ export function useEvents(params?: EventFilterParams) {
 
   const { data, error, isLoading, mutate } = useSWR<EventListResponse>(url, fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 5000,
+    dedupingInterval: SWR_DEDUPING.SHORT,
   })
 
   return {
@@ -72,7 +73,7 @@ export function useEventsByDateRange(start: Date, end: Date) {
 
   const { data, error, isLoading, mutate } = useSWR<CalendarEvent[]>(url, fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 5000,
+    dedupingInterval: SWR_DEDUPING.SHORT,
   })
 
   return {
@@ -104,7 +105,7 @@ export function useUpcomingEvents(limit = 10) {
 
   const { data, error, isLoading, mutate } = useSWR<CalendarEvent[]>(url, fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 5000,
+    dedupingInterval: SWR_DEDUPING.SHORT,
   })
 
   return {

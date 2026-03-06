@@ -2,6 +2,7 @@
 
 import useSWR from 'swr'
 import { swrFetcher } from '@/lib/api/fetchers'
+import { SWR_DEDUPING, SWR_REFRESH } from '@/config/swr'
 import type { MoodResponse } from '@/types/mood'
 
 const MOOD_URL = '/api/ai/mood'
@@ -12,8 +13,8 @@ export function useMood() {
     swrFetcher<MoodResponse>,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
-      refreshInterval: 300000, // 5 minutes
+      dedupingInterval: SWR_DEDUPING.EXTRA_LONG,
+      refreshInterval: SWR_REFRESH.SLOW, // 5 minutes
     }
   )
 

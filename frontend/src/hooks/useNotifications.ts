@@ -3,6 +3,7 @@
 import useSWR, { mutate } from 'swr'
 import { apiClient } from '@/lib/api'
 import { swrFetcher } from '@/lib/api/fetchers'
+import { SWR_DEDUPING, SWR_REFRESH } from '@/config/swr'
 import { useState, useCallback } from 'react'
 import type {
   Notification,
@@ -42,8 +43,8 @@ export function useNotifications(input?: NotificationListInput) {
     mutate: revalidate,
   } = useSWR<NotificationListOutput>(url, swrFetcher<NotificationListOutput>, {
     revalidateOnFocus: false,
-    dedupingInterval: 30000,
-    refreshInterval: 60000,
+    dedupingInterval: SWR_DEDUPING.LONG,
+    refreshInterval: SWR_REFRESH.STANDARD,
   })
 
   return {
@@ -79,8 +80,8 @@ export function useUnreadCount() {
     swrFetcher<UnreadCountOutput>,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 15000,
-      refreshInterval: 30000,
+      dedupingInterval: SWR_DEDUPING.NOTIFICATIONS,
+      refreshInterval: SWR_REFRESH.REALTIME,
     }
   )
 
@@ -105,7 +106,7 @@ export function useNotificationStats() {
     swrFetcher<NotificationStatsOutput>,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: SWR_DEDUPING.EXTRA_LONG,
     }
   )
 
@@ -284,7 +285,7 @@ export function useTimezones() {
     swrFetcher<{ timezones: string[] }>,
     {
       revalidateOnFocus: false,
-      dedupingInterval: Infinity,
+      dedupingInterval: SWR_DEDUPING.NONE,
     }
   )
 

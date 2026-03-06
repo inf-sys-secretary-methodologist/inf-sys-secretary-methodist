@@ -2,6 +2,7 @@
 
 import useSWR from 'swr'
 import { apiClient } from '@/lib/api'
+import { SWR_DEDUPING, SWR_REFRESH } from '@/config/swr'
 import { useAuthStore } from '@/stores/authStore'
 import type {
   SyncLog,
@@ -56,8 +57,8 @@ export function useSyncStats(entityType?: SyncEntityType) {
 
   const { data, error, isLoading, mutate } = useSWR<SyncStats>(authenticatedUrl, fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 30000,
-    refreshInterval: 60000,
+    dedupingInterval: SWR_DEDUPING.LONG,
+    refreshInterval: SWR_REFRESH.STANDARD,
   })
 
   return {
@@ -90,8 +91,8 @@ export function useSyncLogs(filter?: SyncLogFilter) {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 10000,
-      refreshInterval: 30000,
+      dedupingInterval: SWR_DEDUPING.MEDIUM,
+      refreshInterval: SWR_REFRESH.REALTIME,
     }
   )
 
@@ -111,7 +112,7 @@ export function useSyncStatus(syncLogId: number | null) {
 
   const { data, error, isLoading, mutate } = useSWR<SyncLog>(authenticatedUrl, fetcher, {
     revalidateOnFocus: false,
-    refreshInterval: syncLogId ? 5000 : 0, // Poll every 5s if there's an active sync
+    refreshInterval: syncLogId ? SWR_REFRESH.ACTIVE_POLL : 0, // Poll every 5s if there's an active sync
   })
 
   return {
@@ -129,8 +130,8 @@ export function useConflictStats() {
 
   const { data, error, isLoading, mutate } = useSWR<ConflictStats>(authenticatedUrl, fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 30000,
-    refreshInterval: 60000,
+    dedupingInterval: SWR_DEDUPING.LONG,
+    refreshInterval: SWR_REFRESH.STANDARD,
   })
 
   return {
@@ -160,7 +161,7 @@ export function useConflicts(filter?: ConflictFilter) {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 10000,
+      dedupingInterval: SWR_DEDUPING.MEDIUM,
     }
   )
 
@@ -183,8 +184,8 @@ export function usePendingConflicts(limit = 20, offset = 0) {
     fetcher,
     {
       revalidateOnFocus: true,
-      dedupingInterval: 10000,
-      refreshInterval: 30000,
+      dedupingInterval: SWR_DEDUPING.MEDIUM,
+      refreshInterval: SWR_REFRESH.REALTIME,
     }
   )
 
@@ -234,7 +235,7 @@ export function useExternalEmployees(filter?: EmployeeFilter) {
     total: number
   }>(authenticatedUrl, fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 30000,
+    dedupingInterval: SWR_DEDUPING.LONG,
   })
 
   return {
@@ -267,7 +268,7 @@ export function useExternalStudents(filter?: StudentFilter) {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 30000,
+      dedupingInterval: SWR_DEDUPING.LONG,
     }
   )
 

@@ -3,6 +3,7 @@
 import useSWR from 'swr'
 import { apiClient } from '@/lib/api'
 import { swrFetcher } from '@/lib/api/fetchers'
+import { SWR_DEDUPING, SWR_REFRESH } from '@/config/swr'
 import type {
   DashboardStats,
   DashboardTrends,
@@ -37,8 +38,8 @@ export function useDashboardStats(period: string = 'month') {
     swrFetcher<DashboardStats>,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 30000, // 30 seconds
-      refreshInterval: 60000, // Auto-refresh every minute
+      dedupingInterval: SWR_DEDUPING.LONG,
+      refreshInterval: SWR_REFRESH.STANDARD, // Auto-refresh every minute
     }
   )
 
@@ -63,8 +64,8 @@ export function useDashboardTrends(period: string = 'month', startDate?: string,
     {
       revalidateOnFocus: true,
       revalidateOnMount: true,
-      dedupingInterval: 5000,
-      refreshInterval: 60000, // Auto-refresh every minute
+      dedupingInterval: SWR_DEDUPING.SHORT,
+      refreshInterval: SWR_REFRESH.STANDARD, // Auto-refresh every minute
       shouldRetryOnError: true,
       errorRetryCount: 3,
     }
@@ -87,8 +88,8 @@ export function useDashboardActivity(limit: number = 10) {
     swrFetcher<DashboardActivity>,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 10000,
-      refreshInterval: 30000, // Auto-refresh every 30 seconds
+      dedupingInterval: SWR_DEDUPING.MEDIUM,
+      refreshInterval: SWR_REFRESH.REALTIME, // Auto-refresh every 30 seconds
     }
   )
 

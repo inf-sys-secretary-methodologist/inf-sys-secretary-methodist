@@ -3,6 +3,7 @@
 import useSWR, { mutate } from 'swr'
 import { useState, useCallback, useRef } from 'react'
 import { apiClient } from '@/lib/api'
+import { SWR_DEDUPING } from '@/config/swr'
 import { aiApi, handleAIStream } from '@/lib/api/ai'
 import type {
   AIConversation,
@@ -81,7 +82,7 @@ export function useAIConversations(input?: AIConversationFilterInput) {
     mutate: revalidate,
   } = useSWR<AIConversationListOutput>(url, fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 10000,
+    dedupingInterval: SWR_DEDUPING.MEDIUM,
   })
 
   return {
@@ -119,7 +120,7 @@ export function useAIMessages(conversationId: number | null, input?: AIMessageFi
     mutate: revalidate,
   } = useSWR<AIMessageListOutput>(url, fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 5000,
+    dedupingInterval: SWR_DEDUPING.SHORT,
   })
 
   return {

@@ -2,6 +2,7 @@
 
 import useSWR, { mutate } from 'swr'
 import { apiClient } from '@/lib/api'
+import { SWR_DEDUPING } from '@/config/swr'
 import { useState, useCallback } from 'react'
 
 const TELEGRAM_BASE_URL = '/api/telegram'
@@ -62,7 +63,7 @@ export function useTelegramStatus() {
     mutate: revalidate,
   } = useSWR<TelegramConnectionStatus>(`${TELEGRAM_BASE_URL}/status`, fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 30000,
+    dedupingInterval: SWR_DEDUPING.LONG,
   })
 
   return {

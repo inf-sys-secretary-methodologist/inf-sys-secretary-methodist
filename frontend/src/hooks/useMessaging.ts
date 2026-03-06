@@ -4,6 +4,7 @@ import useSWR, { mutate } from 'swr'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { apiClient } from '@/lib/api'
 import { swrFetcher } from '@/lib/api/fetchers'
+import { SWR_DEDUPING, SWR_REFRESH } from '@/config/swr'
 import { MessagingWebSocket } from '@/lib/api/messaging'
 import type {
   Conversation,
@@ -68,8 +69,8 @@ export function useConversations(input?: ConversationFilterInput) {
     mutate: revalidate,
   } = useSWR<ConversationListOutput>(url, swrFetcher<ConversationListOutput>, {
     revalidateOnFocus: false,
-    dedupingInterval: 10000,
-    refreshInterval: 30000,
+    dedupingInterval: SWR_DEDUPING.MEDIUM,
+    refreshInterval: SWR_REFRESH.REALTIME,
   })
 
   return {
@@ -111,7 +112,7 @@ export function useMessages(conversationId: number | null, input?: MessageFilter
     mutate: revalidate,
   } = useSWR<MessageListOutput>(url, swrFetcher<MessageListOutput>, {
     revalidateOnFocus: false,
-    dedupingInterval: 5000,
+    dedupingInterval: SWR_DEDUPING.SHORT,
   })
 
   return {
@@ -360,7 +361,7 @@ export function useSearchMessages(conversationId: number | null, query: string) 
     swrFetcher<SearchMessagesOutput>,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 1000,
+      dedupingInterval: SWR_DEDUPING.FAST,
     }
   )
 
