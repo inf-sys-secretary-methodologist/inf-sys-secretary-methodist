@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/agentsim/agent"
 )
@@ -145,7 +146,7 @@ func (c *Client) ShareDocument(ctx context.Context, a *agent.Agent, docID int64,
 
 // SearchDocuments searches for documents.
 func (c *Client) SearchDocuments(ctx context.Context, a *agent.Agent, query string) (*DocumentList, error) {
-	path := fmt.Sprintf("/api/documents/search?q=%s", query)
+	path := fmt.Sprintf("/api/documents/search?q=%s", url.QueryEscape(query))
 	resp, err := c.Get(ctx, path, a)
 	if err != nil {
 		return nil, err

@@ -115,11 +115,22 @@ func MorningScenario() *Scenario {
 				Agent: "Марина Петровна Соколова",
 				Delay: 45 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
-					// Find methodist agent to get their user ID
 					methodist := findAgentByRole(state, "methodist")
 					if methodist == 0 {
-						// Store methodist ID for later use by looking it up
-						return fmt.Errorf("methodist user ID not available")
+						users, err := c.ListUsers(ctx, a)
+						if err != nil {
+							return fmt.Errorf("list users: %w", err)
+						}
+						for _, u := range users.Users {
+							if u.Role == "methodist" {
+								methodist = u.ID
+								state.SetExtra("user_methodist", u.ID)
+								break
+							}
+						}
+					}
+					if methodist == 0 {
+						return fmt.Errorf("no methodist found")
 					}
 
 					conv, err := c.CreateDirectConversation(ctx, a, methodist)

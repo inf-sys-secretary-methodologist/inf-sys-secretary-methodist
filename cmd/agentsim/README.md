@@ -44,7 +44,7 @@ just agentsim-run -- --api-url http://localhost:8080 --seed-users --scenario mor
 | Иван Смирнов | Студент | i.smirnov@uni.local | 3 курс, активный |
 | Анна Кузнецова | Студент | a.kuznetsova@uni.local | 1 курс, старательная |
 
-Пароли: `AgentPass!2024xx` (где `xx` — инициалы). Например, для Соколовой — `AgentPass!2024ms`.
+Пароли: `AgentPass!2024xx` (где `xx` — инициалы, напр. `ms` для Соколовой, `akuz` для Кузнецовой). Точные значения см. в `internal/agentsim/agent/factory.go`.
 
 ### Анонимные агенты (20 человек)
 

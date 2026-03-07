@@ -24,6 +24,13 @@ func Parse() *Config {
 
 	flag.Parse()
 
+	// Env variable fallbacks
+	if cfg.APIURL == "http://localhost:8080" {
+		if envURL := os.Getenv("AGENTSIM_API_URL"); envURL != "" {
+			cfg.APIURL = envURL
+		}
+	}
+
 	if cfg.LLMAPIKey == "" {
 		cfg.LLMAPIKey = os.Getenv("AGENTSIM_LLM_API_KEY")
 	}

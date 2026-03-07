@@ -196,6 +196,11 @@ services:
       INTEGRATION_1C_SYNC_CRON_EMPLOYEE: ${INTEGRATION_1C_SYNC_CRON_EMPLOYEE:-0 */6 * * *}
       INTEGRATION_1C_SYNC_CRON_STUDENT: ${INTEGRATION_1C_SYNC_CRON_STUDENT:-0 */6 * * *}
       INTEGRATION_1C_BATCH_SIZE: ${INTEGRATION_1C_BATCH_SIZE:-100}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     depends_on:
       postgres:
         condition: service_healthy
@@ -360,7 +365,7 @@ services:
       AGENTSIM_LLM_API_KEY: ${AGENTSIM_LLM_API_KEY:-}
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     profiles:
       - simulation
     restart: "no"
