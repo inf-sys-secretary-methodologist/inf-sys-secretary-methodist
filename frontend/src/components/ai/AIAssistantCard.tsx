@@ -54,6 +54,7 @@ export function AIAssistantCard({
   const inputRef = useRef<HTMLInputElement>(null)
   const prevMessageCountRef = useRef(0)
   const isUserScrolledUpRef = useRef(false)
+  const scrollRafRef = useRef<number | null>(null)
 
   const { conversation, messages, isLoading, isStreaming, isPending, sendMessage, stopGeneration } =
     useAIChat(conversationId)
@@ -80,7 +81,7 @@ export function AIAssistantCard({
     return () => viewport.removeEventListener('scroll', handleScroll)
   }, [isNearBottom])
 
-  // Scroll to bottom: instant on conversation load, smooth during streaming
+  // Scroll to bottom: instant on conversation load, RAF-deduplicated during streaming
   useEffect(() => {
     const viewport = viewportRef.current
     if (!viewport) return
@@ -96,15 +97,27 @@ export function AIAssistantCard({
       return
     }
 
-    // New messages added or streaming content updated — smooth scroll if near bottom
-    if (messageCount >= prevCount && !isUserScrolledUpRef.current) {
-      if (viewport.scrollTo) {
-        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' })
-      } else {
-        viewport.scrollTop = viewport.scrollHeight
+    // Don't auto-scroll if user scrolled up
+    if (isUserScrolledUpRef.current) return
+
+    // Deduplicate scroll calls via RAF to avoid stacking smooth animations
+    if (scrollRafRef.current !== null) {
+      cancelAnimationFrame(scrollRafRef.current)
+    }
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null
+      viewport.scrollTop = viewport.scrollHeight
+    })
+  }, [messages])
+
+  // Cleanup scroll RAF on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current !== null) {
+        cancelAnimationFrame(scrollRafRef.current)
       }
     }
-  }, [messages])
+  }, [])
 
   // Reset scroll tracking when conversation changes
   useEffect(() => {

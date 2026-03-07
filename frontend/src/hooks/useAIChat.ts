@@ -1,7 +1,7 @@
 'use client'
 
 import useSWR, { mutate } from 'swr'
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { apiClient } from '@/lib/api'
 import { SWR_DEDUPING } from '@/config/swr'
 import { aiApi, handleAIStream } from '@/lib/api/ai'
@@ -228,11 +228,14 @@ export function useStreamAIMessage() {
   const [streamingContent, setStreamingContent] = useState('')
   const [streamingSources, setStreamingSources] = useState<DocumentSource[]>([])
   const eventSourceRef = useRef<EventSource | null>(null)
+  const contentBufferRef = useRef('')
+  const rafRef = useRef<number | null>(null)
 
   const startStream = useCallback(async (input: SendAIMessageInput) => {
     setIsStreaming(true)
     setStreamingContent('')
     setStreamingSources([])
+    contentBufferRef.current = ''
 
     const eventSource = aiApi.chatStream(input)
     eventSourceRef.current = eventSource
@@ -240,34 +243,44 @@ export function useStreamAIMessage() {
     try {
       await handleAIStream(eventSource, {
         onContent: (content) => {
-          setStreamingContent((prev) => prev + content)
+          contentBufferRef.current += content
+          // Batch state updates to animation frames (~60fps max)
+          if (rafRef.current === null) {
+            rafRef.current = requestAnimationFrame(() => {
+              rafRef.current = null
+              setStreamingContent(contentBufferRef.current)
+            })
+          }
         },
         onSource: (source) => {
           setStreamingSources((prev) => [...prev, source])
         },
-        onDone: (messageId) => {
-          // Revalidate after completion
-          if (input.conversation_id) {
-            mutate(
-              (key) =>
-                typeof key === 'string' &&
-                key.includes(`/ai/conversations/${input.conversation_id}/messages`),
-              undefined,
-              { revalidate: true }
-            )
+        onDone: () => {
+          // Flush remaining content
+          if (rafRef.current !== null) {
+            cancelAnimationFrame(rafRef.current)
+            rafRef.current = null
           }
-          mutate((key) => typeof key === 'string' && key.includes('/ai/conversations'), undefined, {
-            revalidate: true,
-          })
-          setIsStreaming(false)
-          return messageId
+          setStreamingContent(contentBufferRef.current)
         },
         onError: (error) => {
           console.error('Stream error:', error)
+          if (rafRef.current !== null) {
+            cancelAnimationFrame(rafRef.current)
+            rafRef.current = null
+          }
           setIsStreaming(false)
         },
       })
+
+      // Stop cursor but keep content visible (no flash).
+      // Content will be cleaned up by the caller after SWR revalidation.
+      setIsStreaming(false)
     } catch {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
       setIsStreaming(false)
     }
   }, [])
@@ -277,12 +290,39 @@ export function useStreamAIMessage() {
       eventSourceRef.current.close()
       eventSourceRef.current = null
     }
+    // Flush remaining buffer before stopping
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    if (contentBufferRef.current) {
+      setStreamingContent(contentBufferRef.current)
+    }
     setIsStreaming(false)
   }, [])
 
   const resetStream = useCallback(() => {
     setStreamingContent('')
     setStreamingSources([])
+    contentBufferRef.current = ''
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+  }, [])
+
+  // Cleanup on unmount: close EventSource and cancel pending RAF
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
+    }
   }, [])
 
   return {
@@ -337,22 +377,25 @@ export function useAIChat(conversationId: number | null) {
   // Local messages state for optimistic updates during streaming
   const [localMessages, setLocalMessages] = useState<AIMessage[]>([])
   const [pendingMessage, setPendingMessage] = useState<AIMessage | null>(null)
+  const [streamingStartTime, setStreamingStartTime] = useState('')
 
   // Combine server messages with local/streaming state
   const allMessages = [...messages, ...localMessages]
   if (pendingMessage) {
     allMessages.push(pendingMessage)
   }
-  // Add streaming assistant message if streaming
-  if (stream.isStreaming && stream.streamingContent) {
+  // Show streaming/completed assistant message while content exists.
+  // After streaming ends, content stays visible (status: 'complete', no cursor)
+  // until SWR revalidation brings the real message and caller clears the stream.
+  if (stream.streamingContent) {
     allMessages.push({
       id: -1, // Temporary ID
       conversation_id: conversationId || 0,
       role: 'assistant',
       content: stream.streamingContent,
       sources: stream.streamingSources,
-      status: 'streaming' as AIMessageStatus,
-      created_at: new Date().toISOString(),
+      status: (stream.isStreaming ? 'streaming' : 'complete') as AIMessageStatus,
+      created_at: streamingStartTime,
     })
   }
 
@@ -393,6 +436,7 @@ export function useAIChat(conversationId: number | null) {
         // Remove pending message when streaming starts
         stream.resetStream()
         setPendingMessage(null)
+        setStreamingStartTime(new Date().toISOString())
 
         await stream.startStream({
           content,
@@ -400,7 +444,13 @@ export function useAIChat(conversationId: number | null) {
           include_sources: true,
         })
 
-        // Clear local messages after streaming completes and data is revalidated
+        // Streaming done — text stays visible without cursor.
+        // Now revalidate SWR and wait for real message from server.
+        await mutateMessages()
+
+        // Server data is in SWR cache. Clean up local state in one batch —
+        // streaming message removed at same time as real message appears. No flash.
+        stream.resetStream()
         setLocalMessages([])
       } else {
         // Non-streaming: use regular API

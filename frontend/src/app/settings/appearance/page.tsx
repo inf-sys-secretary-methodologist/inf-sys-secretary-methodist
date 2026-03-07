@@ -189,12 +189,7 @@ export default function AppearanceSettingsPage() {
                   <SelectContent>
                     {BACKGROUND_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
-                        <div className="flex flex-col">
-                          <span>{t(`background.types.${type.labelKey}`)}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {t(`background.types.${type.descKey}`)}
-                          </span>
-                        </div>
+                        {t(`background.types.${type.labelKey}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>

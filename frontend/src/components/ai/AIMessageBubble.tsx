@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   Copy,
@@ -22,7 +22,10 @@ interface AIMessageBubbleProps {
   className?: string
 }
 
-export function AIMessageBubble({ message, className }: AIMessageBubbleProps) {
+export const AIMessageBubble = memo(function AIMessageBubble({
+  message,
+  className,
+}: AIMessageBubbleProps) {
   const t = useTranslations('ai')
   const [copied, setCopied] = useState(false)
   const [sourcesExpanded, setSourcesExpanded] = useState(false)
@@ -120,7 +123,7 @@ export function AIMessageBubble({ message, className }: AIMessageBubbleProps) {
       </div>
     </div>
   )
-}
+})
 
 interface SourcesListProps {
   sources: DocumentSource[]
