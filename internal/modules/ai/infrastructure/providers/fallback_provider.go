@@ -51,6 +51,30 @@ func (f *FallbackLLMProvider) GenerateResponse(ctx context.Context, systemPrompt
 	return f.fallback.GenerateResponse(ctx, systemPrompt, messages, contextText)
 }
 
+// GenerateResponseStream tries the primary provider's streaming first. On any error
+// it falls back to the secondary provider — but only if no chunks were already sent
+// to the client (to avoid duplicated/garbled output).
+func (f *FallbackLLMProvider) GenerateResponseStream(ctx context.Context, systemPrompt string, messages []entities.Message, contextText string, onChunk func(string) error) (string, int, error) {
+	chunksSent := false
+	wrappedOnChunk := func(chunk string) error {
+		chunksSent = true
+		return onChunk(chunk)
+	}
+
+	content, tokens, err := f.primary.GenerateResponseStream(ctx, systemPrompt, messages, contextText, wrappedOnChunk)
+	if err == nil {
+		return content, tokens, nil
+	}
+
+	// If partial data was already sent to the client, we cannot fall back cleanly.
+	if chunksSent {
+		return content, tokens, err
+	}
+
+	logFallbackError(f.logger, "LLM", err)
+	return f.fallback.GenerateResponseStream(ctx, systemPrompt, messages, contextText, onChunk)
+}
+
 // --- FallbackEmbeddingProvider ---
 
 // FallbackEmbeddingProvider wraps a primary embedding provider with a fallback.

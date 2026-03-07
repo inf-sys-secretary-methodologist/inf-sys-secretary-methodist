@@ -158,43 +158,36 @@ func (h *AIHandler) ChatStream(c *gin.Context) {
 	c.Writer.Header().Set("X-Accel-Buffering", "no")
 	c.Writer.Flush()
 
-	// Helper to send SSE event
-	sendEvent := func(data interface{}) {
+	// Helper to send SSE event; returns error on write failure (e.g. client disconnect).
+	sendEvent := func(data any) error {
 		jsonBytes, err := json.Marshal(data)
 		if err != nil {
-			return
+			return fmt.Errorf("failed to marshal SSE event: %w", err)
 		}
-		fmt.Fprintf(c.Writer, "data: %s\n\n", jsonBytes)
+		if _, err := fmt.Fprintf(c.Writer, "data: %s\n\n", jsonBytes); err != nil {
+			return fmt.Errorf("failed to write SSE event: %w", err)
+		}
 		c.Writer.Flush()
+		return nil
 	}
 
-	// Call the chat usecase
-	response, err := h.chatUseCase.Chat(c.Request.Context(), userID.(int64), req)
+	// Stream response from LLM via ChatStream
+	onChunk := func(chunk string) error {
+		return sendEvent(map[string]any{"type": "content", "content": chunk})
+	}
+
+	response, err := h.chatUseCase.ChatStream(c.Request.Context(), userID.(int64), req, onChunk)
 	if err != nil {
-		sendEvent(map[string]interface{}{"type": "error", "error": err.Error()})
+		_ = sendEvent(map[string]any{"type": "error", "error": err.Error()})
 		return
 	}
 
-	// Stream the content in chunks to simulate streaming
-	content = response.Message.Content
-	chunkSize := 20 // characters per chunk
-	for i := 0; i < len(content); {
-		end := i + chunkSize
-		if end > len(content) {
-			end = len(content)
-		}
-		// Split on rune boundary
-		chunk := content[i:end]
-		sendEvent(map[string]interface{}{"type": "content", "content": chunk})
-		i = end
-	}
-
-	// Send sources
+	// Send sources after streaming completes (best-effort)
 	if response.Sources != nil {
 		for _, source := range response.Sources {
-			sendEvent(map[string]interface{}{
+			_ = sendEvent(map[string]any{
 				"type": "source",
-				"source": map[string]interface{}{
+				"source": map[string]any{
 					"document_id":    source.DocumentID,
 					"document_title": source.DocumentTitle,
 					"chunk_text":     source.ChunkText,
@@ -205,8 +198,8 @@ func (h *AIHandler) ChatStream(c *gin.Context) {
 		}
 	}
 
-	// Send done event
-	sendEvent(map[string]interface{}{
+	// Send done event (best-effort)
+	_ = sendEvent(map[string]any{
 		"type":       "done",
 		"message_id": response.Message.ID,
 	})

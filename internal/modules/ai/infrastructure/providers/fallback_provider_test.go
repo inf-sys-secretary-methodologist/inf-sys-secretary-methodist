@@ -24,6 +24,17 @@ func (m *mockLLMProvider) GenerateResponse(_ context.Context, _ string, _ []enti
 	return m.response, m.tokens, m.err
 }
 
+func (m *mockLLMProvider) GenerateResponseStream(_ context.Context, _ string, _ []entities.Message, _ string, onChunk func(string) error) (string, int, error) {
+	m.called = true
+	if m.err != nil {
+		return "", 0, m.err
+	}
+	if err := onChunk(m.response); err != nil {
+		return m.response, m.tokens, err
+	}
+	return m.response, m.tokens, nil
+}
+
 // --- Mock Embedding Provider ---
 
 type mockEmbeddingProvider struct {

@@ -336,6 +336,19 @@ func (p *AnthropicProvider) doRequest(ctx context.Context, body []byte) (string,
 	return content, tokensUsed, nil
 }
 
+// GenerateResponseStream generates a streaming response from the Anthropic LLM.
+// Falls back to non-streaming GenerateResponse and delivers the full text as a single chunk.
+func (p *AnthropicProvider) GenerateResponseStream(ctx context.Context, systemPrompt string, messages []entities.Message, contextText string, onChunk func(string) error) (string, int, error) {
+	content, tokens, err := p.GenerateResponse(ctx, systemPrompt, messages, contextText)
+	if err != nil {
+		return "", 0, err
+	}
+	if err := onChunk(content); err != nil {
+		return content, tokens, err
+	}
+	return content, tokens, nil
+}
+
 // parseRetryAfter parses the retry-after header value (seconds).
 func parseRetryAfter(value string) time.Duration {
 	if value == "" {

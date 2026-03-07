@@ -11,6 +11,11 @@ import (
 type LLMProvider interface {
 	// GenerateResponse generates a response from the LLM.
 	GenerateResponse(ctx context.Context, systemPrompt string, messages []entities.Message, context string) (string, int, error)
+
+	// GenerateResponseStream generates a streaming response from the LLM.
+	// onChunk is called for each text fragment as it arrives from the provider.
+	// Returns the full accumulated response text and total tokens used.
+	GenerateResponseStream(ctx context.Context, systemPrompt string, messages []entities.Message, context string, onChunk func(chunk string) error) (string, int, error)
 }
 
 // EmbeddingProvider defines the interface for embedding generation.

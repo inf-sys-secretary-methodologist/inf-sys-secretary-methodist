@@ -2,6 +2,7 @@
 package providers
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -39,8 +40,9 @@ func DefaultOpenAIConfig() OpenAIConfig {
 
 // OpenAIProvider implements embedding and LLM providers using OpenAI API
 type OpenAIProvider struct {
-	config OpenAIConfig
-	client *http.Client
+	config       OpenAIConfig
+	client       *http.Client
+	streamClient *http.Client // no timeout — context handles cancellation
 }
 
 // NewOpenAIProvider creates a new OpenAI provider
@@ -59,8 +61,9 @@ func NewOpenAIProvider(config OpenAIConfig) *OpenAIProvider {
 	}
 
 	return &OpenAIProvider{
-		config: config,
-		client: &http.Client{Timeout: config.Timeout},
+		config:       config,
+		client:       &http.Client{Timeout: config.Timeout},
+		streamClient: &http.Client{},
 	}
 }
 
@@ -172,10 +175,31 @@ type chatMessage struct {
 
 // chatRequest represents an OpenAI chat API request
 type chatRequest struct {
-	Model       string        `json:"model"`
-	Messages    []chatMessage `json:"messages"`
-	MaxTokens   int           `json:"max_tokens,omitempty"`
-	Temperature float64       `json:"temperature,omitempty"`
+	Model         string            `json:"model"`
+	Messages      []chatMessage     `json:"messages"`
+	MaxTokens     int               `json:"max_tokens,omitempty"`
+	Temperature   float64           `json:"temperature,omitempty"`
+	Stream        bool              `json:"stream,omitempty"`
+	StreamOptions *chatStreamOption `json:"stream_options,omitempty"`
+}
+
+// chatStreamOption enables usage reporting in stream mode.
+type chatStreamOption struct {
+	IncludeUsage bool `json:"include_usage"`
+}
+
+// chatStreamChunk represents a single SSE chunk in OpenAI streaming response.
+type chatStreamChunk struct {
+	Choices []struct {
+		Delta struct {
+			Content string `json:"content"`
+		} `json:"delta"`
+	} `json:"choices"`
+	Usage *struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		TotalTokens      int `json:"total_tokens"`
+	} `json:"usage,omitempty"`
 }
 
 // chatResponse represents an OpenAI chat API response
@@ -276,4 +300,109 @@ func (p *OpenAIProvider) GenerateResponse(ctx context.Context, systemPrompt stri
 	tokensUsed := chatResp.Usage.TotalTokens
 
 	return content, tokensUsed, nil
+}
+
+// GenerateResponseStream generates a streaming response from the LLM.
+// Each text fragment is forwarded to onChunk as it arrives.
+func (p *OpenAIProvider) GenerateResponseStream(ctx context.Context, systemPrompt string, messages []entities.Message, contextText string, onChunk func(string) error) (string, int, error) {
+	chatMessages := make([]chatMessage, 0, len(messages)+2)
+
+	systemContent := systemPrompt
+	if contextText != "" {
+		systemContent += "\n\n" + contextText
+	}
+	chatMessages = append(chatMessages, chatMessage{
+		Role:    "system",
+		Content: systemContent,
+	})
+
+	for _, m := range messages {
+		role := string(m.Role)
+		if role == "system" {
+			continue
+		}
+		chatMessages = append(chatMessages, chatMessage{
+			Role:    role,
+			Content: m.Content,
+		})
+	}
+
+	reqBody := chatRequest{
+		Model:       p.config.ChatModel,
+		Messages:    chatMessages,
+		MaxTokens:   p.config.MaxTokens,
+		Temperature: p.config.Temperature,
+		Stream:      true,
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", p.config.BaseURL+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
+
+	resp, err := p.streamClient.Do(req)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", 0, fmt.Errorf("OpenAI API returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var fullContent strings.Builder
+	var totalTokens int
+
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 256*1024), 256*1024) // 256KB max line
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+
+		data := strings.TrimPrefix(line, "data: ")
+		if data == "[DONE]" {
+			break
+		}
+
+		var chunk chatStreamChunk
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			continue
+		}
+
+		// Extract usage from the final chunk (stream_options.include_usage).
+		if chunk.Usage != nil {
+			totalTokens = chunk.Usage.TotalTokens
+		}
+
+		if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
+			text := chunk.Choices[0].Delta.Content
+			fullContent.WriteString(text)
+			if err := onChunk(text); err != nil {
+				return fullContent.String(), totalTokens, err
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fullContent.String(), totalTokens, fmt.Errorf("error reading stream: %w", err)
+	}
+
+	content := strings.TrimSpace(fullContent.String())
+	if content == "" {
+		return "", 0, fmt.Errorf("no text content in stream response")
+	}
+
+	return content, totalTokens, nil
 }

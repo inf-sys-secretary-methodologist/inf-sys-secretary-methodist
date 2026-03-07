@@ -228,6 +228,150 @@ func (uc *ChatUseCase) Chat(ctx context.Context, userID int64, req *dto.SendMess
 	}, nil
 }
 
+// ChatStream sends a message and streams the AI response via onChunk callback.
+// The callback is invoked for each text fragment as it arrives from the LLM.
+func (uc *ChatUseCase) ChatStream(ctx context.Context, userID int64, req *dto.SendMessageRequest, onChunk func(chunk string) error) (*dto.ChatResponse, error) {
+	var conversation *entities.Conversation
+	var err error
+
+	// Get or create conversation
+	if req.ConversationID != nil {
+		conversation, err = uc.conversationRepo.GetByID(ctx, *req.ConversationID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get conversation: %w", err)
+		}
+		if conversation.UserID != userID {
+			return nil, fmt.Errorf("unauthorized access to conversation")
+		}
+	} else {
+		title := req.Content
+		if len(title) > 50 {
+			title = title[:50] + "..."
+		}
+		conversation = entities.NewConversation(userID, title, uc.modelName)
+		if err := uc.conversationRepo.Create(ctx, conversation); err != nil {
+			return nil, fmt.Errorf("failed to create conversation: %w", err)
+		}
+	}
+
+	// Create user message
+	userMessage := entities.NewUserMessage(conversation.ID, req.Content)
+	if err := uc.messageRepo.Create(ctx, userMessage); err != nil {
+		return nil, fmt.Errorf("failed to create user message: %w", err)
+	}
+
+	// Get conversation history for context
+	messages, _, err := uc.messageRepo.GetByConversationID(ctx, conversation.ID, 10, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get message history: %w", err)
+	}
+
+	// RAG search
+	searchQuery := buildSearchQuery(messages, req.Content)
+	maxSources := uc.searchTopK
+	if req.MaxSources > 0 {
+		maxSources = req.MaxSources
+	}
+
+	var contextText string
+	var sources []entities.ChunkWithScore
+	sources, err = uc.embeddingUseCase.SearchSimilar(ctx, searchQuery, maxSources, uc.searchThreshold)
+	if err != nil {
+		if uc.auditLogger != nil {
+			uc.auditLogger.LogAuditEvent(ctx, "warning", "ai_search", map[string]any{
+				"error": err.Error(),
+			})
+		}
+	} else {
+		contextText = uc.personalityProvider.FormatRAGContext(sources)
+	}
+
+	// Build system prompt with mood
+	var mood *entities.MoodContext
+	if uc.moodUseCase != nil {
+		moodResp, err := uc.moodUseCase.GetCurrentMood(ctx)
+		if err == nil && moodResp != nil {
+			mood = &entities.MoodContext{
+				State: entities.MoodState(moodResp.State),
+			}
+		}
+	}
+	systemPrompt := uc.personalityProvider.BuildSystemPrompt(moodForPrompt(mood))
+
+	// Inject RAG context into the last user message
+	llmMessages := messages
+	if contextText != "" {
+		llmMessages = make([]entities.Message, len(messages))
+		copy(llmMessages, messages)
+		for i := len(llmMessages) - 1; i >= 0; i-- {
+			if llmMessages[i].Role == entities.MessageRoleUser {
+				llmMessages[i].Content = contextText + "\nВопрос пользователя: " + llmMessages[i].Content
+				break
+			}
+		}
+	}
+
+	// Stream response from LLM
+	response, tokensUsed, err := uc.llmProvider.GenerateResponseStream(ctx, systemPrompt, llmMessages, "", onChunk)
+	if err != nil {
+		errMsg := err.Error()
+		assistantMessage := &entities.Message{
+			ConversationID: conversation.ID,
+			Role:           entities.MessageRoleAssistant,
+			Content:        "Извините, произошла ошибка при обработке вашего запроса.",
+			ErrorMessage:   &errMsg,
+		}
+		uc.messageRepo.Create(ctx, assistantMessage)
+		return nil, fmt.Errorf("failed to generate response: %w", err)
+	}
+
+	// Save assistant message
+	model := uc.modelName
+	assistantMessage := entities.NewAssistantMessage(conversation.ID, response, model, tokensUsed)
+	if err := uc.messageRepo.Create(ctx, assistantMessage); err != nil {
+		return nil, fmt.Errorf("failed to create assistant message: %w", err)
+	}
+
+	// Create message sources
+	for _, source := range sources {
+		if err := uc.messageRepo.CreateMessageSource(ctx, assistantMessage.ID, source.Chunk.ID, source.SimilarityScore); err != nil {
+			if uc.auditLogger != nil {
+				uc.auditLogger.LogAuditEvent(ctx, "warning", "ai_source", map[string]any{
+					"error": err.Error(),
+				})
+			}
+		}
+	}
+
+	// Load sources into message
+	assistantMessage.Sources = make([]entities.MessageSource, 0, len(sources))
+	for _, source := range sources {
+		assistantMessage.Sources = append(assistantMessage.Sources, entities.MessageSource{
+			ChunkID:         source.Chunk.ID,
+			DocumentID:      source.Chunk.DocumentID,
+			DocumentTitle:   source.DocumentTitle,
+			ChunkText:       source.Chunk.ChunkText,
+			SimilarityScore: source.SimilarityScore,
+			PageNumber:      source.Chunk.PageNumber,
+		})
+	}
+
+	// Log audit event
+	if uc.auditLogger != nil {
+		uc.auditLogger.LogAuditEvent(ctx, "create", "ai_chat", map[string]any{
+			"conversation_id": conversation.ID,
+			"user_id":         userID,
+			"tokens_used":     tokensUsed,
+		})
+	}
+
+	return &dto.ChatResponse{
+		Message:        *dto.ToMessageResponse(assistantMessage),
+		ConversationID: conversation.ID,
+		Sources:        dto.ToMessageResponse(assistantMessage).Sources,
+	}, nil
+}
+
 // buildSearchQuery expands the current query with recent conversation context
 // to handle follow-up questions with pronouns (e.g., "а что там с этим приказом?").
 func buildSearchQuery(messages []entities.Message, currentQuery string) string {
