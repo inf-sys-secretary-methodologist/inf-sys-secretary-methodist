@@ -349,6 +349,22 @@ services:
       timeout: 10s
       retries: 3
 
+  # Agent Simulation - Virtual users for demo/testing
+  agentsim:
+    build:
+      context: .
+      dockerfile: Dockerfile.agentsim
+    container_name: agentsim
+    environment:
+      AGENTSIM_API_URL: http://backend:8080
+      AGENTSIM_LLM_API_KEY: ${AGENTSIM_LLM_API_KEY:-}
+    depends_on:
+      backend:
+        condition: service_started
+    profiles:
+      - simulation
+    restart: "no"
+
   # Uptime Kuma - Status Page & Monitoring
   uptime-kuma:
     image: louislam/uptime-kuma:2

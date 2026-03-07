@@ -42,6 +42,7 @@ dist/
 build/
 bin/
 server
+/agentsim
 cmd/server/server
 
 # Logs

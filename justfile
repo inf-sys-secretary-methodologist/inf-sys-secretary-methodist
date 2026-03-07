@@ -111,3 +111,13 @@ setup-test-db:
 drop-test-db:
     @echo "Удаление тестовой БД..."
     docker exec postgres-dev psql -U postgres -c "DROP DATABASE IF EXISTS inf_sys_db_test;"
+
+# === Agent Simulation ===
+
+# Собрать agentsim
+agentsim-build:
+    go build -o bin/agentsim ./cmd/agentsim
+
+# Запустить agentsim с аргументами
+agentsim-run *ARGS:
+    go run ./cmd/agentsim {{ARGS}}
