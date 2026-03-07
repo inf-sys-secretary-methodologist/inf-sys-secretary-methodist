@@ -50,8 +50,10 @@ export function AIAssistantCard({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [conversationToDelete, setConversationToDelete] = useState<number | null>(null)
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const prevMessageCountRef = useRef(0)
+  const isUserScrolledUpRef = useRef(false)
 
   const { conversation, messages, isLoading, isStreaming, isPending, sendMessage, stopGeneration } =
     useAIChat(conversationId)
@@ -59,10 +61,56 @@ export function AIAssistantCard({
   const { conversations, isLoading: isLoadingConversations } = useAIConversations({ limit: 50 })
   const { mutateAsync: deleteConversation, isPending: isDeleting } = useDeleteAIConversation()
 
-  // Scroll to bottom when messages change
+  // Check if viewport is scrolled near the bottom
+  const isNearBottom = useCallback(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return true
+    const threshold = 100
+    return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < threshold
+  }, [])
+
+  // Track user scroll position
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const viewport = viewportRef.current
+    if (!viewport) return
+    const handleScroll = () => {
+      isUserScrolledUpRef.current = !isNearBottom()
+    }
+    viewport.addEventListener('scroll', handleScroll, { passive: true })
+    return () => viewport.removeEventListener('scroll', handleScroll)
+  }, [isNearBottom])
+
+  // Scroll to bottom: instant on conversation load, smooth during streaming
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+
+    const messageCount = messages.length
+    const prevCount = prevMessageCountRef.current
+    prevMessageCountRef.current = messageCount
+
+    // Conversation switched or initial load — instant scroll
+    if (prevCount === 0 && messageCount > 0) {
+      viewport.scrollTop = viewport.scrollHeight
+      isUserScrolledUpRef.current = false
+      return
+    }
+
+    // New messages added or streaming content updated — smooth scroll if near bottom
+    if (messageCount >= prevCount && !isUserScrolledUpRef.current) {
+      if (viewport.scrollTo) {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' })
+      } else {
+        viewport.scrollTop = viewport.scrollHeight
+      }
+    }
   }, [messages])
+
+  // Reset scroll tracking when conversation changes
+  useEffect(() => {
+    prevMessageCountRef.current = 0
+    isUserScrolledUpRef.current = false
+  }, [conversationId])
 
   // Focus input on mount
   useEffect(() => {
@@ -194,7 +242,7 @@ export function AIAssistantCard({
         </header>
 
         {/* Messages Area */}
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1" viewportRef={viewportRef}>
           <div className="p-4 space-y-4">
             {isLoading && !hasMessages ? (
               <div className="flex items-center justify-center py-8">
@@ -203,16 +251,13 @@ export function AIAssistantCard({
             ) : !hasMessages ? (
               <EmptyState onQuickAction={handleQuickAction} />
             ) : (
-              <>
-                {messages.map((message, index) => (
-                  <AIMessageBubble
-                    key={message.id !== -1 ? message.id : `streaming-${index}`}
-                    message={message}
-                  />
-                ))}
-              </>
+              messages.map((message, index) => (
+                <AIMessageBubble
+                  key={message.id !== -1 ? message.id : `streaming-${index}`}
+                  message={message}
+                />
+              ))
             )}
-            <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
 
