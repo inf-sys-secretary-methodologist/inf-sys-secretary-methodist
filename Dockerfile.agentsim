@@ -6,7 +6,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o /agentsim ./cmd/agentsim
 
-FROM alpine:3.21
+FROM alpine:3.23
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /agentsim /agentsim
 ENTRYPOINT ["/agentsim"]
