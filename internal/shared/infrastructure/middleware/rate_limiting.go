@@ -98,9 +98,9 @@ func (rl *RateLimiter) incrementAndCheck(key string) (int64, int64, error) {
 		return 0, 0, err
 	}
 
-	resSlice := result.([]interface{})
-	count := resSlice[0].(int64)
-	ttl := resSlice[1].(int64)
+	resSlice, _ := result.([]interface{})
+	count, _ := resSlice[0].(int64)
+	ttl, _ := resSlice[1].(int64)
 
 	return count, ttl, nil
 }

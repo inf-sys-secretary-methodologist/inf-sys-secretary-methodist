@@ -79,7 +79,7 @@ func (g *LLMGenerator) callAnthropic(ctx context.Context, systemPrompt, userProm
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -128,7 +128,7 @@ func (g *LLMGenerator) callOpenAI(ctx context.Context, systemPrompt, userPrompt 
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -160,6 +160,7 @@ const llmSystemPrompt = `Ты генерируешь реалистичный т
 Пиши кратко, по-деловому, на русском языке. Не используй markdown-разметку.
 Отвечай ТОЛЬКО запрошенным текстом, без пояснений и комментариев.`
 
+// DocumentTitle generates a document title using the LLM.
 func (g *LLMGenerator) DocumentTitle(docType, ctx string) string {
 	result := g.generate(llmSystemPrompt,
 		fmt.Sprintf("Сгенерируй заголовок документа типа '%s'. Контекст: %s. Только заголовок, одно предложение.", docType, ctx))
@@ -169,6 +170,7 @@ func (g *LLMGenerator) DocumentTitle(docType, ctx string) string {
 	return result
 }
 
+// DocumentContent generates document body text using the LLM.
 func (g *LLMGenerator) DocumentContent(docType, title, ctx string) string {
 	result := g.generate(llmSystemPrompt,
 		fmt.Sprintf("Сгенерируй текст документа типа '%s' с заголовком '%s'. Контекст: %s. 2-4 абзаца делового текста.", docType, title, ctx))
@@ -178,6 +180,7 @@ func (g *LLMGenerator) DocumentContent(docType, title, ctx string) string {
 	return result
 }
 
+// ChatMessage generates a chat message using the LLM.
 func (g *LLMGenerator) ChatMessage(from *agent.Agent, to, topic string) string {
 	result := g.generate(llmSystemPrompt,
 		fmt.Sprintf("Ты — %s (%s, %s). Напиши короткое сообщение коллеге на тему: %s. 1-2 предложения.",
@@ -188,6 +191,7 @@ func (g *LLMGenerator) ChatMessage(from *agent.Agent, to, topic string) string {
 	return result
 }
 
+// TaskTitle generates a task title using the LLM.
 func (g *LLMGenerator) TaskTitle(subject string) string {
 	if subject != "" {
 		return subject
@@ -200,6 +204,7 @@ func (g *LLMGenerator) TaskTitle(subject string) string {
 	return result
 }
 
+// TaskDescription generates a task description using the LLM.
 func (g *LLMGenerator) TaskDescription(title, ctx string) string {
 	result := g.generate(llmSystemPrompt,
 		fmt.Sprintf("Сгенерируй описание задачи '%s'. Контекст: %s. 2-3 предложения.", title, ctx))
@@ -209,6 +214,7 @@ func (g *LLMGenerator) TaskDescription(title, ctx string) string {
 	return result
 }
 
+// EventTitle generates an event title using the LLM.
 func (g *LLMGenerator) EventTitle(eventType string) string {
 	result := g.generate(llmSystemPrompt,
 		fmt.Sprintf("Сгенерируй название мероприятия типа '%s' в вузе. Только название.", eventType))
@@ -218,6 +224,7 @@ func (g *LLMGenerator) EventTitle(eventType string) string {
 	return result
 }
 
+// Comment generates a brief comment using the LLM.
 func (g *LLMGenerator) Comment(about string) string {
 	result := g.generate(llmSystemPrompt,
 		fmt.Sprintf("Напиши краткий комментарий на тему: %s. 1-2 предложения, деловой стиль.", about))
@@ -227,6 +234,7 @@ func (g *LLMGenerator) Comment(about string) string {
 	return result
 }
 
+// ReportTitle generates a report title using the LLM.
 func (g *LLMGenerator) ReportTitle(reportType string) string {
 	result := g.generate(llmSystemPrompt,
 		fmt.Sprintf("Сгенерируй название отчёта типа '%s'. Только название.", reportType))
@@ -236,6 +244,7 @@ func (g *LLMGenerator) ReportTitle(reportType string) string {
 	return result
 }
 
+// ReportDescription generates a report description using the LLM.
 func (g *LLMGenerator) ReportDescription(title, ctx string) string {
 	result := g.generate(llmSystemPrompt,
 		fmt.Sprintf("Напиши описание отчёта '%s'. Контекст: %s. 2-3 предложения.", title, ctx))

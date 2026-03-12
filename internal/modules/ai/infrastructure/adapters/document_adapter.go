@@ -110,7 +110,7 @@ func (a *DocumentAdapter) extractFromFile(ctx context.Context, documentID int64,
 	if err != nil {
 		return "", title, fmt.Errorf("failed to download file from S3: %w", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	data, err := io.ReadAll(reader)
 	if err != nil {

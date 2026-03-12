@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
@@ -44,7 +45,7 @@ func (r *GradeRepositoryPG) GetGradesByStudent(ctx context.Context, studentID in
 	if err != nil {
 		return nil, fmt.Errorf("failed to get grades: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var grades []entities.Grade
 	for rows.Next() {
@@ -74,7 +75,7 @@ func (r *GradeRepositoryPG) GetGradesBySubject(ctx context.Context, studentID in
 	if err != nil {
 		return nil, fmt.Errorf("failed to get grades: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var grades []entities.Grade
 	for rows.Next() {
@@ -139,7 +140,7 @@ func (r *GradeRepositoryPG) GetStudentGradeStats(ctx context.Context, studentID 
 		&stats.TotalGrades, &stats.GradeAverage, &stats.WeightedAverage,
 		&stats.MinGrade, &stats.MaxGrade, &stats.FailingGradesCount,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("student not found")
 	}
 	if err != nil {

@@ -13,10 +13,14 @@ import (
 )
 
 var (
+	// ErrCustomReportNotFound is returned when a custom report is not found.
 	ErrCustomReportNotFound = errors.New("custom report not found")
-	ErrUnauthorizedAccess   = errors.New("unauthorized access to custom report")
-	ErrInvalidDataSource    = errors.New("invalid data source")
-	ErrInvalidFields        = errors.New("at least one field is required")
+	// ErrUnauthorizedAccess is returned when a user tries to access a report they don't own.
+	ErrUnauthorizedAccess = errors.New("unauthorized access to custom report")
+	// ErrInvalidDataSource is returned when a report references an unsupported data source.
+	ErrInvalidDataSource = errors.New("invalid data source")
+	// ErrInvalidFields is returned when a report has no fields configured.
+	ErrInvalidFields = errors.New("at least one field is required")
 )
 
 // QueryBuilder defines the interface for executing and exporting reports

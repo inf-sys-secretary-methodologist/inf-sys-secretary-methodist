@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -185,7 +186,7 @@ func (r *SyncConflictRepositoryPg) GetByID(ctx context.Context, id int64) (*enti
 	query := fmt.Sprintf(`SELECT %s FROM sync_conflicts WHERE id = $1`, conflictSelectFields)
 	conflict, err := scanConflictRow(r.db.QueryRowContext(ctx, query, id))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get sync conflict: %w", err)
@@ -246,7 +247,7 @@ func (r *SyncConflictRepositoryPg) List(ctx context.Context, filter entities.Syn
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list sync conflicts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	conflicts, err := scanConflictRows(rows)
 	if err != nil {
@@ -263,7 +264,7 @@ func (r *SyncConflictRepositoryPg) GetBySyncLogID(ctx context.Context, syncLogID
 	if err != nil {
 		return nil, fmt.Errorf("failed to get conflicts by sync log ID: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return scanConflictRows(rows)
 }
@@ -285,7 +286,7 @@ func (r *SyncConflictRepositoryPg) GetPendingByEntityType(ctx context.Context, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pending conflicts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return scanConflictRows(rows)
 }
@@ -396,7 +397,7 @@ func (r *SyncConflictRepositoryPg) GetStats(ctx context.Context) (*entities.Conf
 	if err != nil {
 		return nil, fmt.Errorf("failed to get conflicts by entity type: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	for rows.Next() {
 		var entityType string

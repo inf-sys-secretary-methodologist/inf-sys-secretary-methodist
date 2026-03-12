@@ -14,6 +14,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
+// LLMProvider is a type alias for ports.LLMProvider.
+//
 // Deprecated: Use ports.LLMProvider directly. This alias exists for backward compatibility.
 type LLMProvider = ports.LLMProvider
 

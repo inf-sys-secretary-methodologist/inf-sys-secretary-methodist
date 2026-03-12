@@ -136,7 +136,7 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -272,7 +272,7 @@ func (p *OpenAIProvider) GenerateResponse(ctx context.Context, systemPrompt stri
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -352,7 +352,7 @@ func (p *OpenAIProvider) GenerateResponseStream(ctx context.Context, systemPromp
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)

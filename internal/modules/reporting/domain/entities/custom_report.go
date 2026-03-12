@@ -10,6 +10,7 @@ import (
 // DataSourceType represents the data source for custom reports
 type DataSourceType string
 
+// DataSourceType values.
 const (
 	DataSourceDocuments DataSourceType = "documents"
 	DataSourceUsers     DataSourceType = "users"
@@ -30,6 +31,7 @@ func (d DataSourceType) IsValid() bool {
 // FieldType represents the type of a report field
 type FieldType string
 
+// FieldType values.
 const (
 	FieldTypeString  FieldType = "string"
 	FieldTypeNumber  FieldType = "number"
@@ -41,6 +43,7 @@ const (
 // AggregationType represents the aggregation type for a field
 type AggregationType string
 
+// AggregationType values.
 const (
 	AggregationNone  AggregationType = ""
 	AggregationCount AggregationType = "count"
@@ -53,6 +56,7 @@ const (
 // FilterOperator represents the operator for filtering
 type FilterOperator string
 
+// FilterOperator values.
 const (
 	FilterEquals         FilterOperator = "equals"
 	FilterNotEquals      FilterOperator = "not_equals"
@@ -74,6 +78,7 @@ const (
 // SortOrder represents the sort order
 type SortOrder string
 
+// SortOrder values.
 const (
 	SortOrderAsc  SortOrder = "asc"
 	SortOrderDesc SortOrder = "desc"
@@ -82,6 +87,7 @@ const (
 // ExportFormat represents the export format
 type ExportFormat string
 
+// ExportFormat values.
 const (
 	ExportFormatPDF  ExportFormat = "pdf"
 	ExportFormatXLSX ExportFormat = "xlsx"

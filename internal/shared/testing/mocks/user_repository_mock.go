@@ -32,7 +32,11 @@ func (m *MockUserRepository) GetByID(ctx context.Context, id int64) (*entities.U
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*entities.User), args.Error(1)
+	user, ok := args.Get(0).(*entities.User)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return user, args.Error(1)
 }
 
 // GetByEmail mocks the GetByEmail method
@@ -41,7 +45,11 @@ func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*ent
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*entities.User), args.Error(1)
+	user, ok := args.Get(0).(*entities.User)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return user, args.Error(1)
 }
 
 // GetByEmailForAuth mocks the GetByEmailForAuth method
@@ -50,7 +58,11 @@ func (m *MockUserRepository) GetByEmailForAuth(ctx context.Context, email string
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*entities.User), args.Error(1)
+	user, ok := args.Get(0).(*entities.User)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return user, args.Error(1)
 }
 
 // Delete mocks the Delete method
@@ -65,5 +77,9 @@ func (m *MockUserRepository) List(ctx context.Context, limit, offset int) ([]*en
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*entities.User), args.Error(1)
+	users, ok := args.Get(0).([]*entities.User)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return users, args.Error(1)
 }

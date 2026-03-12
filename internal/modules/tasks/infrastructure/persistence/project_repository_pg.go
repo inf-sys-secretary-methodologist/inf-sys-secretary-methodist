@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -60,7 +61,7 @@ func (r *ProjectRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.
 		&project.Status, &project.StartDate, &project.EndDate,
 		&project.CreatedAt, &project.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

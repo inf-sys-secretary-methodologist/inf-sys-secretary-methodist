@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -116,7 +117,7 @@ func (r *PermissionRepositoryPG) GetByID(ctx context.Context, id int64) (*entiti
 		&permission.GrantedByName,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domainErrors.ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get permission: %w", err)
@@ -141,7 +142,7 @@ func (r *PermissionRepositoryPG) GetByDocumentID(ctx context.Context, documentID
 	if err != nil {
 		return nil, fmt.Errorf("failed to query permissions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var permissions []*entities.DocumentPermission
 	for rows.Next() {
@@ -175,7 +176,7 @@ func (r *PermissionRepositoryPG) GetByUserID(ctx context.Context, userID int64) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query permissions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var permissions []*entities.DocumentPermission
 	for rows.Next() {
@@ -210,7 +211,7 @@ func (r *PermissionRepositoryPG) GetByUserIDOrRole(ctx context.Context, userID i
 	if err != nil {
 		return nil, fmt.Errorf("failed to query permissions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var permissions []*entities.DocumentPermission
 	for rows.Next() {
@@ -244,7 +245,7 @@ func (r *PermissionRepositoryPG) GetByGrantedBy(ctx context.Context, userID int6
 	if err != nil {
 		return nil, fmt.Errorf("failed to query permissions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var permissions []*entities.DocumentPermission
 	for rows.Next() {
@@ -278,7 +279,7 @@ func (r *PermissionRepositoryPG) GetByDocumentAndUser(ctx context.Context, docum
 		&p.GrantedBy, &p.ExpiresAt, &p.CreatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domainErrors.ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get permission: %w", err)
@@ -300,7 +301,7 @@ func (r *PermissionRepositoryPG) GetByDocumentAndRole(ctx context.Context, docum
 		&p.GrantedBy, &p.ExpiresAt, &p.CreatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domainErrors.ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get permission: %w", err)
@@ -376,7 +377,7 @@ func (r *PermissionRepositoryPG) GetUserPermissionLevel(ctx context.Context, doc
 	var permission entities.PermissionLevel
 	err := r.db.QueryRowContext(ctx, query, documentID, userID, userRole).Scan(&permission)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get permission level: %w", err)

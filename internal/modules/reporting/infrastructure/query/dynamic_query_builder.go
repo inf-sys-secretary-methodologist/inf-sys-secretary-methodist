@@ -645,7 +645,7 @@ func (b *DynamicQueryBuilder) GetAvailableFields(dataSource entities.DataSourceT
 		fields = []entities.ReportField{
 			{ID: "id", Name: "id", Label: "ID", Type: entities.FieldTypeNumber, Source: dataSource},
 			{ID: "title", Name: "title", Label: "Название", Type: entities.FieldTypeString, Source: dataSource},
-			{ID: "status", Name: "status", Label: "Статус", Type: entities.FieldTypeEnum, Source: dataSource, EnumValues: []string{"pending", "in_progress", "completed", "cancelled"}},
+			{ID: "status", Name: "status", Label: "Статус", Type: entities.FieldTypeEnum, Source: dataSource, EnumValues: []string{"pending", "in_progress", "completed", "canceled"}},
 			{ID: "priority", Name: "priority", Label: "Приоритет", Type: entities.FieldTypeEnum, Source: dataSource, EnumValues: []string{"low", "medium", "high", "critical"}},
 			{ID: "due_date", Name: "due_date", Label: "Срок выполнения", Type: entities.FieldTypeDate, Source: dataSource},
 			{ID: "assignee", Name: "assignee", Label: "Исполнитель", Type: entities.FieldTypeString, Source: dataSource},

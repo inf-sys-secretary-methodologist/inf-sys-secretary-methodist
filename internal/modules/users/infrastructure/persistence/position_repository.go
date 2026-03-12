@@ -173,7 +173,7 @@ func (r *PositionRepositoryPG) List(ctx context.Context, limit, offset int, acti
 	if err != nil {
 		return nil, database.MapPostgresError(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	positions := []*entities.Position{}
 	for rows.Next() {

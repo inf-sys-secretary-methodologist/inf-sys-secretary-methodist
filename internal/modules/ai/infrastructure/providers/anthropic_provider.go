@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,8 @@ import (
 )
 
 const (
+	// roleSystem is the system role identifier used in message filtering.
+	roleSystem = "system"
 	// maxRetries is the maximum number of retry attempts for rate-limited requests.
 	maxRetries = 3
 	// baseRetryDelay is the initial delay before first retry.
@@ -137,7 +140,7 @@ func (e *ErrRateLimited) Error() string {
 }
 
 // waitForRateLimit checks the sliding window and waits if necessary.
-// Returns an error if the context is cancelled while waiting.
+// Returns an error if the context is canceled while waiting.
 func (p *AnthropicProvider) waitForRateLimit(ctx context.Context) error {
 	p.mu.Lock()
 
@@ -185,11 +188,11 @@ func (p *AnthropicProvider) GenerateResponse(ctx context.Context, systemPrompt s
 		systemContent += "\n\n" + contextText
 	}
 
-	// Build messages (Anthropic does not use "system" role in messages array)
+	// Build messages (Anthropic does not use system role in messages array)
 	chatMessages := make([]anthropicMessage, 0, len(messages))
 	for _, m := range messages {
 		role := string(m.Role)
-		if role == "system" {
+		if role == roleSystem {
 			continue
 		}
 		chatMessages = append(chatMessages, anthropicMessage{
@@ -217,7 +220,7 @@ func (p *AnthropicProvider) GenerateResponse(ctx context.Context, systemPrompt s
 
 	// Client-side rate limiting
 	if err := p.waitForRateLimit(ctx); err != nil {
-		return "", 0, fmt.Errorf("rate limit wait cancelled: %w", err)
+		return "", 0, fmt.Errorf("rate limit wait canceled: %w", err)
 	}
 
 	// Execute with retry on 429
@@ -235,7 +238,8 @@ func (p *AnthropicProvider) doRequestWithRetry(ctx context.Context, body []byte)
 		}
 
 		// Check if it's a rate limit error (429)
-		if rateLimitErr, ok := err.(*rateLimitError); ok {
+		var rateLimitErr *rateLimitError
+		if errors.As(err, &rateLimitErr) {
 			lastErr = err
 			delay := rateLimitErr.retryAfter
 			if delay == 0 {
@@ -287,7 +291,7 @@ func (p *AnthropicProvider) doRequest(ctx context.Context, body []byte) (string,
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -308,9 +312,9 @@ func (p *AnthropicProvider) doRequest(ctx context.Context, body []byte) (string,
 	if resp.StatusCode != http.StatusOK {
 		var errResp anthropicErrorResponse
 		if err := json.Unmarshal(respBody, &errResp); err == nil && errResp.Error.Message != "" {
-			return "", 0, fmt.Errorf("Anthropic API error (%s): %s", errResp.Error.Type, errResp.Error.Message)
+			return "", 0, fmt.Errorf("anthropic API error (%s): %s", errResp.Error.Type, errResp.Error.Message)
 		}
-		return "", 0, fmt.Errorf("Anthropic API returned status %d: %s", resp.StatusCode, string(respBody))
+		return "", 0, fmt.Errorf("anthropic API returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	var anthropicResp anthropicResponse

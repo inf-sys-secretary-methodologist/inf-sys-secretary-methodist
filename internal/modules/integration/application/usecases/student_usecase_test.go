@@ -48,16 +48,16 @@ func (m *MockExternalStudentRepository) Upsert(ctx context.Context, student *ent
 
 func (m *MockExternalStudentRepository) GetByID(_ context.Context, id int64) (*entities.ExternalStudent, error) {
 	if student, exists := m.students[id]; exists {
-		copy := *student
-		return &copy, nil
+		copiedStudent := *student
+		return &copiedStudent, nil
 	}
 	return nil, nil
 }
 
 func (m *MockExternalStudentRepository) GetByExternalID(_ context.Context, externalID string) (*entities.ExternalStudent, error) {
 	if student, exists := m.studentsByEx[externalID]; exists {
-		copy := *student
-		return &copy, nil
+		cloned := *student
+		return &cloned, nil
 	}
 	return nil, nil
 }
@@ -65,8 +65,8 @@ func (m *MockExternalStudentRepository) GetByExternalID(_ context.Context, exter
 func (m *MockExternalStudentRepository) GetByCode(_ context.Context, code string) (*entities.ExternalStudent, error) {
 	for _, student := range m.students {
 		if student.Code == code {
-			copy := *student
-			return &copy, nil
+			cloned := *student
+			return &cloned, nil
 		}
 	}
 	return nil, nil
@@ -75,8 +75,8 @@ func (m *MockExternalStudentRepository) GetByCode(_ context.Context, code string
 func (m *MockExternalStudentRepository) GetByLocalUserID(_ context.Context, localUserID int64) (*entities.ExternalStudent, error) {
 	for _, student := range m.students {
 		if student.LocalUserID != nil && *student.LocalUserID == localUserID {
-			copy := *student
-			return &copy, nil
+			cloned := *student
+			return &cloned, nil
 		}
 	}
 	return nil, nil
@@ -248,7 +248,7 @@ func createTestStudent(repo *MockExternalStudentRepository, externalID, firstNam
 	student.LastName = lastName
 	student.GroupName = groupName
 	student.Faculty = faculty
-	repo.Create(context.Background(), student)
+	_ = repo.Create(context.Background(), student)
 	return student
 }
 
@@ -437,7 +437,7 @@ func TestStudentUseCase_LinkToLocalUser_AlreadyLinked(t *testing.T) {
 
 	// Create and link student
 	student := createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
-	repo.LinkToLocalUser(ctx, student.ID, 42)
+	_ = repo.LinkToLocalUser(ctx, student.ID, 42)
 
 	// Try to link again
 	err := uc.LinkToLocalUser(ctx, student.ID, 43)
@@ -454,7 +454,7 @@ func TestStudentUseCase_LinkToLocalUser_LocalUserAlreadyLinked(t *testing.T) {
 
 	// Create and link first student
 	student1 := createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
-	repo.LinkToLocalUser(ctx, student1.ID, 42)
+	_ = repo.LinkToLocalUser(ctx, student1.ID, 42)
 
 	// Create second student
 	student2 := createTestStudent(repo, "ext2", "Jane", "Smith", "CS-102", "Computer Science")
@@ -474,7 +474,7 @@ func TestStudentUseCase_Unlink(t *testing.T) {
 
 	// Create and link student
 	student := createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
-	repo.LinkToLocalUser(ctx, student.ID, 42)
+	_ = repo.LinkToLocalUser(ctx, student.ID, 42)
 
 	// Unlink
 	err := uc.Unlink(ctx, student.ID)
@@ -530,7 +530,7 @@ func TestStudentUseCase_GetUnlinked(t *testing.T) {
 	createTestStudent(repo, "ext3", "Bob", "Johnson", "MATH-101", "Mathematics")
 
 	// Link first student
-	repo.LinkToLocalUser(ctx, student1.ID, 42)
+	_ = repo.LinkToLocalUser(ctx, student1.ID, 42)
 
 	// Get unlinked
 	result, err := uc.GetUnlinked(ctx, 10, 0)

@@ -8,18 +8,20 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/agentsim/agent"
 )
 
-// Document types returned by the API.
+// DocumentType represents a document type returned by the API.
 type DocumentType struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 	Code string `json:"code"`
 }
 
+// DocumentCategory represents a document category.
 type DocumentCategory struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
+// Document represents a document resource.
 type Document struct {
 	ID                 int64  `json:"id"`
 	Title              string `json:"title"`
@@ -35,6 +37,7 @@ type Document struct {
 	Importance         string `json:"importance"`
 }
 
+// DocumentList represents a paginated list of documents.
 type DocumentList struct {
 	Documents []Document `json:"documents"`
 	Total     int        `json:"total"`
@@ -66,6 +69,7 @@ func (c *Client) GetDocumentCategories(ctx context.Context, a *agent.Agent) ([]D
 	return cats, nil
 }
 
+// CreateDocumentRequest represents a request to create a new document.
 type CreateDocumentRequest struct {
 	Title          string `json:"title"`
 	DocumentTypeID int64  `json:"document_type_id"`
@@ -120,6 +124,7 @@ func (c *Client) GetDocument(ctx context.Context, a *agent.Agent, id int64) (*Do
 	return &doc, nil
 }
 
+// UpdateDocumentRequest represents a request to update a document.
 type UpdateDocumentRequest struct {
 	Title      string `json:"title,omitempty"`
 	Subject    string `json:"subject,omitempty"`

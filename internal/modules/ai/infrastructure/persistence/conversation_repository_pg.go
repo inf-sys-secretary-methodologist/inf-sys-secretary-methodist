@@ -94,7 +94,7 @@ func (r *ConversationRepositoryPg) GetByUserID(ctx context.Context, userID int64
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query conversations: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	conversations := make([]entities.Conversation, 0)
 	for rows.Next() {
@@ -162,7 +162,7 @@ func (r *ConversationRepositoryPg) Search(ctx context.Context, userID int64, que
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to search conversations: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	conversations := make([]entities.Conversation, 0)
 	for rows.Next() {
@@ -243,7 +243,7 @@ func (r *MessageRepositoryPg) GetByConversationID(ctx context.Context, conversat
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to query messages: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	messages := make([]entities.Message, 0)
 	for rows.Next() {
@@ -337,7 +337,7 @@ func (r *MessageRepositoryPg) GetMessageSources(ctx context.Context, messageID i
 	if err != nil {
 		return nil, fmt.Errorf("failed to query message sources: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	sources := make([]entities.MessageSource, 0)
 	for rows.Next() {

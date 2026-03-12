@@ -4,6 +4,7 @@ package domain
 // AnnouncementStatus represents the status of an announcement.
 type AnnouncementStatus string
 
+// AnnouncementStatus values.
 const (
 	AnnouncementStatusDraft     AnnouncementStatus = "draft"
 	AnnouncementStatusPublished AnnouncementStatus = "published"
@@ -22,6 +23,7 @@ func (s AnnouncementStatus) IsValid() bool {
 // AnnouncementPriority represents the priority level of an announcement.
 type AnnouncementPriority string
 
+// AnnouncementPriority values.
 const (
 	AnnouncementPriorityLow    AnnouncementPriority = "low"
 	AnnouncementPriorityNormal AnnouncementPriority = "normal"
@@ -41,6 +43,7 @@ func (p AnnouncementPriority) IsValid() bool {
 // TargetAudience represents who can see the announcement.
 type TargetAudience string
 
+// TargetAudience values.
 const (
 	TargetAudienceAll      TargetAudience = "all"
 	TargetAudienceStudents TargetAudience = "students"

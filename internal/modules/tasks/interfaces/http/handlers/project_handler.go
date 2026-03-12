@@ -28,7 +28,12 @@ func (h *ProjectHandler) getUserID(c *gin.Context) (int64, bool) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
 		return 0, false
 	}
-	return userID.(int64), true
+	uid, ok := userID.(int64)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user ID type"})
+		return 0, false
+	}
+	return uid, true
 }
 
 // getIDParam extracts ID parameter from URL.

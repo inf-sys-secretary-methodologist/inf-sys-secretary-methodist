@@ -427,7 +427,7 @@ func (uc *TaskUseCase) Cancel(ctx context.Context, userID, taskID int64) (*entit
 	history := entities.NewTaskHistory(taskID, &userID, "status", &oldStatus, &newStatus)
 	_ = uc.taskRepo.AddHistory(ctx, history)
 
-	uc.logAudit(ctx, userID, "task.cancelled", taskID)
+	uc.logAudit(ctx, userID, "task.canceled", taskID)
 
 	// Notify assignee about task cancellation
 	if uc.notificationUseCase != nil && task.AssigneeID != nil && *task.AssigneeID != userID {

@@ -5,6 +5,7 @@ import "time"
 // PermissionLevel represents the level of access to a document
 type PermissionLevel string
 
+// PermissionLevel values.
 const (
 	PermissionRead   PermissionLevel = "read"
 	PermissionWrite  PermissionLevel = "write"
@@ -15,6 +16,7 @@ const (
 // UserRole represents the role that can be granted permissions
 type UserRole string
 
+// UserRole values.
 const (
 	RoleAdmin     UserRole = "admin"
 	RoleSecretary UserRole = "secretary"

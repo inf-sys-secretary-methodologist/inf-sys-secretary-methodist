@@ -93,7 +93,8 @@ func (h *AIHandler) Chat(c *gin.Context) {
 		return
 	}
 
-	response, err := h.chatUseCase.Chat(c.Request.Context(), userID.(int64), &req)
+	uid, _ := userID.(int64)
+	response, err := h.chatUseCase.Chat(c.Request.Context(), uid, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -176,7 +177,8 @@ func (h *AIHandler) ChatStream(c *gin.Context) {
 		return sendEvent(map[string]any{"type": "content", "content": chunk})
 	}
 
-	response, err := h.chatUseCase.ChatStream(c.Request.Context(), userID.(int64), req, onChunk)
+	uid, _ := userID.(int64)
+	response, err := h.chatUseCase.ChatStream(c.Request.Context(), uid, req, onChunk)
 	if err != nil {
 		_ = sendEvent(map[string]any{"type": "error", "error": err.Error()})
 		return
@@ -226,7 +228,8 @@ func (h *AIHandler) ListConversations(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-	response, err := h.chatUseCase.GetConversations(c.Request.Context(), userID.(int64), search, limit, offset)
+	uid, _ := userID.(int64)
+	response, err := h.chatUseCase.GetConversations(c.Request.Context(), uid, search, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -258,7 +261,8 @@ func (h *AIHandler) CreateConversation(c *gin.Context) {
 	}
 
 	// Use chat use case to create via conversation repo
-	response, err := h.chatUseCase.GetConversations(c.Request.Context(), userID.(int64), "", 1, 0)
+	uid, _ := userID.(int64)
+	response, err := h.chatUseCase.GetConversations(c.Request.Context(), uid, "", 1, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -294,7 +298,8 @@ func (h *AIHandler) GetConversation(c *gin.Context) {
 		return
 	}
 
-	response, err := h.chatUseCase.GetConversation(c.Request.Context(), userID.(int64), conversationID)
+	uid, _ := userID.(int64)
+	response, err := h.chatUseCase.GetConversation(c.Request.Context(), uid, conversationID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -332,7 +337,8 @@ func (h *AIHandler) UpdateConversation(c *gin.Context) {
 		return
 	}
 
-	response, err := h.chatUseCase.UpdateConversation(c.Request.Context(), userID.(int64), conversationID, &req)
+	uid, _ := userID.(int64)
+	response, err := h.chatUseCase.UpdateConversation(c.Request.Context(), uid, conversationID, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

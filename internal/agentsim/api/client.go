@@ -18,8 +18,8 @@ const (
 	requestTimeout = 30 * time.Second
 )
 
-// APIResponse is the standard server response envelope.
-type APIResponse struct {
+// Response is the standard server response envelope.
+type Response struct {
 	Status  string          `json:"status"`
 	Code    int             `json:"code"`
 	Data    json.RawMessage `json:"data"`
@@ -43,7 +43,7 @@ func NewClient(baseURL string) *Client {
 }
 
 // doRequest executes an HTTP request with auth and retry logic.
-func (c *Client) doRequest(ctx context.Context, method, path string, agent *agent.Agent, body any) (*APIResponse, error) {
+func (c *Client) doRequest(ctx context.Context, method, path string, agent *agent.Agent, body any) (*Response, error) {
 	var lastErr error
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
@@ -72,7 +72,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, agent *agen
 	return nil, fmt.Errorf("request failed after %d retries: %w", maxRetries, lastErr)
 }
 
-func (c *Client) executeRequest(ctx context.Context, method, path string, a *agent.Agent, body any) (*APIResponse, error) {
+func (c *Client) executeRequest(ctx context.Context, method, path string, a *agent.Agent, body any) (*Response, error) {
 	var bodyReader io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)
@@ -99,14 +99,14 @@ func (c *Client) executeRequest(ctx context.Context, method, path string, a *age
 	if err != nil {
 		return nil, fmt.Errorf("execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read response body: %w", err)
 	}
 
-	var apiResp APIResponse
+	var apiResp Response
 	if err := json.Unmarshal(respBody, &apiResp); err != nil {
 		return nil, fmt.Errorf("unmarshal response (status %d, body: %s): %w", resp.StatusCode, truncate(string(respBody), 200), err)
 	}
@@ -119,32 +119,32 @@ func (c *Client) executeRequest(ctx context.Context, method, path string, a *age
 }
 
 // Get performs a GET request.
-func (c *Client) Get(ctx context.Context, path string, a *agent.Agent) (*APIResponse, error) {
+func (c *Client) Get(ctx context.Context, path string, a *agent.Agent) (*Response, error) {
 	return c.doRequest(ctx, http.MethodGet, path, a, nil)
 }
 
 // Post performs a POST request.
-func (c *Client) Post(ctx context.Context, path string, a *agent.Agent, body any) (*APIResponse, error) {
+func (c *Client) Post(ctx context.Context, path string, a *agent.Agent, body any) (*Response, error) {
 	return c.doRequest(ctx, http.MethodPost, path, a, body)
 }
 
 // Put performs a PUT request.
-func (c *Client) Put(ctx context.Context, path string, a *agent.Agent, body any) (*APIResponse, error) {
+func (c *Client) Put(ctx context.Context, path string, a *agent.Agent, body any) (*Response, error) {
 	return c.doRequest(ctx, http.MethodPut, path, a, body)
 }
 
 // Patch performs a PATCH request.
-func (c *Client) Patch(ctx context.Context, path string, a *agent.Agent, body any) (*APIResponse, error) {
+func (c *Client) Patch(ctx context.Context, path string, a *agent.Agent, body any) (*Response, error) {
 	return c.doRequest(ctx, http.MethodPatch, path, a, body)
 }
 
 // Delete performs a DELETE request.
-func (c *Client) Delete(ctx context.Context, path string, a *agent.Agent) (*APIResponse, error) {
+func (c *Client) Delete(ctx context.Context, path string, a *agent.Agent) (*Response, error) {
 	return c.doRequest(ctx, http.MethodDelete, path, a, nil)
 }
 
-// ParseData unmarshals the Data field of an APIResponse into the target.
-func ParseData(resp *APIResponse, target any) error {
+// ParseData unmarshals the Data field of an Response into the target.
+func ParseData(resp *Response, target any) error {
 	if resp.Data == nil {
 		return fmt.Errorf("response data is nil")
 	}

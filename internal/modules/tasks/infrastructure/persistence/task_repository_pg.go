@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -82,7 +83,7 @@ func (r *TaskRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.Tas
 		&task.Progress, &task.EstimatedHours, &task.ActualHours,
 		&tags, &task.Metadata, &task.CreatedAt, &task.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -157,7 +158,7 @@ func (r *TaskRepositoryPG) buildListQuery(filter repositories.TaskFilter, limit,
 	}
 
 	if filter.IsOverdue != nil && *filter.IsOverdue {
-		conditions = append(conditions, "due_date < NOW() AND status NOT IN ('completed', 'cancelled')")
+		conditions = append(conditions, "due_date < NOW() AND status NOT IN ('completed', 'canceled')")
 	}
 
 	if filter.Search != nil && *filter.Search != "" {
@@ -337,7 +338,7 @@ func (r *TaskRepositoryPG) GetAttachmentByID(ctx context.Context, attachmentID i
 	err := r.db.QueryRowContext(ctx, query, attachmentID).Scan(
 		&a.ID, &a.TaskID, &a.FileName, &a.FilePath, &a.FileSize, &a.MimeType, &a.UploadedBy, &a.CreatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	return a, err
@@ -396,7 +397,7 @@ func (r *TaskRepositoryPG) GetCommentByID(ctx context.Context, commentID int64) 
 	err := r.db.QueryRowContext(ctx, query, commentID).Scan(
 		&c.ID, &c.TaskID, &c.AuthorID, &c.Content, &c.ParentCommentID, &c.CreatedAt, &c.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	return c, err

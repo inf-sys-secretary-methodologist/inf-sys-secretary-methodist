@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -123,7 +124,7 @@ func (r *PublicLinkRepositoryPG) GetByID(ctx context.Context, id int64) (*entiti
 		&link.DocumentTitle, &link.CreatedByName,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domainErrors.ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get public link: %w", err)
@@ -151,7 +152,7 @@ func (r *PublicLinkRepositoryPG) GetByToken(ctx context.Context, token string) (
 		&link.DocumentTitle, &link.CreatedByName,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domainErrors.ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get public link: %w", err)
@@ -176,7 +177,7 @@ func (r *PublicLinkRepositoryPG) GetByDocumentID(ctx context.Context, documentID
 	if err != nil {
 		return nil, fmt.Errorf("failed to query public links: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var links []*entities.PublicLink
 	for rows.Next() {
@@ -211,7 +212,7 @@ func (r *PublicLinkRepositoryPG) GetByCreatedBy(ctx context.Context, userID int6
 	if err != nil {
 		return nil, fmt.Errorf("failed to query public links: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var links []*entities.PublicLink
 	for rows.Next() {
@@ -249,7 +250,7 @@ func (r *PublicLinkRepositoryPG) GetActiveByDocumentID(ctx context.Context, docu
 	if err != nil {
 		return nil, fmt.Errorf("failed to query public links: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var links []*entities.PublicLink
 	for rows.Next() {

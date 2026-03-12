@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -71,7 +72,7 @@ func TestAnnouncement_Publish(t *testing.T) {
 			err := a.Publish()
 
 			if tt.wantErr != nil {
-				if err != tt.wantErr {
+				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("expected error %v, got %v", tt.wantErr, err)
 				}
 				return
@@ -123,7 +124,7 @@ func TestAnnouncement_Archive(t *testing.T) {
 			err := a.Archive()
 
 			if tt.wantErr != nil {
-				if err != tt.wantErr {
+				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("expected error %v, got %v", tt.wantErr, err)
 				}
 				return

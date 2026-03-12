@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -41,8 +42,8 @@ func (m *MockAnnouncementRepository) Save(_ context.Context, announcement *entit
 func (m *MockAnnouncementRepository) GetByID(_ context.Context, id int64) (*entities.Announcement, error) {
 	if a, exists := m.announcements[id]; exists {
 		// Return a copy to avoid pointer aliasing issues
-		copy := *a
-		return &copy, nil
+		copiedAnn := *a
+		return &copiedAnn, nil
 	}
 	return nil, nil
 }
@@ -206,7 +207,7 @@ func TestAnnouncementUseCase_Create_InvalidPriority(t *testing.T) {
 	}
 
 	_, err := uc.Create(ctx, 1, req)
-	if err != ErrInvalidInput {
+	if !errors.Is(err, ErrInvalidInput) {
 		t.Errorf("expected ErrInvalidInput, got %v", err)
 	}
 }
@@ -224,7 +225,7 @@ func TestAnnouncementUseCase_Create_InvalidAudience(t *testing.T) {
 	}
 
 	_, err := uc.Create(ctx, 1, req)
-	if err != ErrInvalidInput {
+	if !errors.Is(err, ErrInvalidInput) {
 		t.Errorf("expected ErrInvalidInput, got %v", err)
 	}
 }
@@ -308,7 +309,7 @@ func TestAnnouncementUseCase_GetByID_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := uc.GetByID(ctx, 999, false)
-	if err != ErrAnnouncementNotFound {
+	if !errors.Is(err, ErrAnnouncementNotFound) {
 		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
 	}
 }
@@ -326,7 +327,7 @@ func TestAnnouncementUseCase_GetByID_IncrementView(t *testing.T) {
 		Priority:       domain.AnnouncementPriorityNormal,
 		TargetAudience: domain.TargetAudienceAll,
 	})
-	uc.Publish(ctx, 1, created.ID, false)
+	_, _ = uc.Publish(ctx, 1, created.ID, false)
 
 	// Get with view increment
 	initialView := created.ViewCount
@@ -381,7 +382,7 @@ func TestAnnouncementUseCase_Update_NotFound(t *testing.T) {
 	newTitle := "Test"
 
 	_, err := uc.Update(ctx, 1, 999, false, &dto.UpdateAnnouncementRequest{Title: &newTitle})
-	if err != ErrAnnouncementNotFound {
+	if !errors.Is(err, ErrAnnouncementNotFound) {
 		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
 	}
 }
@@ -403,7 +404,7 @@ func TestAnnouncementUseCase_Update_Unauthorized(t *testing.T) {
 	// Try to update by user 2 (not admin)
 	newTitle := "Updated"
 	_, err := uc.Update(ctx, 2, created.ID, false, &dto.UpdateAnnouncementRequest{Title: &newTitle})
-	if err != ErrUnauthorized {
+	if !errors.Is(err, ErrUnauthorized) {
 		t.Errorf("expected ErrUnauthorized, got %v", err)
 	}
 }
@@ -508,7 +509,7 @@ func TestAnnouncementUseCase_Delete(t *testing.T) {
 
 	// Verify deleted
 	_, err = uc.GetByID(ctx, created.ID, false)
-	if err != ErrAnnouncementNotFound {
+	if !errors.Is(err, ErrAnnouncementNotFound) {
 		t.Error("expected announcement to be deleted")
 	}
 }
@@ -520,7 +521,7 @@ func TestAnnouncementUseCase_Delete_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	err := uc.Delete(ctx, 1, 999, false)
-	if err != ErrAnnouncementNotFound {
+	if !errors.Is(err, ErrAnnouncementNotFound) {
 		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
 	}
 }
@@ -541,7 +542,7 @@ func TestAnnouncementUseCase_Delete_Unauthorized(t *testing.T) {
 
 	// Try to delete by user 2
 	err := uc.Delete(ctx, 2, created.ID, false)
-	if err != ErrUnauthorized {
+	if !errors.Is(err, ErrUnauthorized) {
 		t.Errorf("expected ErrUnauthorized, got %v", err)
 	}
 }
@@ -553,9 +554,9 @@ func TestAnnouncementUseCase_List(t *testing.T) {
 	ctx := context.Background()
 
 	// Create announcements
-	uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 1", Content: "C1", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
-	uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 2", Content: "C2", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
-	uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 3", Content: "C3", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
+	_, _ = uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 1", Content: "C1", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
+	_, _ = uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 2", Content: "C2", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
+	_, _ = uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 3", Content: "C3", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
 
 	// List
 	resp, err := uc.List(ctx, &dto.ListAnnouncementsRequest{Limit: 10})
@@ -601,8 +602,8 @@ func TestAnnouncementUseCase_GetPublished(t *testing.T) {
 	// Create and publish announcements
 	a1, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 1", Content: "C1", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
 	a2, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 2", Content: "C2", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceTeachers})
-	uc.Publish(ctx, 1, a1.ID, false)
-	uc.Publish(ctx, 1, a2.ID, false)
+	_, _ = uc.Publish(ctx, 1, a1.ID, false)
+	_, _ = uc.Publish(ctx, 1, a2.ID, false)
 
 	// Get published for all
 	published, err := uc.GetPublished(ctx, domain.TargetAudienceAll, 10, 0)
@@ -642,7 +643,7 @@ func TestAnnouncementUseCase_GetPinned(t *testing.T) {
 		TargetAudience: domain.TargetAudienceAll,
 		IsPinned:       true,
 	})
-	uc.Publish(ctx, 1, a1.ID, false)
+	_, _ = uc.Publish(ctx, 1, a1.ID, false)
 
 	// Get pinned
 	pinned, err := uc.GetPinned(ctx, 10)
@@ -675,7 +676,7 @@ func TestAnnouncementUseCase_GetRecent(t *testing.T) {
 
 	// Create and publish
 	a1, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 1", Content: "C1", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
-	uc.Publish(ctx, 1, a1.ID, false)
+	_, _ = uc.Publish(ctx, 1, a1.ID, false)
 
 	// Get recent
 	recent, err := uc.GetRecent(ctx, 10)
@@ -732,7 +733,7 @@ func TestAnnouncementUseCase_Publish_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := uc.Publish(ctx, 1, 999, false)
-	if err != ErrAnnouncementNotFound {
+	if !errors.Is(err, ErrAnnouncementNotFound) {
 		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
 	}
 }
@@ -751,7 +752,7 @@ func TestAnnouncementUseCase_Publish_Unauthorized(t *testing.T) {
 	})
 
 	_, err := uc.Publish(ctx, 2, created.ID, false)
-	if err != ErrUnauthorized {
+	if !errors.Is(err, ErrUnauthorized) {
 		t.Errorf("expected ErrUnauthorized, got %v", err)
 	}
 }
@@ -769,7 +770,7 @@ func TestAnnouncementUseCase_Unpublish(t *testing.T) {
 		Priority:       domain.AnnouncementPriorityNormal,
 		TargetAudience: domain.TargetAudienceAll,
 	})
-	uc.Publish(ctx, 1, created.ID, false)
+	_, _ = uc.Publish(ctx, 1, created.ID, false)
 
 	// Unpublish
 	unpublished, err := uc.Unpublish(ctx, 1, created.ID, false)
@@ -789,7 +790,7 @@ func TestAnnouncementUseCase_Unpublish_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := uc.Unpublish(ctx, 1, 999, false)
-	if err != ErrAnnouncementNotFound {
+	if !errors.Is(err, ErrAnnouncementNotFound) {
 		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
 	}
 }
@@ -807,7 +808,7 @@ func TestAnnouncementUseCase_Archive(t *testing.T) {
 		Priority:       domain.AnnouncementPriorityNormal,
 		TargetAudience: domain.TargetAudienceAll,
 	})
-	uc.Publish(ctx, 1, created.ID, false)
+	_, _ = uc.Publish(ctx, 1, created.ID, false)
 
 	// Archive
 	archived, err := uc.Archive(ctx, 1, created.ID, false)
@@ -827,7 +828,7 @@ func TestAnnouncementUseCase_Archive_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := uc.Archive(ctx, 1, 999, false)
-	if err != ErrAnnouncementNotFound {
+	if !errors.Is(err, ErrAnnouncementNotFound) {
 		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
 	}
 }
@@ -846,7 +847,7 @@ func TestAnnouncementUseCase_Archive_Unauthorized(t *testing.T) {
 	})
 
 	_, err := uc.Archive(ctx, 2, created.ID, false)
-	if err != ErrUnauthorized {
+	if !errors.Is(err, ErrUnauthorized) {
 		t.Errorf("expected ErrUnauthorized, got %v", err)
 	}
 }
@@ -863,7 +864,7 @@ func TestAnnouncementUseCase_Archive_AdminCanArchive(t *testing.T) {
 		Priority:       domain.AnnouncementPriorityNormal,
 		TargetAudience: domain.TargetAudienceAll,
 	})
-	uc.Publish(ctx, 1, created.ID, false)
+	_, _ = uc.Publish(ctx, 1, created.ID, false)
 
 	// Admin can archive
 	archived, err := uc.Archive(ctx, 2, created.ID, true)

@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+const (
+	testQuietStart  = "22:00"
+	testQuietEnd    = "07:00"
+	testTimezoneUTC = "UTC"
+)
+
 func TestNewUserNotificationPreferences(t *testing.T) {
 	userID := int64(42)
 
@@ -31,10 +37,10 @@ func TestNewUserNotificationPreferences(t *testing.T) {
 	if p.QuietHoursEnabled {
 		t.Error("expected QuietHoursEnabled to be false")
 	}
-	if p.QuietHoursStart != "22:00" {
+	if p.QuietHoursStart != testQuietStart {
 		t.Errorf("expected QuietHoursStart '22:00', got '%s'", p.QuietHoursStart)
 	}
-	if p.QuietHoursEnd != "07:00" {
+	if p.QuietHoursEnd != testQuietEnd {
 		t.Errorf("expected QuietHoursEnd '07:00', got '%s'", p.QuietHoursEnd)
 	}
 	if p.Timezone != "Europe/Moscow" {
@@ -111,9 +117,9 @@ func TestUserNotificationPreferences_IsWithinQuietHours_Disabled(t *testing.T) {
 func TestUserNotificationPreferences_IsWithinQuietHours_OvernightWithinStart(t *testing.T) {
 	p := NewUserNotificationPreferences(1)
 	p.QuietHoursEnabled = true
-	p.QuietHoursStart = "22:00"
-	p.QuietHoursEnd = "07:00"
-	p.Timezone = "UTC"
+	p.QuietHoursStart = testQuietStart
+	p.QuietHoursEnd = testQuietEnd
+	p.Timezone = testTimezoneUTC
 
 	// 23:00 should be within quiet hours (after start)
 	currentTime := time.Date(2024, 1, 1, 23, 0, 0, 0, time.UTC)
@@ -125,9 +131,9 @@ func TestUserNotificationPreferences_IsWithinQuietHours_OvernightWithinStart(t *
 func TestUserNotificationPreferences_IsWithinQuietHours_OvernightWithinEnd(t *testing.T) {
 	p := NewUserNotificationPreferences(1)
 	p.QuietHoursEnabled = true
-	p.QuietHoursStart = "22:00"
-	p.QuietHoursEnd = "07:00"
-	p.Timezone = "UTC"
+	p.QuietHoursStart = testQuietStart
+	p.QuietHoursEnd = testQuietEnd
+	p.Timezone = testTimezoneUTC
 
 	// 06:00 should be within quiet hours (before end)
 	currentTime := time.Date(2024, 1, 1, 6, 0, 0, 0, time.UTC)
@@ -139,9 +145,9 @@ func TestUserNotificationPreferences_IsWithinQuietHours_OvernightWithinEnd(t *te
 func TestUserNotificationPreferences_IsWithinQuietHours_OvernightOutside(t *testing.T) {
 	p := NewUserNotificationPreferences(1)
 	p.QuietHoursEnabled = true
-	p.QuietHoursStart = "22:00"
-	p.QuietHoursEnd = "07:00"
-	p.Timezone = "UTC"
+	p.QuietHoursStart = testQuietStart
+	p.QuietHoursEnd = testQuietEnd
+	p.Timezone = testTimezoneUTC
 
 	// 12:00 should be outside quiet hours
 	currentTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
@@ -155,7 +161,7 @@ func TestUserNotificationPreferences_IsWithinQuietHours_SameDay(t *testing.T) {
 	p.QuietHoursEnabled = true
 	p.QuietHoursStart = "09:00"
 	p.QuietHoursEnd = "17:00"
-	p.Timezone = "UTC"
+	p.Timezone = testTimezoneUTC
 
 	tests := []struct {
 		name     string
@@ -183,7 +189,7 @@ func TestUserNotificationPreferences_IsWithinQuietHours_SameDay(t *testing.T) {
 func TestUserNotificationPreferences_IsWithinQuietHours_InvalidTimezone(t *testing.T) {
 	p := NewUserNotificationPreferences(1)
 	p.QuietHoursEnabled = true
-	p.QuietHoursStart = "22:00"
+	p.QuietHoursStart = testQuietStart
 	p.QuietHoursEnd = "23:00"
 	p.Timezone = "Invalid/Timezone"
 
@@ -207,9 +213,9 @@ func TestUserNotificationPreferences_ShouldNotify_ChannelDisabled(t *testing.T) 
 func TestUserNotificationPreferences_ShouldNotify_WithinQuietHours(t *testing.T) {
 	p := NewUserNotificationPreferences(1)
 	p.QuietHoursEnabled = true
-	p.QuietHoursStart = "22:00"
-	p.QuietHoursEnd = "07:00"
-	p.Timezone = "UTC"
+	p.QuietHoursStart = testQuietStart
+	p.QuietHoursEnd = testQuietEnd
+	p.Timezone = testTimezoneUTC
 
 	// 23:00 is within quiet hours
 	currentTime := time.Date(2024, 1, 1, 23, 0, 0, 0, time.UTC)
@@ -270,18 +276,18 @@ func TestUserNotificationPreferences_ShouldNotify_NoTypePreference(t *testing.T)
 func TestQuietHoursStruct(t *testing.T) {
 	qh := QuietHours{
 		Enabled:   true,
-		StartTime: "22:00",
-		EndTime:   "07:00",
+		StartTime: testQuietStart,
+		EndTime:   testQuietEnd,
 		Timezone:  "Europe/Moscow",
 	}
 
 	if !qh.Enabled {
 		t.Error("expected enabled to be true")
 	}
-	if qh.StartTime != "22:00" {
+	if qh.StartTime != testQuietStart {
 		t.Errorf("expected start time '22:00', got '%s'", qh.StartTime)
 	}
-	if qh.EndTime != "07:00" {
+	if qh.EndTime != testQuietEnd {
 		t.Errorf("expected end time '07:00', got '%s'", qh.EndTime)
 	}
 	if qh.Timezone != "Europe/Moscow" {

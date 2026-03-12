@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const invalidID = "invalid"
+
 // mockAuthMiddleware creates a middleware that sets user_id for testing
 func mockAuthMiddleware(userID int64, role string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -277,7 +279,7 @@ func TestGetConversation(t *testing.T) {
 		},
 		{
 			name:           "invalid id",
-			conversationID: "invalid",
+			conversationID: invalidID,
 			authenticated:  true,
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -305,7 +307,7 @@ func TestGetConversation(t *testing.T) {
 				}
 
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -363,7 +365,7 @@ func TestSendMessage(t *testing.T) {
 		},
 		{
 			name:           "invalid conversation id",
-			conversationID: "invalid",
+			conversationID: invalidID,
 			payload: map[string]any{
 				"content": "Hello!",
 			},
@@ -397,7 +399,7 @@ func TestSendMessage(t *testing.T) {
 				}
 
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -460,7 +462,7 @@ func TestGetMessages(t *testing.T) {
 		},
 		{
 			name:           "invalid conversation id",
-			conversationID: "invalid",
+			conversationID: invalidID,
 			queryParams:    "",
 			authenticated:  true,
 			expectedStatus: http.StatusBadRequest,
@@ -490,7 +492,7 @@ func TestGetMessages(t *testing.T) {
 				}
 
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -548,7 +550,7 @@ func TestEditMessage(t *testing.T) {
 		{
 			name:           "invalid message id",
 			conversationID: "1",
-			messageID:      "invalid",
+			messageID:      invalidID,
 			payload:        map[string]any{},
 			authenticated:  true,
 			expectedStatus: http.StatusBadRequest,
@@ -571,7 +573,7 @@ func TestEditMessage(t *testing.T) {
 				}
 
 				messageID := c.Param("messageId")
-				if messageID == "invalid" {
+				if messageID == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -634,7 +636,7 @@ func TestDeleteMessage(t *testing.T) {
 		{
 			name:           "invalid message id",
 			conversationID: "1",
-			messageID:      "invalid",
+			messageID:      invalidID,
 			authenticated:  true,
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -656,7 +658,7 @@ func TestDeleteMessage(t *testing.T) {
 				}
 
 				messageID := c.Param("messageId")
-				if messageID == "invalid" {
+				if messageID == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -699,7 +701,7 @@ func TestMarkAsRead(t *testing.T) {
 		},
 		{
 			name:           "invalid conversation id",
-			conversationID: "invalid",
+			conversationID: invalidID,
 			payload:        map[string]any{},
 			authenticated:  true,
 			expectedStatus: http.StatusBadRequest,
@@ -729,7 +731,7 @@ func TestMarkAsRead(t *testing.T) {
 				}
 
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -766,7 +768,7 @@ func TestLeaveConversation(t *testing.T) {
 		},
 		{
 			name:           "invalid conversation id",
-			conversationID: "invalid",
+			conversationID: invalidID,
 			authenticated:  true,
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -794,7 +796,7 @@ func TestLeaveConversation(t *testing.T) {
 				}
 
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -845,7 +847,7 @@ func TestSearchMessages(t *testing.T) {
 		},
 		{
 			name:           "invalid conversation id",
-			conversationID: "invalid",
+			conversationID: invalidID,
 			queryParams:    "?q=test",
 			authenticated:  true,
 			expectedStatus: http.StatusBadRequest,
@@ -868,7 +870,7 @@ func TestSearchMessages(t *testing.T) {
 				}
 
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}

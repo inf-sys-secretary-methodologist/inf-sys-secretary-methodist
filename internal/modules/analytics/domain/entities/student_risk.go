@@ -6,6 +6,7 @@ import "time"
 // RiskLevel represents the risk level of a student
 type RiskLevel string
 
+// RiskLevel values.
 const (
 	RiskLevelLow      RiskLevel = "low"
 	RiskLevelMedium   RiskLevel = "medium"

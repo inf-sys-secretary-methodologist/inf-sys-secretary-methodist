@@ -10,6 +10,7 @@ import (
 // EventType represents the type of WebSocket event.
 type EventType string
 
+// EventType constants define the possible WebSocket event types.
 const (
 	EventTypeNewMessage     EventType = "new_message"
 	EventTypeMessageUpdated EventType = "message_updated"

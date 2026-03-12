@@ -8,6 +8,7 @@ import (
 // ConversationType represents the type of conversation.
 type ConversationType string
 
+// ConversationType values.
 const (
 	ConversationTypeDirect ConversationType = "direct"
 	ConversationTypeGroup  ConversationType = "group"
@@ -43,6 +44,7 @@ type Conversation struct {
 // ParticipantRole represents the role of a participant in a conversation.
 type ParticipantRole string
 
+// ParticipantRole values.
 const (
 	ParticipantRoleMember ParticipantRole = "member"
 	ParticipantRoleAdmin  ParticipantRole = "admin"

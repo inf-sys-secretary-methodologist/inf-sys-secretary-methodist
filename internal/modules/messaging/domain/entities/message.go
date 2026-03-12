@@ -8,6 +8,7 @@ import (
 // MessageType represents the type of message.
 type MessageType string
 
+// MessageType values.
 const (
 	MessageTypeText   MessageType = "text"
 	MessageTypeImage  MessageType = "image"
@@ -18,6 +19,7 @@ const (
 // MessageStatus represents the delivery status of a message.
 type MessageStatus string
 
+// MessageStatus values.
 const (
 	MessageStatusSent      MessageStatus = "sent"
 	MessageStatusDelivered MessageStatus = "delivered"

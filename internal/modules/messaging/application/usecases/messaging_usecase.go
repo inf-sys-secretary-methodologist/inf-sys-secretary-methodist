@@ -418,7 +418,7 @@ func (uc *MessagingUseCase) SendMessage(ctx context.Context, userID, conversatio
 	}, 0) // Don't exclude sender - they should see their own message
 
 	// Send notifications to participants who are not online in the conversation
-	// Use background context because HTTP request context may be cancelled by the time goroutine runs
+	// Use background context because HTTP request context may be canceled by the time goroutine runs
 	if uc.notifier != nil {
 		go uc.notifyParticipants(context.Background(), conversationID, userID, msg) // #nosec G118 -- fire-and-forget goroutine outlives request
 	}

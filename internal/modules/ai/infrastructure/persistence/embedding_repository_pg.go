@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 	"github.com/lib/pq"
 	"github.com/pgvector/pgvector-go"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 )
 
 // EmbeddingRepositoryPg implements EmbeddingRepository using PostgreSQL with pgvector
@@ -89,7 +90,7 @@ func (r *EmbeddingRepositoryPg) GetChunksByDocumentID(ctx context.Context, docum
 	if err != nil {
 		return nil, fmt.Errorf("failed to query chunks: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	chunks := make([]entities.DocumentChunk, 0)
 	for rows.Next() {
@@ -194,7 +195,7 @@ func (r *EmbeddingRepositoryPg) SearchSimilar(ctx context.Context, embedding []f
 	if err != nil {
 		return nil, fmt.Errorf("failed to search similar: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	results := make([]entities.ChunkWithScore, 0)
 	for rows.Next() {
@@ -246,7 +247,7 @@ func (r *EmbeddingRepositoryPg) SearchSimilarByDocumentTypes(ctx context.Context
 	if err != nil {
 		return nil, fmt.Errorf("failed to search similar: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	results := make([]entities.ChunkWithScore, 0)
 	for rows.Next() {
@@ -355,7 +356,7 @@ func (r *EmbeddingRepositoryPg) GetPendingDocuments(ctx context.Context, limit i
 	if err != nil {
 		return nil, fmt.Errorf("failed to query pending documents: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	ids := make([]int64, 0)
 	for rows.Next() {
@@ -441,7 +442,7 @@ func (r *EmbeddingRepositoryPg) SearchHybrid(ctx context.Context, embedding []fl
 	if err != nil {
 		return nil, fmt.Errorf("failed to search hybrid: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	results := make([]entities.ChunkWithScore, 0)
 	for rows.Next() {
@@ -493,7 +494,7 @@ func (r *EmbeddingRepositoryPg) GetAdjacentChunks(ctx context.Context, chunkIDs 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get adjacent chunks: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	chunks := make([]entities.DocumentChunk, 0)
 	for rows.Next() {

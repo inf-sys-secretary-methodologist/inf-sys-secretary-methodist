@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -306,7 +307,7 @@ func (r *ExternalStudentRepositoryPg) GetByID(ctx context.Context, id int64) (*e
 	query := fmt.Sprintf(`SELECT %s FROM external_students WHERE id = $1`, studentSelectFields)
 	student, err := scanStudentRow(r.db.QueryRowContext(ctx, query, id))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get external student: %w", err)
@@ -320,7 +321,7 @@ func (r *ExternalStudentRepositoryPg) GetByExternalID(ctx context.Context, exter
 	query := fmt.Sprintf(`SELECT %s FROM external_students WHERE external_id = $1`, studentSelectFields)
 	student, err := scanStudentRow(r.db.QueryRowContext(ctx, query, externalID))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get external student by external ID: %w", err)
@@ -334,7 +335,7 @@ func (r *ExternalStudentRepositoryPg) GetByCode(ctx context.Context, code string
 	query := fmt.Sprintf(`SELECT %s FROM external_students WHERE code = $1`, studentSelectFields)
 	student, err := scanStudentRow(r.db.QueryRowContext(ctx, query, code))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get external student by code: %w", err)
@@ -348,7 +349,7 @@ func (r *ExternalStudentRepositoryPg) GetByLocalUserID(ctx context.Context, loca
 	query := fmt.Sprintf(`SELECT %s FROM external_students WHERE local_user_id = $1`, studentSelectFields)
 	student, err := scanStudentRow(r.db.QueryRowContext(ctx, query, localUserID))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get external student by local user ID: %w", err)
@@ -433,7 +434,7 @@ func (r *ExternalStudentRepositoryPg) List(ctx context.Context, filter entities.
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list external students: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	students, err := scanStudentRows(rows)
 	if err != nil {
@@ -460,7 +461,7 @@ func (r *ExternalStudentRepositoryPg) GetByGroup(ctx context.Context, groupName 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get students by group: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return scanStudentRows(rows)
 }
@@ -472,7 +473,7 @@ func (r *ExternalStudentRepositoryPg) GetByFaculty(ctx context.Context, faculty 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get students by faculty: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return scanStudentRows(rows)
 }
@@ -531,7 +532,7 @@ func (r *ExternalStudentRepositoryPg) GetAllExternalIDs(ctx context.Context) ([]
 	if err != nil {
 		return nil, fmt.Errorf("failed to get external IDs: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var ids []string
 	for rows.Next() {
@@ -554,7 +555,7 @@ func (r *ExternalStudentRepositoryPg) BulkUpsert(ctx context.Context, students [
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	for _, student := range students {
 		var rawData []byte
@@ -643,7 +644,7 @@ func (r *ExternalStudentRepositoryPg) GetGroups(ctx context.Context) ([]string, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get groups: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var groups []string
 	for rows.Next() {
@@ -663,7 +664,7 @@ func (r *ExternalStudentRepositoryPg) GetFaculties(ctx context.Context) ([]strin
 	if err != nil {
 		return nil, fmt.Errorf("failed to get faculties: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var faculties []string
 	for rows.Next() {

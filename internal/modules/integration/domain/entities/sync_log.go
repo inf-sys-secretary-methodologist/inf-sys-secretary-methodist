@@ -66,7 +66,7 @@ func (s *SyncLog) Fail(errMsg string) {
 	s.UpdatedAt = now
 }
 
-// Cancel marks the sync as cancelled
+// Cancel marks the sync as canceled
 func (s *SyncLog) Cancel() {
 	now := time.Now()
 	s.Status = SyncStatusCancelled

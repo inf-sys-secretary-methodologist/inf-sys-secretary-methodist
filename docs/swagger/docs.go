@@ -6367,7 +6367,7 @@ const docTemplate = `{
                         "scheduled",
                         "ongoing",
                         "completed",
-                        "cancelled",
+                        "canceled",
                         "postponed"
                     ]
                 },

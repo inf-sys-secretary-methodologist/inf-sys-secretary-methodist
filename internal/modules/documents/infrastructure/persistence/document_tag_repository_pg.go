@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -87,7 +88,7 @@ func (r *DocumentTagRepositoryPG) GetByID(ctx context.Context, id int64) (*entit
 
 	tag := &entities.DocumentTag{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(&tag.ID, &tag.Name, &tag.Color, &tag.CreatedAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("тег не найден")
 	}
 	if err != nil {
@@ -102,7 +103,7 @@ func (r *DocumentTagRepositoryPG) GetByName(ctx context.Context, name string) (*
 
 	tag := &entities.DocumentTag{}
 	err := r.db.QueryRowContext(ctx, query, name).Scan(&tag.ID, &tag.Name, &tag.Color, &tag.CreatedAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("тег не найден")
 	}
 	if err != nil {
@@ -119,7 +120,7 @@ func (r *DocumentTagRepositoryPG) GetAll(ctx context.Context) ([]*entities.Docum
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tags: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tags []*entities.DocumentTag
 	for rows.Next() {
@@ -153,7 +154,7 @@ func (r *DocumentTagRepositoryPG) Search(ctx context.Context, query string, limi
 	if err != nil {
 		return nil, fmt.Errorf("failed to search tags: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tags []*entities.DocumentTag
 	for rows.Next() {
@@ -213,7 +214,7 @@ func (r *DocumentTagRepositoryPG) GetTagsByDocumentID(ctx context.Context, docum
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document tags: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tags []*entities.DocumentTag
 	for rows.Next() {
@@ -257,7 +258,7 @@ func (r *DocumentTagRepositoryPG) GetDocumentsByTagID(ctx context.Context, tagID
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get documents by tag: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var documentIDs []int64
 	for rows.Next() {
@@ -276,7 +277,7 @@ func (r *DocumentTagRepositoryPG) SetDocumentTags(ctx context.Context, documentI
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Remove all existing tags
 	_, err = tx.ExecContext(ctx, `DELETE FROM document_tag_relations WHERE document_id = $1`, documentID)
@@ -291,7 +292,7 @@ func (r *DocumentTagRepositoryPG) SetDocumentTags(ctx context.Context, documentI
 		if err != nil {
 			return fmt.Errorf("failed to prepare statement: %w", err)
 		}
-		defer stmt.Close()
+		defer func() { _ = stmt.Close() }()
 
 		for _, tagID := range tagIDs {
 			_, err = stmt.ExecContext(ctx, documentID, tagID)

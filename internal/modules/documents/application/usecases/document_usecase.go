@@ -506,7 +506,7 @@ func (uc *DocumentUseCase) uploadFileFromMultipart(ctx context.Context, doc *ent
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	key := storage.GenerateKey(doc.ID, file.Filename)
 	contentType := detectContentType(file.Filename)

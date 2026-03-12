@@ -14,6 +14,11 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
+const (
+	testGroupTitle   = "Test Group"
+	updatedGroupName = "Updated Group"
+)
+
 // MockConversationRepository is a mock implementation of ConversationRepository
 type MockConversationRepository struct {
 	mock.Mock
@@ -231,7 +236,7 @@ func TestMessagingUseCase_CreateGroupConversation(t *testing.T) {
 
 		description := "Test group description"
 		input := dto.CreateGroupConversationInput{
-			Title:          "Test Group",
+			Title:          testGroupTitle,
 			Description:    &description,
 			ParticipantIDs: []int64{2, 3, 4},
 		}
@@ -244,7 +249,7 @@ func TestMessagingUseCase_CreateGroupConversation(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, conv)
 		assert.Equal(t, entities.ConversationTypeGroup, conv.Type)
-		assert.Equal(t, "Test Group", *conv.Title)
+		assert.Equal(t, testGroupTitle, *conv.Title)
 		mockConvRepo.AssertExpectations(t)
 		mockMsgRepo.AssertExpectations(t)
 	})
@@ -853,7 +858,7 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 
 		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
-		title := "Test Group"
+		title := testGroupTitle
 		conv := &entities.Conversation{
 			ID:    1,
 			Type:  entities.ConversationTypeGroup,
@@ -864,7 +869,7 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 			},
 		}
 
-		newTitle := "Updated Group"
+		newTitle := updatedGroupName
 		newDescription := "New description"
 		input := dto.UpdateConversationInput{
 			Title:       &newTitle,
@@ -878,7 +883,7 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Equal(t, "Updated Group", *result.Title)
+		assert.Equal(t, updatedGroupName, *result.Title)
 		assert.Equal(t, "New description", *result.Description)
 		mockConvRepo.AssertExpectations(t)
 	})
@@ -891,7 +896,7 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 
 		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
-		title := "Test Group"
+		title := testGroupTitle
 		conv := &entities.Conversation{
 			ID:    1,
 			Type:  entities.ConversationTypeGroup,
@@ -902,7 +907,7 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 			},
 		}
 
-		newTitle := "Updated Group"
+		newTitle := updatedGroupName
 		input := dto.UpdateConversationInput{
 			Title: &newTitle,
 		}
@@ -925,7 +930,7 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 
 		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
-		newTitle := "Updated Group"
+		newTitle := updatedGroupName
 		input := dto.UpdateConversationInput{
 			Title: &newTitle,
 		}
@@ -948,7 +953,7 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 
 		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
-		title := "Test Group"
+		title := testGroupTitle
 		conv := &entities.Conversation{
 			ID:    1,
 			Type:  entities.ConversationTypeGroup,

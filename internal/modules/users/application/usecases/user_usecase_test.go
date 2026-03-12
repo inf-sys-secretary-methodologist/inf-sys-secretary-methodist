@@ -13,6 +13,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 )
 
+const testEmail = "test@example.com"
+
 // MockUserRepository implements authRepos.UserRepository for testing.
 type MockUserRepository struct {
 	users  map[int64]*authEntities.User
@@ -185,7 +187,7 @@ func TestUserUseCase_GetUser(t *testing.T) {
 	// Add profile
 	profileRepo.AddProfile(&entities.UserWithOrg{
 		ID:    1,
-		Email: "test@example.com",
+		Email: testEmail,
 		Name:  "Test User",
 	})
 
@@ -195,7 +197,7 @@ func TestUserUseCase_GetUser(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if user.Email != "test@example.com" {
+	if user.Email != testEmail {
 		t.Errorf("expected email 'test@example.com', got '%s'", user.Email)
 	}
 }
@@ -304,12 +306,12 @@ func TestUserUseCase_UpdateUserProfile(t *testing.T) {
 	ctx := context.Background()
 
 	// Create user
-	user := authEntities.NewUser("test@example.com", "password", "Test User", authDomain.RoleStudent)
-	userRepo.Create(ctx, user)
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
 
 	// Create department and position
-	deptRepo.Create(ctx, entities.NewDepartment("IT", "IT", "", nil))
-	posRepo.Create(ctx, entities.NewPosition("Dev", "DEV", "", 1))
+	_ = deptRepo.Create(ctx, entities.NewDepartment("IT", "IT", "", nil))
+	_ = posRepo.Create(ctx, entities.NewPosition("Dev", "DEV", "", 1))
 
 	// Get IDs (from mock implementation)
 	var deptID, posID int64 = 1, 1 // Mock starts at 1
@@ -326,7 +328,6 @@ func TestUserUseCase_UpdateUserProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-
 }
 
 func TestUserUseCase_UpdateUserProfile_UserNotFound(t *testing.T) {
@@ -355,8 +356,8 @@ func TestUserUseCase_UpdateUserProfile_DepartmentNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	// Create user
-	user := authEntities.NewUser("test@example.com", "password", "Test User", authDomain.RoleStudent)
-	userRepo.Create(ctx, user)
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
 
 	// Try to update with non-existent department
 	deptID := int64(999)
@@ -378,8 +379,8 @@ func TestUserUseCase_UpdateUserProfile_PositionNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	// Create user
-	user := authEntities.NewUser("test@example.com", "password", "Test User", authDomain.RoleStudent)
-	userRepo.Create(ctx, user)
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
 
 	// Try to update with non-existent position
 	posID := int64(999)
@@ -401,9 +402,9 @@ func TestUserUseCase_UpdateUserRole(t *testing.T) {
 	ctx := context.Background()
 
 	// Create user
-	user := authEntities.NewUser("test@example.com", "password", "Test User", authDomain.RoleStudent)
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
 	user.Role = authDomain.RoleStudent
-	userRepo.Create(ctx, user)
+	_ = userRepo.Create(ctx, user)
 
 	// Update role
 	input := &dto.UpdateUserRoleInput{Role: "teacher"}
@@ -445,8 +446,8 @@ func TestUserUseCase_UpdateUserStatus(t *testing.T) {
 	ctx := context.Background()
 
 	// Create user
-	user := authEntities.NewUser("test@example.com", "password", "Test User", authDomain.RoleStudent)
-	userRepo.Create(ctx, user)
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
 
 	// Test activate
 	err := uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
@@ -507,8 +508,8 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 	ctx := context.Background()
 
 	// Create user
-	user := authEntities.NewUser("test@example.com", "password", "Test User", authDomain.RoleStudent)
-	userRepo.Create(ctx, user)
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
 
 	// Delete
 	err := uc.DeleteUser(ctx, user.ID)
@@ -548,7 +549,7 @@ func TestUserUseCase_BulkUpdateDepartment(t *testing.T) {
 	ctx := context.Background()
 
 	// Create department
-	deptRepo.Create(ctx, entities.NewDepartment("IT", "IT", "", nil))
+	_ = deptRepo.Create(ctx, entities.NewDepartment("IT", "IT", "", nil))
 
 	// Add profiles
 	profileRepo.AddProfile(&entities.UserWithOrg{ID: 1, Name: "User 1"})
@@ -635,7 +636,7 @@ func TestUserUseCase_BulkUpdatePosition(t *testing.T) {
 	ctx := context.Background()
 
 	// Create position
-	posRepo.Create(ctx, entities.NewPosition("Dev", "DEV", "", 1))
+	_ = posRepo.Create(ctx, entities.NewPosition("Dev", "DEV", "", 1))
 
 	// Add profiles
 	profileRepo.AddProfile(&entities.UserWithOrg{ID: 1, Name: "User 1"})
@@ -742,8 +743,8 @@ func TestUserUseCase_GetBaseUser(t *testing.T) {
 	ctx := context.Background()
 
 	// Create user
-	user := authEntities.NewUser("test@example.com", "password", "Test User", authDomain.RoleStudent)
-	userRepo.Create(ctx, user)
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
 
 	// Get base user
 	result, err := uc.GetBaseUser(ctx, user.ID)
@@ -751,7 +752,7 @@ func TestUserUseCase_GetBaseUser(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if result.Email != "test@example.com" {
+	if result.Email != testEmail {
 		t.Errorf("expected email 'test@example.com', got '%s'", result.Email)
 	}
 }
@@ -841,7 +842,7 @@ func TestUserWithOrg_Fields(t *testing.T) {
 
 	user := &entities.UserWithOrg{
 		ID:             1,
-		Email:          "test@example.com",
+		Email:          testEmail,
 		Name:           "Test User",
 		Role:           "teacher",
 		Status:         "active",
@@ -860,7 +861,7 @@ func TestUserWithOrg_Fields(t *testing.T) {
 		t.Errorf("expected ID 1, got %d", user.ID)
 	}
 
-	if user.Email != "test@example.com" {
+	if user.Email != testEmail {
 		t.Errorf("expected email 'test@example.com', got '%s'", user.Email)
 	}
 

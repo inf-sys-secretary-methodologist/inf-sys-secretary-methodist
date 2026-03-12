@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -90,7 +91,7 @@ func (r *ReportTypeRepositoryPG) GetByID(ctx context.Context, id int64) (*entiti
 		&reportType.OutputFormat, &reportType.IsPeriodic, &reportType.PeriodType,
 		&reportType.CreatedAt, &reportType.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -113,7 +114,7 @@ func (r *ReportTypeRepositoryPG) GetByCode(ctx context.Context, code string) (*e
 		&reportType.OutputFormat, &reportType.IsPeriodic, &reportType.PeriodType,
 		&reportType.CreatedAt, &reportType.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -441,7 +442,7 @@ func (r *ReportTypeRepositoryPG) GetDefaultTemplate(ctx context.Context, reportT
 		&template.Content, &template.IsDefault, &template.CreatedBy,
 		&template.CreatedAt, &template.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -544,7 +545,7 @@ func (r *ReportTypeRepositoryPG) GetSubscription(ctx context.Context, reportType
 		&subscription.ID, &subscription.ReportTypeID, &subscription.UserID,
 		&subscription.DeliveryMethod, &subscription.IsActive, &subscription.CreatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

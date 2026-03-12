@@ -75,7 +75,8 @@ func (h *EventHandler) Create(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	event, err := h.usecase.Create(ctx, input, userID.(int64))
+	uid, _ := userID.(int64)
+	event, err := h.usecase.Create(ctx, input, uid)
 	if err != nil {
 		resp := response.BadRequest(err.Error())
 		c.JSON(http.StatusBadRequest, resp)
@@ -140,7 +141,8 @@ func (h *EventHandler) Update(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	event, err := h.usecase.Update(ctx, id, input, userID.(int64))
+	uid, _ := userID.(int64)
+	event, err := h.usecase.Update(ctx, id, input, uid)
 	if err != nil {
 		resp := response.BadRequest(err.Error())
 		c.JSON(http.StatusBadRequest, resp)
@@ -174,7 +176,8 @@ func (h *EventHandler) Delete(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	if err := h.usecase.Delete(ctx, id, userID.(int64)); err != nil {
+	uid, _ := userID.(int64)
+	if err := h.usecase.Delete(ctx, id, uid); err != nil {
 		resp := response.BadRequest(err.Error())
 		c.JSON(http.StatusBadRequest, resp)
 		return

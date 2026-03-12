@@ -8,6 +8,7 @@ import (
 // DocumentStatus represents the status of a document in workflow
 type DocumentStatus string
 
+// DocumentStatus values.
 const (
 	DocumentStatusDraft      DocumentStatus = "draft"
 	DocumentStatusRegistered DocumentStatus = "registered"
@@ -23,6 +24,7 @@ const (
 // DocumentImportance represents the importance level of a document
 type DocumentImportance string
 
+// DocumentImportance values.
 const (
 	ImportanceLow    DocumentImportance = "low"
 	ImportanceNormal DocumentImportance = "normal"

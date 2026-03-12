@@ -84,7 +84,7 @@ func (s *WebPushServiceImpl) SendNotification(ctx context.Context, sub *entities
 		)
 		return fmt.Errorf("failed to send notification: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Check response status
 	if resp.StatusCode == http.StatusGone || resp.StatusCode == http.StatusNotFound {

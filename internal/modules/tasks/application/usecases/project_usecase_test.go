@@ -2,11 +2,14 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 )
+
+const updatedProjectName = "Updated Project"
 
 func TestProjectUseCase_Create(t *testing.T) {
 	projectRepo := NewMockProjectRepository()
@@ -68,7 +71,7 @@ func TestProjectUseCase_GetByID_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := uc.GetByID(ctx, 999)
-	if err != ErrProjectNotFound {
+	if !errors.Is(err, ErrProjectNotFound) {
 		t.Errorf("expected ErrProjectNotFound, got %v", err)
 	}
 }
@@ -84,7 +87,7 @@ func TestProjectUseCase_Update(t *testing.T) {
 	created, _ := uc.Create(ctx, 1, input)
 
 	// Update
-	newName := "Updated Project"
+	newName := updatedProjectName
 	updateInput := dto.UpdateProjectInput{Name: &newName}
 
 	updated, err := uc.Update(ctx, 1, created.ID, updateInput)
@@ -92,8 +95,8 @@ func TestProjectUseCase_Update(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if updated.Name != "Updated Project" {
-		t.Errorf("expected name 'Updated Project', got '%s'", updated.Name)
+	if updated.Name != updatedProjectName {
+		t.Errorf("expected name %q, got %q", updatedProjectName, updated.Name)
 	}
 }
 
@@ -108,9 +111,9 @@ func TestProjectUseCase_Update_Unauthorized(t *testing.T) {
 	created, _ := uc.Create(ctx, 1, input)
 
 	// Try to update by non-owner
-	newName := "Updated Project"
+	newName := updatedProjectName
 	_, err := uc.Update(ctx, 2, created.ID, dto.UpdateProjectInput{Name: &newName})
-	if err != ErrUnauthorized {
+	if !errors.Is(err, ErrUnauthorized) {
 		t.Errorf("expected ErrUnauthorized, got %v", err)
 	}
 }
@@ -133,7 +136,7 @@ func TestProjectUseCase_Delete(t *testing.T) {
 
 	// Verify deleted
 	_, err = uc.GetByID(ctx, created.ID)
-	if err != ErrProjectNotFound {
+	if !errors.Is(err, ErrProjectNotFound) {
 		t.Error("expected project to be deleted")
 	}
 }
@@ -150,7 +153,7 @@ func TestProjectUseCase_Delete_Unauthorized(t *testing.T) {
 
 	// Try to delete by non-owner
 	err := uc.Delete(ctx, 2, created.ID)
-	if err != ErrUnauthorized {
+	if !errors.Is(err, ErrUnauthorized) {
 		t.Errorf("expected ErrUnauthorized, got %v", err)
 	}
 }
@@ -232,7 +235,7 @@ func TestProjectUseCase_Cancel(t *testing.T) {
 		t.Fatalf("cancel error: %v", err)
 	}
 	if project.Status != domain.ProjectStatusCancelled {
-		t.Errorf("expected status 'cancelled', got '%s'", project.Status)
+		t.Errorf("expected status 'canceled', got '%s'", project.Status)
 	}
 }
 
@@ -247,7 +250,7 @@ func TestProjectUseCase_StatusChange_Unauthorized(t *testing.T) {
 
 	// Try to activate by non-owner
 	_, err := uc.Activate(ctx, 2, project.ID)
-	if err != ErrUnauthorized {
+	if !errors.Is(err, ErrUnauthorized) {
 		t.Errorf("expected ErrUnauthorized, got %v", err)
 	}
 }

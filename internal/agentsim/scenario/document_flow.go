@@ -10,6 +10,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/agentsim/content"
 )
 
+const roleMethodist = "methodist"
+
 func init() {
 	Register(DocumentFlowScenario())
 }
@@ -106,7 +108,7 @@ func DocumentFlowScenario() *Scenario {
 						return fmt.Errorf("order_1 not found in state")
 					}
 
-					methodistID := findAgentByRole(state, "methodist")
+					methodistID := findAgentByRole(state, roleMethodist)
 					if methodistID == 0 {
 						// Try getting users list
 						users, err := c.ListUsers(ctx, a)
@@ -114,7 +116,7 @@ func DocumentFlowScenario() *Scenario {
 							return fmt.Errorf("list users: %w", err)
 						}
 						for _, u := range users.Users {
-							if u.Role == "methodist" {
+							if u.Role == roleMethodist {
 								methodistID = u.ID
 								state.SetExtra("user_methodist", u.ID)
 								break
@@ -186,7 +188,7 @@ func DocumentFlowScenario() *Scenario {
 					// Get or create a conversation
 					convID, ok := state.GetConversation("document_flow_chat")
 					if !ok {
-						methodistID := findAgentByRole(state, "methodist")
+						methodistID := findAgentByRole(state, roleMethodist)
 						if methodistID == 0 {
 							return fmt.Errorf("methodist not found")
 						}

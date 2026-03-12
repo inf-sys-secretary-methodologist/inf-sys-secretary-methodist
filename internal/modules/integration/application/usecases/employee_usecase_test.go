@@ -48,16 +48,16 @@ func (m *MockExternalEmployeeRepository) Upsert(ctx context.Context, employee *e
 
 func (m *MockExternalEmployeeRepository) GetByID(_ context.Context, id int64) (*entities.ExternalEmployee, error) {
 	if emp, exists := m.employees[id]; exists {
-		copy := *emp
-		return &copy, nil
+		copiedEmployee := *emp
+		return &copiedEmployee, nil
 	}
 	return nil, nil
 }
 
 func (m *MockExternalEmployeeRepository) GetByExternalID(_ context.Context, externalID string) (*entities.ExternalEmployee, error) {
 	if emp, exists := m.employeesByEx[externalID]; exists {
-		copy := *emp
-		return &copy, nil
+		copiedEmployee := *emp
+		return &copiedEmployee, nil
 	}
 	return nil, nil
 }
@@ -65,8 +65,8 @@ func (m *MockExternalEmployeeRepository) GetByExternalID(_ context.Context, exte
 func (m *MockExternalEmployeeRepository) GetByCode(_ context.Context, code string) (*entities.ExternalEmployee, error) {
 	for _, emp := range m.employees {
 		if emp.Code == code {
-			copy := *emp
-			return &copy, nil
+			copiedEmp := *emp
+			return &copiedEmp, nil
 		}
 	}
 	return nil, nil
@@ -75,8 +75,8 @@ func (m *MockExternalEmployeeRepository) GetByCode(_ context.Context, code strin
 func (m *MockExternalEmployeeRepository) GetByLocalUserID(_ context.Context, localUserID int64) (*entities.ExternalEmployee, error) {
 	for _, emp := range m.employees {
 		if emp.LocalUserID != nil && *emp.LocalUserID == localUserID {
-			copy := *emp
-			return &copy, nil
+			copiedEmp := *emp
+			return &copiedEmp, nil
 		}
 	}
 	return nil, nil
@@ -211,7 +211,7 @@ func createTestEmployee(repo *MockExternalEmployeeRepository, externalID, firstN
 	emp := entities.NewExternalEmployee(externalID, "CODE-"+externalID)
 	emp.FirstName = firstName
 	emp.LastName = lastName
-	repo.Create(context.Background(), emp)
+	_ = repo.Create(context.Background(), emp)
 	return emp
 }
 
@@ -255,11 +255,11 @@ func TestEmployeeUseCase_List_WithFilter(t *testing.T) {
 	// Create employees
 	emp1 := createTestEmployee(repo, "ext1", "John", "Doe")
 	emp1.IsActive = true
-	repo.Update(ctx, emp1)
+	_ = repo.Update(ctx, emp1)
 
 	emp2 := createTestEmployee(repo, "ext2", "Jane", "Smith")
 	emp2.IsActive = false
-	repo.Update(ctx, emp2)
+	_ = repo.Update(ctx, emp2)
 
 	// Filter by active
 	isActive := true
@@ -405,7 +405,7 @@ func TestEmployeeUseCase_LinkToLocalUser_AlreadyLinked(t *testing.T) {
 
 	// Create and link employee
 	emp := createTestEmployee(repo, "ext1", "John", "Doe")
-	repo.LinkToLocalUser(ctx, emp.ID, 42)
+	_ = repo.LinkToLocalUser(ctx, emp.ID, 42)
 
 	// Try to link again
 	err := uc.LinkToLocalUser(ctx, emp.ID, 43)
@@ -422,7 +422,7 @@ func TestEmployeeUseCase_LinkToLocalUser_LocalUserAlreadyLinked(t *testing.T) {
 
 	// Create and link first employee
 	emp1 := createTestEmployee(repo, "ext1", "John", "Doe")
-	repo.LinkToLocalUser(ctx, emp1.ID, 42)
+	_ = repo.LinkToLocalUser(ctx, emp1.ID, 42)
 
 	// Create second employee
 	emp2 := createTestEmployee(repo, "ext2", "Jane", "Smith")
@@ -442,7 +442,7 @@ func TestEmployeeUseCase_Unlink(t *testing.T) {
 
 	// Create and link employee
 	emp := createTestEmployee(repo, "ext1", "John", "Doe")
-	repo.LinkToLocalUser(ctx, emp.ID, 42)
+	_ = repo.LinkToLocalUser(ctx, emp.ID, 42)
 
 	// Unlink
 	err := uc.Unlink(ctx, emp.ID)
@@ -498,7 +498,7 @@ func TestEmployeeUseCase_GetUnlinked(t *testing.T) {
 	createTestEmployee(repo, "ext3", "Bob", "Johnson")
 
 	// Link first employee
-	repo.LinkToLocalUser(ctx, emp1.ID, 42)
+	_ = repo.LinkToLocalUser(ctx, emp1.ID, 42)
 
 	// Get unlinked
 	result, err := uc.GetUnlinked(ctx, 10, 0)

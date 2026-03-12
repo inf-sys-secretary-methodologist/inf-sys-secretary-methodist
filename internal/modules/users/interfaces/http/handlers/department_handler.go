@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -148,7 +149,8 @@ func (h *DepartmentHandler) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
 	if err := h.usecase.DeleteDepartment(ctx, id); err != nil {
 		// Check for specific error type
-		if _, ok := err.(*usecases.DepartmentHasChildrenError); ok {
+		var deptErr *usecases.DepartmentHasChildrenError
+		if errors.As(err, &deptErr) {
 			resp := response.BadRequest("Подразделение имеет дочерние подразделения и не может быть удалено")
 			c.JSON(http.StatusBadRequest, resp)
 			return

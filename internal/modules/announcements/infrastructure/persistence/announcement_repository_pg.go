@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -82,7 +83,7 @@ func (r *AnnouncementRepositoryPG) GetByID(ctx context.Context, id int64) (*enti
 		&announcement.ViewCount, &tags, &announcement.Metadata,
 		&announcement.CreatedAt, &announcement.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -271,7 +272,7 @@ func (r *AnnouncementRepositoryPG) GetAttachmentByID(ctx context.Context, attach
 		&att.ID, &att.AnnouncementID, &att.FileName, &att.FilePath,
 		&att.FileSize, &att.MimeType, &att.UploadedBy, &att.CreatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

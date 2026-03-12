@@ -34,7 +34,7 @@ type UpdateEventInput struct {
 	Title       *string    `json:"title,omitempty" validate:"omitempty,min=1,max=500"`
 	Description *string    `json:"description,omitempty" validate:"omitempty,max=5000"`
 	EventType   *string    `json:"event_type,omitempty" validate:"omitempty,oneof=meeting deadline task reminder holiday personal"`
-	Status      *string    `json:"status,omitempty" validate:"omitempty,oneof=scheduled ongoing completed cancelled postponed"`
+	Status      *string    `json:"status,omitempty" validate:"omitempty,oneof=scheduled ongoing completed canceled postponed"`
 	StartTime   *time.Time `json:"start_time,omitempty"`
 	EndTime     *time.Time `json:"end_time,omitempty"`
 	AllDay      *bool      `json:"all_day,omitempty"`

@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
@@ -58,7 +59,7 @@ func (r *TelegramRepositoryPG) GetVerificationCodeByCode(ctx context.Context, co
 		&verificationCode.CreatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -87,7 +88,7 @@ func (r *TelegramRepositoryPG) GetActiveVerificationCodeByUserID(ctx context.Con
 		&verificationCode.CreatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -172,7 +173,7 @@ func (r *TelegramRepositoryPG) GetConnectionByUserID(ctx context.Context, userID
 		&conn.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -205,7 +206,7 @@ func (r *TelegramRepositoryPG) GetConnectionByChatID(ctx context.Context, chatID
 		&conn.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -229,7 +230,7 @@ func (r *TelegramRepositoryPG) GetActiveConnections(ctx context.Context) ([]enti
 	if err != nil {
 		return nil, fmt.Errorf("failed to get active connections: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var connections []entities.TelegramConnection
 	for rows.Next() {

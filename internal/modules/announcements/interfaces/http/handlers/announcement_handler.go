@@ -31,7 +31,12 @@ func (h *AnnouncementHandler) getUserID(c *gin.Context) (int64, bool) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
 		return 0, false
 	}
-	return userID.(int64), true
+	id, ok := userID.(int64)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user ID type"})
+		return 0, false
+	}
+	return id, true
 }
 
 // isAdmin checks if the user is an admin.
@@ -40,7 +45,11 @@ func (h *AnnouncementHandler) isAdmin(c *gin.Context) bool {
 	if !exists {
 		return false
 	}
-	return role.(string) == "admin"
+	roleStr, ok := role.(string)
+	if !ok {
+		return false
+	}
+	return roleStr == "admin"
 }
 
 // getIDParam extracts ID parameter from URL.

@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -42,7 +43,7 @@ func (h *FileHandler) Upload(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Получаем user_id из контекста (должен быть установлен middleware авторизации)
 	userIDVal, exists := c.Get("user_id")
@@ -51,7 +52,7 @@ func (h *FileHandler) Upload(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, resp)
 		return
 	}
-	userID := userIDVal.(int64)
+	userID, _ := userIDVal.(int64)
 
 	input := &dto.UploadFileInput{
 		OriginalName: header.Filename,
@@ -68,7 +69,8 @@ func (h *FileHandler) Upload(c *gin.Context) {
 	ctx := c.Request.Context()
 	result, err := h.fileUseCase.UploadFile(ctx, file, input)
 	if err != nil {
-		if validErr, ok := err.(*usecases.ValidationError); ok {
+		var validErr *usecases.ValidationError
+		if errors.As(err, &validErr) {
 			resp := response.BadRequest(validErr.Message)
 			c.JSON(http.StatusBadRequest, resp)
 			return
@@ -140,7 +142,8 @@ func (h *FileHandler) Attach(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	if err := h.fileUseCase.AttachFile(ctx, &input); err != nil {
-		if validErr, ok := err.(*usecases.ValidationError); ok {
+		var validErr *usecases.ValidationError
+		if errors.As(err, &validErr) {
 			resp := response.BadRequest(validErr.Message)
 			c.JSON(http.StatusBadRequest, resp)
 			return
@@ -169,11 +172,12 @@ func (h *FileHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, resp)
 		return
 	}
-	userID := userIDVal.(int64)
+	userID, _ := userIDVal.(int64)
 
 	ctx := c.Request.Context()
 	if err := h.fileUseCase.DeleteFile(ctx, id, userID); err != nil {
-		if permErr, ok := err.(*usecases.PermissionError); ok {
+		var permErr *usecases.PermissionError
+		if errors.As(err, &permErr) {
 			resp := response.Forbidden(permErr.Message)
 			c.JSON(http.StatusForbidden, resp)
 			return
@@ -278,7 +282,7 @@ func (h *FileHandler) CreateVersion(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Получаем user_id из контекста
 	userIDVal, exists := c.Get("user_id")
@@ -287,7 +291,7 @@ func (h *FileHandler) CreateVersion(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, resp)
 		return
 	}
-	userID := userIDVal.(int64)
+	userID, _ := userIDVal.(int64)
 
 	comment := c.PostForm("comment")
 
@@ -300,7 +304,8 @@ func (h *FileHandler) CreateVersion(c *gin.Context) {
 	ctx := c.Request.Context()
 	result, err := h.versionUseCase.CreateVersion(ctx, file, header.Size, input)
 	if err != nil {
-		if validErr, ok := err.(*usecases.ValidationError); ok {
+		var validErr *usecases.ValidationError
+		if errors.As(err, &validErr) {
 			resp := response.BadRequest(validErr.Message)
 			c.JSON(http.StatusBadRequest, resp)
 			return

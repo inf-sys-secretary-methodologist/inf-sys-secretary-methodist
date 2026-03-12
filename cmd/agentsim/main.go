@@ -56,11 +56,12 @@ func main() {
 
 	// Create content generator
 	var gen content.Generator
-	if cfg.NoLLM {
+	switch {
+	case cfg.NoLLM:
 		gen = content.NewTemplateGenerator()
-	} else if cfg.LLMAPIKey != "" {
+	case cfg.LLMAPIKey != "":
 		gen = content.NewLLMGenerator(cfg.LLMProvider, cfg.LLMModel, cfg.LLMAPIKey)
-	} else {
+	default:
 		logger.Info("no LLM API key provided, falling back to template generator")
 		gen = content.NewTemplateGenerator()
 	}

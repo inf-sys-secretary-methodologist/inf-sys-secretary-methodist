@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -103,7 +104,7 @@ func (r *ReportRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.R
 		&report.ReviewedBy, &report.ReviewedAt, &report.PublishedAt,
 		&report.IsPublic, &report.CreatedAt, &report.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

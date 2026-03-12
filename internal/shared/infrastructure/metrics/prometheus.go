@@ -119,8 +119,8 @@ func PrometheusMiddleware() gin.HandlerFunc {
 	}
 }
 
-// MetricsHandler returns the Prometheus metrics handler for Gin
-func MetricsHandler() gin.HandlerFunc {
+// Handler returns the Prometheus metrics handler for Gin
+func Handler() gin.HandlerFunc {
 	h := promhttp.Handler()
 	return func(c *gin.Context) {
 		h.ServeHTTP(c.Writer, c.Request)

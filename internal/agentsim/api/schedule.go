@@ -7,6 +7,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/agentsim/agent"
 )
 
+// Event represents a schedule event.
 type Event struct {
 	ID            int64  `json:"id"`
 	Title         string `json:"title"`
@@ -20,11 +21,13 @@ type Event struct {
 	OrganizerName string `json:"organizer_name"`
 }
 
+// EventList represents a paginated list of events.
 type EventList struct {
 	Events []Event `json:"events"`
 	Total  int     `json:"total"`
 }
 
+// CreateEventRequest represents a request to create a new event.
 type CreateEventRequest struct {
 	Title          string  `json:"title"`
 	Description    string  `json:"description,omitempty"`

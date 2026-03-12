@@ -70,7 +70,8 @@ func (h *AvatarHandler) Upload(c *gin.Context) {
 
 	// For now, users can only update their own avatar
 	// Admin check can be added later
-	if currentUserID.(int64) != userID {
+	currentUID, _ := currentUserID.(int64)
+	if currentUID != userID {
 		userRole, _ := c.Get("user_role")
 		if userRole != "system_admin" {
 			resp := response.Forbidden("Нет прав для изменения аватара другого пользователя")
@@ -86,7 +87,7 @@ func (h *AvatarHandler) Upload(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Validate file size
 	if header.Size > MaxAvatarSize {

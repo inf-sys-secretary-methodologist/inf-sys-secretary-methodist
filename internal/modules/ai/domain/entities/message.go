@@ -6,6 +6,7 @@ import "time"
 // MessageRole represents the role of a message sender
 type MessageRole string
 
+// MessageRole constants define the possible roles in a conversation.
 const (
 	MessageRoleUser      MessageRole = "user"
 	MessageRoleAssistant MessageRole = "assistant"

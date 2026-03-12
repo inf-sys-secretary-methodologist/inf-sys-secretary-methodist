@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const invalidID = "invalid"
+
 // mockAuthMiddleware creates a middleware that sets user_id for testing
 func mockAuthMiddleware(userID int64, role string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -104,7 +106,7 @@ func TestGetUserByID(t *testing.T) {
 		},
 		{
 			name:           "invalid id",
-			userID:         "invalid",
+			userID:         invalidID,
 			expectedStatus: http.StatusBadRequest,
 		},
 	}
@@ -116,7 +118,7 @@ func TestGetUserByID(t *testing.T) {
 
 			router.GET("/users/:id", func(c *gin.Context) {
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -174,7 +176,7 @@ func TestUpdateUserProfile(t *testing.T) {
 		},
 		{
 			name:           "invalid id",
-			userID:         "invalid",
+			userID:         invalidID,
 			payload:        map[string]any{},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -187,7 +189,7 @@ func TestUpdateUserProfile(t *testing.T) {
 
 			router.PUT("/users/:id/profile", func(c *gin.Context) {
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -328,7 +330,7 @@ func TestUpdateUserStatus(t *testing.T) {
 		},
 		{
 			name:           "invalid id",
-			userID:         "invalid",
+			userID:         invalidID,
 			payload:        map[string]any{},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -341,7 +343,7 @@ func TestUpdateUserStatus(t *testing.T) {
 
 			router.PUT("/users/:id/status", func(c *gin.Context) {
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -390,7 +392,7 @@ func TestDeleteUser(t *testing.T) {
 		},
 		{
 			name:           "invalid id",
-			userID:         "invalid",
+			userID:         invalidID,
 			expectedStatus: http.StatusBadRequest,
 		},
 	}
@@ -402,7 +404,7 @@ func TestDeleteUser(t *testing.T) {
 
 			router.DELETE("/users/:id", func(c *gin.Context) {
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}

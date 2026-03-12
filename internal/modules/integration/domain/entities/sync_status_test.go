@@ -12,7 +12,7 @@ func TestSyncStatusConstants(t *testing.T) {
 		{"in_progress", SyncStatusInProgress, "in_progress"},
 		{"completed", SyncStatusCompleted, "completed"},
 		{"failed", SyncStatusFailed, "failed"},
-		{"cancelled", SyncStatusCancelled, "cancelled"},
+		{"canceled", SyncStatusCancelled, "canceled"},
 	}
 
 	for _, tt := range tests {

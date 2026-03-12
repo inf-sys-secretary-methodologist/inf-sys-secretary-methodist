@@ -53,15 +53,15 @@ func NewClient(config *Config) *Client {
 	}
 }
 
-// ODataResponse represents a generic OData response
-type ODataResponse[T any] struct {
+// Response represents a generic OData response
+type Response[T any] struct {
 	Metadata string `json:"odata.metadata"`
 	Value    []T    `json:"value"`
 	NextLink string `json:"odata.nextLink,omitempty"`
 }
 
-// ODataError represents an OData error response
-type ODataError struct {
+// Error represents an OData error response
+type Error struct {
 	Error struct {
 		Code    string `json:"code"`
 		Message struct {
@@ -135,19 +135,19 @@ func (c *Client) doRequest(ctx context.Context, method, url string, body io.Read
 }
 
 // parseResponse parses the OData response
-func parseResponse[T any](resp *http.Response) (*ODataResponse[T], error) {
-	defer resp.Body.Close()
+func parseResponse[T any](resp *http.Response) (*Response[T], error) {
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		var odataErr ODataError
+		var odataErr Error
 		if json.Unmarshal(body, &odataErr) == nil && odataErr.Error.Message.Value != "" {
 			return nil, fmt.Errorf("odata error: %s - %s", odataErr.Error.Code, odataErr.Error.Message.Value)
 		}
 		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
-	var result ODataResponse[T]
+	var result Response[T]
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
@@ -177,6 +177,7 @@ func (c *Client) GetEmployees(ctx context.Context, filter string, top, skip int)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to fetch employees: %w", err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	result, err := parseResponse[entities.ODataEmployee](resp)
 	if err != nil {
@@ -223,7 +224,7 @@ func (c *Client) GetEmployeeByID(ctx context.Context, refKey string) (*entities.
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch employee: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil
@@ -264,6 +265,7 @@ func (c *Client) GetStudents(ctx context.Context, filter string, top, skip int) 
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to fetch students: %w", err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	result, err := parseResponse[entities.ODataStudent](resp)
 	if err != nil {
@@ -310,7 +312,7 @@ func (c *Client) GetStudentByID(ctx context.Context, refKey string) (*entities.O
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch student: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil
@@ -344,7 +346,7 @@ func (c *Client) GetMetadata(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch metadata: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -362,7 +364,7 @@ func (c *Client) Ping(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("1C server is not reachable: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	return nil
 }

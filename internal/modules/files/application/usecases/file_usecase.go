@@ -170,13 +170,14 @@ func (uc *FileUseCase) AttachFile(ctx context.Context, input *dto.AttachFileInpu
 	}
 
 	// Прикрепляем к соответствующей сущности
-	if input.DocumentID != nil {
+	switch {
+	case input.DocumentID != nil:
 		file.AttachToDocument(*input.DocumentID)
-	} else if input.TaskID != nil {
+	case input.TaskID != nil:
 		file.AttachToTask(*input.TaskID)
-	} else if input.AnnouncementID != nil {
+	case input.AnnouncementID != nil:
 		file.AttachToAnnouncement(*input.AnnouncementID)
-	} else {
+	default:
 		return &ValidationError{Message: "необходимо указать document_id, task_id или announcement_id"}
 	}
 

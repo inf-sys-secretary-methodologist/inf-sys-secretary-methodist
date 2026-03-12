@@ -106,6 +106,7 @@ func (uc *EventUseCase) Create(ctx context.Context, input dto.CreateEventInput, 
 		// Create default reminders
 		if err := uc.reminderRepo.CreateDefault(ctx, event.ID, organizerID); err != nil {
 			// Non-critical error, log but continue
+			_ = err
 		}
 	}
 
@@ -415,7 +416,7 @@ func (uc *EventUseCase) Cancel(ctx context.Context, id int64, userID int64) (*dt
 	}
 
 	// Log audit event
-	uc.logAudit(ctx, "event_cancelled", "event", map[string]interface{}{
+	uc.logAudit(ctx, "event_canceled", "event", map[string]interface{}{
 		"event_id": id,
 		"user_id":  userID,
 		"title":    event.Title,

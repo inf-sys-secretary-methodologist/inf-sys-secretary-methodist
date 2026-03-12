@@ -17,6 +17,8 @@ import (
 	notifHttp "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/interfaces/http"
 )
 
+const invalidValue = "invalid"
+
 // MockWebPushRepository is a mock implementation of WebPushRepository
 type MockWebPushRepository struct {
 	mock.Mock
@@ -429,7 +431,7 @@ func TestDeleteSubscription(t *testing.T) {
 		{
 			name:           "invalid id",
 			authenticated:  true,
-			subscriptionID: "invalid",
+			subscriptionID: invalidValue,
 			userID:         1,
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -457,7 +459,7 @@ func TestDeleteSubscription(t *testing.T) {
 			mockRepo := new(MockWebPushRepository)
 			mockService := new(MockWebPushService)
 
-			if tt.authenticated && tt.subscriptionID != "invalid" {
+			if tt.authenticated && tt.subscriptionID != invalidValue {
 				mockRepo.On("GetByID", mock.Anything, mock.Anything).Return(tt.subscription, nil)
 				if tt.subscription != nil && tt.subscription.UserID == tt.userID {
 					mockRepo.On("Delete", mock.Anything, mock.Anything).Return(nil)

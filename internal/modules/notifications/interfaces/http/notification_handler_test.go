@@ -119,7 +119,7 @@ func TestGetNotificationByID(t *testing.T) {
 		},
 		{
 			name:           "invalid id",
-			notificationID: "invalid",
+			notificationID: invalidValue,
 			expectedStatus: http.StatusBadRequest,
 		},
 	}
@@ -131,7 +131,7 @@ func TestGetNotificationByID(t *testing.T) {
 
 			router.GET("/notifications/:id", func(c *gin.Context) {
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidValue {
 					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid notification ID"})
 					return
 				}
@@ -174,7 +174,7 @@ func TestMarkAsRead(t *testing.T) {
 		},
 		{
 			name:           "invalid id",
-			notificationID: "invalid",
+			notificationID: invalidValue,
 			expectedStatus: http.StatusBadRequest,
 		},
 	}
@@ -186,7 +186,7 @@ func TestMarkAsRead(t *testing.T) {
 
 			router.PUT("/notifications/:id/read", func(c *gin.Context) {
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidValue {
 					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid notification ID"})
 					return
 				}
@@ -267,7 +267,7 @@ func TestDeleteNotification(t *testing.T) {
 		},
 		{
 			name:           "invalid id",
-			notificationID: "invalid",
+			notificationID: invalidValue,
 			expectedStatus: http.StatusBadRequest,
 		},
 	}
@@ -279,7 +279,7 @@ func TestDeleteNotification(t *testing.T) {
 
 			router.DELETE("/notifications/:id", func(c *gin.Context) {
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidValue {
 					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid notification ID"})
 					return
 				}

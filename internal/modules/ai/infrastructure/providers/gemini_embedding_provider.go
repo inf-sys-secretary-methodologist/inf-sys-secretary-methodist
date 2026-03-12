@@ -49,12 +49,6 @@ func NewGeminiEmbeddingProvider(config GeminiEmbeddingConfig) *GeminiEmbeddingPr
 
 // --- Request/Response types for Gemini Embedding API ---
 
-type geminiEmbedContentRequest struct {
-	Content              geminiContent `json:"content"`
-	TaskType             string        `json:"taskType,omitempty"`
-	OutputDimensionality int           `json:"outputDimensionality,omitempty"`
-}
-
 type geminiBatchEmbedRequest struct {
 	Requests []geminiBatchEmbedEntry `json:"requests"`
 }
@@ -72,11 +66,6 @@ type geminiContent struct {
 
 type geminiPart struct {
 	Text string `json:"text"`
-}
-
-type geminiEmbedContentResponse struct {
-	Embedding geminiEmbeddingValues `json:"embedding"`
-	Error     *geminiAPIError       `json:"error,omitempty"`
 }
 
 type geminiBatchEmbedResponse struct {
@@ -194,7 +183,7 @@ func (p *GeminiEmbeddingProvider) generateBatchEmbeddingsMulti(ctx context.Conte
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -206,9 +195,9 @@ func (p *GeminiEmbeddingProvider) generateBatchEmbeddingsMulti(ctx context.Conte
 			Error geminiAPIError `json:"error"`
 		}
 		if err := json.Unmarshal(respBody, &errResp); err == nil && errResp.Error.Message != "" {
-			return nil, fmt.Errorf("Gemini Embedding API error (%s): %s", errResp.Error.Status, errResp.Error.Message)
+			return nil, fmt.Errorf("gemini embedding API error (%s): %s", errResp.Error.Status, errResp.Error.Message)
 		}
-		return nil, fmt.Errorf("Gemini Embedding API returned status %d: %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("gemini embedding API returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	var batchResp geminiBatchEmbedResponse

@@ -6,6 +6,7 @@ import "time"
 // AttendanceStatus represents the status of attendance
 type AttendanceStatus string
 
+// AttendanceStatus values.
 const (
 	AttendanceStatusPresent AttendanceStatus = "present"
 	AttendanceStatusAbsent  AttendanceStatus = "absent"
@@ -16,6 +17,7 @@ const (
 // LessonType represents the type of lesson
 type LessonType string
 
+// LessonType values.
 const (
 	LessonTypeLecture  LessonType = "lecture"
 	LessonTypePractice LessonType = "practice"
@@ -52,6 +54,7 @@ type AttendanceRecord struct {
 // GradeType represents the type of grade
 type GradeType string
 
+// GradeType values.
 const (
 	GradeTypeCurrent  GradeType = "current"
 	GradeTypeMidterm  GradeType = "midterm"

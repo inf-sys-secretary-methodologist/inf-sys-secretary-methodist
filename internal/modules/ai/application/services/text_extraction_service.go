@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -69,7 +70,7 @@ func (s *TextExtractionService) extractDocx(data []byte) (string, error) {
 			if err != nil {
 				return "", fmt.Errorf("failed to open word/document.xml: %w", err)
 			}
-			defer rc.Close()
+			defer func() { _ = rc.Close() }()
 
 			content, err := io.ReadAll(rc)
 			if err != nil {
@@ -94,7 +95,7 @@ func parseDocxXML(data []byte) (string, error) {
 
 	for {
 		tok, err := decoder.Token()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

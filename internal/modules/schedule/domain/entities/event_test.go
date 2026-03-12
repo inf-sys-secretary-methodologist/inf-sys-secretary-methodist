@@ -164,7 +164,7 @@ func TestEvent_IsActive(t *testing.T) {
 		{"scheduled is active", EventStatusScheduled, true},
 		{"ongoing is active", EventStatusOngoing, true},
 		{"completed is not active", EventStatusCompleted, false},
-		{"cancelled is not active", EventStatusCancelled, false},
+		{"canceled is not active", EventStatusCancelled, false},
 		{"postponed is not active", EventStatusPostponed, false},
 	}
 
@@ -299,7 +299,7 @@ func TestEventStatusConstants(t *testing.T) {
 		{"scheduled", EventStatusScheduled, "scheduled"},
 		{"ongoing", EventStatusOngoing, "ongoing"},
 		{"completed", EventStatusCompleted, "completed"},
-		{"cancelled", EventStatusCancelled, "cancelled"},
+		{"canceled", EventStatusCancelled, "canceled"},
 		{"postponed", EventStatusPostponed, "postponed"},
 	}
 

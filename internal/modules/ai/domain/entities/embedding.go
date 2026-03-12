@@ -28,6 +28,7 @@ func NewEmbedding(chunkID int64, embedding []float32, model string) *Embedding {
 // IndexStatus represents the indexing status of a document
 type IndexStatus string
 
+// IndexStatus constants define the possible states of document indexing.
 const (
 	IndexStatusPending  IndexStatus = "pending"
 	IndexStatusIndexing IndexStatus = "indexing"

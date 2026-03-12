@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -263,7 +264,7 @@ func (r *ExternalEmployeeRepositoryPg) GetByID(ctx context.Context, id int64) (*
 	query := fmt.Sprintf(`SELECT %s FROM external_employees WHERE id = $1`, employeeSelectFields)
 	emp, err := scanEmployeeRow(r.db.QueryRowContext(ctx, query, id))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get external employee: %w", err)
@@ -277,7 +278,7 @@ func (r *ExternalEmployeeRepositoryPg) GetByExternalID(ctx context.Context, exte
 	query := fmt.Sprintf(`SELECT %s FROM external_employees WHERE external_id = $1`, employeeSelectFields)
 	emp, err := scanEmployeeRow(r.db.QueryRowContext(ctx, query, externalID))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get external employee by external ID: %w", err)
@@ -291,7 +292,7 @@ func (r *ExternalEmployeeRepositoryPg) GetByCode(ctx context.Context, code strin
 	query := fmt.Sprintf(`SELECT %s FROM external_employees WHERE code = $1`, employeeSelectFields)
 	emp, err := scanEmployeeRow(r.db.QueryRowContext(ctx, query, code))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get external employee by code: %w", err)
@@ -305,7 +306,7 @@ func (r *ExternalEmployeeRepositoryPg) GetByLocalUserID(ctx context.Context, loc
 	query := fmt.Sprintf(`SELECT %s FROM external_employees WHERE local_user_id = $1`, employeeSelectFields)
 	emp, err := scanEmployeeRow(r.db.QueryRowContext(ctx, query, localUserID))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get external employee by local user ID: %w", err)
@@ -380,7 +381,7 @@ func (r *ExternalEmployeeRepositoryPg) List(ctx context.Context, filter entities
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list external employees: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	employees, err := scanEmployeeRows(rows)
 	if err != nil {
@@ -454,7 +455,7 @@ func (r *ExternalEmployeeRepositoryPg) GetAllExternalIDs(ctx context.Context) ([
 	if err != nil {
 		return nil, fmt.Errorf("failed to get external IDs: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var ids []string
 	for rows.Next() {
@@ -478,7 +479,7 @@ func (r *ExternalEmployeeRepositoryPg) BulkUpsert(ctx context.Context, employees
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	for _, emp := range employees {
 		var rawData []byte

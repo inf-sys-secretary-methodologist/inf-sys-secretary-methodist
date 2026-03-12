@@ -116,7 +116,7 @@ func (p *WebPushPayload) AddAction(action, title string) *WebPushPayload {
 	return p
 }
 
-// FromNotification creates a WebPushPayload from a Notification entity
+// WebPushPayloadFromNotification creates a WebPushPayload from a Notification entity.
 func WebPushPayloadFromNotification(notification *Notification) *WebPushPayload {
 	payload := NewWebPushPayload(notification.Title, notification.Message)
 

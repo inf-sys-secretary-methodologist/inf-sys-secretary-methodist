@@ -493,7 +493,7 @@ func (h *CustomReportHandler) GetAvailableFields(c *gin.Context) {
 		"tasks": {
 			{ID: "task_id", Name: "id", Label: "ID", Type: "number", Source: "tasks"},
 			{ID: "task_title", Name: "title", Label: "Title", Type: "string", Source: "tasks"},
-			{ID: "task_status", Name: "status", Label: "Status", Type: "enum", Source: "tasks", EnumValues: []string{"pending", "in_progress", "completed", "cancelled"}},
+			{ID: "task_status", Name: "status", Label: "Status", Type: "enum", Source: "tasks", EnumValues: []string{"pending", "in_progress", "completed", "canceled"}},
 			{ID: "task_priority", Name: "priority", Label: "Priority", Type: "enum", Source: "tasks", EnumValues: []string{"low", "medium", "high", "urgent"}},
 			{ID: "task_due", Name: "due_date", Label: "Due Date", Type: "date", Source: "tasks"},
 			{ID: "task_assignee", Name: "assignee", Label: "Assignee", Type: "string", Source: "tasks"},

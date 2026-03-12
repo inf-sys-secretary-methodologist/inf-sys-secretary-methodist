@@ -8,6 +8,7 @@ import (
 // NotificationType represents the type of notification
 type NotificationType string
 
+// NotificationType values.
 const (
 	NotificationTypeInfo     NotificationType = "info"
 	NotificationTypeSuccess  NotificationType = "success"
@@ -23,6 +24,7 @@ const (
 // NotificationChannel represents the delivery channel
 type NotificationChannel string
 
+// NotificationChannel values.
 const (
 	ChannelInApp    NotificationChannel = "in_app"
 	ChannelEmail    NotificationChannel = "email"
@@ -34,6 +36,7 @@ const (
 // NotificationPriority represents the priority level
 type NotificationPriority string
 
+// NotificationPriority values.
 const (
 	PriorityLow    NotificationPriority = "low"
 	PriorityNormal NotificationPriority = "normal"

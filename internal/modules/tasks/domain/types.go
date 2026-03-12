@@ -4,13 +4,14 @@ package domain
 // TaskStatus represents the status of a task.
 type TaskStatus string
 
+// TaskStatus values.
 const (
 	TaskStatusNew        TaskStatus = "new"
 	TaskStatusAssigned   TaskStatus = "assigned"
 	TaskStatusInProgress TaskStatus = "in_progress"
 	TaskStatusReview     TaskStatus = "review"
 	TaskStatusCompleted  TaskStatus = "completed"
-	TaskStatusCancelled  TaskStatus = "cancelled"
+	TaskStatusCancelled  TaskStatus = "canceled"
 	TaskStatusDeferred   TaskStatus = "deferred"
 )
 
@@ -27,6 +28,7 @@ func (s TaskStatus) IsValid() bool {
 // TaskPriority represents the priority level of a task.
 type TaskPriority string
 
+// TaskPriority values.
 const (
 	TaskPriorityLow    TaskPriority = "low"
 	TaskPriorityNormal TaskPriority = "normal"
@@ -46,12 +48,13 @@ func (p TaskPriority) IsValid() bool {
 // ProjectStatus represents the status of a project.
 type ProjectStatus string
 
+// ProjectStatus values.
 const (
 	ProjectStatusPlanning  ProjectStatus = "planning"
 	ProjectStatusActive    ProjectStatus = "active"
 	ProjectStatusOnHold    ProjectStatus = "on_hold"
 	ProjectStatusCompleted ProjectStatus = "completed"
-	ProjectStatusCancelled ProjectStatus = "cancelled"
+	ProjectStatusCancelled ProjectStatus = "canceled"
 )
 
 // IsValid checks if the project status is valid.
@@ -67,6 +70,7 @@ func (s ProjectStatus) IsValid() bool {
 // DependencyType represents the type of dependency between tasks.
 type DependencyType string
 
+// DependencyType values.
 const (
 	DependencyTypeFinishToStart  DependencyType = "finish_to_start"
 	DependencyTypeStartToStart   DependencyType = "start_to_start"

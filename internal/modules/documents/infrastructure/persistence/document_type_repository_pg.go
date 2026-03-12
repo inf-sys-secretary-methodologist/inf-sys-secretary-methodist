@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
@@ -32,7 +33,7 @@ func (r *DocumentTypeRepositoryPG) GetAll(ctx context.Context) ([]*entities.Docu
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document types: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var types []*entities.DocumentType
 	for rows.Next() {
@@ -73,7 +74,7 @@ func (r *DocumentTypeRepositoryPG) GetByID(ctx context.Context, id int64) (*enti
 		&t.RequiresApproval, &t.RequiresRegistration, &t.NumberingPattern,
 		&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("document type not found")
 	}
 	if err != nil {
@@ -103,7 +104,7 @@ func (r *DocumentTypeRepositoryPG) GetByCode(ctx context.Context, code string) (
 		&t.RequiresApproval, &t.RequiresRegistration, &t.NumberingPattern,
 		&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("document type not found")
 	}
 	if err != nil {
@@ -195,7 +196,7 @@ func (r *DocumentTypeRepositoryPG) GetAllWithTemplates(ctx context.Context) ([]e
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document types with templates: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var types []entities.DocumentType
 	for rows.Next() {
@@ -240,7 +241,7 @@ func (r *DocumentCategoryRepositoryPG) GetAll(ctx context.Context) ([]*entities.
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document categories: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var categories []*entities.DocumentCategory
 	for rows.Next() {
@@ -264,7 +265,7 @@ func (r *DocumentCategoryRepositoryPG) GetByID(ctx context.Context, id int64) (*
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&c.ID, &c.Name, &c.Description, &c.ParentID, &c.CreatedAt, &c.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("document category not found")
 	}
 	if err != nil {
@@ -293,7 +294,7 @@ func (r *DocumentCategoryRepositoryPG) GetByParentID(ctx context.Context, parent
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document categories: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var categories []*entities.DocumentCategory
 	for rows.Next() {
@@ -332,7 +333,7 @@ func (r *DocumentCategoryRepositoryPG) Update(ctx context.Context, category *ent
 
 	err := r.db.QueryRowContext(ctx, query, category.Name, category.Description, category.ParentID, category.ID).
 		Scan(&category.UpdatedAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("document category not found")
 	}
 	if err != nil {
@@ -383,7 +384,7 @@ func (r *DocumentCategoryRepositoryPG) GetTree(ctx context.Context) ([]*entities
 	if err != nil {
 		return nil, fmt.Errorf("failed to get categories: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Build map of all categories
 	categoryMap := make(map[int64]*entities.CategoryTreeNode)
@@ -430,7 +431,7 @@ func (r *DocumentCategoryRepositoryPG) GetChildren(ctx context.Context, parentID
 	if err != nil {
 		return nil, fmt.Errorf("failed to get children: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var categories []*entities.DocumentCategory
 	for rows.Next() {
@@ -465,7 +466,7 @@ func (r *DocumentCategoryRepositoryPG) GetAncestors(ctx context.Context, id int6
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ancestors: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var ancestors []*entities.DocumentCategory
 	for rows.Next() {

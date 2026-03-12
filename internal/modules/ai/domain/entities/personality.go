@@ -6,6 +6,7 @@ import "time"
 // MoodState represents the emotional state of the Metodych character
 type MoodState string
 
+// MoodState constants define the possible emotional states.
 const (
 	MoodHappy     MoodState = "happy"
 	MoodContent   MoodState = "content"

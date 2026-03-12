@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -26,7 +27,7 @@ func (r *ConversationRepositoryPG) Create(ctx context.Context, conversation *ent
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Insert conversation
 	query := `
@@ -90,7 +91,7 @@ func (r *ConversationRepositoryPG) GetByID(ctx context.Context, id int64) (*enti
 		&conv.CreatedAt,
 		&conv.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, entities.ErrConversationNotFound
 	}
 	if err != nil {
@@ -125,7 +126,7 @@ func (r *ConversationRepositoryPG) GetDirectConversation(ctx context.Context, us
 
 	var convID int64
 	err := r.db.QueryRowContext(ctx, query, userID1, userID2).Scan(&convID)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -196,7 +197,7 @@ func (r *ConversationRepositoryPG) List(ctx context.Context, filter entities.Con
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list conversations: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var conversations []*entities.Conversation
 	for rows.Next() {
@@ -377,7 +378,7 @@ func (r *ConversationRepositoryPG) GetParticipants(ctx context.Context, conversa
 	if err != nil {
 		return nil, fmt.Errorf("failed to get participants: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var participants []entities.Participant
 	for rows.Next() {
@@ -410,7 +411,7 @@ func (r *ConversationRepositoryPG) GetParticipant(ctx context.Context, conversat
 		&p.ID, &p.ConversationID, &p.UserID, &p.Role, &p.LastReadAt, &p.IsMuted, &p.JoinedAt, &p.LeftAt,
 		&p.UserName, &p.UserAvatarURL,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, entities.ErrNotParticipant
 	}
 	if err != nil {

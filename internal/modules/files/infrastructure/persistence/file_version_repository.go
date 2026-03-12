@@ -196,7 +196,7 @@ func (r *FileVersionRepositoryPG) queryVersions(ctx context.Context, query strin
 	if err != nil {
 		return nil, database.MapPostgresError(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	versions := []*entities.FileVersion{}
 	for rows.Next() {

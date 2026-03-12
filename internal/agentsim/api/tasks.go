@@ -7,6 +7,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/agentsim/agent"
 )
 
+// Task represents a task resource.
 type Task struct {
 	ID          int64  `json:"id"`
 	Title       string `json:"title"`
@@ -19,11 +20,13 @@ type Task struct {
 	Progress    int    `json:"progress"`
 }
 
+// TaskList represents a paginated list of tasks.
 type TaskList struct {
 	Tasks []Task `json:"tasks"`
 	Total int    `json:"total"`
 }
 
+// TaskComment represents a comment on a task.
 type TaskComment struct {
 	ID       int64  `json:"id"`
 	TaskID   int64  `json:"task_id"`
@@ -31,6 +34,7 @@ type TaskComment struct {
 	Content  string `json:"content"`
 }
 
+// CreateTaskRequest represents a request to create a new task.
 type CreateTaskRequest struct {
 	Title          string `json:"title"`
 	Description    string `json:"description"`

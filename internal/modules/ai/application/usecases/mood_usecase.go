@@ -114,11 +114,12 @@ func (uc *MoodUseCase) ComputeMood(ctx context.Context) (*entities.MoodContext, 
 		if trendErr == nil && len(trends) >= 2 {
 			latest := trends[len(trends)-1].AttendanceRate
 			previous := trends[len(trends)-2].AttendanceRate
-			if latest > previous+2 {
+			switch {
+			case latest > previous+2:
 				mood.AttendanceTrend = "improving"
-			} else if latest < previous-2 {
+			case latest < previous-2:
 				mood.AttendanceTrend = "declining"
-			} else {
+			default:
 				mood.AttendanceTrend = "stable"
 			}
 		}

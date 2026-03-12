@@ -9,6 +9,7 @@ import (
 // PublicLinkPermission represents the access level for a public link
 type PublicLinkPermission string
 
+// PublicLinkPermission values.
 const (
 	PublicLinkRead     PublicLinkPermission = "read"
 	PublicLinkDownload PublicLinkPermission = "download"

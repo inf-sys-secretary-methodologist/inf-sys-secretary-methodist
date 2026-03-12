@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -177,7 +178,7 @@ func (r *SyncLogRepositoryPg) GetByID(ctx context.Context, id int64) (*entities.
 
 	log, err := scanSyncLogRow(r.db.QueryRowContext(ctx, query, id))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get sync log: %w", err)
@@ -251,7 +252,7 @@ func (r *SyncLogRepositoryPg) List(ctx context.Context, filter entities.SyncLogF
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list sync logs: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	logs, err := scanSyncLogRows(rows)
 	if err != nil {
@@ -274,7 +275,7 @@ func (r *SyncLogRepositoryPg) GetLatest(ctx context.Context, entityType entities
 
 	log, err := scanSyncLogRow(r.db.QueryRowContext(ctx, query, entityType))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get latest sync log: %w", err)
@@ -295,7 +296,7 @@ func (r *SyncLogRepositoryPg) GetRunning(ctx context.Context) ([]*entities.SyncL
 	if err != nil {
 		return nil, fmt.Errorf("failed to get running syncs: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return scanSyncLogRows(rows)
 }

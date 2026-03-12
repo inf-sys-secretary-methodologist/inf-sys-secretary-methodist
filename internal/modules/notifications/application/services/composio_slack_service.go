@@ -100,7 +100,7 @@ func (s *ComposioSlackService) SendNotification(ctx context.Context, channelOrUs
 
 	// Build Slack mrkdwn formatted message
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s *%s*\n\n", emoji, title))
+	fmt.Fprintf(&sb, "%s *%s*\n\n", emoji, title)
 	sb.WriteString(message)
 
 	text := sb.String()

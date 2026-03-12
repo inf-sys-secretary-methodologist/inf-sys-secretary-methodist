@@ -14,6 +14,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 )
 
+const updatedTitle = "Updated Title"
+
 // MockReportRepository is a mock implementation of ReportRepository
 type MockReportRepository struct {
 	mock.Mock
@@ -565,7 +567,7 @@ func TestReportUseCase_Update(t *testing.T) {
 		mockReportRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.Report")).Return(nil).Once()
 		mockReportRepo.On("AddHistory", mock.Anything, mock.AnythingOfType("*entities.ReportHistory")).Return(nil).Once()
 
-		newTitle := "Updated Title"
+		newTitle := updatedTitle
 		newDesc := "New description"
 		input := &dto.UpdateReportInput{
 			Title:       &newTitle,
@@ -576,7 +578,7 @@ func TestReportUseCase_Update(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, output)
-		assert.Equal(t, "Updated Title", output.Title)
+		assert.Equal(t, updatedTitle, output.Title)
 	})
 
 	t.Run("update by non-author without access", func(t *testing.T) {
@@ -590,7 +592,7 @@ func TestReportUseCase_Update(t *testing.T) {
 		mockReportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil).Once()
 		mockReportRepo.On("HasAccess", mock.Anything, int64(1), int64(2), domain.ReportPermissionWrite).Return(false, nil).Once()
 
-		newTitle := "Updated Title"
+		newTitle := updatedTitle
 		input := &dto.UpdateReportInput{
 			Title: &newTitle,
 		}
@@ -605,7 +607,7 @@ func TestReportUseCase_Update(t *testing.T) {
 	t.Run("update non-existing report", func(t *testing.T) {
 		mockReportRepo.On("GetByID", mock.Anything, int64(999)).Return(nil, nil).Once()
 
-		newTitle := "Updated Title"
+		newTitle := updatedTitle
 		input := &dto.UpdateReportInput{
 			Title: &newTitle,
 		}

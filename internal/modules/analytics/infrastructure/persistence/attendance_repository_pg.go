@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -43,7 +44,7 @@ func (r *AttendanceRepositoryPG) GetLessonByID(ctx context.Context, id int64) (*
 		&lesson.ID, &lesson.Name, &lesson.Subject, &lesson.TeacherID,
 		&lesson.GroupName, &lesson.LessonType, &lesson.CreatedAt, &lesson.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("lesson not found")
 	}
 	if err != nil {
@@ -62,7 +63,7 @@ func (r *AttendanceRepositoryPG) GetLessonsByGroup(ctx context.Context, groupNam
 	if err != nil {
 		return nil, fmt.Errorf("failed to get lessons: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var lessons []entities.Lesson
 	for rows.Next() {
@@ -89,7 +90,7 @@ func (r *AttendanceRepositoryPG) GetLessonsByTeacher(ctx context.Context, teache
 	if err != nil {
 		return nil, fmt.Errorf("failed to get lessons: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var lessons []entities.Lesson
 	for rows.Next() {
@@ -168,7 +169,7 @@ func (r *AttendanceRepositoryPG) GetAttendanceByLesson(ctx context.Context, less
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attendance: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var records []entities.AttendanceRecord
 	for rows.Next() {
@@ -197,7 +198,7 @@ func (r *AttendanceRepositoryPG) GetAttendanceByStudent(ctx context.Context, stu
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attendance: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var records []entities.AttendanceRecord
 	for rows.Next() {
@@ -241,7 +242,7 @@ func (r *AttendanceRepositoryPG) GetStudentAttendanceStats(ctx context.Context, 
 		&stats.TotalRecords, &stats.PresentCount, &stats.AbsentCount,
 		&stats.LateCount, &stats.ExcusedCount, &stats.AttendanceRate,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("student not found")
 	}
 	if err != nil {

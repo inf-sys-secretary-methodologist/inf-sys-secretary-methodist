@@ -62,11 +62,12 @@ func InitTracer(ctx context.Context, cfg TracerConfig) (*Tracer, error) {
 
 	// Create sampler based on sampling rate
 	var sampler sdktrace.Sampler
-	if cfg.SamplingRate >= 1.0 {
+	switch {
+	case cfg.SamplingRate >= 1.0:
 		sampler = sdktrace.AlwaysSample()
-	} else if cfg.SamplingRate <= 0 {
+	case cfg.SamplingRate <= 0:
 		sampler = sdktrace.NeverSample()
-	} else {
+	default:
 		sampler = sdktrace.TraceIDRatioBased(cfg.SamplingRate)
 	}
 

@@ -337,7 +337,7 @@ func (r *FileMetadataRepositoryPG) queryFiles(ctx context.Context, query string,
 	if err != nil {
 		return nil, database.MapPostgresError(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	files := []*entities.FileMetadata{}
 	for rows.Next() {

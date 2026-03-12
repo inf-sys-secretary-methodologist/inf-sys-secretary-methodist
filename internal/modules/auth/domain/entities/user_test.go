@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
@@ -110,7 +111,7 @@ func TestUser_CanLogin(t *testing.T) {
 			user.Status = tt.status
 
 			err := user.CanLogin()
-			if err != tt.wantErr {
+			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("CanLogin() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

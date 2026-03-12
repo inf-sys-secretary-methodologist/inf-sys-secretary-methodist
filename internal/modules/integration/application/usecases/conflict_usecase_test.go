@@ -39,8 +39,8 @@ func (m *MockSyncConflictRepository) Update(_ context.Context, conflict *entitie
 
 func (m *MockSyncConflictRepository) GetByID(_ context.Context, id int64) (*entities.SyncConflict, error) {
 	if conflict, exists := m.conflicts[id]; exists {
-		copy := *conflict
-		return &copy, nil
+		copiedConflict := *conflict
+		return &copiedConflict, nil
 	}
 	return nil, nil
 }
@@ -167,7 +167,7 @@ func (m *MockSyncConflictRepository) GetStats(_ context.Context) (*entities.Conf
 // Helper to create test conflict
 func createTestConflict(repo *MockSyncConflictRepository, syncLogID int64, entityType entities.SyncEntityType, entityID string) *entities.SyncConflict {
 	conflict := entities.NewSyncConflict(syncLogID, entityType, entityID)
-	repo.Create(context.Background(), conflict)
+	_ = repo.Create(context.Background(), conflict)
 	return conflict
 }
 
@@ -278,7 +278,7 @@ func TestConflictUseCase_GetPending(t *testing.T) {
 	createTestConflict(repo, 2, entities.SyncEntityStudent, "stud-1")
 
 	// Resolve one
-	repo.Resolve(ctx, conflict2.ID, entities.ConflictResolutionUseLocal, 1, "{}")
+	_ = repo.Resolve(ctx, conflict2.ID, entities.ConflictResolutionUseLocal, 1, "{}")
 
 	// Get pending
 	result, err := uc.GetPending(ctx, 10, 0)
@@ -366,7 +366,7 @@ func TestConflictUseCase_Resolve_AlreadyResolved(t *testing.T) {
 
 	// Create and resolve conflict
 	conflict := createTestConflict(repo, 1, entities.SyncEntityEmployee, "emp-1")
-	repo.Resolve(ctx, conflict.ID, entities.ConflictResolutionUseLocal, 1, "{}")
+	_ = repo.Resolve(ctx, conflict.ID, entities.ConflictResolutionUseLocal, 1, "{}")
 
 	// Try to resolve again
 	req := &dto.ResolveConflictRequest{
@@ -464,7 +464,7 @@ func TestConflictUseCase_GetStats(t *testing.T) {
 	createTestConflict(repo, 2, entities.SyncEntityStudent, "stud-1")
 
 	// Resolve one
-	repo.Resolve(ctx, conflict2.ID, entities.ConflictResolutionUseLocal, 1, "{}")
+	_ = repo.Resolve(ctx, conflict2.ID, entities.ConflictResolutionUseLocal, 1, "{}")
 
 	// Get stats
 	result, err := uc.GetStats(ctx)

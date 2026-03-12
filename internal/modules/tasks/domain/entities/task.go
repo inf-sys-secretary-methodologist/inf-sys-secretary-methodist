@@ -13,7 +13,7 @@ import (
 var (
 	ErrInvalidStatusTransition = errors.New("invalid status transition")
 	ErrTaskAlreadyCompleted    = errors.New("task is already completed")
-	ErrTaskCancelled           = errors.New("task is cancelled")
+	ErrTaskCancelled           = errors.New("task is canceled")
 )
 
 // Task represents a task entity.
@@ -182,7 +182,7 @@ func (t *Task) Defer() error {
 	return nil
 }
 
-// Reopen reopens a completed or cancelled task.
+// Reopen reopens a completed or canceled task.
 func (t *Task) Reopen() error {
 	if t.Status != domain.TaskStatusCompleted && t.Status != domain.TaskStatusCancelled {
 		return ErrInvalidStatusTransition

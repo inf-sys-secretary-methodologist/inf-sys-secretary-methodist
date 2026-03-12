@@ -49,8 +49,9 @@ func (h *NotificationHandler) List(c *gin.Context) {
 		return
 	}
 
+	uid, _ := userID.(int64)
 	input := &dto.NotificationListInput{
-		UserID: userID.(int64),
+		UserID: uid,
 		Limit:  50,
 		Offset: 0,
 	}
@@ -163,7 +164,8 @@ func (h *NotificationHandler) MarkAllAsRead(c *gin.Context) {
 		return
 	}
 
-	if err := h.notificationUseCase.MarkAllAsRead(c.Request.Context(), userID.(int64)); err != nil {
+	uid, _ := userID.(int64)
+	if err := h.notificationUseCase.MarkAllAsRead(c.Request.Context(), uid); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -215,7 +217,8 @@ func (h *NotificationHandler) DeleteAll(c *gin.Context) {
 		return
 	}
 
-	if err := h.notificationUseCase.DeleteAll(c.Request.Context(), userID.(int64)); err != nil {
+	uid, _ := userID.(int64)
+	if err := h.notificationUseCase.DeleteAll(c.Request.Context(), uid); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

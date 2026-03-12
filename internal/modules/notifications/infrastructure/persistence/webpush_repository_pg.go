@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
@@ -79,7 +80,7 @@ func (r *WebPushRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.
 		&sub.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -120,7 +121,7 @@ func (r *WebPushRepositoryPG) GetByEndpoint(ctx context.Context, endpoint string
 		&sub.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -148,7 +149,7 @@ func (r *WebPushRepositoryPG) GetByUserID(ctx context.Context, userID int64) ([]
 	if err != nil {
 		return nil, fmt.Errorf("failed to get web push subscriptions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return scanSubscriptions(rows)
 }
@@ -165,7 +166,7 @@ func (r *WebPushRepositoryPG) GetActiveByUserID(ctx context.Context, userID int6
 	if err != nil {
 		return nil, fmt.Errorf("failed to get active web push subscriptions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return scanSubscriptions(rows)
 }

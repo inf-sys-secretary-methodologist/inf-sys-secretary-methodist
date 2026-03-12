@@ -7,6 +7,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/agentsim/agent"
 )
 
+// Conversation represents a messaging conversation.
 type Conversation struct {
 	ID          int64  `json:"id"`
 	Type        string `json:"type"`
@@ -17,11 +18,13 @@ type Conversation struct {
 	LastMessage any    `json:"last_message"`
 }
 
+// ConversationList represents a list of conversations.
 type ConversationList struct {
 	Conversations []Conversation `json:"conversations"`
 	Total         int            `json:"total"`
 }
 
+// Message represents a chat message in a conversation.
 type Message struct {
 	ID             int64  `json:"id"`
 	ConversationID int64  `json:"conversation_id"`
@@ -33,6 +36,7 @@ type Message struct {
 	IsDeleted      bool   `json:"is_deleted"`
 }
 
+// MessageList represents a paginated list of messages.
 type MessageList struct {
 	Messages []Message `json:"messages"`
 	HasMore  bool      `json:"has_more"`

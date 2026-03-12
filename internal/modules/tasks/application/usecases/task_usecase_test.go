@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
+
+const updatedTaskTitle = "Updated Task"
 
 // MockTaskRepository implements TaskRepository for testing.
 type MockTaskRepository struct {
@@ -377,7 +380,7 @@ func TestTaskUseCase_GetByID_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := uc.GetByID(ctx, 999)
-	if err != ErrTaskNotFound {
+	if !errors.Is(err, ErrTaskNotFound) {
 		t.Errorf("expected ErrTaskNotFound, got %v", err)
 	}
 }
@@ -394,7 +397,7 @@ func TestTaskUseCase_Update(t *testing.T) {
 	created, _ := uc.Create(ctx, 1, input)
 
 	// Update
-	newTitle := "Updated Task"
+	newTitle := updatedTaskTitle
 	updateInput := dto.UpdateTaskInput{Title: &newTitle}
 
 	updated, err := uc.Update(ctx, 1, created.ID, updateInput)
@@ -402,8 +405,8 @@ func TestTaskUseCase_Update(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if updated.Title != "Updated Task" {
-		t.Errorf("expected title 'Updated Task', got '%s'", updated.Title)
+	if updated.Title != updatedTaskTitle {
+		t.Errorf("expected title %q, got %q", updatedTaskTitle, updated.Title)
 	}
 }
 
@@ -426,7 +429,7 @@ func TestTaskUseCase_Delete(t *testing.T) {
 
 	// Verify deleted
 	_, err = uc.GetByID(ctx, created.ID)
-	if err != ErrTaskNotFound {
+	if !errors.Is(err, ErrTaskNotFound) {
 		t.Error("expected task to be deleted")
 	}
 }
@@ -444,7 +447,7 @@ func TestTaskUseCase_Delete_Unauthorized(t *testing.T) {
 
 	// Try to delete by non-author
 	err := uc.Delete(ctx, 2, created.ID)
-	if err != ErrUnauthorized {
+	if !errors.Is(err, ErrUnauthorized) {
 		t.Errorf("expected ErrUnauthorized, got %v", err)
 	}
 }
@@ -540,7 +543,7 @@ func TestTaskUseCase_Cancel(t *testing.T) {
 		t.Fatalf("cancel error: %v", err)
 	}
 	if task.Status != domain.TaskStatusCancelled {
-		t.Errorf("expected status 'cancelled', got '%s'", task.Status)
+		t.Errorf("expected status 'canceled', got '%s'", task.Status)
 	}
 }
 
@@ -696,7 +699,7 @@ func TestTaskUseCase_History(t *testing.T) {
 	task, _ := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test Task"})
 
 	// Update to generate history
-	newTitle := "Updated Task"
+	newTitle := updatedTaskTitle
 	_, _ = uc.Update(ctx, 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
 
 	// Get history
@@ -753,7 +756,7 @@ func TestTask_CanEdit(t *testing.T) {
 
 	task.Status = domain.TaskStatusCancelled
 	if task.CanEdit() {
-		t.Error("cancelled task should not be editable")
+		t.Error("canceled task should not be editable")
 	}
 }
 

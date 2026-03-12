@@ -10,6 +10,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
 )
 
+const whereActiveClause = ` WHERE is_active = true`
+
 // DepartmentRepositoryPG implements PostgreSQL department repository.
 type DepartmentRepositoryPG struct {
 	db *sql.DB
@@ -167,21 +169,17 @@ func (r *DepartmentRepositoryPG) List(ctx context.Context, limit, offset int, ac
 	args := []interface{}{}
 
 	if activeOnly {
-		query += ` WHERE is_active = true`
+		query += whereActiveClause
 	}
 
 	query += ` ORDER BY name ASC LIMIT $1 OFFSET $2`
-	if activeOnly {
-		args = append(args, limit, offset)
-	} else {
-		args = append(args, limit, offset)
-	}
+	args = append(args, limit, offset)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, database.MapPostgresError(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	departments := []*entities.Department{}
 	for rows.Next() {
@@ -213,7 +211,7 @@ func (r *DepartmentRepositoryPG) List(ctx context.Context, limit, offset int, ac
 func (r *DepartmentRepositoryPG) Count(ctx context.Context, activeOnly bool) (int64, error) {
 	query := `SELECT COUNT(*) FROM org_departments`
 	if activeOnly {
-		query += ` WHERE is_active = true`
+		query += whereActiveClause
 	}
 
 	var count int64
@@ -236,7 +234,7 @@ func (r *DepartmentRepositoryPG) GetChildren(ctx context.Context, parentID int64
 	if err != nil {
 		return nil, database.MapPostgresError(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	departments := []*entities.Department{}
 	for rows.Next() {

@@ -5,13 +5,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
-	"github.com/lib/pq"
 )
 
 // DocumentRepositoryPG implements DocumentRepository using PostgreSQL
@@ -131,7 +133,7 @@ func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities
 		&doc.CreatedAt, &doc.UpdatedAt, &doc.DeletedAt,
 		&doc.AuthorName, &doc.RecipientName,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("document not found")
 	}
 	if err != nil {
@@ -278,7 +280,7 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list documents: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var docs []*entities.Document
 	for rows.Next() {
@@ -372,7 +374,7 @@ func (r *DocumentRepositoryPG) GetVersions(ctx context.Context, documentID int64
 	if err != nil {
 		return nil, fmt.Errorf("failed to get versions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var versions []*entities.DocumentVersion
 	for rows.Next() {
@@ -415,7 +417,7 @@ func (r *DocumentRepositoryPG) GetVersion(ctx context.Context, documentID int64,
 		&metadataJSON, &v.ChangedBy, &v.ChangeDescription, &v.CreatedAt,
 		&v.ChangedByName,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("version not found")
 	}
 	if err != nil {
@@ -450,7 +452,7 @@ func (r *DocumentRepositoryPG) GetLatestVersion(ctx context.Context, documentID 
 		&metadataJSON, &v.ChangedBy, &v.ChangeDescription, &v.CreatedAt,
 		&v.ChangedByName,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("no versions found")
 	}
 	if err != nil {
@@ -589,7 +591,7 @@ func (r *DocumentRepositoryPG) GetVersionDiff(ctx context.Context, documentID in
 		&diff.ID, &diff.DocumentID, &diff.FromVersion, &diff.ToVersion,
 		pq.Array(&diff.ChangedFields), &diffDataJSON, &diff.CreatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil // Not found, will need to compute
 	}
 	if err != nil {
@@ -754,7 +756,7 @@ func (r *DocumentRepositoryPG) GetHistory(ctx context.Context, documentID int64)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var history []*entities.DocumentHistory
 	for rows.Next() {
@@ -948,7 +950,7 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to search documents: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []*repositories.SearchResult
 	for rows.Next() {

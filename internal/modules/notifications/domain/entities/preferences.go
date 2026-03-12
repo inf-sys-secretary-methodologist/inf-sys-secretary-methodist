@@ -165,7 +165,7 @@ func (p *UserNotificationPreferences) ShouldNotify(channel NotificationChannel, 
 }
 
 // parseTime parses a time string in HH:MM format
-func parseTime(timeStr string) (hour, min int) {
+func parseTime(timeStr string) (hour, minute int) {
 	var h, m int
 	n, _ := time.Parse("15:04", timeStr)
 	h = n.Hour()

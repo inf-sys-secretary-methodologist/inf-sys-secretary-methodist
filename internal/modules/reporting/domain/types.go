@@ -3,6 +3,7 @@ package domain
 // ReportStatus represents the status of a report
 type ReportStatus string
 
+// ReportStatus values.
 const (
 	ReportStatusDraft      ReportStatus = "draft"
 	ReportStatusGenerating ReportStatus = "generating"
@@ -26,6 +27,7 @@ func (s ReportStatus) IsValid() bool {
 // OutputFormat represents the output format of a report
 type OutputFormat string
 
+// OutputFormat values.
 const (
 	OutputFormatPDF  OutputFormat = "pdf"
 	OutputFormatXLSX OutputFormat = "xlsx"
@@ -45,6 +47,7 @@ func (f OutputFormat) IsValid() bool {
 // PeriodType represents the period type for periodic reports
 type PeriodType string
 
+// PeriodType values.
 const (
 	PeriodTypeDaily     PeriodType = "daily"
 	PeriodTypeWeekly    PeriodType = "weekly"
@@ -65,6 +68,7 @@ func (p PeriodType) IsValid() bool {
 // ReportCategory represents the category of a report type
 type ReportCategory string
 
+// ReportCategory values.
 const (
 	ReportCategoryAcademic       ReportCategory = "academic"
 	ReportCategoryAdministrative ReportCategory = "administrative"
@@ -84,6 +88,7 @@ func (c ReportCategory) IsValid() bool {
 // ParameterType represents the type of a report parameter
 type ParameterType string
 
+// ParameterType values.
 const (
 	ParameterTypeString      ParameterType = "string"
 	ParameterTypeNumber      ParameterType = "number"
@@ -106,6 +111,7 @@ func (p ParameterType) IsValid() bool {
 // ReportPermission represents permission level for report access
 type ReportPermission string
 
+// ReportPermission values.
 const (
 	ReportPermissionRead    ReportPermission = "read"
 	ReportPermissionWrite   ReportPermission = "write"
@@ -125,6 +131,7 @@ func (p ReportPermission) IsValid() bool {
 // AccessRole represents a role that can access reports
 type AccessRole string
 
+// AccessRole values.
 const (
 	AccessRoleAdmin     AccessRole = "admin"
 	AccessRoleSecretary AccessRole = "secretary"
@@ -145,6 +152,7 @@ func (r AccessRole) IsValid() bool {
 // DeliveryMethod represents how report subscriptions are delivered
 type DeliveryMethod string
 
+// DeliveryMethod values.
 const (
 	DeliveryMethodEmail        DeliveryMethod = "email"
 	DeliveryMethodNotification DeliveryMethod = "notification"
@@ -163,6 +171,7 @@ func (d DeliveryMethod) IsValid() bool {
 // GenerationStatus represents the status of report generation
 type GenerationStatus string
 
+// GenerationStatus values.
 const (
 	GenerationStatusStarted   GenerationStatus = "started"
 	GenerationStatusCompleted GenerationStatus = "completed"

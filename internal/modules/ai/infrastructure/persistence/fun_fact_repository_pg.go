@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -35,7 +36,7 @@ func (r *FunFactRepositoryPg) BulkCreate(ctx context.Context, facts []entities.F
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx,
 		`INSERT INTO ai_fun_facts (content, category, source, source_url, language, is_approved)
@@ -43,7 +44,7 @@ func (r *FunFactRepositoryPg) BulkCreate(ctx context.Context, facts []entities.F
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
-	defer stmt.Close()
+	defer func() { _ = stmt.Close() }()
 
 	for _, fact := range facts {
 		_, err := stmt.ExecContext(ctx, fact.Content, fact.Category, fact.Source, fact.SourceURL, fact.Language, fact.IsApproved)
@@ -69,7 +70,7 @@ func (r *FunFactRepositoryPg) GetRandom(ctx context.Context) (*entities.FunFact,
 		&fact.CreatedAt, &fact.UpdatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get random fact: %w", err)

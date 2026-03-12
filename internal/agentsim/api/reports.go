@@ -7,12 +7,14 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/agentsim/agent"
 )
 
+// ReportType represents a report type definition.
 type ReportType struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 	Code string `json:"code"`
 }
 
+// Report represents a report resource.
 type Report struct {
 	ID             int64  `json:"id"`
 	Title          string `json:"title"`
@@ -26,6 +28,7 @@ type Report struct {
 	PeriodEnd      string `json:"period_end"`
 }
 
+// ReportList represents a paginated list of reports.
 type ReportList struct {
 	Reports []Report `json:"reports"`
 	Total   int      `json:"total"`
@@ -44,6 +47,7 @@ func (c *Client) GetReportTypes(ctx context.Context, a *agent.Agent) ([]ReportTy
 	return types, nil
 }
 
+// CreateReportRequest represents a request to create a new report.
 type CreateReportRequest struct {
 	ReportTypeID int64  `json:"report_type_id"`
 	Title        string `json:"title"`

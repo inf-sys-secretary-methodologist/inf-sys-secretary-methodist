@@ -94,7 +94,7 @@ func (h *DocumentHandler) Create(c *gin.Context) {
 			// Validate file before accepting
 			fileReader, err := file.Open()
 			if err == nil {
-				defer fileReader.Close()
+				defer func() { _ = fileReader.Close() }()
 
 				// Read file header for magic bytes validation
 				headerBytes := make([]byte, 8)
@@ -320,7 +320,7 @@ func (h *DocumentHandler) UploadFile(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	contentType := header.Header.Get("Content-Type")
 	if contentType == "" {
@@ -388,7 +388,7 @@ func (h *DocumentHandler) DownloadFile(c *gin.Context) {
 		c.JSON(httpErr.Status, httpErr.Response)
 		return
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Check if inline viewing is requested (for preview in browser)
 	isInline := c.Query("inline") == "true"

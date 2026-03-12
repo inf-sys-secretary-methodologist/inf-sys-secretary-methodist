@@ -5,13 +5,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
-	"github.com/lib/pq"
 )
 
 // EventRepositoryPG implements EventRepository using PostgreSQL
@@ -164,7 +166,7 @@ func (r *EventRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.Ev
 		&event.ParentEventID, &event.RecurrenceID, &event.Color, &event.Priority,
 		&metadataJSON, &event.ExternalID, &event.CreatedAt, &event.UpdatedAt, &event.DeletedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("event not found")
 	}
 	if err != nil {
@@ -279,7 +281,7 @@ func (r *EventRepositoryPG) List(ctx context.Context, filter repositories.EventF
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list events: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	events, err := r.scanEvents(rows)
 	if err != nil {
@@ -319,7 +321,7 @@ func (r *EventRepositoryPG) GetByDateRange(ctx context.Context, start, end time.
 	if err != nil {
 		return nil, fmt.Errorf("failed to get events by date range: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanEvents(rows)
 }
@@ -341,7 +343,7 @@ func (r *EventRepositoryPG) GetByOrganizer(ctx context.Context, organizerID int6
 	if err != nil {
 		return nil, fmt.Errorf("failed to get events by organizer: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanEvents(rows)
 }
@@ -364,7 +366,7 @@ func (r *EventRepositoryPG) GetByParticipant(ctx context.Context, userID int64, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get events by participant: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanEvents(rows)
 }
@@ -390,7 +392,7 @@ func (r *EventRepositoryPG) GetUpcoming(ctx context.Context, userID int64, limit
 	if err != nil {
 		return nil, fmt.Errorf("failed to get upcoming events: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanEvents(rows)
 }
@@ -411,7 +413,7 @@ func (r *EventRepositoryPG) GetRecurringEvents(ctx context.Context) ([]*entities
 	if err != nil {
 		return nil, fmt.Errorf("failed to get recurring events: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanEvents(rows)
 }
@@ -435,7 +437,7 @@ func (r *EventRepositoryPG) GetRecurrenceInstances(ctx context.Context, parentEv
 	if err != nil {
 		return nil, fmt.Errorf("failed to get recurrence instances: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanEvents(rows)
 }
@@ -453,7 +455,7 @@ func (r *EventRepositoryPG) GetRecurrenceExceptions(ctx context.Context, parentE
 	if err != nil {
 		return nil, fmt.Errorf("failed to get recurrence exceptions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var exceptions []time.Time
 	for rows.Next() {
@@ -575,7 +577,7 @@ func (r *EventParticipantRepositoryPG) GetByID(ctx context.Context, id int64) (*
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&p.ID, &p.EventID, &p.UserID, &p.ResponseStatus, &p.Role, &p.NotifiedAt, &p.RespondedAt, &p.CreatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("participant not found")
 	}
 	if err != nil {
@@ -594,7 +596,7 @@ func (r *EventParticipantRepositoryPG) GetByEventID(ctx context.Context, eventID
 	if err != nil {
 		return nil, fmt.Errorf("failed to get participants: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanParticipants(rows)
 }
@@ -609,7 +611,7 @@ func (r *EventParticipantRepositoryPG) GetByUserID(ctx context.Context, userID i
 	if err != nil {
 		return nil, fmt.Errorf("failed to get participations: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanParticipants(rows)
 }
@@ -624,7 +626,7 @@ func (r *EventParticipantRepositoryPG) GetByEventAndUser(ctx context.Context, ev
 	err := r.db.QueryRowContext(ctx, query, eventID, userID).Scan(
 		&p.ID, &p.EventID, &p.UserID, &p.ResponseStatus, &p.Role, &p.NotifiedAt, &p.RespondedAt, &p.CreatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("participant not found")
 	}
 	if err != nil {
@@ -705,7 +707,7 @@ func (r *EventParticipantRepositoryPG) GetPendingInvitations(ctx context.Context
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pending invitations: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanParticipants(rows)
 }
@@ -790,7 +792,7 @@ func (r *EventReminderRepositoryPG) GetByID(ctx context.Context, id int64) (*ent
 		&reminder.ID, &reminder.EventID, &reminder.UserID, &reminder.ReminderType,
 		&reminder.MinutesBefore, &reminder.IsSent, &reminder.SentAt, &reminder.CreatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("reminder not found")
 	}
 	if err != nil {
@@ -809,7 +811,7 @@ func (r *EventReminderRepositoryPG) GetByEventID(ctx context.Context, eventID in
 	if err != nil {
 		return nil, fmt.Errorf("failed to get reminders: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanReminders(rows)
 }
@@ -824,7 +826,7 @@ func (r *EventReminderRepositoryPG) GetByUserID(ctx context.Context, userID int6
 	if err != nil {
 		return nil, fmt.Errorf("failed to get reminders: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanReminders(rows)
 }
@@ -839,7 +841,7 @@ func (r *EventReminderRepositoryPG) GetByEventAndUser(ctx context.Context, event
 	if err != nil {
 		return nil, fmt.Errorf("failed to get reminders: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanReminders(rows)
 }
@@ -860,7 +862,7 @@ func (r *EventReminderRepositoryPG) GetPendingReminders(ctx context.Context, bef
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pending reminders: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return r.scanReminders(rows)
 }

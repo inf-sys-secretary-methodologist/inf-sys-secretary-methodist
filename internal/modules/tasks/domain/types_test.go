@@ -13,7 +13,7 @@ func TestTaskStatus_IsValid(t *testing.T) {
 		{"in_progress", TaskStatusInProgress, true},
 		{"review", TaskStatusReview, true},
 		{"completed", TaskStatusCompleted, true},
-		{"cancelled", TaskStatusCancelled, true},
+		{"canceled", TaskStatusCancelled, true},
 		{"deferred", TaskStatusDeferred, true},
 		{"invalid", TaskStatus("invalid"), false},
 		{"empty", TaskStatus(""), false},
@@ -64,7 +64,7 @@ func TestTaskStatusConstants(t *testing.T) {
 		{"in_progress", TaskStatusInProgress, "in_progress"},
 		{"review", TaskStatusReview, "review"},
 		{"completed", TaskStatusCompleted, "completed"},
-		{"cancelled", TaskStatusCancelled, "cancelled"},
+		{"canceled", TaskStatusCancelled, "canceled"},
 		{"deferred", TaskStatusDeferred, "deferred"},
 	}
 

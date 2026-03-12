@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -66,7 +67,7 @@ func TestReport_SetParameters(t *testing.T) {
 func TestReport_GetParameters(t *testing.T) {
 	report := NewReport(1, "Report", 1)
 	params := map[string]string{"key": "value"}
-	report.SetParameters(params)
+	_ = report.SetParameters(params)
 
 	var result map[string]string
 	err := report.GetParameters(&result)
@@ -107,7 +108,7 @@ func TestReport_SetData(t *testing.T) {
 func TestReport_GetData(t *testing.T) {
 	report := NewReport(1, "Report", 1)
 	data := map[string]int{"count": 42}
-	report.SetData(data)
+	_ = report.SetData(data)
 
 	var result map[string]int
 	err := report.GetData(&result)
@@ -139,14 +140,14 @@ func TestReport_StartGeneration_InvalidStatus(t *testing.T) {
 
 	err := report.StartGeneration()
 
-	if err != ErrInvalidStatusTransition {
+	if !errors.Is(err, ErrInvalidStatusTransition) {
 		t.Errorf("expected error %v, got %v", ErrInvalidStatusTransition, err)
 	}
 }
 
 func TestReport_CompleteGeneration(t *testing.T) {
 	report := NewReport(1, "Report", 1)
-	report.StartGeneration()
+	_ = report.StartGeneration()
 
 	err := report.CompleteGeneration("report.pdf", "/files/report.pdf", 1024, "application/pdf")
 
@@ -166,14 +167,14 @@ func TestReport_CompleteGeneration_InvalidStatus(t *testing.T) {
 
 	err := report.CompleteGeneration("report.pdf", "/files/report.pdf", 1024, "application/pdf")
 
-	if err != ErrInvalidStatusTransition {
+	if !errors.Is(err, ErrInvalidStatusTransition) {
 		t.Errorf("expected error %v, got %v", ErrInvalidStatusTransition, err)
 	}
 }
 
 func TestReport_FailGeneration(t *testing.T) {
 	report := NewReport(1, "Report", 1)
-	report.StartGeneration()
+	_ = report.StartGeneration()
 
 	err := report.FailGeneration()
 
@@ -204,7 +205,7 @@ func TestReport_SubmitForReview_NotReady(t *testing.T) {
 
 	err := report.SubmitForReview()
 
-	if err != ErrReportNotReady {
+	if !errors.Is(err, ErrReportNotReady) {
 		t.Errorf("expected error %v, got %v", ErrReportNotReady, err)
 	}
 }

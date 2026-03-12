@@ -19,6 +19,8 @@ import (
 	docHandlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
 )
 
+const invalidID = "invalid"
+
 // mockAuthMiddleware creates a middleware that sets user_id for testing
 func mockAuthMiddleware(userID int64, role string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -139,7 +141,7 @@ func TestGetDocumentByID(t *testing.T) {
 		},
 		{
 			name:           "invalid id",
-			documentID:     "invalid",
+			documentID:     invalidID,
 			mockSetup:      func(m *MockDocumentUseCase) {},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -159,7 +161,7 @@ func TestGetDocumentByID(t *testing.T) {
 			// we'll create a simple handler wrapper for testing
 			router.GET("/documents/:id", func(c *gin.Context) {
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -305,7 +307,7 @@ func TestUpdateDocument(t *testing.T) {
 		},
 		{
 			name:           "invalid id",
-			documentID:     "invalid",
+			documentID:     invalidID,
 			payload:        map[string]interface{}{},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -318,7 +320,7 @@ func TestUpdateDocument(t *testing.T) {
 
 			router.PUT("/documents/:id", func(c *gin.Context) {
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}
@@ -374,7 +376,7 @@ func TestDeleteDocument(t *testing.T) {
 		},
 		{
 			name:           "invalid id",
-			documentID:     "invalid",
+			documentID:     invalidID,
 			expectedStatus: http.StatusBadRequest,
 		},
 	}
@@ -386,7 +388,7 @@ func TestDeleteDocument(t *testing.T) {
 
 			router.DELETE("/documents/:id", func(c *gin.Context) {
 				id := c.Param("id")
-				if id == "invalid" {
+				if id == invalidID {
 					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
 					return
 				}

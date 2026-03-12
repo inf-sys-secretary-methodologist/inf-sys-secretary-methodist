@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
@@ -41,7 +42,7 @@ func (r *AnalyticsRepositoryPG) GetAtRiskStudents(ctx context.Context, limit, of
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get at-risk students: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var students []entities.StudentRiskScore
 	for rows.Next() {
@@ -83,7 +84,7 @@ func (r *AnalyticsRepositoryPG) GetStudentRisk(ctx context.Context, studentID in
 		&s.AttendanceRate, &s.GradeAverage,
 		&s.RiskLevel, &s.RiskScore, &riskFactorsJSON,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("student not found")
 	}
 	if err != nil {
@@ -115,7 +116,7 @@ func (r *AnalyticsRepositoryPG) GetGroupSummary(ctx context.Context, groupName s
 		&s.CriticalRiskCount, &s.HighRiskCount, &s.MediumRiskCount, &s.LowRiskCount,
 		&s.AtRiskPercentage,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("group not found")
 	}
 	if err != nil {
@@ -138,7 +139,7 @@ func (r *AnalyticsRepositoryPG) GetAllGroupsSummary(ctx context.Context) ([]enti
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all groups summary: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var summaries []entities.GroupAnalyticsSummary
 	for rows.Next() {
@@ -179,7 +180,7 @@ func (r *AnalyticsRepositoryPG) GetStudentsByRiskLevel(ctx context.Context, risk
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get students by risk level: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var students []entities.StudentRiskScore
 	for rows.Next() {
@@ -217,7 +218,7 @@ func (r *AnalyticsRepositoryPG) GetMonthlyAttendanceTrend(ctx context.Context, m
 	if err != nil {
 		return nil, fmt.Errorf("failed to get monthly attendance trend: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var trends []entities.MonthlyAttendanceTrend
 	for rows.Next() {

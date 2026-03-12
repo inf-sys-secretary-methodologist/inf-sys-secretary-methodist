@@ -501,7 +501,7 @@ func TestEventUseCase_Cancel(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "cancelled", result.Status)
+	assert.Equal(t, string(entities.EventStatusCancelled), result.Status)
 }
 
 func TestEventUseCase_Reschedule(t *testing.T) {

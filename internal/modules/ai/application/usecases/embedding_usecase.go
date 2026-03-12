@@ -19,6 +19,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
+// EmbeddingProvider is a type alias for ports.EmbeddingProvider.
+//
 // Deprecated: Use ports.EmbeddingProvider directly. This alias exists for backward compatibility.
 type EmbeddingProvider = ports.EmbeddingProvider
 

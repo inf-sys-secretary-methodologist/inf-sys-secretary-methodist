@@ -76,7 +76,8 @@ func (s *ChunkingService) ChunkDocument(documentID int64, text string) []entitie
 				chunkIndex++
 				overlapText = getOverlapText(chunkText, overlapTokens)
 				currentChunk.Reset()
-				currentTokens = 0
+				currentChunk.WriteString(overlapText)
+				currentTokens = estimateTokens(overlapText)
 			}
 
 			// Split long sentence into multiple chunks
@@ -154,17 +155,18 @@ func normalizeText(text string) string {
 	runes := []rune(text)
 	i := 0
 	for i < len(runes) {
-		if runes[i] == '\n' && i+1 < len(runes) && runes[i+1] == '\n' {
+		switch {
+		case runes[i] == '\n' && i+1 < len(runes) && runes[i+1] == '\n':
 			builder.WriteString("\n\n")
 			i += 2
 			// Skip any spaces after paragraph break
 			for i < len(runes) && runes[i] == ' ' {
 				i++
 			}
-		} else if runes[i] == '\n' {
+		case runes[i] == '\n':
 			builder.WriteRune(' ')
 			i++
-		} else {
+		default:
 			builder.WriteRune(runes[i])
 			i++
 		}

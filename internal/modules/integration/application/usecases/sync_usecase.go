@@ -328,22 +328,22 @@ func (uc *SyncUseCase) syncStudents(ctx context.Context, syncLog *entities.SyncL
 }
 
 // detectEmployeeConflict detects conflicts between existing and new employee data
-func (uc *SyncUseCase) detectEmployeeConflict(existing, new *entities.ExternalEmployee, syncLogID int64) *entities.SyncConflict {
+func (uc *SyncUseCase) detectEmployeeConflict(existing, updated *entities.ExternalEmployee, syncLogID int64) *entities.SyncConflict {
 	var conflictFields []string
 
-	if existing.FirstName != new.FirstName {
+	if existing.FirstName != updated.FirstName {
 		conflictFields = append(conflictFields, "first_name")
 	}
-	if existing.LastName != new.LastName {
+	if existing.LastName != updated.LastName {
 		conflictFields = append(conflictFields, "last_name")
 	}
-	if existing.Email != new.Email {
+	if existing.Email != updated.Email {
 		conflictFields = append(conflictFields, "email")
 	}
-	if existing.Position != new.Position {
+	if existing.Position != updated.Position {
 		conflictFields = append(conflictFields, "position")
 	}
-	if existing.Department != new.Department {
+	if existing.Department != updated.Department {
 		conflictFields = append(conflictFields, "department")
 	}
 
@@ -356,7 +356,7 @@ func (uc *SyncUseCase) detectEmployeeConflict(existing, new *entities.ExternalEm
 	conflict.SetConflictFields(conflictFields)
 
 	localData, _ := json.Marshal(existing)
-	externalData, _ := json.Marshal(new)
+	externalData, _ := json.Marshal(updated)
 	conflict.SetLocalData(string(localData))
 	conflict.SetExternalData(string(externalData))
 
@@ -364,22 +364,22 @@ func (uc *SyncUseCase) detectEmployeeConflict(existing, new *entities.ExternalEm
 }
 
 // detectStudentConflict detects conflicts between existing and new student data
-func (uc *SyncUseCase) detectStudentConflict(existing, new *entities.ExternalStudent, syncLogID int64) *entities.SyncConflict {
+func (uc *SyncUseCase) detectStudentConflict(existing, updated *entities.ExternalStudent, syncLogID int64) *entities.SyncConflict {
 	var conflictFields []string
 
-	if existing.FirstName != new.FirstName {
+	if existing.FirstName != updated.FirstName {
 		conflictFields = append(conflictFields, "first_name")
 	}
-	if existing.LastName != new.LastName {
+	if existing.LastName != updated.LastName {
 		conflictFields = append(conflictFields, "last_name")
 	}
-	if existing.Email != new.Email {
+	if existing.Email != updated.Email {
 		conflictFields = append(conflictFields, "email")
 	}
-	if existing.GroupName != new.GroupName {
+	if existing.GroupName != updated.GroupName {
 		conflictFields = append(conflictFields, "group_name")
 	}
-	if existing.Status != new.Status {
+	if existing.Status != updated.Status {
 		conflictFields = append(conflictFields, "status")
 	}
 
@@ -392,7 +392,7 @@ func (uc *SyncUseCase) detectStudentConflict(existing, new *entities.ExternalStu
 	conflict.SetConflictFields(conflictFields)
 
 	localData, _ := json.Marshal(existing)
-	externalData, _ := json.Marshal(new)
+	externalData, _ := json.Marshal(updated)
 	conflict.SetLocalData(string(localData))
 	conflict.SetExternalData(string(externalData))
 

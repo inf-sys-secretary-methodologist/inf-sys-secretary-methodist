@@ -136,7 +136,7 @@ func (h *SyncHandler) CancelSync(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Sync cancelled"})
+	c.JSON(http.StatusOK, gin.H{"message": "Sync canceled"})
 }
 
 // GetSyncStats gets sync statistics

@@ -234,7 +234,7 @@ func (uc *ProjectUseCase) Cancel(ctx context.Context, userID, projectID int64) (
 		return nil, fmt.Errorf("failed to cancel project: %w", err)
 	}
 
-	uc.logAudit(ctx, userID, "project.cancelled", projectID)
+	uc.logAudit(ctx, userID, "project.canceled", projectID)
 	return project, nil
 }
 

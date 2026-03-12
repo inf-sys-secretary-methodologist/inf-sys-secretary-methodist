@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -38,7 +39,7 @@ func TestNewTextMessage(t *testing.T) {
 func TestNewTextMessage_EmptyContent(t *testing.T) {
 	_, err := NewTextMessage(1, 1, "")
 
-	if err != ErrEmptyMessageContent {
+	if !errors.Is(err, ErrEmptyMessageContent) {
 		t.Errorf("expected error %v, got %v", ErrEmptyMessageContent, err)
 	}
 }
@@ -48,7 +49,7 @@ func TestNewTextMessage_TooLong(t *testing.T) {
 
 	_, err := NewTextMessage(1, 1, longContent)
 
-	if err != ErrMessageTooLong {
+	if !errors.Is(err, ErrMessageTooLong) {
 		t.Errorf("expected error %v, got %v", ErrMessageTooLong, err)
 	}
 }
@@ -89,7 +90,7 @@ func TestNewReplyMessage(t *testing.T) {
 func TestNewReplyMessage_EmptyContent(t *testing.T) {
 	_, err := NewReplyMessage(1, 42, "", 10)
 
-	if err != ErrEmptyMessageContent {
+	if !errors.Is(err, ErrEmptyMessageContent) {
 		t.Errorf("expected error %v, got %v", ErrEmptyMessageContent, err)
 	}
 }
@@ -115,11 +116,11 @@ func TestMessage_Edit(t *testing.T) {
 
 func TestMessage_Edit_Deleted(t *testing.T) {
 	msg, _ := NewTextMessage(1, 42, "Original content")
-	msg.Delete()
+	_ = msg.Delete()
 
 	err := msg.Edit("New content")
 
-	if err != ErrCannotEditMessage {
+	if !errors.Is(err, ErrCannotEditMessage) {
 		t.Errorf("expected error %v, got %v", ErrCannotEditMessage, err)
 	}
 }
@@ -129,7 +130,7 @@ func TestMessage_Edit_EmptyContent(t *testing.T) {
 
 	err := msg.Edit("")
 
-	if err != ErrEmptyMessageContent {
+	if !errors.Is(err, ErrEmptyMessageContent) {
 		t.Errorf("expected error %v, got %v", ErrEmptyMessageContent, err)
 	}
 }
@@ -140,7 +141,7 @@ func TestMessage_Edit_TooLong(t *testing.T) {
 
 	err := msg.Edit(longContent)
 
-	if err != ErrMessageTooLong {
+	if !errors.Is(err, ErrMessageTooLong) {
 		t.Errorf("expected error %v, got %v", ErrMessageTooLong, err)
 	}
 }
@@ -166,11 +167,11 @@ func TestMessage_Delete(t *testing.T) {
 
 func TestMessage_Delete_AlreadyDeleted(t *testing.T) {
 	msg, _ := NewTextMessage(1, 42, "Content")
-	msg.Delete()
+	_ = msg.Delete()
 
 	err := msg.Delete()
 
-	if err != ErrCannotDeleteMessage {
+	if !errors.Is(err, ErrCannotDeleteMessage) {
 		t.Errorf("expected error %v, got %v", ErrCannotDeleteMessage, err)
 	}
 }
@@ -196,7 +197,7 @@ func TestMessage_CanEdit(t *testing.T) {
 		},
 		{
 			name:   "cannot edit deleted message",
-			setup:  func(m *Message) { m.Delete() },
+			setup:  func(m *Message) { _ = m.Delete() },
 			userID: 42,
 			want:   false,
 		},
@@ -254,7 +255,7 @@ func TestMessage_CanDelete(t *testing.T) {
 		},
 		{
 			name:    "cannot delete already deleted",
-			setup:   func(m *Message) { m.Delete() },
+			setup:   func(m *Message) { _ = m.Delete() },
 			userID:  42,
 			isAdmin: false,
 			want:    false,

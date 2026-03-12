@@ -6,6 +6,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/agentsim/agent"
 )
 
+// User represents a system user.
 type User struct {
 	ID    int64  `json:"id"`
 	Name  string `json:"name"`
@@ -13,6 +14,7 @@ type User struct {
 	Role  string `json:"role"`
 }
 
+// UserList represents a list of users.
 type UserList struct {
 	Users []User `json:"users"`
 	Total int    `json:"total"`

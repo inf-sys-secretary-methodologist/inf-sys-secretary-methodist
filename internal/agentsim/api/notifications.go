@@ -7,6 +7,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/agentsim/agent"
 )
 
+// Notification represents a user notification.
 type Notification struct {
 	ID       int64  `json:"id"`
 	Type     string `json:"type"`
@@ -17,12 +18,14 @@ type Notification struct {
 	Link     string `json:"link"`
 }
 
+// NotificationList represents a list of notifications with counts.
 type NotificationList struct {
 	Notifications []Notification `json:"notifications"`
 	TotalCount    int            `json:"total_count"`
 	UnreadCount   int            `json:"unread_count"`
 }
 
+// UnreadCount represents the count of unread notifications.
 type UnreadCount struct {
 	Count int `json:"count"`
 }

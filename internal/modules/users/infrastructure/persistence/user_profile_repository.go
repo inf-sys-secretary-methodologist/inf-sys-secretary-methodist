@@ -180,7 +180,7 @@ func (r *UserProfileRepositoryPG) ListUsersWithOrg(ctx context.Context, filter *
 	if err != nil {
 		return nil, database.MapPostgresError(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	users := []*entities.UserWithOrg{}
 	for rows.Next() {
@@ -258,7 +258,6 @@ func (r *UserProfileRepositoryPG) CountUsers(ctx context.Context, filter *reposi
 		if filter.Search != "" {
 			conditions = append(conditions, fmt.Sprintf("(u.name ILIKE $%d OR u.email ILIKE $%d)", argIndex, argIndex))
 			args = append(args, "%"+filter.Search+"%")
-			argIndex++
 		}
 	}
 

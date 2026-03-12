@@ -7,6 +7,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/agentsim/agent"
 )
 
+// AIConversation represents an AI assistant conversation summary.
 type AIConversation struct {
 	ID           int64  `json:"id"`
 	Title        string `json:"title"`
@@ -14,6 +15,7 @@ type AIConversation struct {
 	MessageCount int    `json:"message_count"`
 }
 
+// AIChatResponse represents the response from an AI chat request.
 type AIChatResponse struct {
 	Message        any    `json:"message"`
 	ConversationID int64  `json:"conversation_id"`

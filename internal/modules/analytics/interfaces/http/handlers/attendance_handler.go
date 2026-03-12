@@ -33,7 +33,11 @@ func (h *AttendanceHandler) getUserID(c *gin.Context) (int64, bool) {
 	if !exists {
 		return 0, false
 	}
-	return userID.(int64), true
+	uid, ok := userID.(int64)
+	if !ok {
+		return 0, false
+	}
+	return uid, true
 }
 
 // MarkAttendance marks attendance for a single student

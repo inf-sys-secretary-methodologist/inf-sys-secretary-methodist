@@ -69,6 +69,7 @@ import (
 
 	aiServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
 	aiUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/ports"
 	aiAdapters "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/adapters"
 	aiPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/persistence"
 	aiPrompts "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/prompts"
@@ -162,7 +163,6 @@ func main() {
 			log.Printf("Sentry initialization failed: %v", err)
 		} else {
 			log.Println("Sentry initialized successfully")
-			defer sentry.Flush(2 * time.Second)
 		}
 	}
 
@@ -193,13 +193,6 @@ func main() {
 				"error": err.Error(),
 			})
 		} else {
-			defer func() {
-				if err := tracer.Shutdown(context.Background()); err != nil {
-					logger.Error("Failed to shutdown tracer", map[string]interface{}{
-						"error": err.Error(),
-					})
-				}
-			}()
 			logger.Info("Distributed tracing initialized", map[string]interface{}{
 				"endpoint":      cfg.Tracing.OTLPEndpoint,
 				"sampling_rate": cfg.Tracing.SamplingRate,
@@ -210,10 +203,11 @@ func main() {
 	// Initialize database
 	db, err := initDatabase(cfg, logger)
 	if err != nil {
-		logger.Error("Failed to initialize database", map[string]interface{}{
-			"error": err.Error(),
-		})
-		os.Exit(1)
+		if tracer != nil {
+			_ = tracer.Shutdown(context.Background())
+		}
+		sentry.Flush(2 * time.Second)
+		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
@@ -574,7 +568,7 @@ func main() {
 		// Initialize AI providers based on configuration
 
 		// Embeddings provider
-		var embeddingProvider aiUsecases.EmbeddingProvider
+		var embeddingProvider ports.EmbeddingProvider
 		if cfg.AI.EmbeddingProvider == "gemini" {
 			embeddingProvider = aiProviders.NewGeminiEmbeddingProvider(aiProviders.GeminiEmbeddingConfig{
 				APIKey:               cfg.AI.EmbeddingAPIKey,
@@ -603,7 +597,7 @@ func main() {
 					"fallback", fallbackDim)
 			}
 
-			var fallbackEmbedding aiUsecases.EmbeddingProvider
+			var fallbackEmbedding ports.EmbeddingProvider
 			if cfg.AI.FallbackEmbeddingProvider == "gemini" {
 				fallbackEmbedding = aiProviders.NewGeminiEmbeddingProvider(aiProviders.GeminiEmbeddingConfig{
 					APIKey:               cfg.AI.FallbackEmbeddingAPIKey,
@@ -628,8 +622,9 @@ func main() {
 		}
 
 		// Chat (LLM) provider
-		var llmProvider aiUsecases.LLMProvider
-		if cfg.AI.Provider == "anthropic" {
+		var llmProvider ports.LLMProvider
+		switch {
+		case cfg.AI.Provider == "anthropic":
 			llmProvider = aiProviders.NewAnthropicProvider(aiProviders.AnthropicConfig{
 				APIKey:      cfg.AI.AnthropicAPIKey,
 				BaseURL:     cfg.AI.AnthropicBaseURL,
@@ -638,7 +633,7 @@ func main() {
 				Temperature: cfg.AI.Temperature,
 				Timeout:     cfg.AI.Timeout,
 			})
-		} else if cfg.AI.ChatAPIKey != "" {
+		case cfg.AI.ChatAPIKey != "":
 			// Separate OpenAI-compatible provider for chat (e.g. Gemini, Groq)
 			llmProvider = aiProviders.NewOpenAIProvider(aiProviders.OpenAIConfig{
 				APIKey:      cfg.AI.ChatAPIKey,
@@ -648,7 +643,7 @@ func main() {
 				Temperature: cfg.AI.Temperature,
 				Timeout:     cfg.AI.Timeout,
 			})
-		} else {
+		default:
 			llmProvider = aiProviders.NewOpenAIProvider(aiProviders.OpenAIConfig{
 				APIKey:      cfg.AI.OpenAIAPIKey,
 				BaseURL:     cfg.AI.OpenAIBaseURL,
@@ -661,7 +656,7 @@ func main() {
 
 		// Wrap LLM with fallback provider if configured
 		if cfg.AI.FallbackProvider != "" && cfg.AI.FallbackAPIKey != "" {
-			var fallbackLLM aiUsecases.LLMProvider
+			var fallbackLLM ports.LLMProvider
 			if cfg.AI.FallbackProvider == "anthropic" {
 				fallbackLLM = aiProviders.NewAnthropicProvider(aiProviders.AnthropicConfig{
 					APIKey:      cfg.AI.FallbackAPIKey,
@@ -803,9 +798,9 @@ func main() {
 		aiHandlerInstance := aiHandler.NewAIHandler(aiChatUseCase, aiEmbeddingUseCase, moodUseCase, funFactUseCase, auditLogger)
 
 		// Register AI routes under protected API group
-		aiApiGroup := router.Group("/api")
-		aiApiGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
-		aiHandlerInstance.RegisterRoutes(aiApiGroup)
+		aiAPIGroup := router.Group("/api")
+		aiAPIGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
+		aiHandlerInstance.RegisterRoutes(aiAPIGroup)
 
 		logger.Info("AI module initialized", map[string]interface{}{
 			"provider":        cfg.AI.Provider,
@@ -882,6 +877,14 @@ func main() {
 		})
 	}
 
+	if tracer != nil {
+		if err := tracer.Shutdown(context.Background()); err != nil {
+			logger.Error("Failed to shutdown tracer", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}
+	sentry.Flush(2 * time.Second)
 	logger.Info("Server stopped", nil)
 }
 
@@ -1045,7 +1048,7 @@ func setupRoutes(
 	router.GET("/ready", readinessHandler(db, redisCache))
 
 	// Prometheus metrics endpoint
-	router.GET("/metrics", metrics.MetricsHandler())
+	router.GET("/metrics", metrics.Handler())
 
 	// Swagger documentation endpoint
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

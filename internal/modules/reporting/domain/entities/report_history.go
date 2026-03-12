@@ -10,6 +10,7 @@ import (
 // ReportAction represents an action performed on a report
 type ReportAction string
 
+// ReportAction values.
 const (
 	ReportActionCreated   ReportAction = "created"
 	ReportActionUpdated   ReportAction = "updated"

@@ -8,6 +8,7 @@ import (
 // EventType represents the type of calendar event
 type EventType string
 
+// EventType values.
 const (
 	EventTypeMeeting  EventType = "meeting"  // Встреча
 	EventTypeDeadline EventType = "deadline" // Дедлайн
@@ -20,17 +21,19 @@ const (
 // EventStatus represents the status of an event
 type EventStatus string
 
+// EventStatus values.
 const (
 	EventStatusScheduled EventStatus = "scheduled" // Запланировано
 	EventStatusOngoing   EventStatus = "ongoing"   // В процессе
 	EventStatusCompleted EventStatus = "completed" // Завершено
-	EventStatusCancelled EventStatus = "cancelled" // Отменено
+	EventStatusCancelled EventStatus = "canceled"  // Отменено
 	EventStatusPostponed EventStatus = "postponed" // Отложено
 )
 
 // RecurrenceFrequency represents the frequency of recurring events
 type RecurrenceFrequency string
 
+// RecurrenceFrequency values.
 const (
 	FrequencyDaily   RecurrenceFrequency = "daily"
 	FrequencyWeekly  RecurrenceFrequency = "weekly"
@@ -41,6 +44,7 @@ const (
 // Weekday represents days of the week for recurrence rules
 type Weekday string
 
+// Weekday values.
 const (
 	WeekdayMonday    Weekday = "MO"
 	WeekdayTuesday   Weekday = "TU"
@@ -209,6 +213,7 @@ type EventParticipant struct {
 // ParticipantStatus represents the response status of a participant
 type ParticipantStatus string
 
+// ParticipantStatus values.
 const (
 	ParticipantStatusPending   ParticipantStatus = "pending"   // Ожидает ответа
 	ParticipantStatusAccepted  ParticipantStatus = "accepted"  // Принял
@@ -219,6 +224,7 @@ const (
 // ParticipantRole represents the role of a participant
 type ParticipantRole string
 
+// ParticipantRole values.
 const (
 	ParticipantRoleRequired ParticipantRole = "required" // Обязательный
 	ParticipantRoleOptional ParticipantRole = "optional" // Необязательный
@@ -240,6 +246,7 @@ type EventReminder struct {
 // ReminderType represents the type of reminder notification
 type ReminderType string
 
+// ReminderType values.
 const (
 	ReminderTypeEmail    ReminderType = "email"
 	ReminderTypePush     ReminderType = "push"

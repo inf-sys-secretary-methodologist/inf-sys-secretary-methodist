@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -56,18 +57,18 @@ func TestTask_Assign_Completed(t *testing.T) {
 
 	err := task.Assign(42)
 
-	if err != ErrTaskAlreadyCompleted {
+	if !errors.Is(err, ErrTaskAlreadyCompleted) {
 		t.Errorf("expected error %v, got %v", ErrTaskAlreadyCompleted, err)
 	}
 }
 
-func TestTask_Assign_Cancelled(t *testing.T) {
+func TestTask_Assign_Canceled(t *testing.T) {
 	task := NewTask("Task", 1)
 	task.Status = domain.TaskStatusCancelled
 
 	err := task.Assign(42)
 
-	if err != ErrTaskCancelled {
+	if !errors.Is(err, ErrTaskCancelled) {
 		t.Errorf("expected error %v, got %v", ErrTaskCancelled, err)
 	}
 }
@@ -113,7 +114,7 @@ func TestTask_StartWork_InvalidStatus(t *testing.T) {
 
 	err := task.StartWork()
 
-	if err != ErrInvalidStatusTransition {
+	if !errors.Is(err, ErrInvalidStatusTransition) {
 		t.Errorf("expected error %v, got %v", ErrInvalidStatusTransition, err)
 	}
 }
@@ -137,7 +138,7 @@ func TestTask_SubmitForReview_InvalidStatus(t *testing.T) {
 
 	err := task.SubmitForReview()
 
-	if err != ErrInvalidStatusTransition {
+	if !errors.Is(err, ErrInvalidStatusTransition) {
 		t.Errorf("expected error %v, got %v", ErrInvalidStatusTransition, err)
 	}
 }
@@ -226,7 +227,7 @@ func TestTask_Reopen_InvalidStatus(t *testing.T) {
 
 	err := task.Reopen()
 
-	if err != ErrInvalidStatusTransition {
+	if !errors.Is(err, ErrInvalidStatusTransition) {
 		t.Errorf("expected error %v, got %v", ErrInvalidStatusTransition, err)
 	}
 }
@@ -247,12 +248,12 @@ func TestTask_SetProgress(t *testing.T) {
 func TestTask_SetProgress_Clamping(t *testing.T) {
 	task := NewTask("Task", 1)
 
-	task.SetProgress(-10)
+	_ = task.SetProgress(-10)
 	if task.Progress != 0 {
 		t.Errorf("expected progress to be clamped to 0, got %d", task.Progress)
 	}
 
-	task.SetProgress(150)
+	_ = task.SetProgress(150)
 	if task.Progress != 100 {
 		t.Errorf("expected progress to be clamped to 100, got %d", task.Progress)
 	}
@@ -310,12 +311,12 @@ func TestTask_IsOverdue(t *testing.T) {
 		t.Error("completed task should not be overdue")
 	}
 
-	// Cancelled task with past due date
+	// Canceled task with past due date
 	task5 := NewTask("Task", 1)
 	task5.DueDate = &pastDue
 	task5.Status = domain.TaskStatusCancelled
 	if task5.IsOverdue() {
-		t.Error("cancelled task should not be overdue")
+		t.Error("canceled task should not be overdue")
 	}
 }
 
@@ -331,7 +332,7 @@ func TestTask_CanEdit(t *testing.T) {
 		{"review can edit", domain.TaskStatusReview, true},
 		{"deferred can edit", domain.TaskStatusDeferred, true},
 		{"completed cannot edit", domain.TaskStatusCompleted, false},
-		{"cancelled cannot edit", domain.TaskStatusCancelled, false},
+		{"canceled cannot edit", domain.TaskStatusCancelled, false},
 	}
 
 	for _, tt := range tests {
