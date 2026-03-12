@@ -353,9 +353,10 @@ jobs:
       - name: Test backup image
         run: |
           # Run the container and verify tools are installed
-          docker run --rm backup-service:test which age
-          docker run --rm backup-service:test which gpg
-          docker run --rm backup-service:test which mc
-          docker run --rm backup-service:test which pg_dump
-          docker run --rm backup-service:test which jq
+          # Override entrypoint since default starts cron daemon
+          docker run --rm --entrypoint which backup-service:test age
+          docker run --rm --entrypoint which backup-service:test gpg
+          docker run --rm --entrypoint which backup-service:test mc
+          docker run --rm --entrypoint which backup-service:test pg_dump
+          docker run --rm --entrypoint which backup-service:test jq
           echo "✅ All required tools are installed in the backup image"
