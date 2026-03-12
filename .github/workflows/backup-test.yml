@@ -81,8 +81,10 @@ jobs:
           sudo mv /tmp/age/age-keygen /usr/local/bin/age-keygen
           chmod +x /usr/local/bin/age /usr/local/bin/age-keygen
 
-          # Install jq
-          sudo apt-get update && sudo apt-get install -y jq
+          # Install PostgreSQL 17 client (runner has v16, but service runs v17)
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update && sudo apt-get install -y jq postgresql-client-17
 
       - name: Setup test data in PostgreSQL
         run: |
