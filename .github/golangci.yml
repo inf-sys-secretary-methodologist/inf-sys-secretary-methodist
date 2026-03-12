@@ -70,6 +70,21 @@ linters:
     nestif:
       min-complexity: 4
 
+  exclusions:
+    rules:
+      # Exclude some linters from running on test files
+      - path: _test\.go
+        linters:
+          - gocyclo
+          - errcheck
+          - gosec
+          - mnd
+
+      # Exclude shadowing check for err variable
+      - text: 'shadow: declaration of "err"'
+        linters:
+          - govet
+
 formatters:
   enable:
     - gofmt         # Форматирование кода
@@ -80,22 +95,5 @@ formatters:
       simplify: true
 
     goimports:
-      local-prefixes: github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist
-
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
-
-  exclude-rules:
-    # Exclude some linters from running on tests files
-    - path: _test\.go
-      linters:
-        - gocyclo
-        - errcheck
-        - gosec
-        - mnd
-
-    # Exclude shadowing check for err variable
-    - linters:
-        - govet
-      text: 'shadow: declaration of "err"'
+      local-prefixes:
+        - github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist
