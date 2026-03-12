@@ -3,15 +3,19 @@ package usecases
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/ports"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -24,6 +28,11 @@ type DocumentProvider interface {
 	GetDocumentContent(ctx context.Context, documentID int64) (string, string, error) // returns content, title, error
 }
 
+const (
+	embeddingCachePrefix = "ai:embedding:query:"
+	embeddingCacheTTL    = 24 * time.Hour
+)
+
 // EmbeddingUseCase handles document embedding and search operations
 type EmbeddingUseCase struct {
 	embeddingRepo     repositories.EmbeddingRepository
@@ -31,6 +40,7 @@ type EmbeddingUseCase struct {
 	documentProvider  DocumentProvider
 	chunkingService   *services.ChunkingService
 	auditLogger       *logging.AuditLogger
+	cache             *cache.RedisCache
 	embeddingModel    string
 }
 
@@ -58,6 +68,46 @@ func NewEmbeddingUseCase(
 		auditLogger:       auditLogger,
 		embeddingModel:    embeddingModel,
 	}
+}
+
+// SetCache sets the Redis cache for query embedding caching
+func (uc *EmbeddingUseCase) SetCache(c *cache.RedisCache) {
+	uc.cache = c
+}
+
+// queryEmbeddingCacheKey returns a deterministic cache key for a query string and model.
+func queryEmbeddingCacheKey(query, model string) string {
+	h := sha256.Sum256([]byte(query))
+	return fmt.Sprintf("%s%s:%x", embeddingCachePrefix, model, h[:16])
+}
+
+// cachedQueryEmbedding tries to get query embedding from cache, falling back to the provider.
+func (uc *EmbeddingUseCase) cachedQueryEmbedding(ctx context.Context, query string) ([]float32, error) {
+	cacheKey := queryEmbeddingCacheKey(query, uc.embeddingModel)
+
+	// Try cache
+	if uc.cache != nil {
+		var cached []float32
+		found, err := uc.cache.Get(ctx, cacheKey, &cached)
+		if err == nil && found && len(cached) > 0 {
+			return cached, nil
+		}
+	}
+
+	// Generate via provider
+	embedding, err := uc.embeddingProvider.GenerateQueryEmbedding(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store in cache
+	if uc.cache != nil {
+		if err := uc.cache.Set(ctx, cacheKey, embedding, embeddingCacheTTL); err != nil {
+			slog.Warn("failed to cache query embedding", "error", err)
+		}
+	}
+
+	return embedding, nil
 }
 
 // IndexDocument indexes a document by chunking and generating embeddings
@@ -193,8 +243,8 @@ func (uc *EmbeddingUseCase) SearchSimilar(ctx context.Context, query string, lim
 		threshold = 0.7
 	}
 
-	// Generate embedding for query (using RETRIEVAL_QUERY task type for Gemini)
-	embedding, err := uc.embeddingProvider.GenerateQueryEmbedding(ctx, query)
+	// Generate embedding for query (cached to avoid redundant API calls)
+	embedding, err := uc.cachedQueryEmbedding(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate query embedding: %w", err)
 	}
@@ -327,8 +377,8 @@ func (uc *EmbeddingUseCase) Search(ctx context.Context, req *dto.SearchRequest) 
 		threshold = 0.7
 	}
 
-	// Generate embedding for query (using RETRIEVAL_QUERY task type for Gemini)
-	embedding, err := uc.embeddingProvider.GenerateQueryEmbedding(ctx, req.Query)
+	// Generate embedding for query (cached to avoid redundant API calls)
+	embedding, err := uc.cachedQueryEmbedding(ctx, req.Query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate query embedding: %w", err)
 	}

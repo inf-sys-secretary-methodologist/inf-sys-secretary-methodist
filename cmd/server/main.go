@@ -67,6 +67,17 @@ import (
 
 	_ "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/docs/swagger"
 
+	aiServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
+	aiUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
+	aiAdapters "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/adapters"
+	aiPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/persistence"
+	aiPrompts "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/prompts"
+	aiProviders "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/providers"
+	aiScheduler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/scheduler"
+	aiHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/interfaces/http/handlers"
+	analyticsUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/usecases"
+	analyticsPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/infrastructure/persistence"
+	analyticsHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/interfaces/http/handlers"
 	announcementUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
 	announcementPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/infrastructure/persistence"
 	announcementHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/handlers"
@@ -78,9 +89,6 @@ import (
 	dashboardUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/application/usecases"
 	dashboardPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/infrastructure/persistence"
 	dashboardHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/interfaces/http/handlers"
-	analyticsUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/usecases"
-	analyticsPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/infrastructure/persistence"
-	analyticsHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/interfaces/http/handlers"
 	docUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	docPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/infrastructure/persistence"
 	docHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
@@ -88,6 +96,11 @@ import (
 	filesPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/infrastructure/persistence"
 	filesHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/interfaces/http/handlers"
 	integration "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration"
+	messagingServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/services"
+	messagingUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/usecases"
+	messagingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/persistence"
+	messagingWebsocket "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
+	messagingHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http"
 	notifServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	notifRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
@@ -110,19 +123,6 @@ import (
 	usersRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	usersPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/infrastructure/persistence"
 	usersHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/handlers"
-	messagingServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/services"
-	messagingUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/usecases"
-	messagingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/persistence"
-	messagingWebsocket "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
-	messagingHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http"
-	aiServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
-	aiUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
-	aiAdapters "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/adapters"
-	aiPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/persistence"
-	aiPrompts "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/prompts"
-	aiProviders "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/providers"
-	aiScheduler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/infrastructure/scheduler"
-	aiHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/interfaces/http/handlers"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -577,10 +577,10 @@ func main() {
 		var embeddingProvider aiUsecases.EmbeddingProvider
 		if cfg.AI.EmbeddingProvider == "gemini" {
 			embeddingProvider = aiProviders.NewGeminiEmbeddingProvider(aiProviders.GeminiEmbeddingConfig{
-				APIKey:              cfg.AI.EmbeddingAPIKey,
-				Model:               cfg.AI.EmbeddingModel,
+				APIKey:               cfg.AI.EmbeddingAPIKey,
+				Model:                cfg.AI.EmbeddingModel,
 				OutputDimensionality: cfg.AI.EmbeddingDimensionality,
-				Timeout:             cfg.AI.Timeout,
+				Timeout:              cfg.AI.Timeout,
 			})
 		} else {
 			embeddingProvider = aiProviders.NewOpenAIProvider(aiProviders.OpenAIConfig{
@@ -606,10 +606,10 @@ func main() {
 			var fallbackEmbedding aiUsecases.EmbeddingProvider
 			if cfg.AI.FallbackEmbeddingProvider == "gemini" {
 				fallbackEmbedding = aiProviders.NewGeminiEmbeddingProvider(aiProviders.GeminiEmbeddingConfig{
-					APIKey:              cfg.AI.FallbackEmbeddingAPIKey,
-					Model:               cfg.AI.FallbackEmbeddingModel,
+					APIKey:               cfg.AI.FallbackEmbeddingAPIKey,
+					Model:                cfg.AI.FallbackEmbeddingModel,
 					OutputDimensionality: fallbackDim,
-					Timeout:             cfg.AI.Timeout,
+					Timeout:              cfg.AI.Timeout,
 				})
 			} else {
 				fallbackEmbedding = aiProviders.NewOpenAIProvider(aiProviders.OpenAIConfig{
@@ -710,6 +710,9 @@ func main() {
 				OverlapRatio: float64(chunkOverlap) / float64(chunkSize),
 			},
 		)
+		if redisCache != nil {
+			aiEmbeddingUseCase.SetCache(redisCache)
+		}
 
 		// Initialize Metodych personality (prompt provider)
 		promptProvider := aiPrompts.NewPromptProvider()
