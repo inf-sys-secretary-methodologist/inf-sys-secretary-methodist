@@ -24,7 +24,7 @@ open http://localhost:5678
 
 ### Первый вход
 
-1. Откройте http://localhost:5678
+1. Откройте <http://localhost:5678>
 2. Войдите: `admin` / `<N8N_PASSWORD из .env>`
 3. Создайте первый workflow
 

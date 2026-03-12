@@ -1856,4 +1856,3 @@ func NewDatabaseConnection(config DatabaseConfig) (*sql.DB, error) {
 **Последнее обновление**: 2025-01-15  
 **Версия проекта**: 0.2.0  
 **Статус**: Актуальный
-

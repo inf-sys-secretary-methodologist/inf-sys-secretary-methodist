@@ -298,4 +298,3 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
 **Последнее обновление**: 2026-02-09
 **Версия проекта**: 0.3.3
 **Статус**: Актуальный
-

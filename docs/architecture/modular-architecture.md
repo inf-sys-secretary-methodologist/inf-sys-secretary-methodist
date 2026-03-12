@@ -1048,4 +1048,3 @@ func SecurityMiddleware(next http.Handler) http.Handler {
 **Последнее обновление**: 2026-02-05
 **Версия проекта**: 0.3.3
 **Статус**: Актуальный
-

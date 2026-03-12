@@ -13,8 +13,8 @@
 
 ### 1. Получить Composio API Key
 
-1. Откройте https://platform.composio.dev/
-2. Войдите в свой workspace: `daniilvdovin4_workspace/daniilvdovin4_workspace_first_project`
+1. Откройте <https://platform.composio.dev/>
+1. Войдите в свой workspace: `daniilvdovin4_workspace/daniilvdovin4_workspace_first_project`
 3. Перейдите в **Settings** → **API Keys**
 4. Скопируйте API key (он начинается с `ak_`)
 
@@ -32,7 +32,7 @@ COMPOSIO_MCP_CONFIG_ID=8c55f91a-6c5f-4cbb-8691-b497005abf29
 
 Перед отправкой писем нужно подключить Gmail аккаунт через OAuth:
 
-1. Откройте https://platform.composio.dev/daniilvdovin4_workspace/daniilvdovin4_workspace_first_project/auth-configs
+1. Откройте <https://platform.composio.dev/daniilvdovin4_workspace/daniilvdovin4_workspace_first_project/auth-configs>
 2. Найдите созданный **Gmail Auth Config** (mcp_gmail-hwnmvk)
 3. Кликните **Connect Account**
 4. Пройдите процесс OAuth авторизации с вашим Gmail аккаунтом
@@ -137,14 +137,14 @@ protectedGroup.POST("/notifications/send-email", emailHandler.SendEmail)
 protectedGroup.POST("/notifications/send-welcome", emailHandler.SendWelcomeEmail)
 ```
 
-2. Пересобрать Docker образ:
+1. Пересобрать Docker образ:
 ```bash
 docker build -t inf-sys-secretary-methodist-backend:latest .
 docker-compose down
 docker-compose up -d
 ```
 
-3. Протестировать отправку email через API
+1. Протестировать отправку email через API
 
 ## Troubleshooting
 
@@ -157,7 +157,7 @@ docker-compose up -d
 - Убедитесь что API key не истёк
 
 ### Ошибка: "failed to send email"
-- Проверьте логи Composio: https://platform.composio.dev/.../logs
+- Проверьте логи Composio: <https://platform.composio.dev/.../logs>
 - Убедитесь что Gmail Auth Config активен
 
 ## Полезные ссылки

@@ -700,16 +700,16 @@ services:
 
 ## 13. Источники
 
-1. Snegirev, D., et al. "The Russian-focused embedders' exploration: ruMTEB benchmark and Russian embedding model design." *NAACL 2025*. — https://aclanthology.org/2025.naacl-long.12/
-2. Xiao, S., et al. "BGE M3-Embedding: Multi-Lingual, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation." *arXiv:2402.03216*, 2024. — https://github.com/FlagOpen/FlagEmbedding
-3. Qwen Team. "Qwen3: Think Deeper, Act Faster." Alibaba Cloud, 2025. — https://qwenlm.github.io/blog/qwen3/
-4. Chen, T., Guestrin, C. "XGBoost: A Scalable Tree Boosting System." *KDD 2016*. — https://github.com/dmlc/xgboost
-5. Kuratov, Y., Arkhipov, M. "Adaptation of Deep Bidirectional Multilingual Transformers for Russian Language." *arXiv:1905.07213*, 2019. — https://huggingface.co/DeepPavlov/rubert-base-cased
-6. Google OR-Tools Team. "OR-Tools: Operations Research Tools." — https://developers.google.com/optimization
-7. Anthropic. "Claude API Documentation." — https://docs.anthropic.com
-8. `dmitryikh/leaves` — pure Go GBRT prediction. — https://github.com/dmitryikh/leaves
-9. `cointegrated/rubert-tiny2` — compact Russian BERT. — https://huggingface.co/cointegrated/rubert-tiny2
-10. `ai-forever/ru-en-RoSBERTa` — bilingual Russian-English embedding model. — https://huggingface.co/ai-forever/ru-en-RoSBERTa
+1. Snegirev, D., et al. "The Russian-focused embedders' exploration: ruMTEB benchmark and Russian embedding model design." *NAACL 2025*. — <https://aclanthology.org/2025.naacl-long.12/>
+1. Xiao, S., et al. "BGE M3-Embedding: Multi-Lingual, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation." *arXiv:2402.03216*, 2024. — <https://github.com/FlagOpen/FlagEmbedding>
+1. Qwen Team. "Qwen3: Think Deeper, Act Faster." Alibaba Cloud, 2025. — <https://qwenlm.github.io/blog/qwen3/>
+1. Chen, T., Guestrin, C. "XGBoost: A Scalable Tree Boosting System." *KDD 2016*. — <https://github.com/dmlc/xgboost>
+1. Kuratov, Y., Arkhipov, M. "Adaptation of Deep Bidirectional Multilingual Transformers for Russian Language." *arXiv:1905.07213*, 2019. — <https://huggingface.co/DeepPavlov/rubert-base-cased>
+1. Google OR-Tools Team. "OR-Tools: Operations Research Tools." — <https://developers.google.com/optimization>
+1. Anthropic. "Claude API Documentation." — <https://docs.anthropic.com>
+1. `dmitryikh/leaves` — pure Go GBRT prediction. — <https://github.com/dmitryikh/leaves>
+1. `cointegrated/rubert-tiny2` — compact Russian BERT. — <https://huggingface.co/cointegrated/rubert-tiny2>
+1. `ai-forever/ru-en-RoSBERTa` — bilingual Russian-English embedding model. — <https://huggingface.co/ai-forever/ru-en-RoSBERTa>
 
 ---
 

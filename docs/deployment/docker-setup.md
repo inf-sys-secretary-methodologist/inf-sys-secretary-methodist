@@ -280,10 +280,10 @@ docker compose -f compose.yml -f compose.monitoring.yml up -d
 ```
 
 ### Доступные дашборды:
-- **Grafana**: http://localhost:3001 (admin/admin)
-- **Prometheus**: http://localhost:9090
-- **Loki**: http://localhost:3100
-- **Uptime Kuma**: http://localhost:3002
+- **Grafana**: <http://localhost:3001> (admin/admin)
+- **Prometheus**: <http://localhost:9090>
+- **Loki**: <http://localhost:3100>
+- **Uptime Kuma**: <http://localhost:3002>
 
 ### Grafana Alerting:
 Настроены алерты с уведомлениями в Telegram:

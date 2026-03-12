@@ -1372,7 +1372,7 @@ kafkaProducer.WriteMessages(ctx, kafka.Message{
 })
 ```
 
-2. **Database: shared → per-service**
+1. **Database: shared → per-service**
 
 ```go
 // Было (один PostgreSQL)
@@ -1386,7 +1386,7 @@ docsDB := sql.Open("postgres", "host=docs-db port=5432 dbname=documents")
 workflowDB := sql.Open("postgres", "host=workflow-db port=5432 dbname=workflow")
 ```
 
-3. **Synchronous calls → API calls**
+1. **Synchronous calls → API calls**
 
 ```go
 // Было (прямой вызов)

@@ -1050,4 +1050,3 @@ func (gw *APIGateway) callDocumentService(req *http.Request) (*http.Response, er
 **Последнее обновление**: 2025-01-15  
 **Версия проекта**: 0.2.0  
 **Статус**: Актуальный
-

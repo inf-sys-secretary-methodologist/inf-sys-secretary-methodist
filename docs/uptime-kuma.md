@@ -16,8 +16,8 @@ docker compose logs -f uptime-kuma
 
 | Среда | URL |
 |-------|-----|
-| Локально | http://localhost:3002 |
-| Production | https://status.5-129-253-112.sslip.io |
+| Локально | <http://localhost:3002> |
+| Production | <https://status.5-129-253-112.sslip.io> |
 
 ## Настройка Caddy (на сервере)
 
@@ -47,7 +47,7 @@ sudo systemctl reload caddy
 
 ### 1. Создание аккаунта
 
-1. Открыть https://status.5-129-253-112.sslip.io (или http://localhost:3002 локально)
+1. Открыть <https://status.5-129-253-112.sslip.io> (или <http://localhost:3002> локально)
 2. Создать admin аккаунт:
    - Username: `admin`
    - Password: (сгенерировать надёжный пароль)
