@@ -11,6 +11,7 @@
   "proper-names": false,
   "blanks-around-tables": false,
   "table-column-count": false,
+  "table-column-style": false,
   "link-fragments": false,
   "no-trailing-spaces": false,
   "no-hard-tabs": false,
