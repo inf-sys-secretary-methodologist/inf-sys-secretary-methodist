@@ -176,7 +176,7 @@ func (uc *ChatUseCase) Chat(ctx context.Context, userID int64, req *dto.SendMess
 			Content:        "Извините, произошла ошибка при обработке вашего запроса.",
 			ErrorMessage:   &errMsg,
 		}
-		uc.messageRepo.Create(ctx, assistantMessage)
+		_ = uc.messageRepo.Create(ctx, assistantMessage) // best-effort error message save
 		return nil, fmt.Errorf("failed to generate response: %w", err)
 	}
 
@@ -321,7 +321,7 @@ func (uc *ChatUseCase) ChatStream(ctx context.Context, userID int64, req *dto.Se
 			Content:        "Извините, произошла ошибка при обработке вашего запроса.",
 			ErrorMessage:   &errMsg,
 		}
-		uc.messageRepo.Create(ctx, assistantMessage)
+		_ = uc.messageRepo.Create(ctx, assistantMessage) // best-effort error message save
 		return nil, fmt.Errorf("failed to generate response: %w", err)
 	}
 

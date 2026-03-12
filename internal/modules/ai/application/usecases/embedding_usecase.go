@@ -140,7 +140,7 @@ func (uc *EmbeddingUseCase) IndexDocument(ctx context.Context, documentID int64,
 		errMsg := err.Error()
 		indexStatus.Status = entities.IndexStatusFailed
 		indexStatus.ErrorMessage = &errMsg
-		uc.embeddingRepo.SetIndexStatus(ctx, indexStatus)
+		_ = uc.embeddingRepo.SetIndexStatus(ctx, indexStatus) // best-effort status update
 		return nil, fmt.Errorf("failed to get document content: %w", err)
 	}
 
@@ -170,7 +170,7 @@ func (uc *EmbeddingUseCase) IndexDocument(ctx context.Context, documentID int64,
 		errMsg := err.Error()
 		indexStatus.Status = entities.IndexStatusFailed
 		indexStatus.ErrorMessage = &errMsg
-		uc.embeddingRepo.SetIndexStatus(ctx, indexStatus)
+		_ = uc.embeddingRepo.SetIndexStatus(ctx, indexStatus) // best-effort status update
 		return nil, fmt.Errorf("failed to create chunks: %w", err)
 	}
 
@@ -192,7 +192,7 @@ func (uc *EmbeddingUseCase) IndexDocument(ctx context.Context, documentID int64,
 		errMsg := err.Error()
 		indexStatus.Status = entities.IndexStatusFailed
 		indexStatus.ErrorMessage = &errMsg
-		uc.embeddingRepo.SetIndexStatus(ctx, indexStatus)
+		_ = uc.embeddingRepo.SetIndexStatus(ctx, indexStatus) // best-effort status update
 		return nil, fmt.Errorf("failed to generate embeddings: %w", err)
 	}
 
@@ -206,7 +206,7 @@ func (uc *EmbeddingUseCase) IndexDocument(ctx context.Context, documentID int64,
 		errMsg := err.Error()
 		indexStatus.Status = entities.IndexStatusFailed
 		indexStatus.ErrorMessage = &errMsg
-		uc.embeddingRepo.SetIndexStatus(ctx, indexStatus)
+		_ = uc.embeddingRepo.SetIndexStatus(ctx, indexStatus) // best-effort status update
 		return nil, fmt.Errorf("failed to create embeddings: %w", err)
 	}
 
