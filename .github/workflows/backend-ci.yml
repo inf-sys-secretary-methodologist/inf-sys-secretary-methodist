@@ -9,7 +9,7 @@ on:
       - 'pkg/**'
       - 'go.mod'
       - 'go.sum'
-      - '.github/workflows/golangci.yml'
+      - '.github/golangci.yml'
       - '.github/workflows/backend-ci.yml'
   pull_request:
     branches: [ main, develop ]
@@ -19,7 +19,7 @@ on:
       - 'pkg/**'
       - 'go.mod'
       - 'go.sum'
-      - '.github/workflows/golangci.yml'
+      - '.github/golangci.yml'
       - '.github/workflows/backend-ci.yml'
 
 env:
@@ -58,7 +58,7 @@ jobs:
       uses: golangci/golangci-lint-action@v9
       with:
         version: ${{ env.GOLANGCI_LINT_VERSION }}
-        args: --timeout=5m --config=.github/workflows/golangci.yml
+        args: --timeout=5m --config=.github/golangci.yml
 
   # Юнит-тесты
   test:

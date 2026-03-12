@@ -1,11 +1,8 @@
-version: 2
+version: "2"
 
 run:
   timeout: 5m
   tests: true
-
-output:
-  format: colored-line-number
 
 linters:
   enable:
@@ -27,58 +24,68 @@ linters:
     - unconvert     # Лишние конвертации типов
     - whitespace    # Лишние пробелы
 
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+
+    govet:
+      enable:
+        - atomic
+        - bools
+        - buildtag
+        - nilfunc
+        - printf
+
+    gocyclo:
+      min-complexity: 15
+
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+
+    mnd:
+      ignored-functions:
+        - 'time.Second'
+        - 'time.Minute'
+        - 'time.Hour'
+
+    misspell:
+      locale: US
+
+    revive:
+      rules:
+        - name: exported
+          severity: warning
+          disabled: false
+        - name: indent-error-flow
+          severity: warning
+        - name: var-naming
+          severity: warning
+
+    gosec:
+      excludes:
+        - G104  # Errors unhandled (covered by errcheck)
+
+    nestif:
+      min-complexity: 4
+
 formatters:
   enable:
     - gofmt         # Форматирование кода
     - goimports     # Сортировка импортов
 
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
+  settings:
+    gofmt:
+      simplify: true
 
-  govet:
-    enable:
-      - atomic
-      - bools
-      - buildtag
-      - nilfunc
-      - printf
-
-  gocyclo:
-    min-complexity: 15
-
-  goconst:
-    min-len: 3
-    min-occurrences: 3
-
-  mnd:
-    ignored-functions:
-      - 'time.Second'
-      - 'time.Minute'
-      - 'time.Hour'
-
-  misspell:
-    locale: US
-
-  revive:
-    rules:
-      - name: exported
-        severity: warning
-        disabled: false
-      - name: indent-error-flow
-        severity: warning
-      - name: var-naming
-        severity: warning
-
-  gosec:
-    excludes:
-      - G104  # Errors unhandled (covered by errcheck)
-
-  nestif:
-    min-complexity: 4
+    goimports:
+      local-prefixes: github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist
 
 issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
   exclude-rules:
     # Exclude some linters from running on tests files
     - path: _test\.go
@@ -92,13 +99,3 @@ issues:
     - linters:
         - govet
       text: 'shadow: declaration of "err"'
-
-  max-issues-per-linter: 0
-  max-same-issues: 0
-
-formatters-settings:
-  gofmt:
-    simplify: true
-
-  goimports:
-    local-prefixes: github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist
