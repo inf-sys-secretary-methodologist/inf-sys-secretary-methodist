@@ -49,7 +49,7 @@ func WorkdayScenario() *Scenario {
 				Delay: 60 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					docTypes := []string{"memo", "order", "protocol"}
-					docType := docTypes[rand.Intn(len(docTypes))]
+					docType := docTypes[rand.Intn(len(docTypes))] // #nosec G404 -- weak RNG is fine for random scenario selection
 
 					title := gen.DocumentTitle(docType, "рабочий день")
 					body := gen.DocumentContent(docType, title, "рабочий день")
@@ -57,7 +57,7 @@ func WorkdayScenario() *Scenario {
 					types, _ := c.GetDocumentTypes(ctx, a)
 					typeID := int64(1)
 					if len(types) > 0 {
-						typeID = types[rand.Intn(len(types))].ID
+						typeID = types[rand.Intn(len(types))].ID // #nosec G404 -- weak RNG is fine for random type selection
 					}
 
 					doc, err := c.CreateDocument(ctx, a, api.CreateDocumentRequest{

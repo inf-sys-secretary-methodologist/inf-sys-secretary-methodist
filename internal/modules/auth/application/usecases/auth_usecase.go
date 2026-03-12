@@ -227,7 +227,7 @@ func (u *AuthUseCase) Register(ctx context.Context, input dto.RegisterInput) err
 
 	// Send welcome notification
 	if u.notificationUseCase != nil {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			_ = u.notificationUseCase.SendSystemNotification(
 				context.Background(),
 				user.ID,

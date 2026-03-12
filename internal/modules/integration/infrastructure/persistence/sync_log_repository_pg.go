@@ -318,7 +318,7 @@ func (r *SyncLogRepositoryPg) GetStats(ctx context.Context, entityType *entities
 			COALESCE(SUM(total_records), 0) as total_records,
 			COALESCE(SUM(conflict_count), 0) as total_conflicts,
 			COALESCE(MAX(started_at), NOW()) as last_sync_at
-		FROM sync_logs %s`, whereClause)
+		FROM sync_logs %s`, whereClause) // #nosec G201 -- dynamic WHERE clause from code logic, not user input
 
 	var stats entities.SyncStats
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(

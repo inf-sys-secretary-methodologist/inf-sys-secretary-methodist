@@ -149,7 +149,7 @@ func (h *AIHandler) ChatStream(c *gin.Context) {
 
 	// Extend write deadline for long-running LLM requests
 	rc := http.NewResponseController(c.Writer)
-	rc.SetWriteDeadline(time.Now().Add(5 * time.Minute))
+	_ = rc.SetWriteDeadline(time.Now().Add(5 * time.Minute))
 
 	// Set SSE headers
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
@@ -453,7 +453,7 @@ func (h *AIHandler) IndexDocument(c *gin.Context) {
 	}
 
 	var req dto.IndexDocumentRequest
-	c.ShouldBindJSON(&req) // Ignore error, use defaults
+	_ = c.ShouldBindJSON(&req) // Ignore error, use defaults
 	req.DocumentID = documentID
 
 	response, err := h.embeddingUseCase.IndexDocument(c.Request.Context(), documentID, req.ForceReindex)

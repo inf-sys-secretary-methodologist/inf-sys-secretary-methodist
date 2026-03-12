@@ -123,7 +123,7 @@ func (c *Client) doRequest(ctx context.Context, method, url string, body io.Read
 
 		// Retry on server errors
 		if resp.StatusCode >= 500 {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			lastErr = fmt.Errorf("server error: %d", resp.StatusCode)
 			continue
 		}

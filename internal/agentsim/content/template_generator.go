@@ -16,7 +16,7 @@ type TemplateGenerator struct {
 // NewTemplateGenerator creates a template-based content generator.
 func NewTemplateGenerator() *TemplateGenerator {
 	return &TemplateGenerator{
-		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng: rand.New(rand.NewSource(time.Now().UnixNano())), // #nosec G404 -- weak RNG is fine for random content generation
 	}
 }
 

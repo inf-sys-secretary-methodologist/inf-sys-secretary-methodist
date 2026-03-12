@@ -105,7 +105,7 @@ func (p *PromptProvider) GetGreeting(timeOfDay string) string {
 	if !ok {
 		greetings = Greetings["morning"]
 	}
-	return greetings[rand.Intn(len(greetings))]
+	return greetings[rand.Intn(len(greetings))] // #nosec G404 -- weak RNG is fine for random greeting selection
 }
 
 // GetMoodComment returns a comment based on the current mood.
@@ -114,7 +114,7 @@ func (p *PromptProvider) GetMoodComment(mood entities.MoodContext) string {
 	if !ok {
 		comments = MoodComments[entities.MoodContent]
 	}
-	return comments[rand.Intn(len(comments))]
+	return comments[rand.Intn(len(comments))] // #nosec G404 -- weak RNG is fine for random mood comment selection
 }
 
 // notificationData holds template data for notification formatting.

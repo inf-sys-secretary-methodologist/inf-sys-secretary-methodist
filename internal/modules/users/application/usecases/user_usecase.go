@@ -165,7 +165,7 @@ func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *
 
 	// Notify user about role change
 	if uc.notificationUseCase != nil {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			_ = uc.notificationUseCase.SendSystemNotification(
 				context.Background(),
 				userID,
@@ -211,7 +211,7 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, userID int64, input
 
 	// Notify user about status change
 	if uc.notificationUseCase != nil {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			statusNames := map[string]string{
 				"active":   "активен",
 				"inactive": "неактивен",

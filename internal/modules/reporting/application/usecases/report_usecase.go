@@ -332,7 +332,7 @@ func (uc *ReportUseCase) Generate(ctx context.Context, id, userID int64, input *
 
 	// Report generation runs asynchronously.
 	// Currently uses simulation; replace with actual generation when report templates are ready.
-	go uc.simulateGeneration(context.Background(), report, genLog, userID)
+	go uc.simulateGeneration(context.Background(), report, genLog, userID) // #nosec G118 -- fire-and-forget goroutine outlives request
 
 	uc.logAudit(ctx, "generate_report", userID, report.ID, nil)
 
@@ -484,7 +484,7 @@ func (uc *ReportUseCase) Publish(ctx context.Context, id, userID int64, input *d
 
 	// Notify users with access about report publication
 	if uc.notificationUseCase != nil {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			accesses, err := uc.reportRepo.GetAccessByReport(context.Background(), report.ID)
 			if err == nil {
 				for _, access := range accesses {

@@ -212,7 +212,7 @@ func (r *PreferencesRepositoryPG) UpdateChannelEnabled(ctx context.Context, user
 		return fmt.Errorf("unknown channel: %s", channel)
 	}
 
-	query := fmt.Sprintf(`UPDATE notification_preferences SET %s = $2, updated_at = NOW() WHERE user_id = $1`, columnName)
+	query := fmt.Sprintf(`UPDATE notification_preferences SET %s = $2, updated_at = NOW() WHERE user_id = $1`, columnName) // #nosec G201 -- column name from switch/case, not user input
 	result, err := r.db.ExecContext(ctx, query, userID, enabled)
 	if err != nil {
 		return fmt.Errorf("failed to update channel enabled: %w", err)

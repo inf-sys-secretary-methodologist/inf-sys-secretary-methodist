@@ -213,7 +213,7 @@ func (b *DynamicQueryBuilder) Execute(ctx context.Context, report *entities.Cust
 	}
 
 	// Build count query
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", fromClause)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", fromClause) // #nosec G201 -- dynamic column/table names from code, not user input
 	if len(whereClauses) > 0 {
 		countQuery += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
@@ -225,7 +225,7 @@ func (b *DynamicQueryBuilder) Execute(ctx context.Context, report *entities.Cust
 	}
 
 	// Build main query
-	query := fmt.Sprintf("SELECT %s FROM %s", strings.Join(selectCols, ", "), fromClause)
+	query := fmt.Sprintf("SELECT %s FROM %s", strings.Join(selectCols, ", "), fromClause) // #nosec G201 -- dynamic column/table names from code, not user input
 	if len(whereClauses) > 0 {
 		query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}

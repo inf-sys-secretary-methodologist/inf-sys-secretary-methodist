@@ -156,7 +156,7 @@ func (uc *EmbeddingUseCase) IndexDocument(ctx context.Context, documentID int64,
 	if len(chunks) == 0 {
 		indexStatus.Status = entities.IndexStatusIndexed
 		indexStatus.ChunksCount = 0
-		uc.embeddingRepo.SetIndexStatus(ctx, indexStatus)
+		_ = uc.embeddingRepo.SetIndexStatus(ctx, indexStatus)
 		return &dto.IndexDocumentResponse{
 			DocumentID:    documentID,
 			ChunksCreated: 0,

@@ -113,7 +113,7 @@ func (uc *SharingUseCase) ShareDocument(ctx context.Context, input dto.ShareDocu
 
 	// Send notification to the user about shared document
 	if uc.notificationUseCase != nil && input.UserID != nil {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			link := fmt.Sprintf("/documents/%d", input.DocumentID)
 			_ = uc.notificationUseCase.SendDocumentNotification(
 				context.Background(),

@@ -319,7 +319,7 @@ func (uc *AnnouncementUseCase) Publish(ctx context.Context, userID int64, id int
 
 	// Send broadcast notification to all users
 	if uc.notificationUseCase != nil && uc.userIDsProvider != nil {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			userIDs, err := uc.userIDsProvider.GetActiveUserIDs(context.Background())
 			if err != nil {
 				return

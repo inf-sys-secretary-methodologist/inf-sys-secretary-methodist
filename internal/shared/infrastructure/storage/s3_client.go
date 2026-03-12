@@ -119,7 +119,7 @@ func (s *S3Client) Download(ctx context.Context, key string) (io.ReadCloser, *Fi
 
 	stat, err := obj.Stat()
 	if err != nil {
-		obj.Close()
+		_ = obj.Close()
 		return nil, nil, fmt.Errorf("failed to get object stat: %w", err)
 	}
 

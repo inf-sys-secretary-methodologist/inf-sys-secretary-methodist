@@ -420,7 +420,7 @@ func (uc *MessagingUseCase) SendMessage(ctx context.Context, userID, conversatio
 	// Send notifications to participants who are not online in the conversation
 	// Use background context because HTTP request context may be cancelled by the time goroutine runs
 	if uc.notifier != nil {
-		go uc.notifyParticipants(context.Background(), conversationID, userID, msg)
+		go uc.notifyParticipants(context.Background(), conversationID, userID, msg) // #nosec G118 -- fire-and-forget goroutine outlives request
 	}
 
 	uc.logger.Debug("message sent", map[string]any{

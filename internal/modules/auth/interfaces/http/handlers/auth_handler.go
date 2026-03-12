@@ -66,7 +66,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	// Send welcome email if email service is available
 	if h.emailService != nil {
 		// Use background context with timeout for async email sending
-		emailCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		emailCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second) // #nosec G118 -- fire-and-forget goroutine outlives request
 		go func() {
 			defer cancel()
 			if err := h.emailService.SendWelcomeEmail(emailCtx, input.Email, input.Name); err != nil {

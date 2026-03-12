@@ -40,7 +40,7 @@ func (h *CustomReportHandler) getUserID(c *gin.Context) (int64, bool) {
 			return int64(intID), true
 		}
 		if uint64ID, ok := userID.(uint64); ok {
-			return int64(uint64ID), true
+			return int64(uint64ID), true // #nosec G115 -- uint64 user IDs in practice never exceed int64 max
 		}
 	}
 	return id, ok

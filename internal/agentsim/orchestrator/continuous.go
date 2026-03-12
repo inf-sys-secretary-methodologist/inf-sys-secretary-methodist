@@ -11,7 +11,7 @@ import (
 
 // RunContinuous runs random scenarios in a loop until the context is cancelled.
 func RunContinuous(ctx context.Context, runner *scenario.Runner, interval time.Duration, logger *agentlog.Logger) error {
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng := rand.New(rand.NewSource(time.Now().UnixNano())) // #nosec G404 -- weak RNG is fine for random scenario scheduling
 
 	names := scenario.AllNames()
 	if len(names) == 0 {

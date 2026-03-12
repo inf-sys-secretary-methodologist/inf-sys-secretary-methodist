@@ -126,7 +126,7 @@ func (uc *SyncUseCase) syncEmployees(ctx context.Context, syncLog *entities.Sync
 	}
 
 	syncLog.SetTotalRecords(len(odataEmployees))
-	uc.syncLogRepo.Update(ctx, syncLog)
+	_ = uc.syncLogRepo.Update(ctx, syncLog)
 
 	// Get existing external IDs
 	existingIDs, err := uc.employeeRepo.GetAllExternalIDs(ctx)
@@ -231,7 +231,7 @@ func (uc *SyncUseCase) syncStudents(ctx context.Context, syncLog *entities.SyncL
 	}
 
 	syncLog.SetTotalRecords(len(odataStudents))
-	uc.syncLogRepo.Update(ctx, syncLog)
+	_ = uc.syncLogRepo.Update(ctx, syncLog)
 
 	// Get existing external IDs
 	existingIDs, err := uc.studentRepo.GetAllExternalIDs(ctx)

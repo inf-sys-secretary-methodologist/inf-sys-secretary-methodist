@@ -150,7 +150,7 @@ func (r *AttendanceRepositoryPG) BulkMarkAttendance(ctx context.Context, records
 			marked_by = EXCLUDED.marked_by,
 			notes = EXCLUDED.notes,
 			updated_at = NOW()`,
-		strings.Join(values, ", "))
+		strings.Join(values, ", ")) // #nosec G201 -- parameterized placeholders, not user input
 
 	_, err := r.db.ExecContext(ctx, query, args...)
 	return err

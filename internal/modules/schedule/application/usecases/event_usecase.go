@@ -81,7 +81,7 @@ func (uc *EventUseCase) Create(ctx context.Context, input dto.CreateEventInput, 
 
 		// Notify participants about new event
 		if uc.notificationUseCase != nil {
-			go func() {
+			go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 				for _, userID := range input.ParticipantIDs {
 					_ = uc.notificationUseCase.SendSystemNotification(
 						context.Background(),
@@ -207,7 +207,7 @@ func (uc *EventUseCase) Update(ctx context.Context, id int64, input dto.UpdateEv
 
 	// Notify participants about event update
 	if uc.notificationUseCase != nil {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			participants, err := uc.participantRepo.GetByEventID(context.Background(), event.ID)
 			if err == nil {
 				for _, p := range participants {
@@ -423,7 +423,7 @@ func (uc *EventUseCase) Cancel(ctx context.Context, id int64, userID int64) (*dt
 
 	// Notify participants about event cancellation
 	if uc.notificationUseCase != nil {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			participants, err := uc.participantRepo.GetByEventID(context.Background(), event.ID)
 			if err == nil {
 				for _, p := range participants {
@@ -513,7 +513,7 @@ func (uc *EventUseCase) AddParticipants(ctx context.Context, eventID int64, inpu
 
 	// Notify added participants
 	if uc.notificationUseCase != nil {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			for _, uid := range input.UserIDs {
 				_ = uc.notificationUseCase.SendSystemNotification(
 					context.Background(),

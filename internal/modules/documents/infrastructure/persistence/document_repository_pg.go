@@ -905,7 +905,7 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 	whereClause := "WHERE " + strings.Join(conditions, " AND ")
 
 	// Count total results
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM documents d %s", whereClause)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM documents d %s", whereClause) // #nosec G201 -- dynamic WHERE from parameterized conditions, not user input
 	var total int64
 	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count search results: %w", err)
@@ -940,7 +940,7 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 		%s
 		ORDER BY rank DESC, d.created_at DESC
 		LIMIT $%d OFFSET $%d`,
-		whereClause, argIndex, argIndex+1)
+		whereClause, argIndex, argIndex+1) // #nosec G201 -- dynamic WHERE from parameterized conditions, not user input
 
 	args = append(args, filter.Limit, filter.Offset)
 

@@ -68,8 +68,8 @@ func (uc *MoodUseCase) GetCurrentMood(ctx context.Context) (*dto.MoodResponse, e
 	if uc.cache != nil {
 		cacheData, _ := json.Marshal(response)
 		var cacheResponse dto.MoodResponse
-		json.Unmarshal(cacheData, &cacheResponse)
-		uc.cache.Set(ctx, moodCacheKey, response, moodCacheTTL)
+		_ = json.Unmarshal(cacheData, &cacheResponse)
+		_ = uc.cache.Set(ctx, moodCacheKey, response, moodCacheTTL)
 	}
 
 	return response, nil

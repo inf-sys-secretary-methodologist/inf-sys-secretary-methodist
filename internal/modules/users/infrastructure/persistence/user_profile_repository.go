@@ -173,7 +173,7 @@ func (r *UserProfileRepositoryPG) ListUsersWithOrg(ctx context.Context, filter *
 		query += " WHERE " + strings.Join(conditions, " AND ")
 	}
 
-	query += fmt.Sprintf(" ORDER BY u.created_at DESC LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+	query += fmt.Sprintf(" ORDER BY u.created_at DESC LIMIT $%d OFFSET $%d", argIndex, argIndex+1) // #nosec G202 -- placeholder numbers, not user input
 	args = append(args, limit, offset)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
@@ -306,7 +306,7 @@ func (r *UserProfileRepositoryPG) BulkUpdateDepartment(ctx context.Context, user
 		UPDATE user_profiles
 		SET department_id = $1, updated_at = $2
 		WHERE user_id IN (%s)
-	`, strings.Join(placeholders, ", "))
+	`, strings.Join(placeholders, ", ")) // #nosec G201 -- parameterized placeholders, not user input
 
 	_, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
@@ -335,7 +335,7 @@ func (r *UserProfileRepositoryPG) BulkUpdatePosition(ctx context.Context, userID
 		UPDATE user_profiles
 		SET position_id = $1, updated_at = $2
 		WHERE user_id IN (%s)
-	`, strings.Join(placeholders, ", "))
+	`, strings.Join(placeholders, ", ")) // #nosec G201 -- parameterized placeholders, not user input
 
 	_, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {

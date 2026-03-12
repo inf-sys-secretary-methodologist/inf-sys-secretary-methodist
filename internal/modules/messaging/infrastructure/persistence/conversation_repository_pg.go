@@ -165,7 +165,7 @@ func (r *ConversationRepositoryPG) List(ctx context.Context, filter entities.Con
 	whereClause := strings.Join(conditions, " AND ")
 
 	// Count total
-	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM conversations c WHERE %s`, whereClause)
+	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM conversations c WHERE %s`, whereClause) // #nosec G201 -- dynamic WHERE from parameterized conditions, not user input
 	var total int64
 	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count conversations: %w", err)
@@ -188,7 +188,7 @@ func (r *ConversationRepositoryPG) List(ctx context.Context, filter entities.Con
 		LEFT JOIN user_profiles up ON up.user_id = m.sender_id
 		WHERE %s
 		ORDER BY COALESCE(m.created_at, c.updated_at) DESC
-		LIMIT $%d OFFSET $%d`, whereClause, argNum, argNum+1)
+		LIMIT $%d OFFSET $%d`, whereClause, argNum, argNum+1) // #nosec G201 -- dynamic WHERE from parameterized conditions, not user input
 
 	args = append(args, filter.Limit, filter.Offset)
 

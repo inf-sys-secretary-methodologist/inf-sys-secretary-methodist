@@ -72,7 +72,7 @@ func (r *EmbeddingRepositoryPg) CreateChunks(ctx context.Context, chunks []entit
 			chunk.ChunkTokens, chunk.PageNumber, metadata, now)
 	}
 
-	query += strings.Join(values, ", ")
+	query += strings.Join(values, ", ") // #nosec G202 -- parameterized placeholders, not user input
 	_, err := r.db.ExecContext(ctx, query, args...)
 	return err
 }
@@ -108,7 +108,7 @@ func (r *EmbeddingRepositoryPg) GetChunksByDocumentID(ctx context.Context, docum
 			return nil, fmt.Errorf("failed to scan chunk: %w", err)
 		}
 		if len(metadata) > 0 {
-			json.Unmarshal(metadata, &c.Metadata)
+			_ = json.Unmarshal(metadata, &c.Metadata)
 		}
 		chunks = append(chunks, c)
 	}
@@ -218,7 +218,7 @@ func (r *EmbeddingRepositoryPg) SearchSimilar(ctx context.Context, embedding []f
 		}
 
 		if len(metadata) > 0 {
-			json.Unmarshal(metadata, &result.Chunk.Metadata)
+			_ = json.Unmarshal(metadata, &result.Chunk.Metadata)
 		}
 
 		results = append(results, result)
@@ -270,7 +270,7 @@ func (r *EmbeddingRepositoryPg) SearchSimilarByDocumentTypes(ctx context.Context
 		}
 
 		if len(metadata) > 0 {
-			json.Unmarshal(metadata, &result.Chunk.Metadata)
+			_ = json.Unmarshal(metadata, &result.Chunk.Metadata)
 		}
 
 		results = append(results, result)
@@ -465,7 +465,7 @@ func (r *EmbeddingRepositoryPg) SearchHybrid(ctx context.Context, embedding []fl
 		}
 
 		if len(metadata) > 0 {
-			json.Unmarshal(metadata, &result.Chunk.Metadata)
+			_ = json.Unmarshal(metadata, &result.Chunk.Metadata)
 		}
 
 		results = append(results, result)
@@ -512,7 +512,7 @@ func (r *EmbeddingRepositoryPg) GetAdjacentChunks(ctx context.Context, chunkIDs 
 			return nil, fmt.Errorf("failed to scan adjacent chunk: %w", err)
 		}
 		if len(metadata) > 0 {
-			json.Unmarshal(metadata, &c.Metadata)
+			_ = json.Unmarshal(metadata, &c.Metadata)
 		}
 		chunks = append(chunks, c)
 	}

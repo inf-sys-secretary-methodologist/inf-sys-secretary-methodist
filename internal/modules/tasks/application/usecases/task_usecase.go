@@ -271,7 +271,7 @@ func (uc *TaskUseCase) Assign(ctx context.Context, userID, taskID int64, input d
 
 	// Send notification to the new assignee
 	if uc.notificationUseCase != nil && input.AssigneeID != userID {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			link := fmt.Sprintf("/tasks/%d", taskID)
 			_ = uc.notificationUseCase.SendTaskNotification(
 				context.Background(),
@@ -353,7 +353,7 @@ func (uc *TaskUseCase) SubmitForReview(ctx context.Context, userID, taskID int64
 
 	// Notify author about task submitted for review
 	if uc.notificationUseCase != nil && task.AuthorID != userID {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			link := fmt.Sprintf("/tasks/%d", taskID)
 			_ = uc.notificationUseCase.SendTaskNotification(
 				context.Background(),
@@ -392,7 +392,7 @@ func (uc *TaskUseCase) Complete(ctx context.Context, userID, taskID int64) (*ent
 
 	// Send notification to the author about task completion
 	if uc.notificationUseCase != nil && task.AuthorID != userID {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			link := fmt.Sprintf("/tasks/%d", taskID)
 			_ = uc.notificationUseCase.SendTaskNotification(
 				context.Background(),
@@ -431,7 +431,7 @@ func (uc *TaskUseCase) Cancel(ctx context.Context, userID, taskID int64) (*entit
 
 	// Notify assignee about task cancellation
 	if uc.notificationUseCase != nil && task.AssigneeID != nil && *task.AssigneeID != userID {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			link := fmt.Sprintf("/tasks/%d", taskID)
 			_ = uc.notificationUseCase.SendTaskNotification(
 				context.Background(),
@@ -529,7 +529,7 @@ func (uc *TaskUseCase) AddComment(ctx context.Context, userID, taskID int64, inp
 
 	// Notify author and assignee about new comment
 	if uc.notificationUseCase != nil {
-		go func() {
+		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			task, err := uc.taskRepo.GetByID(context.Background(), taskID)
 			if err != nil || task == nil {
 				return
