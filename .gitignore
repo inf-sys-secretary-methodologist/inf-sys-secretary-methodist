@@ -29,6 +29,7 @@ docker-compose.override.yml
 # IDE files
 .vscode/
 .idea/
+.mcp.json
 *.swp
 *.swo
 *~
