@@ -15,8 +15,8 @@
 
 1. Откройте <https://platform.composio.dev/>
 1. Войдите в свой workspace: `daniilvdovin4_workspace/daniilvdovin4_workspace_first_project`
-3. Перейдите в **Settings** → **API Keys**
-4. Скопируйте API key (он начинается с `ak_`)
+1. Перейдите в **Settings** → **API Keys**
+1. Скопируйте API key (он начинается с `ak_`)
 
 ### 2. Настроить переменные окружения
 
