@@ -16,16 +16,16 @@ const (
 
 // StudentRiskScore represents a student's risk assessment
 type StudentRiskScore struct {
-	StudentID      int64             `json:"student_id"`
-	StudentName    string            `json:"student_name"`
-	GroupName      *string           `json:"group_name,omitempty"`
-	AttendanceRate *float64          `json:"attendance_rate,omitempty"`
-	GradeAverage   *float64          `json:"grade_average,omitempty"`
-	RiskLevel      RiskLevel         `json:"risk_level"`
-	RiskScore      float64           `json:"risk_score"` // 0-100, higher = more at risk
-	RiskFactors    *RiskFactors      `json:"risk_factors,omitempty"`
-	CreatedAt      time.Time         `json:"created_at,omitempty"`
-	UpdatedAt      time.Time         `json:"updated_at,omitempty"`
+	StudentID      int64        `json:"student_id"`
+	StudentName    string       `json:"student_name"`
+	GroupName      *string      `json:"group_name,omitempty"`
+	AttendanceRate *float64     `json:"attendance_rate,omitempty"`
+	GradeAverage   *float64     `json:"grade_average,omitempty"`
+	RiskLevel      RiskLevel    `json:"risk_level"`
+	RiskScore      float64      `json:"risk_score"` // 0-100, higher = more at risk
+	RiskFactors    *RiskFactors `json:"risk_factors,omitempty"`
+	CreatedAt      time.Time    `json:"created_at,omitempty"`
+	UpdatedAt      time.Time    `json:"updated_at,omitempty"`
 }
 
 // RiskFactors contains detailed risk factor information
@@ -64,15 +64,15 @@ type StudentRiskAssessment struct {
 
 // GroupAnalyticsSummary represents analytics summary for a student group
 type GroupAnalyticsSummary struct {
-	GroupName          string  `json:"group_name"`
-	TotalStudents      int     `json:"total_students"`
-	AvgAttendanceRate  float64 `json:"avg_attendance_rate"`
-	AvgGrade           float64 `json:"avg_grade"`
-	CriticalRiskCount  int     `json:"critical_risk_count"`
-	HighRiskCount      int     `json:"high_risk_count"`
-	MediumRiskCount    int     `json:"medium_risk_count"`
-	LowRiskCount       int     `json:"low_risk_count"`
-	AtRiskPercentage   float64 `json:"at_risk_percentage"`
+	GroupName         string  `json:"group_name"`
+	TotalStudents     int     `json:"total_students"`
+	AvgAttendanceRate float64 `json:"avg_attendance_rate"`
+	AvgGrade          float64 `json:"avg_grade"`
+	CriticalRiskCount int     `json:"critical_risk_count"`
+	HighRiskCount     int     `json:"high_risk_count"`
+	MediumRiskCount   int     `json:"medium_risk_count"`
+	LowRiskCount      int     `json:"low_risk_count"`
+	AtRiskPercentage  float64 `json:"at_risk_percentage"`
 }
 
 // MonthlyAttendanceTrend represents monthly attendance statistics

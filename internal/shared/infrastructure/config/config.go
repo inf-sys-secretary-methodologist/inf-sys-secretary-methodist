@@ -107,14 +107,12 @@ type IntegrationConfig struct {
 	BatchSize        int           // Batch size for sync operations
 }
 
-
 // WebPushConfig contains VAPID configuration for Web Push notifications
 type WebPushConfig struct {
 	VAPIDPublicKey  string
 	VAPIDPrivateKey string
 	VAPIDSubject    string // Usually mailto: or https:// URL
 }
-
 
 // TracingConfig holds tracing (OpenTelemetry) configuration
 type TracingConfig struct {
@@ -302,10 +300,10 @@ func Load() (*Config, error) {
 			FallbackBaseURL:   getEnv("AI_FALLBACK_BASE_URL", ""),
 			FallbackChatModel: getEnv("AI_FALLBACK_CHAT_MODEL", ""),
 
-			FallbackEmbeddingProvider:     getEnv("AI_FALLBACK_EMBEDDING_PROVIDER", ""),
-			FallbackEmbeddingAPIKey:       getEnv("AI_FALLBACK_EMBEDDING_API_KEY", ""),
-			FallbackEmbeddingBaseURL:      getEnv("AI_FALLBACK_EMBEDDING_BASE_URL", ""),
-			FallbackEmbeddingModel:        getEnv("AI_FALLBACK_EMBEDDING_MODEL", ""),
+			FallbackEmbeddingProvider:       getEnv("AI_FALLBACK_EMBEDDING_PROVIDER", ""),
+			FallbackEmbeddingAPIKey:         getEnv("AI_FALLBACK_EMBEDDING_API_KEY", ""),
+			FallbackEmbeddingBaseURL:        getEnv("AI_FALLBACK_EMBEDDING_BASE_URL", ""),
+			FallbackEmbeddingModel:          getEnv("AI_FALLBACK_EMBEDDING_MODEL", ""),
 			FallbackEmbeddingDimensionality: getEnvAsInt("AI_FALLBACK_EMBEDDING_DIMENSIONALITY", 0),
 		},
 	}
@@ -361,7 +359,6 @@ func getEnvAsBool(key string, defaultValue bool) bool {
 	}
 	return defaultValue
 }
-
 
 func getEnvAsFloat(key string, defaultValue float64) float64 {
 	valueStr := os.Getenv(key)

@@ -318,4 +318,3 @@ func scanSubscriptions(rows *sql.Rows) ([]*entities.WebPushSubscription, error) 
 
 	return subscriptions, nil
 }
-

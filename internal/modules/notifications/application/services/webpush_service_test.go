@@ -101,11 +101,11 @@ func TestIsConfigured(t *testing.T) {
 	mockRepo := new(MockWebPushRepository)
 
 	tests := []struct {
-		name        string
-		publicKey   string
-		privateKey  string
-		subject     string
-		expected    bool
+		name       string
+		publicKey  string
+		privateKey string
+		subject    string
+		expected   bool
 	}{
 		{
 			name:       "fully configured",

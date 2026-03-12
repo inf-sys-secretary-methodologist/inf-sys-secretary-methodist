@@ -128,7 +128,7 @@ type ReportColumnOutput struct {
 
 // ExecuteReportOutput represents output for report execution
 type ExecuteReportOutput struct {
-	Columns    []ReportColumnOutput   `json:"columns"`
+	Columns    []ReportColumnOutput     `json:"columns"`
 	Rows       []map[string]interface{} `json:"rows"`
 	TotalCount int64                    `json:"totalCount"`
 	Page       int                      `json:"page"`

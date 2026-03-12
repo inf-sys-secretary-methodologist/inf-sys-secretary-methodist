@@ -15,14 +15,14 @@ const (
 
 // Validation errors.
 var (
-	ErrConversationNotFound      = errors.New("conversation not found")
-	ErrAlreadyParticipant        = errors.New("user is already a participant")
-	ErrNotParticipant            = errors.New("user is not a participant")
-	ErrCannotRemoveLastAdmin     = errors.New("cannot remove the last admin")
-	ErrDirectConversationExists  = errors.New("direct conversation already exists")
-	ErrInvalidConversationType   = errors.New("invalid conversation type")
-	ErrCannotAddToDirectChat     = errors.New("cannot add participants to direct chat")
-	ErrCannotLeaveDirectChat     = errors.New("cannot leave direct chat")
+	ErrConversationNotFound     = errors.New("conversation not found")
+	ErrAlreadyParticipant       = errors.New("user is already a participant")
+	ErrNotParticipant           = errors.New("user is not a participant")
+	ErrCannotRemoveLastAdmin    = errors.New("cannot remove the last admin")
+	ErrDirectConversationExists = errors.New("direct conversation already exists")
+	ErrInvalidConversationType  = errors.New("invalid conversation type")
+	ErrCannotAddToDirectChat    = errors.New("cannot add participants to direct chat")
+	ErrCannotLeaveDirectChat    = errors.New("cannot leave direct chat")
 )
 
 // Conversation represents a chat conversation (direct or group).

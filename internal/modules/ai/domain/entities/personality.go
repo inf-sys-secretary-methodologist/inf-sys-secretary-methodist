@@ -24,7 +24,7 @@ type MoodContext struct {
 	OverdueDocuments  int       `json:"overdue_documents"`
 	AtRiskStudents    int       `json:"at_risk_students"`
 	UpcomingDeadlines int       `json:"upcoming_deadlines"`
-	TimeOfDay         string    `json:"time_of_day"`  // morning, afternoon, evening, night
+	TimeOfDay         string    `json:"time_of_day"` // morning, afternoon, evening, night
 	DayOfWeek         string    `json:"day_of_week"`
 	AttendanceTrend   string    `json:"attendance_trend"` // improving, stable, declining
 	ComputedAt        time.Time `json:"computed_at"`

@@ -13,11 +13,11 @@ import (
 
 // GeminiEmbeddingConfig holds configuration for Gemini Embedding API
 type GeminiEmbeddingConfig struct {
-	APIKey             string
-	BaseURL            string
-	Model              string
+	APIKey               string
+	BaseURL              string
+	Model                string
 	OutputDimensionality int
-	Timeout            time.Duration
+	Timeout              time.Duration
 }
 
 // GeminiEmbeddingProvider implements EmbeddingProvider using Gemini Embedding API

@@ -53,14 +53,14 @@ const (
 
 // RecurrenceRule represents recurrence pattern for events (RFC 5545 RRULE)
 type RecurrenceRule struct {
-	Frequency  RecurrenceFrequency `json:"frequency"`               // FREQ: daily, weekly, monthly, yearly
-	Interval   int                 `json:"interval"`                // INTERVAL: every N frequency units
-	Count      *int                `json:"count,omitempty"`         // COUNT: number of occurrences
-	Until      *time.Time          `json:"until,omitempty"`         // UNTIL: end date for recurrence
-	ByWeekday  []Weekday           `json:"by_weekday,omitempty"`    // BYDAY: specific days of week
-	ByMonthDay []int               `json:"by_monthday,omitempty"`   // BYMONTHDAY: specific days of month
-	ByMonth    []int               `json:"by_month,omitempty"`      // BYMONTH: specific months
-	WeekStart  Weekday             `json:"week_start"`              // WKST: week start day
+	Frequency  RecurrenceFrequency `json:"frequency"`             // FREQ: daily, weekly, monthly, yearly
+	Interval   int                 `json:"interval"`              // INTERVAL: every N frequency units
+	Count      *int                `json:"count,omitempty"`       // COUNT: number of occurrences
+	Until      *time.Time          `json:"until,omitempty"`       // UNTIL: end date for recurrence
+	ByWeekday  []Weekday           `json:"by_weekday,omitempty"`  // BYDAY: specific days of week
+	ByMonthDay []int               `json:"by_monthday,omitempty"` // BYMONTHDAY: specific days of month
+	ByMonth    []int               `json:"by_month,omitempty"`    // BYMONTH: specific months
+	WeekStart  Weekday             `json:"week_start"`            // WKST: week start day
 }
 
 // Event represents a calendar event entity

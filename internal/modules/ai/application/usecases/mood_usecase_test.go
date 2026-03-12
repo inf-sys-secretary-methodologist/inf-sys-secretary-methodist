@@ -66,10 +66,10 @@ func (m *mockDashboardRepo) GetRecentActivity(_ context.Context, _ int) ([]dashb
 // --- Mock AnalyticsRepository (struct-based) ---
 
 type mockAnalyticsRepo struct {
-	atRiskStudents []analyticsEntities.StudentRiskScore
-	totalAtRisk    int64
+	atRiskStudents  []analyticsEntities.StudentRiskScore
+	totalAtRisk     int64
 	attendanceTrend []analyticsEntities.MonthlyAttendanceTrend
-	err            error
+	err             error
 }
 
 func (m *mockAnalyticsRepo) GetAtRiskStudents(_ context.Context, _, _ int) ([]analyticsEntities.StudentRiskScore, int64, error) {

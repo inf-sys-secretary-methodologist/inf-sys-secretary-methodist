@@ -17,14 +17,14 @@ type AtRiskStudentsResponse struct {
 
 // StudentRiskResponse represents a single student's risk data
 type StudentRiskResponse struct {
-	StudentID      int64                    `json:"student_id"`
-	StudentName    string                   `json:"student_name"`
-	GroupName      *string                  `json:"group_name,omitempty"`
-	AttendanceRate *float64                 `json:"attendance_rate,omitempty"`
-	GradeAverage   *float64                 `json:"grade_average,omitempty"`
-	RiskLevel      string                   `json:"risk_level"`
-	RiskScore      float64                  `json:"risk_score"`
-	RiskFactors    *entities.RiskFactors    `json:"risk_factors,omitempty"`
+	StudentID      int64                 `json:"student_id"`
+	StudentName    string                `json:"student_name"`
+	GroupName      *string               `json:"group_name,omitempty"`
+	AttendanceRate *float64              `json:"attendance_rate,omitempty"`
+	GradeAverage   *float64              `json:"grade_average,omitempty"`
+	RiskLevel      string                `json:"risk_level"`
+	RiskScore      float64               `json:"risk_score"`
+	RiskFactors    *entities.RiskFactors `json:"risk_factors,omitempty"`
 }
 
 // GroupSummaryResponse represents analytics summary for a group
@@ -75,9 +75,9 @@ type MarkAttendanceRequest struct {
 
 // BulkMarkAttendanceRequest represents a request to mark attendance for multiple students
 type BulkMarkAttendanceRequest struct {
-	LessonID   int64                    `json:"lesson_id" validate:"required"`
-	LessonDate string                   `json:"lesson_date" validate:"required"`
-	Records    []BulkAttendanceRecord   `json:"records" validate:"required,min=1"`
+	LessonID   int64                  `json:"lesson_id" validate:"required"`
+	LessonDate string                 `json:"lesson_date" validate:"required"`
+	Records    []BulkAttendanceRecord `json:"records" validate:"required,min=1"`
 }
 
 // BulkAttendanceRecord represents a single record in bulk attendance marking
@@ -105,11 +105,11 @@ type LessonAttendanceResponse struct {
 	LessonDate string                     `json:"lesson_date"`
 	Records    []AttendanceRecordResponse `json:"records"`
 	Summary    struct {
-		Total    int `json:"total"`
-		Present  int `json:"present"`
-		Absent   int `json:"absent"`
-		Late     int `json:"late"`
-		Excused  int `json:"excused"`
+		Total   int `json:"total"`
+		Present int `json:"present"`
+		Absent  int `json:"absent"`
+		Late    int `json:"late"`
+		Excused int `json:"excused"`
 	} `json:"summary"`
 }
 

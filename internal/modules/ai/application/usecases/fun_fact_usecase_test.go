@@ -14,10 +14,12 @@ import (
 // mockPersonalityProvider is a stub PersonalityProvider for unit tests.
 type mockPersonalityProvider struct{}
 
-func (m *mockPersonalityProvider) BuildSystemPrompt(_ entities.MoodContext) string            { return "" }
-func (m *mockPersonalityProvider) FormatRAGContext(_ []entities.ChunkWithScore) string         { return "" }
-func (m *mockPersonalityProvider) GetGreeting(_ string) string                                { return "Приветствую!" }
-func (m *mockPersonalityProvider) GetMoodComment(_ entities.MoodContext) string                { return "Всё под контролем!" }
+func (m *mockPersonalityProvider) BuildSystemPrompt(_ entities.MoodContext) string     { return "" }
+func (m *mockPersonalityProvider) FormatRAGContext(_ []entities.ChunkWithScore) string { return "" }
+func (m *mockPersonalityProvider) GetGreeting(_ string) string                         { return "Приветствую!" }
+func (m *mockPersonalityProvider) GetMoodComment(_ entities.MoodContext) string {
+	return "Всё под контролем!"
+}
 func (m *mockPersonalityProvider) FormatNotification(_, title, msg string, _ entities.MoodContext) string {
 	return title + "\n" + msg
 }

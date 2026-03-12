@@ -7,19 +7,19 @@ import (
 
 // DocumentType represents a type of document (memo, order, letter, etc.)
 type DocumentType struct {
-	ID                   int64               `json:"id"`
-	Name                 string              `json:"name"`
-	Code                 string              `json:"code"`
-	Description          *string             `json:"description,omitempty"`
-	TemplatePath         *string             `json:"template_path,omitempty"`
-	TemplateContent      *string             `json:"template_content,omitempty"`      // Template with {{variable}} placeholders
-	TemplateVariables    []TemplateVariable  `json:"template_variables,omitempty"`    // Variable definitions
-	RequiresApproval     bool                `json:"requires_approval"`
-	RequiresRegistration bool                `json:"requires_registration"`
-	NumberingPattern     *string             `json:"numbering_pattern,omitempty"`
-	RetentionPeriod      *int                `json:"retention_period,omitempty"` // months
-	CreatedAt            time.Time           `json:"created_at"`
-	UpdatedAt            time.Time           `json:"updated_at"`
+	ID                   int64              `json:"id"`
+	Name                 string             `json:"name"`
+	Code                 string             `json:"code"`
+	Description          *string            `json:"description,omitempty"`
+	TemplatePath         *string            `json:"template_path,omitempty"`
+	TemplateContent      *string            `json:"template_content,omitempty"`   // Template with {{variable}} placeholders
+	TemplateVariables    []TemplateVariable `json:"template_variables,omitempty"` // Variable definitions
+	RequiresApproval     bool               `json:"requires_approval"`
+	RequiresRegistration bool               `json:"requires_registration"`
+	NumberingPattern     *string            `json:"numbering_pattern,omitempty"`
+	RetentionPeriod      *int               `json:"retention_period,omitempty"` // months
+	CreatedAt            time.Time          `json:"created_at"`
+	UpdatedAt            time.Time          `json:"updated_at"`
 }
 
 // TemplateVariable defines a variable used in document templates

@@ -55,15 +55,15 @@ func (s *WebPushSubscription) UpdateLastUsed() {
 
 // WebPushPayload represents the payload for a web push notification
 type WebPushPayload struct {
-	Title              string            `json:"title"`
-	Body               string            `json:"body,omitempty"`
-	Icon               string            `json:"icon,omitempty"`
-	Badge              string            `json:"badge,omitempty"`
-	Tag                string            `json:"tag,omitempty"`
-	URL                string            `json:"url,omitempty"`
-	RequireInteraction bool              `json:"requireInteraction,omitempty"`
-	Data               map[string]any    `json:"data,omitempty"`
-	Actions            []WebPushAction   `json:"actions,omitempty"`
+	Title              string          `json:"title"`
+	Body               string          `json:"body,omitempty"`
+	Icon               string          `json:"icon,omitempty"`
+	Badge              string          `json:"badge,omitempty"`
+	Tag                string          `json:"tag,omitempty"`
+	URL                string          `json:"url,omitempty"`
+	RequireInteraction bool            `json:"requireInteraction,omitempty"`
+	Data               map[string]any  `json:"data,omitempty"`
+	Actions            []WebPushAction `json:"actions,omitempty"`
 }
 
 // WebPushAction represents an action button in a push notification

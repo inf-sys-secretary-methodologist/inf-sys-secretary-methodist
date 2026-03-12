@@ -292,8 +292,8 @@ func TestEventTypeConstants(t *testing.T) {
 
 func TestEventStatusConstants(t *testing.T) {
 	tests := []struct {
-		name   string
-		status EventStatus
+		name     string
+		status   EventStatus
 		expected string
 	}{
 		{"scheduled", EventStatusScheduled, "scheduled"},

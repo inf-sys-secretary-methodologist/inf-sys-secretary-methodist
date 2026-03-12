@@ -334,8 +334,8 @@ func TestPreferencesUseCase_Reset(t *testing.T) {
 
 		now := time.Now()
 		defaultPrefs := &entities.UserNotificationPreferences{
-			ID:     1,
-			UserID: 1,
+			ID:        1,
+			UserID:    1,
 			CreatedAt: now,
 			UpdatedAt: now,
 		}

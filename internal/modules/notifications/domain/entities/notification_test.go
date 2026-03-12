@@ -91,9 +91,9 @@ func TestNotification_IsExpired(t *testing.T) {
 
 func TestNotificationTypeConstants(t *testing.T) {
 	tests := []struct {
-		name     string
+		name      string
 		notifType NotificationType
-		expected string
+		expected  string
 	}{
 		{"info", NotificationTypeInfo, "info"},
 		{"success", NotificationTypeSuccess, "success"},
@@ -117,8 +117,8 @@ func TestNotificationTypeConstants(t *testing.T) {
 
 func TestNotificationChannelConstants(t *testing.T) {
 	tests := []struct {
-		name    string
-		channel NotificationChannel
+		name     string
+		channel  NotificationChannel
 		expected string
 	}{
 		{"in_app", ChannelInApp, "in_app"},

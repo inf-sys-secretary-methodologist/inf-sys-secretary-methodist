@@ -6,20 +6,20 @@ import "time"
 // FileMetadata представляет метаданные загруженного файла в базе данных.
 type FileMetadata struct {
 	ID             int64      `json:"id"`
-	OriginalName   string     `json:"original_name"`               // Оригинальное имя файла
-	StorageKey     string     `json:"storage_key"`                 // Ключ в S3/MinIO хранилище
-	Size           int64      `json:"size"`                        // Размер файла в байтах
-	MimeType       string     `json:"mime_type"`                   // MIME тип файла
-	Checksum       string     `json:"checksum"`                    // SHA-256 хеш файла
-	UploadedBy     int64      `json:"uploaded_by"`                 // ID пользователя, загрузившего файл
-	DocumentID     *int64     `json:"document_id,omitempty"`       // Связь с документом (опционально)
-	TaskID         *int64     `json:"task_id,omitempty"`           // Связь с задачей (опционально)
-	AnnouncementID *int64     `json:"announcement_id,omitempty"`   // Связь с объявлением (опционально)
-	IsTemporary    bool       `json:"is_temporary"`                // Временный файл (до прикрепления)
-	ExpiresAt      *time.Time `json:"expires_at,omitempty"`        // Срок жизни временного файла
+	OriginalName   string     `json:"original_name"`             // Оригинальное имя файла
+	StorageKey     string     `json:"storage_key"`               // Ключ в S3/MinIO хранилище
+	Size           int64      `json:"size"`                      // Размер файла в байтах
+	MimeType       string     `json:"mime_type"`                 // MIME тип файла
+	Checksum       string     `json:"checksum"`                  // SHA-256 хеш файла
+	UploadedBy     int64      `json:"uploaded_by"`               // ID пользователя, загрузившего файл
+	DocumentID     *int64     `json:"document_id,omitempty"`     // Связь с документом (опционально)
+	TaskID         *int64     `json:"task_id,omitempty"`         // Связь с задачей (опционально)
+	AnnouncementID *int64     `json:"announcement_id,omitempty"` // Связь с объявлением (опционально)
+	IsTemporary    bool       `json:"is_temporary"`              // Временный файл (до прикрепления)
+	ExpiresAt      *time.Time `json:"expires_at,omitempty"`      // Срок жизни временного файла
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
-	DeletedAt      *time.Time `json:"deleted_at,omitempty"`        // Мягкое удаление
+	DeletedAt      *time.Time `json:"deleted_at,omitempty"` // Мягкое удаление
 }
 
 // NewFileMetadata создаёт новый экземпляр FileMetadata.

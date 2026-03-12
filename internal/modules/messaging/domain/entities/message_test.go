@@ -177,10 +177,10 @@ func TestMessage_Delete_AlreadyDeleted(t *testing.T) {
 
 func TestMessage_CanEdit(t *testing.T) {
 	tests := []struct {
-		name      string
-		setup     func(*Message)
-		userID    int64
-		want      bool
+		name   string
+		setup  func(*Message)
+		userID int64
+		want   bool
 	}{
 		{
 			name:   "sender can edit own message",

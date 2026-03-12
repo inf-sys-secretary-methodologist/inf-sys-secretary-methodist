@@ -11,13 +11,13 @@ type TemplateListResponse struct {
 
 // TemplateResponse represents a document template
 type TemplateResponse struct {
-	ID                int64                        `json:"id"`
-	Name              string                       `json:"name"`
-	Code              string                       `json:"code"`
-	Description       *string                      `json:"description,omitempty"`
-	TemplateContent   *string                      `json:"template_content,omitempty"`
-	TemplateVariables []entities.TemplateVariable  `json:"template_variables,omitempty"`
-	HasTemplate       bool                         `json:"has_template"`
+	ID                int64                       `json:"id"`
+	Name              string                      `json:"name"`
+	Code              string                      `json:"code"`
+	Description       *string                     `json:"description,omitempty"`
+	TemplateContent   *string                     `json:"template_content,omitempty"`
+	TemplateVariables []entities.TemplateVariable `json:"template_variables,omitempty"`
+	HasTemplate       bool                        `json:"has_template"`
 }
 
 // CreateFromTemplateRequest represents a request to create a document from a template
@@ -39,8 +39,8 @@ type PreviewTemplateResponse struct {
 
 // UpdateTemplateRequest represents a request to update a document type's template
 type UpdateTemplateRequest struct {
-	TemplateContent   *string                      `json:"template_content,omitempty"`
-	TemplateVariables []entities.TemplateVariable  `json:"template_variables,omitempty"`
+	TemplateContent   *string                     `json:"template_content,omitempty"`
+	TemplateVariables []entities.TemplateVariable `json:"template_variables,omitempty"`
 }
 
 // ToTemplateResponse converts a DocumentType entity to TemplateResponse DTO

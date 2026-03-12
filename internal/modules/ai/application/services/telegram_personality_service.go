@@ -11,7 +11,7 @@ import (
 
 // TelegramPersonalityService decorates TelegramService with Metodych personality
 type TelegramPersonalityService struct {
-	telegramService    domainServices.TelegramService
+	telegramService     domainServices.TelegramService
 	personalityProvider PersonalityProvider
 }
 
@@ -21,7 +21,7 @@ func NewTelegramPersonalityService(
 	personalityProvider PersonalityProvider,
 ) *TelegramPersonalityService {
 	return &TelegramPersonalityService{
-		telegramService:    telegramService,
+		telegramService:     telegramService,
 		personalityProvider: personalityProvider,
 	}
 }

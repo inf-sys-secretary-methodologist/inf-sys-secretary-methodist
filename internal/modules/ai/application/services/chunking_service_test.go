@@ -12,7 +12,7 @@ func TestEstimateTokens(t *testing.T) {
 		want  int
 	}{
 		{"empty string", "", 0},
-		{"ascii text", "Hello world", 5}, // 11 runes / 2 = 5
+		{"ascii text", "Hello world", 5},   // 11 runes / 2 = 5
 		{"cyrillic text", "Привет мир", 5}, // 10 runes / 2 = 5
 		{"single char", "a", 1},            // max(1/2, 1) = 1
 	}

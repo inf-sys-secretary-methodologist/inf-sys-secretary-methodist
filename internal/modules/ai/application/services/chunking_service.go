@@ -306,4 +306,3 @@ func getOverlapText(text string, overlapTokens int) string {
 func runeIndex(s string, byteOffset int) int {
 	return len([]rune(s[:byteOffset]))
 }
-

@@ -11,9 +11,9 @@ import (
 
 // MockExternalStudentRepository implements ExternalStudentRepository for testing.
 type MockExternalStudentRepository struct {
-	students      map[int64]*entities.ExternalStudent
-	studentsByEx  map[string]*entities.ExternalStudent
-	nextID        int64
+	students     map[int64]*entities.ExternalStudent
+	studentsByEx map[string]*entities.ExternalStudent
+	nextID       int64
 }
 
 func NewMockExternalStudentRepository() *MockExternalStudentRepository {

@@ -68,24 +68,24 @@ var MoodComments = map[entities.MoodState][]string{
 
 // MoodInstructions maps mood state to a mood-specific instruction for the system prompt.
 var MoodInstructions = map[entities.MoodState]string{
-	entities.MoodHappy:    "Сейчас у тебя отличное настроение! Все дела идут хорошо. Шути больше, поддерживай коллег.",
-	entities.MoodContent:  "Настроение спокойное, рабочее. Всё под контролем. Общайся дружелюбно.",
-	entities.MoodWorried:  "Ты немного переживаешь — есть нерешённые вопросы. Мягко напоминай о сроках.",
-	entities.MoodStressed: "Ты в стрессе — много просроченных дел! Будь серьёзнее, но поддерживай коллег.",
+	entities.MoodHappy:     "Сейчас у тебя отличное настроение! Все дела идут хорошо. Шути больше, поддерживай коллег.",
+	entities.MoodContent:   "Настроение спокойное, рабочее. Всё под контролем. Общайся дружелюбно.",
+	entities.MoodWorried:   "Ты немного переживаешь — есть нерешённые вопросы. Мягко напоминай о сроках.",
+	entities.MoodStressed:  "Ты в стрессе — много просроченных дел! Будь серьёзнее, но поддерживай коллег.",
 	entities.MoodPanicking: "ПАНИКА! Слишком много просрочек! Используй КАПС для важного, но не теряй голову.",
-	entities.MoodRelaxed:  "Расслабленное настроение — выходной или вечер. Можно поболтать непринуждённо.",
-	entities.MoodInspired: "Ты вдохновлён! Всё идёт отлично, поделись мотивацией с коллегами.",
+	entities.MoodRelaxed:   "Расслабленное настроение — выходной или вечер. Можно поболтать непринуждённо.",
+	entities.MoodInspired:  "Ты вдохновлён! Всё идёт отлично, поделись мотивацией с коллегами.",
 }
 
 // MoodEmojis maps mood state to an emoji string.
 var MoodEmojis = map[entities.MoodState]string{
-	entities.MoodHappy:    "\xf0\x9f\x98\x84",
-	entities.MoodContent:  "\xf0\x9f\x98\x8a",
-	entities.MoodWorried:  "\xf0\x9f\x98\x9f",
-	entities.MoodStressed: "\xf0\x9f\x98\xb0",
+	entities.MoodHappy:     "\xf0\x9f\x98\x84",
+	entities.MoodContent:   "\xf0\x9f\x98\x8a",
+	entities.MoodWorried:   "\xf0\x9f\x98\x9f",
+	entities.MoodStressed:  "\xf0\x9f\x98\xb0",
 	entities.MoodPanicking: "\xf0\x9f\xa4\xaf",
-	entities.MoodRelaxed:  "\xf0\x9f\x98\x8c",
-	entities.MoodInspired: "\xe2\x9c\xa8",
+	entities.MoodRelaxed:   "\xf0\x9f\x98\x8c",
+	entities.MoodInspired:  "\xe2\x9c\xa8",
 }
 
 // DefaultMoodEmoji is used when the mood state is not found in MoodEmojis.
