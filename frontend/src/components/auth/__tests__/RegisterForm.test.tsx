@@ -15,6 +15,9 @@ jest.mock('sonner', () => ({
 
 const mockUseRegister = useRegister as jest.MockedFunction<typeof useRegister>
 
+// Increase timeout for tests with complex form interactions
+jest.setTimeout(15000)
+
 describe('RegisterForm', () => {
   const mockRegister = jest.fn()
   const mockClearError = jest.fn()

@@ -1886,7 +1886,15 @@
       "summarize": "Summarize",
       "schedule": "Schedule",
       "analytics": "Analytics"
-    }
+    },
+    "voiceLang": "en-US",
+    "voiceListening": "Listening...",
+    "voiceStartListening": "Start voice input",
+    "voiceStopListening": "Stop voice input",
+    "voiceSpeak": "Read aloud",
+    "voiceStopSpeaking": "Stop reading",
+    "voiceModeToggle": "Voice Mode",
+    "voiceError": "Voice input error"
   },
   "metodych": {
     "title": "Metodych",

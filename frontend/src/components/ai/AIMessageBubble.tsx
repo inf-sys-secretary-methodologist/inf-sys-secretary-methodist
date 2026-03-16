@@ -12,6 +12,8 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
@@ -20,11 +22,19 @@ import type { AIMessage, DocumentSource } from '@/types/ai'
 interface AIMessageBubbleProps {
   message: AIMessage
   className?: string
+  onSpeak?: (text: string) => void
+  onCancelSpeak?: () => void
+  isSpeaking?: boolean
+  isTTSSupported?: boolean
 }
 
 export const AIMessageBubble = memo(function AIMessageBubble({
   message,
   className,
+  onSpeak,
+  onCancelSpeak,
+  isSpeaking = false,
+  isTTSSupported = false,
 }: AIMessageBubbleProps) {
   const t = useTranslations('ai')
   const [copied, setCopied] = useState(false)
@@ -93,19 +103,41 @@ export const AIMessageBubble = memo(function AIMessageBubble({
                 <span>{formatTime(message.created_at)}</span>
                 {message.model && !isUser && <span className="opacity-60">{message.model}</span>}
                 {!isStreaming && (
-                  <button
-                    className={cn(
-                      'opacity-0 group-hover:opacity-100 transition-all p-0.5 rounded',
-                      copied
-                        ? 'text-green-500'
-                        : isUser
-                          ? 'text-primary-foreground/50 hover:text-primary-foreground/80'
-                          : 'text-muted-foreground/50 hover:text-muted-foreground'
+                  <>
+                    {!isUser && isTTSSupported && onSpeak && onCancelSpeak && (
+                      <button
+                        type="button"
+                        className={cn(
+                          'opacity-0 group-hover:opacity-100 transition-all p-0.5 rounded',
+                          isSpeaking
+                            ? 'text-primary opacity-100'
+                            : 'text-muted-foreground/50 hover:text-muted-foreground'
+                        )}
+                        onClick={() => (isSpeaking ? onCancelSpeak() : onSpeak(message.content))}
+                        aria-label={isSpeaking ? t('voiceStopSpeaking') : t('voiceSpeak')}
+                      >
+                        {isSpeaking ? (
+                          <VolumeX className="h-3 w-3" />
+                        ) : (
+                          <Volume2 className="h-3 w-3" />
+                        )}
+                      </button>
                     )}
-                    onClick={handleCopy}
-                  >
-                    {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  </button>
+                    <button
+                      type="button"
+                      className={cn(
+                        'opacity-0 group-hover:opacity-100 transition-all p-0.5 rounded',
+                        copied
+                          ? 'text-green-500'
+                          : isUser
+                            ? 'text-primary-foreground/50 hover:text-primary-foreground/80'
+                            : 'text-muted-foreground/50 hover:text-muted-foreground'
+                      )}
+                      onClick={handleCopy}
+                    >
+                      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    </button>
+                  </>
                 )}
               </div>
             </>
@@ -139,6 +171,7 @@ function SourcesList({ sources, expanded, onToggle }: SourcesListProps) {
   return (
     <div className="max-w-[85%] space-y-2">
       <button
+        type="button"
         onClick={onToggle}
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >

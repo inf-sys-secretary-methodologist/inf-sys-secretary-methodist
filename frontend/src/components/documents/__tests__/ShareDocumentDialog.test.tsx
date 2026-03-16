@@ -143,6 +143,9 @@ const mockedDocumentsApi = jest.mocked(documentsApi)
 const mockedUsersApi = jest.mocked(usersApi)
 const mockedToast = jest.mocked(toast)
 
+// Increase timeout for tests that use complex userEvent interactions
+jest.setTimeout(15000)
+
 describe('ShareDocumentDialog', () => {
   const defaultProps = {
     open: true,

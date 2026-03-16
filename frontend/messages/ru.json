@@ -1854,7 +1854,15 @@
       "summarize": "Сводка",
       "schedule": "Расписание",
       "analytics": "Аналитика"
-    }
+    },
+    "voiceLang": "ru-RU",
+    "voiceListening": "Говорите...",
+    "voiceStartListening": "Начать запись голоса",
+    "voiceStopListening": "Остановить запись голоса",
+    "voiceSpeak": "Озвучить сообщение",
+    "voiceStopSpeaking": "Остановить озвучку",
+    "voiceModeToggle": "Голосовой режим",
+    "voiceError": "Ошибка голосового ввода"
   },
   "metodych": {
     "title": "Методыч",

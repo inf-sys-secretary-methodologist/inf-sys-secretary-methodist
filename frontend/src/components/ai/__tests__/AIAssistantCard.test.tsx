@@ -1,6 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { AIAssistantCard } from '../AIAssistantCard'
 import { useAIChat, useAIConversations, useDeleteAIConversation } from '@/hooks/useAIChat'
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
+import { useVoiceStore } from '@/stores/voiceStore'
 import type { AIConversation, AIMessage } from '@/types/ai'
 
 // Mock scrollIntoView for jsdom
@@ -8,6 +11,9 @@ Element.prototype.scrollIntoView = jest.fn()
 
 // Mock the hooks
 jest.mock('@/hooks/useAIChat')
+jest.mock('@/hooks/useSpeechRecognition')
+jest.mock('@/hooks/useSpeechSynthesis')
+jest.mock('@/stores/voiceStore')
 jest.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }))
@@ -15,6 +21,9 @@ jest.mock('next-intl', () => ({
 const mockUseAIChat = jest.mocked(useAIChat)
 const mockUseAIConversations = jest.mocked(useAIConversations)
 const mockUseDeleteAIConversation = jest.mocked(useDeleteAIConversation)
+const mockUseSpeechRecognition = jest.mocked(useSpeechRecognition)
+const mockUseSpeechSynthesis = jest.mocked(useSpeechSynthesis)
+const mockUseVoiceStore = jest.mocked(useVoiceStore)
 
 describe('AIAssistantCard', () => {
   const mockSendMessage = jest.fn()
@@ -88,6 +97,40 @@ describe('AIAssistantCard', () => {
     mockUseDeleteAIConversation.mockReturnValue({
       mutateAsync: mockDeleteConversation,
       isPending: false,
+    })
+
+    mockUseSpeechRecognition.mockReturnValue({
+      isListening: false,
+      isSupported: true,
+      transcript: '',
+      startListening: jest.fn(),
+      stopListening: jest.fn(),
+      error: null,
+    })
+
+    mockUseSpeechSynthesis.mockReturnValue({
+      isSupported: true,
+      isSpeaking: false,
+      voices: [],
+      speak: jest.fn(),
+      pause: jest.fn(),
+      resume: jest.fn(),
+      cancel: jest.fn(),
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockUseVoiceStore.mockImplementation((selector: (state: any) => unknown) => {
+      const state = {
+        autoSubmit: true,
+        autoRead: false,
+        voiceMode: false,
+        preferredVoiceURI: '',
+        setAutoSubmit: jest.fn(),
+        setAutoRead: jest.fn(),
+        setVoiceMode: jest.fn(),
+        setPreferredVoiceURI: jest.fn(),
+      }
+      return selector(state)
     })
   })
 
@@ -276,5 +319,123 @@ describe('AIAssistantCard', () => {
     const { container } = render(<AIAssistantCard className="custom-class" />)
 
     expect(container.firstChild).toHaveClass('custom-class')
+  })
+
+  // Voice feature tests
+
+  it('renders mic button when speech recognition is supported', () => {
+    mockUseSpeechRecognition.mockReturnValue({
+      isListening: false,
+      isSupported: true,
+      transcript: '',
+      startListening: jest.fn(),
+      stopListening: jest.fn(),
+      error: null,
+    })
+
+    render(<AIAssistantCard />)
+
+    expect(screen.getByLabelText('voiceStartListening')).toBeInTheDocument()
+  })
+
+  it('hides mic button when speech recognition is not supported', () => {
+    mockUseSpeechRecognition.mockReturnValue({
+      isListening: false,
+      isSupported: false,
+      transcript: '',
+      startListening: jest.fn(),
+      stopListening: jest.fn(),
+      error: null,
+    })
+
+    render(<AIAssistantCard />)
+
+    expect(screen.queryByLabelText('voiceStartListening')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('voiceStopListening')).not.toBeInTheDocument()
+  })
+
+  it('clicking mic button starts listening', () => {
+    const mockStartListening = jest.fn()
+    mockUseSpeechRecognition.mockReturnValue({
+      isListening: false,
+      isSupported: true,
+      transcript: '',
+      startListening: mockStartListening,
+      stopListening: jest.fn(),
+      error: null,
+    })
+
+    render(<AIAssistantCard />)
+
+    const micButton = screen.getByLabelText('voiceStartListening')
+    fireEvent.click(micButton)
+
+    expect(mockStartListening).toHaveBeenCalled()
+  })
+
+  it('clicking mic button stops listening when already listening', () => {
+    const mockStopListening = jest.fn()
+    mockUseSpeechRecognition.mockReturnValue({
+      isListening: true,
+      isSupported: true,
+      transcript: 'some text',
+      startListening: jest.fn(),
+      stopListening: mockStopListening,
+      error: null,
+    })
+
+    render(<AIAssistantCard />)
+
+    const micButton = screen.getByLabelText('voiceStopListening')
+    fireEvent.click(micButton)
+
+    expect(mockStopListening).toHaveBeenCalled()
+  })
+
+  it('renders Voice Mode toggle button when speech is supported', () => {
+    mockUseSpeechRecognition.mockReturnValue({
+      isListening: false,
+      isSupported: true,
+      transcript: '',
+      startListening: jest.fn(),
+      stopListening: jest.fn(),
+      error: null,
+    })
+
+    render(<AIAssistantCard />)
+
+    expect(screen.getByLabelText('voiceModeToggle')).toBeInTheDocument()
+  })
+
+  it('displays speech error message', () => {
+    mockUseSpeechRecognition.mockReturnValue({
+      isListening: false,
+      isSupported: true,
+      transcript: '',
+      startListening: jest.fn(),
+      stopListening: jest.fn(),
+      error: 'not-allowed',
+    })
+
+    render(<AIAssistantCard />)
+
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(screen.getByText(/not-allowed/)).toBeInTheDocument()
+  })
+
+  it('input placeholder changes when listening', () => {
+    mockUseSpeechRecognition.mockReturnValue({
+      isListening: true,
+      isSupported: true,
+      transcript: '',
+      startListening: jest.fn(),
+      stopListening: jest.fn(),
+      error: null,
+    })
+
+    render(<AIAssistantCard />)
+
+    const input = screen.getByRole('textbox')
+    expect(input).toHaveAttribute('placeholder', 'voiceListening')
   })
 })

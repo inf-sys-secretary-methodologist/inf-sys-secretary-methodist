@@ -12,6 +12,9 @@ import {
   Sparkles,
   Bot,
   Loader2,
+  Mic,
+  MicOff,
+  AudioLines,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,6 +32,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 import { useAIChat, useAIConversations, useDeleteAIConversation } from '@/hooks/useAIChat'
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
+import { useVoiceStore } from '@/stores/voiceStore'
 import { AIMessageBubble } from './AIMessageBubble'
 import { AIQuickActions, AIQuickActionChips } from './AIQuickActions'
 import type { AIConversation } from '@/types/ai'
@@ -49,6 +55,8 @@ export function AIAssistantCard({
   const [inputValue, setInputValue] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [conversationToDelete, setConversationToDelete] = useState<number | null>(null)
+  const [speechError, setSpeechError] = useState<string | null>(null)
+  const [speakingMessageId, setSpeakingMessageId] = useState<number | null>(null)
 
   const viewportRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -61,6 +69,57 @@ export function AIAssistantCard({
 
   const { conversations, isLoading: isLoadingConversations } = useAIConversations({ limit: 50 })
   const { mutateAsync: deleteConversation, isPending: isDeleting } = useDeleteAIConversation()
+
+  const voiceLang = t('voiceLang')
+  const autoSubmit = useVoiceStore((s) => s.autoSubmit)
+  const autoRead = useVoiceStore((s) => s.autoRead)
+  const voiceMode = useVoiceStore((s) => s.voiceMode)
+  const setVoiceMode = useVoiceStore((s) => s.setVoiceMode)
+  const preferredVoiceURI = useVoiceStore((s) => s.preferredVoiceURI)
+
+  const {
+    isListening,
+    isSupported: isSpeechSupported,
+    transcript,
+    startListening,
+    stopListening,
+    error: recognitionError,
+  } = useSpeechRecognition({ lang: voiceLang })
+
+  const {
+    isSupported: isTTSSupported,
+    isSpeaking,
+    speak: rawSpeak,
+    cancel: rawCancelSpeak,
+  } = useSpeechSynthesis({ lang: voiceLang, preferredVoiceURI })
+
+  // Wrap speak/cancel to track which message is being spoken
+  const speak = useCallback(
+    (text: string, messageId?: number) => {
+      setSpeakingMessageId(messageId ?? null)
+      rawSpeak(text)
+    },
+    [rawSpeak]
+  )
+
+  const cancelSpeak = useCallback(() => {
+    setSpeakingMessageId(null)
+    rawCancelSpeak()
+  }, [rawCancelSpeak])
+
+  // Clear speaking message ID when TTS finishes
+  useEffect(() => {
+    if (!isSpeaking) setSpeakingMessageId(null)
+  }, [isSpeaking])
+
+  // Show speech recognition errors
+  useEffect(() => {
+    if (recognitionError) {
+      setSpeechError(recognitionError)
+      const timer = setTimeout(() => setSpeechError(null), 4000)
+      return () => clearTimeout(timer)
+    }
+  }, [recognitionError])
 
   // Check if viewport is scrolled near the bottom
   const isNearBottom = useCallback(() => {
@@ -141,6 +200,104 @@ export function AIAssistantCard({
       setConversationId(newConversationId)
     }
   }, [inputValue, isStreaming, isPending, sendMessage, conversationId])
+
+  // Sync speech transcript to input
+  const prevTranscriptRef = useRef('')
+  useEffect(() => {
+    if (transcript && transcript !== prevTranscriptRef.current) {
+      prevTranscriptRef.current = transcript
+      setInputValue(transcript)
+    }
+  }, [transcript])
+
+  // Auto-submit when speech recognition ends — use ref for latest inputValue
+  const inputValueRef = useRef(inputValue)
+  useEffect(() => {
+    inputValueRef.current = inputValue
+  }, [inputValue])
+
+  const prevListeningRef = useRef(false)
+  useEffect(() => {
+    const shouldAutoSubmit = autoSubmit || voiceMode
+    if (
+      prevListeningRef.current &&
+      !isListening &&
+      shouldAutoSubmit &&
+      inputValueRef.current.trim()
+    ) {
+      prevTranscriptRef.current = ''
+      // Defer to ensure state is synced
+      setTimeout(() => handleSend(), 0)
+    }
+    prevListeningRef.current = isListening
+  }, [isListening, autoSubmit, voiceMode, handleSend])
+
+  // Auto-read new AI messages when autoRead or voiceMode is enabled
+  const prevMessagesLenRef = useRef(messages.length)
+  const lastReadMessageIdRef = useRef<number | null>(null)
+  useEffect(() => {
+    const shouldAutoRead = autoRead || voiceMode
+    if (!shouldAutoRead || !isTTSSupported) {
+      prevMessagesLenRef.current = messages.length
+      return
+    }
+    if (messages.length > prevMessagesLenRef.current) {
+      const lastMessage = messages[messages.length - 1]
+      if (
+        lastMessage &&
+        lastMessage.role === 'assistant' &&
+        lastMessage.status !== 'streaming' &&
+        lastMessage.status !== 'pending' &&
+        lastMessage.id !== lastReadMessageIdRef.current
+      ) {
+        lastReadMessageIdRef.current = lastMessage.id
+        speak(lastMessage.content, lastMessage.id)
+      }
+    }
+    prevMessagesLenRef.current = messages.length
+  }, [messages, autoRead, voiceMode, isTTSSupported, speak])
+
+  // Voice Mode: after TTS finishes reading, restart listening
+  const prevSpeakingRef = useRef(false)
+  useEffect(() => {
+    if (voiceMode && isSpeechSupported && prevSpeakingRef.current && !isSpeaking && !isListening) {
+      startListening()
+    }
+    prevSpeakingRef.current = isSpeaking
+  }, [isSpeaking, voiceMode, isSpeechSupported, isListening, startListening])
+
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      stopListening()
+    } else {
+      startListening()
+    }
+  }, [isListening, startListening, stopListening])
+
+  const toggleVoiceMode = useCallback(() => {
+    const newMode = !voiceMode
+    setVoiceMode(newMode)
+    if (newMode && !isListening) {
+      startListening()
+    } else if (!newMode) {
+      stopListening()
+      cancelSpeak()
+    }
+  }, [voiceMode, setVoiceMode, isListening, startListening, stopListening, cancelSpeak])
+
+  // Keyboard shortcut: Ctrl+Shift+V for Voice Mode
+  useEffect(() => {
+    if (!isSpeechSupported) return
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return
+      if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+        e.preventDefault()
+        toggleVoiceMode()
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [isSpeechSupported, toggleVoiceMode])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -245,6 +402,18 @@ export function AIAssistantCard({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Voice Mode Toggle */}
+            {isSpeechSupported && (
+              <Button
+                variant={voiceMode ? 'default' : 'ghost'}
+                size="icon"
+                onClick={toggleVoiceMode}
+                aria-label={t('voiceModeToggle')}
+                title={`${t('voiceModeToggle')} (Ctrl+Shift+V)`}
+              >
+                <AudioLines className="h-5 w-5" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={handleNewConversation}>
               <Plus className="h-5 w-5" />
             </Button>
@@ -268,6 +437,10 @@ export function AIAssistantCard({
                 <AIMessageBubble
                   key={message.id !== -1 ? message.id : `streaming-${index}`}
                   message={message}
+                  onSpeak={(text) => speak(text, message.id)}
+                  onCancelSpeak={cancelSpeak}
+                  isSpeaking={isSpeaking && speakingMessageId === message.id}
+                  isTTSSupported={isTTSSupported}
                 />
               ))
             )}
@@ -281,15 +454,34 @@ export function AIAssistantCard({
           </div>
         )}
 
+        {/* Speech Error */}
+        {speechError && (
+          <div role="alert" className="px-4 py-2 text-xs text-destructive text-center">
+            {t('voiceError')}: {speechError}
+          </div>
+        )}
+
         {/* Input Area */}
         <div className="p-4 border-t">
           <div className="flex items-center gap-2">
+            {isSpeechSupported && (
+              <Button
+                variant={isListening ? 'destructive' : 'ghost'}
+                size="icon"
+                onClick={toggleListening}
+                disabled={isStreaming}
+                aria-label={isListening ? t('voiceStopListening') : t('voiceStartListening')}
+                className={cn(isListening && 'animate-pulse')}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+            )}
             <Input
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={t('inputPlaceholder')}
+              placeholder={isListening ? t('voiceListening') : t('inputPlaceholder')}
               disabled={isStreaming}
               className="flex-1"
             />
@@ -399,6 +591,7 @@ function ConversationSidebar({
                   </p>
                 </div>
                 <button
+                  type="button"
                   className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
                   onClick={(e) => {
                     e.stopPropagation()

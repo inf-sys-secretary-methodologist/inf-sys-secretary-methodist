@@ -1893,7 +1893,15 @@
       "summarize": "Résumer",
       "schedule": "Planning",
       "analytics": "Analytique"
-    }
+    },
+    "voiceLang": "fr-FR",
+    "voiceListening": "Parlez...",
+    "voiceStartListening": "Démarrer la saisie vocale",
+    "voiceStopListening": "Arrêter la saisie vocale",
+    "voiceSpeak": "Lire à voix haute",
+    "voiceStopSpeaking": "Arrêter la lecture",
+    "voiceModeToggle": "Mode vocal",
+    "voiceError": "Erreur de saisie vocale"
   },
   "metodych": {
     "title": "Metodych",

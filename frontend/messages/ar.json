@@ -1893,7 +1893,15 @@
       "summarize": "تلخيص",
       "schedule": "جدول",
       "analytics": "تحليلات"
-    }
+    },
+    "voiceLang": "ar-SA",
+    "voiceListening": "تحدث...",
+    "voiceStartListening": "بدء الإدخال الصوتي",
+    "voiceStopListening": "إيقاف الإدخال الصوتي",
+    "voiceSpeak": "قراءة بصوت عالٍ",
+    "voiceStopSpeaking": "إيقاف القراءة",
+    "voiceModeToggle": "الوضع الصوتي",
+    "voiceError": "خطأ في الإدخال الصوتي"
   },
   "metodych": {
     "title": "ميتوديتش",

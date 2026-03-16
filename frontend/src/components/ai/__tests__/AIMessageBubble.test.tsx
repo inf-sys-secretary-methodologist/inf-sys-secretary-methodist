@@ -235,4 +235,84 @@ describe('AIMessageBubble', () => {
 
     expect(screen.queryByText(/sources/i)).not.toBeInTheDocument()
   })
+
+  // TTS / Speak button tests
+
+  it('renders speak button on assistant messages when isTTSSupported and onSpeak provided', () => {
+    render(
+      <AIMessageBubble
+        message={mockAssistantMessage}
+        isTTSSupported={true}
+        onSpeak={jest.fn()}
+        onCancelSpeak={jest.fn()}
+      />
+    )
+
+    expect(screen.getByLabelText('voiceSpeak')).toBeInTheDocument()
+  })
+
+  it('does not render speak button on user messages', () => {
+    render(
+      <AIMessageBubble
+        message={mockUserMessage}
+        isTTSSupported={true}
+        onSpeak={jest.fn()}
+        onCancelSpeak={jest.fn()}
+      />
+    )
+
+    expect(screen.queryByLabelText('voiceSpeak')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('voiceStopSpeaking')).not.toBeInTheDocument()
+  })
+
+  it('clicking speak button calls onSpeak with message content', () => {
+    const mockOnSpeak = jest.fn()
+
+    render(
+      <AIMessageBubble
+        message={mockAssistantMessage}
+        isTTSSupported={true}
+        onSpeak={mockOnSpeak}
+        onCancelSpeak={jest.fn()}
+      />
+    )
+
+    const speakButton = screen.getByLabelText('voiceSpeak')
+    fireEvent.click(speakButton)
+
+    expect(mockOnSpeak).toHaveBeenCalledWith('Hello! How can I help you?')
+  })
+
+  it('clicking stop speak button calls onCancelSpeak when isSpeaking', () => {
+    const mockOnCancelSpeak = jest.fn()
+
+    render(
+      <AIMessageBubble
+        message={mockAssistantMessage}
+        isTTSSupported={true}
+        onSpeak={jest.fn()}
+        onCancelSpeak={mockOnCancelSpeak}
+        isSpeaking={true}
+      />
+    )
+
+    const stopButton = screen.getByLabelText('voiceStopSpeaking')
+    fireEvent.click(stopButton)
+
+    expect(mockOnCancelSpeak).toHaveBeenCalled()
+  })
+
+  it('hides speak button when isTTSSupported is false', () => {
+    render(
+      <AIMessageBubble
+        message={mockAssistantMessage}
+        isTTSSupported={false}
+        onSpeak={jest.fn()}
+        onCancelSpeak={jest.fn()}
+      />
+    )
+
+    expect(screen.queryByLabelText('voiceSpeak')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('voiceStopSpeaking')).not.toBeInTheDocument()
+  })
 })
