@@ -127,6 +127,12 @@ jobs:
         cd frontend
         npm run test:unit
 
+    - name: Install Playwright browsers
+      if: steps.check_frontend.outputs.exists == 'true'
+      run: |
+        cd frontend
+        npx playwright install --with-deps chromium
+
     - name: Run E2E tests
       if: steps.check_frontend.outputs.exists == 'true'
       run: |
