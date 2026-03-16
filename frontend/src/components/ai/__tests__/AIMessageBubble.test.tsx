@@ -224,10 +224,10 @@ describe('AIMessageBubble', () => {
     expect(screen.getByText('More relevant content')).toBeInTheDocument()
   })
 
-  it('does not show copy button for user messages', () => {
+  it('shows copy button for user messages', () => {
     render(<AIMessageBubble message={mockUserMessage} />)
 
-    expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /copy/i })).toBeInTheDocument()
   })
 
   it('does not show sources when none are present', () => {

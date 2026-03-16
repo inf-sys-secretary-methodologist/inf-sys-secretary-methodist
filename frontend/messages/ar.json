@@ -1901,7 +1901,9 @@
     "voiceSpeak": "قراءة بصوت عالٍ",
     "voiceStopSpeaking": "إيقاف القراءة",
     "voiceModeToggle": "الوضع الصوتي",
-    "voiceError": "خطأ في الإدخال الصوتي"
+    "voiceError": "خطأ في الإدخال الصوتي",
+    "copyMessage": "نسخ الرسالة",
+    "copied": "تم النسخ"
   },
   "metodych": {
     "title": "ميتوديتش",

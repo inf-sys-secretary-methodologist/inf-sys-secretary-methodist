@@ -1862,7 +1862,9 @@
     "voiceSpeak": "Озвучить сообщение",
     "voiceStopSpeaking": "Остановить озвучку",
     "voiceModeToggle": "Голосовой режим",
-    "voiceError": "Ошибка голосового ввода"
+    "voiceError": "Ошибка голосового ввода",
+    "copyMessage": "Копировать сообщение",
+    "copied": "Скопировано"
   },
   "metodych": {
     "title": "Методыч",

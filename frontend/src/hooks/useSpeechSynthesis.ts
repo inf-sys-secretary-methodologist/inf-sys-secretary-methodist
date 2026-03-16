@@ -22,11 +22,12 @@ function stripMarkdown(text: string): string {
     .replace(/```[\s\S]*?```/g, '')
     .replace(/`([^`]+)`/g, '$1')
     .replace(/#{1,6}\s+/g, '')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/\*([^*]+)\*/g, '$1')
-    .replace(/__([^_]+)__/g, '$1')
-    .replace(/_([^_]+)_/g, '$1')
-    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/\*{3}(.+?)\*{3}/g, '$1')
+    .replace(/\*{2}(.+?)\*{2}/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/_{2}(.+?)_{2}/g, '$1')
+    .replace(/_(.+?)_/g, '$1')
+    .replace(/~~(.+?)~~/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/^[-*+]\s+/gm, '')
     .replace(/^\d+\.\s+/gm, '')
@@ -44,6 +45,14 @@ export function useSpeechSynthesis({
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
 
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const clearKeepAlive = useCallback(() => {
+    if (keepAliveRef.current) {
+      clearInterval(keepAliveRef.current)
+      keepAliveRef.current = null
+    }
+  }, [])
 
   // Check support on client only to avoid SSR hydration mismatch
   useEffect(() => {
@@ -75,6 +84,7 @@ export function useSpeechSynthesis({
       if (!isSupported) return
 
       speechSynthesis.cancel()
+      clearKeepAlive()
 
       const cleanText = stripMarkdown(text)
       if (!cleanText) return
@@ -91,16 +101,29 @@ export function useSpeechSynthesis({
         utterance.voice = voices[0]
       }
 
-      utterance.onstart = () => setIsSpeaking(true)
-      utterance.onend = () => setIsSpeaking(false)
-      utterance.onerror = () => setIsSpeaking(false)
+      utterance.onstart = () => {
+        setIsSpeaking(true)
+        // Chrome bug: long utterances stop after ~15s without keepalive
+        keepAliveRef.current = setInterval(() => {
+          speechSynthesis.pause()
+          speechSynthesis.resume()
+        }, 10000)
+      }
+      utterance.onend = () => {
+        clearKeepAlive()
+        setIsSpeaking(false)
+      }
+      utterance.onerror = () => {
+        clearKeepAlive()
+        setIsSpeaking(false)
+      }
       utterance.onpause = () => setIsSpeaking(false)
       utterance.onresume = () => setIsSpeaking(true)
 
       utteranceRef.current = utterance
       speechSynthesis.speak(utterance)
     },
-    [isSupported, lang, voices, preferredVoiceURI]
+    [isSupported, lang, voices, preferredVoiceURI, clearKeepAlive]
   )
 
   const pause = useCallback(() => {
@@ -113,19 +136,21 @@ export function useSpeechSynthesis({
 
   const cancel = useCallback(() => {
     if (isSupported) {
+      clearKeepAlive()
       speechSynthesis.cancel()
       setIsSpeaking(false)
     }
-  }, [isSupported])
+  }, [isSupported, clearKeepAlive])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      clearKeepAlive()
       if (isSupported) {
         speechSynthesis.cancel()
       }
     }
-  }, [isSupported])
+  }, [isSupported, clearKeepAlive])
 
   return {
     isSupported,

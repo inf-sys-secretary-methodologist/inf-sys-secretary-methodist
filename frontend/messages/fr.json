@@ -1901,7 +1901,9 @@
     "voiceSpeak": "Lire à voix haute",
     "voiceStopSpeaking": "Arrêter la lecture",
     "voiceModeToggle": "Mode vocal",
-    "voiceError": "Erreur de saisie vocale"
+    "voiceError": "Erreur de saisie vocale",
+    "copyMessage": "Copier le message",
+    "copied": "Copié"
   },
   "metodych": {
     "title": "Metodych",

@@ -1894,7 +1894,9 @@
     "voiceSpeak": "Read aloud",
     "voiceStopSpeaking": "Stop reading",
     "voiceModeToggle": "Voice Mode",
-    "voiceError": "Voice input error"
+    "voiceError": "Voice input error",
+    "copyMessage": "Copy message",
+    "copied": "Copied"
   },
   "metodych": {
     "title": "Metodych",

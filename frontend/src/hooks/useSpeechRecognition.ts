@@ -57,6 +57,7 @@ export function useSpeechRecognition({
 
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
   const accumulatedRef = useRef('')
+  const sessionIdRef = useRef(0)
 
   // Check support on client only to avoid SSR hydration mismatch
   useEffect(() => {
@@ -64,7 +65,11 @@ export function useSpeechRecognition({
   }, [])
 
   const startListening = useCallback(() => {
-    if (!isSupported) {
+    // Check support directly to avoid stale closure on isSupported
+    const supported =
+      typeof window !== 'undefined' &&
+      ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+    if (!supported) {
       setError('Speech recognition is not supported in this browser')
       return
     }
@@ -72,6 +77,8 @@ export function useSpeechRecognition({
     setError(null)
     setTranscript('')
     accumulatedRef.current = ''
+
+    const currentSession = ++sessionIdRef.current
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     const recognition = new SpeechRecognition()
@@ -106,17 +113,20 @@ export function useSpeechRecognition({
     }
 
     recognition.onend = () => {
-      setIsListening(false)
+      // Only update state if this session is still current
+      if (sessionIdRef.current === currentSession) {
+        setIsListening(false)
+        recognitionRef.current = null
+      }
     }
 
     recognitionRef.current = recognition
     recognition.start()
-  }, [isSupported, lang, continuous])
+  }, [lang, continuous])
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
       recognitionRef.current.stop()
-      recognitionRef.current = null
     }
   }, [])
 

@@ -125,6 +125,7 @@ export const AIMessageBubble = memo(function AIMessageBubble({
                     )}
                     <button
                       type="button"
+                      aria-label={copied ? t('copied') : t('copyMessage')}
                       className={cn(
                         'opacity-0 group-hover:opacity-100 transition-all p-0.5 rounded',
                         copied
