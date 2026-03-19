@@ -229,3 +229,75 @@ func TestNotifRepo_CreateBulk_Success(t *testing.T) {
 	mock.ExpectCommit()
 	require.NoError(t, repo.CreateBulk(context.Background(), notifs))
 }
+
+func TestNotifRepo_CreateBulk_BeginError(t *testing.T) {
+	repo, mock := newNotifRepoMock(t)
+	mock.ExpectBegin().WillReturnError(fmt.Errorf("tx error"))
+	assert.Error(t, repo.CreateBulk(context.Background(), []*entities.Notification{{}}))
+}
+
+func TestNotifRepo_CreateBulk_PrepareError(t *testing.T) {
+	repo, mock := newNotifRepoMock(t)
+	mock.ExpectBegin()
+	mock.ExpectPrepare(regexp.QuoteMeta("INSERT INTO notifications")).WillReturnError(fmt.Errorf("prepare error"))
+	mock.ExpectRollback()
+	assert.Error(t, repo.CreateBulk(context.Background(), []*entities.Notification{{}}))
+}
+
+func TestNotifRepo_Update_Error(t *testing.T) {
+	repo, mock := newNotifRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE notifications SET")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.Update(context.Background(), &entities.Notification{ID: 1}))
+}
+
+func TestNotifRepo_Delete_Error(t *testing.T) {
+	repo, mock := newNotifRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM notifications")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.Delete(context.Background(), 1))
+}
+
+func TestNotifRepo_MarkAsRead_Error(t *testing.T) {
+	repo, mock := newNotifRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE notifications SET is_read")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.MarkAsRead(context.Background(), 1))
+}
+
+func TestNotifRepo_MarkAllAsRead_Error(t *testing.T) {
+	repo, mock := newNotifRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE notifications SET is_read")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.MarkAllAsRead(context.Background(), 1))
+}
+
+func TestNotifRepo_DeleteByUserID_Error(t *testing.T) {
+	repo, mock := newNotifRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM notifications WHERE user_id")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.DeleteByUserID(context.Background(), 1))
+}
+
+func TestNotifRepo_DeleteExpired_Error(t *testing.T) {
+	repo, mock := newNotifRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM notifications WHERE expires_at")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.DeleteExpired(context.Background())
+	assert.Error(t, err)
+}
+
+func TestNotifRepo_GetUnreadCount_Error(t *testing.T) {
+	repo, mock := newNotifRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.GetUnreadCount(context.Background(), 1)
+	assert.Error(t, err)
+}
+
+func TestNotifRepo_GetStats_Error(t *testing.T) {
+	repo, mock := newNotifRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("COUNT(*)")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.GetStats(context.Background(), 1)
+	assert.Error(t, err)
+}
+
+func TestNotifRepo_GetByID_Error(t *testing.T) {
+	repo, mock := newNotifRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("FROM notifications WHERE id")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.GetByID(context.Background(), 1)
+	assert.Error(t, err)
+}

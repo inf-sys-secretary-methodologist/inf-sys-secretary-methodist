@@ -558,3 +558,230 @@ func TestSanitizeForTsquery(t *testing.T) {
 		})
 	}
 }
+
+func TestDocumentRepositoryPG_RestoreVersion_GetVersionError(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	mock.ExpectQuery("FROM document_versions").
+		WillReturnError(fmt.Errorf("version error"))
+	restoreErr := repo.RestoreVersion(context.Background(), 1, 2, 10)
+	assert.Error(t, restoreErr)
+	assert.Contains(t, restoreErr.Error(), "get version to restore")
+}
+
+func TestDocumentRepositoryPG_RestoreVersion_GetDocError(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	title := "Test"
+	verRows := addVerRow(newVerRows(), 1, 1, 2, &title)
+	mock.ExpectQuery("FROM document_versions").WillReturnRows(verRows)
+	mock.ExpectQuery("FROM documents").WillReturnError(fmt.Errorf("doc error"))
+
+	restoreErr := repo.RestoreVersion(context.Background(), 1, 2, 10)
+	assert.Error(t, restoreErr)
+	assert.Contains(t, restoreErr.Error(), "get current document")
+}
+
+func TestDocumentRepositoryPG_CompareVersions_CachedDiffReturned(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	now := time.Now()
+	diffCols := []string{"id", "document_id", "from_version", "to_version", "changed_fields", "diff_data", "created_at"}
+	diffData, _ := json.Marshal(map[string]interface{}{"title": "changed"})
+	mock.ExpectQuery("FROM document_version_diffs").
+		WillReturnRows(sqlmock.NewRows(diffCols).AddRow(
+			int64(1), int64(1), 1, 2, pq.Array([]string{"title"}), diffData, now,
+		))
+
+	diff, err := repo.CompareVersions(context.Background(), 1, 1, 2)
+	require.NoError(t, err)
+	assert.NotNil(t, diff)
+	assert.Contains(t, diff.ChangedFields, "title")
+}
+
+func TestDocumentRepositoryPG_CompareVersions_NoCacheComputesDiff(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	// No cached diff
+	mock.ExpectQuery("FROM document_version_diffs").WillReturnError(sql.ErrNoRows)
+
+	// GetVersion(from)
+	title1 := "Old Title"
+	mock.ExpectQuery("FROM document_versions").WillReturnRows(addVerRow(newVerRows(), 1, 1, 1, &title1))
+
+	// GetVersion(to)
+	title2 := "New Title"
+	mock.ExpectQuery("FROM document_versions").WillReturnRows(addVerRow(newVerRows(), 2, 1, 2, &title2))
+
+	// CreateVersionDiff
+	mock.ExpectQuery("INSERT INTO document_version_diffs").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(1)))
+
+	diff, err := repo.CompareVersions(context.Background(), 1, 1, 2)
+	require.NoError(t, err)
+	assert.NotNil(t, diff)
+	assert.Contains(t, diff.ChangedFields, "title")
+}
+
+func TestDocumentRepositoryPG_CompareVersions_CacheLookupError(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	mock.ExpectQuery("FROM document_version_diffs").WillReturnError(fmt.Errorf("cache error"))
+
+	diff, err := repo.CompareVersions(context.Background(), 1, 1, 2)
+	assert.Error(t, err)
+	assert.Nil(t, diff)
+}
+
+func TestDocumentRepositoryPG_CompareVersions_GetFromVersionError(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	mock.ExpectQuery("FROM document_version_diffs").WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery("FROM document_versions").WillReturnError(fmt.Errorf("version not found"))
+
+	diff, err := repo.CompareVersions(context.Background(), 1, 1, 2)
+	assert.Error(t, err)
+	assert.Nil(t, diff)
+}
+
+func TestDocumentRepositoryPG_CompareVersions_GetToVersionError(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	mock.ExpectQuery("FROM document_version_diffs").WillReturnError(sql.ErrNoRows)
+	title := "V1"
+	mock.ExpectQuery("FROM document_versions").WillReturnRows(addVerRow(newVerRows(), 1, 1, 1, &title))
+	mock.ExpectQuery("FROM document_versions").WillReturnError(fmt.Errorf("to version error"))
+
+	diff, err := repo.CompareVersions(context.Background(), 1, 1, 2)
+	assert.Error(t, err)
+	assert.Nil(t, diff)
+}
+
+func TestDocumentRepositoryPG_CompareVersions_CacheSaveFail(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	mock.ExpectQuery("FROM document_version_diffs").WillReturnError(sql.ErrNoRows)
+	title := "Same"
+	mock.ExpectQuery("FROM document_versions").WillReturnRows(addVerRow(newVerRows(), 1, 1, 1, &title))
+	mock.ExpectQuery("FROM document_versions").WillReturnRows(addVerRow(newVerRows(), 2, 1, 2, &title))
+	// CreateVersionDiff fails (cache save)
+	mock.ExpectQuery("INSERT INTO document_version_diffs").WillReturnError(fmt.Errorf("cache error"))
+
+	diff, err := repo.CompareVersions(context.Background(), 1, 1, 2)
+	require.NoError(t, err) // cache failure is non-fatal
+	assert.NotNil(t, diff)
+}
+
+func TestDocumentRepositoryPG_Search_Error(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	mock.ExpectQuery("ts_rank").WillReturnError(fmt.Errorf("search error"))
+
+	filter := repositories.SearchFilter{Query: "test", Limit: 20}
+	_, _, err = repo.Search(context.Background(), filter)
+	assert.Error(t, err)
+}
+
+func TestDocumentRepositoryPG_Search_CountError(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	searchCols := []string{
+		"id", "title", "subject", "content", "author_id", "status",
+		"file_name", "file_size", "mime_type", "version", "is_public",
+		"importance", "category_id", "document_type_id", "created_at", "updated_at",
+		"rank", "headline",
+	}
+	mock.ExpectQuery("ts_rank").WillReturnRows(sqlmock.NewRows(searchCols))
+	mock.ExpectQuery("COUNT").WillReturnError(fmt.Errorf("count error"))
+
+	filter := repositories.SearchFilter{Query: "test", Limit: 20}
+	_, _, err = repo.Search(context.Background(), filter)
+	assert.Error(t, err)
+}
+
+func TestDocumentRepositoryPG_GetVersions_Error(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	mock.ExpectQuery("FROM document_versions").WillReturnError(fmt.Errorf("db error"))
+	_, err = repo.GetVersions(context.Background(), 1)
+	assert.Error(t, err)
+}
+
+func TestDocumentRepositoryPG_GetVersion_Error(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	mock.ExpectQuery("FROM document_versions").WillReturnError(fmt.Errorf("db error"))
+	_, err = repo.GetVersion(context.Background(), 1, 1)
+	assert.Error(t, err)
+}
+
+func TestDocumentRepositoryPG_GetHistory_Error(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	mock.ExpectQuery("FROM document_history").WillReturnError(fmt.Errorf("db error"))
+	_, err = repo.GetHistory(context.Background(), 1)
+	assert.Error(t, err)
+}
+
+func TestDocumentRepositoryPG_DeleteVersion_Error(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	mock.ExpectQuery("FROM documents").WillReturnError(fmt.Errorf("db error"))
+	err = repo.DeleteVersion(context.Background(), 1, 1)
+	assert.Error(t, err)
+}
+
+func TestDocumentRepositoryPG_GetLatestVersion_NotFound(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	repo := NewDocumentRepositoryPG(db)
+
+	mock.ExpectQuery("FROM document_versions").WillReturnError(sql.ErrNoRows)
+
+	v, err := repo.GetLatestVersion(context.Background(), 1)
+	assert.Error(t, err)
+	assert.Nil(t, v)
+}

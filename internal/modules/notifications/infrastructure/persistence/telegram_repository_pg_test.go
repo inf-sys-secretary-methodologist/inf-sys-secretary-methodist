@@ -176,3 +176,50 @@ func TestTGRepo_DeleteConnection_NotFound(t *testing.T) {
 		WithArgs(int64(999)).WillReturnResult(sqlmock.NewResult(0, 0))
 	assert.Error(t, repo.DeleteConnection(context.Background(), 999))
 }
+
+func TestTGRepo_GetActiveConnections_Success(t *testing.T) {
+	repo, mock := newTGRepoMock(t)
+	now := time.Now()
+	rows := sqlmock.NewRows([]string{"user_id", "telegram_chat_id", "telegram_username", "telegram_first_name", "is_active", "connected_at", "updated_at"}).
+		AddRow(int64(1), int64(12345), sql.NullString{String: "user1", Valid: true}, sql.NullString{String: "First", Valid: true}, true, now, now)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE is_active = true")).WillReturnRows(rows)
+	conns, err := repo.GetActiveConnections(context.Background())
+	require.NoError(t, err)
+	assert.Len(t, conns, 1)
+	assert.Equal(t, "user1", conns[0].TelegramUsername)
+}
+
+func TestTGRepo_GetActiveConnections_Error(t *testing.T) {
+	repo, mock := newTGRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE is_active = true")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.GetActiveConnections(context.Background())
+	assert.Error(t, err)
+}
+
+func TestTGRepo_GetActiveVerificationCodeByUserID_NotFound(t *testing.T) {
+	repo, mock := newTGRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE user_id = $1 AND used_at IS NULL")).WillReturnError(sql.ErrNoRows)
+	vc, err := repo.GetActiveVerificationCodeByUserID(context.Background(), 1)
+	require.NoError(t, err)
+	assert.Nil(t, vc)
+}
+
+func TestTGRepo_GetConnectionByChatID_Error(t *testing.T) {
+	repo, mock := newTGRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE telegram_chat_id")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.GetConnectionByChatID(context.Background(), 123)
+	assert.Error(t, err)
+}
+
+func TestTGRepo_CreateConnection_Error(t *testing.T) {
+	repo, mock := newTGRepoMock(t)
+	conn := &entities.TelegramConnection{UserID: 1, TelegramChatID: 123}
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO user_telegram_connections")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.CreateConnection(context.Background(), conn))
+}
+
+func TestTGRepo_DeleteExpiredCodes_Error(t *testing.T) {
+	repo, mock := newTGRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM telegram_verification_codes")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.DeleteExpiredCodes(context.Background()))
+}

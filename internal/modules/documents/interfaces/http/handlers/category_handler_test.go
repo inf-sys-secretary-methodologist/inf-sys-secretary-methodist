@@ -1,6 +1,7 @@
 package http_test
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -254,7 +255,7 @@ func TestCategoryHandler_Delete(t *testing.T) {
 
 		cat := &entities.DocumentCategory{ID: 1, Name: "Cat"}
 		catRepo.On("GetByID", mock.Anything, int64(1)).Return(cat, nil)
-		catRepo.On("HasChildren", mock.Anything, int64(1)).Return(true, nil)
+		catRepo.On("Delete", mock.Anything, int64(1)).Return(errors.New("delete error"))
 
 		router := setupRouter()
 		router.DELETE("/categories/:id", h.Delete)

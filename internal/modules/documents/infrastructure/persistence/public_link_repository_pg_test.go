@@ -252,3 +252,67 @@ func TestPLRepo_DeactivateExpired(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(4), count)
 }
+
+func TestPLRepo_Update_Error(t *testing.T) {
+	repo, mock := newPLRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE public_links SET")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.Update(context.Background(), &entities.PublicLink{ID: 1}))
+}
+
+func TestPLRepo_Delete_Error(t *testing.T) {
+	repo, mock := newPLRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM public_links")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.Delete(context.Background(), 1))
+}
+
+func TestPLRepo_GetByCreatedBy_Success(t *testing.T) {
+	repo, mock := newPLRepoMock(t)
+	now := time.Now()
+	rows := sqlmock.NewRows(plJoinCols).AddRow(
+		int64(1), int64(10), "abc", "read", int64(5),
+		nil, nil, 0, nil,
+		true, now, now, "Doc Title", "Creator",
+	)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE pl.created_by")).WithArgs(int64(5)).WillReturnRows(rows)
+	links, err := repo.GetByCreatedBy(context.Background(), 5)
+	require.NoError(t, err)
+	assert.Len(t, links, 1)
+}
+
+func TestPLRepo_GetByCreatedBy_Error(t *testing.T) {
+	repo, mock := newPLRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE pl.created_by")).WithArgs(int64(5)).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.GetByCreatedBy(context.Background(), 5)
+	assert.Error(t, err)
+}
+
+func TestPLRepo_IncrementUseCount_Error(t *testing.T) {
+	repo, mock := newPLRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("SET use_count")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.IncrementUseCount(context.Background(), 1))
+}
+
+func TestPLRepo_Deactivate_Error(t *testing.T) {
+	repo, mock := newPLRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("SET is_active = false")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.Deactivate(context.Background(), 1))
+}
+
+func TestPLRepo_Activate_Error(t *testing.T) {
+	repo, mock := newPLRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("SET is_active = true")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.Activate(context.Background(), 1))
+}
+
+func TestPLRepo_DeleteByDocumentID_Error(t *testing.T) {
+	repo, mock := newPLRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM public_links WHERE document_id")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.DeleteByDocumentID(context.Background(), 1))
+}
+
+func TestPLRepo_DeactivateExpired_Error(t *testing.T) {
+	repo, mock := newPLRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("SET is_active = false")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.DeactivateExpired(context.Background())
+	assert.Error(t, err)
+}

@@ -344,3 +344,53 @@ func TestCatRepo_GetDocumentCount_WithSubcategories(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(15), count)
 }
+
+func TestCatRepo_GetDocumentCount_Error(t *testing.T) {
+	repo, mock := newCatRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.GetDocumentCount(context.Background(), 1, false)
+	assert.Error(t, err)
+}
+
+func TestCatRepo_HasChildren_Error(t *testing.T) {
+	repo, mock := newCatRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("EXISTS")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.HasChildren(context.Background(), 1)
+	assert.Error(t, err)
+}
+
+func TestCatRepo_Delete_WithChildren(t *testing.T) {
+	repo, mock := newCatRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("EXISTS")).WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+	err := repo.Delete(context.Background(), 1)
+	assert.Error(t, err)
+}
+
+func TestCatRepo_Delete_Error(t *testing.T) {
+	repo, mock := newCatRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("EXISTS")).WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(0)))
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM document_categories")).WillReturnError(fmt.Errorf("db"))
+	err := repo.Delete(context.Background(), 1)
+	assert.Error(t, err)
+}
+
+func TestTypeRepo_GetByID_Error(t *testing.T) {
+	repo, mock := newTypeRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("FROM document_types")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.GetByID(context.Background(), 1)
+	assert.Error(t, err)
+}
+
+func TestTypeRepo_GetByCode_Error(t *testing.T) {
+	repo, mock := newTypeRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("FROM document_types")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.GetByCode(context.Background(), "test")
+	assert.Error(t, err)
+}
+
+func TestTypeRepo_UpdateTemplate_Error(t *testing.T) {
+	repo, mock := newTypeRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE document_types SET")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.UpdateTemplate(context.Background(), 1, nil, nil))
+}

@@ -179,3 +179,21 @@ func TestPrefsRepo_UpdateQuietHours_CreateIfNotExists(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(1)))
 	require.NoError(t, repo.UpdateQuietHours(context.Background(), 1, true, "22:00", "08:00", "UTC"))
 }
+
+func TestPrefsRepo_Update_Error(t *testing.T) {
+	repo, mock := newPrefsRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE notification_preferences SET")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.Update(context.Background(), entities.NewUserNotificationPreferences(1)))
+}
+
+func TestPrefsRepo_UpdateQuietHours_Error(t *testing.T) {
+	repo, mock := newPrefsRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE notification_preferences SET")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.UpdateQuietHours(context.Background(), 1, true, "22:00", "08:00", "UTC"))
+}
+
+func TestPrefsRepo_UpdateChannelEnabled_Error(t *testing.T) {
+	repo, mock := newPrefsRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE notification_preferences SET")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.UpdateChannelEnabled(context.Background(), 1, entities.ChannelEmail, true))
+}

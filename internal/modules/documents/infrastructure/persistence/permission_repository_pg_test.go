@@ -272,6 +272,140 @@ func TestPermRepo_DeleteExpired(t *testing.T) {
 	assert.Equal(t, int64(5), count)
 }
 
+func TestPermRepo_GetByUserID_Success(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	now := time.Now()
+	rows := sqlmock.NewRows(permJoinCols).AddRow(
+		int64(1), int64(10), ptrInt64(5), ptrStr("admin"), "read",
+		int64(1), nil, now, ptrStr("User"), ptrStr("u@e.com"), ptrStr("Admin"),
+	)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE dp.user_id")).
+		WithArgs(int64(5)).
+		WillReturnRows(rows)
+	perms, err := repo.GetByUserID(context.Background(), 5)
+	require.NoError(t, err)
+	assert.Len(t, perms, 1)
+}
+
+func TestPermRepo_GetByUserID_Error(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE dp.user_id")).
+		WithArgs(int64(5)).
+		WillReturnError(fmt.Errorf("db error"))
+	_, err := repo.GetByUserID(context.Background(), 5)
+	assert.Error(t, err)
+}
+
+func TestPermRepo_GetByUserIDOrRole_Success(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	now := time.Now()
+	rows := sqlmock.NewRows(permJoinCols).AddRow(
+		int64(1), int64(10), ptrInt64(5), ptrStr("teacher"), "read",
+		int64(1), nil, now, ptrStr("User"), ptrStr("u@e.com"), ptrStr("Admin"),
+	)
+	mock.ExpectQuery(regexp.QuoteMeta("dp.user_id = $1 OR dp.role = $2")).
+		WithArgs(int64(5), "teacher").
+		WillReturnRows(rows)
+	perms, err := repo.GetByUserIDOrRole(context.Background(), 5, "teacher")
+	require.NoError(t, err)
+	assert.Len(t, perms, 1)
+}
+
+func TestPermRepo_GetByUserIDOrRole_Error(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("dp.user_id = $1 OR dp.role = $2")).
+		WithArgs(int64(5), "teacher").
+		WillReturnError(fmt.Errorf("db error"))
+	_, err := repo.GetByUserIDOrRole(context.Background(), 5, "teacher")
+	assert.Error(t, err)
+}
+
+func TestPermRepo_GetByGrantedBy_Success(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	now := time.Now()
+	rows := sqlmock.NewRows(permJoinCols).AddRow(
+		int64(1), int64(10), ptrInt64(5), ptrStr("admin"), "write",
+		int64(1), nil, now, ptrStr("User"), ptrStr("u@e.com"), ptrStr("Admin"),
+	)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE dp.granted_by")).
+		WithArgs(int64(1)).
+		WillReturnRows(rows)
+	perms, err := repo.GetByGrantedBy(context.Background(), 1)
+	require.NoError(t, err)
+	assert.Len(t, perms, 1)
+}
+
+func TestPermRepo_GetByGrantedBy_Error(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE dp.granted_by")).
+		WithArgs(int64(1)).
+		WillReturnError(fmt.Errorf("db error"))
+	_, err := repo.GetByGrantedBy(context.Background(), 1)
+	assert.Error(t, err)
+}
+
+func TestPermRepo_GetByDocumentAndRole_Success(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	now := time.Now()
+	rows := sqlmock.NewRows(permCols).AddRow(
+		int64(1), int64(10), nil, ptrStr("admin"), "read",
+		int64(1), nil, now,
+	)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE document_id = $1 AND role = $2")).
+		WithArgs(int64(10), entities.UserRole("admin")).
+		WillReturnRows(rows)
+	perm, err := repo.GetByDocumentAndRole(context.Background(), 10, "admin")
+	require.NoError(t, err)
+	assert.NotNil(t, perm)
+}
+
+func TestPermRepo_GetByDocumentAndRole_NotFound(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE document_id = $1 AND role = $2")).
+		WillReturnError(sql.ErrNoRows)
+	_, err := repo.GetByDocumentAndRole(context.Background(), 10, "admin")
+	assert.ErrorIs(t, err, domainErrors.ErrNotFound)
+}
+
+func TestPermRepo_GetByDocumentAndRole_Error(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE document_id = $1 AND role = $2")).
+		WillReturnError(fmt.Errorf("db error"))
+	_, err := repo.GetByDocumentAndRole(context.Background(), 10, "admin")
+	assert.Error(t, err)
+}
+
+func TestPermRepo_Update_Error(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE document_permissions SET")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.Update(context.Background(), &entities.DocumentPermission{ID: 1}))
+}
+
+func TestPermRepo_Delete_Error(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM document_permissions WHERE id")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.Delete(context.Background(), 1))
+}
+
+func TestPermRepo_DeleteByDocumentID_Error(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM document_permissions WHERE document_id")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.DeleteByDocumentID(context.Background(), 1))
+}
+
+func TestPermRepo_DeleteByUserID_Error(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM document_permissions WHERE user_id")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.DeleteByUserID(context.Background(), 1))
+}
+
+func TestPermRepo_DeleteExpired_Error(t *testing.T) {
+	repo, mock := newPermRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM document_permissions WHERE expires_at")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.DeleteExpired(context.Background())
+	assert.Error(t, err)
+}
+
 // Helper functions
 func ptrInt64(v int64) *int64  { return &v }
 func ptrStr(v string) *string { return &v }

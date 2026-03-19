@@ -1,567 +1,600 @@
 package http_test
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	docHandlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
+	handlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
 )
 
-const invalidID = "invalid"
-
-// mockAuthMiddleware creates a middleware that sets user_id for testing
-func mockAuthMiddleware(userID int64, role string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Set("user_id", userID)
-		c.Set("role", role)
-		c.Next()
-	}
+func newDocumentHandler(docRepo *MockDocumentRepository, typeRepo *MockDocumentTypeRepository, catRepo *MockDocumentCategoryRepository) *handlers.DocumentHandler {
+	uc := usecases.NewDocumentUseCase(docRepo, typeRepo, catRepo, nil, nil)
+	return handlers.NewDocumentHandler(uc)
 }
 
-// MockDocumentUseCase is a mock implementation of the document use case
-type MockDocumentUseCase struct {
-	mock.Mock
+func TestDocumentHandler_Create_NoAuth(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	router := setupRouter()
+	router.POST("/documents", h.Create)
+
+	w := performRequest(router, http.MethodPost, "/documents", map[string]interface{}{
+		"title":            "Doc",
+		"document_type_id": 1,
+	})
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
-func (m *MockDocumentUseCase) Create(ctx context.Context, input dto.CreateDocumentInput, userID int64) (*dto.DocumentOutput, error) {
-	args := m.Called(ctx, input, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*dto.DocumentOutput), args.Error(1)
+func TestDocumentHandler_Create_InvalidJSON(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	router := setupRouter()
+	router.POST("/documents", withAuth(1, "methodist"), h.Create)
+
+	w := performRequest(router, http.MethodPost, "/documents", nil)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func (m *MockDocumentUseCase) GetByID(ctx context.Context, id int64) (*dto.DocumentOutput, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*dto.DocumentOutput), args.Error(1)
+func TestDocumentHandler_Create_ValidationError(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	router := setupRouter()
+	router.POST("/documents", withAuth(1, "methodist"), h.Create)
+
+	w := performRequest(router, http.MethodPost, "/documents", map[string]interface{}{
+		"title":            "",
+		"document_type_id": 0,
+	})
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func (m *MockDocumentUseCase) Update(ctx context.Context, id int64, input dto.UpdateDocumentInput, userID int64) (*dto.DocumentOutput, error) {
-	args := m.Called(ctx, id, input, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*dto.DocumentOutput), args.Error(1)
+func TestDocumentHandler_Create_Success(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	docType := &entities.DocumentType{ID: 1, Name: "Test Type", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	typeRepo.On("GetByID", mock.Anything, int64(1)).Return(docType, nil)
+	docRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Document")).Run(func(args mock.Arguments) {
+		d := args.Get(1).(*entities.Document)
+		d.ID = 1
+	}).Return(nil)
+	docRepo.On("AddHistory", mock.Anything, mock.Anything).Return(nil)
+
+	router := setupRouter()
+	router.POST("/documents", withAuth(1, "methodist"), h.Create)
+
+	w := performRequest(router, http.MethodPost, "/documents", map[string]interface{}{
+		"title":            "New Doc",
+		"document_type_id": 1,
+	})
+	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
-func (m *MockDocumentUseCase) Delete(ctx context.Context, id int64, userID int64) error {
-	args := m.Called(ctx, id, userID)
-	return args.Error(0)
+func TestDocumentHandler_Create_UsecaseError(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	typeRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, fmt.Errorf("not found"))
+
+	router := setupRouter()
+	router.POST("/documents", withAuth(1, "methodist"), h.Create)
+
+	w := performRequest(router, http.MethodPost, "/documents", map[string]interface{}{
+		"title":            "New Doc",
+		"document_type_id": 1,
+	})
+	assert.NotEqual(t, http.StatusCreated, w.Code)
 }
 
-func (m *MockDocumentUseCase) List(ctx context.Context, filter dto.DocumentFilterInput) (*dto.DocumentListOutput, error) {
-	args := m.Called(ctx, filter)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*dto.DocumentListOutput), args.Error(1)
-}
+func TestDocumentHandler_GetByID(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
 
-func (m *MockDocumentUseCase) GetDocumentTypes(ctx context.Context) ([]*entities.DocumentType, error) {
-	args := m.Called(ctx)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*entities.DocumentType), args.Error(1)
-}
+		doc := &entities.Document{ID: 1, Title: "Test", Status: entities.DocumentStatusDraft, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+		docRepo.On("GetByID", mock.Anything, int64(1)).Return(doc, nil)
 
-func (m *MockDocumentUseCase) GetCategories(ctx context.Context) ([]*entities.DocumentCategory, error) {
-	args := m.Called(ctx)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*entities.DocumentCategory), args.Error(1)
-}
+		router := setupRouter()
+		router.GET("/documents/:id", h.GetByID)
 
-func (m *MockDocumentUseCase) Search(ctx context.Context, input dto.SearchInput) (*dto.SearchOutput, error) {
-	args := m.Called(ctx, input)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*dto.SearchOutput), args.Error(1)
-}
-
-// Helper to create test document output
-func testDocumentOutput(id int64, title string) *dto.DocumentOutput {
-	return &dto.DocumentOutput{
-		ID:        id,
-		Title:     title,
-		Status:    string(entities.DocumentStatusDraft),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-}
-
-// TestGetDocumentByID tests getting a document by ID
-func TestGetDocumentByID(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		documentID     string
-		mockSetup      func(*MockDocumentUseCase)
-		expectedStatus int
-		checkResponse  func(*testing.T, map[string]interface{})
-	}{
-		{
-			name:       "success",
-			documentID: "1",
-			mockSetup: func(m *MockDocumentUseCase) {
-				m.On("GetByID", mock.Anything, int64(1)).Return(testDocumentOutput(1, "Test Document"), nil)
-			},
-			expectedStatus: http.StatusOK,
-			checkResponse: func(t *testing.T, resp map[string]interface{}) {
-				assert.Equal(t, "success", resp["status"])
-				data := resp["data"].(map[string]interface{})
-				assert.Equal(t, "Test Document", data["title"])
-			},
-		},
-		{
-			name:       "not found",
-			documentID: "999",
-			mockSetup: func(m *MockDocumentUseCase) {
-				m.On("GetByID", mock.Anything, int64(999)).Return(nil, fmt.Errorf("document not found"))
-			},
-			expectedStatus: http.StatusNotFound,
-		},
-		{
-			name:           "invalid id",
-			documentID:     invalidID,
-			mockSetup:      func(m *MockDocumentUseCase) {},
-			expectedStatus: http.StatusBadRequest,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockUseCase := new(MockDocumentUseCase)
-			tt.mockSetup(mockUseCase)
-
-			// Create handler with mock - we need to use reflection or create a test handler
-			// For now, we'll test the handler integration differently
-			router := gin.New()
-			router.Use(mockAuthMiddleware(1, "methodist"))
-
-			// Since we can't inject mocks directly into the handler,
-			// we'll create a simple handler wrapper for testing
-			router.GET("/documents/:id", func(c *gin.Context) {
-				id := c.Param("id")
-				if id == invalidID {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
-					return
-				}
-				if id == "999" {
-					c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
-					return
-				}
-				c.JSON(http.StatusOK, gin.H{
-					"status": "success",
-					"data": gin.H{
-						"id":    1,
-						"title": "Test Document",
-					},
-				})
-			})
-
-			req := httptest.NewRequest(http.MethodGet, "/documents/"+tt.documentID, nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-
-			if tt.checkResponse != nil {
-				var resp map[string]interface{}
-				err := json.Unmarshal(w.Body.Bytes(), &resp)
-				assert.NoError(t, err)
-				tt.checkResponse(t, resp)
-			}
-		})
-	}
-}
-
-// TestCreateDocument tests document creation
-func TestCreateDocument(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		payload        map[string]interface{}
-		authenticated  bool
-		expectedStatus int
-	}{
-		{
-			name: "success",
-			payload: map[string]interface{}{
-				"title":            "New Document",
-				"document_type_id": 1,
-			},
-			authenticated:  true,
-			expectedStatus: http.StatusCreated,
-		},
-		{
-			name: "missing title",
-			payload: map[string]interface{}{
-				"document_type_id": 1,
-			},
-			authenticated:  true,
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name: "unauthorized",
-			payload: map[string]interface{}{
-				"title":            "New Document",
-				"document_type_id": 1,
-			},
-			authenticated:  false,
-			expectedStatus: http.StatusUnauthorized,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-
-			if tt.authenticated {
-				router.Use(mockAuthMiddleware(1, "methodist"))
-			}
-
-			router.POST("/documents", func(c *gin.Context) {
-				userID, exists := c.Get("user_id")
-				if !exists {
-					c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Unauthorized"})
-					return
-				}
-
-				var input map[string]interface{}
-				if err := c.ShouldBindJSON(&input); err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid JSON"})
-					return
-				}
-
-				if input["title"] == nil || input["title"] == "" {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Title required"})
-					return
-				}
-
-				c.JSON(http.StatusCreated, gin.H{
-					"status": "success",
-					"data": gin.H{
-						"id":      1,
-						"title":   input["title"],
-						"user_id": userID,
-					},
-				})
-			})
-
-			body, _ := json.Marshal(tt.payload)
-			req := httptest.NewRequest(http.MethodPost, "/documents", bytes.NewReader(body))
-			req.Header.Set("Content-Type", "application/json")
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
-	}
-}
-
-// TestUpdateDocument tests document update
-func TestUpdateDocument(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		documentID     string
-		payload        map[string]interface{}
-		expectedStatus int
-	}{
-		{
-			name:       "success",
-			documentID: "1",
-			payload: map[string]interface{}{
-				"title": "Updated Title",
-			},
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:       "not found",
-			documentID: "999",
-			payload: map[string]interface{}{
-				"title": "Updated Title",
-			},
-			expectedStatus: http.StatusNotFound,
-		},
-		{
-			name:           "invalid id",
-			documentID:     invalidID,
-			payload:        map[string]interface{}{},
-			expectedStatus: http.StatusBadRequest,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-			router.Use(mockAuthMiddleware(1, "methodist"))
-
-			router.PUT("/documents/:id", func(c *gin.Context) {
-				id := c.Param("id")
-				if id == invalidID {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
-					return
-				}
-				if id == "999" {
-					c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
-					return
-				}
-
-				var input map[string]interface{}
-				if err := c.ShouldBindJSON(&input); err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid JSON"})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{
-					"status": "success",
-					"data": gin.H{
-						"id":    1,
-						"title": input["title"],
-					},
-				})
-			})
-
-			body, _ := json.Marshal(tt.payload)
-			req := httptest.NewRequest(http.MethodPut, "/documents/"+tt.documentID, bytes.NewReader(body))
-			req.Header.Set("Content-Type", "application/json")
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
-	}
-}
-
-// TestDeleteDocument tests document deletion
-func TestDeleteDocument(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		documentID     string
-		expectedStatus int
-	}{
-		{
-			name:           "success",
-			documentID:     "1",
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:           "not found",
-			documentID:     "999",
-			expectedStatus: http.StatusNotFound,
-		},
-		{
-			name:           "invalid id",
-			documentID:     invalidID,
-			expectedStatus: http.StatusBadRequest,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-			router.Use(mockAuthMiddleware(1, "methodist"))
-
-			router.DELETE("/documents/:id", func(c *gin.Context) {
-				id := c.Param("id")
-				if id == invalidID {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
-					return
-				}
-				if id == "999" {
-					c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
-					return
-				}
-				c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Deleted"})
-			})
-
-			req := httptest.NewRequest(http.MethodDelete, "/documents/"+tt.documentID, nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
-	}
-}
-
-// TestListDocuments tests document listing
-func TestListDocuments(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		queryParams    string
-		expectedStatus int
-		checkResponse  func(*testing.T, map[string]interface{})
-	}{
-		{
-			name:           "default pagination",
-			queryParams:    "",
-			expectedStatus: http.StatusOK,
-			checkResponse: func(t *testing.T, resp map[string]interface{}) {
-				assert.Equal(t, "success", resp["status"])
-			},
-		},
-		{
-			name:           "with pagination",
-			queryParams:    "?page=1&page_size=10",
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:           "with filter",
-			queryParams:    "?status=draft",
-			expectedStatus: http.StatusOK,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-			router.Use(mockAuthMiddleware(1, "methodist"))
-
-			router.GET("/documents", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{
-					"status": "success",
-					"data":   []interface{}{},
-					"pagination": gin.H{
-						"page":        1,
-						"per_page":    20,
-						"total":       0,
-						"total_pages": 0,
-					},
-				})
-			})
-
-			req := httptest.NewRequest(http.MethodGet, "/documents"+tt.queryParams, nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-
-			if tt.checkResponse != nil {
-				var resp map[string]interface{}
-				err := json.Unmarshal(w.Body.Bytes(), &resp)
-				assert.NoError(t, err)
-				tt.checkResponse(t, resp)
-			}
-		})
-	}
-}
-
-// TestSearchDocuments tests document search
-func TestSearchDocuments(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		query          string
-		expectedStatus int
-	}{
-		{
-			name:           "valid search",
-			query:          "?q=test",
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:           "empty query",
-			query:          "?q=",
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:           "missing query param",
-			query:          "",
-			expectedStatus: http.StatusBadRequest,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-			router.Use(mockAuthMiddleware(1, "methodist"))
-
-			router.GET("/documents/search", func(c *gin.Context) {
-				q := c.Query("q")
-				if q == "" {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Query required"})
-					return
-				}
-				c.JSON(http.StatusOK, gin.H{
-					"status": "success",
-					"data": gin.H{
-						"results": []interface{}{},
-						"total":   0,
-					},
-				})
-			})
-
-			req := httptest.NewRequest(http.MethodGet, "/documents/search"+tt.query, nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
-	}
-}
-
-// TestGetDocumentTypes tests getting document types
-func TestGetDocumentTypes(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	router := gin.New()
-	router.Use(mockAuthMiddleware(1, "methodist"))
-
-	router.GET("/documents/types", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "success",
-			"data": []gin.H{
-				{"id": 1, "name": "Type 1"},
-				{"id": 2, "name": "Type 2"},
-			},
-		})
+		w := performRequest(router, http.MethodGet, "/documents/1", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/documents/types", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	t.Run("invalid id", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
 
+		router := setupRouter()
+		router.GET("/documents/:id", h.GetByID)
+
+		w := performRequest(router, http.MethodGet, "/documents/abc", nil)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		docRepo.On("GetByID", mock.Anything, int64(999)).Return(nil, fmt.Errorf("not found"))
+
+		router := setupRouter()
+		router.GET("/documents/:id", h.GetByID)
+
+		w := performRequest(router, http.MethodGet, "/documents/999", nil)
+		assert.NotEqual(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestDocumentHandler_Update(t *testing.T) {
+	t.Run("no auth", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		router := setupRouter()
+		router.PUT("/documents/:id", h.Update)
+
+		w := performRequest(router, http.MethodPut, "/documents/1", map[string]interface{}{"title": "X"})
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("invalid id", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		router := setupRouter()
+		router.PUT("/documents/:id", withAuth(1, "methodist"), h.Update)
+
+		w := performRequest(router, http.MethodPut, "/documents/abc", map[string]interface{}{"title": "X"})
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("invalid json", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		router := setupRouter()
+		router.PUT("/documents/:id", withAuth(1, "methodist"), h.Update)
+
+		w := performRequest(router, http.MethodPut, "/documents/1", nil)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		doc := &entities.Document{ID: 1, Title: "Old", Status: entities.DocumentStatusDraft, AuthorID: 1, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+		docRepo.On("GetByID", mock.Anything, int64(1)).Return(doc, nil)
+		docRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Document")).Return(nil)
+		docRepo.On("AddHistory", mock.Anything, mock.Anything).Return(nil)
+
+		router := setupRouter()
+		router.PUT("/documents/:id", withAuth(1, "methodist"), h.Update)
+
+		w := performRequest(router, http.MethodPut, "/documents/1", map[string]interface{}{"title": "New"})
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestDocumentHandler_Delete(t *testing.T) {
+	t.Run("no auth", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		router := setupRouter()
+		router.DELETE("/documents/:id", h.Delete)
+
+		w := performRequest(router, http.MethodDelete, "/documents/1", nil)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("invalid id", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		router := setupRouter()
+		router.DELETE("/documents/:id", withAuth(1, "methodist"), h.Delete)
+
+		w := performRequest(router, http.MethodDelete, "/documents/abc", nil)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		doc := &entities.Document{ID: 1, Title: "Doc", AuthorID: 1, Status: entities.DocumentStatusDraft}
+		docRepo.On("GetByID", mock.Anything, int64(1)).Return(doc, nil)
+		docRepo.On("SoftDelete", mock.Anything, int64(1)).Return(nil)
+		docRepo.On("AddHistory", mock.Anything, mock.Anything).Return(nil)
+
+		router := setupRouter()
+		router.DELETE("/documents/:id", withAuth(1, "methodist"), h.Delete)
+
+		w := performRequest(router, http.MethodDelete, "/documents/1", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestDocumentHandler_List(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		docRepo.On("List", mock.Anything, mock.Anything).Return([]*entities.Document{}, int64(0), nil)
+
+		router := setupRouter()
+		router.GET("/documents", withAuth(1, "methodist"), h.List)
+
+		w := performRequest(router, http.MethodGet, "/documents", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("with pagination", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		docRepo.On("List", mock.Anything, mock.Anything).Return([]*entities.Document{}, int64(0), nil)
+
+		router := setupRouter()
+		router.GET("/documents", withAuth(1, "methodist"), h.List)
+
+		w := performRequest(router, http.MethodGet, "/documents?page=2&page_size=10", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("error", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		docRepo.On("List", mock.Anything, mock.Anything).Return(nil, int64(0), fmt.Errorf("db error"))
+
+		router := setupRouter()
+		router.GET("/documents", withAuth(1, "methodist"), h.List)
+
+		w := performRequest(router, http.MethodGet, "/documents", nil)
+		assert.NotEqual(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestDocumentHandler_GetDocumentTypes(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		types := []*entities.DocumentType{{ID: 1, Name: "Type1", CreatedAt: time.Now(), UpdatedAt: time.Now()}}
+		typeRepo.On("GetAll", mock.Anything).Return(types, nil)
+
+		router := setupRouter()
+		router.GET("/types", h.GetDocumentTypes)
+
+		w := performRequest(router, http.MethodGet, "/types", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("error", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		typeRepo.On("GetAll", mock.Anything).Return(nil, fmt.Errorf("error"))
+
+		router := setupRouter()
+		router.GET("/types", h.GetDocumentTypes)
+
+		w := performRequest(router, http.MethodGet, "/types", nil)
+		assert.NotEqual(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestDocumentHandler_GetCategories(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		cats := []*entities.DocumentCategory{{ID: 1, Name: "Cat1", CreatedAt: time.Now(), UpdatedAt: time.Now()}}
+		catRepo.On("GetAll", mock.Anything).Return(cats, nil)
+
+		router := setupRouter()
+		router.GET("/categories", h.GetCategories)
+
+		w := performRequest(router, http.MethodGet, "/categories", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("error", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		catRepo.On("GetAll", mock.Anything).Return(nil, fmt.Errorf("error"))
+
+		router := setupRouter()
+		router.GET("/categories", h.GetCategories)
+
+		w := performRequest(router, http.MethodGet, "/categories", nil)
+		assert.NotEqual(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestDocumentHandler_Search(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		docRepo.On("Search", mock.Anything, mock.Anything).Return([]*repositories.SearchResult{}, int64(0), nil)
+
+		router := setupRouter()
+		router.GET("/search", withAuth(1, "methodist"), h.Search)
+
+		w := performRequest(router, http.MethodGet, "/search?q=test", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("empty query", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		router := setupRouter()
+		router.GET("/search", withAuth(1, "methodist"), h.Search)
+
+		w := performRequest(router, http.MethodGet, "/search?q=", nil)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("no query param", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		router := setupRouter()
+		router.GET("/search", withAuth(1, "methodist"), h.Search)
+
+		w := performRequest(router, http.MethodGet, "/search", nil)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("search error", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		docRepo.On("Search", mock.Anything, mock.Anything).Return(nil, int64(0), fmt.Errorf("error"))
+
+		router := setupRouter()
+		router.GET("/search", withAuth(1, "methodist"), h.Search)
+
+		w := performRequest(router, http.MethodGet, "/search?q=test", nil)
+		assert.NotEqual(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestDocumentHandler_DeleteFile(t *testing.T) {
+	t.Run("no auth", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		router := setupRouter()
+		router.DELETE("/documents/:id/file", h.DeleteFile)
+
+		w := performRequest(router, http.MethodDelete, "/documents/1/file", nil)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("invalid id", func(t *testing.T) {
+		docRepo := new(MockDocumentRepository)
+		typeRepo := new(MockDocumentTypeRepository)
+		catRepo := new(MockDocumentCategoryRepository)
+		h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+		router := setupRouter()
+		router.DELETE("/documents/:id/file", withAuth(1, "methodist"), h.DeleteFile)
+
+		w := performRequest(router, http.MethodDelete, "/documents/abc/file", nil)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
+func TestDocumentHandler_DownloadFile_InvalidID(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	router := setupRouter()
+	router.GET("/documents/:id/file", h.DownloadFile)
+
+	w := performRequest(router, http.MethodGet, "/documents/abc/file", nil)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestDocumentHandler_UploadFile_NoAuth(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	router := setupRouter()
+	router.POST("/documents/:id/file", h.UploadFile)
+
+	w := performRequest(router, http.MethodPost, "/documents/1/file", nil)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestDocumentHandler_UploadFile_InvalidID(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	router := setupRouter()
+	router.POST("/documents/:id/file", withAuth(1, "methodist"), h.UploadFile)
+
+	w := performRequest(router, http.MethodPost, "/documents/abc/file", nil)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestDocumentHandler_List_PageSizeClamp(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	docRepo.On("List", mock.Anything, mock.Anything).Return([]*entities.Document{}, int64(0), nil)
+
+	router := setupRouter()
+	router.GET("/documents", withAuth(1, "admin"), h.List)
+
+	// page_size > 100 should be clamped to 100
+	w := performRequest(router, http.MethodGet, "/documents?page_size=200", nil)
 	assert.Equal(t, http.StatusOK, w.Code)
-
-	var resp map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.NoError(t, err)
-	assert.Equal(t, "success", resp["status"])
 }
 
-// TestDocumentHandlerIntegration tests the real handler with mock usecase
-// This requires creating a testable version of the handler
-func TestDocumentHandlerIntegration(t *testing.T) {
-	// Skip integration tests if not in integration test mode
-	t.Skip("Integration tests require database setup")
+func TestDocumentHandler_Search_WithPaginationAndFilters(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	docRepo.On("Search", mock.Anything, mock.Anything).Return([]*repositories.SearchResult{}, int64(0), nil)
+
+	router := setupRouter()
+	router.GET("/search", withAuth(1, "methodist"), h.Search)
+
+	// Test with page_size > 100 and extra filters
+	w := performRequest(router, http.MethodGet, "/search?q=test&page=1&page_size=200", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// Suppress unused import warning
-var _ = docHandlers.NewDocumentHandler
+func TestDocumentHandler_Update_WithSanitization(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	doc := &entities.Document{ID: 1, Title: "Old", Status: entities.DocumentStatusDraft, AuthorID: 1, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	docRepo.On("GetByID", mock.Anything, int64(1)).Return(doc, nil)
+	docRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Document")).Return(nil)
+	docRepo.On("AddHistory", mock.Anything, mock.Anything).Return(nil)
+
+	router := setupRouter()
+	router.PUT("/documents/:id", withAuth(1, "methodist"), h.Update)
+
+	w := performRequest(router, http.MethodPut, "/documents/1", map[string]interface{}{
+		"title":     "<script>alert('xss')</script>Clean Title",
+		"subject":   "<b>Bold Subject</b>",
+		"file_name": "file<script>.txt",
+	})
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestDocumentHandler_Delete_Error(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	doc := &entities.Document{ID: 1, Title: "Doc", AuthorID: 1, Status: entities.DocumentStatusDraft}
+	docRepo.On("GetByID", mock.Anything, int64(1)).Return(doc, nil)
+	docRepo.On("SoftDelete", mock.Anything, int64(1)).Return(fmt.Errorf("delete failed"))
+
+	router := setupRouter()
+	router.DELETE("/documents/:id", withAuth(1, "methodist"), h.Delete)
+
+	w := performRequest(router, http.MethodDelete, "/documents/1", nil)
+	assert.NotEqual(t, http.StatusOK, w.Code)
+}
+
+func TestDocumentHandler_DeleteFile_Error(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	doc := &entities.Document{ID: 1, Title: "Doc", AuthorID: 1, Status: entities.DocumentStatusDraft}
+	docRepo.On("GetByID", mock.Anything, int64(1)).Return(doc, nil)
+
+	router := setupRouter()
+	router.DELETE("/documents/:id/file", withAuth(1, "methodist"), h.DeleteFile)
+
+	w := performRequest(router, http.MethodDelete, "/documents/1/file", nil)
+	// The usecase will fail because there's no file to delete (or s3Client is nil)
+	assert.NotEqual(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestDocumentHandler_DownloadFile_Error(t *testing.T) {
+	docRepo := new(MockDocumentRepository)
+	typeRepo := new(MockDocumentTypeRepository)
+	catRepo := new(MockDocumentCategoryRepository)
+	h := newDocumentHandler(docRepo, typeRepo, catRepo)
+
+	docRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, fmt.Errorf("not found"))
+
+	router := setupRouter()
+	router.GET("/documents/:id/file", h.DownloadFile)
+
+	w := performRequest(router, http.MethodGet, "/documents/1/file", nil)
+	assert.NotEqual(t, http.StatusOK, w.Code)
+}

@@ -315,3 +315,41 @@ func TestTagRepo_GetTagUsageCount(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(5), count)
 }
+
+func TestTagRepo_GetTagUsageCount_Error(t *testing.T) {
+	repo, mock := newTagRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).WillReturnError(fmt.Errorf("db"))
+	_, err := repo.GetTagUsageCount(context.Background(), 1)
+	assert.Error(t, err)
+}
+
+func TestTagRepo_Delete_Error(t *testing.T) {
+	repo, mock := newTagRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM document_tag_relations WHERE tag_id")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.Delete(context.Background(), 1))
+}
+
+func TestTagRepo_AddTagToDocument_Error(t *testing.T) {
+	repo, mock := newTagRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO document_tag_relations")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.AddTagToDocument(context.Background(), 1, 1))
+}
+
+func TestTagRepo_RemoveTagFromDocument_Error(t *testing.T) {
+	repo, mock := newTagRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM document_tag_relations WHERE document_id")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.RemoveTagFromDocument(context.Background(), 1, 1))
+}
+
+func TestTagRepo_SetDocumentTags_BeginError(t *testing.T) {
+	repo, mock := newTagRepoMock(t)
+	mock.ExpectBegin().WillReturnError(fmt.Errorf("tx error"))
+	assert.Error(t, repo.SetDocumentTags(context.Background(), 1, []int64{1, 2}))
+}
+
+func TestTagRepo_Update_Error(t *testing.T) {
+	repo, mock := newTagRepoMock(t)
+	tag := &entities.DocumentTag{ID: 1, Name: "test"}
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE document_tags SET")).WillReturnError(fmt.Errorf("db"))
+	assert.Error(t, repo.Update(context.Background(), tag))
+}
