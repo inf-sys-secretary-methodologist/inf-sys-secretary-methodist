@@ -246,6 +246,108 @@ func TestGetOverlapText(t *testing.T) {
 	})
 }
 
+func TestChunkDocument_LongSentenceSplit(t *testing.T) {
+	// Use very small max tokens to force long-sentence splitting
+	cfg := ChunkingConfig{MaxTokens: 5, OverlapRatio: 0.0}
+	svc := NewChunkingService(cfg)
+
+	// A single sentence with many words — no sentence-ending punctuation followed by space,
+	// so it stays as one "sentence" that exceeds MaxTokens and triggers word-level splitting.
+	text := "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12"
+
+	chunks := svc.ChunkDocument(1, text)
+	if len(chunks) < 2 {
+		t.Errorf("expected at least 2 chunks from word-level splitting, got %d", len(chunks))
+	}
+	for i, c := range chunks {
+		if c.ChunkIndex != i {
+			t.Errorf("chunk %d has index %d", i, c.ChunkIndex)
+		}
+	}
+}
+
+func TestChunkDocument_LongSentenceWithPrecedingContent(t *testing.T) {
+	// Test the path where currentChunk is non-empty before a long sentence
+	cfg := ChunkingConfig{MaxTokens: 10, OverlapRatio: 0.2}
+	svc := NewChunkingService(cfg)
+
+	// Short sentence first, then a very long one
+	text := "Short. " + strings.Repeat("longword ", 50)
+
+	chunks := svc.ChunkDocument(1, text)
+	if len(chunks) < 2 {
+		t.Errorf("expected at least 2 chunks, got %d", len(chunks))
+	}
+}
+
+func TestChunkDocument_WhitespaceOnly(t *testing.T) {
+	svc := NewChunkingService(DefaultChunkingConfig())
+	chunks := svc.ChunkDocument(1, "   \n\n\t  ")
+	if chunks != nil {
+		t.Errorf("expected nil for whitespace-only text, got %d chunks", len(chunks))
+	}
+}
+
+func TestChunkDocument_ZeroOverlap(t *testing.T) {
+	cfg := ChunkingConfig{MaxTokens: 20, OverlapRatio: 0.0}
+	svc := NewChunkingService(cfg)
+
+	var sb strings.Builder
+	for i := 0; i < 10; i++ {
+		sb.WriteString("Это тестовое предложение для проверки. ")
+	}
+	chunks := svc.ChunkDocument(42, sb.String())
+	if len(chunks) < 2 {
+		t.Errorf("expected at least 2 chunks, got %d", len(chunks))
+	}
+	for _, c := range chunks {
+		if c.DocumentID != 42 {
+			t.Errorf("expected document_id=42, got %d", c.DocumentID)
+		}
+	}
+}
+
+func TestSplitIntoSentences_EmptyParagraph(t *testing.T) {
+	// Paragraphs with empty content between double newlines
+	input := "Hello.\n\n\n\nWorld."
+	// After normalizeText, triple+ newlines collapse to double. But splitIntoSentences
+	// receives already-normalized text in ChunkDocument. Test raw input:
+	got := splitIntoSentences("Para one.\n\n\n\nPara two.")
+	if len(got) != 2 {
+		t.Errorf("expected 2 sentences, got %d: %v", len(got), got)
+	}
+	_ = input
+}
+
+func TestGetOverlapText_WordBoundaryFallback(t *testing.T) {
+	// Text without ". " — forces word boundary fallback
+	text := "one two three four five six seven eight nine ten"
+	got := getOverlapText(text, 5)
+	if got == "" {
+		t.Error("expected non-empty overlap from word boundary fallback")
+	}
+	if !strings.Contains(text, got) {
+		t.Errorf("overlap %q not found in text", got)
+	}
+}
+
+func TestRuneIndex(t *testing.T) {
+	// Test with mixed ASCII and Cyrillic
+	s := "Hello Привет"
+	// "Hello " is 6 bytes, "П" starts at byte 6
+	idx := runeIndex(s, 6)
+	if idx != 6 {
+		t.Errorf("expected rune index 6 for byte offset 6, got %d", idx)
+	}
+
+	// All ASCII: rune index == byte index
+	s2 := "abcdef"
+	idx2 := runeIndex(s2, 3)
+	if idx2 != 3 {
+		t.Errorf("expected 3, got %d", idx2)
+	}
+}
+
 func TestProtectRestoreAbbreviations(t *testing.T) {
 	tests := []struct {
 		input string

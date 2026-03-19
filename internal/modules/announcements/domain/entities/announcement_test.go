@@ -93,6 +93,25 @@ func TestAnnouncement_Publish(t *testing.T) {
 	}
 }
 
+func TestAnnouncement_Publish_WithExistingPublishAt(t *testing.T) {
+	a := NewAnnouncement("Test", "Content", 1)
+	future := time.Now().Add(1 * time.Hour)
+	a.PublishAt = &future
+
+	err := a.Publish()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// PublishAt should remain the original scheduled time
+	if a.PublishAt == nil {
+		t.Error("expected PublishAt to remain set")
+	}
+	if !a.PublishAt.Equal(future) {
+		t.Error("expected PublishAt to remain at originally scheduled time")
+	}
+}
+
 func TestAnnouncement_Archive(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -136,6 +155,54 @@ func TestAnnouncement_Archive(t *testing.T) {
 
 			if a.Status != domain.AnnouncementStatusArchived {
 				t.Errorf("expected status %q, got %q", domain.AnnouncementStatusArchived, a.Status)
+			}
+		})
+	}
+}
+
+func TestAnnouncement_Unpublish(t *testing.T) {
+	tests := []struct {
+		name    string
+		status  domain.AnnouncementStatus
+		wantErr error
+	}{
+		{
+			name:    "unpublish published",
+			status:  domain.AnnouncementStatusPublished,
+			wantErr: nil,
+		},
+		{
+			name:    "unpublish draft",
+			status:  domain.AnnouncementStatusDraft,
+			wantErr: ErrAnnouncementNotPublished,
+		},
+		{
+			name:    "unpublish archived",
+			status:  domain.AnnouncementStatusArchived,
+			wantErr: ErrAnnouncementArchived,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := NewAnnouncement("Test", "Content", 1)
+			a.Status = tt.status
+
+			err := a.Unpublish()
+
+			if tt.wantErr != nil {
+				if !errors.Is(err, tt.wantErr) {
+					t.Errorf("expected error %v, got %v", tt.wantErr, err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if a.Status != domain.AnnouncementStatusDraft {
+				t.Errorf("expected status %q, got %q", domain.AnnouncementStatusDraft, a.Status)
 			}
 		})
 	}
@@ -188,6 +255,14 @@ func TestAnnouncement_CanEdit(t *testing.T) {
 			status:   domain.AnnouncementStatusArchived,
 			userID:   2,
 			isAdmin:  true,
+			want:     true,
+		},
+		{
+			name:     "author can edit published",
+			authorID: 1,
+			status:   domain.AnnouncementStatusPublished,
+			userID:   1,
+			isAdmin:  false,
 			want:     true,
 		},
 	}
@@ -276,6 +351,29 @@ func TestAnnouncement_IsVisible(t *testing.T) {
 	}
 }
 
+func TestAnnouncement_IsExpired(t *testing.T) {
+	a := NewAnnouncement("Test", "Content", 1)
+
+	// No expiry
+	if a.IsExpired() {
+		t.Error("announcement without expiry should not be expired")
+	}
+
+	// Past expiry
+	past := time.Now().Add(-1 * time.Hour)
+	a.ExpireAt = &past
+	if !a.IsExpired() {
+		t.Error("announcement with past expiry should be expired")
+	}
+
+	// Future expiry
+	future := time.Now().Add(1 * time.Hour)
+	a.ExpireAt = &future
+	if a.IsExpired() {
+		t.Error("announcement with future expiry should not be expired")
+	}
+}
+
 func TestAnnouncement_SetPriority(t *testing.T) {
 	a := NewAnnouncement("Test", "Content", 1)
 
@@ -290,6 +388,13 @@ func TestAnnouncement_SetPriority(t *testing.T) {
 	err = a.SetPriority("invalid")
 	if err == nil {
 		t.Error("expected error for invalid priority")
+	}
+
+	// Archived
+	a.Status = domain.AnnouncementStatusArchived
+	err = a.SetPriority(domain.AnnouncementPriorityLow)
+	if !errors.Is(err, ErrAnnouncementArchived) {
+		t.Errorf("expected error %v, got %v", ErrAnnouncementArchived, err)
 	}
 }
 
@@ -307,5 +412,136 @@ func TestAnnouncement_SetTargetAudience(t *testing.T) {
 	err = a.SetTargetAudience("invalid")
 	if err == nil {
 		t.Error("expected error for invalid audience")
+	}
+
+	// Archived
+	a.Status = domain.AnnouncementStatusArchived
+	err = a.SetTargetAudience(domain.TargetAudienceAll)
+	if !errors.Is(err, ErrAnnouncementArchived) {
+		t.Errorf("expected error %v, got %v", ErrAnnouncementArchived, err)
+	}
+}
+
+func TestAnnouncement_SetPublishSchedule(t *testing.T) {
+	a := NewAnnouncement("Test", "Content", 1)
+
+	future := time.Now().Add(1 * time.Hour)
+	farFuture := time.Now().Add(24 * time.Hour)
+
+	// Valid schedule
+	err := a.SetPublishSchedule(&future, &farFuture)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if a.PublishAt == nil || !a.PublishAt.Equal(future) {
+		t.Error("expected publish_at to be set")
+	}
+	if a.ExpireAt == nil || !a.ExpireAt.Equal(farFuture) {
+		t.Error("expected expire_at to be set")
+	}
+
+	// Nil dates
+	a2 := NewAnnouncement("Test", "Content", 1)
+	err = a2.SetPublishSchedule(nil, nil)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// Past publish date
+	a3 := NewAnnouncement("Test", "Content", 1)
+	past := time.Now().Add(-1 * time.Hour)
+	err = a3.SetPublishSchedule(&past, nil)
+	if !errors.Is(err, ErrInvalidPublishDate) {
+		t.Errorf("expected error %v, got %v", ErrInvalidPublishDate, err)
+	}
+
+	// Expire before publish
+	a4 := NewAnnouncement("Test", "Content", 1)
+	beforePublish := future.Add(-2 * time.Hour)
+	err = a4.SetPublishSchedule(&future, &beforePublish)
+	if !errors.Is(err, ErrInvalidExpireDate) {
+		t.Errorf("expected error %v, got %v", ErrInvalidExpireDate, err)
+	}
+
+	// Archived
+	a5 := NewAnnouncement("Test", "Content", 1)
+	a5.Status = domain.AnnouncementStatusArchived
+	err = a5.SetPublishSchedule(&future, &farFuture)
+	if !errors.Is(err, ErrAnnouncementArchived) {
+		t.Errorf("expected error %v, got %v", ErrAnnouncementArchived, err)
+	}
+}
+
+func TestAnnouncement_Pin(t *testing.T) {
+	a := NewAnnouncement("Test", "Content", 1)
+	err := a.Pin()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !a.IsPinned {
+		t.Error("expected announcement to be pinned")
+	}
+
+	// Archived
+	a.Status = domain.AnnouncementStatusArchived
+	err = a.Pin()
+	if !errors.Is(err, ErrAnnouncementArchived) {
+		t.Errorf("expected error %v, got %v", ErrAnnouncementArchived, err)
+	}
+}
+
+func TestAnnouncement_Unpin(t *testing.T) {
+	a := NewAnnouncement("Test", "Content", 1)
+	a.IsPinned = true
+	err := a.Unpin()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if a.IsPinned {
+		t.Error("expected announcement to be unpinned")
+	}
+
+	// Archived
+	a.Status = domain.AnnouncementStatusArchived
+	err = a.Unpin()
+	if !errors.Is(err, ErrAnnouncementArchived) {
+		t.Errorf("expected error %v, got %v", ErrAnnouncementArchived, err)
+	}
+}
+
+func TestAnnouncement_IncrementViewCount(t *testing.T) {
+	a := NewAnnouncement("Test", "Content", 1)
+	a.IncrementViewCount()
+	if a.ViewCount != 1 {
+		t.Errorf("expected view count 1, got %d", a.ViewCount)
+	}
+	a.IncrementViewCount()
+	if a.ViewCount != 2 {
+		t.Errorf("expected view count 2, got %d", a.ViewCount)
+	}
+}
+
+func TestAnnouncementAuthor_Struct(t *testing.T) {
+	author := AnnouncementAuthor{ID: 1, Name: "John", Email: "john@test.com"}
+	if author.ID != 1 {
+		t.Errorf("expected ID 1, got %d", author.ID)
+	}
+}
+
+func TestAnnouncementAttachment_Struct(t *testing.T) {
+	att := AnnouncementAttachment{
+		ID:             1,
+		AnnouncementID: 2,
+		FileName:       "file.pdf",
+		FilePath:       "/path/file.pdf",
+		FileSize:       1024,
+		MimeType:       "application/pdf",
+		UploadedBy:     42,
+	}
+	if att.ID != 1 {
+		t.Errorf("expected ID 1, got %d", att.ID)
+	}
+	if att.FileName != "file.pdf" {
+		t.Errorf("expected file name 'file.pdf', got %q", att.FileName)
 	}
 }

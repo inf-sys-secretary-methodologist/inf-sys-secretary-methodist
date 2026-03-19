@@ -1,542 +1,905 @@
-package handlers_test
+package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
+	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
+	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 )
 
-const invalidID = "invalid"
-
-// mockAuthMiddleware creates a middleware that sets user_id for testing
-func mockAuthMiddleware(userID int64, role string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Set("user_id", userID)
-		c.Set("role", role)
-		c.Next()
-	}
+func init() {
+	gin.SetMode(gin.TestMode)
 }
 
-// TestListUsers tests listing users with filtering
-func TestListUsers(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+// --- Mock Auth UserRepository ---
 
-	tests := []struct {
-		name           string
-		queryParams    string
-		authenticated  bool
-		expectedStatus int
-	}{
-		{
-			name:           "success - no params",
-			queryParams:    "",
-			authenticated:  true,
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:           "success - with search",
-			queryParams:    "?search=john",
-			authenticated:  true,
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:           "success - with pagination",
-			queryParams:    "?page=1&page_size=10",
-			authenticated:  true,
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:           "success - with role filter",
-			queryParams:    "?role=student",
-			authenticated:  true,
-			expectedStatus: http.StatusOK,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-
-			if tt.authenticated {
-				router.Use(mockAuthMiddleware(1, "admin"))
-			}
-
-			router.GET("/users", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{
-					"status": "success",
-					"data": gin.H{
-						"users": []gin.H{},
-						"total": 0,
-					},
-				})
-			})
-
-			req := httptest.NewRequest(http.MethodGet, "/users"+tt.queryParams, nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
-	}
+type mockAuthUserRepo struct {
+	mock.Mock
 }
 
-// TestGetUserByID tests getting a user by ID
-func TestGetUserByID(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		userID         string
-		expectedStatus int
-	}{
-		{
-			name:           "success",
-			userID:         "1",
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:           "not found",
-			userID:         "999",
-			expectedStatus: http.StatusNotFound,
-		},
-		{
-			name:           "invalid id",
-			userID:         invalidID,
-			expectedStatus: http.StatusBadRequest,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-			router.Use(mockAuthMiddleware(1, "admin"))
-
-			router.GET("/users/:id", func(c *gin.Context) {
-				id := c.Param("id")
-				if id == invalidID {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
-					return
-				}
-				if id == "999" {
-					c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{
-					"status": "success",
-					"data": gin.H{
-						"id":    1,
-						"email": "user@example.com",
-						"name":  "Test User",
-						"role":  "student",
-					},
-				})
-			})
-
-			req := httptest.NewRequest(http.MethodGet, "/users/"+tt.userID, nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
-	}
+func (m *mockAuthUserRepo) Create(ctx context.Context, user *authEntities.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
 }
 
-// TestUpdateUserProfile tests updating user profile
-func TestUpdateUserProfile(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		userID         string
-		payload        map[string]any
-		expectedStatus int
-	}{
-		{
-			name:   "success",
-			userID: "1",
-			payload: map[string]any{
-				"phone": "+1234567890",
-				"bio":   "Updated bio",
-			},
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:   "user not found",
-			userID: "999",
-			payload: map[string]any{
-				"phone": "+1234567890",
-			},
-			expectedStatus: http.StatusNotFound,
-		},
-		{
-			name:           "invalid id",
-			userID:         invalidID,
-			payload:        map[string]any{},
-			expectedStatus: http.StatusBadRequest,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-			router.Use(mockAuthMiddleware(1, "admin"))
-
-			router.PUT("/users/:id/profile", func(c *gin.Context) {
-				id := c.Param("id")
-				if id == invalidID {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
-					return
-				}
-				if id == "999" {
-					c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Profile updated"})
-			})
-
-			body, _ := json.Marshal(tt.payload)
-			req := httptest.NewRequest(http.MethodPut, "/users/"+tt.userID+"/profile", bytes.NewReader(body))
-			req.Header.Set("Content-Type", "application/json")
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
-	}
+func (m *mockAuthUserRepo) Save(ctx context.Context, user *authEntities.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
 }
 
-// TestUpdateUserRole tests updating user role
-func TestUpdateUserRole(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		userID         string
-		payload        map[string]any
-		expectedStatus int
-	}{
-		{
-			name:   "success",
-			userID: "1",
-			payload: map[string]any{
-				"role": "methodist",
-			},
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:   "invalid role",
-			userID: "1",
-			payload: map[string]any{
-				"role": "invalid_role",
-			},
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:   "missing role",
-			userID: "1",
-			payload: map[string]any{
-				"role": "",
-			},
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:   "user not found",
-			userID: "999",
-			payload: map[string]any{
-				"role": "student",
-			},
-			expectedStatus: http.StatusNotFound,
-		},
+func (m *mockAuthUserRepo) GetByID(ctx context.Context, id int64) (*authEntities.User, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-			router.Use(mockAuthMiddleware(1, "admin"))
-
-			router.PUT("/users/:id/role", func(c *gin.Context) {
-				id := c.Param("id")
-				if id == "999" {
-					c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
-					return
-				}
-
-				var input map[string]any
-				if err := c.ShouldBindJSON(&input); err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid JSON"})
-					return
-				}
-
-				role, _ := input["role"].(string)
-				if role == "" || role == "invalid_role" {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid role"})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Role updated"})
-			})
-
-			body, _ := json.Marshal(tt.payload)
-			req := httptest.NewRequest(http.MethodPut, "/users/"+tt.userID+"/role", bytes.NewReader(body))
-			req.Header.Set("Content-Type", "application/json")
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
-	}
+	return args.Get(0).(*authEntities.User), args.Error(1)
 }
 
-// TestUpdateUserStatus tests updating user status
-func TestUpdateUserStatus(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		userID         string
-		payload        map[string]any
-		expectedStatus int
-	}{
-		{
-			name:   "success - activate",
-			userID: "1",
-			payload: map[string]any{
-				"is_active": true,
-			},
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:   "success - deactivate",
-			userID: "1",
-			payload: map[string]any{
-				"is_active": false,
-			},
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:   "user not found",
-			userID: "999",
-			payload: map[string]any{
-				"is_active": true,
-			},
-			expectedStatus: http.StatusNotFound,
-		},
-		{
-			name:           "invalid id",
-			userID:         invalidID,
-			payload:        map[string]any{},
-			expectedStatus: http.StatusBadRequest,
-		},
+func (m *mockAuthUserRepo) GetByEmail(ctx context.Context, email string) (*authEntities.User, error) {
+	args := m.Called(ctx, email)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-			router.Use(mockAuthMiddleware(1, "admin"))
-
-			router.PUT("/users/:id/status", func(c *gin.Context) {
-				id := c.Param("id")
-				if id == invalidID {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
-					return
-				}
-				if id == "999" {
-					c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Status updated"})
-			})
-
-			body, _ := json.Marshal(tt.payload)
-			req := httptest.NewRequest(http.MethodPut, "/users/"+tt.userID+"/status", bytes.NewReader(body))
-			req.Header.Set("Content-Type", "application/json")
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
-	}
+	return args.Get(0).(*authEntities.User), args.Error(1)
 }
 
-// TestDeleteUser tests deleting a user
-func TestDeleteUser(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		userID         string
-		expectedStatus int
-	}{
-		{
-			name:           "success",
-			userID:         "2",
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:           "cannot delete self",
-			userID:         "1",
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:           "user not found",
-			userID:         "999",
-			expectedStatus: http.StatusNotFound,
-		},
-		{
-			name:           "invalid id",
-			userID:         invalidID,
-			expectedStatus: http.StatusBadRequest,
-		},
+func (m *mockAuthUserRepo) GetByEmailForAuth(ctx context.Context, email string) (*authEntities.User, error) {
+	args := m.Called(ctx, email)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-			router.Use(mockAuthMiddleware(1, "admin"))
-
-			router.DELETE("/users/:id", func(c *gin.Context) {
-				id := c.Param("id")
-				if id == invalidID {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid ID"})
-					return
-				}
-				if id == "1" {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Cannot delete self"})
-					return
-				}
-				if id == "999" {
-					c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{"status": "success", "message": "User deleted"})
-			})
-
-			req := httptest.NewRequest(http.MethodDelete, "/users/"+tt.userID, nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
-	}
+	return args.Get(0).(*authEntities.User), args.Error(1)
 }
 
-// TestSearchUsers tests searching users
-func TestSearchUsers(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		queryParams    string
-		expectedStatus int
-	}{
-		{
-			name:           "success",
-			queryParams:    "?q=john",
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:           "empty query",
-			queryParams:    "?q=",
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:           "with limit",
-			queryParams:    "?q=test&limit=5",
-			expectedStatus: http.StatusOK,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
-			router.Use(mockAuthMiddleware(1, "admin"))
-
-			router.GET("/users/search", func(c *gin.Context) {
-				q := c.Query("q")
-				if q == "" {
-					c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Query required"})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{
-					"status": "success",
-					"data": gin.H{
-						"users": []gin.H{},
-						"total": 0,
-					},
-				})
-			})
-
-			req := httptest.NewRequest(http.MethodGet, "/users/search"+tt.queryParams, nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
-	}
+func (m *mockAuthUserRepo) Delete(ctx context.Context, id int64) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
 }
 
-// TestGetCurrentUser tests getting the current user
-func TestGetCurrentUser(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+func (m *mockAuthUserRepo) List(ctx context.Context, limit, offset int) ([]*authEntities.User, error) {
+	args := m.Called(ctx, limit, offset)
+	return args.Get(0).([]*authEntities.User), args.Error(1)
+}
 
-	tests := []struct {
-		name           string
-		authenticated  bool
-		expectedStatus int
-	}{
-		{
-			name:           "success",
-			authenticated:  true,
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:           "unauthorized",
-			authenticated:  false,
-			expectedStatus: http.StatusUnauthorized,
-		},
+// --- Mock UserProfileRepository ---
+
+type mockUserProfileRepo struct {
+	mock.Mock
+}
+
+func (m *mockUserProfileRepo) GetProfileByID(ctx context.Context, userID int64) (*entities.UserWithOrg, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
+	return args.Get(0).(*entities.UserWithOrg), args.Error(1)
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.New()
+func (m *mockUserProfileRepo) UpdateProfile(ctx context.Context, userID int64, departmentID, positionID *int64, phone, avatar, bio string) error {
+	args := m.Called(ctx, userID, departmentID, positionID, phone, avatar, bio)
+	return args.Error(0)
+}
 
-			if tt.authenticated {
-				router.Use(mockAuthMiddleware(1, "student"))
-			}
-
-			router.GET("/users/me", func(c *gin.Context) {
-				_, exists := c.Get("user_id")
-				if !exists {
-					c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Unauthorized"})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{
-					"status": "success",
-					"data": gin.H{
-						"id":    1,
-						"email": "user@example.com",
-						"name":  "Current User",
-						"role":  "student",
-					},
-				})
-			})
-
-			req := httptest.NewRequest(http.MethodGet, "/users/me", nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-		})
+func (m *mockUserProfileRepo) ListUsersWithOrg(ctx context.Context, filter *repositories.UserFilter, limit, offset int) ([]*entities.UserWithOrg, error) {
+	args := m.Called(ctx, filter, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
+	return args.Get(0).([]*entities.UserWithOrg), args.Error(1)
+}
+
+func (m *mockUserProfileRepo) CountUsers(ctx context.Context, filter *repositories.UserFilter) (int64, error) {
+	args := m.Called(ctx, filter)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *mockUserProfileRepo) GetUsersByDepartment(ctx context.Context, departmentID int64) ([]*entities.UserWithOrg, error) {
+	args := m.Called(ctx, departmentID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entities.UserWithOrg), args.Error(1)
+}
+
+func (m *mockUserProfileRepo) GetUsersByPosition(ctx context.Context, positionID int64) ([]*entities.UserWithOrg, error) {
+	args := m.Called(ctx, positionID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entities.UserWithOrg), args.Error(1)
+}
+
+func (m *mockUserProfileRepo) BulkUpdateDepartment(ctx context.Context, userIDs []int64, departmentID *int64) error {
+	args := m.Called(ctx, userIDs, departmentID)
+	return args.Error(0)
+}
+
+func (m *mockUserProfileRepo) BulkUpdatePosition(ctx context.Context, userIDs []int64, positionID *int64) error {
+	args := m.Called(ctx, userIDs, positionID)
+	return args.Error(0)
+}
+
+// --- Mock DepartmentRepository ---
+
+type mockDepartmentRepo struct {
+	mock.Mock
+}
+
+func (m *mockDepartmentRepo) Create(ctx context.Context, dept *entities.Department) error {
+	args := m.Called(ctx, dept)
+	return args.Error(0)
+}
+
+func (m *mockDepartmentRepo) GetByID(ctx context.Context, id int64) (*entities.Department, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.Department), args.Error(1)
+}
+
+func (m *mockDepartmentRepo) GetByCode(ctx context.Context, code string) (*entities.Department, error) {
+	args := m.Called(ctx, code)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.Department), args.Error(1)
+}
+
+func (m *mockDepartmentRepo) Update(ctx context.Context, dept *entities.Department) error {
+	args := m.Called(ctx, dept)
+	return args.Error(0)
+}
+
+func (m *mockDepartmentRepo) Delete(ctx context.Context, id int64) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *mockDepartmentRepo) List(ctx context.Context, limit, offset int, activeOnly bool) ([]*entities.Department, error) {
+	args := m.Called(ctx, limit, offset, activeOnly)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entities.Department), args.Error(1)
+}
+
+func (m *mockDepartmentRepo) Count(ctx context.Context, activeOnly bool) (int64, error) {
+	args := m.Called(ctx, activeOnly)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *mockDepartmentRepo) GetChildren(ctx context.Context, parentID int64) ([]*entities.Department, error) {
+	args := m.Called(ctx, parentID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entities.Department), args.Error(1)
+}
+
+// --- Mock PositionRepository ---
+
+type mockPositionRepo struct {
+	mock.Mock
+}
+
+func (m *mockPositionRepo) Create(ctx context.Context, pos *entities.Position) error {
+	args := m.Called(ctx, pos)
+	return args.Error(0)
+}
+
+func (m *mockPositionRepo) GetByID(ctx context.Context, id int64) (*entities.Position, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.Position), args.Error(1)
+}
+
+func (m *mockPositionRepo) GetByCode(ctx context.Context, code string) (*entities.Position, error) {
+	args := m.Called(ctx, code)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.Position), args.Error(1)
+}
+
+func (m *mockPositionRepo) Update(ctx context.Context, pos *entities.Position) error {
+	args := m.Called(ctx, pos)
+	return args.Error(0)
+}
+
+func (m *mockPositionRepo) Delete(ctx context.Context, id int64) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *mockPositionRepo) List(ctx context.Context, limit, offset int, activeOnly bool) ([]*entities.Position, error) {
+	args := m.Called(ctx, limit, offset, activeOnly)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entities.Position), args.Error(1)
+}
+
+func (m *mockPositionRepo) Count(ctx context.Context, activeOnly bool) (int64, error) {
+	args := m.Called(ctx, activeOnly)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+// --- Helpers ---
+
+func newUserUseCase(authRepo *mockAuthUserRepo, profileRepo *mockUserProfileRepo, deptRepo *mockDepartmentRepo, posRepo *mockPositionRepo) *usecases.UserUseCase {
+	return usecases.NewUserUseCase(authRepo, profileRepo, deptRepo, posRepo, nil, nil)
+}
+
+func setupUserRouter(handler *UserHandler) *gin.Engine {
+	r := gin.New()
+	r.GET("/users", handler.List)
+	r.GET("/users/:id", handler.GetByID)
+	r.PUT("/users/:id/profile", handler.UpdateProfile)
+	r.PUT("/users/:id/role", handler.UpdateRole)
+	r.PUT("/users/:id/status", handler.UpdateStatus)
+	r.DELETE("/users/:id", handler.Delete)
+	r.POST("/users/bulk/department", handler.BulkUpdateDepartment)
+	r.POST("/users/bulk/position", handler.BulkUpdatePosition)
+	r.GET("/users/by-department/:id", handler.GetByDepartment)
+	r.GET("/users/by-position/:id", handler.GetByPosition)
+	return r
+}
+
+func jsonBody(t *testing.T, v interface{}) *bytes.Reader {
+	t.Helper()
+	b, err := json.Marshal(v)
+	require.NoError(t, err)
+	return bytes.NewReader(b)
+}
+
+// --- User Handler Tests ---
+
+func TestUserHandler_List_Success(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	authRepo := new(mockAuthUserRepo)
+	deptRepo := new(mockDepartmentRepo)
+	posRepo := new(mockPositionRepo)
+
+	users := []*entities.UserWithOrg{{ID: 1, Email: "a@b.com", Name: "Test"}}
+	profileRepo.On("ListUsersWithOrg", mock.Anything, mock.Anything, 10, 0).Return(users, nil)
+	profileRepo.On("CountUsers", mock.Anything, mock.Anything).Return(int64(1), nil)
+
+	uc := newUserUseCase(authRepo, profileRepo, deptRepo, posRepo)
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.True(t, resp["success"].(bool))
+}
+
+func TestUserHandler_List_WithFilters(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	authRepo := new(mockAuthUserRepo)
+	deptRepo := new(mockDepartmentRepo)
+	posRepo := new(mockPositionRepo)
+
+	users := []*entities.UserWithOrg{}
+	profileRepo.On("ListUsersWithOrg", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(users, nil)
+	profileRepo.On("CountUsers", mock.Anything, mock.Anything).Return(int64(0), nil)
+
+	uc := newUserUseCase(authRepo, profileRepo, deptRepo, posRepo)
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users?search=john&role=student&page=2&limit=5", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUserHandler_List_UsecaseError(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	authRepo := new(mockAuthUserRepo)
+	deptRepo := new(mockDepartmentRepo)
+	posRepo := new(mockPositionRepo)
+
+	profileRepo.On("ListUsersWithOrg", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("db error"))
+
+	uc := newUserUseCase(authRepo, profileRepo, deptRepo, posRepo)
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestUserHandler_GetByID_Success(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	authRepo := new(mockAuthUserRepo)
+	deptRepo := new(mockDepartmentRepo)
+	posRepo := new(mockPositionRepo)
+
+	user := &entities.UserWithOrg{ID: 1, Email: "a@b.com", Name: "Test"}
+	profileRepo.On("GetProfileByID", mock.Anything, int64(1)).Return(user, nil)
+
+	uc := newUserUseCase(authRepo, profileRepo, deptRepo, posRepo)
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUserHandler_GetByID_InvalidID(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/invalid", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_GetByID_NotFound(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	profileRepo.On("GetProfileByID", mock.Anything, int64(999)).Return(nil, domainErrors.ErrNotFound)
+
+	uc := newUserUseCase(new(mockAuthUserRepo), profileRepo, new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/999", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestUserHandler_UpdateProfile_Success(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	authRepo := new(mockAuthUserRepo)
+	deptRepo := new(mockDepartmentRepo)
+	posRepo := new(mockPositionRepo)
+
+	authRepo.On("GetByID", mock.Anything, int64(1)).Return(&authEntities.User{ID: 1}, nil)
+	profileRepo.On("UpdateProfile", mock.Anything, int64(1), mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	uc := newUserUseCase(authRepo, profileRepo, deptRepo, posRepo)
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{
+		"phone": "+79991234567",
+		"bio":   "Hello world",
+	}
+	req := httptest.NewRequest(http.MethodPut, "/users/1/profile", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUserHandler_UpdateProfile_InvalidID(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodPut, "/users/abc/profile", jsonBody(t, map[string]interface{}{}))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_UpdateProfile_InvalidJSON(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodPut, "/users/1/profile", bytes.NewReader([]byte("not-json")))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_UpdateProfile_ValidationError(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{
+		"phone": "not-a-phone",
+	}
+	req := httptest.NewRequest(http.MethodPut, "/users/1/profile", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_UpdateProfile_UsecaseError(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	authRepo := new(mockAuthUserRepo)
+
+	authRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, domainErrors.ErrNotFound)
+
+	uc := newUserUseCase(authRepo, profileRepo, new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{
+		"bio": "test",
+	}
+	req := httptest.NewRequest(http.MethodPut, "/users/1/profile", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestUserHandler_UpdateRole_Success(t *testing.T) {
+	authRepo := new(mockAuthUserRepo)
+	authRepo.On("GetByID", mock.Anything, int64(1)).Return(&authEntities.User{ID: 1, Role: "student"}, nil)
+	authRepo.On("Save", mock.Anything, mock.Anything).Return(nil)
+
+	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{"role": "teacher"}
+	req := httptest.NewRequest(http.MethodPut, "/users/1/role", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUserHandler_UpdateRole_InvalidID(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{"role": "teacher"}
+	req := httptest.NewRequest(http.MethodPut, "/users/abc/role", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_UpdateRole_InvalidJSON(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodPut, "/users/1/role", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_UpdateRole_ValidationError(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{"role": "invalid_role"}
+	req := httptest.NewRequest(http.MethodPut, "/users/1/role", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_UpdateRole_UsecaseError(t *testing.T) {
+	authRepo := new(mockAuthUserRepo)
+	authRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, domainErrors.ErrNotFound)
+
+	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{"role": "teacher"}
+	req := httptest.NewRequest(http.MethodPut, "/users/1/role", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestUserHandler_UpdateStatus_Success(t *testing.T) {
+	authRepo := new(mockAuthUserRepo)
+	authRepo.On("GetByID", mock.Anything, int64(1)).Return(&authEntities.User{ID: 1, Status: "active"}, nil)
+	authRepo.On("Save", mock.Anything, mock.Anything).Return(nil)
+
+	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{"status": "inactive"}
+	req := httptest.NewRequest(http.MethodPut, "/users/1/status", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUserHandler_UpdateStatus_InvalidID(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{"status": "active"}
+	req := httptest.NewRequest(http.MethodPut, "/users/xyz/status", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_UpdateStatus_InvalidJSON(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodPut, "/users/1/status", bytes.NewReader([]byte("{bad")))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_UpdateStatus_ValidationError(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{"status": "unknown"}
+	req := httptest.NewRequest(http.MethodPut, "/users/1/status", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_UpdateStatus_UsecaseError(t *testing.T) {
+	authRepo := new(mockAuthUserRepo)
+	authRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, domainErrors.ErrNotFound)
+
+	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{"status": "active"}
+	req := httptest.NewRequest(http.MethodPut, "/users/1/status", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestUserHandler_Delete_Success(t *testing.T) {
+	authRepo := new(mockAuthUserRepo)
+	authRepo.On("GetByID", mock.Anything, int64(1)).Return(&authEntities.User{ID: 1}, nil)
+	authRepo.On("Delete", mock.Anything, int64(1)).Return(nil)
+
+	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodDelete, "/users/1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUserHandler_Delete_InvalidID(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodDelete, "/users/abc", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_Delete_NotFound(t *testing.T) {
+	authRepo := new(mockAuthUserRepo)
+	authRepo.On("GetByID", mock.Anything, int64(999)).Return(nil, domainErrors.ErrNotFound)
+
+	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodDelete, "/users/999", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestUserHandler_BulkUpdateDepartment_Success(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	deptRepo := new(mockDepartmentRepo)
+	deptID := int64(1)
+
+	deptRepo.On("GetByID", mock.Anything, int64(1)).Return(&entities.Department{ID: 1}, nil)
+	profileRepo.On("BulkUpdateDepartment", mock.Anything, []int64{1, 2, 3}, &deptID).Return(nil)
+
+	uc := newUserUseCase(new(mockAuthUserRepo), profileRepo, deptRepo, new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{
+		"user_ids":      []int64{1, 2, 3},
+		"department_id": 1,
+	}
+	req := httptest.NewRequest(http.MethodPost, "/users/bulk/department", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUserHandler_BulkUpdateDepartment_InvalidJSON(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodPost, "/users/bulk/department", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_BulkUpdateDepartment_ValidationError(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{
+		"user_ids": []int64{},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/users/bulk/department", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_BulkUpdateDepartment_UsecaseError(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	profileRepo.On("BulkUpdateDepartment", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("db error"))
+
+	uc := newUserUseCase(new(mockAuthUserRepo), profileRepo, new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{
+		"user_ids": []int64{1, 2},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/users/bulk/department", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestUserHandler_BulkUpdatePosition_Success(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	posRepo := new(mockPositionRepo)
+	posID := int64(5)
+
+	posRepo.On("GetByID", mock.Anything, int64(5)).Return(&entities.Position{ID: 5}, nil)
+	profileRepo.On("BulkUpdatePosition", mock.Anything, []int64{1, 2}, &posID).Return(nil)
+
+	uc := newUserUseCase(new(mockAuthUserRepo), profileRepo, new(mockDepartmentRepo), posRepo)
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{
+		"user_ids":    []int64{1, 2},
+		"position_id": 5,
+	}
+	req := httptest.NewRequest(http.MethodPost, "/users/bulk/position", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUserHandler_BulkUpdatePosition_InvalidJSON(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodPost, "/users/bulk/position", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_BulkUpdatePosition_ValidationError(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{
+		"user_ids": []int64{},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/users/bulk/position", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_BulkUpdatePosition_UsecaseError(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	profileRepo.On("BulkUpdatePosition", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("db error"))
+
+	uc := newUserUseCase(new(mockAuthUserRepo), profileRepo, new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	body := map[string]interface{}{
+		"user_ids": []int64{1},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/users/bulk/position", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestUserHandler_GetByDepartment_Success(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	users := []*entities.UserWithOrg{{ID: 1, DepartmentName: "IT"}}
+	profileRepo.On("GetUsersByDepartment", mock.Anything, int64(1)).Return(users, nil)
+
+	uc := newUserUseCase(new(mockAuthUserRepo), profileRepo, new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/by-department/1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUserHandler_GetByDepartment_InvalidID(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/by-department/abc", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_GetByDepartment_UsecaseError(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	profileRepo.On("GetUsersByDepartment", mock.Anything, int64(1)).Return(nil, errors.New("db error"))
+
+	uc := newUserUseCase(new(mockAuthUserRepo), profileRepo, new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/by-department/1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestUserHandler_GetByPosition_Success(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	users := []*entities.UserWithOrg{{ID: 1, PositionName: "Dev"}}
+	profileRepo.On("GetUsersByPosition", mock.Anything, int64(2)).Return(users, nil)
+
+	uc := newUserUseCase(new(mockAuthUserRepo), profileRepo, new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/by-position/2", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUserHandler_GetByPosition_InvalidID(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/by-position/abc", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUserHandler_GetByPosition_UsecaseError(t *testing.T) {
+	profileRepo := new(mockUserProfileRepo)
+	profileRepo.On("GetUsersByPosition", mock.Anything, int64(2)).Return(nil, errors.New("db error"))
+
+	uc := newUserUseCase(new(mockAuthUserRepo), profileRepo, new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/by-position/2", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestNewUserHandler(t *testing.T) {
+	uc := newUserUseCase(new(mockAuthUserRepo), new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	assert.NotNil(t, handler)
+	assert.NotNil(t, handler.usecase)
+	assert.NotNil(t, handler.validator)
+	assert.NotNil(t, handler.sanitizer)
 }

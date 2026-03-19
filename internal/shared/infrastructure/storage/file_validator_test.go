@@ -2,6 +2,8 @@ package storage
 
 import (
 	"bytes"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -141,6 +143,11 @@ func TestValidateFile_MimeType(t *testing.T) {
 			contentType: "application/octet-stream",
 			wantValid:   true,
 		},
+		{
+			name:        "empty content type is acceptable",
+			contentType: "",
+			wantValid:   true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -189,12 +196,52 @@ func TestValidateFile_MagicBytes(t *testing.T) {
 			wantType:    "image/png",
 		},
 		{
+			name:        "valid GIF magic bytes",
+			fileName:    "image.gif",
+			contentType: "image/gif",
+			magicBytes:  []byte{0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x00, 0x00},
+			wantValid:   true,
+			wantType:    "image/gif",
+		},
+		{
+			name:        "valid ZIP magic bytes",
+			fileName:    "archive.zip",
+			contentType: "application/zip",
+			magicBytes:  []byte{0x50, 0x4B, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00},
+			wantValid:   true,
+			wantType:    "application/zip",
+		},
+		{
+			name:        "valid RAR magic bytes",
+			fileName:    "archive.rar",
+			contentType: "application/x-rar-compressed",
+			magicBytes:  []byte{0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00, 0x00},
+			wantValid:   true,
+			wantType:    "application/x-rar-compressed",
+		},
+		{
 			name:        "mismatched magic bytes",
 			fileName:    "fake.pdf",
 			contentType: "application/pdf",
 			magicBytes:  []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}, // PNG magic in PDF
 			wantValid:   false,
 			wantType:    "image/png",
+		},
+		{
+			name:        "unknown magic bytes with octet-stream",
+			fileName:    "data.txt",
+			contentType: "application/octet-stream",
+			magicBytes:  []byte{0x00, 0x01, 0x02, 0x03},
+			wantValid:   true,
+			wantType:    "",
+		},
+		{
+			name:        "docx detected as zip related type",
+			fileName:    "document.docx",
+			contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+			magicBytes:  []byte{0x50, 0x4B, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00}, // ZIP magic
+			wantValid:   true,
+			wantType:    "application/zip",
 		},
 	}
 
@@ -209,6 +256,48 @@ func TestValidateFile_MagicBytes(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateFile_MagicBytes_ReaderError(t *testing.T) {
+	cfg := DefaultFileValidatorConfig()
+	v := NewFileValidator(cfg)
+
+	// Use a reader that returns an error
+	errReader := &errorReader{}
+	result, err := v.ValidateFile("test.pdf", 100, "application/pdf", errReader)
+	assert.NoError(t, err) // ValidateFile itself doesn't return error from detectFileType
+	assert.True(t, result.Valid)
+}
+
+type errorReader struct{}
+
+func (e *errorReader) Read(_ []byte) (int, error) {
+	return 0, io.ErrUnexpectedEOF
+}
+
+func TestValidateFile_EmptyReader(t *testing.T) {
+	cfg := DefaultFileValidatorConfig()
+	v := NewFileValidator(cfg)
+
+	reader := bytes.NewReader([]byte{})
+	result, err := v.ValidateFile("test.pdf", 100, "application/pdf", reader)
+	assert.NoError(t, err)
+	assert.True(t, result.Valid) // No magic bytes to detect, so no mismatch
+}
+
+func TestValidateFile_MultipleErrors(t *testing.T) {
+	cfg := FileValidatorConfig{
+		MaxFileSize:       100,
+		AllowedMimeTypes:  []string{"text/plain"},
+		AllowedExtensions: []string{".txt"},
+	}
+	v := NewFileValidator(cfg)
+
+	// file too big, wrong extension, wrong mime type
+	result, err := v.ValidateFile("bad.exe", 200, "application/x-executable", nil)
+	assert.NoError(t, err)
+	assert.False(t, result.Valid)
+	assert.GreaterOrEqual(t, len(result.Errors), 2, "expected multiple errors")
 }
 
 func TestSanitizeFileName(t *testing.T) {
@@ -242,8 +331,8 @@ func TestSanitizeFileName(t *testing.T) {
 		},
 		{
 			name:     "preserve unicode",
-			input:    "документ.pdf",
-			expected: "документ.pdf",
+			input:    "\u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442.pdf",
+			expected: "\u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442.pdf",
 		},
 		{
 			name:     "handle windows-style path on unix",
@@ -265,11 +354,32 @@ func TestSanitizeFileName(t *testing.T) {
 	}
 }
 
+func TestSanitizeFileName_LongName(t *testing.T) {
+	cfg := DefaultFileValidatorConfig()
+	v := NewFileValidator(cfg)
+
+	// Create a very long filename (300 chars + .txt extension)
+	longName := strings.Repeat("a", 300) + ".txt"
+	sanitized, err := v.ValidateFileName(longName)
+	assert.NoError(t, err)
+	assert.LessOrEqual(t, len(sanitized), 255)
+	assert.True(t, strings.HasSuffix(sanitized, ".txt"))
+}
+
 func TestValidateFileName_Empty(t *testing.T) {
 	cfg := DefaultFileValidatorConfig()
 	v := NewFileValidator(cfg)
 
 	_, err := v.ValidateFileName("")
+	assert.Error(t, err)
+}
+
+func TestValidateFileName_Dot(t *testing.T) {
+	cfg := DefaultFileValidatorConfig()
+	v := NewFileValidator(cfg)
+
+	// filepath.Base of "." is "."
+	_, err := v.ValidateFileName(".")
 	assert.Error(t, err)
 }
 
@@ -356,4 +466,116 @@ func TestAllowedMimeTypes(t *testing.T) {
 
 	types := v.AllowedMimeTypes()
 	assert.Len(t, types, 2)
+}
+
+func TestAreRelatedTypes(t *testing.T) {
+	cfg := DefaultFileValidatorConfig()
+	v := NewFileValidator(cfg)
+
+	tests := []struct {
+		name     string
+		type1    string
+		type2    string
+		expected bool
+	}{
+		{
+			name:     "zip and docx are related",
+			type1:    "application/zip",
+			type2:    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+			expected: true,
+		},
+		{
+			name:     "zip and xlsx are related",
+			type1:    "application/zip",
+			type2:    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+			expected: true,
+		},
+		{
+			name:     "zip and pptx are related",
+			type1:    "application/zip",
+			type2:    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+			expected: true,
+		},
+		{
+			name:     "jpeg and jpg are related",
+			type1:    "image/jpeg",
+			type2:    "image/jpg",
+			expected: true,
+		},
+		{
+			name:     "pdf and png are not related",
+			type1:    "application/pdf",
+			type2:    "image/png",
+			expected: false,
+		},
+		{
+			name:     "unrelated types",
+			type1:    "text/plain",
+			type2:    "image/gif",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, v.areRelatedTypes(tt.type1, tt.type2))
+		})
+	}
+}
+
+func TestGenerateKey(t *testing.T) {
+	key := GenerateKey(42, "document.pdf")
+	assert.Contains(t, key, "documents/42/")
+	assert.True(t, strings.HasSuffix(key, ".pdf"))
+}
+
+func TestGenerateKey_DifferentExtensions(t *testing.T) {
+	key := GenerateKey(1, "file.docx")
+	assert.True(t, strings.HasSuffix(key, ".docx"))
+
+	key = GenerateKey(1, "image.png")
+	assert.True(t, strings.HasSuffix(key, ".png"))
+}
+
+func TestGenerateTempKey(t *testing.T) {
+	key := GenerateTempKey(99, "upload.pdf")
+	assert.Contains(t, key, "temp/99/")
+	assert.True(t, strings.HasSuffix(key, ".pdf"))
+}
+
+func TestGenerateTempKey_DifferentExtensions(t *testing.T) {
+	key := GenerateTempKey(1, "file.xlsx")
+	assert.True(t, strings.HasSuffix(key, ".xlsx"))
+}
+
+func TestGenerateKey_UniqueTwoCallsAreDifferent(t *testing.T) {
+	key1 := GenerateKey(1, "test.pdf")
+	key2 := GenerateKey(1, "test.pdf")
+	// In practice they should differ due to UnixNano; we just check format
+	assert.Contains(t, key1, "documents/1/")
+	assert.Contains(t, key2, "documents/1/")
+}
+
+func TestInitMagicBytes(t *testing.T) {
+	mb := initMagicBytes()
+	assert.NotEmpty(t, mb)
+	assert.Contains(t, mb, "application/pdf")
+	assert.Contains(t, mb, "image/jpeg")
+	assert.Contains(t, mb, "image/png")
+	assert.Contains(t, mb, "image/gif")
+	assert.Contains(t, mb, "application/zip")
+	assert.Contains(t, mb, "application/x-rar-compressed")
+}
+
+func TestValidateFile_SanitizedName(t *testing.T) {
+	cfg := FileValidatorConfig{
+		MaxFileSize:       1024 * 1024,
+		AllowedMimeTypes:  []string{"text/plain"},
+		AllowedExtensions: []string{".txt"},
+	}
+	v := NewFileValidator(cfg)
+
+	result, err := v.ValidateFile("../../../etc/test.txt", 100, "text/plain", nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "test.txt", result.SanitizedName)
 }

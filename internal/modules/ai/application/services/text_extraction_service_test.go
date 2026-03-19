@@ -134,3 +134,74 @@ func TestTextExtractionService_InvalidDocx(t *testing.T) {
 		t.Fatal("expected error for invalid docx, got nil")
 	}
 }
+
+func TestTextExtractionService_DocxWithTabAndBr(t *testing.T) {
+	svc := NewTextExtractionService()
+
+	bodyXML := `<w:p><w:r><w:t>Before</w:t><w:tab/><w:t>After</w:t><w:br/><w:t>NewLine</w:t></w:r></w:p>`
+	data := buildMinimalDocx(t, bodyXML)
+
+	text, err := svc.Extract(data, MimeDocx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if text != "Before\tAfter\nNewLine" {
+		t.Errorf("unexpected text: %q", text)
+	}
+}
+
+func TestTextExtractionService_DocxMissingDocumentXML(t *testing.T) {
+	svc := NewTextExtractionService()
+
+	// Create a zip file without word/document.xml
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+	f, _ := w.Create("other/file.xml")
+	_, _ = f.Write([]byte("<data/>"))
+	_ = w.Close()
+
+	_, err := svc.Extract(buf.Bytes(), MimeDocx)
+	if err == nil {
+		t.Fatal("expected error for docx without word/document.xml, got nil")
+	}
+}
+
+func TestTextExtractionService_InvalidPDF(t *testing.T) {
+	svc := NewTextExtractionService()
+
+	_, err := svc.Extract([]byte("not a pdf"), MimePDF)
+	if err == nil {
+		t.Fatal("expected error for invalid PDF data, got nil")
+	}
+}
+
+func TestTextExtractionService_DocxEmptyParagraphs(t *testing.T) {
+	svc := NewTextExtractionService()
+
+	// Multiple paragraphs with only the second having text
+	bodyXML := `<w:p></w:p><w:p><w:r><w:t>Content</w:t></w:r></w:p>`
+	data := buildMinimalDocx(t, bodyXML)
+
+	text, err := svc.Extract(data, MimeDocx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if text != "Content" {
+		t.Errorf("unexpected text: %q", text)
+	}
+}
+
+func TestTextExtractionService_DocxEmptyDocument(t *testing.T) {
+	svc := NewTextExtractionService()
+
+	bodyXML := `<w:p></w:p>`
+	data := buildMinimalDocx(t, bodyXML)
+
+	text, err := svc.Extract(data, MimeDocx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if text != "" {
+		t.Errorf("expected empty text, got %q", text)
+	}
+}
