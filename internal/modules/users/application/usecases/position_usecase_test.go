@@ -13,6 +13,11 @@ import (
 type MockPositionRepository struct {
 	positions map[int64]*entities.Position
 	nextID    int64
+	createErr error
+	updateErr error
+	deleteErr error
+	listErr   error
+	countErr  error
 }
 
 func NewMockPositionRepository() *MockPositionRepository {
@@ -23,6 +28,9 @@ func NewMockPositionRepository() *MockPositionRepository {
 }
 
 func (m *MockPositionRepository) Create(_ context.Context, position *entities.Position) error {
+	if m.createErr != nil {
+		return m.createErr
+	}
 	position.ID = m.nextID
 	m.nextID++
 	m.positions[position.ID] = position
@@ -47,16 +55,25 @@ func (m *MockPositionRepository) GetByCode(_ context.Context, code string) (*ent
 }
 
 func (m *MockPositionRepository) Update(_ context.Context, position *entities.Position) error {
+	if m.updateErr != nil {
+		return m.updateErr
+	}
 	m.positions[position.ID] = position
 	return nil
 }
 
 func (m *MockPositionRepository) Delete(_ context.Context, id int64) error {
+	if m.deleteErr != nil {
+		return m.deleteErr
+	}
 	delete(m.positions, id)
 	return nil
 }
 
 func (m *MockPositionRepository) List(_ context.Context, limit, offset int, _ bool) ([]*entities.Position, error) {
+	if m.listErr != nil {
+		return nil, m.listErr
+	}
 	var positions []*entities.Position
 	i := 0
 	for _, pos := range m.positions {
@@ -69,6 +86,9 @@ func (m *MockPositionRepository) List(_ context.Context, limit, offset int, _ bo
 }
 
 func (m *MockPositionRepository) Count(_ context.Context, _ bool) (int64, error) {
+	if m.countErr != nil {
+		return 0, m.countErr
+	}
 	return int64(len(m.positions)), nil
 }
 
@@ -109,6 +129,43 @@ func TestPositionUseCase_CreatePosition(t *testing.T) {
 
 	if !pos.IsActive {
 		t.Error("expected new position to be active")
+	}
+}
+
+func TestPositionUseCase_CreatePosition_WithAuditLogger(t *testing.T) {
+	repo := NewMockPositionRepository()
+	uc := NewPositionUseCase(repo, testAuditLogger())
+
+	ctx := context.Background()
+	input := &dto.CreatePositionInput{
+		Name: "Developer",
+		Code: "DEV",
+	}
+
+	pos, err := uc.CreatePosition(ctx, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if pos.ID == 0 {
+		t.Error("expected position ID to be set")
+	}
+}
+
+func TestPositionUseCase_CreatePosition_CreateError(t *testing.T) {
+	repo := NewMockPositionRepository()
+	repo.createErr = errors.New("create error")
+	uc := NewPositionUseCase(repo, nil)
+
+	ctx := context.Background()
+	input := &dto.CreatePositionInput{
+		Name: "Developer",
+		Code: "DEV",
+	}
+
+	_, err := uc.CreatePosition(ctx, input)
+	if err == nil {
+		t.Error("expected error from create")
 	}
 }
 
@@ -233,6 +290,28 @@ func TestPositionUseCase_ListPositions_Pagination(t *testing.T) {
 	}
 }
 
+func TestPositionUseCase_ListPositions_ListError(t *testing.T) {
+	repo := NewMockPositionRepository()
+	repo.listErr = errors.New("list error")
+	uc := NewPositionUseCase(repo, nil)
+
+	_, err := uc.ListPositions(context.Background(), 1, 10, true)
+	if err == nil {
+		t.Error("expected error from list")
+	}
+}
+
+func TestPositionUseCase_ListPositions_CountError(t *testing.T) {
+	repo := NewMockPositionRepository()
+	repo.countErr = errors.New("count error")
+	uc := NewPositionUseCase(repo, nil)
+
+	_, err := uc.ListPositions(context.Background(), 1, 10, true)
+	if err == nil {
+		t.Error("expected error from count")
+	}
+}
+
 func TestPositionUseCase_ListPositions_TotalPages(t *testing.T) {
 	repo := NewMockPositionRepository()
 	uc := NewPositionUseCase(repo, nil)
@@ -296,6 +375,54 @@ func TestPositionUseCase_UpdatePosition(t *testing.T) {
 
 	if updated.IsActive {
 		t.Error("expected IsActive to be false")
+	}
+}
+
+func TestPositionUseCase_UpdatePosition_WithAuditLogger(t *testing.T) {
+	repo := NewMockPositionRepository()
+	uc := NewPositionUseCase(repo, testAuditLogger())
+
+	ctx := context.Background()
+
+	created, _ := uc.CreatePosition(ctx, &dto.CreatePositionInput{
+		Name:  "Developer",
+		Code:  "DEV",
+		Level: 1,
+	})
+
+	input := &dto.UpdatePositionInput{
+		Name:  "Senior Developer",
+		Code:  "SENDEV",
+		Level: 3,
+	}
+
+	_, err := uc.UpdatePosition(ctx, created.ID, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestPositionUseCase_UpdatePosition_UpdateError(t *testing.T) {
+	repo := NewMockPositionRepository()
+	uc := NewPositionUseCase(repo, nil)
+
+	ctx := context.Background()
+
+	created, _ := uc.CreatePosition(ctx, &dto.CreatePositionInput{
+		Name: "Developer",
+		Code: "DEV",
+	})
+
+	repo.updateErr = errors.New("update error")
+
+	input := &dto.UpdatePositionInput{
+		Name: "Updated",
+		Code: "UPD",
+	}
+
+	_, err := uc.UpdatePosition(ctx, created.ID, input)
+	if err == nil {
+		t.Error("expected error from update")
 	}
 }
 
@@ -368,6 +495,42 @@ func TestPositionUseCase_DeletePosition(t *testing.T) {
 	_, err = uc.GetPosition(ctx, created.ID)
 	if err == nil {
 		t.Error("expected error for deleted position")
+	}
+}
+
+func TestPositionUseCase_DeletePosition_WithAuditLogger(t *testing.T) {
+	repo := NewMockPositionRepository()
+	uc := NewPositionUseCase(repo, testAuditLogger())
+
+	ctx := context.Background()
+
+	created, _ := uc.CreatePosition(ctx, &dto.CreatePositionInput{
+		Name: "Developer",
+		Code: "DEV",
+	})
+
+	err := uc.DeletePosition(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestPositionUseCase_DeletePosition_DeleteError(t *testing.T) {
+	repo := NewMockPositionRepository()
+	uc := NewPositionUseCase(repo, nil)
+
+	ctx := context.Background()
+
+	created, _ := uc.CreatePosition(ctx, &dto.CreatePositionInput{
+		Name: "Developer",
+		Code: "DEV",
+	})
+
+	repo.deleteErr = errors.New("delete error")
+
+	err := uc.DeletePosition(ctx, created.ID)
+	if err == nil {
+		t.Error("expected error from delete")
 	}
 }
 

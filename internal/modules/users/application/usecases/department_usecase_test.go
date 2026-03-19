@@ -13,6 +13,12 @@ import (
 type MockDepartmentRepository struct {
 	departments map[int64]*entities.Department
 	nextID      int64
+	createErr   error
+	updateErr   error
+	deleteErr   error
+	listErr     error
+	countErr    error
+	childrenErr error
 }
 
 func NewMockDepartmentRepository() *MockDepartmentRepository {
@@ -23,6 +29,9 @@ func NewMockDepartmentRepository() *MockDepartmentRepository {
 }
 
 func (m *MockDepartmentRepository) Create(_ context.Context, department *entities.Department) error {
+	if m.createErr != nil {
+		return m.createErr
+	}
 	department.ID = m.nextID
 	m.nextID++
 	m.departments[department.ID] = department
@@ -47,16 +56,25 @@ func (m *MockDepartmentRepository) GetByCode(_ context.Context, code string) (*e
 }
 
 func (m *MockDepartmentRepository) Update(_ context.Context, department *entities.Department) error {
+	if m.updateErr != nil {
+		return m.updateErr
+	}
 	m.departments[department.ID] = department
 	return nil
 }
 
 func (m *MockDepartmentRepository) Delete(_ context.Context, id int64) error {
+	if m.deleteErr != nil {
+		return m.deleteErr
+	}
 	delete(m.departments, id)
 	return nil
 }
 
 func (m *MockDepartmentRepository) List(_ context.Context, limit, offset int, _ bool) ([]*entities.Department, error) {
+	if m.listErr != nil {
+		return nil, m.listErr
+	}
 	var departments []*entities.Department
 	i := 0
 	for _, dept := range m.departments {
@@ -69,10 +87,16 @@ func (m *MockDepartmentRepository) List(_ context.Context, limit, offset int, _ 
 }
 
 func (m *MockDepartmentRepository) Count(_ context.Context, _ bool) (int64, error) {
+	if m.countErr != nil {
+		return 0, m.countErr
+	}
 	return int64(len(m.departments)), nil
 }
 
 func (m *MockDepartmentRepository) GetChildren(_ context.Context, parentID int64) ([]*entities.Department, error) {
+	if m.childrenErr != nil {
+		return nil, m.childrenErr
+	}
 	var children []*entities.Department
 	for _, dept := range m.departments {
 		if dept.ParentID != nil && *dept.ParentID == parentID {
@@ -114,6 +138,43 @@ func TestDepartmentUseCase_CreateDepartment(t *testing.T) {
 
 	if !dept.IsActive {
 		t.Error("expected new department to be active")
+	}
+}
+
+func TestDepartmentUseCase_CreateDepartment_WithAuditLogger(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	uc := NewDepartmentUseCase(repo, testAuditLogger())
+
+	ctx := context.Background()
+	input := &dto.CreateDepartmentInput{
+		Name: "IT Department",
+		Code: "IT",
+	}
+
+	dept, err := uc.CreateDepartment(ctx, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if dept.ID == 0 {
+		t.Error("expected department ID to be set")
+	}
+}
+
+func TestDepartmentUseCase_CreateDepartment_CreateError(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	repo.createErr = errors.New("create error")
+	uc := NewDepartmentUseCase(repo, nil)
+
+	ctx := context.Background()
+	input := &dto.CreateDepartmentInput{
+		Name: "IT Department",
+		Code: "IT",
+	}
+
+	_, err := uc.CreateDepartment(ctx, input)
+	if err == nil {
+		t.Error("expected error from create")
 	}
 }
 
@@ -274,6 +335,44 @@ func TestDepartmentUseCase_ListDepartments_Pagination(t *testing.T) {
 	}
 }
 
+func TestDepartmentUseCase_ListDepartments_ListError(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	repo.listErr = errors.New("list error")
+	uc := NewDepartmentUseCase(repo, nil)
+
+	_, err := uc.ListDepartments(context.Background(), 1, 10, true)
+	if err == nil {
+		t.Error("expected error from list")
+	}
+}
+
+func TestDepartmentUseCase_ListDepartments_CountError(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	repo.countErr = errors.New("count error")
+	uc := NewDepartmentUseCase(repo, nil)
+
+	_, err := uc.ListDepartments(context.Background(), 1, 10, true)
+	if err == nil {
+		t.Error("expected error from count")
+	}
+}
+
+func TestDepartmentUseCase_ListDepartments_TotalPages(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	uc := NewDepartmentUseCase(repo, nil)
+
+	ctx := context.Background()
+
+	for i := 0; i < 5; i++ {
+		_, _ = uc.CreateDepartment(ctx, &dto.CreateDepartmentInput{Name: "Dept", Code: "D"})
+	}
+
+	result, _ := uc.ListDepartments(ctx, 1, 2, true)
+	if result.TotalPages != 3 {
+		t.Errorf("expected 3 total pages, got %d", result.TotalPages)
+	}
+}
+
 func TestDepartmentUseCase_UpdateDepartment(t *testing.T) {
 	repo := NewMockDepartmentRepository()
 	uc := NewDepartmentUseCase(repo, nil)
@@ -310,6 +409,52 @@ func TestDepartmentUseCase_UpdateDepartment(t *testing.T) {
 
 	if updated.IsActive {
 		t.Error("expected IsActive to be false")
+	}
+}
+
+func TestDepartmentUseCase_UpdateDepartment_WithAuditLogger(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	uc := NewDepartmentUseCase(repo, testAuditLogger())
+
+	ctx := context.Background()
+
+	created, _ := uc.CreateDepartment(ctx, &dto.CreateDepartmentInput{
+		Name: "IT Department",
+		Code: "IT",
+	})
+
+	input := &dto.UpdateDepartmentInput{
+		Name: "IT Dept Updated",
+		Code: "ITU",
+	}
+
+	_, err := uc.UpdateDepartment(ctx, created.ID, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestDepartmentUseCase_UpdateDepartment_UpdateError(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	uc := NewDepartmentUseCase(repo, nil)
+
+	ctx := context.Background()
+
+	created, _ := uc.CreateDepartment(ctx, &dto.CreateDepartmentInput{
+		Name: "IT Department",
+		Code: "IT",
+	})
+
+	repo.updateErr = errors.New("update error")
+
+	input := &dto.UpdateDepartmentInput{
+		Name: "Updated",
+		Code: "UPD",
+	}
+
+	_, err := uc.UpdateDepartment(ctx, created.ID, input)
+	if err == nil {
+		t.Error("expected error from update")
 	}
 }
 
@@ -357,6 +502,77 @@ func TestDepartmentUseCase_UpdateDepartment_WithParent(t *testing.T) {
 	}
 }
 
+func TestDepartmentUseCase_UpdateDepartment_ParentNotFound(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	uc := NewDepartmentUseCase(repo, nil)
+
+	ctx := context.Background()
+
+	created, _ := uc.CreateDepartment(ctx, &dto.CreateDepartmentInput{Name: "Dept", Code: "D"})
+
+	parentID := int64(999)
+	input := &dto.UpdateDepartmentInput{
+		Name:     "Updated",
+		Code:     "UPD",
+		ParentID: &parentID,
+	}
+
+	_, err := uc.UpdateDepartment(ctx, created.ID, input)
+	if err == nil {
+		t.Error("expected error for non-existent parent")
+	}
+}
+
+func TestDepartmentUseCase_UpdateDepartment_SelfParent(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	uc := NewDepartmentUseCase(repo, nil)
+
+	ctx := context.Background()
+
+	created, _ := uc.CreateDepartment(ctx, &dto.CreateDepartmentInput{Name: "Dept", Code: "D"})
+
+	// Setting parent to self should skip the parent check
+	selfID := created.ID
+	input := &dto.UpdateDepartmentInput{
+		Name:     "Updated",
+		Code:     "UPD",
+		ParentID: &selfID,
+	}
+
+	updated, err := uc.UpdateDepartment(ctx, created.ID, input)
+	if err != nil {
+		t.Fatalf("expected no error (self-parent skips check), got %v", err)
+	}
+
+	if updated.ParentID == nil || *updated.ParentID != selfID {
+		t.Errorf("expected parent ID %d, got %v", selfID, updated.ParentID)
+	}
+}
+
+func TestDepartmentUseCase_UpdateDepartment_NilIsActive(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	uc := NewDepartmentUseCase(repo, nil)
+
+	ctx := context.Background()
+
+	created, _ := uc.CreateDepartment(ctx, &dto.CreateDepartmentInput{Name: "Dept", Code: "D"})
+
+	// IsActive is nil -- should not change
+	input := &dto.UpdateDepartmentInput{
+		Name: "Updated",
+		Code: "UPD",
+	}
+
+	updated, err := uc.UpdateDepartment(ctx, created.ID, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if !updated.IsActive {
+		t.Error("expected IsActive to remain true when nil in input")
+	}
+}
+
 func TestDepartmentUseCase_DeleteDepartment(t *testing.T) {
 	repo := NewMockDepartmentRepository()
 	uc := NewDepartmentUseCase(repo, nil)
@@ -379,6 +595,61 @@ func TestDepartmentUseCase_DeleteDepartment(t *testing.T) {
 	_, err = uc.GetDepartment(ctx, created.ID)
 	if err == nil {
 		t.Error("expected error for deleted department")
+	}
+}
+
+func TestDepartmentUseCase_DeleteDepartment_WithAuditLogger(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	uc := NewDepartmentUseCase(repo, testAuditLogger())
+
+	ctx := context.Background()
+
+	created, _ := uc.CreateDepartment(ctx, &dto.CreateDepartmentInput{
+		Name: "IT Department",
+		Code: "IT",
+	})
+
+	err := uc.DeleteDepartment(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestDepartmentUseCase_DeleteDepartment_DeleteError(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	uc := NewDepartmentUseCase(repo, nil)
+
+	ctx := context.Background()
+
+	created, _ := uc.CreateDepartment(ctx, &dto.CreateDepartmentInput{
+		Name: "IT Department",
+		Code: "IT",
+	})
+
+	repo.deleteErr = errors.New("delete error")
+
+	err := uc.DeleteDepartment(ctx, created.ID)
+	if err == nil {
+		t.Error("expected error from delete")
+	}
+}
+
+func TestDepartmentUseCase_DeleteDepartment_ChildrenError(t *testing.T) {
+	repo := NewMockDepartmentRepository()
+	uc := NewDepartmentUseCase(repo, nil)
+
+	ctx := context.Background()
+
+	created, _ := uc.CreateDepartment(ctx, &dto.CreateDepartmentInput{
+		Name: "IT Department",
+		Code: "IT",
+	})
+
+	repo.childrenErr = errors.New("children query error")
+
+	err := uc.DeleteDepartment(ctx, created.ID)
+	if err == nil {
+		t.Error("expected error from children query")
 	}
 }
 

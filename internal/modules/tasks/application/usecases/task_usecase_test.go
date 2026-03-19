@@ -6,761 +6,1680 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 const updatedTaskTitle = "Updated Task"
 
-// MockTaskRepository implements TaskRepository for testing.
-type MockTaskRepository struct {
-	tasks      map[int64]*entities.Task
-	comments   map[int64]*entities.TaskComment
-	checklists map[int64]*entities.TaskChecklist
-	items      map[int64]*entities.TaskChecklistItem
-	watchers   map[int64][]*entities.TaskWatcher
-	history    map[int64][]*entities.TaskHistory
-	nextID     int64
+// --- Error-returning mock task repository ---
+
+type ErrorMockTaskRepository struct {
+	MockTaskRepository
+	createErr              error
+	saveErr                error
+	getByIDErr             error
+	deleteErr              error
+	listErr                error
+	countErr               error
+	addWatcherErr          error
+	removeWatcherErr       error
+	isWatchingErr          error
+	addCommentErr          error
+	getCommentByIDErr      error
+	updateCommentErr       error
+	deleteCommentErr       error
+	addChecklistErr        error
+	deleteChecklistErr     error
+	getChecklistsErr       error
+	getChecklistItemErr    error
+	addChecklistItemErr    error
+	deleteChecklistItemErr error
 }
 
-func NewMockTaskRepository() *MockTaskRepository {
-	return &MockTaskRepository{
-		tasks:      make(map[int64]*entities.Task),
-		comments:   make(map[int64]*entities.TaskComment),
-		checklists: make(map[int64]*entities.TaskChecklist),
-		items:      make(map[int64]*entities.TaskChecklistItem),
-		watchers:   make(map[int64][]*entities.TaskWatcher),
-		history:    make(map[int64][]*entities.TaskHistory),
-		nextID:     1,
+func (m *ErrorMockTaskRepository) Create(ctx context.Context, task *entities.Task) error {
+	if m.createErr != nil {
+		return m.createErr
+	}
+	return m.MockTaskRepository.Create(ctx, task)
+}
+
+func (m *ErrorMockTaskRepository) Save(ctx context.Context, task *entities.Task) error {
+	if m.saveErr != nil {
+		return m.saveErr
+	}
+	return m.MockTaskRepository.Save(ctx, task)
+}
+
+func (m *ErrorMockTaskRepository) GetByID(ctx context.Context, id int64) (*entities.Task, error) {
+	if m.getByIDErr != nil {
+		return nil, m.getByIDErr
+	}
+	return m.MockTaskRepository.GetByID(ctx, id)
+}
+
+func (m *ErrorMockTaskRepository) Delete(ctx context.Context, id int64) error {
+	if m.deleteErr != nil {
+		return m.deleteErr
+	}
+	return m.MockTaskRepository.Delete(ctx, id)
+}
+
+func (m *ErrorMockTaskRepository) List(ctx context.Context, f repositories.TaskFilter, limit, offset int) ([]*entities.Task, error) {
+	if m.listErr != nil {
+		return nil, m.listErr
+	}
+	return m.MockTaskRepository.List(ctx, f, limit, offset)
+}
+
+func (m *ErrorMockTaskRepository) Count(ctx context.Context, f repositories.TaskFilter) (int64, error) {
+	if m.countErr != nil {
+		return 0, m.countErr
+	}
+	return m.MockTaskRepository.Count(ctx, f)
+}
+
+func (m *ErrorMockTaskRepository) AddWatcher(ctx context.Context, w *entities.TaskWatcher) error {
+	if m.addWatcherErr != nil {
+		return m.addWatcherErr
+	}
+	return m.MockTaskRepository.AddWatcher(ctx, w)
+}
+
+func (m *ErrorMockTaskRepository) RemoveWatcher(ctx context.Context, taskID, userID int64) error {
+	if m.removeWatcherErr != nil {
+		return m.removeWatcherErr
+	}
+	return m.MockTaskRepository.RemoveWatcher(ctx, taskID, userID)
+}
+
+func (m *ErrorMockTaskRepository) IsWatching(ctx context.Context, taskID, userID int64) (bool, error) {
+	if m.isWatchingErr != nil {
+		return false, m.isWatchingErr
+	}
+	return m.MockTaskRepository.IsWatching(ctx, taskID, userID)
+}
+
+func (m *ErrorMockTaskRepository) AddComment(ctx context.Context, c *entities.TaskComment) error {
+	if m.addCommentErr != nil {
+		return m.addCommentErr
+	}
+	return m.MockTaskRepository.AddComment(ctx, c)
+}
+
+func (m *ErrorMockTaskRepository) GetCommentByID(ctx context.Context, commentID int64) (*entities.TaskComment, error) {
+	if m.getCommentByIDErr != nil {
+		return nil, m.getCommentByIDErr
+	}
+	return m.MockTaskRepository.GetCommentByID(ctx, commentID)
+}
+
+func (m *ErrorMockTaskRepository) UpdateComment(ctx context.Context, c *entities.TaskComment) error {
+	if m.updateCommentErr != nil {
+		return m.updateCommentErr
+	}
+	return m.MockTaskRepository.UpdateComment(ctx, c)
+}
+
+func (m *ErrorMockTaskRepository) DeleteComment(ctx context.Context, commentID int64) error {
+	if m.deleteCommentErr != nil {
+		return m.deleteCommentErr
+	}
+	return m.MockTaskRepository.DeleteComment(ctx, commentID)
+}
+
+func (m *ErrorMockTaskRepository) AddChecklist(ctx context.Context, c *entities.TaskChecklist) error {
+	if m.addChecklistErr != nil {
+		return m.addChecklistErr
+	}
+	return m.MockTaskRepository.AddChecklist(ctx, c)
+}
+
+func (m *ErrorMockTaskRepository) DeleteChecklist(ctx context.Context, id int64) error {
+	if m.deleteChecklistErr != nil {
+		return m.deleteChecklistErr
+	}
+	return m.MockTaskRepository.DeleteChecklist(ctx, id)
+}
+
+func (m *ErrorMockTaskRepository) GetChecklists(ctx context.Context, taskID int64) ([]*entities.TaskChecklist, error) {
+	if m.getChecklistsErr != nil {
+		return nil, m.getChecklistsErr
+	}
+	return m.MockTaskRepository.GetChecklists(ctx, taskID)
+}
+
+func (m *ErrorMockTaskRepository) GetChecklistItems(ctx context.Context, checklistID int64) ([]*entities.TaskChecklistItem, error) {
+	if m.getChecklistItemErr != nil {
+		return nil, m.getChecklistItemErr
+	}
+	return m.MockTaskRepository.GetChecklistItems(ctx, checklistID)
+}
+
+func (m *ErrorMockTaskRepository) AddChecklistItem(ctx context.Context, item *entities.TaskChecklistItem) error {
+	if m.addChecklistItemErr != nil {
+		return m.addChecklistItemErr
+	}
+	return m.MockTaskRepository.AddChecklistItem(ctx, item)
+}
+
+func (m *ErrorMockTaskRepository) DeleteChecklistItem(ctx context.Context, itemID int64) error {
+	if m.deleteChecklistItemErr != nil {
+		return m.deleteChecklistItemErr
+	}
+	return m.MockTaskRepository.DeleteChecklistItem(ctx, itemID)
+}
+
+func newErrorMockTaskRepo() *ErrorMockTaskRepository {
+	return &ErrorMockTaskRepository{
+		MockTaskRepository: *NewMockTaskRepository(),
 	}
 }
 
-func (m *MockTaskRepository) Create(_ context.Context, task *entities.Task) error {
-	task.ID = m.nextID
-	m.nextID++
-	m.tasks[task.ID] = task
-	return nil
+// --- Helpers ---
+
+func createTestAuditLogger() *logging.AuditLogger {
+	logger := logging.NewLogger("error")
+	return logging.NewAuditLogger(logger)
 }
 
-func (m *MockTaskRepository) Save(_ context.Context, task *entities.Task) error {
-	m.tasks[task.ID] = task
-	return nil
-}
+func strPtr(s string) *string        { return &s }
+func intPtr(i int) *int              { return &i }
+func int64Ptr(i int64) *int64        { return &i }
+func float64Ptr(f float64) *float64  { return &f }
 
-func (m *MockTaskRepository) GetByID(_ context.Context, id int64) (*entities.Task, error) {
-	task, exists := m.tasks[id]
-	if !exists {
-		return nil, nil
-	}
-	return task, nil
-}
-
-func (m *MockTaskRepository) Delete(_ context.Context, id int64) error {
-	delete(m.tasks, id)
-	return nil
-}
-
-func (m *MockTaskRepository) List(_ context.Context, _ repositories.TaskFilter, _, _ int) ([]*entities.Task, error) {
-	var tasks []*entities.Task
-	for _, t := range m.tasks {
-		tasks = append(tasks, t)
-	}
-	return tasks, nil
-}
-
-func (m *MockTaskRepository) Count(_ context.Context, _ repositories.TaskFilter) (int64, error) {
-	return int64(len(m.tasks)), nil
-}
-
-func (m *MockTaskRepository) GetByProject(_ context.Context, _ int64, _, _ int) ([]*entities.Task, error) {
-	return nil, nil
-}
-
-func (m *MockTaskRepository) GetByAuthor(_ context.Context, _ int64, _, _ int) ([]*entities.Task, error) {
-	return nil, nil
-}
-
-func (m *MockTaskRepository) GetByAssignee(_ context.Context, _ int64, _, _ int) ([]*entities.Task, error) {
-	return nil, nil
-}
-
-func (m *MockTaskRepository) GetByStatus(_ context.Context, _ domain.TaskStatus, _, _ int) ([]*entities.Task, error) {
-	return nil, nil
-}
-
-func (m *MockTaskRepository) GetOverdueTasks(_ context.Context, _, _ int) ([]*entities.Task, error) {
-	return nil, nil
-}
-
-func (m *MockTaskRepository) AddWatcher(_ context.Context, watcher *entities.TaskWatcher) error {
-	m.watchers[watcher.TaskID] = append(m.watchers[watcher.TaskID], watcher)
-	return nil
-}
-
-func (m *MockTaskRepository) RemoveWatcher(_ context.Context, taskID, userID int64) error {
-	watchers := m.watchers[taskID]
-	for i, w := range watchers {
-		if w.UserID == userID {
-			m.watchers[taskID] = append(watchers[:i], watchers[i+1:]...)
-			break
-		}
-	}
-	return nil
-}
-
-func (m *MockTaskRepository) GetWatchers(_ context.Context, taskID int64) ([]*entities.TaskWatcher, error) {
-	return m.watchers[taskID], nil
-}
-
-func (m *MockTaskRepository) IsWatching(_ context.Context, taskID, userID int64) (bool, error) {
-	for _, w := range m.watchers[taskID] {
-		if w.UserID == userID {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-func (m *MockTaskRepository) AddAttachment(_ context.Context, _ *entities.TaskAttachment) error {
-	return nil
-}
-
-func (m *MockTaskRepository) RemoveAttachment(_ context.Context, _ int64) error {
-	return nil
-}
-
-func (m *MockTaskRepository) GetAttachments(_ context.Context, _ int64) ([]*entities.TaskAttachment, error) {
-	return nil, nil
-}
-
-func (m *MockTaskRepository) GetAttachmentByID(_ context.Context, _ int64) (*entities.TaskAttachment, error) {
-	return nil, nil
-}
-
-func (m *MockTaskRepository) AddComment(_ context.Context, comment *entities.TaskComment) error {
-	comment.ID = m.nextID
-	m.nextID++
-	m.comments[comment.ID] = comment
-	return nil
-}
-
-func (m *MockTaskRepository) UpdateComment(_ context.Context, comment *entities.TaskComment) error {
-	m.comments[comment.ID] = comment
-	return nil
-}
-
-func (m *MockTaskRepository) DeleteComment(_ context.Context, commentID int64) error {
-	delete(m.comments, commentID)
-	return nil
-}
-
-func (m *MockTaskRepository) GetComments(_ context.Context, taskID int64) ([]*entities.TaskComment, error) {
-	var comments []*entities.TaskComment
-	for _, c := range m.comments {
-		if c.TaskID == taskID {
-			comments = append(comments, c)
-		}
-	}
-	return comments, nil
-}
-
-func (m *MockTaskRepository) GetCommentByID(_ context.Context, commentID int64) (*entities.TaskComment, error) {
-	return m.comments[commentID], nil
-}
-
-func (m *MockTaskRepository) AddChecklist(_ context.Context, checklist *entities.TaskChecklist) error {
-	checklist.ID = m.nextID
-	m.nextID++
-	m.checklists[checklist.ID] = checklist
-	return nil
-}
-
-func (m *MockTaskRepository) UpdateChecklist(_ context.Context, checklist *entities.TaskChecklist) error {
-	m.checklists[checklist.ID] = checklist
-	return nil
-}
-
-func (m *MockTaskRepository) DeleteChecklist(_ context.Context, checklistID int64) error {
-	delete(m.checklists, checklistID)
-	return nil
-}
-
-func (m *MockTaskRepository) GetChecklists(_ context.Context, taskID int64) ([]*entities.TaskChecklist, error) {
-	var checklists []*entities.TaskChecklist
-	for _, c := range m.checklists {
-		if c.TaskID == taskID {
-			checklists = append(checklists, c)
-		}
-	}
-	return checklists, nil
-}
-
-func (m *MockTaskRepository) AddChecklistItem(_ context.Context, item *entities.TaskChecklistItem) error {
-	item.ID = m.nextID
-	m.nextID++
-	m.items[item.ID] = item
-	return nil
-}
-
-func (m *MockTaskRepository) UpdateChecklistItem(_ context.Context, item *entities.TaskChecklistItem) error {
-	m.items[item.ID] = item
-	return nil
-}
-
-func (m *MockTaskRepository) DeleteChecklistItem(_ context.Context, itemID int64) error {
-	delete(m.items, itemID)
-	return nil
-}
-
-func (m *MockTaskRepository) GetChecklistItems(_ context.Context, checklistID int64) ([]*entities.TaskChecklistItem, error) {
-	var items []*entities.TaskChecklistItem
-	for _, i := range m.items {
-		if i.ChecklistID == checklistID {
-			items = append(items, i)
-		}
-	}
-	return items, nil
-}
-
-func (m *MockTaskRepository) AddHistory(_ context.Context, history *entities.TaskHistory) error {
-	history.ID = m.nextID
-	m.nextID++
-	m.history[history.TaskID] = append(m.history[history.TaskID], history)
-	return nil
-}
-
-func (m *MockTaskRepository) GetHistory(_ context.Context, taskID int64, _, _ int) ([]*entities.TaskHistory, error) {
-	return m.history[taskID], nil
-}
-
-// MockProjectRepository implements ProjectRepository for testing.
-type MockProjectRepository struct {
-	projects map[int64]*entities.Project
-	nextID   int64
-}
-
-func NewMockProjectRepository() *MockProjectRepository {
-	return &MockProjectRepository{
-		projects: make(map[int64]*entities.Project),
-		nextID:   1,
-	}
-}
-
-func (m *MockProjectRepository) Create(_ context.Context, project *entities.Project) error {
-	project.ID = m.nextID
-	m.nextID++
-	m.projects[project.ID] = project
-	return nil
-}
-
-func (m *MockProjectRepository) Save(_ context.Context, project *entities.Project) error {
-	m.projects[project.ID] = project
-	return nil
-}
-
-func (m *MockProjectRepository) GetByID(_ context.Context, id int64) (*entities.Project, error) {
-	return m.projects[id], nil
-}
-
-func (m *MockProjectRepository) Delete(_ context.Context, id int64) error {
-	delete(m.projects, id)
-	return nil
-}
-
-func (m *MockProjectRepository) List(_ context.Context, _ repositories.ProjectFilter, _, _ int) ([]*entities.Project, error) {
-	var projects []*entities.Project
-	for _, p := range m.projects {
-		projects = append(projects, p)
-	}
-	return projects, nil
-}
-
-func (m *MockProjectRepository) Count(_ context.Context, _ repositories.ProjectFilter) (int64, error) {
-	return int64(len(m.projects)), nil
-}
-
-func (m *MockProjectRepository) GetByOwner(_ context.Context, _ int64, _, _ int) ([]*entities.Project, error) {
-	return nil, nil
-}
-
-func (m *MockProjectRepository) GetByStatus(_ context.Context, _ domain.ProjectStatus, _, _ int) ([]*entities.Project, error) {
-	return nil, nil
-}
-
-// Tests
-
-func TestTaskUseCase_Create(t *testing.T) {
+func setupTaskUseCase() (*TaskUseCase, *MockTaskRepository) {
 	taskRepo := NewMockTaskRepository()
 	projectRepo := NewMockProjectRepository()
 	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
+	return uc, taskRepo
+}
 
+func setupTaskUseCaseWithAudit() (*TaskUseCase, *MockTaskRepository) {
+	taskRepo := NewMockTaskRepository()
+	projectRepo := NewMockProjectRepository()
+	audit := createTestAuditLogger()
+	uc := NewTaskUseCase(taskRepo, projectRepo, audit, nil)
+	return uc, taskRepo
+}
+
+func createTask(t *testing.T, uc *TaskUseCase, title string, authorID int64) *entities.Task {
+	t.Helper()
+	task, err := uc.Create(context.Background(), authorID, dto.CreateTaskInput{Title: title})
+	require.NoError(t, err)
+	return task
+}
+
+// ===================== Create =====================
+
+func TestTaskUseCase_Create(t *testing.T) {
+	uc, _ := setupTaskUseCase()
 	ctx := context.Background()
-	input := dto.CreateTaskInput{
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{
 		Title:       "Test Task",
 		Description: strPtr("Test Description"),
-	}
+	})
 
-	task, err := uc.Create(ctx, 1, input)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if task.ID == 0 {
-		t.Error("expected task ID to be set")
-	}
-
-	if task.Title != "Test Task" {
-		t.Errorf("expected title 'Test Task', got '%s'", task.Title)
-	}
-
-	if task.Status != domain.TaskStatusNew {
-		t.Errorf("expected status 'new', got '%s'", task.Status)
-	}
-
-	if task.AuthorID != 1 {
-		t.Errorf("expected author_id 1, got %d", task.AuthorID)
-	}
+	require.NoError(t, err)
+	assert.NotZero(t, task.ID)
+	assert.Equal(t, "Test Task", task.Title)
+	assert.Equal(t, domain.TaskStatusNew, task.Status)
+	assert.Equal(t, int64(1), task.AuthorID)
 }
 
 func TestTaskUseCase_Create_WithAssignee(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
-
+	uc, _ := setupTaskUseCase()
 	ctx := context.Background()
-	assigneeID := int64(2)
-	input := dto.CreateTaskInput{
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{
 		Title:      "Test Task",
-		AssigneeID: &assigneeID,
-	}
+		AssigneeID: int64Ptr(2),
+	})
 
-	task, err := uc.Create(ctx, 1, input)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if task.AssigneeID == nil || *task.AssigneeID != 2 {
-		t.Error("expected assignee_id to be 2")
-	}
-
-	if task.Status != domain.TaskStatusAssigned {
-		t.Errorf("expected status 'assigned', got '%s'", task.Status)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, task.AssigneeID)
+	assert.Equal(t, int64(2), *task.AssigneeID)
+	assert.Equal(t, domain.TaskStatusAssigned, task.Status)
 }
 
-func TestTaskUseCase_GetByID(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
-
+func TestTaskUseCase_Create_WithPriority(t *testing.T) {
+	uc, _ := setupTaskUseCase()
 	ctx := context.Background()
 
-	// Create a task first
-	input := dto.CreateTaskInput{Title: "Test Task"}
-	created, _ := uc.Create(ctx, 1, input)
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{
+		Title:    "Test Task",
+		Priority: strPtr("high"),
+	})
 
-	// Get by ID
-	task, err := uc.GetByID(ctx, created.ID)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskPriorityHigh, task.Priority)
+}
 
-	if task.ID != created.ID {
-		t.Errorf("expected task ID %d, got %d", created.ID, task.ID)
-	}
+func TestTaskUseCase_Create_WithInvalidPriority(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	ctx := context.Background()
+
+	_, err := uc.Create(ctx, 1, dto.CreateTaskInput{
+		Title:    "Test Task",
+		Priority: strPtr("invalid"),
+	})
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidInput)
+}
+
+func TestTaskUseCase_Create_WithMetadata(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	ctx := context.Background()
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{
+		Title:    "Test Task",
+		Metadata: map[string]any{"key": "value"},
+	})
+
+	require.NoError(t, err)
+	assert.NotNil(t, task.Metadata)
+}
+
+func TestTaskUseCase_Create_WithAllFields(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	ctx := context.Background()
+	now := time.Now()
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{
+		Title:          "Full Task",
+		Description:    strPtr("desc"),
+		ProjectID:      int64Ptr(10),
+		DocumentID:     int64Ptr(20),
+		DueDate:        &now,
+		StartDate:      &now,
+		EstimatedHours: float64Ptr(5.0),
+		Tags:           []string{"tag1", "tag2"},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, "Full Task", task.Title)
+	assert.Equal(t, int64Ptr(10), task.ProjectID)
+	assert.Equal(t, int64Ptr(20), task.DocumentID)
+	assert.NotNil(t, task.DueDate)
+	assert.NotNil(t, task.StartDate)
+	assert.Equal(t, float64Ptr(5.0), task.EstimatedHours)
+	assert.Equal(t, []string{"tag1", "tag2"}, task.Tags)
+}
+
+func TestTaskUseCase_Create_RepoError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	repo.createErr = errors.New("db error")
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+
+	_, err := uc.Create(context.Background(), 1, dto.CreateTaskInput{Title: "Test"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create task")
+}
+
+func TestTaskUseCase_Create_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+
+	task, err := uc.Create(context.Background(), 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
+	assert.NotZero(t, task.ID)
+}
+
+// ===================== GetByID =====================
+
+func TestTaskUseCase_GetByID(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	created := createTask(t, uc, "Test Task", 1)
+
+	task, err := uc.GetByID(context.Background(), created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, task.ID)
 }
 
 func TestTaskUseCase_GetByID_NotFound(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
+	uc, _ := setupTaskUseCase()
 
-	ctx := context.Background()
-
-	_, err := uc.GetByID(ctx, 999)
-	if !errors.Is(err, ErrTaskNotFound) {
-		t.Errorf("expected ErrTaskNotFound, got %v", err)
-	}
+	_, err := uc.GetByID(context.Background(), 999)
+	assert.ErrorIs(t, err, ErrTaskNotFound)
 }
+
+func TestTaskUseCase_GetByID_RepoError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	repo.getByIDErr = errors.New("db error")
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+
+	_, err := uc.GetByID(context.Background(), 1)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get task")
+}
+
+// ===================== Update =====================
 
 func TestTaskUseCase_Update(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test Task", 1)
 
-	ctx := context.Background()
-
-	// Create a task first
-	input := dto.CreateTaskInput{Title: "Test Task"}
-	created, _ := uc.Create(ctx, 1, input)
-
-	// Update
 	newTitle := updatedTaskTitle
-	updateInput := dto.UpdateTaskInput{Title: &newTitle}
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
 
-	updated, err := uc.Update(ctx, 1, created.ID, updateInput)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if updated.Title != updatedTaskTitle {
-		t.Errorf("expected title %q, got %q", updatedTaskTitle, updated.Title)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, updatedTaskTitle, updated.Title)
 }
 
-func TestTaskUseCase_Delete(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
+func TestTaskUseCase_Update_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
 
+	newTitle := "New Title"
+	_, err := uc.Update(context.Background(), 1, 999, dto.UpdateTaskInput{Title: &newTitle})
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_Update_CannotModifyCompleted(t *testing.T) {
+	uc, taskRepo := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	task.Status = domain.TaskStatusCompleted
+	taskRepo.tasks[task.ID] = task
+
+	newTitle := "New Title"
+	_, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
+	assert.ErrorIs(t, err, ErrCannotModifyTask)
+}
+
+func TestTaskUseCase_Update_CannotModifyCancelled(t *testing.T) {
+	uc, taskRepo := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	task.Status = domain.TaskStatusCancelled
+	taskRepo.tasks[task.ID] = task
+
+	newTitle := "New Title"
+	_, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
+	assert.ErrorIs(t, err, ErrCannotModifyTask)
+}
+
+func TestTaskUseCase_Update_Description(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	// Update with nil description initially
+	newDesc := "new description"
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Description: &newDesc})
+	require.NoError(t, err)
+	require.NotNil(t, updated.Description)
+	assert.Equal(t, "new description", *updated.Description)
+
+	// Update again with existing description
+	newDesc2 := "newer description"
+	updated2, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Description: &newDesc2})
+	require.NoError(t, err)
+	assert.Equal(t, "newer description", *updated2.Description)
+}
+
+func TestTaskUseCase_Update_ProjectID(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{ProjectID: int64Ptr(5)})
+	require.NoError(t, err)
+	require.NotNil(t, updated.ProjectID)
+	assert.Equal(t, int64(5), *updated.ProjectID)
+}
+
+func TestTaskUseCase_Update_Priority(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Priority: strPtr("urgent")})
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskPriorityUrgent, updated.Priority)
+}
+
+func TestTaskUseCase_Update_InvalidPriority(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	_, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Priority: strPtr("invalid")})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidInput)
+}
+
+func TestTaskUseCase_Update_DueDate(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	due := time.Now().Add(48 * time.Hour)
+
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{DueDate: &due})
+	require.NoError(t, err)
+	assert.NotNil(t, updated.DueDate)
+}
+
+func TestTaskUseCase_Update_StartDate(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	start := time.Now()
+
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{StartDate: &start})
+	require.NoError(t, err)
+	assert.NotNil(t, updated.StartDate)
+}
+
+func TestTaskUseCase_Update_Progress(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Progress: intPtr(50)})
+	require.NoError(t, err)
+	assert.Equal(t, 50, updated.Progress)
+}
+
+func TestTaskUseCase_Update_Progress_OnCompletedTask(t *testing.T) {
+	uc, taskRepo := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	task.Status = domain.TaskStatusCompleted
+	taskRepo.tasks[task.ID] = task
+
+	_, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Progress: intPtr(50)})
+	assert.ErrorIs(t, err, ErrCannotModifyTask)
+}
+
+func TestTaskUseCase_Update_EstimatedHours(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{EstimatedHours: float64Ptr(10.5)})
+	require.NoError(t, err)
+	require.NotNil(t, updated.EstimatedHours)
+	assert.InDelta(t, 10.5, *updated.EstimatedHours, 0.01)
+}
+
+func TestTaskUseCase_Update_ActualHours(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{ActualHours: float64Ptr(8.0)})
+	require.NoError(t, err)
+	require.NotNil(t, updated.ActualHours)
+	assert.InDelta(t, 8.0, *updated.ActualHours, 0.01)
+}
+
+func TestTaskUseCase_Update_Tags(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Tags: []string{"go", "test"}})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"go", "test"}, updated.Tags)
+}
+
+func TestTaskUseCase_Update_Metadata(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Metadata: map[string]any{"key": "val"}})
+	require.NoError(t, err)
+	assert.NotNil(t, updated.Metadata)
+}
+
+func TestTaskUseCase_Update_TitleUnchanged(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	// Updating with same title should not record change
+	sameTitle := "Test"
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Title: &sameTitle})
+	require.NoError(t, err)
+	assert.Equal(t, "Test", updated.Title)
+}
+
+func TestTaskUseCase_Update_SaveError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
 	ctx := context.Background()
 
-	// Create a task first
-	input := dto.CreateTaskInput{Title: "Test Task"}
-	created, _ := uc.Create(ctx, 1, input)
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
 
-	// Delete (by author)
-	err := uc.Delete(ctx, 1, created.ID)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	repo.saveErr = errors.New("save error")
+	newTitle := "Updated"
+	_, err = uc.Update(ctx, 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to update task")
+}
 
-	// Verify deleted
-	_, err = uc.GetByID(ctx, created.ID)
-	if !errors.Is(err, ErrTaskNotFound) {
-		t.Error("expected task to be deleted")
-	}
+func TestTaskUseCase_Update_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+
+	newTitle := "Updated"
+	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
+	require.NoError(t, err)
+	assert.Equal(t, "Updated", updated.Title)
+}
+
+// ===================== Delete =====================
+
+func TestTaskUseCase_Delete(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	err := uc.Delete(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+
+	_, err = uc.GetByID(context.Background(), task.ID)
+	assert.ErrorIs(t, err, ErrTaskNotFound)
 }
 
 func TestTaskUseCase_Delete_Unauthorized(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
 
+	err := uc.Delete(context.Background(), 2, task.ID)
+	assert.ErrorIs(t, err, ErrUnauthorized)
+}
+
+func TestTaskUseCase_Delete_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	err := uc.Delete(context.Background(), 1, 999)
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_Delete_RepoError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
 	ctx := context.Background()
 
-	// Create a task first
-	input := dto.CreateTaskInput{Title: "Test Task"}
-	created, _ := uc.Create(ctx, 1, input)
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
 
-	// Try to delete by non-author
-	err := uc.Delete(ctx, 2, created.ID)
-	if !errors.Is(err, ErrUnauthorized) {
-		t.Errorf("expected ErrUnauthorized, got %v", err)
-	}
+	repo.deleteErr = errors.New("delete error")
+	err = uc.Delete(ctx, 1, task.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete task")
 }
+
+func TestTaskUseCase_Delete_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+
+	err := uc.Delete(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+}
+
+// ===================== List =====================
 
 func TestTaskUseCase_List(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
-
+	uc, _ := setupTaskUseCase()
 	ctx := context.Background()
 
-	// Create tasks
-	_, _ = uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Task 1"})
-	_, _ = uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Task 2"})
+	createTask(t, uc, "Task 1", 1)
+	createTask(t, uc, "Task 2", 1)
 
-	// List
-	input := dto.TaskFilterInput{Limit: 10}
-	output, err := uc.List(ctx, input)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if output.Total != 2 {
-		t.Errorf("expected total 2, got %d", output.Total)
-	}
+	output, err := uc.List(ctx, dto.TaskFilterInput{Limit: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), output.Total)
+	assert.Len(t, output.Tasks, 2)
 }
 
-func TestTaskUseCase_Workflow(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
+func TestTaskUseCase_List_ListError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	repo.listErr = errors.New("list error")
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
 
+	_, err := uc.List(context.Background(), dto.TaskFilterInput{Limit: 10})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to list tasks")
+}
+
+func TestTaskUseCase_List_CountError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	repo.countErr = errors.New("count error")
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+
+	_, err := uc.List(context.Background(), dto.TaskFilterInput{Limit: 10})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to count tasks")
+}
+
+func TestTaskUseCase_List_Empty(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	output, err := uc.List(context.Background(), dto.TaskFilterInput{Limit: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), output.Total)
+	assert.Empty(t, output.Tasks)
+}
+
+// ===================== Assign =====================
+
+func TestTaskUseCase_Assign(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	result, err := uc.Assign(context.Background(), 1, task.ID, dto.AssignTaskInput{AssigneeID: 2})
+	require.NoError(t, err)
+	require.NotNil(t, result.AssigneeID)
+	assert.Equal(t, int64(2), *result.AssigneeID)
+	assert.Equal(t, domain.TaskStatusAssigned, result.Status)
+}
+
+func TestTaskUseCase_Assign_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	_, err := uc.Assign(context.Background(), 1, 999, dto.AssignTaskInput{AssigneeID: 2})
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_Assign_Reassign(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	// First assign
+	task, err := uc.Assign(context.Background(), 1, task.ID, dto.AssignTaskInput{AssigneeID: 2})
+	require.NoError(t, err)
+
+	// Reassign - old assignee is non-nil
+	task, err = uc.Assign(context.Background(), 1, task.ID, dto.AssignTaskInput{AssigneeID: 3})
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), *task.AssigneeID)
+}
+
+func TestTaskUseCase_Assign_SaveError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
 	ctx := context.Background()
 
-	// Create task
-	input := dto.CreateTaskInput{Title: "Test Task"}
-	task, _ := uc.Create(ctx, 1, input)
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
+
+	repo.saveErr = errors.New("save error")
+	_, err = uc.Assign(ctx, 1, task.ID, dto.AssignTaskInput{AssigneeID: 2})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to assign task")
+}
+
+func TestTaskUseCase_Assign_CompletedTask(t *testing.T) {
+	uc, taskRepo := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	task.Status = domain.TaskStatusCompleted
+	taskRepo.tasks[task.ID] = task
+
+	_, err := uc.Assign(context.Background(), 1, task.ID, dto.AssignTaskInput{AssigneeID: 2})
+	require.Error(t, err)
+}
+
+func TestTaskUseCase_Assign_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+
+	result, err := uc.Assign(context.Background(), 1, task.ID, dto.AssignTaskInput{AssigneeID: 2})
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), *result.AssigneeID)
+}
+
+// ===================== Unassign =====================
+
+func TestTaskUseCase_Unassign(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	// Assign first
+	task, err := uc.Assign(context.Background(), 1, task.ID, dto.AssignTaskInput{AssigneeID: 2})
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusAssigned, task.Status)
+
+	// Unassign
+	result, err := uc.Unassign(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+	assert.Nil(t, result.AssigneeID)
+	assert.Equal(t, domain.TaskStatusNew, result.Status)
+}
+
+func TestTaskUseCase_Unassign_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	_, err := uc.Unassign(context.Background(), 1, 999)
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_Unassign_CompletedTask(t *testing.T) {
+	uc, taskRepo := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	task.Status = domain.TaskStatusCompleted
+	taskRepo.tasks[task.ID] = task
+
+	_, err := uc.Unassign(context.Background(), 1, task.ID)
+	require.Error(t, err)
+}
+
+func TestTaskUseCase_Unassign_CancelledTask(t *testing.T) {
+	uc, taskRepo := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	task.Status = domain.TaskStatusCancelled
+	taskRepo.tasks[task.ID] = task
+
+	_, err := uc.Unassign(context.Background(), 1, task.ID)
+	require.Error(t, err)
+}
+
+func TestTaskUseCase_Unassign_SaveError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
+
+	// Assign first
+	task, err = uc.Assign(ctx, 1, task.ID, dto.AssignTaskInput{AssigneeID: 2})
+	require.NoError(t, err)
+
+	repo.saveErr = errors.New("save error")
+	_, err = uc.Unassign(ctx, 1, task.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to unassign task")
+}
+
+func TestTaskUseCase_Unassign_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+	task, _ = uc.Assign(context.Background(), 1, task.ID, dto.AssignTaskInput{AssigneeID: 2})
+
+	result, err := uc.Unassign(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+	assert.Nil(t, result.AssigneeID)
+}
+
+// ===================== StartWork =====================
+
+func TestTaskUseCase_StartWork(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	result, err := uc.StartWork(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusInProgress, result.Status)
+}
+
+func TestTaskUseCase_StartWork_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	_, err := uc.StartWork(context.Background(), 1, 999)
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_StartWork_InvalidTransition(t *testing.T) {
+	uc, taskRepo := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	task.Status = domain.TaskStatusReview
+	taskRepo.tasks[task.ID] = task
+
+	_, err := uc.StartWork(context.Background(), 1, task.ID)
+	require.Error(t, err)
+}
+
+func TestTaskUseCase_StartWork_SaveError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
+
+	repo.saveErr = errors.New("save error")
+	_, err = uc.StartWork(ctx, 1, task.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to start work")
+}
+
+func TestTaskUseCase_StartWork_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+
+	result, err := uc.StartWork(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusInProgress, result.Status)
+}
+
+// ===================== SubmitForReview =====================
+
+func TestTaskUseCase_SubmitForReview(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	task, err := uc.StartWork(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+
+	result, err := uc.SubmitForReview(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusReview, result.Status)
+}
+
+func TestTaskUseCase_SubmitForReview_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	_, err := uc.SubmitForReview(context.Background(), 1, 999)
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_SubmitForReview_InvalidTransition(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1) // status is "new"
+
+	_, err := uc.SubmitForReview(context.Background(), 1, task.ID)
+	require.Error(t, err)
+}
+
+func TestTaskUseCase_SubmitForReview_SaveError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
+	task, err = uc.StartWork(ctx, 1, task.ID)
+	require.NoError(t, err)
+
+	repo.saveErr = errors.New("save error")
+	_, err = uc.SubmitForReview(ctx, 1, task.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to submit for review")
+}
+
+func TestTaskUseCase_SubmitForReview_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+	task, _ = uc.StartWork(context.Background(), 1, task.ID)
+
+	result, err := uc.SubmitForReview(context.Background(), 2, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusReview, result.Status)
+}
+
+// ===================== Complete =====================
+
+func TestTaskUseCase_Complete(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	task, _ = uc.StartWork(context.Background(), 1, task.ID)
+
+	result, err := uc.Complete(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusCompleted, result.Status)
+	assert.Equal(t, 100, result.Progress)
+}
+
+func TestTaskUseCase_Complete_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	_, err := uc.Complete(context.Background(), 1, 999)
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_Complete_InvalidTransition(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	_, err := uc.Complete(context.Background(), 1, task.ID)
+	require.Error(t, err)
+}
+
+func TestTaskUseCase_Complete_SaveError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
+	task, err = uc.StartWork(ctx, 1, task.ID)
+	require.NoError(t, err)
+
+	repo.saveErr = errors.New("save error")
+	_, err = uc.Complete(ctx, 1, task.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to complete task")
+}
+
+func TestTaskUseCase_Complete_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+	task, _ = uc.StartWork(context.Background(), 1, task.ID)
+
+	// Complete by different user to hit notification path
+	result, err := uc.Complete(context.Background(), 2, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusCompleted, result.Status)
+}
+
+// ===================== Cancel =====================
+
+func TestTaskUseCase_Cancel(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	result, err := uc.Cancel(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusCancelled, result.Status)
+}
+
+func TestTaskUseCase_Cancel_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	_, err := uc.Cancel(context.Background(), 1, 999)
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_Cancel_AlreadyCompleted(t *testing.T) {
+	uc, taskRepo := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	task.Status = domain.TaskStatusCompleted
+	taskRepo.tasks[task.ID] = task
+
+	_, err := uc.Cancel(context.Background(), 1, task.ID)
+	require.Error(t, err)
+}
+
+func TestTaskUseCase_Cancel_SaveError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
+
+	repo.saveErr = errors.New("save error")
+	_, err = uc.Cancel(ctx, 1, task.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to cancel task")
+}
+
+func TestTaskUseCase_Cancel_WithAssignee(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+	task, _ = uc.Assign(context.Background(), 1, task.ID, dto.AssignTaskInput{AssigneeID: 2})
+
+	// Cancel by different user than assignee
+	result, err := uc.Cancel(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusCancelled, result.Status)
+}
+
+// ===================== Reopen =====================
+
+func TestTaskUseCase_Reopen(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	task, err := uc.Cancel(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+
+	result, err := uc.Reopen(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusNew, result.Status)
+}
+
+func TestTaskUseCase_Reopen_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	_, err := uc.Reopen(context.Background(), 1, 999)
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_Reopen_InvalidTransition(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1) // status is "new"
+
+	_, err := uc.Reopen(context.Background(), 1, task.ID)
+	require.Error(t, err)
+}
+
+func TestTaskUseCase_Reopen_SaveError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
+	task, err = uc.Cancel(ctx, 1, task.ID)
+	require.NoError(t, err)
+
+	repo.saveErr = errors.New("save error")
+	_, err = uc.Reopen(ctx, 1, task.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to reopen task")
+}
+
+func TestTaskUseCase_Reopen_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+	task, _ = uc.Cancel(context.Background(), 1, task.ID)
+
+	result, err := uc.Reopen(context.Background(), 1, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusNew, result.Status)
+}
+
+// ===================== Watchers =====================
+
+func TestTaskUseCase_AddWatcher(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	err := uc.AddWatcher(context.Background(), 1, task.ID, 2)
+	require.NoError(t, err)
+
+	watchers, err := uc.GetWatchers(context.Background(), task.ID)
+	require.NoError(t, err)
+	assert.Len(t, watchers, 1)
+	assert.Equal(t, int64(2), watchers[0].UserID)
+}
+
+func TestTaskUseCase_AddWatcher_AlreadyWatching(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	err := uc.AddWatcher(context.Background(), 1, task.ID, 2)
+	require.NoError(t, err)
+
+	// Add same watcher again - should be no-op
+	err = uc.AddWatcher(context.Background(), 1, task.ID, 2)
+	require.NoError(t, err)
+
+	watchers, _ := uc.GetWatchers(context.Background(), task.ID)
+	assert.Len(t, watchers, 1)
+}
+
+func TestTaskUseCase_AddWatcher_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	err := uc.AddWatcher(context.Background(), 1, 999, 2)
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_AddWatcher_IsWatchingError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
+
+	repo.isWatchingErr = errors.New("check error")
+	err = uc.AddWatcher(ctx, 1, task.ID, 2)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to check watcher")
+}
+
+func TestTaskUseCase_AddWatcher_AddError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
+
+	repo.addWatcherErr = errors.New("add error")
+	err = uc.AddWatcher(ctx, 1, task.ID, 2)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to add watcher")
+}
+
+func TestTaskUseCase_AddWatcher_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+
+	err := uc.AddWatcher(context.Background(), 1, task.ID, 2)
+	require.NoError(t, err)
+}
+
+func TestTaskUseCase_RemoveWatcher(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	_ = uc.AddWatcher(context.Background(), 1, task.ID, 2)
+	err := uc.RemoveWatcher(context.Background(), 1, task.ID, 2)
+	require.NoError(t, err)
+
+	watchers, _ := uc.GetWatchers(context.Background(), task.ID)
+	assert.Len(t, watchers, 0)
+}
+
+func TestTaskUseCase_RemoveWatcher_Error(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	repo.removeWatcherErr = errors.New("remove error")
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+
+	err := uc.RemoveWatcher(context.Background(), 1, 1, 2)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to remove watcher")
+}
+
+func TestTaskUseCase_RemoveWatcher_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+	_ = uc.AddWatcher(context.Background(), 1, task.ID, 2)
+
+	err := uc.RemoveWatcher(context.Background(), 1, task.ID, 2)
+	require.NoError(t, err)
+}
+
+func TestTaskUseCase_GetWatchers(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	watchers, err := uc.GetWatchers(context.Background(), task.ID)
+	require.NoError(t, err)
+	assert.Empty(t, watchers)
+}
+
+// ===================== Comments =====================
+
+func TestTaskUseCase_AddComment(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	comment, err := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Hello"})
+	require.NoError(t, err)
+	assert.Equal(t, "Hello", comment.Content)
+	assert.Equal(t, task.ID, comment.TaskID)
+	assert.Equal(t, int64(1), comment.AuthorID)
+}
+
+func TestTaskUseCase_AddComment_WithParent(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	parent, err := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Parent"})
+	require.NoError(t, err)
+
+	child, err := uc.AddComment(context.Background(), 2, task.ID, dto.AddCommentInput{
+		Content:         "Reply",
+		ParentCommentID: &parent.ID,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, child.ParentCommentID)
+	assert.Equal(t, parent.ID, *child.ParentCommentID)
+}
+
+func TestTaskUseCase_AddComment_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	_, err := uc.AddComment(context.Background(), 1, 999, dto.AddCommentInput{Content: "Hello"})
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_AddComment_RepoError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	require.NoError(t, err)
+
+	repo.addCommentErr = errors.New("comment error")
+	_, err = uc.AddComment(ctx, 1, task.ID, dto.AddCommentInput{Content: "Hello"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to add comment")
+}
+
+func TestTaskUseCase_AddComment_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+
+	comment, err := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Hello"})
+	require.NoError(t, err)
+	assert.Equal(t, "Hello", comment.Content)
+}
+
+func TestTaskUseCase_UpdateComment(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	comment, _ := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Hello"})
+
+	updated, err := uc.UpdateComment(context.Background(), 1, comment.ID, dto.UpdateCommentInput{Content: "Updated"})
+	require.NoError(t, err)
+	assert.Equal(t, "Updated", updated.Content)
+}
+
+func TestTaskUseCase_UpdateComment_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	_, err := uc.UpdateComment(context.Background(), 1, 999, dto.UpdateCommentInput{Content: "Updated"})
+	assert.ErrorIs(t, err, ErrCommentNotFound)
+}
+
+func TestTaskUseCase_UpdateComment_Unauthorized(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	comment, _ := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Hello"})
+
+	_, err := uc.UpdateComment(context.Background(), 2, comment.ID, dto.UpdateCommentInput{Content: "Updated"})
+	assert.ErrorIs(t, err, ErrUnauthorized)
+}
+
+func TestTaskUseCase_UpdateComment_GetError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	repo.getCommentByIDErr = errors.New("get error")
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+
+	_, err := uc.UpdateComment(context.Background(), 1, 1, dto.UpdateCommentInput{Content: "Updated"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get comment")
+}
+
+func TestTaskUseCase_UpdateComment_SaveError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, _ := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	comment, _ := uc.AddComment(ctx, 1, task.ID, dto.AddCommentInput{Content: "Hello"})
+
+	repo.updateCommentErr = errors.New("update error")
+	_, err := uc.UpdateComment(ctx, 1, comment.ID, dto.UpdateCommentInput{Content: "Updated"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to update comment")
+}
+
+func TestTaskUseCase_UpdateComment_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+	comment, _ := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Hello"})
+
+	updated, err := uc.UpdateComment(context.Background(), 1, comment.ID, dto.UpdateCommentInput{Content: "Updated"})
+	require.NoError(t, err)
+	assert.Equal(t, "Updated", updated.Content)
+}
+
+func TestTaskUseCase_DeleteComment(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	comment, _ := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Hello"})
+
+	err := uc.DeleteComment(context.Background(), 1, comment.ID)
+	require.NoError(t, err)
+}
+
+func TestTaskUseCase_DeleteComment_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	err := uc.DeleteComment(context.Background(), 1, 999)
+	assert.ErrorIs(t, err, ErrCommentNotFound)
+}
+
+func TestTaskUseCase_DeleteComment_Unauthorized(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	comment, _ := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Hello"})
+
+	err := uc.DeleteComment(context.Background(), 2, comment.ID)
+	assert.ErrorIs(t, err, ErrUnauthorized)
+}
+
+func TestTaskUseCase_DeleteComment_GetError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	repo.getCommentByIDErr = errors.New("get error")
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+
+	err := uc.DeleteComment(context.Background(), 1, 1)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get comment")
+}
+
+func TestTaskUseCase_DeleteComment_RepoError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, _ := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	comment, _ := uc.AddComment(ctx, 1, task.ID, dto.AddCommentInput{Content: "Hello"})
+
+	repo.deleteCommentErr = errors.New("delete error")
+	err := uc.DeleteComment(ctx, 1, comment.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete comment")
+}
+
+func TestTaskUseCase_DeleteComment_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+	comment, _ := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Hello"})
+
+	err := uc.DeleteComment(context.Background(), 1, comment.ID)
+	require.NoError(t, err)
+}
+
+func TestTaskUseCase_GetComments(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	ctx := context.Background()
+
+	_, _ = uc.AddComment(ctx, 1, task.ID, dto.AddCommentInput{Content: "Comment 1"})
+	_, _ = uc.AddComment(ctx, 1, task.ID, dto.AddCommentInput{Content: "Comment 2"})
+
+	comments, err := uc.GetComments(ctx, task.ID)
+	require.NoError(t, err)
+	assert.Len(t, comments, 2)
+}
+
+// ===================== Checklists =====================
+
+func TestTaskUseCase_AddChecklist(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	checklist, err := uc.AddChecklist(context.Background(), 1, task.ID, dto.AddChecklistInput{Title: "Checklist 1"})
+	require.NoError(t, err)
+	assert.Equal(t, "Checklist 1", checklist.Title)
+	assert.Equal(t, task.ID, checklist.TaskID)
+}
+
+func TestTaskUseCase_AddChecklist_NotFound(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	_, err := uc.AddChecklist(context.Background(), 1, 999, dto.AddChecklistInput{Title: "Checklist"})
+	assert.ErrorIs(t, err, ErrTaskNotFound)
+}
+
+func TestTaskUseCase_AddChecklist_GetChecklistsError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, _ := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+
+	repo.getChecklistsErr = errors.New("get error")
+	_, err := uc.AddChecklist(ctx, 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get checklists")
+}
+
+func TestTaskUseCase_AddChecklist_AddError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, _ := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+
+	repo.addChecklistErr = errors.New("add error")
+	_, err := uc.AddChecklist(ctx, 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to add checklist")
+}
+
+func TestTaskUseCase_AddChecklist_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+
+	checklist, err := uc.AddChecklist(context.Background(), 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+	require.NoError(t, err)
+	assert.Equal(t, "CL", checklist.Title)
+}
+
+func TestTaskUseCase_DeleteChecklist(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	checklist, _ := uc.AddChecklist(context.Background(), 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+
+	err := uc.DeleteChecklist(context.Background(), 1, checklist.ID)
+	require.NoError(t, err)
+}
+
+func TestTaskUseCase_DeleteChecklist_Error(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	repo.deleteChecklistErr = errors.New("delete error")
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+
+	err := uc.DeleteChecklist(context.Background(), 1, 1)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete checklist")
+}
+
+func TestTaskUseCase_DeleteChecklist_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+	checklist, _ := uc.AddChecklist(context.Background(), 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+
+	err := uc.DeleteChecklist(context.Background(), 1, checklist.ID)
+	require.NoError(t, err)
+}
+
+func TestTaskUseCase_GetChecklists(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	ctx := context.Background()
+
+	checklist, _ := uc.AddChecklist(ctx, 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+	_, _ = uc.AddChecklistItem(ctx, 1, checklist.ID, dto.AddChecklistItemInput{Title: "Item 1"})
+
+	checklists, err := uc.GetChecklists(ctx, task.ID)
+	require.NoError(t, err)
+	assert.Len(t, checklists, 1)
+	assert.Len(t, checklists[0].Items, 1)
+}
+
+func TestTaskUseCase_GetChecklists_GetChecklistsError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	_, _ = uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+
+	repo.getChecklistsErr = errors.New("error")
+	_, err := uc.GetChecklists(ctx, 1)
+	require.Error(t, err)
+}
+
+func TestTaskUseCase_GetChecklists_GetItemsError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, _ := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	_, _ = uc.AddChecklist(ctx, 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+
+	repo.getChecklistItemErr = errors.New("items error")
+	_, err := uc.GetChecklists(ctx, task.ID)
+	require.Error(t, err)
+}
+
+// ===================== Checklist Items =====================
+
+func TestTaskUseCase_AddChecklistItem(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	checklist, _ := uc.AddChecklist(context.Background(), 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+
+	item, err := uc.AddChecklistItem(context.Background(), 1, checklist.ID, dto.AddChecklistItemInput{Title: "Item 1"})
+	require.NoError(t, err)
+	assert.Equal(t, "Item 1", item.Title)
+	assert.Equal(t, checklist.ID, item.ChecklistID)
+}
+
+func TestTaskUseCase_AddChecklistItem_GetItemsError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	repo.getChecklistItemErr = errors.New("get error")
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+
+	_, err := uc.AddChecklistItem(context.Background(), 1, 1, dto.AddChecklistItemInput{Title: "Item"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get checklist items")
+}
+
+func TestTaskUseCase_AddChecklistItem_AddError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+	ctx := context.Background()
+
+	task, _ := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test"})
+	checklist, _ := uc.AddChecklist(ctx, 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+
+	repo.addChecklistItemErr = errors.New("add error")
+	_, err := uc.AddChecklistItem(ctx, 1, checklist.ID, dto.AddChecklistItemInput{Title: "Item"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to add checklist item")
+}
+
+func TestTaskUseCase_AddChecklistItem_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+	checklist, _ := uc.AddChecklist(context.Background(), 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+
+	item, err := uc.AddChecklistItem(context.Background(), 1, checklist.ID, dto.AddChecklistItemInput{Title: "Item"})
+	require.NoError(t, err)
+	assert.Equal(t, "Item", item.Title)
+}
+
+func TestTaskUseCase_ToggleChecklistItem(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+
+	// ToggleChecklistItem fails when no items found for given ID
+	_, err := uc.ToggleChecklistItem(context.Background(), 1, 1)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get checklist item")
+}
+
+func TestTaskUseCase_ToggleChecklistItem_GetItemsError(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	repo.getChecklistItemErr = errors.New("get error")
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+
+	_, err := uc.ToggleChecklistItem(context.Background(), 1, 1)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get checklist item")
+}
+
+func TestTaskUseCase_DeleteChecklistItem(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+	checklist, _ := uc.AddChecklist(context.Background(), 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+	item, _ := uc.AddChecklistItem(context.Background(), 1, checklist.ID, dto.AddChecklistItemInput{Title: "Item"})
+
+	err := uc.DeleteChecklistItem(context.Background(), 1, item.ID)
+	require.NoError(t, err)
+}
+
+func TestTaskUseCase_DeleteChecklistItem_Error(t *testing.T) {
+	repo := newErrorMockTaskRepo()
+	repo.deleteChecklistItemErr = errors.New("delete error")
+	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
+
+	err := uc.DeleteChecklistItem(context.Background(), 1, 1)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete checklist item")
+}
+
+func TestTaskUseCase_DeleteChecklistItem_WithAuditLogger(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	task := createTask(t, uc, "Test", 1)
+	checklist, _ := uc.AddChecklist(context.Background(), 1, task.ID, dto.AddChecklistInput{Title: "CL"})
+	item, _ := uc.AddChecklistItem(context.Background(), 1, checklist.ID, dto.AddChecklistItemInput{Title: "Item"})
+
+	err := uc.DeleteChecklistItem(context.Background(), 1, item.ID)
+	require.NoError(t, err)
+}
+
+// ===================== History =====================
+
+func TestTaskUseCase_GetHistory(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	newTitle := updatedTaskTitle
+	_, _ = uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
+
+	history, err := uc.GetHistory(context.Background(), task.ID, 10, 0)
+	require.NoError(t, err)
+	assert.Len(t, history, 1)
+}
+
+func TestTaskUseCase_GetHistory_Empty(t *testing.T) {
+	uc, _ := setupTaskUseCase()
+	task := createTask(t, uc, "Test", 1)
+
+	history, err := uc.GetHistory(context.Background(), task.ID, 10, 0)
+	require.NoError(t, err)
+	assert.Empty(t, history)
+}
+
+// ===================== Full Workflow =====================
+
+func TestTaskUseCase_FullWorkflow(t *testing.T) {
+	uc, _ := setupTaskUseCaseWithAudit()
+	ctx := context.Background()
+
+	// Create
+	task, err := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Full Workflow"})
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusNew, task.Status)
 
 	// Assign
-	task, err := uc.Assign(ctx, 1, task.ID, dto.AssignTaskInput{AssigneeID: 2})
-	if err != nil {
-		t.Fatalf("assign error: %v", err)
-	}
-	if task.Status != domain.TaskStatusAssigned {
-		t.Errorf("expected status 'assigned', got '%s'", task.Status)
-	}
+	task, err = uc.Assign(ctx, 1, task.ID, dto.AssignTaskInput{AssigneeID: 2})
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusAssigned, task.Status)
 
 	// Start work
 	task, err = uc.StartWork(ctx, 2, task.ID)
-	if err != nil {
-		t.Fatalf("start work error: %v", err)
-	}
-	if task.Status != domain.TaskStatusInProgress {
-		t.Errorf("expected status 'in_progress', got '%s'", task.Status)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusInProgress, task.Status)
 
 	// Submit for review
 	task, err = uc.SubmitForReview(ctx, 2, task.ID)
-	if err != nil {
-		t.Fatalf("submit for review error: %v", err)
-	}
-	if task.Status != domain.TaskStatusReview {
-		t.Errorf("expected status 'review', got '%s'", task.Status)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusReview, task.Status)
 
 	// Complete
 	task, err = uc.Complete(ctx, 1, task.ID)
-	if err != nil {
-		t.Fatalf("complete error: %v", err)
-	}
-	if task.Status != domain.TaskStatusCompleted {
-		t.Errorf("expected status 'completed', got '%s'", task.Status)
-	}
-	if task.Progress != 100 {
-		t.Errorf("expected progress 100, got %d", task.Progress)
-	}
-}
-
-func TestTaskUseCase_Cancel(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
-
-	ctx := context.Background()
-
-	// Create task
-	input := dto.CreateTaskInput{Title: "Test Task"}
-	task, _ := uc.Create(ctx, 1, input)
-
-	// Cancel
-	task, err := uc.Cancel(ctx, 1, task.ID)
-	if err != nil {
-		t.Fatalf("cancel error: %v", err)
-	}
-	if task.Status != domain.TaskStatusCancelled {
-		t.Errorf("expected status 'canceled', got '%s'", task.Status)
-	}
-}
-
-func TestTaskUseCase_Reopen(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
-
-	ctx := context.Background()
-
-	// Create and cancel task
-	input := dto.CreateTaskInput{Title: "Test Task"}
-	task, _ := uc.Create(ctx, 1, input)
-	task, _ = uc.Cancel(ctx, 1, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusCompleted, task.Status)
+	assert.Equal(t, 100, task.Progress)
 
 	// Reopen
-	task, err := uc.Reopen(ctx, 1, task.ID)
-	if err != nil {
-		t.Fatalf("reopen error: %v", err)
-	}
-	if task.Status != domain.TaskStatusNew {
-		t.Errorf("expected status 'new', got '%s'", task.Status)
-	}
+	task, err = uc.Reopen(ctx, 1, task.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusNew, task.Status)
 }
 
-func TestTaskUseCase_Comments(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
+// ===================== Entity Tests =====================
 
-	ctx := context.Background()
-
-	// Create task
-	task, _ := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test Task"})
-
-	// Add comment
-	comment, err := uc.AddComment(ctx, 1, task.ID, dto.AddCommentInput{Content: "Test comment"})
-	if err != nil {
-		t.Fatalf("add comment error: %v", err)
-	}
-	if comment.Content != "Test comment" {
-		t.Errorf("expected content 'Test comment', got '%s'", comment.Content)
-	}
-
-	// Get comments
-	comments, err := uc.GetComments(ctx, task.ID)
-	if err != nil {
-		t.Fatalf("get comments error: %v", err)
-	}
-	if len(comments) != 1 {
-		t.Errorf("expected 1 comment, got %d", len(comments))
-	}
-
-	// Update comment
-	updated, err := uc.UpdateComment(ctx, 1, comment.ID, dto.UpdateCommentInput{Content: "Updated comment"})
-	if err != nil {
-		t.Fatalf("update comment error: %v", err)
-	}
-	if updated.Content != "Updated comment" {
-		t.Errorf("expected content 'Updated comment', got '%s'", updated.Content)
-	}
-
-	// Delete comment
-	err = uc.DeleteComment(ctx, 1, comment.ID)
-	if err != nil {
-		t.Fatalf("delete comment error: %v", err)
-	}
-}
-
-func TestTaskUseCase_Watchers(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
-
-	ctx := context.Background()
-
-	// Create task
-	task, _ := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test Task"})
-
-	// Add watcher
-	err := uc.AddWatcher(ctx, 1, task.ID, 2)
-	if err != nil {
-		t.Fatalf("add watcher error: %v", err)
-	}
-
-	// Get watchers
-	watchers, err := uc.GetWatchers(ctx, task.ID)
-	if err != nil {
-		t.Fatalf("get watchers error: %v", err)
-	}
-	if len(watchers) != 1 {
-		t.Errorf("expected 1 watcher, got %d", len(watchers))
-	}
-
-	// Remove watcher
-	err = uc.RemoveWatcher(ctx, 1, task.ID, 2)
-	if err != nil {
-		t.Fatalf("remove watcher error: %v", err)
-	}
-
-	watchers, _ = uc.GetWatchers(ctx, task.ID)
-	if len(watchers) != 0 {
-		t.Errorf("expected 0 watchers, got %d", len(watchers))
-	}
-}
-
-func TestTaskUseCase_Checklists(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
-
-	ctx := context.Background()
-
-	// Create task
-	task, _ := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test Task"})
-
-	// Add checklist
-	checklist, err := uc.AddChecklist(ctx, 1, task.ID, dto.AddChecklistInput{Title: "Test Checklist"})
-	if err != nil {
-		t.Fatalf("add checklist error: %v", err)
-	}
-	if checklist.Title != "Test Checklist" {
-		t.Errorf("expected title 'Test Checklist', got '%s'", checklist.Title)
-	}
-
-	// Add checklist item
-	item, err := uc.AddChecklistItem(ctx, 1, checklist.ID, dto.AddChecklistItemInput{Title: "Item 1"})
-	if err != nil {
-		t.Fatalf("add checklist item error: %v", err)
-	}
-	if item.Title != "Item 1" {
-		t.Errorf("expected title 'Item 1', got '%s'", item.Title)
-	}
-
-	// Get checklists
-	checklists, err := uc.GetChecklists(ctx, task.ID)
-	if err != nil {
-		t.Fatalf("get checklists error: %v", err)
-	}
-	if len(checklists) != 1 {
-		t.Errorf("expected 1 checklist, got %d", len(checklists))
-	}
-}
-
-func TestTaskUseCase_History(t *testing.T) {
-	taskRepo := NewMockTaskRepository()
-	projectRepo := NewMockProjectRepository()
-	uc := NewTaskUseCase(taskRepo, projectRepo, nil, nil)
-
-	ctx := context.Background()
-
-	// Create task
-	task, _ := uc.Create(ctx, 1, dto.CreateTaskInput{Title: "Test Task"})
-
-	// Update to generate history
-	newTitle := updatedTaskTitle
-	_, _ = uc.Update(ctx, 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
-
-	// Get history
-	history, err := uc.GetHistory(ctx, task.ID, 10, 0)
-	if err != nil {
-		t.Fatalf("get history error: %v", err)
-	}
-	if len(history) != 1 {
-		t.Errorf("expected 1 history entry, got %d", len(history))
-	}
-}
-
-// Test entity methods
 func TestTask_IsOverdue(t *testing.T) {
 	task := entities.NewTask("Test", 1)
 
-	// No due date - not overdue
-	if task.IsOverdue() {
-		t.Error("task without due date should not be overdue")
-	}
+	assert.False(t, task.IsOverdue(), "task without due date should not be overdue")
 
-	// Future due date - not overdue
 	future := time.Now().Add(24 * time.Hour)
 	task.SetDueDate(&future)
-	if task.IsOverdue() {
-		t.Error("task with future due date should not be overdue")
-	}
+	assert.False(t, task.IsOverdue(), "task with future due date should not be overdue")
 
-	// Past due date - overdue
 	past := time.Now().Add(-24 * time.Hour)
 	task.SetDueDate(&past)
-	if !task.IsOverdue() {
-		t.Error("task with past due date should be overdue")
-	}
+	assert.True(t, task.IsOverdue(), "task with past due date should be overdue")
 
-	// Completed task - not overdue
 	task.Status = domain.TaskStatusCompleted
-	if task.IsOverdue() {
-		t.Error("completed task should not be overdue")
-	}
+	assert.False(t, task.IsOverdue(), "completed task should not be overdue")
+
+	task.Status = domain.TaskStatusCancelled
+	assert.False(t, task.IsOverdue(), "cancelled task should not be overdue")
 }
 
 func TestTask_CanEdit(t *testing.T) {
 	task := entities.NewTask("Test", 1)
-
-	if !task.CanEdit() {
-		t.Error("new task should be editable")
-	}
+	assert.True(t, task.CanEdit())
 
 	task.Status = domain.TaskStatusCompleted
-	if task.CanEdit() {
-		t.Error("completed task should not be editable")
-	}
+	assert.False(t, task.CanEdit())
 
 	task.Status = domain.TaskStatusCancelled
-	if task.CanEdit() {
-		t.Error("canceled task should not be editable")
-	}
-}
+	assert.False(t, task.CanEdit())
 
-// Helper functions
-func strPtr(s string) *string {
-	return &s
+	task.Status = domain.TaskStatusInProgress
+	assert.True(t, task.CanEdit())
 }

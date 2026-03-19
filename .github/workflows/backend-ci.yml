@@ -102,12 +102,16 @@ jobs:
     - name: Check test coverage
       if: steps.check_gomod.outputs.exists == 'true'
       run: |
-        coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
-        echo "Total coverage: ${coverage}%"
-        # Минимальный порог покрытия (постепенно повышать по мере роста тестов)
-        threshold=15
-        if (( $(echo "$coverage < $threshold" | bc -l) )); then
-          echo "Coverage ${coverage}% is below threshold ${threshold}%"
+        total_coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Total coverage: ${total_coverage}%"
+
+        # Проверка покрытия usecases (бизнес-логика) — порог 90%
+        usecases_coverage=$(go tool cover -func=coverage.out | grep '/usecases/' | awk '{sum += $3; n++} END {if(n>0) printf "%.1f", sum/n; else print "0"}')
+        echo "Usecases coverage: ${usecases_coverage}%"
+
+        threshold=90
+        if (( $(echo "$usecases_coverage < $threshold" | bc -l) )); then
+          echo "Usecases coverage ${usecases_coverage}% is below threshold ${threshold}%"
           exit 1
         fi
 

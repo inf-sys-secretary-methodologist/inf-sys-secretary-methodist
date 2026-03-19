@@ -16,14 +16,12 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
 
-// Импортируем hashingReader из file_usecase - он уже определён там
-
 // VersionUseCase обрабатывает бизнес-логику версионирования файлов.
 type VersionUseCase struct {
-	fileRepo    repositories.FileMetadataRepository
-	versionRepo repositories.FileVersionRepository
-	s3Client    *storage.S3Client
-	auditLogger *logging.AuditLogger
+	fileRepo      repositories.FileMetadataRepository
+	versionRepo   repositories.FileVersionRepository
+	storageClient StorageClient
+	auditLogger   AuditEventLogger
 }
 
 // NewVersionUseCase создаёт новый use case для версий файлов.
@@ -33,12 +31,17 @@ func NewVersionUseCase(
 	s3Client *storage.S3Client,
 	auditLogger *logging.AuditLogger,
 ) *VersionUseCase {
-	return &VersionUseCase{
+	uc := &VersionUseCase{
 		fileRepo:    fileRepo,
 		versionRepo: versionRepo,
-		s3Client:    s3Client,
-		auditLogger: auditLogger,
 	}
+	if s3Client != nil {
+		uc.storageClient = s3Client
+	}
+	if auditLogger != nil {
+		uc.auditLogger = auditLogger
+	}
+	return uc
 }
 
 // CreateVersion создаёт новую версию файла.
@@ -67,7 +70,7 @@ func (uc *VersionUseCase) CreateVersion(ctx context.Context, reader io.Reader, s
 	hashReader := &hashingReader{reader: reader, hasher: sha256.New()}
 
 	// Загружаем версию в S3/MinIO
-	fileInfo, err := uc.s3Client.Upload(ctx, storageKey, hashReader, size, file.MimeType)
+	fileInfo, err := uc.storageClient.Upload(ctx, storageKey, hashReader, size, file.MimeType)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка загрузки версии в хранилище: %w", err)
 	}
@@ -88,7 +91,7 @@ func (uc *VersionUseCase) CreateVersion(ctx context.Context, reader io.Reader, s
 	err = uc.versionRepo.Create(ctx, version)
 	if err != nil {
 		// Пытаемся удалить файл из хранилища при ошибке
-		_ = uc.s3Client.Delete(ctx, storageKey)
+		_ = uc.storageClient.Delete(ctx, storageKey)
 		return nil, fmt.Errorf("ошибка сохранения версии: %w", err)
 	}
 
@@ -154,7 +157,7 @@ func (uc *VersionUseCase) DownloadVersion(ctx context.Context, fileID int64, ver
 	}
 
 	// Генерируем presigned URL (действует 1 час)
-	presignedURL, err := uc.s3Client.GetPresignedURL(ctx, version.StorageKey, time.Hour)
+	presignedURL, err := uc.storageClient.GetPresignedURL(ctx, version.StorageKey, time.Hour)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка генерации URL для скачивания: %w", err)
 	}
@@ -186,7 +189,7 @@ func (uc *VersionUseCase) DeleteVersion(ctx context.Context, versionID int64, us
 	}
 
 	// Удаляем файл из хранилища
-	err = uc.s3Client.Delete(ctx, version.StorageKey)
+	err = uc.storageClient.Delete(ctx, version.StorageKey)
 	if err != nil {
 		return fmt.Errorf("ошибка удаления версии из хранилища: %w", err)
 	}

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
 )
@@ -531,4 +533,207 @@ func TestEmployeeUseCase_Delete(t *testing.T) {
 	if result != nil {
 		t.Error("expected employee to be deleted")
 	}
+}
+
+// --- Error-injecting mock for employee repository ---
+
+type errorEmployeeRepo struct {
+	MockExternalEmployeeRepository
+	listErr          bool
+	getByIDErr       bool
+	getByExternalErr bool
+	getByLocalErr    bool
+	getUnlinkedErr   bool
+	linkErr          bool
+	unlinkErr        bool
+	deleteErr        bool
+}
+
+func newErrorEmployeeRepo() *errorEmployeeRepo {
+	return &errorEmployeeRepo{
+		MockExternalEmployeeRepository: *NewMockExternalEmployeeRepository(),
+	}
+}
+
+func (m *errorEmployeeRepo) List(_ context.Context, _ entities.ExternalEmployeeFilter) ([]*entities.ExternalEmployee, int64, error) {
+	if m.listErr {
+		return nil, 0, errors.New("list error")
+	}
+	return m.MockExternalEmployeeRepository.List(context.Background(), entities.ExternalEmployeeFilter{})
+}
+
+func (m *errorEmployeeRepo) GetByID(_ context.Context, id int64) (*entities.ExternalEmployee, error) {
+	if m.getByIDErr {
+		return nil, errors.New("get by ID error")
+	}
+	return m.MockExternalEmployeeRepository.GetByID(context.Background(), id)
+}
+
+func (m *errorEmployeeRepo) GetByExternalID(_ context.Context, externalID string) (*entities.ExternalEmployee, error) {
+	if m.getByExternalErr {
+		return nil, errors.New("get by external ID error")
+	}
+	return m.MockExternalEmployeeRepository.GetByExternalID(context.Background(), externalID)
+}
+
+func (m *errorEmployeeRepo) GetByLocalUserID(_ context.Context, localUserID int64) (*entities.ExternalEmployee, error) {
+	if m.getByLocalErr {
+		return nil, errors.New("get by local user error")
+	}
+	return m.MockExternalEmployeeRepository.GetByLocalUserID(context.Background(), localUserID)
+}
+
+func (m *errorEmployeeRepo) GetUnlinked(_ context.Context, limit, offset int) ([]*entities.ExternalEmployee, int64, error) {
+	if m.getUnlinkedErr {
+		return nil, 0, errors.New("get unlinked error")
+	}
+	return m.MockExternalEmployeeRepository.GetUnlinked(context.Background(), limit, offset)
+}
+
+func (m *errorEmployeeRepo) LinkToLocalUser(_ context.Context, id int64, localUserID int64) error {
+	if m.linkErr {
+		return errors.New("link error")
+	}
+	return m.MockExternalEmployeeRepository.LinkToLocalUser(context.Background(), id, localUserID)
+}
+
+func (m *errorEmployeeRepo) Unlink(_ context.Context, id int64) error {
+	if m.unlinkErr {
+		return errors.New("unlink error")
+	}
+	return m.MockExternalEmployeeRepository.Unlink(context.Background(), id)
+}
+
+func (m *errorEmployeeRepo) Delete(_ context.Context, id int64) error {
+	if m.deleteErr {
+		return errors.New("delete error")
+	}
+	return m.MockExternalEmployeeRepository.Delete(context.Background(), id)
+}
+
+// --- Error path tests ---
+
+func TestEmployeeUseCase_List_Error(t *testing.T) {
+	repo := newErrorEmployeeRepo()
+	repo.listErr = true
+	uc := NewEmployeeUseCase(repo)
+
+	req := &dto.ExternalEmployeeListRequest{Limit: 10}
+	result, err := uc.List(context.Background(), req)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to list employees")
+}
+
+func TestEmployeeUseCase_GetByID_Error(t *testing.T) {
+	repo := newErrorEmployeeRepo()
+	repo.getByIDErr = true
+	uc := NewEmployeeUseCase(repo)
+
+	result, err := uc.GetByID(context.Background(), 1)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get employee")
+}
+
+func TestEmployeeUseCase_GetByExternalID_Error(t *testing.T) {
+	repo := newErrorEmployeeRepo()
+	repo.getByExternalErr = true
+	uc := NewEmployeeUseCase(repo)
+
+	result, err := uc.GetByExternalID(context.Background(), "ext1")
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get employee by external ID")
+}
+
+func TestEmployeeUseCase_LinkToLocalUser_GetByIDError(t *testing.T) {
+	repo := newErrorEmployeeRepo()
+	repo.getByIDErr = true
+	uc := NewEmployeeUseCase(repo)
+
+	err := uc.LinkToLocalUser(context.Background(), 1, 42)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get employee")
+}
+
+func TestEmployeeUseCase_LinkToLocalUser_GetByLocalUserError(t *testing.T) {
+	repo := newErrorEmployeeRepo()
+	uc := NewEmployeeUseCase(repo)
+	ctx := context.Background()
+
+	emp := entities.NewExternalEmployee("ext1", "CODE-ext1")
+	emp.FirstName = "John"
+	emp.LastName = "Doe"
+	_ = repo.MockExternalEmployeeRepository.Create(ctx, emp)
+
+	repo.getByLocalErr = true
+
+	err := uc.LinkToLocalUser(ctx, emp.ID, 42)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to check existing link")
+}
+
+func TestEmployeeUseCase_LinkToLocalUser_LinkRepoError(t *testing.T) {
+	repo := newErrorEmployeeRepo()
+	uc := NewEmployeeUseCase(repo)
+	ctx := context.Background()
+
+	emp := entities.NewExternalEmployee("ext1", "CODE-ext1")
+	emp.FirstName = "John"
+	emp.LastName = "Doe"
+	_ = repo.MockExternalEmployeeRepository.Create(ctx, emp)
+
+	repo.linkErr = true
+
+	err := uc.LinkToLocalUser(ctx, emp.ID, 42)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to link employee")
+}
+
+func TestEmployeeUseCase_Unlink_GetByIDError(t *testing.T) {
+	repo := newErrorEmployeeRepo()
+	repo.getByIDErr = true
+	uc := NewEmployeeUseCase(repo)
+
+	err := uc.Unlink(context.Background(), 1)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get employee")
+}
+
+func TestEmployeeUseCase_Unlink_UnlinkRepoError(t *testing.T) {
+	repo := newErrorEmployeeRepo()
+	uc := NewEmployeeUseCase(repo)
+	ctx := context.Background()
+
+	emp := entities.NewExternalEmployee("ext1", "CODE-ext1")
+	_ = repo.MockExternalEmployeeRepository.Create(ctx, emp)
+	_ = repo.MockExternalEmployeeRepository.LinkToLocalUser(ctx, emp.ID, 42)
+
+	repo.unlinkErr = true
+
+	err := uc.Unlink(ctx, emp.ID)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to unlink employee")
+}
+
+func TestEmployeeUseCase_GetUnlinked_Error(t *testing.T) {
+	repo := newErrorEmployeeRepo()
+	repo.getUnlinkedErr = true
+	uc := NewEmployeeUseCase(repo)
+
+	result, err := uc.GetUnlinked(context.Background(), 10, 0)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get unlinked employees")
+}
+
+func TestEmployeeUseCase_Delete_Error(t *testing.T) {
+	repo := newErrorEmployeeRepo()
+	repo.deleteErr = true
+	uc := NewEmployeeUseCase(repo)
+
+	err := uc.Delete(context.Background(), 1)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete employee")
 }

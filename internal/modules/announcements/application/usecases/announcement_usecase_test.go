@@ -6,13 +6,36 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
-// MockAnnouncementRepository implements AnnouncementRepository for testing.
+// --- Helpers ---
+
+func strPtr(s string) *string { return &s }
+
+func createTestAuditLogger() *logging.AuditLogger {
+	logger := logging.NewLogger("error")
+	return logging.NewAuditLogger(logger)
+}
+
+func createDefaultRequest() *dto.CreateAnnouncementRequest {
+	return &dto.CreateAnnouncementRequest{
+		Title:          "Test",
+		Content:        "Content",
+		Priority:       domain.AnnouncementPriorityNormal,
+		TargetAudience: domain.TargetAudienceAll,
+	}
+}
+
+// --- MockAnnouncementRepository ---
+
 type MockAnnouncementRepository struct {
 	announcements map[int64]*entities.Announcement
 	attachments   map[int64][]*entities.AnnouncementAttachment
@@ -41,7 +64,6 @@ func (m *MockAnnouncementRepository) Save(_ context.Context, announcement *entit
 
 func (m *MockAnnouncementRepository) GetByID(_ context.Context, id int64) (*entities.Announcement, error) {
 	if a, exists := m.announcements[id]; exists {
-		// Return a copy to avoid pointer aliasing issues
 		copiedAnn := *a
 		return &copiedAnn, nil
 	}
@@ -69,7 +91,7 @@ func (m *MockAnnouncementRepository) Count(_ context.Context, _ repositories.Ann
 	return int64(len(m.announcements)), nil
 }
 
-func (m *MockAnnouncementRepository) GetByAuthor(_ context.Context, authorID int64, limit, offset int) ([]*entities.Announcement, error) {
+func (m *MockAnnouncementRepository) GetByAuthor(_ context.Context, authorID int64, _, _ int) ([]*entities.Announcement, error) {
 	var result []*entities.Announcement
 	for _, a := range m.announcements {
 		if a.AuthorID == authorID {
@@ -158,13 +180,114 @@ func (m *MockAnnouncementRepository) GetAttachmentByID(_ context.Context, attach
 	return nil, nil
 }
 
+// --- ErrorMockAnnouncementRepository ---
+
+type ErrorMockAnnouncementRepository struct {
+	MockAnnouncementRepository
+	createErr         error
+	saveErr           error
+	getByIDErr        error
+	deleteErr         error
+	listErr           error
+	countErr          error
+	getPublishedErr   error
+	getPinnedErr      error
+	getRecentErr      error
+	getAttachmentsErr error
+}
+
+func (m *ErrorMockAnnouncementRepository) Create(ctx context.Context, a *entities.Announcement) error {
+	if m.createErr != nil {
+		return m.createErr
+	}
+	return m.MockAnnouncementRepository.Create(ctx, a)
+}
+
+func (m *ErrorMockAnnouncementRepository) Save(ctx context.Context, a *entities.Announcement) error {
+	if m.saveErr != nil {
+		return m.saveErr
+	}
+	return m.MockAnnouncementRepository.Save(ctx, a)
+}
+
+func (m *ErrorMockAnnouncementRepository) GetByID(ctx context.Context, id int64) (*entities.Announcement, error) {
+	if m.getByIDErr != nil {
+		return nil, m.getByIDErr
+	}
+	return m.MockAnnouncementRepository.GetByID(ctx, id)
+}
+
+func (m *ErrorMockAnnouncementRepository) Delete(ctx context.Context, id int64) error {
+	if m.deleteErr != nil {
+		return m.deleteErr
+	}
+	return m.MockAnnouncementRepository.Delete(ctx, id)
+}
+
+func (m *ErrorMockAnnouncementRepository) List(ctx context.Context, f repositories.AnnouncementFilter, limit, offset int) ([]*entities.Announcement, error) {
+	if m.listErr != nil {
+		return nil, m.listErr
+	}
+	return m.MockAnnouncementRepository.List(ctx, f, limit, offset)
+}
+
+func (m *ErrorMockAnnouncementRepository) Count(ctx context.Context, f repositories.AnnouncementFilter) (int64, error) {
+	if m.countErr != nil {
+		return 0, m.countErr
+	}
+	return m.MockAnnouncementRepository.Count(ctx, f)
+}
+
+func (m *ErrorMockAnnouncementRepository) GetPublished(ctx context.Context, audience domain.TargetAudience, limit, offset int) ([]*entities.Announcement, error) {
+	if m.getPublishedErr != nil {
+		return nil, m.getPublishedErr
+	}
+	return m.MockAnnouncementRepository.GetPublished(ctx, audience, limit, offset)
+}
+
+func (m *ErrorMockAnnouncementRepository) GetPinned(ctx context.Context, limit int) ([]*entities.Announcement, error) {
+	if m.getPinnedErr != nil {
+		return nil, m.getPinnedErr
+	}
+	return m.MockAnnouncementRepository.GetPinned(ctx, limit)
+}
+
+func (m *ErrorMockAnnouncementRepository) GetRecent(ctx context.Context, limit int) ([]*entities.Announcement, error) {
+	if m.getRecentErr != nil {
+		return nil, m.getRecentErr
+	}
+	return m.MockAnnouncementRepository.GetRecent(ctx, limit)
+}
+
+func (m *ErrorMockAnnouncementRepository) GetAttachments(ctx context.Context, announcementID int64) ([]*entities.AnnouncementAttachment, error) {
+	if m.getAttachmentsErr != nil {
+		return nil, m.getAttachmentsErr
+	}
+	return m.MockAnnouncementRepository.GetAttachments(ctx, announcementID)
+}
+
+// --- MockUserIDsProvider ---
+
+type MockUserIDsProvider struct {
+	userIDs []int64
+	err     error
+}
+
+func (m *MockUserIDsProvider) GetActiveUserIDs(_ context.Context) ([]int64, error) {
+	return m.userIDs, m.err
+}
+
+// ============================
 // Tests
+// ============================
+
+// --- Create ---
 
 func TestAnnouncementUseCase_Create(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
+
 	req := &dto.CreateAnnouncementRequest{
 		Title:          "Test Announcement",
 		Content:        "Test Content",
@@ -173,32 +296,18 @@ func TestAnnouncementUseCase_Create(t *testing.T) {
 	}
 
 	announcement, err := uc.Create(ctx, 1, req)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if announcement.ID == 0 {
-		t.Error("expected announcement ID to be set")
-	}
-
-	if announcement.Title != "Test Announcement" {
-		t.Errorf("expected title 'Test Announcement', got '%s'", announcement.Title)
-	}
-
-	if announcement.Status != domain.AnnouncementStatusDraft {
-		t.Errorf("expected status 'draft', got '%s'", announcement.Status)
-	}
-
-	if announcement.AuthorID != 1 {
-		t.Errorf("expected author ID 1, got %d", announcement.AuthorID)
-	}
+	require.NoError(t, err)
+	assert.NotZero(t, announcement.ID)
+	assert.Equal(t, "Test Announcement", announcement.Title)
+	assert.Equal(t, domain.AnnouncementStatusDraft, announcement.Status)
+	assert.Equal(t, int64(1), announcement.AuthorID)
 }
 
 func TestAnnouncementUseCase_Create_InvalidPriority(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
+
 	req := &dto.CreateAnnouncementRequest{
 		Title:          "Test",
 		Content:        "Content",
@@ -207,16 +316,14 @@ func TestAnnouncementUseCase_Create_InvalidPriority(t *testing.T) {
 	}
 
 	_, err := uc.Create(ctx, 1, req)
-	if !errors.Is(err, ErrInvalidInput) {
-		t.Errorf("expected ErrInvalidInput, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrInvalidInput)
 }
 
 func TestAnnouncementUseCase_Create_InvalidAudience(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
+
 	req := &dto.CreateAnnouncementRequest{
 		Title:          "Test",
 		Content:        "Content",
@@ -225,16 +332,14 @@ func TestAnnouncementUseCase_Create_InvalidAudience(t *testing.T) {
 	}
 
 	_, err := uc.Create(ctx, 1, req)
-	if !errors.Is(err, ErrInvalidInput) {
-		t.Errorf("expected ErrInvalidInput, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrInvalidInput)
 }
 
 func TestAnnouncementUseCase_Create_WithOptionalFields(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
+
 	summary := "Test Summary"
 	publishAt := time.Now().Add(24 * time.Hour)
 	expireAt := time.Now().Add(7 * 24 * time.Hour)
@@ -252,99 +357,149 @@ func TestAnnouncementUseCase_Create_WithOptionalFields(t *testing.T) {
 	}
 
 	announcement, err := uc.Create(ctx, 1, req)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if announcement.Summary == nil || *announcement.Summary != summary {
-		t.Errorf("expected summary '%s', got %v", summary, announcement.Summary)
-	}
-
-	if announcement.Priority != domain.AnnouncementPriorityHigh {
-		t.Errorf("expected priority 'high', got '%s'", announcement.Priority)
-	}
-
-	if announcement.TargetAudience != domain.TargetAudienceTeachers {
-		t.Errorf("expected audience 'teachers', got '%s'", announcement.TargetAudience)
-	}
-
-	if !announcement.IsPinned {
-		t.Error("expected IsPinned to be true")
-	}
-
-	if len(announcement.Tags) != 2 {
-		t.Errorf("expected 2 tags, got %d", len(announcement.Tags))
-	}
+	require.NoError(t, err)
+	require.NotNil(t, announcement.Summary)
+	assert.Equal(t, summary, *announcement.Summary)
+	assert.Equal(t, domain.AnnouncementPriorityHigh, announcement.Priority)
+	assert.Equal(t, domain.TargetAudienceTeachers, announcement.TargetAudience)
+	assert.True(t, announcement.IsPinned)
+	assert.Len(t, announcement.Tags, 2)
 }
+
+func TestAnnouncementUseCase_Create_RepoError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		createErr:                  errors.New("db error"),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.Create(ctx, 1, createDefaultRequest())
+	assert.Error(t, err)
+	assert.Equal(t, "db error", err.Error())
+}
+
+func TestAnnouncementUseCase_Create_WithAuditLogger(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	auditLogger := createTestAuditLogger()
+	uc := NewAnnouncementUseCase(repo, auditLogger, nil, nil)
+	ctx := context.Background()
+
+	announcement, err := uc.Create(ctx, 1, createDefaultRequest())
+	require.NoError(t, err)
+	assert.NotZero(t, announcement.ID)
+}
+
+// --- GetByID ---
 
 func TestAnnouncementUseCase_GetByID(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create announcement
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
-	// Get by ID
 	announcement, err := uc.GetByID(ctx, created.ID, false)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if announcement.ID != created.ID {
-		t.Errorf("expected ID %d, got %d", created.ID, announcement.ID)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, announcement.ID)
 }
 
 func TestAnnouncementUseCase_GetByID_NotFound(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
 	_, err := uc.GetByID(ctx, 999, false)
-	if !errors.Is(err, ErrAnnouncementNotFound) {
-		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 
 func TestAnnouncementUseCase_GetByID_IncrementView(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create and publish announcement
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 	_, _ = uc.Publish(ctx, 1, created.ID, false)
 
-	// Get with view increment
-	initialView := created.ViewCount
-	announcement, _ := uc.GetByID(ctx, created.ID, true)
-
-	if announcement.ViewCount != initialView+1 {
-		t.Errorf("expected view count %d, got %d", initialView+1, announcement.ViewCount)
-	}
+	announcement, err := uc.GetByID(ctx, created.ID, true)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), announcement.ViewCount)
 }
+
+func TestAnnouncementUseCase_GetByID_NoIncrementForDraft(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	// Draft is not visible, so view should not increment even with incrementView=true
+	announcement, err := uc.GetByID(ctx, created.ID, true)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), announcement.ViewCount)
+}
+
+func TestAnnouncementUseCase_GetByID_RepoError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		getByIDErr:                 errors.New("db error"),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.GetByID(ctx, 1, false)
+	assert.Error(t, err)
+	assert.Equal(t, "db error", err.Error())
+}
+
+func TestAnnouncementUseCase_GetByID_GetAttachmentsError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	// Create an announcement first
+	created, err := uc.Create(ctx, 1, createDefaultRequest())
+	require.NoError(t, err)
+
+	// Now set the error so GetAttachments fails
+	repo.getAttachmentsErr = errors.New("attachments error")
+
+	_, err = uc.GetByID(ctx, created.ID, false)
+	assert.Error(t, err)
+	assert.Equal(t, "attachments error", err.Error())
+}
+
+func TestAnnouncementUseCase_GetByID_WithAttachments(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	// Add attachments directly to mock
+	_ = repo.AddAttachment(ctx, &entities.AnnouncementAttachment{
+		ID:             1,
+		AnnouncementID: created.ID,
+		FileName:       "test.pdf",
+		FileSize:       1024,
+		MimeType:       "application/pdf",
+	})
+
+	announcement, err := uc.GetByID(ctx, created.ID, false)
+	require.NoError(t, err)
+	assert.Len(t, announcement.Attachments, 1)
+	assert.Equal(t, "test.pdf", announcement.Attachments[0].FileName)
+}
+
+// --- Update ---
 
 func TestAnnouncementUseCase_Update(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create announcement
 	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
 		Title:          "Original Title",
 		Content:        "Original Content",
@@ -352,290 +507,533 @@ func TestAnnouncementUseCase_Update(t *testing.T) {
 		TargetAudience: domain.TargetAudienceAll,
 	})
 
-	// Update
 	newTitle := "Updated Title"
 	newContent := "Updated Content"
-	req := &dto.UpdateAnnouncementRequest{
+	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{
 		Title:   &newTitle,
 		Content: &newContent,
-	}
-
-	updated, err := uc.Update(ctx, 1, created.ID, false, req)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if updated.Title != "Updated Title" {
-		t.Errorf("expected title 'Updated Title', got '%s'", updated.Title)
-	}
-
-	if updated.Content != "Updated Content" {
-		t.Errorf("expected content 'Updated Content', got '%s'", updated.Content)
-	}
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "Updated Title", updated.Title)
+	assert.Equal(t, "Updated Content", updated.Content)
 }
 
 func TestAnnouncementUseCase_Update_NotFound(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
-	newTitle := "Test"
 
+	newTitle := "Test"
 	_, err := uc.Update(ctx, 1, 999, false, &dto.UpdateAnnouncementRequest{Title: &newTitle})
-	if !errors.Is(err, ErrAnnouncementNotFound) {
-		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 
 func TestAnnouncementUseCase_Update_Unauthorized(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create announcement by user 1
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
-	// Try to update by user 2 (not admin)
 	newTitle := "Updated"
 	_, err := uc.Update(ctx, 2, created.ID, false, &dto.UpdateAnnouncementRequest{Title: &newTitle})
-	if !errors.Is(err, ErrUnauthorized) {
-		t.Errorf("expected ErrUnauthorized, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrUnauthorized)
 }
 
 func TestAnnouncementUseCase_Update_AdminCanEdit(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create announcement by user 1
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
-	// Admin (user 2) can update
 	newTitle := "Updated by Admin"
 	updated, err := uc.Update(ctx, 2, created.ID, true, &dto.UpdateAnnouncementRequest{Title: &newTitle})
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if updated.Title != "Updated by Admin" {
-		t.Errorf("expected title 'Updated by Admin', got '%s'", updated.Title)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "Updated by Admin", updated.Title)
 }
 
 func TestAnnouncementUseCase_Update_Priority(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
 	newPriority := domain.AnnouncementPriorityUrgent
 	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{Priority: &newPriority})
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementPriorityUrgent, updated.Priority)
+}
 
-	if updated.Priority != domain.AnnouncementPriorityUrgent {
-		t.Errorf("expected priority 'urgent', got '%s'", updated.Priority)
-	}
+func TestAnnouncementUseCase_Update_InvalidPriority(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	invalidPriority := domain.AnnouncementPriority("invalid")
+	_, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{Priority: &invalidPriority})
+	assert.Error(t, err)
+}
+
+func TestAnnouncementUseCase_Update_TargetAudience(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	newAudience := domain.TargetAudienceStudents
+	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{TargetAudience: &newAudience})
+	require.NoError(t, err)
+	assert.Equal(t, domain.TargetAudienceStudents, updated.TargetAudience)
+}
+
+func TestAnnouncementUseCase_Update_InvalidTargetAudience(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	invalidAudience := domain.TargetAudience("invalid")
+	_, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{TargetAudience: &invalidAudience})
+	assert.Error(t, err)
+}
+
+func TestAnnouncementUseCase_Update_Summary(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	newSummary := "New Summary"
+	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{Summary: &newSummary})
+	require.NoError(t, err)
+	require.NotNil(t, updated.Summary)
+	assert.Equal(t, "New Summary", *updated.Summary)
+}
+
+func TestAnnouncementUseCase_Update_PublishSchedule(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	publishAt := time.Now().Add(24 * time.Hour)
+	expireAt := time.Now().Add(7 * 24 * time.Hour)
+	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{
+		PublishAt: &publishAt,
+		ExpireAt:  &expireAt,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, updated.PublishAt)
+	require.NotNil(t, updated.ExpireAt)
+}
+
+func TestAnnouncementUseCase_Update_PublishAtOnly(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	publishAt := time.Now().Add(24 * time.Hour)
+	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{
+		PublishAt: &publishAt,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, updated.PublishAt)
+}
+
+func TestAnnouncementUseCase_Update_ExpireAtOnly(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	expireAt := time.Now().Add(7 * 24 * time.Hour)
+	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{
+		ExpireAt: &expireAt,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, updated.ExpireAt)
 }
 
 func TestAnnouncementUseCase_Update_Pin(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
 	// Pin
 	isPinned := true
-	updated, _ := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{IsPinned: &isPinned})
-	if !updated.IsPinned {
-		t.Error("expected IsPinned to be true")
-	}
+	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{IsPinned: &isPinned})
+	require.NoError(t, err)
+	assert.True(t, updated.IsPinned)
 
 	// Unpin
 	isPinned = false
-	updated, _ = uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{IsPinned: &isPinned})
-	if updated.IsPinned {
-		t.Error("expected IsPinned to be false")
-	}
+	updated, err = uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{IsPinned: &isPinned})
+	require.NoError(t, err)
+	assert.False(t, updated.IsPinned)
 }
+
+func TestAnnouncementUseCase_Update_Tags(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{
+		Tags: []string{"tag1", "tag2", "tag3"},
+	})
+	require.NoError(t, err)
+	assert.Len(t, updated.Tags, 3)
+	assert.Equal(t, []string{"tag1", "tag2", "tag3"}, updated.Tags)
+}
+
+func TestAnnouncementUseCase_Update_RepoGetByIDError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		getByIDErr:                 errors.New("db error"),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	newTitle := "Updated"
+	_, err := uc.Update(ctx, 1, 1, false, &dto.UpdateAnnouncementRequest{Title: &newTitle})
+	assert.Error(t, err)
+	assert.Equal(t, "db error", err.Error())
+}
+
+func TestAnnouncementUseCase_Update_RepoSaveError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, err := uc.Create(ctx, 1, createDefaultRequest())
+	require.NoError(t, err)
+
+	repo.saveErr = errors.New("save error")
+
+	newTitle := "Updated"
+	_, err = uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{Title: &newTitle})
+	assert.Error(t, err)
+	assert.Equal(t, "save error", err.Error())
+}
+
+func TestAnnouncementUseCase_Update_WithAuditLogger(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	auditLogger := createTestAuditLogger()
+	uc := NewAnnouncementUseCase(repo, auditLogger, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	newTitle := "Updated"
+	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{Title: &newTitle})
+	require.NoError(t, err)
+	assert.Equal(t, "Updated", updated.Title)
+}
+
+func TestAnnouncementUseCase_Update_AllFieldsAtOnce(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	newTitle := "New Title"
+	newContent := "New Content"
+	newSummary := "New Summary"
+	newPriority := domain.AnnouncementPriorityHigh
+	newAudience := domain.TargetAudienceStaff
+	publishAt := time.Now().Add(24 * time.Hour)
+	expireAt := time.Now().Add(7 * 24 * time.Hour)
+	isPinned := true
+	tags := []string{"tag1"}
+
+	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{
+		Title:          &newTitle,
+		Content:        &newContent,
+		Summary:        &newSummary,
+		Priority:       &newPriority,
+		TargetAudience: &newAudience,
+		PublishAt:      &publishAt,
+		ExpireAt:       &expireAt,
+		IsPinned:       &isPinned,
+		Tags:           tags,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "New Title", updated.Title)
+	assert.Equal(t, "New Content", updated.Content)
+	require.NotNil(t, updated.Summary)
+	assert.Equal(t, "New Summary", *updated.Summary)
+	assert.Equal(t, domain.AnnouncementPriorityHigh, updated.Priority)
+	assert.Equal(t, domain.TargetAudienceStaff, updated.TargetAudience)
+	assert.True(t, updated.IsPinned)
+	assert.Equal(t, []string{"tag1"}, updated.Tags)
+}
+
+// --- Delete ---
 
 func TestAnnouncementUseCase_Delete(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create announcement
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
-	// Delete
 	err := uc.Delete(ctx, 1, created.ID, false)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.NoError(t, err)
 
-	// Verify deleted
 	_, err = uc.GetByID(ctx, created.ID, false)
-	if !errors.Is(err, ErrAnnouncementNotFound) {
-		t.Error("expected announcement to be deleted")
-	}
+	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 
 func TestAnnouncementUseCase_Delete_NotFound(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
 	err := uc.Delete(ctx, 1, 999, false)
-	if !errors.Is(err, ErrAnnouncementNotFound) {
-		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 
 func TestAnnouncementUseCase_Delete_Unauthorized(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create by user 1
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
-	// Try to delete by user 2
 	err := uc.Delete(ctx, 2, created.ID, false)
-	if !errors.Is(err, ErrUnauthorized) {
-		t.Errorf("expected ErrUnauthorized, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrUnauthorized)
 }
+
+func TestAnnouncementUseCase_Delete_AdminCanDelete(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	err := uc.Delete(ctx, 2, created.ID, true)
+	require.NoError(t, err)
+
+	_, err = uc.GetByID(ctx, created.ID, false)
+	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
+}
+
+func TestAnnouncementUseCase_Delete_RepoGetByIDError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		getByIDErr:                 errors.New("db error"),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	err := uc.Delete(ctx, 1, 1, false)
+	assert.Error(t, err)
+	assert.Equal(t, "db error", err.Error())
+}
+
+func TestAnnouncementUseCase_Delete_RepoDeleteError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, err := uc.Create(ctx, 1, createDefaultRequest())
+	require.NoError(t, err)
+
+	repo.deleteErr = errors.New("delete error")
+
+	err = uc.Delete(ctx, 1, created.ID, false)
+	assert.Error(t, err)
+	assert.Equal(t, "delete error", err.Error())
+}
+
+func TestAnnouncementUseCase_Delete_WithAuditLogger(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	auditLogger := createTestAuditLogger()
+	uc := NewAnnouncementUseCase(repo, auditLogger, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	err := uc.Delete(ctx, 1, created.ID, false)
+	require.NoError(t, err)
+}
+
+// --- List ---
 
 func TestAnnouncementUseCase_List(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create announcements
 	_, _ = uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 1", Content: "C1", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
 	_, _ = uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 2", Content: "C2", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
 	_, _ = uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 3", Content: "C3", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
 
-	// List
 	resp, err := uc.List(ctx, &dto.ListAnnouncementsRequest{Limit: 10})
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if resp.Total != 3 {
-		t.Errorf("expected total 3, got %d", resp.Total)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), resp.Total)
 }
 
 func TestAnnouncementUseCase_List_DefaultLimit(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	resp, _ := uc.List(ctx, &dto.ListAnnouncementsRequest{Limit: 0})
-	if resp.Limit != 20 {
-		t.Errorf("expected default limit 20, got %d", resp.Limit)
-	}
+	resp, err := uc.List(ctx, &dto.ListAnnouncementsRequest{Limit: 0})
+	require.NoError(t, err)
+	assert.Equal(t, 20, resp.Limit)
+}
+
+func TestAnnouncementUseCase_List_NegativeLimit(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	resp, err := uc.List(ctx, &dto.ListAnnouncementsRequest{Limit: -5})
+	require.NoError(t, err)
+	assert.Equal(t, 20, resp.Limit)
 }
 
 func TestAnnouncementUseCase_List_MaxLimit(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	resp, _ := uc.List(ctx, &dto.ListAnnouncementsRequest{Limit: 500})
-	if resp.Limit != 100 {
-		t.Errorf("expected max limit 100, got %d", resp.Limit)
-	}
+	resp, err := uc.List(ctx, &dto.ListAnnouncementsRequest{Limit: 500})
+	require.NoError(t, err)
+	assert.Equal(t, 100, resp.Limit)
 }
+
+func TestAnnouncementUseCase_List_RepoListError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		listErr:                    errors.New("list error"),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.List(ctx, &dto.ListAnnouncementsRequest{Limit: 10})
+	assert.Error(t, err)
+	assert.Equal(t, "list error", err.Error())
+}
+
+func TestAnnouncementUseCase_List_RepoCountError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		countErr:                   errors.New("count error"),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.List(ctx, &dto.ListAnnouncementsRequest{Limit: 10})
+	assert.Error(t, err)
+	assert.Equal(t, "count error", err.Error())
+}
+
+func TestAnnouncementUseCase_List_WithFilters(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	authorID := int64(1)
+	status := domain.AnnouncementStatusDraft
+	priority := domain.AnnouncementPriorityNormal
+	audience := domain.TargetAudienceAll
+	isPinned := false
+	search := "test"
+
+	_, _ = uc.Create(ctx, 1, createDefaultRequest())
+
+	resp, err := uc.List(ctx, &dto.ListAnnouncementsRequest{
+		AuthorID:       &authorID,
+		Status:         &status,
+		Priority:       &priority,
+		TargetAudience: &audience,
+		IsPinned:       &isPinned,
+		Search:         &search,
+		Tags:           []string{"tag1"},
+		Limit:          10,
+		Offset:         0,
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, resp)
+}
+
+// --- GetPublished ---
 
 func TestAnnouncementUseCase_GetPublished(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create and publish announcements
 	a1, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 1", Content: "C1", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
 	a2, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 2", Content: "C2", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceTeachers})
 	_, _ = uc.Publish(ctx, 1, a1.ID, false)
 	_, _ = uc.Publish(ctx, 1, a2.ID, false)
 
-	// Get published for all
 	published, err := uc.GetPublished(ctx, domain.TargetAudienceAll, 10, 0)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if len(published) != 1 {
-		t.Errorf("expected 1 published for all, got %d", len(published))
-	}
+	require.NoError(t, err)
+	assert.Len(t, published, 1)
 }
 
 func TestAnnouncementUseCase_GetPublished_DefaultLimit(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// This should not panic with limit 0
 	_, err := uc.GetPublished(ctx, domain.TargetAudienceAll, 0, 0)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.NoError(t, err)
 }
+
+func TestAnnouncementUseCase_GetPublished_MaxLimit(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	// With limit > 100, it should be clamped. We can't verify the clamped value directly
+	// but at least it should not error.
+	_, err := uc.GetPublished(ctx, domain.TargetAudienceAll, 200, 0)
+	require.NoError(t, err)
+}
+
+func TestAnnouncementUseCase_GetPublished_RepoError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		getPublishedErr:            errors.New("published error"),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.GetPublished(ctx, domain.TargetAudienceAll, 10, 0)
+	assert.Error(t, err)
+}
+
+// --- GetPinned ---
 
 func TestAnnouncementUseCase_GetPinned(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create, pin and publish
 	a1, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
 		Title:          "Pinned",
 		Content:        "Content",
@@ -645,234 +1043,429 @@ func TestAnnouncementUseCase_GetPinned(t *testing.T) {
 	})
 	_, _ = uc.Publish(ctx, 1, a1.ID, false)
 
-	// Get pinned
 	pinned, err := uc.GetPinned(ctx, 10)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if len(pinned) != 1 {
-		t.Errorf("expected 1 pinned, got %d", len(pinned))
-	}
+	require.NoError(t, err)
+	assert.Len(t, pinned, 1)
 }
 
 func TestAnnouncementUseCase_GetPinned_DefaultLimit(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
 	_, err := uc.GetPinned(ctx, 0)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.NoError(t, err)
 }
+
+func TestAnnouncementUseCase_GetPinned_MaxLimit(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.GetPinned(ctx, 50)
+	require.NoError(t, err)
+}
+
+func TestAnnouncementUseCase_GetPinned_RepoError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		getPinnedErr:               errors.New("pinned error"),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.GetPinned(ctx, 5)
+	assert.Error(t, err)
+}
+
+// --- GetRecent ---
 
 func TestAnnouncementUseCase_GetRecent(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create and publish
 	a1, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 1", Content: "C1", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
 	_, _ = uc.Publish(ctx, 1, a1.ID, false)
 
-	// Get recent
 	recent, err := uc.GetRecent(ctx, 10)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if len(recent) != 1 {
-		t.Errorf("expected 1 recent, got %d", len(recent))
-	}
+	require.NoError(t, err)
+	assert.Len(t, recent, 1)
 }
 
 func TestAnnouncementUseCase_GetRecent_DefaultLimit(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
 	_, err := uc.GetRecent(ctx, 0)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.NoError(t, err)
 }
+
+func TestAnnouncementUseCase_GetRecent_MaxLimit(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.GetRecent(ctx, 100)
+	require.NoError(t, err)
+}
+
+func TestAnnouncementUseCase_GetRecent_RepoError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		getRecentErr:               errors.New("recent error"),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.GetRecent(ctx, 10)
+	assert.Error(t, err)
+}
+
+// --- Publish ---
 
 func TestAnnouncementUseCase_Publish(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
-	// Publish
 	published, err := uc.Publish(ctx, 1, created.ID, false)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if published.Status != domain.AnnouncementStatusPublished {
-		t.Errorf("expected status 'published', got '%s'", published.Status)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementStatusPublished, published.Status)
 }
 
 func TestAnnouncementUseCase_Publish_NotFound(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
 	_, err := uc.Publish(ctx, 1, 999, false)
-	if !errors.Is(err, ErrAnnouncementNotFound) {
-		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 
 func TestAnnouncementUseCase_Publish_Unauthorized(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
 	_, err := uc.Publish(ctx, 2, created.ID, false)
-	if !errors.Is(err, ErrUnauthorized) {
-		t.Errorf("expected ErrUnauthorized, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrUnauthorized)
 }
+
+func TestAnnouncementUseCase_Publish_AlreadyPublished(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+	_, _ = uc.Publish(ctx, 1, created.ID, false)
+
+	// Try to publish again
+	_, err := uc.Publish(ctx, 1, created.ID, false)
+	assert.Error(t, err)
+}
+
+func TestAnnouncementUseCase_Publish_RepoGetByIDError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		getByIDErr:                 errors.New("db error"),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.Publish(ctx, 1, 1, false)
+	assert.Error(t, err)
+	assert.Equal(t, "db error", err.Error())
+}
+
+func TestAnnouncementUseCase_Publish_RepoSaveError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, err := uc.Create(ctx, 1, createDefaultRequest())
+	require.NoError(t, err)
+
+	repo.saveErr = errors.New("save error")
+
+	_, err = uc.Publish(ctx, 1, created.ID, false)
+	assert.Error(t, err)
+	assert.Equal(t, "save error", err.Error())
+}
+
+func TestAnnouncementUseCase_Publish_WithAuditLogger(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	auditLogger := createTestAuditLogger()
+	uc := NewAnnouncementUseCase(repo, auditLogger, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	published, err := uc.Publish(ctx, 1, created.ID, false)
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementStatusPublished, published.Status)
+}
+
+func TestAnnouncementUseCase_Publish_NilNotificationUseCase(t *testing.T) {
+	// When notificationUseCase is nil, publish should succeed without sending notifications
+	repo := NewMockAnnouncementRepository()
+	userProvider := &MockUserIDsProvider{
+		userIDs: []int64{10, 20, 30},
+	}
+	// notificationUseCase is nil, userIDsProvider is set
+	uc := NewAnnouncementUseCase(repo, nil, nil, userProvider)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	published, err := uc.Publish(ctx, 1, created.ID, false)
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementStatusPublished, published.Status)
+}
+
+func TestAnnouncementUseCase_Publish_NilUserIDsProvider(t *testing.T) {
+	// When userIDsProvider is nil, publish should succeed without sending notifications
+	repo := NewMockAnnouncementRepository()
+	// Both notificationUseCase and userIDsProvider must be non-nil for notifications
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	published, err := uc.Publish(ctx, 1, created.ID, false)
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementStatusPublished, published.Status)
+}
+
+func TestAnnouncementUseCase_Publish_AdminCanPublish(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	// Admin (user 2) can publish user 1's announcement
+	published, err := uc.Publish(ctx, 2, created.ID, true)
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementStatusPublished, published.Status)
+}
+
+// --- Unpublish ---
 
 func TestAnnouncementUseCase_Unpublish(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create and publish
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 	_, _ = uc.Publish(ctx, 1, created.ID, false)
 
-	// Unpublish
 	unpublished, err := uc.Unpublish(ctx, 1, created.ID, false)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if unpublished.Status != domain.AnnouncementStatusDraft {
-		t.Errorf("expected status 'draft', got '%s'", unpublished.Status)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementStatusDraft, unpublished.Status)
 }
 
 func TestAnnouncementUseCase_Unpublish_NotFound(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
 	_, err := uc.Unpublish(ctx, 1, 999, false)
-	if !errors.Is(err, ErrAnnouncementNotFound) {
-		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
+
+func TestAnnouncementUseCase_Unpublish_Unauthorized(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+	_, _ = uc.Publish(ctx, 1, created.ID, false)
+
+	_, err := uc.Unpublish(ctx, 2, created.ID, false)
+	assert.ErrorIs(t, err, ErrUnauthorized)
+}
+
+func TestAnnouncementUseCase_Unpublish_NotPublished(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	// Draft cannot be unpublished
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	_, err := uc.Unpublish(ctx, 1, created.ID, false)
+	assert.Error(t, err)
+}
+
+func TestAnnouncementUseCase_Unpublish_RepoGetByIDError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		getByIDErr:                 errors.New("db error"),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.Unpublish(ctx, 1, 1, false)
+	assert.Error(t, err)
+	assert.Equal(t, "db error", err.Error())
+}
+
+func TestAnnouncementUseCase_Unpublish_RepoSaveError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, err := uc.Create(ctx, 1, createDefaultRequest())
+	require.NoError(t, err)
+	_, err = uc.Publish(ctx, 1, created.ID, false)
+	require.NoError(t, err)
+
+	repo.saveErr = errors.New("save error")
+
+	_, err = uc.Unpublish(ctx, 1, created.ID, false)
+	assert.Error(t, err)
+	assert.Equal(t, "save error", err.Error())
+}
+
+func TestAnnouncementUseCase_Unpublish_WithAuditLogger(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	auditLogger := createTestAuditLogger()
+	uc := NewAnnouncementUseCase(repo, auditLogger, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+	_, _ = uc.Publish(ctx, 1, created.ID, false)
+
+	unpublished, err := uc.Unpublish(ctx, 1, created.ID, false)
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementStatusDraft, unpublished.Status)
+}
+
+func TestAnnouncementUseCase_Unpublish_AdminCanUnpublish(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+	_, _ = uc.Publish(ctx, 1, created.ID, false)
+
+	unpublished, err := uc.Unpublish(ctx, 2, created.ID, true)
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementStatusDraft, unpublished.Status)
+}
+
+// --- Archive ---
 
 func TestAnnouncementUseCase_Archive(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	// Create and publish
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 	_, _ = uc.Publish(ctx, 1, created.ID, false)
 
-	// Archive
 	archived, err := uc.Archive(ctx, 1, created.ID, false)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if archived.Status != domain.AnnouncementStatusArchived {
-		t.Errorf("expected status 'archived', got '%s'", archived.Status)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementStatusArchived, archived.Status)
 }
 
 func TestAnnouncementUseCase_Archive_NotFound(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
 	_, err := uc.Archive(ctx, 1, 999, false)
-	if !errors.Is(err, ErrAnnouncementNotFound) {
-		t.Errorf("expected ErrAnnouncementNotFound, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 
 func TestAnnouncementUseCase_Archive_Unauthorized(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
 	_, err := uc.Archive(ctx, 2, created.ID, false)
-	if !errors.Is(err, ErrUnauthorized) {
-		t.Errorf("expected ErrUnauthorized, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrUnauthorized)
 }
 
 func TestAnnouncementUseCase_Archive_AdminCanArchive(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
-
 	ctx := context.Background()
 
-	created, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{
-		Title:          "Test",
-		Content:        "Content",
-		Priority:       domain.AnnouncementPriorityNormal,
-		TargetAudience: domain.TargetAudienceAll,
-	})
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 	_, _ = uc.Publish(ctx, 1, created.ID, false)
 
-	// Admin can archive
 	archived, err := uc.Archive(ctx, 2, created.ID, true)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementStatusArchived, archived.Status)
+}
 
-	if archived.Status != domain.AnnouncementStatusArchived {
-		t.Errorf("expected status 'archived', got '%s'", archived.Status)
+func TestAnnouncementUseCase_Archive_NotPublished(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	// Draft cannot be archived
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+
+	_, err := uc.Archive(ctx, 1, created.ID, false)
+	assert.Error(t, err)
+}
+
+func TestAnnouncementUseCase_Archive_RepoGetByIDError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+		getByIDErr:                 errors.New("db error"),
 	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	_, err := uc.Archive(ctx, 1, 1, false)
+	assert.Error(t, err)
+	assert.Equal(t, "db error", err.Error())
+}
+
+func TestAnnouncementUseCase_Archive_RepoSaveError(t *testing.T) {
+	repo := &ErrorMockAnnouncementRepository{
+		MockAnnouncementRepository: *NewMockAnnouncementRepository(),
+	}
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	created, err := uc.Create(ctx, 1, createDefaultRequest())
+	require.NoError(t, err)
+	_, err = uc.Publish(ctx, 1, created.ID, false)
+	require.NoError(t, err)
+
+	repo.saveErr = errors.New("save error")
+
+	_, err = uc.Archive(ctx, 1, created.ID, false)
+	assert.Error(t, err)
+	assert.Equal(t, "save error", err.Error())
+}
+
+func TestAnnouncementUseCase_Archive_WithAuditLogger(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	auditLogger := createTestAuditLogger()
+	uc := NewAnnouncementUseCase(repo, auditLogger, nil, nil)
+	ctx := context.Background()
+
+	created, _ := uc.Create(ctx, 1, createDefaultRequest())
+	_, _ = uc.Publish(ctx, 1, created.ID, false)
+
+	archived, err := uc.Archive(ctx, 1, created.ID, false)
+	require.NoError(t, err)
+	assert.Equal(t, domain.AnnouncementStatusArchived, archived.Status)
 }

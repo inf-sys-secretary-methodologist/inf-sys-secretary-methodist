@@ -2,12 +2,14 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
@@ -99,432 +101,607 @@ func (m *MockQueryBuilder) GetAvailableFields(dataSource entities.DataSourceType
 	return args.Get(0).([]entities.ReportField)
 }
 
-// Helper function to create a pointer to string
-func strPtr(s string) *string {
-	return &s
+// Helpers
+func strPtr(s string) *string   { return &s }
+func boolPtr(b bool) *bool      { return &b }
+
+func newCustomUC() (*CustomReportUseCase, *MockCustomReportRepository, *MockQueryBuilder) {
+	repo := new(MockCustomReportRepository)
+	qb := new(MockQueryBuilder)
+	uc := NewCustomReportUseCase(repo, qb)
+	return uc, repo, qb
 }
 
-// Helper function to create a pointer to bool
-func boolPtr(b bool) *bool {
-	return &b
+func validFields() []dto.SelectedFieldDTO {
+	return []dto.SelectedFieldDTO{
+		{Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"}, Order: 1},
+	}
 }
 
-// Tests
+func newCustomReport(id uuid.UUID, createdBy int64, isPublic bool) *entities.CustomReport {
+	return &entities.CustomReport{
+		ID: id, Name: "R", DataSource: entities.DataSourceUsers,
+		CreatedBy: createdBy, IsPublic: isPublic,
+		Fields: []entities.SelectedField{}, Filters: []entities.ReportFilterConfig{},
+		Groupings: []entities.ReportGrouping{}, Sortings: []entities.ReportSorting{},
+	}
+}
+
+// =============================================================================
+// Create
+// =============================================================================
 
 func TestCustomReportUseCase_Create(t *testing.T) {
-	mockRepo := new(MockCustomReportRepository)
-	mockQueryBuilder := new(MockQueryBuilder)
-	usecase := NewCustomReportUseCase(mockRepo, mockQueryBuilder)
-
-	t.Run("create custom report successfully", func(t *testing.T) {
-		mockRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.CustomReport")).Return(nil).Once()
-
-		input := dto.CreateCustomReportInput{
-			Name:        "Test Report",
-			Description: "Test Description",
-			DataSource:  "users",
-			Fields: []dto.SelectedFieldDTO{
-				{
-					Field: dto.ReportFieldDTO{
-						ID:    "id",
-						Name:  "id",
-						Label: "ID",
-						Type:  "number",
-					},
-					Order: 1,
-				},
-			},
-			IsPublic: false,
-		}
-
-		output, err := usecase.Create(context.Background(), input, 1)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "Test Report", output.Name)
-		assert.Equal(t, "Test Description", output.Description)
-		mockRepo.AssertExpectations(t)
+	t.Run("success", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Create", mock.Anything, mock.AnythingOfType("*entities.CustomReport")).Return(nil).Once()
+		out, err := uc.Create(context.Background(), dto.CreateCustomReportInput{
+			Name: "R", Description: "D", DataSource: "users", Fields: validFields(),
+		}, 1)
+		require.NoError(t, err)
+		assert.Equal(t, "R", out.Name)
 	})
 
-	t.Run("create custom report with invalid data source", func(t *testing.T) {
-		input := dto.CreateCustomReportInput{
-			Name:       "Test Report",
-			DataSource: "invalid_source",
-			Fields: []dto.SelectedFieldDTO{
-				{
-					Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"},
-					Order: 1,
-				},
-			},
-		}
-
-		output, err := usecase.Create(context.Background(), input, 1)
-
-		assert.Error(t, err)
-		assert.Empty(t, output.ID)
-		assert.Equal(t, ErrInvalidDataSource, err)
+	t.Run("invalid data source", func(t *testing.T) {
+		uc, _, _ := newCustomUC()
+		_, err := uc.Create(context.Background(), dto.CreateCustomReportInput{
+			Name: "R", DataSource: "bad", Fields: validFields(),
+		}, 1)
+		assert.ErrorIs(t, err, ErrInvalidDataSource)
 	})
 
-	t.Run("create custom report without fields", func(t *testing.T) {
-		input := dto.CreateCustomReportInput{
-			Name:       "Test Report",
-			DataSource: "users",
-			Fields:     []dto.SelectedFieldDTO{},
-		}
+	t.Run("no fields", func(t *testing.T) {
+		uc, _, _ := newCustomUC()
+		_, err := uc.Create(context.Background(), dto.CreateCustomReportInput{
+			Name: "R", DataSource: "users", Fields: []dto.SelectedFieldDTO{},
+		}, 1)
+		assert.ErrorIs(t, err, ErrInvalidFields)
+	})
 
-		output, err := usecase.Create(context.Background(), input, 1)
-
+	t.Run("repo error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Create", mock.Anything, mock.AnythingOfType("*entities.CustomReport")).Return(errors.New("db")).Once()
+		_, err := uc.Create(context.Background(), dto.CreateCustomReportInput{
+			Name: "R", DataSource: "users", Fields: validFields(),
+		}, 1)
 		assert.Error(t, err)
-		assert.Empty(t, output.ID)
-		assert.Equal(t, ErrInvalidFields, err)
+	})
+
+	t.Run("with filters groupings sortings", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Create", mock.Anything, mock.AnythingOfType("*entities.CustomReport")).Return(nil).Once()
+		out, err := uc.Create(context.Background(), dto.CreateCustomReportInput{
+			Name: "R", DataSource: "users", Fields: validFields(), IsPublic: true,
+			Filters: []dto.ReportFilterDTO{{ID: "f1", Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"}, Operator: "equals", Value: 1}},
+			Groupings: []dto.ReportGroupingDTO{{Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"}, Order: "asc"}},
+			Sortings:  []dto.ReportSortingDTO{{Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"}, Order: "desc"}},
+		}, 1)
+		require.NoError(t, err)
+		assert.Equal(t, "R", out.Name)
 	})
 }
+
+// =============================================================================
+// GetByID
+// =============================================================================
 
 func TestCustomReportUseCase_GetByID(t *testing.T) {
-	mockRepo := new(MockCustomReportRepository)
-	mockQueryBuilder := new(MockQueryBuilder)
-	usecase := NewCustomReportUseCase(mockRepo, mockQueryBuilder)
+	id := uuid.New()
 
-	reportID := uuid.New()
-
-	t.Run("get existing report by creator", func(t *testing.T) {
-		report := &entities.CustomReport{
-			ID:         reportID,
-			Name:       "Test Report",
-			DataSource: entities.DataSourceUsers,
-			CreatedBy:  1,
-			IsPublic:   false,
-			Fields:     []entities.SelectedField{},
-			Filters:    []entities.ReportFilterConfig{},
-			Groupings:  []entities.ReportGrouping{},
-			Sortings:   []entities.ReportSorting{},
-		}
-		mockRepo.On("GetByID", mock.Anything, reportID).Return(report, nil).Once()
-
-		output, err := usecase.GetByID(context.Background(), reportID, 1)
-
-		assert.NoError(t, err)
-		assert.Equal(t, reportID, output.ID)
-		mockRepo.AssertExpectations(t)
+	t.Run("creator access", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		out, err := uc.GetByID(context.Background(), id, 1)
+		require.NoError(t, err)
+		assert.Equal(t, id, out.ID)
 	})
 
-	t.Run("get public report by non-creator", func(t *testing.T) {
-		report := &entities.CustomReport{
-			ID:         reportID,
-			Name:       "Public Report",
-			DataSource: entities.DataSourceUsers,
-			CreatedBy:  1,
-			IsPublic:   true,
-			Fields:     []entities.SelectedField{},
-			Filters:    []entities.ReportFilterConfig{},
-			Groupings:  []entities.ReportGrouping{},
-			Sortings:   []entities.ReportSorting{},
-		}
-		mockRepo.On("GetByID", mock.Anything, reportID).Return(report, nil).Once()
-
-		output, err := usecase.GetByID(context.Background(), reportID, 2)
-
-		assert.NoError(t, err)
-		assert.NotEmpty(t, output.ID)
-		mockRepo.AssertExpectations(t)
+	t.Run("public access by non-creator", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, true), nil).Once()
+		out, err := uc.GetByID(context.Background(), id, 2)
+		require.NoError(t, err)
+		assert.Equal(t, id, out.ID)
 	})
 
-	t.Run("get private report by non-creator", func(t *testing.T) {
-		report := &entities.CustomReport{
-			ID:         reportID,
-			Name:       "Private Report",
-			DataSource: entities.DataSourceUsers,
-			CreatedBy:  1,
-			IsPublic:   false,
-		}
-		mockRepo.On("GetByID", mock.Anything, reportID).Return(report, nil).Once()
+	t.Run("private unauthorized", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		_, err := uc.GetByID(context.Background(), id, 2)
+		assert.ErrorIs(t, err, ErrUnauthorizedAccess)
+	})
 
-		output, err := usecase.GetByID(context.Background(), reportID, 2)
+	t.Run("not found", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(nil, nil).Once()
+		_, err := uc.GetByID(context.Background(), id, 1)
+		assert.ErrorIs(t, err, ErrCustomReportNotFound)
+	})
 
+	t.Run("repo error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(nil, errors.New("db")).Once()
+		_, err := uc.GetByID(context.Background(), id, 1)
 		assert.Error(t, err)
-		assert.Empty(t, output.ID)
-		assert.Equal(t, ErrUnauthorizedAccess, err)
-		mockRepo.AssertExpectations(t)
-	})
-
-	t.Run("get non-existing report", func(t *testing.T) {
-		mockRepo.On("GetByID", mock.Anything, reportID).Return(nil, nil).Once()
-
-		output, err := usecase.GetByID(context.Background(), reportID, 1)
-
-		assert.Error(t, err)
-		assert.Empty(t, output.ID)
-		assert.Equal(t, ErrCustomReportNotFound, err)
-		mockRepo.AssertExpectations(t)
 	})
 }
+
+// =============================================================================
+// Update
+// =============================================================================
 
 func TestCustomReportUseCase_Update(t *testing.T) {
-	mockRepo := new(MockCustomReportRepository)
-	mockQueryBuilder := new(MockQueryBuilder)
-	usecase := NewCustomReportUseCase(mockRepo, mockQueryBuilder)
+	id := uuid.New()
 
-	reportID := uuid.New()
+	t.Run("success all fields", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		repo.On("Update", mock.Anything, mock.AnythingOfType("*entities.CustomReport")).Return(nil).Once()
 
-	t.Run("update report successfully", func(t *testing.T) {
-		existingReport := &entities.CustomReport{
-			ID:         reportID,
-			Name:       "Original Name",
-			DataSource: entities.DataSourceUsers,
-			CreatedBy:  1,
-			IsPublic:   false,
-			Fields:     []entities.SelectedField{},
-			Filters:    []entities.ReportFilterConfig{},
-			Groupings:  []entities.ReportGrouping{},
-			Sortings:   []entities.ReportSorting{},
-		}
-		mockRepo.On("GetByID", mock.Anything, reportID).Return(existingReport, nil).Once()
-		mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.CustomReport")).Return(nil).Once()
-
-		input := dto.UpdateCustomReportInput{
-			Name:        strPtr("Updated Name"),
-			Description: strPtr("Updated Description"),
-			DataSource:  strPtr("users"),
-			Fields: []dto.SelectedFieldDTO{
-				{
-					Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"},
-					Order: 1,
-				},
-			},
-			IsPublic: boolPtr(true),
-		}
-
-		output, err := usecase.Update(context.Background(), reportID, input, 1)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "Updated Name", output.Name)
-		mockRepo.AssertExpectations(t)
+		out, err := uc.Update(context.Background(), id, dto.UpdateCustomReportInput{
+			Name: strPtr("New"), Description: strPtr("Desc"), DataSource: strPtr("users"),
+			Fields: validFields(), IsPublic: boolPtr(true),
+			Filters:   []dto.ReportFilterDTO{{ID: "f1", Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"}, Operator: "equals", Value: 1}},
+			Groupings: []dto.ReportGroupingDTO{{Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"}, Order: "asc"}},
+			Sortings:  []dto.ReportSortingDTO{{Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"}, Order: "desc"}},
+		}, 1)
+		require.NoError(t, err)
+		assert.Equal(t, "New", out.Name)
 	})
 
-	t.Run("update report by non-creator", func(t *testing.T) {
-		existingReport := &entities.CustomReport{
-			ID:         reportID,
-			Name:       "Original Name",
-			DataSource: entities.DataSourceUsers,
-			CreatedBy:  1,
-			IsPublic:   false,
-		}
-		mockRepo.On("GetByID", mock.Anything, reportID).Return(existingReport, nil).Once()
+	t.Run("non-creator", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		_, err := uc.Update(context.Background(), id, dto.UpdateCustomReportInput{Name: strPtr("X")}, 2)
+		assert.ErrorIs(t, err, ErrUnauthorizedAccess)
+	})
 
-		input := dto.UpdateCustomReportInput{
-			Name:       strPtr("Updated Name"),
-			DataSource: strPtr("users"),
-			Fields: []dto.SelectedFieldDTO{
-				{
-					Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"},
-					Order: 1,
-				},
-			},
-		}
+	t.Run("not found", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(nil, nil).Once()
+		_, err := uc.Update(context.Background(), id, dto.UpdateCustomReportInput{Name: strPtr("X")}, 1)
+		assert.ErrorIs(t, err, ErrCustomReportNotFound)
+	})
 
-		output, err := usecase.Update(context.Background(), reportID, input, 2)
-
+	t.Run("repo error on get", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(nil, errors.New("db")).Once()
+		_, err := uc.Update(context.Background(), id, dto.UpdateCustomReportInput{Name: strPtr("X")}, 1)
 		assert.Error(t, err)
-		assert.Empty(t, output.ID)
-		assert.Equal(t, ErrUnauthorizedAccess, err)
-		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("invalid data source", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		_, err := uc.Update(context.Background(), id, dto.UpdateCustomReportInput{DataSource: strPtr("bad")}, 1)
+		assert.ErrorIs(t, err, ErrInvalidDataSource)
+	})
+
+	t.Run("empty fields", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		_, err := uc.Update(context.Background(), id, dto.UpdateCustomReportInput{Fields: []dto.SelectedFieldDTO{}}, 1)
+		assert.ErrorIs(t, err, ErrInvalidFields)
+	})
+
+	t.Run("update repo error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		repo.On("Update", mock.Anything, mock.AnythingOfType("*entities.CustomReport")).Return(errors.New("db")).Once()
+		_, err := uc.Update(context.Background(), id, dto.UpdateCustomReportInput{Name: strPtr("X")}, 1)
+		assert.Error(t, err)
+	})
+
+	t.Run("partial update name only", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		repo.On("Update", mock.Anything, mock.AnythingOfType("*entities.CustomReport")).Return(nil).Once()
+
+		out, err := uc.Update(context.Background(), id, dto.UpdateCustomReportInput{Name: strPtr("New")}, 1)
+		require.NoError(t, err)
+		assert.Equal(t, "New", out.Name)
 	})
 }
+
+// =============================================================================
+// Delete
+// =============================================================================
 
 func TestCustomReportUseCase_Delete(t *testing.T) {
-	mockRepo := new(MockCustomReportRepository)
-	mockQueryBuilder := new(MockQueryBuilder)
-	usecase := NewCustomReportUseCase(mockRepo, mockQueryBuilder)
+	id := uuid.New()
 
-	reportID := uuid.New()
-
-	t.Run("delete report successfully", func(t *testing.T) {
-		report := &entities.CustomReport{
-			ID:        reportID,
-			Name:      "Test Report",
-			CreatedBy: 1,
-		}
-		mockRepo.On("GetByID", mock.Anything, reportID).Return(report, nil).Once()
-		mockRepo.On("Delete", mock.Anything, reportID).Return(nil).Once()
-
-		err := usecase.Delete(context.Background(), reportID, 1)
-
-		assert.NoError(t, err)
-		mockRepo.AssertExpectations(t)
+	t.Run("success", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		repo.On("Delete", mock.Anything, id).Return(nil).Once()
+		assert.NoError(t, uc.Delete(context.Background(), id, 1))
 	})
 
-	t.Run("delete report by non-creator", func(t *testing.T) {
-		report := &entities.CustomReport{
-			ID:        reportID,
-			Name:      "Test Report",
-			CreatedBy: 1,
-		}
-		mockRepo.On("GetByID", mock.Anything, reportID).Return(report, nil).Once()
-
-		err := usecase.Delete(context.Background(), reportID, 2)
-
-		assert.Error(t, err)
-		assert.Equal(t, ErrUnauthorizedAccess, err)
-		mockRepo.AssertExpectations(t)
+	t.Run("non-creator", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		assert.ErrorIs(t, uc.Delete(context.Background(), id, 2), ErrUnauthorizedAccess)
 	})
 
-	t.Run("delete non-existing report", func(t *testing.T) {
-		mockRepo.On("GetByID", mock.Anything, reportID).Return(nil, nil).Once()
+	t.Run("not found", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(nil, nil).Once()
+		assert.ErrorIs(t, uc.Delete(context.Background(), id, 1), ErrCustomReportNotFound)
+	})
 
-		err := usecase.Delete(context.Background(), reportID, 1)
+	t.Run("repo error on get", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(nil, errors.New("db")).Once()
+		assert.Error(t, uc.Delete(context.Background(), id, 1))
+	})
 
-		assert.Error(t, err)
-		assert.Equal(t, ErrCustomReportNotFound, err)
-		mockRepo.AssertExpectations(t)
+	t.Run("delete repo error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		repo.On("Delete", mock.Anything, id).Return(errors.New("db")).Once()
+		assert.Error(t, uc.Delete(context.Background(), id, 1))
 	})
 }
+
+// =============================================================================
+// List
+// =============================================================================
 
 func TestCustomReportUseCase_List(t *testing.T) {
-	mockRepo := new(MockCustomReportRepository)
-	mockQueryBuilder := new(MockQueryBuilder)
-	usecase := NewCustomReportUseCase(mockRepo, mockQueryBuilder)
-
-	t.Run("list reports with pagination", func(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
 		reports := []*entities.CustomReport{
-			{ID: uuid.New(), Name: "Report 1", DataSource: entities.DataSourceUsers, CreatedBy: 1, IsPublic: true, Fields: []entities.SelectedField{}, Filters: []entities.ReportFilterConfig{}, Groupings: []entities.ReportGrouping{}, Sortings: []entities.ReportSorting{}},
-			{ID: uuid.New(), Name: "Report 2", DataSource: entities.DataSourceDocuments, CreatedBy: 1, IsPublic: false, Fields: []entities.SelectedField{}, Filters: []entities.ReportFilterConfig{}, Groupings: []entities.ReportGrouping{}, Sortings: []entities.ReportSorting{}},
+			newCustomReport(uuid.New(), 1, true),
+			newCustomReport(uuid.New(), 1, false),
 		}
-		mockRepo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(2), nil).Once()
-		mockRepo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(2), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
 
-		input := dto.CustomReportFilterInput{
-			Page:     1,
-			PageSize: 20,
-		}
-
-		output, err := usecase.List(context.Background(), input, 1)
-
-		assert.NoError(t, err)
-		assert.Len(t, output.Reports, 2)
-		assert.Equal(t, int64(2), output.Total)
-		mockRepo.AssertExpectations(t)
+		out, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 1, PageSize: 20}, 1)
+		require.NoError(t, err)
+		assert.Len(t, out.Reports, 2)
 	})
 
-	t.Run("list with empty result", func(t *testing.T) {
-		mockRepo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), nil).Once()
-		mockRepo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
-
-		input := dto.CustomReportFilterInput{
-			Page:     1,
-			PageSize: 20,
+	t.Run("filters accessible reports", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		reports := []*entities.CustomReport{
+			newCustomReport(uuid.New(), 1, false),  // own
+			newCustomReport(uuid.New(), 2, true),   // public
+			newCustomReport(uuid.New(), 2, false),  // other's private - filtered out
 		}
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(3), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
 
-		output, err := usecase.List(context.Background(), input, 1)
+		out, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 1, PageSize: 20}, 1)
+		require.NoError(t, err)
+		assert.Len(t, out.Reports, 2)
+	})
 
-		assert.NoError(t, err)
-		assert.Len(t, output.Reports, 0)
-		assert.Equal(t, int64(0), output.Total)
-		mockRepo.AssertExpectations(t)
+	t.Run("default pagination", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
+
+		out, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 0, PageSize: 0}, 1)
+		require.NoError(t, err)
+		assert.Equal(t, 1, out.Page)
+		assert.Equal(t, 10, out.PageSize)
+	})
+
+	t.Run("count error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), errors.New("db")).Once()
+		_, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 1, PageSize: 10}, 1)
+		assert.Error(t, err)
+	})
+
+	t.Run("list error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(nil, errors.New("db")).Once()
+		_, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 1, PageSize: 10}, 1)
+		assert.Error(t, err)
+	})
+
+	t.Run("empty", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
+
+		out, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 1, PageSize: 20}, 1)
+		require.NoError(t, err)
+		assert.Len(t, out.Reports, 0)
 	})
 }
+
+// =============================================================================
+// Execute
+// =============================================================================
 
 func TestCustomReportUseCase_Execute(t *testing.T) {
-	mockRepo := new(MockCustomReportRepository)
-	mockQueryBuilder := new(MockQueryBuilder)
-	usecase := NewCustomReportUseCase(mockRepo, mockQueryBuilder)
+	id := uuid.New()
 
-	reportID := uuid.New()
-
-	t.Run("execute report successfully", func(t *testing.T) {
-		report := &entities.CustomReport{
-			ID:         reportID,
-			Name:       "Test Report",
-			DataSource: entities.DataSourceUsers,
-			CreatedBy:  1,
-			IsPublic:   false,
-			Fields:     []entities.SelectedField{},
-			Filters:    []entities.ReportFilterConfig{},
-			Groupings:  []entities.ReportGrouping{},
-			Sortings:   []entities.ReportSorting{},
+	t.Run("success", func(t *testing.T) {
+		uc, repo, qb := newCustomUC()
+		r := newCustomReport(id, 1, false)
+		result := &entities.ReportExecutionResult{
+			Columns: []entities.ReportColumn{{Key: "id", Label: "ID"}},
+			Rows:    []map[string]any{{"id": 1}},
+			TotalCount: 1, Page: 1, PageSize: 10, TotalPages: 1,
 		}
-		execResult := &entities.ReportExecutionResult{
-			Columns:    []entities.ReportColumn{{Key: "id", Label: "ID"}},
-			Rows:       []map[string]any{{"id": 1}},
-			TotalCount: 1,
-			Page:       1,
-			PageSize:   10,
-			TotalPages: 1,
-		}
-		mockRepo.On("GetByID", mock.Anything, reportID).Return(report, nil).Once()
-		mockQueryBuilder.On("Execute", mock.Anything, report, 1, 10).Return(execResult, nil).Once()
+		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()
+		qb.On("Execute", mock.Anything, r, 1, 10).Return(result, nil).Once()
 
-		input := dto.ExecuteReportInput{
-			Page:     1,
-			PageSize: 10,
-		}
-
-		output, err := usecase.Execute(context.Background(), reportID, input, 1)
-
-		assert.NoError(t, err)
-		assert.Equal(t, int64(1), output.TotalCount)
-		mockRepo.AssertExpectations(t)
-		mockQueryBuilder.AssertExpectations(t)
+		out, err := uc.Execute(context.Background(), id, dto.ExecuteReportInput{Page: 1, PageSize: 10}, 1)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), out.TotalCount)
+		assert.Len(t, out.Columns, 1)
 	})
 
-	t.Run("execute private report by non-creator", func(t *testing.T) {
-		report := &entities.CustomReport{
-			ID:         reportID,
-			Name:       "Private Report",
-			DataSource: entities.DataSourceUsers,
-			CreatedBy:  1,
-			IsPublic:   false,
-		}
-		mockRepo.On("GetByID", mock.Anything, reportID).Return(report, nil).Once()
+	t.Run("not found", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(nil, nil).Once()
+		_, err := uc.Execute(context.Background(), id, dto.ExecuteReportInput{Page: 1, PageSize: 10}, 1)
+		assert.ErrorIs(t, err, ErrCustomReportNotFound)
+	})
 
-		input := dto.ExecuteReportInput{
-			Page:     1,
-			PageSize: 10,
-		}
-
-		output, err := usecase.Execute(context.Background(), reportID, input, 2)
-
+	t.Run("repo error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(nil, errors.New("db")).Once()
+		_, err := uc.Execute(context.Background(), id, dto.ExecuteReportInput{Page: 1, PageSize: 10}, 1)
 		assert.Error(t, err)
-		assert.Empty(t, output.Columns)
-		assert.Equal(t, ErrUnauthorizedAccess, err)
-		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("unauthorized", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		_, err := uc.Execute(context.Background(), id, dto.ExecuteReportInput{Page: 1, PageSize: 10}, 2)
+		assert.ErrorIs(t, err, ErrUnauthorizedAccess)
+	})
+
+	t.Run("public report by non-creator", func(t *testing.T) {
+		uc, repo, qb := newCustomUC()
+		r := newCustomReport(id, 1, true)
+		result := &entities.ReportExecutionResult{
+			Columns: []entities.ReportColumn{}, Rows: []map[string]any{},
+			TotalCount: 0, Page: 1, PageSize: 50, TotalPages: 0,
+		}
+		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()
+		qb.On("Execute", mock.Anything, r, 1, 50).Return(result, nil).Once()
+
+		out, err := uc.Execute(context.Background(), id, dto.ExecuteReportInput{Page: 0, PageSize: 0}, 2)
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), out.TotalCount)
+	})
+
+	t.Run("default pagination", func(t *testing.T) {
+		uc, repo, qb := newCustomUC()
+		r := newCustomReport(id, 1, false)
+		result := &entities.ReportExecutionResult{
+			Columns: []entities.ReportColumn{}, Rows: []map[string]any{},
+			TotalCount: 0, Page: 1, PageSize: 50, TotalPages: 0,
+		}
+		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()
+		qb.On("Execute", mock.Anything, r, 1, 50).Return(result, nil).Once()
+
+		_, err := uc.Execute(context.Background(), id, dto.ExecuteReportInput{Page: 0, PageSize: 0}, 1)
+		require.NoError(t, err)
+	})
+
+	t.Run("pageSize capped at 1000", func(t *testing.T) {
+		uc, repo, qb := newCustomUC()
+		r := newCustomReport(id, 1, false)
+		result := &entities.ReportExecutionResult{
+			Columns: []entities.ReportColumn{}, Rows: []map[string]any{},
+			TotalCount: 0, Page: 1, PageSize: 1000, TotalPages: 0,
+		}
+		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()
+		qb.On("Execute", mock.Anything, r, 1, 1000).Return(result, nil).Once()
+
+		_, err := uc.Execute(context.Background(), id, dto.ExecuteReportInput{Page: 1, PageSize: 5000}, 1)
+		require.NoError(t, err)
+	})
+
+	t.Run("query error", func(t *testing.T) {
+		uc, repo, qb := newCustomUC()
+		r := newCustomReport(id, 1, false)
+		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()
+		qb.On("Execute", mock.Anything, r, 1, 10).Return(nil, errors.New("query err")).Once()
+
+		_, err := uc.Execute(context.Background(), id, dto.ExecuteReportInput{Page: 1, PageSize: 10}, 1)
+		assert.Error(t, err)
 	})
 }
+
+// =============================================================================
+// Export
+// =============================================================================
+
+func TestCustomReportUseCase_Export(t *testing.T) {
+	id := uuid.New()
+
+	t.Run("success", func(t *testing.T) {
+		uc, repo, qb := newCustomUC()
+		r := newCustomReport(id, 1, false)
+		result := &entities.ReportExecutionResult{
+			Columns: []entities.ReportColumn{{Key: "id", Label: "ID"}},
+			Rows:    []map[string]any{{"id": 1}},
+			TotalCount: 1, Page: 1, PageSize: 10000, TotalPages: 1,
+		}
+		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()
+		qb.On("Execute", mock.Anything, r, 1, 10000).Return(result, nil).Once()
+		qb.On("Export", result, mock.AnythingOfType("entities.ExportOptions"), "R").Return([]byte("data"), "report.csv", nil).Once()
+
+		data, filename, err := uc.Export(context.Background(), id, dto.ExportReportInput{
+			Format: "csv", IncludeHeaders: true,
+		}, 1)
+		require.NoError(t, err)
+		assert.Equal(t, []byte("data"), data)
+		assert.Equal(t, "report.csv", filename)
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(nil, nil).Once()
+		_, _, err := uc.Export(context.Background(), id, dto.ExportReportInput{Format: "csv"}, 1)
+		assert.ErrorIs(t, err, ErrCustomReportNotFound)
+	})
+
+	t.Run("repo error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(nil, errors.New("db")).Once()
+		_, _, err := uc.Export(context.Background(), id, dto.ExportReportInput{Format: "csv"}, 1)
+		assert.Error(t, err)
+	})
+
+	t.Run("unauthorized", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("GetByID", mock.Anything, id).Return(newCustomReport(id, 1, false), nil).Once()
+		_, _, err := uc.Export(context.Background(), id, dto.ExportReportInput{Format: "csv"}, 2)
+		assert.ErrorIs(t, err, ErrUnauthorizedAccess)
+	})
+
+	t.Run("public report by non-creator", func(t *testing.T) {
+		uc, repo, qb := newCustomUC()
+		r := newCustomReport(id, 1, true)
+		result := &entities.ReportExecutionResult{
+			Columns: []entities.ReportColumn{}, Rows: []map[string]any{},
+			TotalCount: 0, Page: 1, PageSize: 10000, TotalPages: 0,
+		}
+		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()
+		qb.On("Execute", mock.Anything, r, 1, 10000).Return(result, nil).Once()
+		qb.On("Export", result, mock.AnythingOfType("entities.ExportOptions"), "R").Return([]byte("data"), "report.csv", nil).Once()
+
+		data, _, err := uc.Export(context.Background(), id, dto.ExportReportInput{Format: "csv"}, 2)
+		require.NoError(t, err)
+		assert.NotEmpty(t, data)
+	})
+
+	t.Run("execute error", func(t *testing.T) {
+		uc, repo, qb := newCustomUC()
+		r := newCustomReport(id, 1, false)
+		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()
+		qb.On("Execute", mock.Anything, r, 1, 10000).Return(nil, errors.New("query err")).Once()
+		_, _, err := uc.Export(context.Background(), id, dto.ExportReportInput{Format: "csv"}, 1)
+		assert.Error(t, err)
+	})
+
+	t.Run("export error", func(t *testing.T) {
+		uc, repo, qb := newCustomUC()
+		r := newCustomReport(id, 1, false)
+		result := &entities.ReportExecutionResult{
+			Columns: []entities.ReportColumn{}, Rows: []map[string]any{},
+			TotalCount: 0, Page: 1, PageSize: 10000, TotalPages: 0,
+		}
+		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()
+		qb.On("Execute", mock.Anything, r, 1, 10000).Return(result, nil).Once()
+		qb.On("Export", result, mock.AnythingOfType("entities.ExportOptions"), "R").Return([]byte{}, "", errors.New("export err")).Once()
+		_, _, err := uc.Export(context.Background(), id, dto.ExportReportInput{Format: "csv"}, 1)
+		assert.Error(t, err)
+	})
+
+	t.Run("with pdf options", func(t *testing.T) {
+		uc, repo, qb := newCustomUC()
+		r := newCustomReport(id, 1, false)
+		result := &entities.ReportExecutionResult{
+			Columns: []entities.ReportColumn{}, Rows: []map[string]any{},
+			TotalCount: 0, Page: 1, PageSize: 10000, TotalPages: 0,
+		}
+		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()
+		qb.On("Execute", mock.Anything, r, 1, 10000).Return(result, nil).Once()
+		qb.On("Export", result, mock.AnythingOfType("entities.ExportOptions"), "R").Return([]byte("pdf"), "report.pdf", nil).Once()
+
+		data, filename, err := uc.Export(context.Background(), id, dto.ExportReportInput{
+			Format: "pdf", IncludeHeaders: true, PageSize: "A4", Orientation: "landscape",
+		}, 1)
+		require.NoError(t, err)
+		assert.Equal(t, []byte("pdf"), data)
+		assert.Equal(t, "report.pdf", filename)
+	})
+}
+
+// =============================================================================
+// GetMyReports
+// =============================================================================
 
 func TestCustomReportUseCase_GetMyReports(t *testing.T) {
-	mockRepo := new(MockCustomReportRepository)
-	mockQueryBuilder := new(MockQueryBuilder)
-	usecase := NewCustomReportUseCase(mockRepo, mockQueryBuilder)
+	t.Run("success", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		reports := []*entities.CustomReport{newCustomReport(uuid.New(), 1, false)}
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
 
-	t.Run("get my reports", func(t *testing.T) {
-		reports := []*entities.CustomReport{
-			{ID: uuid.New(), Name: "My Report", DataSource: entities.DataSourceUsers, CreatedBy: 1, Fields: []entities.SelectedField{}, Filters: []entities.ReportFilterConfig{}, Groupings: []entities.ReportGrouping{}, Sortings: []entities.ReportSorting{}},
-		}
-		mockRepo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
-		mockRepo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
+		out, err := uc.GetMyReports(context.Background(), 1, 10, 1)
+		require.NoError(t, err)
+		assert.Len(t, out.Reports, 1)
+	})
 
-		output, err := usecase.GetMyReports(context.Background(), 1, 10, 1)
+	t.Run("default pagination", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
 
-		assert.NoError(t, err)
-		assert.Len(t, output.Reports, 1)
-		mockRepo.AssertExpectations(t)
+		out, err := uc.GetMyReports(context.Background(), 0, 0, 1)
+		require.NoError(t, err)
+		assert.Equal(t, 1, out.Page)
+		assert.Equal(t, 10, out.PageSize)
+	})
+
+	t.Run("count error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), errors.New("db")).Once()
+		_, err := uc.GetMyReports(context.Background(), 1, 10, 1)
+		assert.Error(t, err)
+	})
+
+	t.Run("list error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(nil, errors.New("db")).Once()
+		_, err := uc.GetMyReports(context.Background(), 1, 10, 1)
+		assert.Error(t, err)
 	})
 }
 
+// =============================================================================
+// GetPublicReports
+// =============================================================================
+
 func TestCustomReportUseCase_GetPublicReports(t *testing.T) {
-	mockRepo := new(MockCustomReportRepository)
-	mockQueryBuilder := new(MockQueryBuilder)
-	usecase := NewCustomReportUseCase(mockRepo, mockQueryBuilder)
+	t.Run("success", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		reports := []*entities.CustomReport{newCustomReport(uuid.New(), 1, true)}
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
 
-	t.Run("get public reports", func(t *testing.T) {
-		reports := []*entities.CustomReport{
-			{ID: uuid.New(), Name: "Public Report", DataSource: entities.DataSourceUsers, CreatedBy: 1, IsPublic: true, Fields: []entities.SelectedField{}, Filters: []entities.ReportFilterConfig{}, Groupings: []entities.ReportGrouping{}, Sortings: []entities.ReportSorting{}},
-		}
-		mockRepo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
-		mockRepo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
+		out, err := uc.GetPublicReports(context.Background(), 1, 10)
+		require.NoError(t, err)
+		assert.Len(t, out.Reports, 1)
+	})
 
-		output, err := usecase.GetPublicReports(context.Background(), 1, 10)
+	t.Run("default pagination", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
 
-		assert.NoError(t, err)
-		assert.Len(t, output.Reports, 1)
-		mockRepo.AssertExpectations(t)
+		out, err := uc.GetPublicReports(context.Background(), 0, 0)
+		require.NoError(t, err)
+		assert.Equal(t, 1, out.Page)
+		assert.Equal(t, 10, out.PageSize)
+	})
+
+	t.Run("count error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), errors.New("db")).Once()
+		_, err := uc.GetPublicReports(context.Background(), 1, 10)
+		assert.Error(t, err)
+	})
+
+	t.Run("list error", func(t *testing.T) {
+		uc, repo, _ := newCustomUC()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(nil, errors.New("db")).Once()
+		_, err := uc.GetPublicReports(context.Background(), 1, 10)
+		assert.Error(t, err)
 	})
 }

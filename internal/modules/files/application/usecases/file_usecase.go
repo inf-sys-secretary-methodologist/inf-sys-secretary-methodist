@@ -21,9 +21,9 @@ import (
 type FileUseCase struct {
 	fileRepo       repositories.FileMetadataRepository
 	versionRepo    repositories.FileVersionRepository
-	s3Client       *storage.S3Client
-	fileValidator  *storage.FileValidator
-	auditLogger    *logging.AuditLogger
+	storageClient  StorageClient
+	fileValidator  FileNameValidator
+	auditLogger    AuditEventLogger
 	tempExpiration time.Duration // Срок жизни временных файлов
 }
 
@@ -35,14 +35,21 @@ func NewFileUseCase(
 	fileValidator *storage.FileValidator,
 	auditLogger *logging.AuditLogger,
 ) *FileUseCase {
-	return &FileUseCase{
+	uc := &FileUseCase{
 		fileRepo:       fileRepo,
 		versionRepo:    versionRepo,
-		s3Client:       s3Client,
-		fileValidator:  fileValidator,
-		auditLogger:    auditLogger,
 		tempExpiration: 24 * time.Hour, // Временные файлы живут 24 часа
 	}
+	if s3Client != nil {
+		uc.storageClient = s3Client
+	}
+	if fileValidator != nil {
+		uc.fileValidator = fileValidator
+	}
+	if auditLogger != nil {
+		uc.auditLogger = auditLogger
+	}
+	return uc
 }
 
 // UploadFile загружает файл в хранилище.
@@ -62,7 +69,7 @@ func (uc *FileUseCase) UploadFile(ctx context.Context, reader io.Reader, input *
 	hashReader := &hashingReader{reader: reader, hasher: sha256.New()}
 
 	// Загружаем файл в S3/MinIO
-	fileInfo, err := uc.s3Client.Upload(ctx, storageKey, hashReader, input.Size, input.MimeType)
+	fileInfo, err := uc.storageClient.Upload(ctx, storageKey, hashReader, input.Size, input.MimeType)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка загрузки файла в хранилище: %w", err)
 	}
@@ -85,7 +92,7 @@ func (uc *FileUseCase) UploadFile(ctx context.Context, reader io.Reader, input *
 	err = uc.fileRepo.Create(ctx, fileMeta)
 	if err != nil {
 		// Пытаемся удалить файл из хранилища при ошибке
-		_ = uc.s3Client.Delete(ctx, storageKey)
+		_ = uc.storageClient.Delete(ctx, storageKey)
 		return nil, fmt.Errorf("ошибка сохранения метаданных файла: %w", err)
 	}
 
@@ -127,7 +134,7 @@ func (uc *FileUseCase) GetFileWithDownloadURL(ctx context.Context, id int64, url
 	response := uc.toFileResponse(file)
 
 	// Генерируем presigned URL для скачивания
-	downloadURL, err := uc.s3Client.GetPresignedURL(ctx, file.StorageKey, urlExpiration)
+	downloadURL, err := uc.storageClient.GetPresignedURL(ctx, file.StorageKey, urlExpiration)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка генерации URL для скачивания: %w", err)
 	}
@@ -144,7 +151,7 @@ func (uc *FileUseCase) DownloadFile(ctx context.Context, id int64) (*dto.Downloa
 	}
 
 	// Генерируем presigned URL (действует 1 час)
-	presignedURL, err := uc.s3Client.GetPresignedURL(ctx, file.StorageKey, time.Hour)
+	presignedURL, err := uc.storageClient.GetPresignedURL(ctx, file.StorageKey, time.Hour)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка генерации URL для скачивания: %w", err)
 	}
@@ -323,7 +330,7 @@ func (uc *FileUseCase) CleanupExpiredFiles(ctx context.Context) (int64, error) {
 
 	// Удаляем файлы из хранилища
 	for _, file := range expiredFiles {
-		_ = uc.s3Client.Delete(ctx, file.StorageKey)
+		_ = uc.storageClient.Delete(ctx, file.StorageKey)
 	}
 
 	// Помечаем как удалённые в БД

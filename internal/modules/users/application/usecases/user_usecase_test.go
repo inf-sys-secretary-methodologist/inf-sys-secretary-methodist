@@ -11,14 +11,17 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 const testEmail = "test@example.com"
 
 // MockUserRepository implements authRepos.UserRepository for testing.
 type MockUserRepository struct {
-	users  map[int64]*authEntities.User
-	nextID int64
+	users     map[int64]*authEntities.User
+	nextID    int64
+	saveErr   error
+	deleteErr error
 }
 
 func NewMockUserRepository() *MockUserRepository {
@@ -36,6 +39,9 @@ func (m *MockUserRepository) Create(_ context.Context, user *authEntities.User) 
 }
 
 func (m *MockUserRepository) Save(_ context.Context, user *authEntities.User) error {
+	if m.saveErr != nil {
+		return m.saveErr
+	}
 	m.users[user.ID] = user
 	return nil
 }
@@ -62,6 +68,9 @@ func (m *MockUserRepository) GetByEmailForAuth(_ context.Context, email string) 
 }
 
 func (m *MockUserRepository) Delete(_ context.Context, id int64) error {
+	if m.deleteErr != nil {
+		return m.deleteErr
+	}
 	delete(m.users, id)
 	return nil
 }
@@ -80,8 +89,15 @@ func (m *MockUserRepository) List(_ context.Context, limit, offset int) ([]*auth
 
 // MockUserProfileRepository implements UserProfileRepository for testing.
 type MockUserProfileRepository struct {
-	profiles map[int64]*entities.UserWithOrg
-	nextID   int64
+	profiles           map[int64]*entities.UserWithOrg
+	nextID             int64
+	listErr            error
+	countErr           error
+	updateErr          error
+	bulkDeptErr        error
+	bulkPosErr         error
+	getByDeptErr       error
+	getByPosErr        error
 }
 
 func NewMockUserProfileRepository() *MockUserProfileRepository {
@@ -100,6 +116,9 @@ func (m *MockUserProfileRepository) GetProfileByID(_ context.Context, userID int
 }
 
 func (m *MockUserProfileRepository) UpdateProfile(_ context.Context, userID int64, departmentID, positionID *int64, phone, avatar, bio string) error {
+	if m.updateErr != nil {
+		return m.updateErr
+	}
 	profile, exists := m.profiles[userID]
 	if !exists {
 		// Create new profile
@@ -115,6 +134,9 @@ func (m *MockUserProfileRepository) UpdateProfile(_ context.Context, userID int6
 }
 
 func (m *MockUserProfileRepository) ListUsersWithOrg(_ context.Context, _ *repositories.UserFilter, limit, offset int) ([]*entities.UserWithOrg, error) {
+	if m.listErr != nil {
+		return nil, m.listErr
+	}
 	var profiles []*entities.UserWithOrg
 	i := 0
 	for _, profile := range m.profiles {
@@ -127,10 +149,16 @@ func (m *MockUserProfileRepository) ListUsersWithOrg(_ context.Context, _ *repos
 }
 
 func (m *MockUserProfileRepository) CountUsers(_ context.Context, _ *repositories.UserFilter) (int64, error) {
+	if m.countErr != nil {
+		return 0, m.countErr
+	}
 	return int64(len(m.profiles)), nil
 }
 
 func (m *MockUserProfileRepository) GetUsersByDepartment(_ context.Context, departmentID int64) ([]*entities.UserWithOrg, error) {
+	if m.getByDeptErr != nil {
+		return nil, m.getByDeptErr
+	}
 	var users []*entities.UserWithOrg
 	for _, profile := range m.profiles {
 		if profile.DepartmentID != nil && *profile.DepartmentID == departmentID {
@@ -141,6 +169,9 @@ func (m *MockUserProfileRepository) GetUsersByDepartment(_ context.Context, depa
 }
 
 func (m *MockUserProfileRepository) GetUsersByPosition(_ context.Context, positionID int64) ([]*entities.UserWithOrg, error) {
+	if m.getByPosErr != nil {
+		return nil, m.getByPosErr
+	}
 	var users []*entities.UserWithOrg
 	for _, profile := range m.profiles {
 		if profile.PositionID != nil && *profile.PositionID == positionID {
@@ -151,6 +182,9 @@ func (m *MockUserProfileRepository) GetUsersByPosition(_ context.Context, positi
 }
 
 func (m *MockUserProfileRepository) BulkUpdateDepartment(_ context.Context, userIDs []int64, departmentID *int64) error {
+	if m.bulkDeptErr != nil {
+		return m.bulkDeptErr
+	}
 	for _, id := range userIDs {
 		if profile, exists := m.profiles[id]; exists {
 			profile.DepartmentID = departmentID
@@ -160,6 +194,9 @@ func (m *MockUserProfileRepository) BulkUpdateDepartment(_ context.Context, user
 }
 
 func (m *MockUserProfileRepository) BulkUpdatePosition(_ context.Context, userIDs []int64, positionID *int64) error {
+	if m.bulkPosErr != nil {
+		return m.bulkPosErr
+	}
 	for _, id := range userIDs {
 		if profile, exists := m.profiles[id]; exists {
 			profile.PositionID = positionID
@@ -171,6 +208,12 @@ func (m *MockUserProfileRepository) BulkUpdatePosition(_ context.Context, userID
 // AddProfile helper for tests
 func (m *MockUserProfileRepository) AddProfile(profile *entities.UserWithOrg) {
 	m.profiles[profile.ID] = profile
+}
+
+// Helper to create a logger for testing
+func testAuditLogger() *logging.AuditLogger {
+	logger := logging.NewLogger("debug")
+	return logging.NewAuditLogger(logger)
 }
 
 // Tests
@@ -296,6 +339,34 @@ func TestUserUseCase_ListUsers_TotalPages(t *testing.T) {
 	}
 }
 
+func TestUserUseCase_ListUsers_ListError(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	profileRepo.listErr = errors.New("list error")
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	_, err := uc.ListUsers(context.Background(), &dto.UserListFilter{Page: 1, Limit: 10})
+	if err == nil {
+		t.Error("expected error from list")
+	}
+}
+
+func TestUserUseCase_ListUsers_CountError(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	profileRepo.countErr = errors.New("count error")
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	_, err := uc.ListUsers(context.Background(), &dto.UserListFilter{Page: 1, Limit: 10})
+	if err == nil {
+		t.Error("expected error from count")
+	}
+}
+
 func TestUserUseCase_UpdateUserProfile(t *testing.T) {
 	userRepo := NewMockUserRepository()
 	profileRepo := NewMockUserProfileRepository()
@@ -327,6 +398,49 @@ func TestUserUseCase_UpdateUserProfile(t *testing.T) {
 	err := uc.UpdateUserProfile(ctx, user.ID, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestUserUseCase_UpdateUserProfile_WithAuditLogger(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, testAuditLogger(), nil)
+
+	ctx := context.Background()
+
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
+
+	input := &dto.UpdateUserProfileInput{
+		Phone: "+1234567890",
+		Bio:   "Test bio",
+	}
+
+	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestUserUseCase_UpdateUserProfile_UpdateError(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	profileRepo.updateErr = errors.New("update error")
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
+
+	input := &dto.UpdateUserProfileInput{Phone: "123"}
+	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	if err == nil {
+		t.Error("expected error from update")
 	}
 }
 
@@ -420,6 +534,46 @@ func TestUserUseCase_UpdateUserRole(t *testing.T) {
 	}
 }
 
+func TestUserUseCase_UpdateUserRole_WithAuditLogger(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, testAuditLogger(), nil)
+
+	ctx := context.Background()
+
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
+
+	input := &dto.UpdateUserRoleInput{Role: "teacher"}
+	err := uc.UpdateUserRole(ctx, user.ID, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+
+func TestUserUseCase_UpdateUserRole_SaveError(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
+	userRepo.saveErr = errors.New("save error")
+
+	input := &dto.UpdateUserRoleInput{Role: "teacher"}
+	err := uc.UpdateUserRole(ctx, user.ID, input)
+	if err == nil {
+		t.Error("expected error from save")
+	}
+}
+
 func TestUserUseCase_UpdateUserRole_NotFound(t *testing.T) {
 	userRepo := NewMockUserRepository()
 	profileRepo := NewMockUserProfileRepository()
@@ -483,6 +637,57 @@ func TestUserUseCase_UpdateUserStatus(t *testing.T) {
 	}
 }
 
+func TestUserUseCase_UpdateUserStatus_WithAuditLogger(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, testAuditLogger(), nil)
+
+	ctx := context.Background()
+
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
+
+	// Activate with logger
+	err := uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Deactivate with logger
+	err = uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "inactive"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Block with logger
+	err = uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "blocked"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+
+func TestUserUseCase_UpdateUserStatus_SaveError(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
+	userRepo.saveErr = errors.New("save error")
+
+	err := uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
+	if err == nil {
+		t.Error("expected error from save")
+	}
+}
+
 func TestUserUseCase_UpdateUserStatus_NotFound(t *testing.T) {
 	userRepo := NewMockUserRepository()
 	profileRepo := NewMockUserProfileRepository()
@@ -521,6 +726,43 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 	_, err = userRepo.GetByID(ctx, user.ID)
 	if err == nil {
 		t.Error("expected error for deleted user")
+	}
+}
+
+func TestUserUseCase_DeleteUser_WithAuditLogger(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, testAuditLogger(), nil)
+
+	ctx := context.Background()
+
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
+
+	err := uc.DeleteUser(ctx, user.ID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestUserUseCase_DeleteUser_DeleteError(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, user)
+	userRepo.deleteErr = errors.New("delete error")
+
+	err := uc.DeleteUser(ctx, user.ID)
+	if err == nil {
+		t.Error("expected error from delete")
 	}
 }
 
@@ -571,6 +813,51 @@ func TestUserUseCase_BulkUpdateDepartment(t *testing.T) {
 	users, _ := uc.GetUsersByDepartment(ctx, 1)
 	if len(users) != 2 {
 		t.Errorf("expected 2 users in department, got %d", len(users))
+	}
+}
+
+func TestUserUseCase_BulkUpdateDepartment_WithAuditLogger(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, testAuditLogger(), nil)
+
+	ctx := context.Background()
+
+	_ = deptRepo.Create(ctx, entities.NewDepartment("IT", "IT", "", nil))
+	profileRepo.AddProfile(&entities.UserWithOrg{ID: 1, Name: "User 1"})
+
+	deptID := int64(1)
+	input := &dto.BulkUpdateDepartmentInput{
+		UserIDs:      []int64{1},
+		DepartmentID: &deptID,
+	}
+
+	err := uc.BulkUpdateDepartment(ctx, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestUserUseCase_BulkUpdateDepartment_BulkError(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	profileRepo.bulkDeptErr = errors.New("bulk error")
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	input := &dto.BulkUpdateDepartmentInput{
+		UserIDs:      []int64{1},
+		DepartmentID: nil,
+	}
+
+	err := uc.BulkUpdateDepartment(ctx, input)
+	if err == nil {
+		t.Error("expected error from bulk update")
 	}
 }
 
@@ -661,6 +948,51 @@ func TestUserUseCase_BulkUpdatePosition(t *testing.T) {
 	}
 }
 
+func TestUserUseCase_BulkUpdatePosition_WithAuditLogger(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, testAuditLogger(), nil)
+
+	ctx := context.Background()
+
+	_ = posRepo.Create(ctx, entities.NewPosition("Dev", "DEV", "", 1))
+	profileRepo.AddProfile(&entities.UserWithOrg{ID: 1, Name: "User 1"})
+
+	posID := int64(1)
+	input := &dto.BulkUpdatePositionInput{
+		UserIDs:    []int64{1},
+		PositionID: &posID,
+	}
+
+	err := uc.BulkUpdatePosition(ctx, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestUserUseCase_BulkUpdatePosition_BulkError(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	profileRepo.bulkPosErr = errors.New("bulk error")
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	input := &dto.BulkUpdatePositionInput{
+		UserIDs:    []int64{1},
+		PositionID: nil,
+	}
+
+	err := uc.BulkUpdatePosition(ctx, input)
+	if err == nil {
+		t.Error("expected error from bulk update")
+	}
+}
+
 func TestUserUseCase_BulkUpdatePosition_NotFound(t *testing.T) {
 	userRepo := NewMockUserRepository()
 	profileRepo := NewMockUserProfileRepository()
@@ -679,6 +1011,34 @@ func TestUserUseCase_BulkUpdatePosition_NotFound(t *testing.T) {
 	err := uc.BulkUpdatePosition(ctx, input)
 	if err == nil {
 		t.Error("expected error for non-existent position")
+	}
+}
+
+func TestUserUseCase_BulkUpdatePosition_NilPosition(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	posID := int64(1)
+	profileRepo.AddProfile(&entities.UserWithOrg{ID: 1, Name: "User 1", PositionID: &posID})
+
+	input := &dto.BulkUpdatePositionInput{
+		UserIDs:    []int64{1},
+		PositionID: nil,
+	}
+
+	err := uc.BulkUpdatePosition(ctx, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	profile, _ := profileRepo.GetProfileByID(ctx, 1)
+	if profile.PositionID != nil {
+		t.Error("expected position ID to be nil")
 	}
 }
 

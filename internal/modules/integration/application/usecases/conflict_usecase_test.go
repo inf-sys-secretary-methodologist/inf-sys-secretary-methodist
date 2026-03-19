@@ -5,6 +5,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
 )
@@ -503,4 +506,237 @@ func TestConflictUseCase_Delete(t *testing.T) {
 	if result != nil {
 		t.Error("expected conflict to be deleted")
 	}
+}
+
+// --- Error-injecting mock for conflict repository ---
+
+type errorConflictRepo struct {
+	MockSyncConflictRepository
+	listErr       bool
+	getByIDErr    bool
+	getPendingErr bool
+	getBySyncErr  bool
+	resolveErr    bool
+	bulkErr       bool
+	getStatsErr   bool
+	deleteErr     bool
+	updateErr     bool
+}
+
+func newErrorConflictRepo() *errorConflictRepo {
+	return &errorConflictRepo{
+		MockSyncConflictRepository: *NewMockSyncConflictRepository(),
+	}
+}
+
+func (m *errorConflictRepo) List(_ context.Context, _ entities.SyncConflictFilter) ([]*entities.SyncConflict, int64, error) {
+	if m.listErr {
+		return nil, 0, errors.New("list error")
+	}
+	return m.MockSyncConflictRepository.List(context.Background(), entities.SyncConflictFilter{})
+}
+
+func (m *errorConflictRepo) GetByID(_ context.Context, id int64) (*entities.SyncConflict, error) {
+	if m.getByIDErr {
+		return nil, errors.New("get by ID error")
+	}
+	return m.MockSyncConflictRepository.GetByID(context.Background(), id)
+}
+
+func (m *errorConflictRepo) GetPending(_ context.Context, limit, offset int) ([]*entities.SyncConflict, int64, error) {
+	if m.getPendingErr {
+		return nil, 0, errors.New("get pending error")
+	}
+	return m.MockSyncConflictRepository.GetPending(context.Background(), limit, offset)
+}
+
+func (m *errorConflictRepo) GetBySyncLogID(_ context.Context, syncLogID int64) ([]*entities.SyncConflict, error) {
+	if m.getBySyncErr {
+		return nil, errors.New("get by sync log error")
+	}
+	return m.MockSyncConflictRepository.GetBySyncLogID(context.Background(), syncLogID)
+}
+
+func (m *errorConflictRepo) Resolve(_ context.Context, id int64, resolution entities.ConflictResolution, userID int64, resolvedData string) error {
+	if m.resolveErr {
+		return errors.New("resolve error")
+	}
+	return m.MockSyncConflictRepository.Resolve(context.Background(), id, resolution, userID, resolvedData)
+}
+
+func (m *errorConflictRepo) BulkResolve(_ context.Context, ids []int64, resolution entities.ConflictResolution, userID int64) error {
+	if m.bulkErr {
+		return errors.New("bulk resolve error")
+	}
+	return m.MockSyncConflictRepository.BulkResolve(context.Background(), ids, resolution, userID)
+}
+
+func (m *errorConflictRepo) GetStats(_ context.Context) (*entities.ConflictStats, error) {
+	if m.getStatsErr {
+		return nil, errors.New("get stats error")
+	}
+	return m.MockSyncConflictRepository.GetStats(context.Background())
+}
+
+func (m *errorConflictRepo) Delete(_ context.Context, id int64) error {
+	if m.deleteErr {
+		return errors.New("delete error")
+	}
+	return m.MockSyncConflictRepository.Delete(context.Background(), id)
+}
+
+func (m *errorConflictRepo) Update(_ context.Context, conflict *entities.SyncConflict) error {
+	if m.updateErr {
+		return errors.New("update error")
+	}
+	return m.MockSyncConflictRepository.Update(context.Background(), conflict)
+}
+
+// --- Error path tests ---
+
+func TestConflictUseCase_List_Error(t *testing.T) {
+	repo := newErrorConflictRepo()
+	repo.listErr = true
+	uc := NewConflictUseCase(repo)
+
+	req := &dto.ConflictListRequest{Limit: 10}
+	result, err := uc.List(context.Background(), req)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to list conflicts")
+}
+
+func TestConflictUseCase_GetByID_Error(t *testing.T) {
+	repo := newErrorConflictRepo()
+	repo.getByIDErr = true
+	uc := NewConflictUseCase(repo)
+
+	result, err := uc.GetByID(context.Background(), 1)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get conflict")
+}
+
+func TestConflictUseCase_GetPending_Error(t *testing.T) {
+	repo := newErrorConflictRepo()
+	repo.getPendingErr = true
+	uc := NewConflictUseCase(repo)
+
+	result, err := uc.GetPending(context.Background(), 10, 0)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get pending conflicts")
+}
+
+func TestConflictUseCase_GetBySyncLogID_Error(t *testing.T) {
+	repo := newErrorConflictRepo()
+	repo.getBySyncErr = true
+	uc := NewConflictUseCase(repo)
+
+	result, err := uc.GetBySyncLogID(context.Background(), 1)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get conflicts by sync log")
+}
+
+func TestConflictUseCase_Resolve_GetByIDError(t *testing.T) {
+	repo := newErrorConflictRepo()
+	repo.getByIDErr = true
+	uc := NewConflictUseCase(repo)
+
+	req := &dto.ResolveConflictRequest{Resolution: entities.ConflictResolutionUseLocal}
+	err := uc.Resolve(context.Background(), 1, 42, req)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get conflict")
+}
+
+func TestConflictUseCase_Resolve_ResolveRepoError(t *testing.T) {
+	repo := newErrorConflictRepo()
+	uc := NewConflictUseCase(repo)
+	ctx := context.Background()
+
+	// Create a conflict
+	conflict := entities.NewSyncConflict(1, entities.SyncEntityEmployee, "emp-1")
+	_ = repo.MockSyncConflictRepository.Create(ctx, conflict)
+
+	repo.resolveErr = true
+	req := &dto.ResolveConflictRequest{
+		Resolution:   entities.ConflictResolutionUseLocal,
+		ResolvedData: "{}",
+	}
+	err := uc.Resolve(ctx, conflict.ID, 42, req)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to resolve conflict")
+}
+
+func TestConflictUseCase_Resolve_UpdateNotesError(t *testing.T) {
+	repo := newErrorConflictRepo()
+	uc := NewConflictUseCase(repo)
+	ctx := context.Background()
+
+	conflict := entities.NewSyncConflict(1, entities.SyncEntityEmployee, "emp-1")
+	_ = repo.MockSyncConflictRepository.Create(ctx, conflict)
+
+	repo.updateErr = true
+	req := &dto.ResolveConflictRequest{
+		Resolution:   entities.ConflictResolutionUseLocal,
+		ResolvedData: "{}",
+		Notes:        "some notes",
+	}
+	err := uc.Resolve(ctx, conflict.ID, 42, req)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to update conflict notes")
+}
+
+func TestConflictUseCase_BulkResolve_Error(t *testing.T) {
+	repo := newErrorConflictRepo()
+	repo.bulkErr = true
+	uc := NewConflictUseCase(repo)
+
+	req := &dto.BulkResolveRequest{
+		IDs:        []int64{1, 2},
+		Resolution: entities.ConflictResolutionSkip,
+	}
+	err := uc.BulkResolve(context.Background(), 42, req)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to bulk resolve conflicts")
+}
+
+func TestConflictUseCase_GetStats_Error(t *testing.T) {
+	repo := newErrorConflictRepo()
+	repo.getStatsErr = true
+	uc := NewConflictUseCase(repo)
+
+	result, err := uc.GetStats(context.Background())
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get conflict stats")
+}
+
+func TestConflictUseCase_Delete_Error(t *testing.T) {
+	repo := newErrorConflictRepo()
+	repo.deleteErr = true
+	uc := NewConflictUseCase(repo)
+
+	err := uc.Delete(context.Background(), 1)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete conflict")
+}
+
+func TestConflictUseCase_Resolve_NoNotes(t *testing.T) {
+	repo := NewMockSyncConflictRepository()
+	uc := NewConflictUseCase(repo)
+	ctx := context.Background()
+
+	conflict := createTestConflict(repo, 1, entities.SyncEntityEmployee, "emp-1")
+	req := &dto.ResolveConflictRequest{
+		Resolution:   entities.ConflictResolutionUseExternal,
+		ResolvedData: "{}",
+		Notes:        "",
+	}
+	err := uc.Resolve(ctx, conflict.ID, 42, req)
+	require.NoError(t, err)
+
+	resolved, _ := repo.GetByID(ctx, conflict.ID)
+	assert.Equal(t, entities.ConflictResolutionUseExternal, resolved.Resolution)
 }

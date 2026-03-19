@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
 )
@@ -651,4 +653,283 @@ func TestStudentUseCase_Delete(t *testing.T) {
 	if result != nil {
 		t.Error("expected student to be deleted")
 	}
+}
+
+// --- Error-injecting mock for student repository ---
+
+type errorStudentRepo struct {
+	MockExternalStudentRepository
+	listErr          bool
+	getByIDErr       bool
+	getByExternalErr bool
+	getByLocalErr    bool
+	getUnlinkedErr   bool
+	getByGroupErr    bool
+	getByFacultyErr  bool
+	getGroupsErr     bool
+	getFacultiesErr  bool
+	linkErr          bool
+	unlinkErr        bool
+	deleteErr        bool
+}
+
+func newErrorStudentRepo() *errorStudentRepo {
+	return &errorStudentRepo{
+		MockExternalStudentRepository: *NewMockExternalStudentRepository(),
+	}
+}
+
+func (m *errorStudentRepo) List(_ context.Context, _ entities.ExternalStudentFilter) ([]*entities.ExternalStudent, int64, error) {
+	if m.listErr {
+		return nil, 0, errors.New("list error")
+	}
+	return m.MockExternalStudentRepository.List(context.Background(), entities.ExternalStudentFilter{})
+}
+
+func (m *errorStudentRepo) GetByID(_ context.Context, id int64) (*entities.ExternalStudent, error) {
+	if m.getByIDErr {
+		return nil, errors.New("get by ID error")
+	}
+	return m.MockExternalStudentRepository.GetByID(context.Background(), id)
+}
+
+func (m *errorStudentRepo) GetByExternalID(_ context.Context, externalID string) (*entities.ExternalStudent, error) {
+	if m.getByExternalErr {
+		return nil, errors.New("get by external ID error")
+	}
+	return m.MockExternalStudentRepository.GetByExternalID(context.Background(), externalID)
+}
+
+func (m *errorStudentRepo) GetByLocalUserID(_ context.Context, localUserID int64) (*entities.ExternalStudent, error) {
+	if m.getByLocalErr {
+		return nil, errors.New("get by local user error")
+	}
+	return m.MockExternalStudentRepository.GetByLocalUserID(context.Background(), localUserID)
+}
+
+func (m *errorStudentRepo) GetUnlinked(_ context.Context, limit, offset int) ([]*entities.ExternalStudent, int64, error) {
+	if m.getUnlinkedErr {
+		return nil, 0, errors.New("get unlinked error")
+	}
+	return m.MockExternalStudentRepository.GetUnlinked(context.Background(), limit, offset)
+}
+
+func (m *errorStudentRepo) GetByGroup(_ context.Context, groupName string) ([]*entities.ExternalStudent, error) {
+	if m.getByGroupErr {
+		return nil, errors.New("get by group error")
+	}
+	return m.MockExternalStudentRepository.GetByGroup(context.Background(), groupName)
+}
+
+func (m *errorStudentRepo) GetByFaculty(_ context.Context, faculty string) ([]*entities.ExternalStudent, error) {
+	if m.getByFacultyErr {
+		return nil, errors.New("get by faculty error")
+	}
+	return m.MockExternalStudentRepository.GetByFaculty(context.Background(), faculty)
+}
+
+func (m *errorStudentRepo) GetGroups(_ context.Context) ([]string, error) {
+	if m.getGroupsErr {
+		return nil, errors.New("get groups error")
+	}
+	return m.MockExternalStudentRepository.GetGroups(context.Background())
+}
+
+func (m *errorStudentRepo) GetFaculties(_ context.Context) ([]string, error) {
+	if m.getFacultiesErr {
+		return nil, errors.New("get faculties error")
+	}
+	return m.MockExternalStudentRepository.GetFaculties(context.Background())
+}
+
+func (m *errorStudentRepo) LinkToLocalUser(_ context.Context, id int64, localUserID int64) error {
+	if m.linkErr {
+		return errors.New("link error")
+	}
+	return m.MockExternalStudentRepository.LinkToLocalUser(context.Background(), id, localUserID)
+}
+
+func (m *errorStudentRepo) Unlink(_ context.Context, id int64) error {
+	if m.unlinkErr {
+		return errors.New("unlink error")
+	}
+	return m.MockExternalStudentRepository.Unlink(context.Background(), id)
+}
+
+func (m *errorStudentRepo) Delete(_ context.Context, id int64) error {
+	if m.deleteErr {
+		return errors.New("delete error")
+	}
+	return m.MockExternalStudentRepository.Delete(context.Background(), id)
+}
+
+// --- Error path tests ---
+
+func TestStudentUseCase_List_Error(t *testing.T) {
+	repo := newErrorStudentRepo()
+	repo.listErr = true
+	uc := NewStudentUseCase(repo)
+
+	req := &dto.ExternalStudentListRequest{Limit: 10}
+	result, err := uc.List(context.Background(), req)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to list students")
+}
+
+func TestStudentUseCase_GetByID_Error(t *testing.T) {
+	repo := newErrorStudentRepo()
+	repo.getByIDErr = true
+	uc := NewStudentUseCase(repo)
+
+	result, err := uc.GetByID(context.Background(), 1)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get student")
+}
+
+func TestStudentUseCase_GetByExternalID_Error(t *testing.T) {
+	repo := newErrorStudentRepo()
+	repo.getByExternalErr = true
+	uc := NewStudentUseCase(repo)
+
+	result, err := uc.GetByExternalID(context.Background(), "ext1")
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get student by external ID")
+}
+
+func TestStudentUseCase_LinkToLocalUser_GetByIDError(t *testing.T) {
+	repo := newErrorStudentRepo()
+	repo.getByIDErr = true
+	uc := NewStudentUseCase(repo)
+
+	err := uc.LinkToLocalUser(context.Background(), 1, 42)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get student")
+}
+
+func TestStudentUseCase_LinkToLocalUser_GetByLocalUserError(t *testing.T) {
+	repo := newErrorStudentRepo()
+	uc := NewStudentUseCase(repo)
+	ctx := context.Background()
+
+	student := entities.NewExternalStudent("ext1", "CODE-ext1")
+	student.FirstName = "John"
+	student.LastName = "Doe"
+	_ = repo.MockExternalStudentRepository.Create(ctx, student)
+
+	repo.getByLocalErr = true
+
+	err := uc.LinkToLocalUser(ctx, student.ID, 42)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to check existing link")
+}
+
+func TestStudentUseCase_LinkToLocalUser_LinkRepoError(t *testing.T) {
+	repo := newErrorStudentRepo()
+	uc := NewStudentUseCase(repo)
+	ctx := context.Background()
+
+	student := entities.NewExternalStudent("ext1", "CODE-ext1")
+	student.FirstName = "John"
+	student.LastName = "Doe"
+	_ = repo.MockExternalStudentRepository.Create(ctx, student)
+
+	repo.linkErr = true
+
+	err := uc.LinkToLocalUser(ctx, student.ID, 42)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to link student")
+}
+
+func TestStudentUseCase_Unlink_GetByIDError(t *testing.T) {
+	repo := newErrorStudentRepo()
+	repo.getByIDErr = true
+	uc := NewStudentUseCase(repo)
+
+	err := uc.Unlink(context.Background(), 1)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get student")
+}
+
+func TestStudentUseCase_Unlink_UnlinkRepoError(t *testing.T) {
+	repo := newErrorStudentRepo()
+	uc := NewStudentUseCase(repo)
+	ctx := context.Background()
+
+	student := entities.NewExternalStudent("ext1", "CODE-ext1")
+	_ = repo.MockExternalStudentRepository.Create(ctx, student)
+	_ = repo.MockExternalStudentRepository.LinkToLocalUser(ctx, student.ID, 42)
+
+	repo.unlinkErr = true
+
+	err := uc.Unlink(ctx, student.ID)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to unlink student")
+}
+
+func TestStudentUseCase_GetUnlinked_Error(t *testing.T) {
+	repo := newErrorStudentRepo()
+	repo.getUnlinkedErr = true
+	uc := NewStudentUseCase(repo)
+
+	result, err := uc.GetUnlinked(context.Background(), 10, 0)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get unlinked students")
+}
+
+func TestStudentUseCase_GetByGroup_Error(t *testing.T) {
+	repo := newErrorStudentRepo()
+	repo.getByGroupErr = true
+	uc := NewStudentUseCase(repo)
+
+	result, err := uc.GetByGroup(context.Background(), "CS-101")
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get students by group")
+}
+
+func TestStudentUseCase_GetByFaculty_Error(t *testing.T) {
+	repo := newErrorStudentRepo()
+	repo.getByFacultyErr = true
+	uc := NewStudentUseCase(repo)
+
+	result, err := uc.GetByFaculty(context.Background(), "CS")
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get students by faculty")
+}
+
+func TestStudentUseCase_GetGroups_Error(t *testing.T) {
+	repo := newErrorStudentRepo()
+	repo.getGroupsErr = true
+	uc := NewStudentUseCase(repo)
+
+	result, err := uc.GetGroups(context.Background())
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get groups")
+}
+
+func TestStudentUseCase_GetFaculties_Error(t *testing.T) {
+	repo := newErrorStudentRepo()
+	repo.getFacultiesErr = true
+	uc := NewStudentUseCase(repo)
+
+	result, err := uc.GetFaculties(context.Background())
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get faculties")
+}
+
+func TestStudentUseCase_Delete_Error(t *testing.T) {
+	repo := newErrorStudentRepo()
+	repo.deleteErr = true
+	uc := NewStudentUseCase(repo)
+
+	err := uc.Delete(context.Background(), 1)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete student")
 }

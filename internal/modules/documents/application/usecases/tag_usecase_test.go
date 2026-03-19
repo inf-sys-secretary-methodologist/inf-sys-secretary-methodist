@@ -377,4 +377,411 @@ func TestTagUseCase_GetDocumentsByTag(t *testing.T) {
 		assert.Equal(t, int64(3), result.Total)
 		mockTagRepo.AssertExpectations(t)
 	})
+
+	t.Run("get documents by tag with default pagination", func(t *testing.T) {
+		mockTagRepo2 := new(MockTagRepository)
+		mockDocRepo2 := new(MockDocumentRepository)
+		uc := NewTagUseCase(mockTagRepo2, mockDocRepo2, nil)
+
+		tag := &entities.DocumentTag{ID: 1, Name: "Tag"}
+
+		mockTagRepo2.On("GetByID", ctx, int64(1)).Return(tag, nil).Once()
+		mockTagRepo2.On("GetDocumentsByTagID", ctx, int64(1), 20, 0).Return([]int64{}, int64(0), nil).Once()
+
+		result, err := uc.GetDocumentsByTag(ctx, 1, 0, 0)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, 1, result.Page)
+		assert.Equal(t, 20, result.PageSize)
+		mockTagRepo2.AssertExpectations(t)
+	})
+
+	t.Run("get documents by tag - tag not found", func(t *testing.T) {
+		mockTagRepo2 := new(MockTagRepository)
+		mockDocRepo2 := new(MockDocumentRepository)
+		uc := NewTagUseCase(mockTagRepo2, mockDocRepo2, nil)
+
+		mockTagRepo2.On("GetByID", ctx, int64(999)).Return(nil, assert.AnError).Once()
+
+		result, err := uc.GetDocumentsByTag(ctx, 999, 1, 20)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockTagRepo2.AssertExpectations(t)
+	})
+
+	t.Run("get documents by tag - repo error", func(t *testing.T) {
+		mockTagRepo2 := new(MockTagRepository)
+		mockDocRepo2 := new(MockDocumentRepository)
+		uc := NewTagUseCase(mockTagRepo2, mockDocRepo2, nil)
+
+		tag := &entities.DocumentTag{ID: 1, Name: "Tag"}
+		mockTagRepo2.On("GetByID", ctx, int64(1)).Return(tag, nil).Once()
+		mockTagRepo2.On("GetDocumentsByTagID", ctx, int64(1), 20, 0).Return(nil, int64(0), assert.AnError).Once()
+
+		result, err := uc.GetDocumentsByTag(ctx, 1, 1, 20)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockTagRepo2.AssertExpectations(t)
+	})
+}
+
+func TestTagUseCase_GetByID(t *testing.T) {
+	mockTagRepo := new(MockTagRepository)
+	mockDocRepo := new(MockDocumentRepository)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+	ctx := context.Background()
+
+	t.Run("get tag by id", func(t *testing.T) {
+		tag := &entities.DocumentTag{ID: 1, Name: "Important"}
+		mockTagRepo.On("GetByID", ctx, int64(1)).Return(tag, nil).Once()
+		mockTagRepo.On("GetTagUsageCount", ctx, int64(1)).Return(int64(10), nil).Once()
+
+		result, err := usecase.GetByID(ctx, 1)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "Important", result.Name)
+		assert.Equal(t, int64(10), result.UsageCount)
+		mockTagRepo.AssertExpectations(t)
+	})
+
+	t.Run("get tag by id not found", func(t *testing.T) {
+		mockTagRepo.On("GetByID", ctx, int64(999)).Return(nil, assert.AnError).Once()
+
+		result, err := usecase.GetByID(ctx, 999)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "тег не найден")
+		mockTagRepo.AssertExpectations(t)
+	})
+}
+
+func TestTagUseCase_Update_DuplicateName(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("update tag with duplicate name", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		existing := &entities.DocumentTag{ID: 1, Name: "Old"}
+		newName := "Existing"
+
+		mockTagRepo.On("GetByID", ctx, int64(1)).Return(existing, nil).Once()
+		mockTagRepo.On("GetByName", ctx, "Existing").Return(&entities.DocumentTag{ID: 2, Name: "Existing"}, nil).Once()
+
+		input := dto.UpdateTagInput{Name: &newName}
+
+		result, err := usecase.Update(ctx, 1, input)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "уже существует")
+		mockTagRepo.AssertExpectations(t)
+	})
+
+	t.Run("update tag - same name same id allowed", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		existing := &entities.DocumentTag{ID: 1, Name: "Same"}
+		newName := "Same"
+
+		mockTagRepo.On("GetByID", ctx, int64(1)).Return(existing, nil).Once()
+		mockTagRepo.On("GetByName", ctx, "Same").Return(&entities.DocumentTag{ID: 1, Name: "Same"}, nil).Once()
+		mockTagRepo.On("Update", ctx, mock.AnythingOfType("*entities.DocumentTag")).Return(nil).Once()
+		mockTagRepo.On("GetTagUsageCount", ctx, int64(1)).Return(int64(0), nil).Once()
+
+		input := dto.UpdateTagInput{Name: &newName}
+
+		result, err := usecase.Update(ctx, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		mockTagRepo.AssertExpectations(t)
+	})
+
+	t.Run("update tag color only", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		existing := &entities.DocumentTag{ID: 1, Name: "Tag"}
+		newColor := "#00FF00"
+
+		mockTagRepo.On("GetByID", ctx, int64(1)).Return(existing, nil).Once()
+		mockTagRepo.On("Update", ctx, mock.AnythingOfType("*entities.DocumentTag")).Return(nil).Once()
+		mockTagRepo.On("GetTagUsageCount", ctx, int64(1)).Return(int64(0), nil).Once()
+
+		input := dto.UpdateTagInput{Color: &newColor}
+
+		result, err := usecase.Update(ctx, 1, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		mockTagRepo.AssertExpectations(t)
+	})
+
+	t.Run("update tag repo error", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		existing := &entities.DocumentTag{ID: 1, Name: "Tag"}
+		newColor := "#FF0000"
+
+		mockTagRepo.On("GetByID", ctx, int64(1)).Return(existing, nil).Once()
+		mockTagRepo.On("Update", ctx, mock.AnythingOfType("*entities.DocumentTag")).Return(assert.AnError).Once()
+
+		input := dto.UpdateTagInput{Color: &newColor}
+
+		result, err := usecase.Update(ctx, 1, input)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockTagRepo.AssertExpectations(t)
+	})
+}
+
+func TestTagUseCase_AddTagToDocument_TagNotFound(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("add non-existent tag to document", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		doc := &entities.Document{ID: 1, Title: "Doc"}
+		mockDocRepo.On("GetByID", ctx, int64(1)).Return(doc, nil).Once()
+		mockTagRepo.On("GetByID", ctx, int64(999)).Return(nil, assert.AnError).Once()
+
+		err := usecase.AddTagToDocument(ctx, 1, 999)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "тег не найден")
+		mockDocRepo.AssertExpectations(t)
+		mockTagRepo.AssertExpectations(t)
+	})
+
+	t.Run("add tag to document repo error", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		doc := &entities.Document{ID: 1, Title: "Doc"}
+		tag := &entities.DocumentTag{ID: 1, Name: "Tag"}
+
+		mockDocRepo.On("GetByID", ctx, int64(1)).Return(doc, nil).Once()
+		mockTagRepo.On("GetByID", ctx, int64(1)).Return(tag, nil).Once()
+		mockTagRepo.On("AddTagToDocument", ctx, int64(1), int64(1)).Return(assert.AnError).Once()
+
+		err := usecase.AddTagToDocument(ctx, 1, 1)
+
+		assert.Error(t, err)
+		mockDocRepo.AssertExpectations(t)
+		mockTagRepo.AssertExpectations(t)
+	})
+}
+
+func TestTagUseCase_RemoveTagFromDocument(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("remove tag from document success", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		mockTagRepo.On("RemoveTagFromDocument", ctx, int64(1), int64(2)).Return(nil).Once()
+
+		err := usecase.RemoveTagFromDocument(ctx, 1, 2)
+
+		assert.NoError(t, err)
+		mockTagRepo.AssertExpectations(t)
+	})
+
+	t.Run("remove tag from document error", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		mockTagRepo.On("RemoveTagFromDocument", ctx, int64(1), int64(2)).Return(assert.AnError).Once()
+
+		err := usecase.RemoveTagFromDocument(ctx, 1, 2)
+
+		assert.Error(t, err)
+		mockTagRepo.AssertExpectations(t)
+	})
+}
+
+func TestTagUseCase_GetDocumentTags_Errors(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("document not found", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		mockDocRepo.On("GetByID", ctx, int64(999)).Return(nil, assert.AnError).Once()
+
+		result, err := usecase.GetDocumentTags(ctx, 999)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "документ не найден")
+		mockDocRepo.AssertExpectations(t)
+	})
+
+	t.Run("get tags repo error", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		doc := &entities.Document{ID: 1, Title: "Doc"}
+		mockDocRepo.On("GetByID", ctx, int64(1)).Return(doc, nil).Once()
+		mockTagRepo.On("GetTagsByDocumentID", ctx, int64(1)).Return(nil, assert.AnError).Once()
+
+		result, err := usecase.GetDocumentTags(ctx, 1)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockDocRepo.AssertExpectations(t)
+		mockTagRepo.AssertExpectations(t)
+	})
+}
+
+func TestTagUseCase_SetDocumentTags_Errors(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("document not found", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		mockDocRepo.On("GetByID", ctx, int64(999)).Return(nil, assert.AnError).Once()
+
+		result, err := usecase.SetDocumentTags(ctx, 999, []int64{1})
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockDocRepo.AssertExpectations(t)
+	})
+
+	t.Run("invalid tag id", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		doc := &entities.Document{ID: 1, Title: "Doc"}
+		mockDocRepo.On("GetByID", ctx, int64(1)).Return(doc, nil).Once()
+		mockTagRepo.On("GetByID", ctx, int64(999)).Return(nil, assert.AnError).Once()
+
+		result, err := usecase.SetDocumentTags(ctx, 1, []int64{999})
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "тег с ID 999 не найден")
+		mockDocRepo.AssertExpectations(t)
+		mockTagRepo.AssertExpectations(t)
+	})
+
+	t.Run("set tags repo error", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		doc := &entities.Document{ID: 1, Title: "Doc"}
+		tag := &entities.DocumentTag{ID: 1, Name: "Tag"}
+
+		mockDocRepo.On("GetByID", ctx, int64(1)).Return(doc, nil).Once()
+		mockTagRepo.On("GetByID", ctx, int64(1)).Return(tag, nil).Once()
+		mockTagRepo.On("SetDocumentTags", ctx, int64(1), []int64{1}).Return(assert.AnError).Once()
+
+		result, err := usecase.SetDocumentTags(ctx, 1, []int64{1})
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockDocRepo.AssertExpectations(t)
+		mockTagRepo.AssertExpectations(t)
+	})
+}
+
+func TestTagUseCase_GetAll_Error(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("get all tags error", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		mockTagRepo.On("GetAll", ctx).Return(nil, assert.AnError).Once()
+
+		result, err := usecase.GetAll(ctx)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockTagRepo.AssertExpectations(t)
+	})
+}
+
+func TestTagUseCase_Search_Error(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("search tags error", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		mockTagRepo.On("Search", ctx, "test", 10).Return(nil, assert.AnError).Once()
+
+		result, err := usecase.Search(ctx, "test", 10)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockTagRepo.AssertExpectations(t)
+	})
+}
+
+func TestTagUseCase_Create_RepoError(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("create tag repo error", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		mockTagRepo.On("GetByName", ctx, "New").Return(nil, assert.AnError).Once()
+		mockTagRepo.On("Create", ctx, mock.AnythingOfType("*entities.DocumentTag")).Return(assert.AnError).Once()
+
+		input := dto.CreateTagInput{Name: "New"}
+
+		result, err := usecase.Create(ctx, input)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockTagRepo.AssertExpectations(t)
+	})
+}
+
+func TestTagUseCase_Delete_RepoError(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("delete tag repo error", func(t *testing.T) {
+		mockTagRepo := new(MockTagRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+
+		existing := &entities.DocumentTag{ID: 1, Name: "Tag"}
+		mockTagRepo.On("GetByID", ctx, int64(1)).Return(existing, nil).Once()
+		mockTagRepo.On("Delete", ctx, int64(1)).Return(assert.AnError).Once()
+
+		err := usecase.Delete(ctx, 1)
+
+		assert.Error(t, err)
+		mockTagRepo.AssertExpectations(t)
+	})
 }

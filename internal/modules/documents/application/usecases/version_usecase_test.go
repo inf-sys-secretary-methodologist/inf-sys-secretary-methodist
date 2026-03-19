@@ -547,6 +547,58 @@ func TestDocumentVersionUseCase_GetVersionFile(t *testing.T) {
 	})
 }
 
+func TestDocumentVersionUseCase_CreateVersion_UpdateFails(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("create version succeeds but update doc version fails", func(t *testing.T) {
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewDocumentVersionUseCase(mockDocRepo, nil, nil)
+
+		doc := &entities.Document{ID: 1, Title: "Test Doc", Version: 2}
+
+		mockDocRepo.On("GetByID", ctx, int64(1)).Return(doc, nil)
+		mockDocRepo.On("GetLatestVersion", ctx, int64(1)).Return(nil, errors.New("no versions"))
+		mockDocRepo.On("CreateVersion", ctx, mock.AnythingOfType("*entities.DocumentVersion")).Return(nil)
+		mockDocRepo.On("Update", ctx, mock.AnythingOfType("*entities.Document")).Return(errors.New("update failed"))
+		mockDocRepo.On("AddHistory", ctx, mock.AnythingOfType("*entities.DocumentHistory")).Return(nil)
+
+		result, err := usecase.CreateVersion(ctx, 1, 1, "Test snapshot")
+
+		// Should succeed even when update fails (logs warning but doesn't fail)
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, 3, result.Version)
+		mockDocRepo.AssertExpectations(t)
+	})
+}
+
+func TestDocumentVersionUseCase_RestoreVersion_GetUpdatedDocFails(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("restore version - get updated doc fails", func(t *testing.T) {
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewDocumentVersionUseCase(mockDocRepo, nil, nil)
+
+		doc := &entities.Document{ID: 1, Title: "Test Doc", Version: 3}
+		title := "Test Title v2"
+		version := &entities.DocumentVersion{
+			ID: 2, DocumentID: 1, Version: 2, Title: &title,
+		}
+
+		mockDocRepo.On("GetByID", ctx, int64(1)).Return(doc, nil).Once()
+		mockDocRepo.On("GetVersion", ctx, int64(1), 2).Return(version, nil)
+		mockDocRepo.On("RestoreVersion", ctx, int64(1), 2, int64(1)).Return(nil)
+		mockDocRepo.On("GetByID", ctx, int64(1)).Return(nil, errors.New("not found")).Once()
+
+		result, err := usecase.RestoreVersion(ctx, 1, 2, 1)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to get updated document")
+		mockDocRepo.AssertExpectations(t)
+	})
+}
+
 func TestHelperFunctions(t *testing.T) {
 	t.Run("ptrToStr with nil", func(t *testing.T) {
 		result := ptrToStr(nil)

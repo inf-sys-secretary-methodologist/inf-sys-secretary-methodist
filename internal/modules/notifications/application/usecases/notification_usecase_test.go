@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	aiEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
@@ -166,6 +167,148 @@ func (m *MockEmailService) SendPasswordResetEmail(ctx context.Context, recipient
 func (m *MockEmailService) SendNotification(ctx context.Context, recipientEmail, subject, body string) error {
 	args := m.Called(ctx, recipientEmail, subject, body)
 	return args.Error(0)
+}
+
+// MockTelegramRepository is a mock implementation of TelegramRepository
+type MockTelegramRepository struct {
+	mock.Mock
+}
+
+func (m *MockTelegramRepository) CreateVerificationCode(ctx context.Context, code *entities.TelegramVerificationCode) error {
+	args := m.Called(ctx, code)
+	return args.Error(0)
+}
+
+func (m *MockTelegramRepository) GetVerificationCodeByCode(ctx context.Context, code string) (*entities.TelegramVerificationCode, error) {
+	args := m.Called(ctx, code)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.TelegramVerificationCode), args.Error(1)
+}
+
+func (m *MockTelegramRepository) GetActiveVerificationCodeByUserID(ctx context.Context, userID int64) (*entities.TelegramVerificationCode, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.TelegramVerificationCode), args.Error(1)
+}
+
+func (m *MockTelegramRepository) MarkCodeAsUsed(ctx context.Context, codeID int64) error {
+	args := m.Called(ctx, codeID)
+	return args.Error(0)
+}
+
+func (m *MockTelegramRepository) DeleteExpiredCodes(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
+func (m *MockTelegramRepository) CreateConnection(ctx context.Context, conn *entities.TelegramConnection) error {
+	args := m.Called(ctx, conn)
+	return args.Error(0)
+}
+
+func (m *MockTelegramRepository) GetConnectionByUserID(ctx context.Context, userID int64) (*entities.TelegramConnection, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.TelegramConnection), args.Error(1)
+}
+
+func (m *MockTelegramRepository) GetConnectionByChatID(ctx context.Context, chatID int64) (*entities.TelegramConnection, error) {
+	args := m.Called(ctx, chatID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.TelegramConnection), args.Error(1)
+}
+
+func (m *MockTelegramRepository) GetActiveConnections(ctx context.Context) ([]entities.TelegramConnection, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]entities.TelegramConnection), args.Error(1)
+}
+
+func (m *MockTelegramRepository) UpdateConnection(ctx context.Context, conn *entities.TelegramConnection) error {
+	args := m.Called(ctx, conn)
+	return args.Error(0)
+}
+
+func (m *MockTelegramRepository) DeleteConnection(ctx context.Context, userID int64) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+// MockTelegramService is a mock implementation of TelegramService
+type MockTelegramService struct {
+	mock.Mock
+}
+
+func (m *MockTelegramService) SendMessage(ctx context.Context, req *services.SendTelegramMessageRequest) error {
+	args := m.Called(ctx, req)
+	return args.Error(0)
+}
+
+func (m *MockTelegramService) SendNotification(ctx context.Context, chatID string, title, message string, priority string) error {
+	args := m.Called(ctx, chatID, title, message, priority)
+	return args.Error(0)
+}
+
+// MockWebPushService is a mock implementation of WebPushService
+type MockWebPushService struct {
+	mock.Mock
+}
+
+func (m *MockWebPushService) SendNotification(ctx context.Context, sub *entities.WebPushSubscription, payload *entities.WebPushPayload) error {
+	args := m.Called(ctx, sub, payload)
+	return args.Error(0)
+}
+
+func (m *MockWebPushService) SendToUser(ctx context.Context, userID int64, payload *entities.WebPushPayload) error {
+	args := m.Called(ctx, userID, payload)
+	return args.Error(0)
+}
+
+func (m *MockWebPushService) GetVAPIDPublicKey() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *MockWebPushService) IsConfigured() bool {
+	args := m.Called()
+	return args.Bool(0)
+}
+
+// MockPersonalityProvider is a mock implementation of PersonalityProvider
+type MockPersonalityProvider struct {
+	mock.Mock
+}
+
+func (m *MockPersonalityProvider) BuildSystemPrompt(mood aiEntities.MoodContext) string {
+	args := m.Called(mood)
+	return args.String(0)
+}
+
+func (m *MockPersonalityProvider) FormatRAGContext(sources []aiEntities.ChunkWithScore) string {
+	args := m.Called(sources)
+	return args.String(0)
+}
+
+func (m *MockPersonalityProvider) GetGreeting(timeOfDay string) string {
+	args := m.Called(timeOfDay)
+	return args.String(0)
+}
+
+func (m *MockPersonalityProvider) GetMoodComment(mood aiEntities.MoodContext) string {
+	args := m.Called(mood)
+	return args.String(0)
+}
+
+func (m *MockPersonalityProvider) FormatNotification(notifType, title, message string, mood aiEntities.MoodContext) string {
+	args := m.Called(notifType, title, message, mood)
+	return args.String(0)
 }
 
 func TestNotificationUseCase_Create(t *testing.T) {
@@ -1010,6 +1153,461 @@ func TestNotificationUseCase_SendEventReminderNotification_Error(t *testing.T) {
 		err := uc.SendEventReminderNotification(ctx, 1, "Test Event", eventTime, "/events/1")
 
 		assert.Error(t, err)
+		mockNotifRepo.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_SetPersonalityProvider(t *testing.T) {
+	t.Run("sets personality provider", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, nil, nil, nil)
+
+		mockPP := new(MockPersonalityProvider)
+		uc.SetPersonalityProvider(mockPP)
+
+		assert.Equal(t, mockPP, uc.personalityProvider)
+	})
+}
+
+func TestNotificationUseCase_sendToTelegram(t *testing.T) {
+	ctx := context.Background()
+
+	notification := &entities.Notification{
+		ID:       1,
+		UserID:   10,
+		Type:     entities.NotificationTypeTask,
+		Priority: entities.PriorityHigh,
+		Title:    "Test Title",
+		Message:  "Test Message",
+	}
+
+	t.Run("skips when telegramRepo is nil", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, nil, nil, nil)
+
+		// Should not panic, just return
+		uc.sendToTelegram(ctx, notification)
+	})
+
+	t.Run("skips when telegramService is nil", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockTelegramRepo := new(MockTelegramRepository)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, mockTelegramRepo, nil, nil, nil)
+
+		// Should not panic, just return
+		uc.sendToTelegram(ctx, notification)
+	})
+
+	t.Run("skips when GetConnectionByUserID returns error", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockTelegramRepo := new(MockTelegramRepository)
+		mockTelegramSvc := new(MockTelegramService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, mockTelegramRepo, nil, mockTelegramSvc, nil)
+
+		mockTelegramRepo.On("GetConnectionByUserID", ctx, int64(10)).Return(nil, assert.AnError)
+
+		uc.sendToTelegram(ctx, notification)
+
+		mockTelegramRepo.AssertExpectations(t)
+	})
+
+	t.Run("skips when connection is nil", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockTelegramRepo := new(MockTelegramRepository)
+		mockTelegramSvc := new(MockTelegramService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, mockTelegramRepo, nil, mockTelegramSvc, nil)
+
+		mockTelegramRepo.On("GetConnectionByUserID", ctx, int64(10)).Return(nil, nil)
+
+		uc.sendToTelegram(ctx, notification)
+
+		mockTelegramRepo.AssertExpectations(t)
+	})
+
+	t.Run("skips when connection is not active", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockTelegramRepo := new(MockTelegramRepository)
+		mockTelegramSvc := new(MockTelegramService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, mockTelegramRepo, nil, mockTelegramSvc, nil)
+
+		conn := &entities.TelegramConnection{
+			UserID:         10,
+			TelegramChatID: 12345,
+			IsActive:       false,
+		}
+		mockTelegramRepo.On("GetConnectionByUserID", ctx, int64(10)).Return(conn, nil)
+
+		uc.sendToTelegram(ctx, notification)
+
+		mockTelegramRepo.AssertExpectations(t)
+	})
+
+	t.Run("skips when preferences repo returns error", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockTelegramRepo := new(MockTelegramRepository)
+		mockTelegramSvc := new(MockTelegramService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, mockTelegramRepo, nil, mockTelegramSvc, nil)
+
+		conn := &entities.TelegramConnection{
+			UserID:         10,
+			TelegramChatID: 12345,
+			IsActive:       true,
+		}
+		mockTelegramRepo.On("GetConnectionByUserID", ctx, int64(10)).Return(conn, nil)
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(nil, assert.AnError)
+
+		uc.sendToTelegram(ctx, notification)
+
+		mockTelegramRepo.AssertExpectations(t)
+		mockPrefsRepo.AssertExpectations(t)
+	})
+
+	t.Run("skips when telegram notifications are disabled in preferences", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockTelegramRepo := new(MockTelegramRepository)
+		mockTelegramSvc := new(MockTelegramService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, mockTelegramRepo, nil, mockTelegramSvc, nil)
+
+		conn := &entities.TelegramConnection{
+			UserID:         10,
+			TelegramChatID: 12345,
+			IsActive:       true,
+		}
+		prefs := &entities.UserNotificationPreferences{
+			UserID:          10,
+			TelegramEnabled: false,
+		}
+		mockTelegramRepo.On("GetConnectionByUserID", ctx, int64(10)).Return(conn, nil)
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(prefs, nil)
+
+		uc.sendToTelegram(ctx, notification)
+
+		mockTelegramRepo.AssertExpectations(t)
+		mockPrefsRepo.AssertExpectations(t)
+	})
+
+	t.Run("sends telegram notification successfully without personality provider", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockTelegramRepo := new(MockTelegramRepository)
+		mockTelegramSvc := new(MockTelegramService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, mockTelegramRepo, nil, mockTelegramSvc, nil)
+
+		conn := &entities.TelegramConnection{
+			UserID:         10,
+			TelegramChatID: 12345,
+			IsActive:       true,
+		}
+		prefs := &entities.UserNotificationPreferences{
+			UserID:          10,
+			TelegramEnabled: true,
+		}
+		mockTelegramRepo.On("GetConnectionByUserID", ctx, int64(10)).Return(conn, nil)
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(prefs, nil)
+		mockTelegramSvc.On("SendNotification", ctx, "12345", "Test Title", "Test Message", "high").Return(nil)
+
+		uc.sendToTelegram(ctx, notification)
+
+		mockTelegramRepo.AssertExpectations(t)
+		mockPrefsRepo.AssertExpectations(t)
+		mockTelegramSvc.AssertExpectations(t)
+	})
+
+	t.Run("sends telegram notification with personality provider", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockTelegramRepo := new(MockTelegramRepository)
+		mockTelegramSvc := new(MockTelegramService)
+		mockPP := new(MockPersonalityProvider)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, mockTelegramRepo, nil, mockTelegramSvc, nil)
+		uc.SetPersonalityProvider(mockPP)
+
+		conn := &entities.TelegramConnection{
+			UserID:         10,
+			TelegramChatID: 12345,
+			IsActive:       true,
+		}
+		prefs := &entities.UserNotificationPreferences{
+			UserID:          10,
+			TelegramEnabled: true,
+		}
+		mockTelegramRepo.On("GetConnectionByUserID", ctx, int64(10)).Return(conn, nil)
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(prefs, nil)
+		mockPP.On("FormatNotification", "task", "Test Title", "Test Message", mock.AnythingOfType("entities.MoodContext")).Return("Formatted message from Metodych")
+		// When personality provider is used, title becomes empty
+		mockTelegramSvc.On("SendNotification", ctx, "12345", "", "Formatted message from Metodych", "high").Return(nil)
+
+		uc.sendToTelegram(ctx, notification)
+
+		mockTelegramRepo.AssertExpectations(t)
+		mockPrefsRepo.AssertExpectations(t)
+		mockTelegramSvc.AssertExpectations(t)
+		mockPP.AssertExpectations(t)
+	})
+
+	t.Run("handles telegram send error gracefully", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockTelegramRepo := new(MockTelegramRepository)
+		mockTelegramSvc := new(MockTelegramService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, mockTelegramRepo, nil, mockTelegramSvc, nil)
+
+		conn := &entities.TelegramConnection{
+			UserID:         10,
+			TelegramChatID: 12345,
+			IsActive:       true,
+		}
+		prefs := &entities.UserNotificationPreferences{
+			UserID:          10,
+			TelegramEnabled: true,
+		}
+		mockTelegramRepo.On("GetConnectionByUserID", ctx, int64(10)).Return(conn, nil)
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(prefs, nil)
+		mockTelegramSvc.On("SendNotification", ctx, "12345", "Test Title", "Test Message", "high").Return(assert.AnError)
+
+		// Should not panic even on error
+		uc.sendToTelegram(ctx, notification)
+
+		mockTelegramRepo.AssertExpectations(t)
+		mockPrefsRepo.AssertExpectations(t)
+		mockTelegramSvc.AssertExpectations(t)
+	})
+
+	t.Run("sends when preferences are nil (defaults to allowed)", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockTelegramRepo := new(MockTelegramRepository)
+		mockTelegramSvc := new(MockTelegramService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, mockTelegramRepo, nil, mockTelegramSvc, nil)
+
+		conn := &entities.TelegramConnection{
+			UserID:         10,
+			TelegramChatID: 12345,
+			IsActive:       true,
+		}
+		mockTelegramRepo.On("GetConnectionByUserID", ctx, int64(10)).Return(conn, nil)
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(nil, nil)
+		mockTelegramSvc.On("SendNotification", ctx, "12345", "Test Title", "Test Message", "high").Return(nil)
+
+		uc.sendToTelegram(ctx, notification)
+
+		mockTelegramRepo.AssertExpectations(t)
+		mockPrefsRepo.AssertExpectations(t)
+		mockTelegramSvc.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_sendToWebPush(t *testing.T) {
+	ctx := context.Background()
+
+	notification := &entities.Notification{
+		ID:       1,
+		UserID:   10,
+		Type:     entities.NotificationTypeTask,
+		Priority: entities.PriorityNormal,
+		Title:    "Test Push Title",
+		Message:  "Test Push Message",
+	}
+
+	t.Run("skips when webpushService is nil", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, nil, nil, nil)
+
+		// Should not panic
+		uc.sendToWebPush(ctx, notification)
+	})
+
+	t.Run("skips when preferences repo returns error", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockWebPushSvc := new(MockWebPushService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, nil, nil, mockWebPushSvc)
+
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(nil, assert.AnError)
+
+		uc.sendToWebPush(ctx, notification)
+
+		mockPrefsRepo.AssertExpectations(t)
+	})
+
+	t.Run("skips when push is disabled in preferences", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockWebPushSvc := new(MockWebPushService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, nil, nil, mockWebPushSvc)
+
+		prefs := &entities.UserNotificationPreferences{
+			UserID:      10,
+			PushEnabled: false,
+		}
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(prefs, nil)
+
+		uc.sendToWebPush(ctx, notification)
+
+		mockPrefsRepo.AssertExpectations(t)
+	})
+
+	t.Run("sends web push notification successfully", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockWebPushSvc := new(MockWebPushService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, nil, nil, mockWebPushSvc)
+
+		prefs := &entities.UserNotificationPreferences{
+			UserID:      10,
+			PushEnabled: true,
+		}
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(prefs, nil)
+		mockWebPushSvc.On("SendToUser", ctx, int64(10), mock.AnythingOfType("*entities.WebPushPayload")).Return(nil)
+
+		uc.sendToWebPush(ctx, notification)
+
+		mockPrefsRepo.AssertExpectations(t)
+		mockWebPushSvc.AssertExpectations(t)
+	})
+
+	t.Run("handles web push send error gracefully", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockWebPushSvc := new(MockWebPushService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, nil, nil, mockWebPushSvc)
+
+		prefs := &entities.UserNotificationPreferences{
+			UserID:      10,
+			PushEnabled: true,
+		}
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(prefs, nil)
+		mockWebPushSvc.On("SendToUser", ctx, int64(10), mock.AnythingOfType("*entities.WebPushPayload")).Return(assert.AnError)
+
+		// Should not panic even on error
+		uc.sendToWebPush(ctx, notification)
+
+		mockPrefsRepo.AssertExpectations(t)
+		mockWebPushSvc.AssertExpectations(t)
+	})
+
+	t.Run("sends when preferences are nil (defaults to allowed)", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockWebPushSvc := new(MockWebPushService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, nil, nil, mockWebPushSvc)
+
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(nil, nil)
+		mockWebPushSvc.On("SendToUser", ctx, int64(10), mock.AnythingOfType("*entities.WebPushPayload")).Return(nil)
+
+		uc.sendToWebPush(ctx, notification)
+
+		mockPrefsRepo.AssertExpectations(t)
+		mockWebPushSvc.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_Create_WithTelegramAndWebPush(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("Create triggers sendToTelegram and sendToWebPush", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+		mockTelegramRepo := new(MockTelegramRepository)
+		mockTelegramSvc := new(MockTelegramService)
+		mockWebPushSvc := new(MockWebPushService)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, mockTelegramRepo, nil, mockTelegramSvc, mockWebPushSvc)
+
+		input := &dto.CreateNotificationInput{
+			UserID:   10,
+			Type:     entities.NotificationTypeSystem,
+			Priority: entities.PriorityNormal,
+			Title:    "Test Notification",
+			Message:  "Test message",
+		}
+
+		conn := &entities.TelegramConnection{
+			UserID:         10,
+			TelegramChatID: 99999,
+			IsActive:       true,
+		}
+		prefs := &entities.UserNotificationPreferences{
+			UserID:          10,
+			TelegramEnabled: true,
+			PushEnabled:     true,
+		}
+
+		mockNotifRepo.On("Create", ctx, mock.AnythingOfType("*entities.Notification")).Return(nil)
+		mockTelegramRepo.On("GetConnectionByUserID", ctx, int64(10)).Return(conn, nil)
+		mockPrefsRepo.On("GetByUserID", ctx, int64(10)).Return(prefs, nil)
+		mockTelegramSvc.On("SendNotification", ctx, "99999", "Test Notification", "Test message", "normal").Return(nil)
+		mockWebPushSvc.On("SendToUser", ctx, int64(10), mock.AnythingOfType("*entities.WebPushPayload")).Return(nil)
+
+		output, err := uc.Create(ctx, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+
+		// Wait for goroutine to complete (sendToWebPush runs in a goroutine)
+		time.Sleep(100 * time.Millisecond)
+
+		mockNotifRepo.AssertExpectations(t)
+		mockTelegramRepo.AssertExpectations(t)
+		mockTelegramSvc.AssertExpectations(t)
+		mockWebPushSvc.AssertExpectations(t)
+	})
+}
+
+func TestNotificationUseCase_List_NegativeLimit(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("applies default limit when limit is negative", func(t *testing.T) {
+		mockNotifRepo := new(MockNotificationRepository)
+		mockPrefsRepo := new(MockPreferencesRepository)
+
+		uc := NewNotificationUseCase(mockNotifRepo, mockPrefsRepo, nil, nil, nil, nil)
+
+		input := &dto.NotificationListInput{
+			UserID: 1,
+			Limit:  -10,
+		}
+
+		stats := &entities.NotificationStats{TotalCount: 0}
+
+		mockNotifRepo.On("List", ctx, mock.MatchedBy(func(f *entities.NotificationFilter) bool {
+			return f.Limit == 50
+		})).Return([]*entities.Notification{}, nil)
+		mockNotifRepo.On("GetUnreadCount", ctx, int64(1)).Return(int64(0), nil)
+		mockNotifRepo.On("GetStats", ctx, int64(1)).Return(stats, nil)
+
+		output, err := uc.List(ctx, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, 50, output.Limit)
 		mockNotifRepo.AssertExpectations(t)
 	})
 }

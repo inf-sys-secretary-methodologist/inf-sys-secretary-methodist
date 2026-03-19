@@ -744,4 +744,432 @@ func TestDocumentUseCase_Search(t *testing.T) {
 
 		mockDocRepo.AssertExpectations(t)
 	})
+
+	t.Run("search with importance filter", func(t *testing.T) {
+		importance := "high"
+		searchResults := []*repositories.SearchResult{}
+
+		mockDocRepo.On("Search", ctx, mock.MatchedBy(func(filter repositories.SearchFilter) bool {
+			return filter.Importance != nil && *filter.Importance == entities.DocumentImportance("high")
+		})).Return(searchResults, int64(0), nil).Once()
+
+		input := dto.SearchInput{
+			Query:      "test",
+			Importance: &importance,
+			Page:       1,
+			PageSize:   20,
+		}
+
+		result, err := usecase.Search(ctx, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		mockDocRepo.AssertExpectations(t)
+	})
+
+	t.Run("search with oversized page size defaults to 20", func(t *testing.T) {
+		searchResults := []*repositories.SearchResult{}
+
+		mockDocRepo.On("Search", ctx, mock.MatchedBy(func(filter repositories.SearchFilter) bool {
+			return filter.Limit == 20
+		})).Return(searchResults, int64(0), nil).Once()
+
+		input := dto.SearchInput{
+			Query:    "test",
+			Page:     1,
+			PageSize: 200,
+		}
+
+		result, err := usecase.Search(ctx, input)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, 20, result.PageSize)
+		mockDocRepo.AssertExpectations(t)
+	})
+}
+
+func TestDocumentUseCase_Update_AllFields(t *testing.T) {
+	mockDocRepo := new(MockDocumentRepository)
+	mockTypeRepo := new(MockDocumentTypeRepository)
+	mockCategoryRepo := new(MockDocumentCategoryRepository)
+
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
+
+	ctx := context.Background()
+
+	t.Run("update all optional fields", func(t *testing.T) {
+		existingDoc := &entities.Document{
+			ID:             1,
+			Title:          "Old Title",
+			DocumentTypeID: 1,
+			AuthorID:       1,
+			Status:         entities.DocumentStatusDraft,
+			Importance:     entities.ImportanceNormal,
+		}
+
+		mockDocRepo.On("GetByID", ctx, int64(1)).Return(existingDoc, nil).Once()
+		mockDocRepo.On("Update", ctx, mock.AnythingOfType("*entities.Document")).Return(nil).Once()
+		mockDocRepo.On("AddHistory", ctx, mock.AnythingOfType("*entities.DocumentHistory")).Return(nil).Once()
+
+		newTitle := "New Title"
+		newSubject := "New Subject"
+		newContent := "New Content"
+		newFileName := "file.pdf"
+		catID := int64(5)
+		recipientID := int64(10)
+		deadline := time.Now().Add(24 * time.Hour)
+		importance := "high"
+		isPublic := true
+
+		input := dto.UpdateDocumentInput{
+			Title:       &newTitle,
+			Subject:     &newSubject,
+			Content:     &newContent,
+			FileName:    &newFileName,
+			CategoryID:  &catID,
+			RecipientID: &recipientID,
+			Deadline:    &deadline,
+			Importance:  &importance,
+			IsPublic:    &isPublic,
+		}
+
+		result, err := usecase.Update(ctx, 1, input, 1)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "New Title", result.Title)
+		assert.True(t, result.IsPublic)
+		assert.Equal(t, "high", result.Importance)
+		mockDocRepo.AssertExpectations(t)
+	})
+
+	t.Run("update non-existent document", func(t *testing.T) {
+		mockDocRepo.On("GetByID", ctx, int64(999)).Return(nil, assert.AnError).Once()
+
+		newTitle := "Title"
+		input := dto.UpdateDocumentInput{Title: &newTitle}
+
+		result, err := usecase.Update(ctx, 999, input, 1)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockDocRepo.AssertExpectations(t)
+	})
+
+	t.Run("update fails on repo error", func(t *testing.T) {
+		existingDoc := &entities.Document{
+			ID: 1, Title: "Old", DocumentTypeID: 1, AuthorID: 1, Status: entities.DocumentStatusDraft,
+		}
+
+		mockDocRepo.On("GetByID", ctx, int64(1)).Return(existingDoc, nil).Once()
+		mockDocRepo.On("Update", ctx, mock.AnythingOfType("*entities.Document")).Return(assert.AnError).Once()
+
+		newTitle := "New"
+		input := dto.UpdateDocumentInput{Title: &newTitle}
+
+		result, err := usecase.Update(ctx, 1, input, 1)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to update document")
+		mockDocRepo.AssertExpectations(t)
+	})
+}
+
+func TestDocumentUseCase_Create_WithImportance(t *testing.T) {
+	mockDocRepo := new(MockDocumentRepository)
+	mockTypeRepo := new(MockDocumentTypeRepository)
+	mockCategoryRepo := new(MockDocumentCategoryRepository)
+
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
+
+	ctx := context.Background()
+
+	t.Run("creates document with importance", func(t *testing.T) {
+		docType := &entities.DocumentType{ID: 1, Name: "Order", Code: "order"}
+
+		mockTypeRepo.On("GetByID", ctx, int64(1)).Return(docType, nil).Once()
+		mockDocRepo.On("Create", ctx, mock.MatchedBy(func(doc *entities.Document) bool {
+			return doc.Importance == entities.ImportanceHigh
+		})).Return(nil).Once()
+		mockDocRepo.On("AddHistory", ctx, mock.AnythingOfType("*entities.DocumentHistory")).Return(nil).Once()
+
+		importance := "high"
+		input := dto.CreateDocumentInput{
+			Title:          "Important Doc",
+			DocumentTypeID: 1,
+			Importance:     &importance,
+		}
+
+		result, err := usecase.Create(ctx, input, 1)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "high", result.Importance)
+		mockTypeRepo.AssertExpectations(t)
+		mockDocRepo.AssertExpectations(t)
+	})
+
+	t.Run("creates document with all optional fields", func(t *testing.T) {
+		docType := &entities.DocumentType{ID: 1, Name: "Order", Code: "order"}
+		catID := int64(5)
+		recipientID := int64(10)
+		subject := "Subject"
+		content := "Content"
+		deadline := time.Now().Add(24 * time.Hour)
+
+		mockTypeRepo.On("GetByID", ctx, int64(1)).Return(docType, nil).Once()
+		mockDocRepo.On("Create", ctx, mock.AnythingOfType("*entities.Document")).Return(nil).Once()
+		mockDocRepo.On("AddHistory", ctx, mock.AnythingOfType("*entities.DocumentHistory")).Return(nil).Once()
+
+		input := dto.CreateDocumentInput{
+			Title:          "Full Doc",
+			DocumentTypeID: 1,
+			CategoryID:     &catID,
+			Subject:        &subject,
+			Content:        &content,
+			RecipientID:    &recipientID,
+			Deadline:       &deadline,
+			IsPublic:       true,
+		}
+
+		result, err := usecase.Create(ctx, input, 1)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.True(t, result.IsPublic)
+		mockTypeRepo.AssertExpectations(t)
+		mockDocRepo.AssertExpectations(t)
+	})
+
+	t.Run("create document fails on repo error", func(t *testing.T) {
+		docType := &entities.DocumentType{ID: 1, Name: "Order", Code: "order"}
+
+		mockTypeRepo.On("GetByID", ctx, int64(1)).Return(docType, nil).Once()
+		mockDocRepo.On("Create", ctx, mock.AnythingOfType("*entities.Document")).Return(assert.AnError).Once()
+
+		input := dto.CreateDocumentInput{
+			Title:          "Doc",
+			DocumentTypeID: 1,
+		}
+
+		result, err := usecase.Create(ctx, input, 1)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to create document")
+		mockTypeRepo.AssertExpectations(t)
+		mockDocRepo.AssertExpectations(t)
+	})
+}
+
+func TestDocumentUseCase_Delete_SoftDeleteError(t *testing.T) {
+	mockDocRepo := new(MockDocumentRepository)
+	mockTypeRepo := new(MockDocumentTypeRepository)
+	mockCategoryRepo := new(MockDocumentCategoryRepository)
+
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
+
+	ctx := context.Background()
+
+	t.Run("soft delete error", func(t *testing.T) {
+		doc := &entities.Document{ID: 1, Title: "Test"}
+
+		mockDocRepo.On("GetByID", ctx, int64(1)).Return(doc, nil).Once()
+		mockDocRepo.On("SoftDelete", ctx, int64(1)).Return(assert.AnError).Once()
+
+		err := usecase.Delete(ctx, 1, 1)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete document")
+		mockDocRepo.AssertExpectations(t)
+	})
+}
+
+func TestDocumentUseCase_List_WithFilters(t *testing.T) {
+	mockDocRepo := new(MockDocumentRepository)
+	mockTypeRepo := new(MockDocumentTypeRepository)
+	mockCategoryRepo := new(MockDocumentCategoryRepository)
+
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
+
+	ctx := context.Background()
+
+	t.Run("list with status and importance filters", func(t *testing.T) {
+		docs := []*entities.Document{
+			{ID: 1, Title: "Doc 1", Status: entities.DocumentStatusApproved},
+		}
+		status := "approved"
+		importance := "high"
+
+		mockDocRepo.On("List", ctx, mock.MatchedBy(func(f repositories.DocumentFilter) bool {
+			return f.Status != nil && *f.Status == entities.DocumentStatus("approved") &&
+				f.Importance != nil && *f.Importance == entities.DocumentImportance("high")
+		})).Return(docs, int64(1), nil).Once()
+
+		filter := dto.DocumentFilterInput{
+			Status:     &status,
+			Importance: &importance,
+			Page:       1,
+			PageSize:   10,
+		}
+
+		result, err := usecase.List(ctx, filter)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Len(t, result.Documents, 1)
+		assert.Equal(t, int64(1), result.Total)
+		assert.Equal(t, 1, result.TotalPages)
+		mockDocRepo.AssertExpectations(t)
+	})
+
+	t.Run("list with custom order_by", func(t *testing.T) {
+		orderBy := "title ASC"
+		docs := []*entities.Document{}
+
+		mockDocRepo.On("List", ctx, mock.MatchedBy(func(f repositories.DocumentFilter) bool {
+			return f.OrderBy == "title ASC"
+		})).Return(docs, int64(0), nil).Once()
+
+		filter := dto.DocumentFilterInput{
+			OrderBy:  &orderBy,
+			Page:     1,
+			PageSize: 10,
+		}
+
+		result, err := usecase.List(ctx, filter)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, 0, result.TotalPages)
+		mockDocRepo.AssertExpectations(t)
+	})
+
+	t.Run("list with repo error", func(t *testing.T) {
+		mockDocRepo.On("List", ctx, mock.AnythingOfType("repositories.DocumentFilter")).
+			Return(nil, int64(0), assert.AnError).Once()
+
+		filter := dto.DocumentFilterInput{Page: 1, PageSize: 10}
+
+		result, err := usecase.List(ctx, filter)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to list documents")
+		mockDocRepo.AssertExpectations(t)
+	})
+
+	t.Run("list pagination with partial last page", func(t *testing.T) {
+		docs := make([]*entities.Document, 5)
+		for i := range docs {
+			docs[i] = &entities.Document{ID: int64(i + 1), Title: "Doc"}
+		}
+
+		mockDocRepo.On("List", ctx, mock.AnythingOfType("repositories.DocumentFilter")).
+			Return(docs, int64(13), nil).Once()
+
+		filter := dto.DocumentFilterInput{Page: 1, PageSize: 5}
+
+		result, err := usecase.List(ctx, filter)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, 3, result.TotalPages)
+		mockDocRepo.AssertExpectations(t)
+	})
+}
+
+func TestDocumentUseCase_GetDocumentTypes_Error(t *testing.T) {
+	mockDocRepo := new(MockDocumentRepository)
+	mockTypeRepo := new(MockDocumentTypeRepository)
+	mockCategoryRepo := new(MockDocumentCategoryRepository)
+
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
+
+	ctx := context.Background()
+
+	t.Run("get types error", func(t *testing.T) {
+		mockTypeRepo.On("GetAll", ctx).Return(nil, assert.AnError).Once()
+
+		result, err := usecase.GetDocumentTypes(ctx)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to get document types")
+		mockTypeRepo.AssertExpectations(t)
+	})
+}
+
+func TestDocumentUseCase_GetCategories_Error(t *testing.T) {
+	mockDocRepo := new(MockDocumentRepository)
+	mockTypeRepo := new(MockDocumentTypeRepository)
+	mockCategoryRepo := new(MockDocumentCategoryRepository)
+
+	usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
+
+	ctx := context.Background()
+
+	t.Run("get categories error", func(t *testing.T) {
+		mockCategoryRepo.On("GetAll", ctx).Return(nil, assert.AnError).Once()
+
+		result, err := usecase.GetCategories(ctx)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to get categories")
+		mockCategoryRepo.AssertExpectations(t)
+	})
+}
+
+func TestDetectContentType(t *testing.T) {
+	tests := []struct {
+		filename    string
+		contentType string
+	}{
+		{"file.pdf", "application/pdf"},
+		{"file.doc", "application/msword"},
+		{"file.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+		{"file.xls", "application/vnd.ms-excel"},
+		{"file.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+		{"file.png", "image/png"},
+		{"file.jpg", "image/jpeg"},
+		{"file.jpeg", "image/jpeg"},
+		{"file.gif", "image/gif"},
+		{"file.txt", "text/plain"},
+		{"file.csv", "text/csv"},
+		{"file.zip", "application/zip"},
+		{"file.rar", "application/x-rar-compressed"},
+		{"file.unknown", "application/octet-stream"},
+		{"file", "application/octet-stream"},
+		{"FILE.PDF", "application/pdf"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filename, func(t *testing.T) {
+			result := detectContentType(tt.filename)
+			assert.Equal(t, tt.contentType, result)
+		})
+	}
+}
+
+func TestStrPtr(t *testing.T) {
+	s := "hello"
+	result := strPtr(s)
+	assert.NotNil(t, result)
+	assert.Equal(t, "hello", *result)
+}
+
+func TestDocumentUseCase_LogAudit(t *testing.T) {
+	t.Run("log audit with nil audit logger", func(t *testing.T) {
+		mockDocRepo := new(MockDocumentRepository)
+		mockTypeRepo := new(MockDocumentTypeRepository)
+		mockCategoryRepo := new(MockDocumentCategoryRepository)
+
+		usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
+
+		// Should not panic with nil auditLog
+		usecase.logAudit(context.Background(), "test", "test", nil)
+	})
 }
