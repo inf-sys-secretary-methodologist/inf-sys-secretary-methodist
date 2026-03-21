@@ -263,7 +263,7 @@ func TestStudentUseCase_List(t *testing.T) {
 	ctx := context.Background()
 
 	// Create students
-	createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 	createTestStudent(repo, "ext2", "Jane", "Smith", "CS-102", "Computer Science")
 	createTestStudent(repo, "ext3", "Bob", "Johnson", "MATH-101", "Mathematics")
 
@@ -292,7 +292,7 @@ func TestStudentUseCase_List_WithGroupFilter(t *testing.T) {
 	ctx := context.Background()
 
 	// Create students
-	createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 	createTestStudent(repo, "ext2", "Jane", "Smith", "CS-101", "Computer Science")
 	createTestStudent(repo, "ext3", "Bob", "Johnson", "MATH-101", "Mathematics")
 
@@ -318,7 +318,7 @@ func TestStudentUseCase_GetByID(t *testing.T) {
 	ctx := context.Background()
 
 	// Create student
-	student := createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	student := createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 
 	// Get by ID
 	result, err := uc.GetByID(ctx, student.ID)
@@ -330,7 +330,7 @@ func TestStudentUseCase_GetByID(t *testing.T) {
 		t.Fatal("expected non-nil result")
 	}
 
-	if result.FirstName != "John" {
+	if result.FirstName != testFirstNameJohn {
 		t.Errorf("expected first name 'John', got '%s'", result.FirstName)
 	}
 }
@@ -359,7 +359,7 @@ func TestStudentUseCase_GetByExternalID(t *testing.T) {
 	ctx := context.Background()
 
 	// Create student
-	createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 
 	// Get by external ID
 	result, err := uc.GetByExternalID(ctx, "ext1")
@@ -400,7 +400,7 @@ func TestStudentUseCase_LinkToLocalUser(t *testing.T) {
 	ctx := context.Background()
 
 	// Create student
-	student := createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	student := createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 
 	// Link to local user
 	err := uc.LinkToLocalUser(ctx, student.ID, 42)
@@ -438,7 +438,7 @@ func TestStudentUseCase_LinkToLocalUser_AlreadyLinked(t *testing.T) {
 	ctx := context.Background()
 
 	// Create and link student
-	student := createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	student := createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 	_ = repo.LinkToLocalUser(ctx, student.ID, 42)
 
 	// Try to link again
@@ -455,7 +455,7 @@ func TestStudentUseCase_LinkToLocalUser_LocalUserAlreadyLinked(t *testing.T) {
 	ctx := context.Background()
 
 	// Create and link first student
-	student1 := createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	student1 := createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 	_ = repo.LinkToLocalUser(ctx, student1.ID, 42)
 
 	// Create second student
@@ -475,7 +475,7 @@ func TestStudentUseCase_Unlink(t *testing.T) {
 	ctx := context.Background()
 
 	// Create and link student
-	student := createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	student := createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 	_ = repo.LinkToLocalUser(ctx, student.ID, 42)
 
 	// Unlink
@@ -511,7 +511,7 @@ func TestStudentUseCase_Unlink_NotLinked(t *testing.T) {
 	ctx := context.Background()
 
 	// Create unlinked student
-	student := createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	student := createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 
 	// Try to unlink
 	err := uc.Unlink(ctx, student.ID)
@@ -527,7 +527,7 @@ func TestStudentUseCase_GetUnlinked(t *testing.T) {
 	ctx := context.Background()
 
 	// Create students
-	student1 := createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	student1 := createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 	createTestStudent(repo, "ext2", "Jane", "Smith", "CS-102", "Computer Science")
 	createTestStudent(repo, "ext3", "Bob", "Johnson", "MATH-101", "Mathematics")
 
@@ -552,7 +552,7 @@ func TestStudentUseCase_GetByGroup(t *testing.T) {
 	ctx := context.Background()
 
 	// Create students
-	createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 	createTestStudent(repo, "ext2", "Jane", "Smith", "CS-101", "Computer Science")
 	createTestStudent(repo, "ext3", "Bob", "Johnson", "MATH-101", "Mathematics")
 
@@ -574,7 +574,7 @@ func TestStudentUseCase_GetByFaculty(t *testing.T) {
 	ctx := context.Background()
 
 	// Create students
-	createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 	createTestStudent(repo, "ext2", "Jane", "Smith", "CS-102", "Computer Science")
 	createTestStudent(repo, "ext3", "Bob", "Johnson", "MATH-101", "Mathematics")
 
@@ -596,7 +596,7 @@ func TestStudentUseCase_GetGroups(t *testing.T) {
 	ctx := context.Background()
 
 	// Create students
-	createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 	createTestStudent(repo, "ext2", "Jane", "Smith", "CS-101", "Computer Science")
 	createTestStudent(repo, "ext3", "Bob", "Johnson", "MATH-101", "Mathematics")
 
@@ -618,7 +618,7 @@ func TestStudentUseCase_GetFaculties(t *testing.T) {
 	ctx := context.Background()
 
 	// Create students
-	createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 	createTestStudent(repo, "ext2", "Jane", "Smith", "CS-102", "Computer Science")
 	createTestStudent(repo, "ext3", "Bob", "Johnson", "MATH-101", "Mathematics")
 
@@ -640,7 +640,7 @@ func TestStudentUseCase_Delete(t *testing.T) {
 	ctx := context.Background()
 
 	// Create student
-	student := createTestStudent(repo, "ext1", "John", "Doe", "CS-101", "Computer Science")
+	student := createTestStudent(repo, "ext1", testFirstNameJohn, testLastNameDoe, "CS-101", "Computer Science")
 
 	// Delete
 	err := uc.Delete(ctx, student.ID)
@@ -815,8 +815,8 @@ func TestStudentUseCase_LinkToLocalUser_GetByLocalUserError(t *testing.T) {
 	ctx := context.Background()
 
 	student := entities.NewExternalStudent("ext1", "CODE-ext1")
-	student.FirstName = "John"
-	student.LastName = "Doe"
+	student.FirstName = testFirstNameJohn
+	student.LastName = testLastNameDoe
 	_ = repo.Create(ctx, student)
 
 	repo.getByLocalErr = true
@@ -832,8 +832,8 @@ func TestStudentUseCase_LinkToLocalUser_LinkRepoError(t *testing.T) {
 	ctx := context.Background()
 
 	student := entities.NewExternalStudent("ext1", "CODE-ext1")
-	student.FirstName = "John"
-	student.LastName = "Doe"
+	student.FirstName = testFirstNameJohn
+	student.LastName = testLastNameDoe
 	_ = repo.Create(ctx, student)
 
 	repo.linkErr = true

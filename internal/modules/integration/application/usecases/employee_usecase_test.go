@@ -226,7 +226,7 @@ func TestEmployeeUseCase_List(t *testing.T) {
 	ctx := context.Background()
 
 	// Create employees
-	createTestEmployee(repo, "ext1", "John", "Doe")
+	createTestEmployee(repo, "ext1", testFirstNameJohn, testLastNameDoe)
 	createTestEmployee(repo, "ext2", "Jane", "Smith")
 	createTestEmployee(repo, "ext3", "Bob", "Johnson")
 
@@ -255,7 +255,7 @@ func TestEmployeeUseCase_List_WithFilter(t *testing.T) {
 	ctx := context.Background()
 
 	// Create employees
-	emp1 := createTestEmployee(repo, "ext1", "John", "Doe")
+	emp1 := createTestEmployee(repo, "ext1", testFirstNameJohn, testLastNameDoe)
 	emp1.IsActive = true
 	_ = repo.Update(ctx, emp1)
 
@@ -286,7 +286,7 @@ func TestEmployeeUseCase_GetByID(t *testing.T) {
 	ctx := context.Background()
 
 	// Create employee
-	emp := createTestEmployee(repo, "ext1", "John", "Doe")
+	emp := createTestEmployee(repo, "ext1", testFirstNameJohn, testLastNameDoe)
 
 	// Get by ID
 	result, err := uc.GetByID(ctx, emp.ID)
@@ -298,7 +298,7 @@ func TestEmployeeUseCase_GetByID(t *testing.T) {
 		t.Fatal("expected non-nil result")
 	}
 
-	if result.FirstName != "John" {
+	if result.FirstName != testFirstNameJohn {
 		t.Errorf("expected first name 'John', got '%s'", result.FirstName)
 	}
 }
@@ -327,7 +327,7 @@ func TestEmployeeUseCase_GetByExternalID(t *testing.T) {
 	ctx := context.Background()
 
 	// Create employee
-	createTestEmployee(repo, "ext1", "John", "Doe")
+	createTestEmployee(repo, "ext1", testFirstNameJohn, testLastNameDoe)
 
 	// Get by external ID
 	result, err := uc.GetByExternalID(ctx, "ext1")
@@ -368,7 +368,7 @@ func TestEmployeeUseCase_LinkToLocalUser(t *testing.T) {
 	ctx := context.Background()
 
 	// Create employee
-	emp := createTestEmployee(repo, "ext1", "John", "Doe")
+	emp := createTestEmployee(repo, "ext1", testFirstNameJohn, testLastNameDoe)
 
 	// Link to local user
 	err := uc.LinkToLocalUser(ctx, emp.ID, 42)
@@ -406,7 +406,7 @@ func TestEmployeeUseCase_LinkToLocalUser_AlreadyLinked(t *testing.T) {
 	ctx := context.Background()
 
 	// Create and link employee
-	emp := createTestEmployee(repo, "ext1", "John", "Doe")
+	emp := createTestEmployee(repo, "ext1", testFirstNameJohn, testLastNameDoe)
 	_ = repo.LinkToLocalUser(ctx, emp.ID, 42)
 
 	// Try to link again
@@ -423,7 +423,7 @@ func TestEmployeeUseCase_LinkToLocalUser_LocalUserAlreadyLinked(t *testing.T) {
 	ctx := context.Background()
 
 	// Create and link first employee
-	emp1 := createTestEmployee(repo, "ext1", "John", "Doe")
+	emp1 := createTestEmployee(repo, "ext1", testFirstNameJohn, testLastNameDoe)
 	_ = repo.LinkToLocalUser(ctx, emp1.ID, 42)
 
 	// Create second employee
@@ -443,7 +443,7 @@ func TestEmployeeUseCase_Unlink(t *testing.T) {
 	ctx := context.Background()
 
 	// Create and link employee
-	emp := createTestEmployee(repo, "ext1", "John", "Doe")
+	emp := createTestEmployee(repo, "ext1", testFirstNameJohn, testLastNameDoe)
 	_ = repo.LinkToLocalUser(ctx, emp.ID, 42)
 
 	// Unlink
@@ -479,7 +479,7 @@ func TestEmployeeUseCase_Unlink_NotLinked(t *testing.T) {
 	ctx := context.Background()
 
 	// Create unlinked employee
-	emp := createTestEmployee(repo, "ext1", "John", "Doe")
+	emp := createTestEmployee(repo, "ext1", testFirstNameJohn, testLastNameDoe)
 
 	// Try to unlink
 	err := uc.Unlink(ctx, emp.ID)
@@ -495,7 +495,7 @@ func TestEmployeeUseCase_GetUnlinked(t *testing.T) {
 	ctx := context.Background()
 
 	// Create employees
-	emp1 := createTestEmployee(repo, "ext1", "John", "Doe")
+	emp1 := createTestEmployee(repo, "ext1", testFirstNameJohn, testLastNameDoe)
 	createTestEmployee(repo, "ext2", "Jane", "Smith")
 	createTestEmployee(repo, "ext3", "Bob", "Johnson")
 
@@ -520,7 +520,7 @@ func TestEmployeeUseCase_Delete(t *testing.T) {
 	ctx := context.Background()
 
 	// Create employee
-	emp := createTestEmployee(repo, "ext1", "John", "Doe")
+	emp := createTestEmployee(repo, "ext1", testFirstNameJohn, testLastNameDoe)
 
 	// Delete
 	err := uc.Delete(ctx, emp.ID)
@@ -663,8 +663,8 @@ func TestEmployeeUseCase_LinkToLocalUser_GetByLocalUserError(t *testing.T) {
 	ctx := context.Background()
 
 	emp := entities.NewExternalEmployee("ext1", "CODE-ext1")
-	emp.FirstName = "John"
-	emp.LastName = "Doe"
+	emp.FirstName = testFirstNameJohn
+	emp.LastName = testLastNameDoe
 	_ = repo.Create(ctx, emp)
 
 	repo.getByLocalErr = true
@@ -680,8 +680,8 @@ func TestEmployeeUseCase_LinkToLocalUser_LinkRepoError(t *testing.T) {
 	ctx := context.Background()
 
 	emp := entities.NewExternalEmployee("ext1", "CODE-ext1")
-	emp.FirstName = "John"
-	emp.LastName = "Doe"
+	emp.FirstName = testFirstNameJohn
+	emp.LastName = testLastNameDoe
 	_ = repo.Create(ctx, emp)
 
 	repo.linkErr = true

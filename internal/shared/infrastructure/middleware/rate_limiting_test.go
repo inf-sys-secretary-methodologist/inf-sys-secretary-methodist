@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testRemoteAddr = "192.168.1.1:12345"
+
 // setupTestRedis создаёт in-memory Redis сервер для тестов
 func setupTestRedis(t *testing.T) (*redis.Client, *miniredis.Miniredis) {
 	mr := miniredis.RunT(t)
@@ -146,7 +148,7 @@ func TestRateLimiter_DifferentIPs(t *testing.T) {
 	for i := 0; i < 15; i++ {
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", "/test", nil)
-		req.RemoteAddr = "192.168.1.1:12345"
+		req.RemoteAddr = testRemoteAddr
 		router.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
 	}
@@ -154,7 +156,7 @@ func TestRateLimiter_DifferentIPs(t *testing.T) {
 	// IP 1: 16-й запрос должен быть заблокирован
 	w1 := httptest.NewRecorder()
 	req1 := httptest.NewRequest("GET", "/test", nil)
-	req1.RemoteAddr = "192.168.1.1:12345"
+	req1.RemoteAddr = testRemoteAddr
 	router.ServeHTTP(w1, req1)
 	assert.Equal(t, http.StatusTooManyRequests, w1.Code)
 

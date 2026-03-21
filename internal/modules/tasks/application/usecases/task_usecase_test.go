@@ -16,7 +16,11 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
-const updatedTaskTitle = "Updated Task"
+const (
+	updatedTaskTitle = "Updated Task"
+	testNewTitle     = "New Title"
+	testUpdated      = "Updated"
+)
 
 // --- Error-returning mock task repository ---
 
@@ -376,7 +380,7 @@ func TestTaskUseCase_Update(t *testing.T) {
 func TestTaskUseCase_Update_NotFound(t *testing.T) {
 	uc, _ := setupTaskUseCase()
 
-	newTitle := "New Title"
+	newTitle := testNewTitle
 	_, err := uc.Update(context.Background(), 1, 999, dto.UpdateTaskInput{Title: &newTitle})
 	assert.ErrorIs(t, err, ErrTaskNotFound)
 }
@@ -387,7 +391,7 @@ func TestTaskUseCase_Update_CannotModifyCompleted(t *testing.T) {
 	task.Status = domain.TaskStatusCompleted
 	taskRepo.tasks[task.ID] = task
 
-	newTitle := "New Title"
+	newTitle := testNewTitle
 	_, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
 	assert.ErrorIs(t, err, ErrCannotModifyTask)
 }
@@ -398,7 +402,7 @@ func TestTaskUseCase_Update_CannotModifyCancelled(t *testing.T) {
 	task.Status = domain.TaskStatusCancelled
 	taskRepo.tasks[task.ID] = task
 
-	newTitle := "New Title"
+	newTitle := testNewTitle
 	_, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
 	assert.ErrorIs(t, err, ErrCannotModifyTask)
 }
@@ -546,7 +550,7 @@ func TestTaskUseCase_Update_SaveError(t *testing.T) {
 	require.NoError(t, err)
 
 	repo.saveErr = errors.New("save error")
-	newTitle := "Updated"
+	newTitle := testUpdated
 	_, err = uc.Update(ctx, 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update task")
@@ -556,10 +560,10 @@ func TestTaskUseCase_Update_WithAuditLogger(t *testing.T) {
 	uc, _ := setupTaskUseCaseWithAudit()
 	task := createTask(t, uc, "Test", 1)
 
-	newTitle := "Updated"
+	newTitle := testUpdated
 	updated, err := uc.Update(context.Background(), 1, task.ID, dto.UpdateTaskInput{Title: &newTitle})
 	require.NoError(t, err)
-	assert.Equal(t, "Updated", updated.Title)
+	assert.Equal(t, testUpdated, updated.Title)
 }
 
 // ===================== Delete =====================
@@ -1243,15 +1247,15 @@ func TestTaskUseCase_UpdateComment(t *testing.T) {
 
 	comment, _ := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Hello"})
 
-	updated, err := uc.UpdateComment(context.Background(), 1, comment.ID, dto.UpdateCommentInput{Content: "Updated"})
+	updated, err := uc.UpdateComment(context.Background(), 1, comment.ID, dto.UpdateCommentInput{Content: testUpdated})
 	require.NoError(t, err)
-	assert.Equal(t, "Updated", updated.Content)
+	assert.Equal(t, testUpdated, updated.Content)
 }
 
 func TestTaskUseCase_UpdateComment_NotFound(t *testing.T) {
 	uc, _ := setupTaskUseCase()
 
-	_, err := uc.UpdateComment(context.Background(), 1, 999, dto.UpdateCommentInput{Content: "Updated"})
+	_, err := uc.UpdateComment(context.Background(), 1, 999, dto.UpdateCommentInput{Content: testUpdated})
 	assert.ErrorIs(t, err, ErrCommentNotFound)
 }
 
@@ -1260,7 +1264,7 @@ func TestTaskUseCase_UpdateComment_Unauthorized(t *testing.T) {
 	task := createTask(t, uc, "Test", 1)
 	comment, _ := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Hello"})
 
-	_, err := uc.UpdateComment(context.Background(), 2, comment.ID, dto.UpdateCommentInput{Content: "Updated"})
+	_, err := uc.UpdateComment(context.Background(), 2, comment.ID, dto.UpdateCommentInput{Content: testUpdated})
 	assert.ErrorIs(t, err, ErrUnauthorized)
 }
 
@@ -1269,7 +1273,7 @@ func TestTaskUseCase_UpdateComment_GetError(t *testing.T) {
 	repo.getCommentByIDErr = errors.New("get error")
 	uc := NewTaskUseCase(repo, NewMockProjectRepository(), nil, nil)
 
-	_, err := uc.UpdateComment(context.Background(), 1, 1, dto.UpdateCommentInput{Content: "Updated"})
+	_, err := uc.UpdateComment(context.Background(), 1, 1, dto.UpdateCommentInput{Content: testUpdated})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get comment")
 }
@@ -1283,7 +1287,7 @@ func TestTaskUseCase_UpdateComment_SaveError(t *testing.T) {
 	comment, _ := uc.AddComment(ctx, 1, task.ID, dto.AddCommentInput{Content: "Hello"})
 
 	repo.updateCommentErr = errors.New("update error")
-	_, err := uc.UpdateComment(ctx, 1, comment.ID, dto.UpdateCommentInput{Content: "Updated"})
+	_, err := uc.UpdateComment(ctx, 1, comment.ID, dto.UpdateCommentInput{Content: testUpdated})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update comment")
 }
@@ -1293,9 +1297,9 @@ func TestTaskUseCase_UpdateComment_WithAuditLogger(t *testing.T) {
 	task := createTask(t, uc, "Test", 1)
 	comment, _ := uc.AddComment(context.Background(), 1, task.ID, dto.AddCommentInput{Content: "Hello"})
 
-	updated, err := uc.UpdateComment(context.Background(), 1, comment.ID, dto.UpdateCommentInput{Content: "Updated"})
+	updated, err := uc.UpdateComment(context.Background(), 1, comment.ID, dto.UpdateCommentInput{Content: testUpdated})
 	require.NoError(t, err)
-	assert.Equal(t, "Updated", updated.Content)
+	assert.Equal(t, testUpdated, updated.Content)
 }
 
 func TestTaskUseCase_DeleteComment(t *testing.T) {

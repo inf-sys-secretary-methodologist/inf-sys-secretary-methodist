@@ -14,6 +14,8 @@ import (
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 )
 
+const testFakeBcryptHash = "$2a$10$abcdefghijklmnopqrstuuHx5hvxqGS5QWK8xNGhxQHfEfCB1f9i"
+
 // MockPermissionRepository is a mock implementation of PermissionRepository
 type MockPermissionRepository struct {
 	mock.Mock
@@ -1678,7 +1680,7 @@ func TestSharingUseCase_AccessPublicLink_Password(t *testing.T) {
 
 		// Generate a bcrypt hash for "secret123"
 		// We use the actual hash that bcrypt generates
-		hash := "$2a$10$abcdefghijklmnopqrstuuHx5hvxqGS5QWK8xNGhxQHfEfCB1f9i" // fake, will use real comparison
+		hash := testFakeBcryptHash
 		link := &entities.PublicLink{
 			ID: 1, DocumentID: 1, Token: "token", Permission: entities.PublicLinkRead,
 			IsActive: true, PasswordHash: &hash,
@@ -1702,7 +1704,7 @@ func TestSharingUseCase_AccessPublicLink_Password(t *testing.T) {
 
 		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
 
-		hash := "$2a$10$abcdefghijklmnopqrstuuHx5hvxqGS5QWK8xNGhxQHfEfCB1f9i"
+		hash := testFakeBcryptHash
 		link := &entities.PublicLink{
 			ID: 1, DocumentID: 1, Token: "token", Permission: entities.PublicLinkRead,
 			IsActive: true, PasswordHash: &hash,
@@ -1724,7 +1726,7 @@ func TestSharingUseCase_AccessPublicLink_Password(t *testing.T) {
 
 		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
 
-		hash := "$2a$10$abcdefghijklmnopqrstuuHx5hvxqGS5QWK8xNGhxQHfEfCB1f9i"
+		hash := testFakeBcryptHash
 		link := &entities.PublicLink{
 			ID: 1, DocumentID: 1, Token: "token", Permission: entities.PublicLinkRead,
 			IsActive: true, PasswordHash: &hash,

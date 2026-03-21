@@ -13,6 +13,11 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
+const (
+	testImportanceHigh = "high"
+	testTitleNew       = "New"
+)
+
 // MockDocumentRepository is a mock implementation of DocumentRepository
 type MockDocumentRepository struct {
 	mock.Mock
@@ -746,7 +751,7 @@ func TestDocumentUseCase_Search(t *testing.T) {
 	})
 
 	t.Run("search with importance filter", func(t *testing.T) {
-		importance := "high"
+		importance := testImportanceHigh
 		searchResults := []*repositories.SearchResult{}
 
 		mockDocRepo.On("Search", ctx, mock.MatchedBy(func(filter repositories.SearchFilter) bool {
@@ -819,7 +824,7 @@ func TestDocumentUseCase_Update_AllFields(t *testing.T) {
 		catID := int64(5)
 		recipientID := int64(10)
 		deadline := time.Now().Add(24 * time.Hour)
-		importance := "high"
+		importance := testImportanceHigh
 		isPublic := true
 
 		input := dto.UpdateDocumentInput{
@@ -865,7 +870,7 @@ func TestDocumentUseCase_Update_AllFields(t *testing.T) {
 		mockDocRepo.On("GetByID", ctx, int64(1)).Return(existingDoc, nil).Once()
 		mockDocRepo.On("Update", ctx, mock.AnythingOfType("*entities.Document")).Return(assert.AnError).Once()
 
-		newTitle := "New"
+		newTitle := testTitleNew
 		input := dto.UpdateDocumentInput{Title: &newTitle}
 
 		result, err := usecase.Update(ctx, 1, input, 1)
@@ -895,7 +900,7 @@ func TestDocumentUseCase_Create_WithImportance(t *testing.T) {
 		})).Return(nil).Once()
 		mockDocRepo.On("AddHistory", ctx, mock.AnythingOfType("*entities.DocumentHistory")).Return(nil).Once()
 
-		importance := "high"
+		importance := testImportanceHigh
 		input := dto.CreateDocumentInput{
 			Title:          "Important Doc",
 			DocumentTypeID: 1,
@@ -1001,7 +1006,7 @@ func TestDocumentUseCase_List_WithFilters(t *testing.T) {
 			{ID: 1, Title: "Doc 1", Status: entities.DocumentStatusApproved},
 		}
 		status := "approved"
-		importance := "high"
+		importance := testImportanceHigh
 
 		mockDocRepo.On("List", ctx, mock.MatchedBy(func(f repositories.DocumentFilter) bool {
 			return f.Status != nil && *f.Status == entities.DocumentStatus("approved") &&

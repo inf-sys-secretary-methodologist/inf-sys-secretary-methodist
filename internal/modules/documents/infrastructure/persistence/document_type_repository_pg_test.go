@@ -16,6 +16,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 )
 
+const testContentStr = "content"
+
 func newTypeRepoMock(t *testing.T) (*DocumentTypeRepositoryPG, sqlmock.Sqlmock) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -112,14 +114,14 @@ func TestTypeRepo_UpdateTemplate_Success(t *testing.T) {
 
 func TestTypeRepo_UpdateTemplate_NotFound(t *testing.T) {
 	repo, mock := newTypeRepoMock(t)
-	content := "content"
+	content := testContentStr
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE document_types")).WillReturnResult(sqlmock.NewResult(0, 0))
 	assert.Contains(t, repo.UpdateTemplate(context.Background(), 999, &content, nil).Error(), "document type not found")
 }
 
 func TestTypeRepo_UpdateTemplate_WithVariables(t *testing.T) {
 	repo, mock := newTypeRepoMock(t)
-	content := "content"
+	content := testContentStr
 	vars := []entities.TemplateVariable{{Name: "var1", Label: "Var 1", Type: "string"}}
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE document_types")).WillReturnResult(sqlmock.NewResult(0, 1))
 	require.NoError(t, repo.UpdateTemplate(context.Background(), 1, &content, vars))
@@ -168,7 +170,7 @@ func TestTemplateRepositoryAdapter_GetByID(t *testing.T) {
 func TestTemplateRepositoryAdapter_UpdateTemplate(t *testing.T) {
 	repo, mock := newTypeRepoMock(t)
 	adapter := NewTemplateRepositoryAdapter(repo)
-	content := "content"
+	content := testContentStr
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE document_types")).WillReturnResult(sqlmock.NewResult(0, 1))
 	require.NoError(t, adapter.UpdateTemplate(context.Background(), 1, &content, nil))
 }

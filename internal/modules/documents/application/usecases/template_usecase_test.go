@@ -12,6 +12,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 )
 
+const testTemplateContent = "Hello {{name}}"
+
 // MockTemplateRepository is a mock implementation of TemplateRepository
 type MockTemplateRepository struct {
 	mock.Mock
@@ -46,7 +48,7 @@ func TestTemplateUseCase_GetAllTemplates(t *testing.T) {
 		mockDocRepo := new(MockDocumentRepository)
 		usecase := NewTemplateUseCase(mockTemplateRepo, mockDocRepo, nil)
 
-		content := "Hello {{name}}"
+		content := testTemplateContent
 		types := []entities.DocumentType{
 			{ID: 1, Name: "Order", Code: "order", TemplateContent: &content},
 			{ID: 2, Name: "Letter", Code: "letter"},
@@ -327,7 +329,7 @@ func TestTemplateUseCase_CreateDocumentFromTemplate(t *testing.T) {
 		mockDocRepo := new(MockDocumentRepository)
 		usecase := NewTemplateUseCase(mockTemplateRepo, mockDocRepo, nil)
 
-		content := "Hello {{name}}"
+		content := testTemplateContent
 		docType := &entities.DocumentType{
 			ID:              1,
 			Name:            "Order",
@@ -396,7 +398,7 @@ func TestTemplateUseCase_CreateDocumentFromTemplate(t *testing.T) {
 		mockDocRepo := new(MockDocumentRepository)
 		usecase := NewTemplateUseCase(mockTemplateRepo, mockDocRepo, nil)
 
-		content := "Hello {{name}}"
+		content := testTemplateContent
 		docType := &entities.DocumentType{
 			ID: 1, Name: "Order", TemplateContent: &content,
 			TemplateVariables: []entities.TemplateVariable{{Name: "name", Label: "Name", Required: true}},
@@ -418,7 +420,7 @@ func TestTemplateUseCase_CreateDocumentFromTemplate(t *testing.T) {
 		mockDocRepo := new(MockDocumentRepository)
 		usecase := NewTemplateUseCase(mockTemplateRepo, mockDocRepo, nil)
 
-		content := "Hello {{name}}"
+		content := testTemplateContent
 		docType := &entities.DocumentType{
 			ID: 1, Name: "Order", TemplateContent: &content,
 			TemplateVariables: []entities.TemplateVariable{{Name: "name", Label: "Name", Required: true}},
@@ -442,7 +444,7 @@ func TestTemplateUseCase_CreateDocumentFromTemplate(t *testing.T) {
 		mockDocRepo := new(MockDocumentRepository)
 		usecase := NewTemplateUseCase(mockTemplateRepo, mockDocRepo, nil)
 
-		content := "Hello {{name}}"
+		content := testTemplateContent
 		docType := &entities.DocumentType{
 			ID: 1, Name: "Order", TemplateContent: &content,
 			TemplateVariables: []entities.TemplateVariable{{Name: "name", Label: "Name", Required: true}},

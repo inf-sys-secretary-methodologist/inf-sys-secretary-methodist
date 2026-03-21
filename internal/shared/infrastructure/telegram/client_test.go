@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const testUnreachableURL = "http://127.0.0.1:1"
+
 func TestNewClient(t *testing.T) {
 	c := NewClient("test-token")
 	assert.NotNil(t, c)
@@ -303,7 +305,7 @@ func TestEscapeHTML(t *testing.T) {
 
 func TestClient_SendMessage_ServerDown(t *testing.T) {
 	c := NewClient("token")
-	c.baseURL = "http://127.0.0.1:1" // unreachable
+	c.baseURL = testUnreachableURL // unreachable
 
 	_, err := c.SendMessage(context.Background(), &SendMessageRequest{ChatID: 123, Text: "hello"})
 	assert.Error(t, err)
@@ -311,7 +313,7 @@ func TestClient_SendMessage_ServerDown(t *testing.T) {
 
 func TestClient_GetMe_ServerDown(t *testing.T) {
 	c := NewClient("token")
-	c.baseURL = "http://127.0.0.1:1"
+	c.baseURL = testUnreachableURL
 
 	_, err := c.GetMe(context.Background())
 	assert.Error(t, err)
@@ -319,7 +321,7 @@ func TestClient_GetMe_ServerDown(t *testing.T) {
 
 func TestClient_SetWebhook_ServerDown(t *testing.T) {
 	c := NewClient("token")
-	c.baseURL = "http://127.0.0.1:1"
+	c.baseURL = testUnreachableURL
 
 	err := c.SetWebhook(context.Background(), "https://example.com/webhook", "")
 	assert.Error(t, err)
@@ -327,7 +329,7 @@ func TestClient_SetWebhook_ServerDown(t *testing.T) {
 
 func TestClient_DeleteWebhook_ServerDown(t *testing.T) {
 	c := NewClient("token")
-	c.baseURL = "http://127.0.0.1:1"
+	c.baseURL = testUnreachableURL
 
 	err := c.DeleteWebhook(context.Background())
 	assert.Error(t, err)

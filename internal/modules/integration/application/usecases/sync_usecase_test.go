@@ -20,6 +20,15 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/infrastructure/odata"
 )
 
+const (
+	testFirstNameJohn  = "John"
+	testLastNameDoe    = "Doe"
+	testOldHash        = "oldhash"
+	testOldEmail       = "old@example.com"
+	testFirstNameAlice = "Alice"
+	testLastNameWonder = "Wonder"
+)
+
 // --- Mock SyncLogRepository ---
 
 type mockSyncLogRepo struct {
@@ -483,9 +492,9 @@ func TestStartSync_EmployeeSync_UpdateExisting(t *testing.T) {
 
 	// Pre-create an existing employee with different data
 	existing := entities.NewExternalEmployee("emp-1", "C1")
-	existing.FirstName = "John"
-	existing.LastName = "Doe"
-	existing.ExternalDataHash = "oldhash"
+	existing.FirstName = testFirstNameJohn
+	existing.LastName = testLastNameDoe
+	existing.ExternalDataHash = testOldHash
 	_ = empRepo.Create(ctx, existing)
 
 	req := &dto.StartSyncRequest{
@@ -514,10 +523,10 @@ func TestStartSync_EmployeeSync_UpdateExistingLinked_CreatesConflict(t *testing.
 
 	// Pre-create an existing linked employee with different data
 	existing := entities.NewExternalEmployee("emp-1", "C1")
-	existing.FirstName = "John"
-	existing.LastName = "Doe"
-	existing.Email = "old@example.com"
-	existing.ExternalDataHash = "oldhash"
+	existing.FirstName = testFirstNameJohn
+	existing.LastName = testLastNameDoe
+	existing.Email = testOldEmail
+	existing.ExternalDataHash = testOldHash
 	localUserID := int64(42)
 	existing.LocalUserID = &localUserID
 	_ = empRepo.Create(ctx, existing)
@@ -553,10 +562,10 @@ func TestStartSync_EmployeeSync_ConflictCreateError(t *testing.T) {
 
 	// Pre-create existing linked employee with different data
 	existing := entities.NewExternalEmployee("emp-1", "C1")
-	existing.FirstName = "John"
-	existing.LastName = "Doe"
-	existing.Email = "old@example.com"
-	existing.ExternalDataHash = "oldhash"
+	existing.FirstName = testFirstNameJohn
+	existing.LastName = testLastNameDoe
+	existing.Email = testOldEmail
+	existing.ExternalDataHash = testOldHash
 	localUserID := int64(42)
 	existing.LocalUserID = &localUserID
 	_ = empRepo.Create(ctx, existing)
@@ -640,8 +649,8 @@ func TestStartSync_EmployeeSync_UpdateEmployeeError(t *testing.T) {
 	// Pre-create existing with different hash
 	existing := entities.NewExternalEmployee("emp-1", "C1")
 	existing.FirstName = "Old"
-	existing.LastName = "Doe"
-	existing.ExternalDataHash = "oldhash"
+	existing.LastName = testLastNameDoe
+	existing.ExternalDataHash = testOldHash
 	_ = empRepo.MockExternalEmployeeRepository.Create(ctx, existing)
 
 	// Now enable update error
@@ -700,8 +709,8 @@ func TestStartSync_EmployeeSync_SameHash_NoUpdate(t *testing.T) {
 	rawData, _ := json.Marshal(employees[0])
 	hash := calculateHash(rawData)
 	existing := entities.NewExternalEmployee("emp-1", "C1")
-	existing.FirstName = "John"
-	existing.LastName = "Doe"
+	existing.FirstName = testFirstNameJohn
+	existing.LastName = testLastNameDoe
 	existing.ExternalDataHash = hash
 	_ = empRepo.Create(ctx, existing)
 
@@ -804,12 +813,12 @@ func TestStartSync_StudentSync_UpdateExistingLinked_CreatesConflict(t *testing.T
 
 	// Pre-create existing linked student with different data
 	existing := entities.NewExternalStudent("stud-1", "S1")
-	existing.FirstName = "Alice"
-	existing.LastName = "Wonder"
+	existing.FirstName = testFirstNameAlice
+	existing.LastName = testLastNameWonder
 	existing.GroupName = "CS-101"
-	existing.Email = "old@example.com"
+	existing.Email = testOldEmail
 	existing.Status = "enrolled"
-	existing.ExternalDataHash = "oldhash"
+	existing.ExternalDataHash = testOldHash
 	localUserID := int64(42)
 	existing.LocalUserID = &localUserID
 	_ = studRepo.Create(ctx, existing)
@@ -896,7 +905,7 @@ func TestStartSync_StudentSync_UpdateStudentError(t *testing.T) {
 	existing := entities.NewExternalStudent("stud-1", "S1")
 	existing.FirstName = "Old"
 	existing.LastName = "Student"
-	existing.ExternalDataHash = "oldhash"
+	existing.ExternalDataHash = testOldHash
 	_ = studRepo.MockExternalStudentRepository.Create(ctx, existing)
 
 	studRepo.updateErr = true
@@ -952,10 +961,10 @@ func TestStartSync_StudentSync_ConflictCreateError(t *testing.T) {
 	ctx := context.Background()
 
 	existing := entities.NewExternalStudent("stud-1", "S1")
-	existing.FirstName = "Alice"
-	existing.LastName = "Wonder"
+	existing.FirstName = testFirstNameAlice
+	existing.LastName = testLastNameWonder
 	existing.Email = "old@x.com"
-	existing.ExternalDataHash = "oldhash"
+	existing.ExternalDataHash = testOldHash
 	localUserID := int64(42)
 	existing.LocalUserID = &localUserID
 	_ = studRepo.Create(ctx, existing)
@@ -987,8 +996,8 @@ func TestStartSync_StudentSync_SameHash_NoUpdate(t *testing.T) {
 	rawData, _ := json.Marshal(students[0])
 	hash := calculateHash(rawData)
 	existing := entities.NewExternalStudent("stud-1", "S1")
-	existing.FirstName = "Alice"
-	existing.LastName = "Wonder"
+	existing.FirstName = testFirstNameAlice
+	existing.LastName = testLastNameWonder
 	existing.ExternalDataHash = hash
 	_ = studRepo.Create(ctx, existing)
 
@@ -1512,8 +1521,8 @@ func TestStartSync_EmployeeSync_ExistingLinkedSameHash(t *testing.T) {
 	rawData, _ := json.Marshal(employees[0])
 	hash := calculateHash(rawData)
 	existing := entities.NewExternalEmployee("emp-1", "C1")
-	existing.FirstName = "John"
-	existing.LastName = "Doe"
+	existing.FirstName = testFirstNameJohn
+	existing.LastName = testLastNameDoe
 	existing.ExternalDataHash = hash
 	localUserID := int64(42)
 	existing.LocalUserID = &localUserID

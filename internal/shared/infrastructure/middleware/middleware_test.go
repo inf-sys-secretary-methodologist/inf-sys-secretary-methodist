@@ -136,7 +136,7 @@ func TestRequestContextMiddleware_SetsIPAddress(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/test", nil)
-	req.RemoteAddr = "192.168.1.1:12345"
+	req.RemoteAddr = testRemoteAddr
 	router.ServeHTTP(w, req)
 
 	assert.NotEmpty(t, ipAddr)

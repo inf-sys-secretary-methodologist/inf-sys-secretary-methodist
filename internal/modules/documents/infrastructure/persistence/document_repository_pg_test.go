@@ -18,6 +18,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
+const testHelloStr = "hello"
+
 func newDocRepoMock(t *testing.T) (*DocumentRepositoryPG, sqlmock.Sqlmock) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -503,7 +505,7 @@ func TestDocumentRepositoryPG_DeleteVersion_VersionNotFound(t *testing.T) {
 
 // Test helper functions
 func TestStrPtrEqual(t *testing.T) {
-	a, b, c := "hello", "hello", "world"
+	a, b, c := testHelloStr, testHelloStr, "world"
 	assert.True(t, strPtrEqual(nil, nil))
 	assert.False(t, strPtrEqual(&a, nil))
 	assert.False(t, strPtrEqual(nil, &a))
@@ -521,9 +523,9 @@ func TestInt64PtrEqual(t *testing.T) {
 }
 
 func TestPtrToStr(t *testing.T) {
-	s := "hello"
+	s := testHelloStr
 	assert.Equal(t, "", ptrToStr(nil))
-	assert.Equal(t, "hello", ptrToStr(&s))
+	assert.Equal(t, testHelloStr, ptrToStr(&s))
 }
 
 func TestPtrToInt64(t *testing.T) {

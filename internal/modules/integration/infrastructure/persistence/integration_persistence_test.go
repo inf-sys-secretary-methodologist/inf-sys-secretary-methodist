@@ -19,6 +19,8 @@ import (
 
 // ===================== Employee Repository Tests =====================
 
+const testRawDataJSON = `{"x":1}`
+
 func newEmpRepoMock(t *testing.T) (*ExternalEmployeeRepositoryPg, sqlmock.Sqlmock) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -564,7 +566,7 @@ func TestExternalEmployeeRepositoryPg_BulkUpsert_Empty(t *testing.T) {
 func TestExternalEmployeeRepositoryPg_BulkUpsert_Success(t *testing.T) {
 	repo, mock := newEmpRepoMock(t)
 	emp1 := entities.NewExternalEmployee("ext1", "C1")
-	emp1.RawData = `{"x":1}`
+	emp1.RawData = testRawDataJSON
 	emp2 := entities.NewExternalEmployee("ext2", "C2")
 
 	mock.ExpectBegin()
@@ -745,7 +747,7 @@ func TestExternalStudentRepositoryPg_Update_Success(t *testing.T) {
 	repo, mock := newStudRepoMock(t)
 	s := entities.NewExternalStudent("ext1", "C1")
 	s.ID = 5
-	s.RawData = `{"x":1}`
+	s.RawData = testRawDataJSON
 
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE external_students SET")).WillReturnResult(sqlmock.NewResult(0, 1))
 	require.NoError(t, repo.Update(context.Background(), s))
@@ -1100,7 +1102,7 @@ func TestExternalStudentRepositoryPg_BulkUpsert_Empty(t *testing.T) {
 func TestExternalStudentRepositoryPg_BulkUpsert_Success(t *testing.T) {
 	repo, mock := newStudRepoMock(t)
 	s1 := entities.NewExternalStudent("ext1", "C1")
-	s1.RawData = `{"x":1}`
+	s1.RawData = testRawDataJSON
 	s2 := entities.NewExternalStudent("ext2", "C2")
 
 	mock.ExpectBegin()

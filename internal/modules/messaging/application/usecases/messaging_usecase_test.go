@@ -18,6 +18,7 @@ import (
 const (
 	testGroupTitle   = "Test Group"
 	updatedGroupName = "Updated Group"
+	testAvatarURL    = "https://example.com/avatar.png"
 )
 
 // MockConversationRepository is a mock implementation of ConversationRepository
@@ -964,7 +965,7 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 			},
 		}
 
-		newAvatarURL := "https://example.com/avatar.png"
+		newAvatarURL := testAvatarURL
 		input := dto.UpdateConversationInput{
 			AvatarURL: &newAvatarURL,
 		}
@@ -976,7 +977,7 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Equal(t, "https://example.com/avatar.png", *result.AvatarURL)
+		assert.Equal(t, testAvatarURL, *result.AvatarURL)
 		mockConvRepo.AssertExpectations(t)
 	})
 }
@@ -1483,7 +1484,7 @@ func TestResolveAvatarURL(t *testing.T) {
 
 	t.Run("https URL returned as-is", func(t *testing.T) {
 		uc := NewMessagingUseCase(nil, nil, hub, logger, nil, nil)
-		url := "https://example.com/avatar.png"
+		url := testAvatarURL
 		result := uc.resolveAvatarURL(context.Background(), &url)
 		assert.NotNil(t, result)
 		assert.Equal(t, url, *result)
@@ -1509,7 +1510,7 @@ func TestResolveConversationAvatars(t *testing.T) {
 	})
 
 	t.Run("resolves participant avatars", func(t *testing.T) {
-		httpURL := "https://example.com/avatar.png"
+		httpURL := testAvatarURL
 		conv := &entities.Conversation{
 			AvatarURL: nil,
 			Participants: []entities.Participant{
@@ -2551,7 +2552,7 @@ func TestGetMessages_WithAvatarURLs(t *testing.T) {
 		Role:           entities.ParticipantRoleMember,
 	}
 
-	avatarURL := "https://example.com/avatar.png"
+	avatarURL := testAvatarURL
 	messages := []*entities.Message{
 		{ID: 1, Content: "Message 1", SenderAvatarURL: &avatarURL, CreatedAt: time.Now()},
 	}

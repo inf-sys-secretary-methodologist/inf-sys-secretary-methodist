@@ -12,6 +12,8 @@ import (
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 )
 
+const testTitleV2 = "Test Title v2"
+
 func TestDocumentVersionUseCase_GetVersions(t *testing.T) {
 	ctx := context.Background()
 
@@ -79,7 +81,7 @@ func TestDocumentVersionUseCase_GetVersion(t *testing.T) {
 		usecase := NewDocumentVersionUseCase(mockDocRepo, nil, nil)
 
 		doc := &entities.Document{ID: 1, Title: "Test Doc", Version: 3}
-		title := "Test Title v2"
+		title := testTitleV2
 		version := &entities.DocumentVersion{
 			ID:         2,
 			DocumentID: 1,
@@ -217,14 +219,14 @@ func TestDocumentVersionUseCase_RestoreVersion(t *testing.T) {
 		usecase := NewDocumentVersionUseCase(mockDocRepo, nil, nil)
 
 		doc := &entities.Document{ID: 1, Title: "Test Doc", Version: 3}
-		title := "Test Title v2"
+		title := testTitleV2
 		version := &entities.DocumentVersion{
 			ID:         2,
 			DocumentID: 1,
 			Version:    2,
 			Title:      &title,
 		}
-		restoredDoc := &entities.Document{ID: 1, Title: "Test Title v2", Version: 4}
+		restoredDoc := &entities.Document{ID: 1, Title: testTitleV2, Version: 4}
 
 		mockDocRepo.On("GetByID", ctx, int64(1)).Return(doc, nil).Once()
 		mockDocRepo.On("GetVersion", ctx, int64(1), 2).Return(version, nil)
@@ -236,7 +238,7 @@ func TestDocumentVersionUseCase_RestoreVersion(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Equal(t, "Test Title v2", result.Title)
+		assert.Equal(t, testTitleV2, result.Title)
 		mockDocRepo.AssertExpectations(t)
 	})
 
@@ -580,7 +582,7 @@ func TestDocumentVersionUseCase_RestoreVersion_GetUpdatedDocFails(t *testing.T) 
 		usecase := NewDocumentVersionUseCase(mockDocRepo, nil, nil)
 
 		doc := &entities.Document{ID: 1, Title: "Test Doc", Version: 3}
-		title := "Test Title v2"
+		title := testTitleV2
 		version := &entities.DocumentVersion{
 			ID: 2, DocumentID: 1, Version: 2, Title: &title,
 		}

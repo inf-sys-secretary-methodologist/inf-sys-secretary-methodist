@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const testDefault = "default"
+
 func TestLoad_Defaults(t *testing.T) {
 	cfg, err := Load()
 	if err != nil {
@@ -458,11 +460,11 @@ func TestGetEnv(t *testing.T) {
 		_ = os.Unsetenv("TEST_KEY")
 	}()
 
-	if got := getEnv("TEST_KEY", "default"); got != "test_value" {
+	if got := getEnv("TEST_KEY", testDefault); got != "test_value" {
 		t.Errorf("getEnv() = %v, want %v", got, "test_value")
 	}
-	if got := getEnv("NON_EXISTENT", "default"); got != "default" {
-		t.Errorf("getEnv() = %v, want %v", got, "default")
+	if got := getEnv("NON_EXISTENT", testDefault); got != testDefault {
+		t.Errorf("getEnv() = %v, want %v", got, testDefault)
 	}
 }
 
@@ -578,7 +580,7 @@ func TestGetEnvAsSlice(t *testing.T) {
 		_ = os.Unsetenv("TEST_SLICE_COMMAS")
 	}()
 
-	defaultSlice := []string{"default"}
+	defaultSlice := []string{testDefault}
 
 	got := getEnvAsSlice("TEST_SLICE", defaultSlice)
 	if len(got) != 3 || got[0] != "a" || got[1] != "b" || got[2] != "c" {
@@ -591,17 +593,17 @@ func TestGetEnvAsSlice(t *testing.T) {
 	}
 
 	got = getEnvAsSlice("TEST_SLICE_EMPTY", defaultSlice)
-	if len(got) != 1 || got[0] != "default" {
+	if len(got) != 1 || got[0] != testDefault {
 		t.Errorf("getEnvAsSlice() empty = %v, want [default]", got)
 	}
 
 	got = getEnvAsSlice("NON_EXISTENT", defaultSlice)
-	if len(got) != 1 || got[0] != "default" {
+	if len(got) != 1 || got[0] != testDefault {
 		t.Errorf("getEnvAsSlice() missing = %v, want [default]", got)
 	}
 
 	got = getEnvAsSlice("TEST_SLICE_COMMAS", defaultSlice)
-	if len(got) != 1 || got[0] != "default" {
+	if len(got) != 1 || got[0] != testDefault {
 		t.Errorf("getEnvAsSlice() commas only = %v, want [default]", got)
 	}
 }
