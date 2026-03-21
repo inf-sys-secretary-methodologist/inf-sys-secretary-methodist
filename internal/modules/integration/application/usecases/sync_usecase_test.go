@@ -1205,9 +1205,9 @@ func TestCancelSync_Success(t *testing.T) {
 	err := uc.CancelSync(ctx, log.ID)
 	require.NoError(t, err)
 
-	// Verify cancelled
-	cancelled, _ := syncLogRepo.GetByID(ctx, log.ID)
-	assert.Equal(t, entities.SyncStatusCancelled, cancelled.Status)
+	// Verify canceled
+	canceled, _ := syncLogRepo.GetByID(ctx, log.ID)
+	assert.Equal(t, entities.SyncStatusCancelled, canceled.Status)
 }
 
 func TestCancelSync_NotFound(t *testing.T) {
