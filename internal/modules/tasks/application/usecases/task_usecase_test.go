@@ -1671,7 +1671,7 @@ func TestTask_IsOverdue(t *testing.T) {
 	assert.False(t, task.IsOverdue(), "completed task should not be overdue")
 
 	task.Status = domain.TaskStatusCancelled
-	assert.False(t, task.IsOverdue(), "cancelled task should not be overdue")
+	assert.False(t, task.IsOverdue(), "canceled task should not be overdue")
 }
 
 func TestTask_CanEdit(t *testing.T) {
