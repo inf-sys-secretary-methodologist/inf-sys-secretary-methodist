@@ -21,7 +21,7 @@ var (
 	anyComment       = mock.AnythingOfType("*entities.TaskComment")
 	anyChecklist     = mock.AnythingOfType("*entities.TaskChecklist")
 	anyChecklistItem = mock.AnythingOfType("*entities.TaskChecklistItem")
-	anyProject = mock.AnythingOfType("*entities.Project")
+	anyProject       = mock.AnythingOfType("*entities.Project")
 )
 
 // mockTaskRepo implements repositories.TaskRepository

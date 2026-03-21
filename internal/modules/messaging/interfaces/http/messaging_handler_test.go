@@ -224,7 +224,6 @@ func makeGroupConversation(creatorID int64) *entities.Conversation {
 	}
 }
 
-
 func makeMessage(id, convID, senderID int64) *entities.Message {
 	return &entities.Message{
 		ID:             id,
