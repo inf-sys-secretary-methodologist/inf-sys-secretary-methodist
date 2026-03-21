@@ -11,6 +11,12 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/domain/repositories"
 )
 
+const (
+	testPeriodWeek    = "week"
+	testPeriodQuarter = "quarter"
+	testPeriodYear    = "year"
+)
+
 // MockDashboardRepository is a mock implementation of DashboardRepository
 // with per-method error support for granular testing.
 type MockDashboardRepository struct {
@@ -236,31 +242,31 @@ func TestDashboardUseCase_GetStats(t *testing.T) {
 		},
 		{
 			name:   "week period",
-			period: "week",
+			period: testPeriodWeek,
 			mock:   successMock(),
 			validate: func(t *testing.T, result *dto.DashboardStatsOutput) {
-				if result.Documents.Period != "week" {
-					t.Errorf("expected period 'week', got '%s'", result.Documents.Period)
+				if result.Documents.Period != testPeriodWeek {
+					t.Errorf("expected period '%s', got '%s'", testPeriodWeek, result.Documents.Period)
 				}
 			},
 		},
 		{
 			name:   "quarter period",
-			period: "quarter",
+			period: testPeriodQuarter,
 			mock:   successMock(),
 			validate: func(t *testing.T, result *dto.DashboardStatsOutput) {
-				if result.Documents.Period != "quarter" {
-					t.Errorf("expected period 'quarter', got '%s'", result.Documents.Period)
+				if result.Documents.Period != testPeriodQuarter {
+					t.Errorf("expected period '%s', got '%s'", testPeriodQuarter, result.Documents.Period)
 				}
 			},
 		},
 		{
 			name:   "year period",
-			period: "year",
+			period: testPeriodYear,
 			mock:   successMock(),
 			validate: func(t *testing.T, result *dto.DashboardStatsOutput) {
-				if result.Documents.Period != "year" {
-					t.Errorf("expected period 'year', got '%s'", result.Documents.Period)
+				if result.Documents.Period != testPeriodYear {
+					t.Errorf("expected period '%s', got '%s'", testPeriodYear, result.Documents.Period)
 				}
 			},
 		},

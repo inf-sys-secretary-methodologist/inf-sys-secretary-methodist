@@ -16,6 +16,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
+const testUpdatedTitle = "Updated"
+
 // --- Helpers ---
 
 func strPtr(s string) *string { return &s }
@@ -535,7 +537,7 @@ func TestAnnouncementUseCase_Update_Unauthorized(t *testing.T) {
 
 	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
-	newTitle := "Updated"
+	newTitle := testUpdatedTitle
 	_, err := uc.Update(ctx, 2, created.ID, false, &dto.UpdateAnnouncementRequest{Title: &newTitle})
 	assert.ErrorIs(t, err, ErrUnauthorized)
 }
@@ -708,7 +710,7 @@ func TestAnnouncementUseCase_Update_RepoGetByIDError(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
 	ctx := context.Background()
 
-	newTitle := "Updated"
+	newTitle := testUpdatedTitle
 	_, err := uc.Update(ctx, 1, 1, false, &dto.UpdateAnnouncementRequest{Title: &newTitle})
 	assert.Error(t, err)
 	assert.Equal(t, "db error", err.Error())
@@ -726,7 +728,7 @@ func TestAnnouncementUseCase_Update_RepoSaveError(t *testing.T) {
 
 	repo.saveErr = errors.New("save error")
 
-	newTitle := "Updated"
+	newTitle := testUpdatedTitle
 	_, err = uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{Title: &newTitle})
 	assert.Error(t, err)
 	assert.Equal(t, "save error", err.Error())
@@ -740,10 +742,10 @@ func TestAnnouncementUseCase_Update_WithAuditLogger(t *testing.T) {
 
 	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
-	newTitle := "Updated"
+	newTitle := testUpdatedTitle
 	updated, err := uc.Update(ctx, 1, created.ID, false, &dto.UpdateAnnouncementRequest{Title: &newTitle})
 	require.NoError(t, err)
-	assert.Equal(t, "Updated", updated.Title)
+	assert.Equal(t, testUpdatedTitle, updated.Title)
 }
 
 func TestAnnouncementUseCase_Update_AllFieldsAtOnce(t *testing.T) {

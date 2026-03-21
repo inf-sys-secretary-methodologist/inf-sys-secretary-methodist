@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,13 +15,13 @@ import (
 
 func TestDefaultOpenAIConfig(t *testing.T) {
 	cfg := DefaultOpenAIConfig()
-	if cfg.BaseURL != "https://api.openai.com/v1" {
+	if cfg.BaseURL != defaultOpenAIBaseURL {
 		t.Errorf("unexpected BaseURL: %q", cfg.BaseURL)
 	}
-	if cfg.EmbeddingModel != "text-embedding-3-small" {
+	if cfg.EmbeddingModel != defaultOpenAIEmbeddingModel {
 		t.Errorf("unexpected EmbeddingModel: %q", cfg.EmbeddingModel)
 	}
-	if cfg.ChatModel != "gemini-2.5-flash" {
+	if cfg.ChatModel != defaultOpenAIChatModel {
 		t.Errorf("unexpected ChatModel: %q", cfg.ChatModel)
 	}
 	if cfg.MaxTokens != 2048 {
@@ -36,13 +37,13 @@ func TestDefaultOpenAIConfig(t *testing.T) {
 
 func TestNewOpenAIProvider_Defaults(t *testing.T) {
 	p := NewOpenAIProvider(OpenAIConfig{APIKey: "test-key"})
-	if p.config.BaseURL != "https://api.openai.com/v1" {
+	if p.config.BaseURL != defaultOpenAIBaseURL {
 		t.Errorf("expected default BaseURL, got %q", p.config.BaseURL)
 	}
-	if p.config.EmbeddingModel != "text-embedding-3-small" {
+	if p.config.EmbeddingModel != defaultOpenAIEmbeddingModel {
 		t.Errorf("expected default EmbeddingModel, got %q", p.config.EmbeddingModel)
 	}
-	if p.config.ChatModel != "gemini-2.5-flash" {
+	if p.config.ChatModel != defaultOpenAIChatModel {
 		t.Errorf("expected default ChatModel, got %q", p.config.ChatModel)
 	}
 	if p.config.Timeout != 60*time.Second {
@@ -527,7 +528,7 @@ func TestOpenAI_GenerateResponseStream_OnChunkError(t *testing.T) {
 	_, _, err := p.GenerateResponseStream(context.Background(), "sys", nil, "", func(chunk string) error {
 		return chunkErr
 	})
-	if err != chunkErr {
+	if !errors.Is(err, chunkErr) {
 		t.Errorf("expected onChunk error, got: %v", err)
 	}
 }

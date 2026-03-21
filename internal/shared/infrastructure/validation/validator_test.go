@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -469,7 +470,8 @@ func TestValidatorValidate_ErrorIsValidationError(t *testing.T) {
 	err := v.Validate(TestStruct{Email: ""})
 	assert.Error(t, err)
 
-	valErr, ok := err.(*Error)
+	var valErr *Error
+	ok := errors.As(err, &valErr)
 	assert.True(t, ok, "expected *Error type, got %T", err)
 	if ok {
 		assert.NotEmpty(t, valErr.Fields)

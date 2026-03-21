@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const testEmbeddingText = "text"
+
 func TestNewGeminiEmbeddingProvider_Defaults(t *testing.T) {
 	p := NewGeminiEmbeddingProvider(GeminiEmbeddingConfig{APIKey: "key"})
 	if p.config.BaseURL != "https://generativelanguage.googleapis.com/v1beta" {
@@ -118,7 +120,7 @@ func TestGemini_GenerateEmbedding_Success(t *testing.T) {
 		BaseURL: server.URL,
 	})
 
-	result, err := p.GenerateEmbedding(context.Background(), "text")
+	result, err := p.GenerateEmbedding(context.Background(), testEmbeddingText)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -142,7 +144,7 @@ func TestGemini_GenerateEmbedding_NoEmbeddings(t *testing.T) {
 		BaseURL: server.URL,
 	})
 
-	_, err := p.GenerateEmbedding(context.Background(), "text")
+	_, err := p.GenerateEmbedding(context.Background(), testEmbeddingText)
 	if err == nil {
 		t.Fatal("expected error for mismatched embedding count")
 	}
@@ -203,7 +205,7 @@ func TestGemini_GenerateEmbeddings_APIError(t *testing.T) {
 		BaseURL: server.URL,
 	})
 
-	_, err := p.GenerateEmbeddings(context.Background(), []string{"text"})
+	_, err := p.GenerateEmbeddings(context.Background(), []string{testEmbeddingText})
 	if err == nil {
 		t.Fatal("expected error for API error")
 	}
@@ -224,7 +226,7 @@ func TestGemini_GenerateEmbeddings_NonOKStatusNoBody(t *testing.T) {
 		BaseURL: server.URL,
 	})
 
-	_, err := p.GenerateEmbeddings(context.Background(), []string{"text"})
+	_, err := p.GenerateEmbeddings(context.Background(), []string{testEmbeddingText})
 	if err == nil {
 		t.Fatal("expected error for 500 status")
 	}
@@ -244,7 +246,7 @@ func TestGemini_GenerateEmbeddings_InvalidJSON(t *testing.T) {
 		BaseURL: server.URL,
 	})
 
-	_, err := p.GenerateEmbeddings(context.Background(), []string{"text"})
+	_, err := p.GenerateEmbeddings(context.Background(), []string{testEmbeddingText})
 	if err == nil {
 		t.Fatal("expected error for invalid JSON")
 	}
@@ -299,7 +301,7 @@ func TestGemini_GenerateEmbeddings_LargeBatch(t *testing.T) {
 	// Create texts exceeding batch size limit
 	texts := make([]string, geminiBatchSizeLimit+10)
 	for i := range texts {
-		texts[i] = "text"
+		texts[i] = testEmbeddingText
 	}
 
 	result, err := p.GenerateEmbeddings(context.Background(), texts)
@@ -341,7 +343,7 @@ func TestGemini_GenerateEmbeddings_LargeBatchError(t *testing.T) {
 
 	texts := make([]string, geminiBatchSizeLimit+10)
 	for i := range texts {
-		texts[i] = "text"
+		texts[i] = testEmbeddingText
 	}
 
 	_, err := p.GenerateEmbeddings(context.Background(), texts)

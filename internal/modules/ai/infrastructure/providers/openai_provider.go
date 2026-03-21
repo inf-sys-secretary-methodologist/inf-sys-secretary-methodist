@@ -15,6 +15,12 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 )
 
+const (
+	defaultOpenAIBaseURL        = "https://api.openai.com/v1"
+	defaultOpenAIEmbeddingModel = "text-embedding-3-small"
+	defaultOpenAIChatModel      = "gemini-2.5-flash"
+)
+
 // OpenAIConfig holds configuration for OpenAI API
 type OpenAIConfig struct {
 	APIKey         string
@@ -29,9 +35,9 @@ type OpenAIConfig struct {
 // DefaultOpenAIConfig returns the default OpenAI configuration
 func DefaultOpenAIConfig() OpenAIConfig {
 	return OpenAIConfig{
-		BaseURL:        "https://api.openai.com/v1",
-		EmbeddingModel: "text-embedding-3-small",
-		ChatModel:      "gemini-2.5-flash",
+		BaseURL:        defaultOpenAIBaseURL,
+		EmbeddingModel: defaultOpenAIEmbeddingModel,
+		ChatModel:      defaultOpenAIChatModel,
 		MaxTokens:      2048,
 		Temperature:    0.3,
 		Timeout:        60 * time.Second,
@@ -48,13 +54,13 @@ type OpenAIProvider struct {
 // NewOpenAIProvider creates a new OpenAI provider
 func NewOpenAIProvider(config OpenAIConfig) *OpenAIProvider {
 	if config.BaseURL == "" {
-		config.BaseURL = "https://api.openai.com/v1"
+		config.BaseURL = defaultOpenAIBaseURL
 	}
 	if config.EmbeddingModel == "" {
-		config.EmbeddingModel = "text-embedding-3-small"
+		config.EmbeddingModel = defaultOpenAIEmbeddingModel
 	}
 	if config.ChatModel == "" {
-		config.ChatModel = "gemini-2.5-flash"
+		config.ChatModel = defaultOpenAIChatModel
 	}
 	if config.Timeout == 0 {
 		config.Timeout = 60 * time.Second
@@ -232,14 +238,14 @@ func (p *OpenAIProvider) GenerateResponse(ctx context.Context, systemPrompt stri
 		systemContent += "\n\n" + contextText
 	}
 	chatMessages = append(chatMessages, chatMessage{
-		Role:    "system",
+		Role:    roleSystem,
 		Content: systemContent,
 	})
 
 	// Add conversation history
 	for _, m := range messages {
 		role := string(m.Role)
-		if role == "system" {
+		if role == roleSystem {
 			continue // Skip system messages from history
 		}
 		chatMessages = append(chatMessages, chatMessage{
@@ -312,13 +318,13 @@ func (p *OpenAIProvider) GenerateResponseStream(ctx context.Context, systemPromp
 		systemContent += "\n\n" + contextText
 	}
 	chatMessages = append(chatMessages, chatMessage{
-		Role:    "system",
+		Role:    roleSystem,
 		Content: systemContent,
 	})
 
 	for _, m := range messages {
 		role := string(m.Role)
-		if role == "system" {
+		if role == roleSystem {
 			continue
 		}
 		chatMessages = append(chatMessages, chatMessage{

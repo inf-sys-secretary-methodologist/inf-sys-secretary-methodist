@@ -12,6 +12,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 )
 
+const testNewCategoryName = "New Name"
+
 // MockCategoryRepository is a mock implementation of DocumentCategoryRepository
 type MockCategoryRepository struct {
 	mock.Mock
@@ -166,7 +168,7 @@ func TestCategoryUseCase_Update(t *testing.T) {
 			ID:   1,
 			Name: "Old Name",
 		}
-		newName := "New Name"
+		newName := testNewCategoryName
 		input := dto.UpdateCategoryInput{
 			Name: &newName,
 		}
@@ -180,12 +182,12 @@ func TestCategoryUseCase_Update(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Equal(t, "New Name", result.Name)
+		assert.Equal(t, testNewCategoryName, result.Name)
 		mockRepo.AssertExpectations(t)
 	})
 
 	t.Run("update non-existent category", func(t *testing.T) {
-		newName := "New Name"
+		newName := testNewCategoryName
 		input := dto.UpdateCategoryInput{
 			Name: &newName,
 		}
@@ -614,7 +616,7 @@ func TestCategoryUseCase_Update_WithParentChange(t *testing.T) {
 		usecase := NewCategoryUseCase(mockRepo, nil)
 
 		existing := &entities.DocumentCategory{ID: 1, Name: "Cat"}
-		newName := "New Name"
+		newName := testNewCategoryName
 
 		mockRepo.On("GetByID", ctx, int64(1)).Return(existing, nil).Once()
 		mockRepo.On("Update", ctx, mock.AnythingOfType("*entities.DocumentCategory")).Return(assert.AnError).Once()

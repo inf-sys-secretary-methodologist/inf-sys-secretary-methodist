@@ -10,6 +10,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 )
 
+const testFallbackDownMsg = "fallback down"
+
 // --- Mock LLM Provider ---
 
 type mockLLMProvider struct {
@@ -127,7 +129,7 @@ func TestFallbackLLM_PrimaryFails_FallbackSucceeds(t *testing.T) {
 
 func TestFallbackLLM_BothFail(t *testing.T) {
 	primary := &mockLLMProvider{err: errors.New("primary down")}
-	fallback := &mockLLMProvider{err: errors.New("fallback down")}
+	fallback := &mockLLMProvider{err: errors.New(testFallbackDownMsg)}
 	provider := NewFallbackLLMProvider(primary, fallback, slog.Default())
 
 	_, _, err := provider.GenerateResponse(context.Background(), "sys", nil, "")
@@ -135,7 +137,7 @@ func TestFallbackLLM_BothFail(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when both providers fail")
 	}
-	if err.Error() != "fallback down" {
+	if err.Error() != testFallbackDownMsg {
 		t.Errorf("expected fallback error, got %q", err.Error())
 	}
 }
@@ -192,7 +194,7 @@ func TestFallbackEmbedding_PrimaryFails_FallbackSucceeds(t *testing.T) {
 
 func TestFallbackEmbedding_BothFail(t *testing.T) {
 	primary := &mockEmbeddingProvider{err: errors.New("primary down")}
-	fallback := &mockEmbeddingProvider{err: errors.New("fallback down")}
+	fallback := &mockEmbeddingProvider{err: errors.New(testFallbackDownMsg)}
 	provider := NewFallbackEmbeddingProvider(primary, fallback, slog.Default())
 
 	_, err := provider.GenerateEmbedding(context.Background(), "test")
@@ -200,7 +202,7 @@ func TestFallbackEmbedding_BothFail(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when both providers fail")
 	}
-	if err.Error() != "fallback down" {
+	if err.Error() != testFallbackDownMsg {
 		t.Errorf("expected fallback error, got %q", err.Error())
 	}
 }
@@ -304,7 +306,7 @@ func TestFallbackLLMStream_PrimaryFails_ChunksAlreadySent(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when chunks already sent")
 	}
-	if err != primaryErr {
+	if !errors.Is(err, primaryErr) {
 		t.Errorf("expected primary error, got: %v", err)
 	}
 	if fallback.called {
@@ -314,7 +316,7 @@ func TestFallbackLLMStream_PrimaryFails_ChunksAlreadySent(t *testing.T) {
 
 func TestFallbackLLMStream_BothFail(t *testing.T) {
 	primary := &mockLLMProvider{err: errors.New("primary down")}
-	fallback := &mockLLMProvider{err: errors.New("fallback down")}
+	fallback := &mockLLMProvider{err: errors.New(testFallbackDownMsg)}
 	provider := NewFallbackLLMProvider(primary, fallback, slog.Default())
 
 	_, _, err := provider.GenerateResponseStream(context.Background(), "sys", nil, "", func(chunk string) error {
@@ -323,7 +325,7 @@ func TestFallbackLLMStream_BothFail(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when both fail")
 	}
-	if err.Error() != "fallback down" {
+	if err.Error() != testFallbackDownMsg {
 		t.Errorf("expected fallback error, got: %v", err)
 	}
 }

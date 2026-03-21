@@ -20,6 +20,10 @@ import (
 const (
 	// roleSystem is the system role identifier used in message filtering.
 	roleSystem = "system"
+	// defaultAnthropicBaseURL is the default Anthropic API base URL.
+	defaultAnthropicBaseURL = "https://api.anthropic.com"
+	// defaultAnthropicChatModel is the default Anthropic chat model.
+	defaultAnthropicChatModel = "claude-haiku-4-5-20251001"
 	// maxRetries is the maximum number of retry attempts for rate-limited requests.
 	maxRetries = 3
 	// baseRetryDelay is the initial delay before first retry.
@@ -44,8 +48,8 @@ type AnthropicConfig struct {
 // DefaultAnthropicConfig returns the default Anthropic configuration
 func DefaultAnthropicConfig() AnthropicConfig {
 	return AnthropicConfig{
-		BaseURL:     "https://api.anthropic.com",
-		ChatModel:   "claude-haiku-4-5-20251001",
+		BaseURL:     defaultAnthropicBaseURL,
+		ChatModel:   defaultAnthropicChatModel,
 		MaxTokens:   2048,
 		Temperature: 0.3,
 		Timeout:     60 * time.Second,
@@ -65,10 +69,10 @@ type AnthropicProvider struct {
 // NewAnthropicProvider creates a new Anthropic provider
 func NewAnthropicProvider(config AnthropicConfig) *AnthropicProvider {
 	if config.BaseURL == "" {
-		config.BaseURL = "https://api.anthropic.com"
+		config.BaseURL = defaultAnthropicBaseURL
 	}
 	if config.ChatModel == "" {
-		config.ChatModel = "claude-haiku-4-5-20251001"
+		config.ChatModel = defaultAnthropicChatModel
 	}
 	if config.MaxTokens == 0 {
 		config.MaxTokens = 2048

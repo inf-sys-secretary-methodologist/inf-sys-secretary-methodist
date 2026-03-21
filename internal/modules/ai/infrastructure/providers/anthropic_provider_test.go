@@ -15,10 +15,10 @@ import (
 
 func TestDefaultAnthropicConfig(t *testing.T) {
 	cfg := DefaultAnthropicConfig()
-	if cfg.BaseURL != "https://api.anthropic.com" {
+	if cfg.BaseURL != defaultAnthropicBaseURL {
 		t.Errorf("unexpected BaseURL: %q", cfg.BaseURL)
 	}
-	if cfg.ChatModel != "claude-haiku-4-5-20251001" {
+	if cfg.ChatModel != defaultAnthropicChatModel {
 		t.Errorf("unexpected ChatModel: %q", cfg.ChatModel)
 	}
 	if cfg.MaxTokens != 2048 {
@@ -31,10 +31,10 @@ func TestDefaultAnthropicConfig(t *testing.T) {
 
 func TestNewAnthropicProvider_Defaults(t *testing.T) {
 	p := NewAnthropicProvider(AnthropicConfig{APIKey: "key"})
-	if p.config.BaseURL != "https://api.anthropic.com" {
+	if p.config.BaseURL != defaultAnthropicBaseURL {
 		t.Errorf("expected default BaseURL, got %q", p.config.BaseURL)
 	}
-	if p.config.ChatModel != "claude-haiku-4-5-20251001" {
+	if p.config.ChatModel != defaultAnthropicChatModel {
 		t.Errorf("expected default ChatModel, got %q", p.config.ChatModel)
 	}
 	if p.config.MaxTokens != 2048 {
@@ -418,7 +418,7 @@ func TestAnthropic_GenerateResponseStream_OnChunkError(t *testing.T) {
 	_, _, err := p.GenerateResponseStream(context.Background(), "p", msgs, "", func(chunk string) error {
 		return chunkErr
 	})
-	if err != chunkErr {
+	if !errors.Is(err, chunkErr) {
 		t.Errorf("expected chunk error, got: %v", err)
 	}
 }
