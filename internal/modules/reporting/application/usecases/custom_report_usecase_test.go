@@ -102,8 +102,8 @@ func (m *MockQueryBuilder) GetAvailableFields(dataSource entities.DataSourceType
 }
 
 // Helpers
-func strPtr(s string) *string   { return &s }
-func boolPtr(b bool) *bool      { return &b }
+func strPtr(s string) *string { return &s }
+func boolPtr(b bool) *bool    { return &b }
 
 func newCustomUC() (*CustomReportUseCase, *MockCustomReportRepository, *MockQueryBuilder) {
 	repo := new(MockCustomReportRepository)
@@ -172,7 +172,7 @@ func TestCustomReportUseCase_Create(t *testing.T) {
 		repo.On("Create", mock.Anything, mock.AnythingOfType("*entities.CustomReport")).Return(nil).Once()
 		out, err := uc.Create(context.Background(), dto.CreateCustomReportInput{
 			Name: "R", DataSource: "users", Fields: validFields(), IsPublic: true,
-			Filters: []dto.ReportFilterDTO{{ID: "f1", Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"}, Operator: "equals", Value: 1}},
+			Filters:   []dto.ReportFilterDTO{{ID: "f1", Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"}, Operator: "equals", Value: 1}},
 			Groupings: []dto.ReportGroupingDTO{{Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"}, Order: "asc"}},
 			Sortings:  []dto.ReportSortingDTO{{Field: dto.ReportFieldDTO{ID: "id", Name: "id", Label: "ID", Type: "number"}, Order: "desc"}},
 		}, 1)
@@ -365,9 +365,9 @@ func TestCustomReportUseCase_List(t *testing.T) {
 	t.Run("filters accessible reports", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
 		reports := []*entities.CustomReport{
-			newCustomReport(uuid.New(), 1, false),  // own
-			newCustomReport(uuid.New(), 2, true),   // public
-			newCustomReport(uuid.New(), 2, false),  // other's private - filtered out
+			newCustomReport(uuid.New(), 1, false), // own
+			newCustomReport(uuid.New(), 2, true),  // public
+			newCustomReport(uuid.New(), 2, false), // other's private - filtered out
 		}
 		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(3), nil).Once()
 		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
@@ -425,8 +425,8 @@ func TestCustomReportUseCase_Execute(t *testing.T) {
 		uc, repo, qb := newCustomUC()
 		r := newCustomReport(id, 1, false)
 		result := &entities.ReportExecutionResult{
-			Columns: []entities.ReportColumn{{Key: "id", Label: "ID"}},
-			Rows:    []map[string]any{{"id": 1}},
+			Columns:    []entities.ReportColumn{{Key: "id", Label: "ID"}},
+			Rows:       []map[string]any{{"id": 1}},
 			TotalCount: 1, Page: 1, PageSize: 10, TotalPages: 1,
 		}
 		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()
@@ -524,8 +524,8 @@ func TestCustomReportUseCase_Export(t *testing.T) {
 		uc, repo, qb := newCustomUC()
 		r := newCustomReport(id, 1, false)
 		result := &entities.ReportExecutionResult{
-			Columns: []entities.ReportColumn{{Key: "id", Label: "ID"}},
-			Rows:    []map[string]any{{"id": 1}},
+			Columns:    []entities.ReportColumn{{Key: "id", Label: "ID"}},
+			Rows:       []map[string]any{{"id": 1}},
 			TotalCount: 1, Page: 1, PageSize: 10000, TotalPages: 1,
 		}
 		repo.On("GetByID", mock.Anything, id).Return(r, nil).Once()

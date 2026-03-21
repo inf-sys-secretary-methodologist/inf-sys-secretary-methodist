@@ -1587,7 +1587,7 @@ func TestNotifyParticipants(t *testing.T) {
 
 		leftAt := time.Now()
 		mockConvRepo.On("GetParticipants", ctx, int64(1)).Return([]entities.Participant{
-			{UserID: 10},                 // sender
+			{UserID: 10},                  // sender
 			{UserID: 20, LeftAt: &leftAt}, // left participant, should be skipped
 		}, nil)
 
@@ -2293,7 +2293,7 @@ func TestSendMessage_AttachmentCreateError(t *testing.T) {
 
 	assert.NoError(t, err) // attachment error is logged, not returned
 	assert.NotNil(t, msg)
-	assert.Empty(t, msg.Attachments) // no successful attachments
+	assert.Empty(t, msg.Attachments)                    // no successful attachments
 	assert.Equal(t, entities.MessageTypeText, msg.Type) // stays text since no attachments succeeded
 	mockConvRepo.AssertExpectations(t)
 	mockMsgRepo.AssertExpectations(t)
@@ -2732,7 +2732,7 @@ func TestLeaveConversation_AdminWithLeftAdmin(t *testing.T) {
 		ID:   1,
 		Type: entities.ConversationTypeGroup,
 		Participants: []entities.Participant{
-			{UserID: 1, Role: entities.ParticipantRoleAdmin},         // Active admin trying to leave
+			{UserID: 1, Role: entities.ParticipantRoleAdmin},                  // Active admin trying to leave
 			{UserID: 2, Role: entities.ParticipantRoleAdmin, LeftAt: &leftAt}, // Left admin - should not count
 			{UserID: 3, Role: entities.ParticipantRoleMember},
 		},

@@ -189,10 +189,10 @@ func createTestAuditLogger() *logging.AuditLogger {
 	return logging.NewAuditLogger(logger)
 }
 
-func strPtr(s string) *string        { return &s }
-func intPtr(i int) *int              { return &i }
-func int64Ptr(i int64) *int64        { return &i }
-func float64Ptr(f float64) *float64  { return &f }
+func strPtr(s string) *string       { return &s }
+func intPtr(i int) *int             { return &i }
+func int64Ptr(i int64) *int64       { return &i }
+func float64Ptr(f float64) *float64 { return &f }
 
 func setupTaskUseCase() (*TaskUseCase, *MockTaskRepository) {
 	taskRepo := NewMockTaskRepository()

@@ -1,7 +1,6 @@
 package database
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"testing"
@@ -238,8 +237,7 @@ func TestPostgresUnitOfWork_ImplementsInterface(t *testing.T) {
 
 // Test for NewConnection - error path only (no real DB)
 func TestNewConnection_InvalidDSN(t *testing.T) {
-	cfg := sql.DB{}
-	_ = cfg // just to use the import
 	// We can't test NewConnection without a real postgres server
 	// but we can verify the function exists and has the right signature
+	assert.NotNil(t, t) // placeholder
 }

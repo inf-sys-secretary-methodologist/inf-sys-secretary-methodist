@@ -132,7 +132,7 @@ func (m *mockAttendanceRepository) GetStudentAttendanceStats(_ context.Context, 
 // mockGradeRepository implements repositories.GradeRepository
 type mockGradeRepository struct{}
 
-func (m *mockGradeRepository) CreateGrade(_ context.Context, _ *entities.Grade) error     { return nil }
+func (m *mockGradeRepository) CreateGrade(_ context.Context, _ *entities.Grade) error { return nil }
 func (m *mockGradeRepository) GetGradesByStudent(_ context.Context, _ int64) ([]entities.Grade, error) {
 	return nil, nil
 }
@@ -140,7 +140,7 @@ func (m *mockGradeRepository) GetGradesBySubject(_ context.Context, _ int64, _ s
 	return nil, nil
 }
 func (m *mockGradeRepository) UpdateGrade(_ context.Context, _ *entities.Grade) error { return nil }
-func (m *mockGradeRepository) DeleteGrade(_ context.Context, _ int64) error            { return nil }
+func (m *mockGradeRepository) DeleteGrade(_ context.Context, _ int64) error           { return nil }
 func (m *mockGradeRepository) GetStudentGradeStats(_ context.Context, _ int64) (*entities.GradeStats, error) {
 	return nil, nil
 }

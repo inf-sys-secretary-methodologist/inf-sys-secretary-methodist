@@ -407,5 +407,5 @@ func TestPermRepo_DeleteExpired_Error(t *testing.T) {
 }
 
 // Helper functions
-func ptrInt64(v int64) *int64  { return &v }
+func ptrInt64(v int64) *int64 { return &v }
 func ptrStr(v string) *string { return &v }

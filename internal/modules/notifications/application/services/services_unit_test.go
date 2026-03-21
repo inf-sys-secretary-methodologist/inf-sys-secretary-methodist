@@ -1012,7 +1012,6 @@ func TestWebPushServiceImpl_SendNotification_RequireInteraction(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-
 func TestComposioSlackService_SendNotification(t *testing.T) {
 	t.Run("channel notification - urgent", func(t *testing.T) {
 		svc := NewComposioSlackService("api-key", "entity-id", nil)

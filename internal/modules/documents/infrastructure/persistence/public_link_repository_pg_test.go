@@ -109,7 +109,7 @@ func TestPLRepo_Delete_NotFound(t *testing.T) {
 
 func TestPLRepo_GetByID_Success(t *testing.T) {
 	repo, mock := newPLRepoMock(t)
-	rows := addPLRow(newPLRows(),1, "abc")
+	rows := addPLRow(newPLRows(), 1, "abc")
 	mock.ExpectQuery(regexp.QuoteMeta("WHERE pl.id = $1")).
 		WithArgs(int64(1)).WillReturnRows(rows)
 
@@ -129,7 +129,7 @@ func TestPLRepo_GetByID_NotFound(t *testing.T) {
 
 func TestPLRepo_GetByToken_Success(t *testing.T) {
 	repo, mock := newPLRepoMock(t)
-	rows := addPLRow(newPLRows(),1, "token123")
+	rows := addPLRow(newPLRows(), 1, "token123")
 	mock.ExpectQuery(regexp.QuoteMeta("WHERE pl.token = $1")).
 		WithArgs("token123").WillReturnRows(rows)
 
@@ -149,7 +149,7 @@ func TestPLRepo_GetByToken_NotFound(t *testing.T) {
 
 func TestPLRepo_GetByDocumentID(t *testing.T) {
 	repo, mock := newPLRepoMock(t)
-	rows := addPLRow(newPLRows(),1, "abc")
+	rows := addPLRow(newPLRows(), 1, "abc")
 	mock.ExpectQuery(regexp.QuoteMeta("WHERE pl.document_id = $1")).
 		WithArgs(int64(1)).WillReturnRows(rows)
 
@@ -171,7 +171,7 @@ func TestPLRepo_GetByCreatedBy(t *testing.T) {
 
 func TestPLRepo_GetActiveByDocumentID(t *testing.T) {
 	repo, mock := newPLRepoMock(t)
-	rows := addPLRow(newPLRows(),1, "active")
+	rows := addPLRow(newPLRows(), 1, "active")
 	mock.ExpectQuery(regexp.QuoteMeta("AND pl.is_active = true")).
 		WithArgs(int64(1)).WillReturnRows(rows)
 

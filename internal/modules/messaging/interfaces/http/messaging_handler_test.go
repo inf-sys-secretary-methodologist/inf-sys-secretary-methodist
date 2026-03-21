@@ -1013,15 +1013,15 @@ func TestRegisterRoutes_AllEndpointsExist(t *testing.T) {
 		path   string
 		status int
 	}{
-		{http.MethodGet, "/conversations", 0},               // Will work if mocked
-		{http.MethodPost, "/conversations/direct", 0},       // Needs body
-		{http.MethodPost, "/conversations/group", 0},        // Needs body
-		{http.MethodGet, "/conversations/1", 0},             // Needs mock
-		{http.MethodPatch, "/conversations/1", 0},           // Needs body
+		{http.MethodGet, "/conversations", 0},                 // Will work if mocked
+		{http.MethodPost, "/conversations/direct", 0},         // Needs body
+		{http.MethodPost, "/conversations/group", 0},          // Needs body
+		{http.MethodGet, "/conversations/1", 0},               // Needs mock
+		{http.MethodPatch, "/conversations/1", 0},             // Needs body
 		{http.MethodPost, "/conversations/1/participants", 0}, // Needs body
-		{http.MethodPost, "/conversations/1/leave", 0},      // Needs mock
-		{http.MethodPost, "/conversations/1/messages", 0},   // Needs body
-		{http.MethodGet, "/conversations/1/messages", 0},    // Needs mock
+		{http.MethodPost, "/conversations/1/leave", 0},        // Needs mock
+		{http.MethodPost, "/conversations/1/messages", 0},     // Needs body
+		{http.MethodGet, "/conversations/1/messages", 0},      // Needs mock
 	}
 
 	// Setup broad mocks

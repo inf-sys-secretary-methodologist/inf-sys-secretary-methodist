@@ -300,18 +300,22 @@ func (c *Client) SendNotification(ctx context.Context, chatID int64, title, mess
 
 // escapeHTML escapes special HTML characters for Telegram HTML parse mode.
 func escapeHTML(text string) string {
-	replacements := map[string]string{
-		"&": "&amp;",
-		"<": "&lt;",
-		">": "&gt;",
+	// Order matters: & must be replaced first to avoid double-escaping
+	type replacement struct {
+		old, new string
+	}
+	replacements := []replacement{
+		{"&", "&amp;"},
+		{"<", "&lt;"},
+		{">", "&gt;"},
 	}
 
 	result := text
-	for old, newStr := range replacements {
+	for _, r := range replacements {
 		newResult := ""
 		for _, char := range result {
-			if string(char) == old {
-				newResult += newStr
+			if string(char) == r.old {
+				newResult += r.new
 			} else {
 				newResult += string(char)
 			}

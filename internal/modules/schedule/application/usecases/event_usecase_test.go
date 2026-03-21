@@ -680,7 +680,7 @@ func TestEventUseCase_Update_RecurrenceDisable(t *testing.T) {
 	existingEvent := &entities.Event{
 		ID: 1, Title: "Recurring", OrganizerID: 1,
 		EventType: entities.EventTypeMeeting, Status: entities.EventStatusScheduled,
-		StartTime: time.Now().Add(24 * time.Hour),
+		StartTime:   time.Now().Add(24 * time.Hour),
 		IsRecurring: true, RecurrenceRule: &entities.RecurrenceRule{Frequency: entities.FrequencyDaily},
 	}
 

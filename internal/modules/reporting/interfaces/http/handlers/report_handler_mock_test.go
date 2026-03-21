@@ -87,8 +87,10 @@ func (m *mockReportRepo) AddComment(ctx context.Context, c *entities.ReportComme
 	args := m.Called(ctx, c)
 	return args.Error(0)
 }
-func (m *mockReportRepo) UpdateComment(ctx context.Context, c *entities.ReportComment) error { return nil }
-func (m *mockReportRepo) DeleteComment(ctx context.Context, id int64) error                  { return nil }
+func (m *mockReportRepo) UpdateComment(ctx context.Context, c *entities.ReportComment) error {
+	return nil
+}
+func (m *mockReportRepo) DeleteComment(ctx context.Context, id int64) error { return nil }
 func (m *mockReportRepo) GetCommentsByReport(ctx context.Context, reportID int64) ([]*entities.ReportComment, error) {
 	args := m.Called(ctx, reportID)
 	if args.Get(0) == nil {

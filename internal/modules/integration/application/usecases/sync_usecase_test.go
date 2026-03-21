@@ -130,11 +130,11 @@ func (m *mockSyncLogRepo) DeleteOlderThan(_ context.Context, _ int) (int64, erro
 
 type errMockEmployeeRepo struct {
 	MockExternalEmployeeRepository
-	getByExternalIDErr  bool
-	createErr           bool
-	updateErr           bool
+	getByExternalIDErr   bool
+	createErr            bool
+	updateErr            bool
 	getAllExternalIDsErr bool
-	markInactiveErr     bool
+	markInactiveErr      bool
 }
 
 func newErrMockEmployeeRepo() *errMockEmployeeRepo {
@@ -182,11 +182,11 @@ func (m *errMockEmployeeRepo) MarkInactiveExcept(ctx context.Context, ids []stri
 
 type errMockStudentRepo struct {
 	MockExternalStudentRepository
-	getByExternalIDErr  bool
-	createErr           bool
-	updateErr           bool
+	getByExternalIDErr   bool
+	createErr            bool
+	updateErr            bool
 	getAllExternalIDsErr bool
-	markInactiveErr     bool
+	markInactiveErr      bool
 }
 
 func newErrMockStudentRepo() *errMockStudentRepo {

@@ -13,9 +13,9 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
+	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	notifEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
 	notifRepos "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
-	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -32,7 +32,7 @@ func (s *stubNotificationRepo) Create(_ context.Context, n *notifEntities.Notifi
 func (s *stubNotificationRepo) Update(_ context.Context, _ *notifEntities.Notification) error {
 	return nil
 }
-func (s *stubNotificationRepo) Delete(_ context.Context, _ int64) error        { return nil }
+func (s *stubNotificationRepo) Delete(_ context.Context, _ int64) error { return nil }
 func (s *stubNotificationRepo) GetByID(_ context.Context, _ int64) (*notifEntities.Notification, error) {
 	return nil, nil
 }
@@ -573,7 +573,6 @@ func TestRegister_WithName(t *testing.T) {
 	assert.Equal(t, "Test User", user.Name)
 }
 
-
 func TestLogin_InactiveUser(t *testing.T) {
 	repo := newMockUserRepository()
 	repo.users["inactive@example.com"] = &entities.User{
@@ -950,4 +949,3 @@ func TestRegister_WithAllLoggers_AndNotification(t *testing.T) {
 	// Give goroutine time to complete
 	time.Sleep(50 * time.Millisecond)
 }
-

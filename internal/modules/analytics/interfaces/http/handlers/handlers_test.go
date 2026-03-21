@@ -474,10 +474,10 @@ func TestAttendanceHandler_MarkAttendance_Success(t *testing.T) {
 	router := setupRouter()
 	router.POST("/mark", withAuth(1), h.MarkAttendance)
 	w := performRequest(router, http.MethodPost, "/mark", map[string]interface{}{
-		"lesson_id":  1,
-		"student_id": 1,
+		"lesson_id":   1,
+		"student_id":  1,
 		"lesson_date": "2024-01-15",
-		"status":     "present",
+		"status":      "present",
 	})
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
@@ -492,10 +492,10 @@ func TestAttendanceHandler_MarkAttendance_Error(t *testing.T) {
 	router := setupRouter()
 	router.POST("/mark", withAuth(1), h.MarkAttendance)
 	w := performRequest(router, http.MethodPost, "/mark", map[string]interface{}{
-		"lesson_id":  1,
-		"student_id": 1,
+		"lesson_id":   1,
+		"student_id":  1,
 		"lesson_date": "2024-01-15",
-		"status":     "present",
+		"status":      "present",
 	})
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
@@ -518,7 +518,7 @@ func TestAttendanceHandler_BulkMarkAttendance_Success(t *testing.T) {
 	router := setupRouter()
 	router.POST("/bulk", withAuth(1), h.BulkMarkAttendance)
 	w := performRequest(router, http.MethodPost, "/bulk", map[string]interface{}{
-		"lesson_id": 1,
+		"lesson_id":   1,
 		"lesson_date": "2024-01-15",
 		"records": []map[string]interface{}{
 			{"student_id": 1, "status": "present"},
@@ -537,7 +537,7 @@ func TestAttendanceHandler_BulkMarkAttendance_Error(t *testing.T) {
 	router := setupRouter()
 	router.POST("/bulk", withAuth(1), h.BulkMarkAttendance)
 	w := performRequest(router, http.MethodPost, "/bulk", map[string]interface{}{
-		"lesson_id": 1,
+		"lesson_id":   1,
 		"lesson_date": "2024-01-15",
 		"records": []map[string]interface{}{
 			{"student_id": 1, "status": "present"},

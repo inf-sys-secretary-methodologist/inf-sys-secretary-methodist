@@ -89,15 +89,15 @@ func (m *MockUserRepository) List(_ context.Context, limit, offset int) ([]*auth
 
 // MockUserProfileRepository implements UserProfileRepository for testing.
 type MockUserProfileRepository struct {
-	profiles           map[int64]*entities.UserWithOrg
-	nextID             int64
-	listErr            error
-	countErr           error
-	updateErr          error
-	bulkDeptErr        error
-	bulkPosErr         error
-	getByDeptErr       error
-	getByPosErr        error
+	profiles     map[int64]*entities.UserWithOrg
+	nextID       int64
+	listErr      error
+	countErr     error
+	updateErr    error
+	bulkDeptErr  error
+	bulkPosErr   error
+	getByDeptErr error
+	getByPosErr  error
 }
 
 func NewMockUserProfileRepository() *MockUserProfileRepository {
@@ -553,7 +553,6 @@ func TestUserUseCase_UpdateUserRole_WithAuditLogger(t *testing.T) {
 	}
 }
 
-
 func TestUserUseCase_UpdateUserRole_SaveError(t *testing.T) {
 	userRepo := NewMockUserRepository()
 	profileRepo := NewMockUserProfileRepository()
@@ -667,7 +666,6 @@ func TestUserUseCase_UpdateUserStatus_WithAuditLogger(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 }
-
 
 func TestUserUseCase_UpdateUserStatus_SaveError(t *testing.T) {
 	userRepo := NewMockUserRepository()
