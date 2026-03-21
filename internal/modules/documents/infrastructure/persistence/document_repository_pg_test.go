@@ -729,7 +729,7 @@ func TestDocumentRepositoryPG_Search_CountError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestDocumentRepositoryPG_GetVersions_Error(t *testing.T) {
+func TestDocumentRepositoryPG_GetVersions_QueryError(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	require.NoError(t, err)
 	defer func() { _ = db.Close() }()
