@@ -817,7 +817,7 @@ func TestStudentUseCase_LinkToLocalUser_GetByLocalUserError(t *testing.T) {
 	student := entities.NewExternalStudent("ext1", "CODE-ext1")
 	student.FirstName = "John"
 	student.LastName = "Doe"
-	_ = repo.MockExternalStudentRepository.Create(ctx, student)
+	_ = repo.Create(ctx, student)
 
 	repo.getByLocalErr = true
 
@@ -834,7 +834,7 @@ func TestStudentUseCase_LinkToLocalUser_LinkRepoError(t *testing.T) {
 	student := entities.NewExternalStudent("ext1", "CODE-ext1")
 	student.FirstName = "John"
 	student.LastName = "Doe"
-	_ = repo.MockExternalStudentRepository.Create(ctx, student)
+	_ = repo.Create(ctx, student)
 
 	repo.linkErr = true
 
@@ -859,8 +859,8 @@ func TestStudentUseCase_Unlink_UnlinkRepoError(t *testing.T) {
 	ctx := context.Background()
 
 	student := entities.NewExternalStudent("ext1", "CODE-ext1")
-	_ = repo.MockExternalStudentRepository.Create(ctx, student)
-	_ = repo.MockExternalStudentRepository.LinkToLocalUser(ctx, student.ID, 42)
+	_ = repo.Create(ctx, student)
+	_ = repo.LinkToLocalUser(ctx, student.ID, 42)
 
 	repo.unlinkErr = true
 

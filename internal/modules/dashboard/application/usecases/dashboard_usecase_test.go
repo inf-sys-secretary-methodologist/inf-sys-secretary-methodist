@@ -128,12 +128,6 @@ func errPtr(err error) *error {
 	return &err
 }
 
-// Helper to create a nil error pointer (means "no error" for this method)
-func noErr() *error {
-	var e error
-	return &e
-}
-
 // successMock returns a mock with all counts and trends populated (no errors).
 func successMock() *MockDashboardRepository {
 	return &MockDashboardRepository{

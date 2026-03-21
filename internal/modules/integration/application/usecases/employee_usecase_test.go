@@ -665,7 +665,7 @@ func TestEmployeeUseCase_LinkToLocalUser_GetByLocalUserError(t *testing.T) {
 	emp := entities.NewExternalEmployee("ext1", "CODE-ext1")
 	emp.FirstName = "John"
 	emp.LastName = "Doe"
-	_ = repo.MockExternalEmployeeRepository.Create(ctx, emp)
+	_ = repo.Create(ctx, emp)
 
 	repo.getByLocalErr = true
 
@@ -682,7 +682,7 @@ func TestEmployeeUseCase_LinkToLocalUser_LinkRepoError(t *testing.T) {
 	emp := entities.NewExternalEmployee("ext1", "CODE-ext1")
 	emp.FirstName = "John"
 	emp.LastName = "Doe"
-	_ = repo.MockExternalEmployeeRepository.Create(ctx, emp)
+	_ = repo.Create(ctx, emp)
 
 	repo.linkErr = true
 
@@ -707,8 +707,8 @@ func TestEmployeeUseCase_Unlink_UnlinkRepoError(t *testing.T) {
 	ctx := context.Background()
 
 	emp := entities.NewExternalEmployee("ext1", "CODE-ext1")
-	_ = repo.MockExternalEmployeeRepository.Create(ctx, emp)
-	_ = repo.MockExternalEmployeeRepository.LinkToLocalUser(ctx, emp.ID, 42)
+	_ = repo.Create(ctx, emp)
+	_ = repo.LinkToLocalUser(ctx, emp.ID, 42)
 
 	repo.unlinkErr = true
 

@@ -333,7 +333,7 @@ func TestStartSync_ForceOverridesRunning(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -402,7 +402,7 @@ func TestStartSync_EmployeeSync_Success_NewEmployees(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -425,7 +425,7 @@ func TestStartSync_EmployeeSync_Success_NewEmployees(t *testing.T) {
 func TestStartSync_EmployeeSync_ODataFetchError(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("bad request"))
+		_, _ = w.Write([]byte("bad request"))
 	}, nil)
 	defer server.Close()
 
@@ -449,7 +449,7 @@ func TestStartSync_EmployeeSync_GetAllExternalIDsError(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -474,7 +474,7 @@ func TestStartSync_EmployeeSync_UpdateExisting(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -505,7 +505,7 @@ func TestStartSync_EmployeeSync_UpdateExistingLinked_CreatesConflict(t *testing.
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -543,7 +543,7 @@ func TestStartSync_EmployeeSync_ConflictCreateError(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -578,7 +578,7 @@ func TestStartSync_EmployeeSync_GetByExternalIDError(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -604,7 +604,7 @@ func TestStartSync_EmployeeSync_CreateEmployeeError(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -630,7 +630,7 @@ func TestStartSync_EmployeeSync_UpdateEmployeeError(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -664,7 +664,7 @@ func TestStartSync_EmployeeSync_MarkInactiveError(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -689,7 +689,7 @@ func TestStartSync_EmployeeSync_SameHash_NoUpdate(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -724,7 +724,7 @@ func TestStartSync_StudentSync_Success_NewStudents(t *testing.T) {
 	server, client := newTestODataServer(t, nil, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataStudent]{Value: students}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -746,7 +746,7 @@ func TestStartSync_StudentSync_Success_NewStudents(t *testing.T) {
 func TestStartSync_StudentSync_ODataFetchError(t *testing.T) {
 	server, client := newTestODataServer(t, nil, func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("bad request"))
+		_, _ = w.Write([]byte("bad request"))
 	})
 	defer server.Close()
 
@@ -770,7 +770,7 @@ func TestStartSync_StudentSync_GetAllExternalIDsError(t *testing.T) {
 	server, client := newTestODataServer(t, nil, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataStudent]{Value: students}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -795,7 +795,7 @@ func TestStartSync_StudentSync_UpdateExistingLinked_CreatesConflict(t *testing.T
 	server, client := newTestODataServer(t, nil, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataStudent]{Value: students}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -835,7 +835,7 @@ func TestStartSync_StudentSync_GetByExternalIDError(t *testing.T) {
 	server, client := newTestODataServer(t, nil, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataStudent]{Value: students}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -860,7 +860,7 @@ func TestStartSync_StudentSync_CreateStudentError(t *testing.T) {
 	server, client := newTestODataServer(t, nil, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataStudent]{Value: students}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -885,7 +885,7 @@ func TestStartSync_StudentSync_UpdateStudentError(t *testing.T) {
 	server, client := newTestODataServer(t, nil, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataStudent]{Value: students}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -918,7 +918,7 @@ func TestStartSync_StudentSync_MarkInactiveError(t *testing.T) {
 	server, client := newTestODataServer(t, nil, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataStudent]{Value: students}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -943,7 +943,7 @@ func TestStartSync_StudentSync_ConflictCreateError(t *testing.T) {
 	server, client := newTestODataServer(t, nil, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataStudent]{Value: students}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -977,7 +977,7 @@ func TestStartSync_StudentSync_SameHash_NoUpdate(t *testing.T) {
 	server, client := newTestODataServer(t, nil, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataStudent]{Value: students}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -1009,7 +1009,7 @@ func TestStartSync_UpdateSyncLogError(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 
@@ -1475,7 +1475,7 @@ func TestStartSync_FailedSync_UpdateLogError(t *testing.T) {
 	// OData server returns error to trigger sync failure
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, "error")
+		_, _ = fmt.Fprint(w, "error")
 	}, nil)
 	defer server.Close()
 
@@ -1502,7 +1502,7 @@ func TestStartSync_EmployeeSync_ExistingLinkedSameHash(t *testing.T) {
 	server, client := newTestODataServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		resp := odata.Response[entities.ODataEmployee]{Value: employees}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}, nil)
 	defer server.Close()
 

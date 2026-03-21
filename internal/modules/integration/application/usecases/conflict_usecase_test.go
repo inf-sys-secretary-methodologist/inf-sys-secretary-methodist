@@ -657,7 +657,7 @@ func TestConflictUseCase_Resolve_ResolveRepoError(t *testing.T) {
 
 	// Create a conflict
 	conflict := entities.NewSyncConflict(1, entities.SyncEntityEmployee, "emp-1")
-	_ = repo.MockSyncConflictRepository.Create(ctx, conflict)
+	_ = repo.Create(ctx, conflict)
 
 	repo.resolveErr = true
 	req := &dto.ResolveConflictRequest{
@@ -675,7 +675,7 @@ func TestConflictUseCase_Resolve_UpdateNotesError(t *testing.T) {
 	ctx := context.Background()
 
 	conflict := entities.NewSyncConflict(1, entities.SyncEntityEmployee, "emp-1")
-	_ = repo.MockSyncConflictRepository.Create(ctx, conflict)
+	_ = repo.Create(ctx, conflict)
 
 	repo.updateErr = true
 	req := &dto.ResolveConflictRequest{

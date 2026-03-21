@@ -5,6 +5,20 @@ import (
 	"time"
 )
 
+// ContextKey is a custom type for context keys to avoid SA1029.
+type ContextKey string
+
+const (
+	// ContextKeyCorrelationID is the context key for correlation ID.
+	ContextKeyCorrelationID ContextKey = "correlation_id"
+	// ContextKeyUserID is the context key for user ID.
+	ContextKeyUserID ContextKey = "user_id"
+	// ContextKeyIPAddress is the context key for IP address.
+	ContextKeyIPAddress ContextKey = "ip_address"
+	// ContextKeyUserAgent is the context key for user agent.
+	ContextKeyUserAgent ContextKey = "user_agent"
+)
+
 // SecurityEvent represents a security-related event
 type SecurityEvent string
 
@@ -54,22 +68,22 @@ func (sl *SecurityLogger) LogSecurityEvent(ctx context.Context, event SecurityEv
 	}
 
 	// Extract correlation ID from context if present
-	if correlationID := ctx.Value("correlation_id"); correlationID != nil {
+	if correlationID := ctx.Value(ContextKeyCorrelationID); correlationID != nil {
 		enrichedFields["correlation_id"] = correlationID
 	}
 
 	// Extract user ID from context if present
-	if userID := ctx.Value("user_id"); userID != nil {
+	if userID := ctx.Value(ContextKeyUserID); userID != nil {
 		enrichedFields["user_id"] = userID
 	}
 
 	// Extract IP address from context if present
-	if ipAddr := ctx.Value("ip_address"); ipAddr != nil {
+	if ipAddr := ctx.Value(ContextKeyIPAddress); ipAddr != nil {
 		enrichedFields["ip_address"] = ipAddr
 	}
 
 	// Extract user agent from context if present
-	if userAgent := ctx.Value("user_agent"); userAgent != nil {
+	if userAgent := ctx.Value(ContextKeyUserAgent); userAgent != nil {
 		enrichedFields["user_agent"] = userAgent
 	}
 
@@ -180,13 +194,13 @@ func (al *AuditLogger) LogAuditEvent(ctx context.Context, action string, resourc
 	}
 
 	// Extract context values
-	if correlationID := ctx.Value("correlation_id"); correlationID != nil {
+	if correlationID := ctx.Value(ContextKeyCorrelationID); correlationID != nil {
 		enrichedFields["correlation_id"] = correlationID
 	}
-	if userID := ctx.Value("user_id"); userID != nil {
+	if userID := ctx.Value(ContextKeyUserID); userID != nil {
 		enrichedFields["actor_user_id"] = userID
 	}
-	if ipAddr := ctx.Value("ip_address"); ipAddr != nil {
+	if ipAddr := ctx.Value(ContextKeyIPAddress); ipAddr != nil {
 		enrichedFields["actor_ip"] = ipAddr
 	}
 
@@ -217,7 +231,7 @@ func (pl *PerformanceLogger) LogDatabaseQuery(ctx context.Context, _ string, dur
 		"category":      "performance",
 	}
 
-	if correlationID := ctx.Value("correlation_id"); correlationID != nil {
+	if correlationID := ctx.Value(ContextKeyCorrelationID); correlationID != nil {
 		fields["correlation_id"] = correlationID
 	}
 
@@ -239,7 +253,7 @@ func (pl *PerformanceLogger) LogCacheOperation(ctx context.Context, operation st
 		"category":  "performance",
 	}
 
-	if correlationID := ctx.Value("correlation_id"); correlationID != nil {
+	if correlationID := ctx.Value(ContextKeyCorrelationID); correlationID != nil {
 		fields["correlation_id"] = correlationID
 	}
 
@@ -256,7 +270,7 @@ func (pl *PerformanceLogger) LogHTTPRequest(ctx context.Context, method string, 
 		"category":    "performance",
 	}
 
-	if correlationID := ctx.Value("correlation_id"); correlationID != nil {
+	if correlationID := ctx.Value(ContextKeyCorrelationID); correlationID != nil {
 		fields["correlation_id"] = correlationID
 	}
 

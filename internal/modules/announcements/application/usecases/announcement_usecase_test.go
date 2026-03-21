@@ -20,8 +20,6 @@ const testUpdatedTitle = "Updated"
 
 // --- Helpers ---
 
-func strPtr(s string) *string { return &s }
-
 func createTestAuditLogger() *logging.AuditLogger {
 	logger := logging.NewLogger("error")
 	return logging.NewAuditLogger(logger)

@@ -49,10 +49,10 @@ func TestSecurityLogger_LogSecurityEvent_WithContext(t *testing.T) {
 	logger := NewLogger("debug")
 	sl := NewSecurityLogger(logger)
 
-	ctx := context.WithValue(context.Background(), "correlation_id", "corr-123")
-	ctx = context.WithValue(ctx, "user_id", int64(42))
-	ctx = context.WithValue(ctx, "ip_address", "192.168.1.1")
-	ctx = context.WithValue(ctx, "user_agent", "Test Agent")
+	ctx := context.WithValue(context.Background(), ContextKeyCorrelationID, "corr-123")
+	ctx = context.WithValue(ctx, ContextKeyUserID, int64(42))
+	ctx = context.WithValue(ctx, ContextKeyIPAddress, "192.168.1.1")
+	ctx = context.WithValue(ctx, ContextKeyUserAgent, "Test Agent")
 
 	sl.LogSecurityEvent(ctx, EventLoginSuccess, map[string]interface{}{
 		"extra": "data",
@@ -118,9 +118,9 @@ func TestAuditLogger_LogAuditEvent_WithContext(t *testing.T) {
 	logger := NewLogger("debug")
 	al := NewAuditLogger(logger)
 
-	ctx := context.WithValue(context.Background(), "correlation_id", "corr-456")
-	ctx = context.WithValue(ctx, "user_id", int64(10))
-	ctx = context.WithValue(ctx, "ip_address", "10.0.0.1")
+	ctx := context.WithValue(context.Background(), ContextKeyCorrelationID, "corr-456")
+	ctx = context.WithValue(ctx, ContextKeyUserID, int64(10))
+	ctx = context.WithValue(ctx, ContextKeyIPAddress, "10.0.0.1")
 
 	al.LogAuditEvent(ctx, "update", "document", map[string]interface{}{
 		"doc_id": 42,
@@ -148,7 +148,7 @@ func TestPerformanceLogger_LogDatabaseQuery_WithContext(t *testing.T) {
 	logger := NewLogger("debug")
 	pl := NewPerformanceLogger(logger)
 
-	ctx := context.WithValue(context.Background(), "correlation_id", "corr-789")
+	ctx := context.WithValue(context.Background(), ContextKeyCorrelationID, "corr-789")
 	pl.LogDatabaseQuery(ctx, "INSERT INTO users", 5*time.Millisecond, 1)
 }
 
@@ -164,7 +164,7 @@ func TestPerformanceLogger_LogCacheOperation_WithContext(t *testing.T) {
 	logger := NewLogger("debug")
 	pl := NewPerformanceLogger(logger)
 
-	ctx := context.WithValue(context.Background(), "correlation_id", "corr-abc")
+	ctx := context.WithValue(context.Background(), ContextKeyCorrelationID, "corr-abc")
 	pl.LogCacheOperation(ctx, "set", "user:1", true)
 }
 
@@ -183,7 +183,7 @@ func TestPerformanceLogger_LogHTTPRequest_WithContext(t *testing.T) {
 	logger := NewLogger("debug")
 	pl := NewPerformanceLogger(logger)
 
-	ctx := context.WithValue(context.Background(), "correlation_id", "corr-def")
+	ctx := context.WithValue(context.Background(), ContextKeyCorrelationID, "corr-def")
 	pl.LogHTTPRequest(ctx, "GET", "/api/test", 404, 20*time.Millisecond)
 }
 

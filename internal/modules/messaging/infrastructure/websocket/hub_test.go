@@ -218,7 +218,7 @@ func TestClient_handleMessage(t *testing.T) {
 	select {
 	case msg := <-client.send:
 		var result map[string]string
-		json.Unmarshal(msg, &result)
+		_ = json.Unmarshal(msg, &result)
 		assert.Equal(t, "pong", result["type"])
 	case <-time.After(200 * time.Millisecond):
 		t.Fatal("no pong response")

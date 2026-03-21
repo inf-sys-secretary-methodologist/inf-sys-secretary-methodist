@@ -285,9 +285,7 @@ func TestIndexDocument_FinalSetIndexStatusError(t *testing.T) {
 	setStatusCallCount := 0
 	f.embRepo.On("SetIndexStatus", mock.AnythingOfType("*entities.DocumentIndexStatus")).Return(nil).Run(func(args mock.Arguments) {
 		setStatusCallCount++
-		if setStatusCallCount >= 2 {
-			// We can't change Return after Run, so we use a different approach below
-		}
+		// setStatusCallCount tracked for potential future use
 	}).Maybe()
 	f.docProvider.On("GetDocumentContent", int64(1)).Return("Content.", "Title", nil)
 	f.embRepo.On("CreateChunks", mock.Anything).Return(nil)

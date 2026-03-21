@@ -248,8 +248,8 @@ func TestLoadRateLimitConfig_InvalidValues(t *testing.T) {
 	t.Setenv("RATE_LIMIT_PUBLIC_BURST", "xyz")
 
 	// Unset auth vars to get defaults
-	os.Unsetenv("RATE_LIMIT_AUTH_RPM")
-	os.Unsetenv("RATE_LIMIT_AUTH_BURST")
+	_ = os.Unsetenv("RATE_LIMIT_AUTH_RPM")
+	_ = os.Unsetenv("RATE_LIMIT_AUTH_BURST")
 
 	cfg := LoadRateLimitConfig()
 	assert.Equal(t, 300, cfg.PublicRequestsPerMinute) // default

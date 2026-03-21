@@ -224,19 +224,6 @@ func makeGroupConversation(creatorID int64) *entities.Conversation {
 	}
 }
 
-func makeDirectConversation(user1, user2 int64) *entities.Conversation {
-	return &entities.Conversation{
-		ID:        1,
-		Type:      entities.ConversationTypeDirect,
-		CreatedBy: user1,
-		Participants: []entities.Participant{
-			{ID: 1, UserID: user1, Role: entities.ParticipantRoleMember, JoinedAt: time.Now()},
-			{ID: 2, UserID: user2, Role: entities.ParticipantRoleMember, JoinedAt: time.Now()},
-		},
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-}
 
 func makeMessage(id, convID, senderID int64) *entities.Message {
 	return &entities.Message{

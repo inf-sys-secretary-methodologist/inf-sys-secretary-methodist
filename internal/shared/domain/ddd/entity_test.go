@@ -183,11 +183,7 @@ func TestValueObject_Equals(t *testing.T) {
 func TestValueObject_Equals_DifferentType(t *testing.T) {
 	vo1 := mockValueObject{Value: "abc"}
 
-	type otherVO struct {
-		Val string
-	}
-
-	// This won't satisfy the interface directly, test with mockValueObject
+	// Test with same type mockValueObject
 	vo2 := mockValueObject{Value: "abc"}
 	if !vo1.Equals(vo2) {
 		t.Error("expected equal for same type and value")

@@ -38,7 +38,7 @@ func TestPollingService_Start_AlreadyRunning(t *testing.T) {
 			OK     bool     `json:"ok"`
 			Result []Update `json:"result"`
 		}{OK: true, Result: []Update{}}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -65,7 +65,7 @@ func TestPollingService_Stop_WhenRunning(t *testing.T) {
 			OK     bool     `json:"ok"`
 			Result []Update `json:"result"`
 		}{OK: true, Result: []Update{}}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -94,7 +94,7 @@ func TestPollingService_getUpdates_Success(t *testing.T) {
 				{UpdateID: 1, Message: &Message{MessageID: 1, Text: "hello", Chat: &Chat{ID: 123}}},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -124,7 +124,7 @@ func TestPollingService_PollLoop_WithHandler(t *testing.T) {
 			OK     bool     `json:"ok"`
 			Result []Update `json:"result"`
 		}{OK: true, Result: []Update{}}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
