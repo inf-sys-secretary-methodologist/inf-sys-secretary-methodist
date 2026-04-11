@@ -20,6 +20,14 @@ type AnalyticsRepository interface {
 
 	// Trend analysis
 	GetMonthlyAttendanceTrend(ctx context.Context, months int) ([]entities.MonthlyAttendanceTrend, error)
+
+	// Risk weight configuration
+	GetRiskWeightConfig(ctx context.Context) (*entities.RiskWeightConfig, error)
+	UpdateRiskWeightConfig(ctx context.Context, cfg *entities.RiskWeightConfig) error
+
+	// Risk history
+	SaveRiskHistory(ctx context.Context, entry *entities.RiskHistoryEntry) error
+	GetStudentRiskHistory(ctx context.Context, studentID int64, limit int) ([]entities.RiskHistoryEntry, error)
 }
 
 // AttendanceRepository defines the interface for attendance data operations

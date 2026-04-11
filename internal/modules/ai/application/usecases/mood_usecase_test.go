@@ -95,6 +95,19 @@ func (m *mockAnalyticsRepo) GetStudentsByRiskLevel(_ context.Context, _ analytic
 	return nil, 0, nil
 }
 
+func (m *mockAnalyticsRepo) GetRiskWeightConfig(_ context.Context) (*analyticsEntities.RiskWeightConfig, error) {
+	return nil, nil
+}
+func (m *mockAnalyticsRepo) UpdateRiskWeightConfig(_ context.Context, _ *analyticsEntities.RiskWeightConfig) error {
+	return nil
+}
+func (m *mockAnalyticsRepo) SaveRiskHistory(_ context.Context, _ *analyticsEntities.RiskHistoryEntry) error {
+	return nil
+}
+func (m *mockAnalyticsRepo) GetStudentRiskHistory(_ context.Context, _ int64, _ int) ([]analyticsEntities.RiskHistoryEntry, error) {
+	return nil, nil
+}
+
 func (m *mockAnalyticsRepo) GetMonthlyAttendanceTrend(_ context.Context, _ int) ([]analyticsEntities.MonthlyAttendanceTrend, error) {
 	if m.err != nil {
 		return nil, m.err

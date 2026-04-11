@@ -3,12 +3,13 @@
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
-import { Palette, Bell } from 'lucide-react'
+import { Palette, Bell, Workflow } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const settingsNav = [
   { href: '/settings/appearance', labelKey: 'appearance.title' as const, icon: Palette },
   { href: '/settings/notifications', labelKey: 'notifications.title' as const, icon: Bell },
+  { href: '/settings/automation', labelKey: 'automation.title' as const, icon: Workflow },
 ]
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {

@@ -9,6 +9,9 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/dto"
@@ -69,6 +72,16 @@ func NewAuthUseCase(
 
 // Login authenticates user and returns JWT tokens
 func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessToken string, refreshToken string, err error) {
+	ctx, span := otel.Tracer("auth").Start(ctx, "AuthUseCase.Login",)
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "login failed")
+		}
+		span.End()
+	}()
+	span.SetAttributes(attribute.String("user.email", input.Email))
+
 	startTime := time.Now()
 
 	// Use GetByEmailForAuth to bypass cache and ensure password field is populated

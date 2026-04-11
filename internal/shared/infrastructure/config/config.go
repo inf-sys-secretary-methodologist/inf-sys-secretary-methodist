@@ -24,6 +24,7 @@ type Config struct {
 	Integration IntegrationConfig
 	WebPush     WebPushConfig
 	Tracing     TracingConfig
+	N8N         N8NConfig
 	AI          AIConfig
 }
 
@@ -120,6 +121,12 @@ type TracingConfig struct {
 	OTLPEndpoint string  // OTLP collector endpoint (e.g., "otel-collector:4317")
 	SamplingRate float64 // Sampling rate (0.0 - 1.0, default 0.1 = 10%)
 	ServiceName  string  // Service name for traces
+}
+
+// N8NConfig holds n8n workflow automation configuration
+type N8NConfig struct {
+	Enabled    bool   // Enable n8n webhook integration
+	WebhookURL string // Base URL for n8n webhooks (e.g., "http://localhost:5678")
 }
 
 // AIConfig holds AI/RAG configuration
@@ -268,6 +275,10 @@ func Load() (*Config, error) {
 			OTLPEndpoint: getEnv("TRACING_OTLP_ENDPOINT", "otel-collector:4317"),
 			SamplingRate: getEnvAsFloat("TRACING_SAMPLING_RATE", 0.1),
 			ServiceName:  getEnv("TRACING_SERVICE_NAME", "inf-sys-secretary-methodist"),
+		},
+		N8N: N8NConfig{
+			Enabled:    getEnvAsBool("N8N_ENABLED", false),
+			WebhookURL: getEnv("N8N_WEBHOOK_URL", "http://localhost:5678"),
 		},
 		AI: AIConfig{
 			Enabled:  getEnvAsBool("AI_ENABLED", false),

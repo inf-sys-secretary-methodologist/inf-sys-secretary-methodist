@@ -1,0 +1,137 @@
+{
+  "name": "Student Absences Alert - Curator Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 1 }]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.API_BASE_URL }}/api/analytics/at-risk-students?page=1&page_size=50",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-at-risk",
+      "name": "Fetch At-Risk Students",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [470, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-risk",
+              "leftValue": "={{ $json.data.length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-has-students",
+      "name": "Has At-Risk Students?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "id": "split-students",
+      "name": "Split Students",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [910, 250]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "high-risk",
+              "leftValue": "={{ $json.risk_score }}",
+              "rightValue": 70,
+              "operator": { "type": "number", "operation": "gte" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-high-risk",
+      "name": "Risk >= 70?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1130, 250]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=⚠️ *Студент в зоне риска*\n\n*ФИО:* {{ $json.student_name }}\n*Группа:* {{ $json.group_name }}\n*Risk Score:* {{ $json.risk_score }}/100\n*Уровень:* {{ $json.risk_level }}\n*Посещаемость:* {{ $json.attendance_rate }}%",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-alert",
+      "name": "Alert Curator",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1350, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule": {
+      "main": [[{ "node": "Fetch At-Risk Students", "type": "main", "index": 0 }]]
+    },
+    "Fetch At-Risk Students": {
+      "main": [[{ "node": "Has At-Risk Students?", "type": "main", "index": 0 }]]
+    },
+    "Has At-Risk Students?": {
+      "main": [
+        [{ "node": "Split Students", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Split Students": {
+      "main": [[{ "node": "Risk >= 70?", "type": "main", "index": 0 }]]
+    },
+    "Risk >= 70?": {
+      "main": [
+        [{ "node": "Alert Curator", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [{ "name": "analytics" }, { "name": "notifications" }]
+}

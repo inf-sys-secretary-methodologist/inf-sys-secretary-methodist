@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
@@ -45,6 +48,13 @@ func NewDocumentUseCase(
 
 // Create creates a new document
 func (uc *DocumentUseCase) Create(ctx context.Context, input dto.CreateDocumentInput, authorID int64) (*dto.DocumentOutput, error) {
+	ctx, span := otel.Tracer("documents").Start(ctx, "DocumentUseCase.Create")
+	defer span.End()
+	span.SetAttributes(
+		attribute.Int64("author.id", authorID),
+		attribute.String("document.title", input.Title),
+	)
+
 	// Validate document type exists
 	docType, err := uc.documentTypeRepo.GetByID(ctx, input.DocumentTypeID)
 	if err != nil {

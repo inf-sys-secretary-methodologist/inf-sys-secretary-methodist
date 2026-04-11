@@ -844,6 +844,10 @@
         "enabled": "Quiet hours enabled",
         "disabled": "Quiet hours disabled"
       }
+    },
+    "automation": {
+      "title": "Automation",
+      "description": "Manage workflow automation via n8n"
     }
   },
   "notifications": {

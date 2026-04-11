@@ -73,6 +73,19 @@ func (m *mockAnalyticsRepository) GetMonthlyAttendanceTrend(_ context.Context, _
 	return m.monthlyTrends, nil
 }
 
+func (m *mockAnalyticsRepository) GetRiskWeightConfig(_ context.Context) (*entities.RiskWeightConfig, error) {
+	return nil, nil
+}
+func (m *mockAnalyticsRepository) UpdateRiskWeightConfig(_ context.Context, _ *entities.RiskWeightConfig) error {
+	return nil
+}
+func (m *mockAnalyticsRepository) SaveRiskHistory(_ context.Context, _ *entities.RiskHistoryEntry) error {
+	return nil
+}
+func (m *mockAnalyticsRepository) GetStudentRiskHistory(_ context.Context, _ int64, _ int) ([]entities.RiskHistoryEntry, error) {
+	return nil, nil
+}
+
 // mockAttendanceRepository implements repositories.AttendanceRepository
 type mockAttendanceRepository struct {
 	markErr        error

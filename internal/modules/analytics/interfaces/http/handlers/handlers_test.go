@@ -79,6 +79,26 @@ func (m *mockAnalyticsRepo) GetMonthlyAttendanceTrend(ctx context.Context, month
 	}
 	return args.Get(0).([]entities.MonthlyAttendanceTrend), args.Error(1)
 }
+func (m *mockAnalyticsRepo) GetRiskWeightConfig(ctx context.Context) (*entities.RiskWeightConfig, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.RiskWeightConfig), args.Error(1)
+}
+func (m *mockAnalyticsRepo) UpdateRiskWeightConfig(ctx context.Context, cfg *entities.RiskWeightConfig) error {
+	return m.Called(ctx, cfg).Error(0)
+}
+func (m *mockAnalyticsRepo) SaveRiskHistory(ctx context.Context, entry *entities.RiskHistoryEntry) error {
+	return m.Called(ctx, entry).Error(0)
+}
+func (m *mockAnalyticsRepo) GetStudentRiskHistory(ctx context.Context, studentID int64, limit int) ([]entities.RiskHistoryEntry, error) {
+	args := m.Called(ctx, studentID, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]entities.RiskHistoryEntry), args.Error(1)
+}
 
 type mockAttendanceRepo struct{ mock.Mock }
 

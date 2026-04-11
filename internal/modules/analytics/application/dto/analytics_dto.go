@@ -177,3 +177,57 @@ func ToAttendanceRecordResponse(record *entities.AttendanceRecord) *AttendanceRe
 		CreatedAt:  record.CreatedAt,
 	}
 }
+
+// --- Risk Weight Config DTOs ---
+
+// RiskWeightConfigResponse represents risk weight configuration
+type RiskWeightConfigResponse struct {
+	AttendanceWeight      float64   `json:"attendance_weight"`
+	GradeWeight           float64   `json:"grade_weight"`
+	SubmissionWeight      float64   `json:"submission_weight"`
+	InactivityWeight      float64   `json:"inactivity_weight"`
+	HighRiskThreshold     float64   `json:"high_risk_threshold"`
+	CriticalRiskThreshold float64   `json:"critical_risk_threshold"`
+	UpdatedAt             time.Time `json:"updated_at"`
+}
+
+// UpdateRiskWeightConfigRequest represents a request to update risk weights
+type UpdateRiskWeightConfigRequest struct {
+	AttendanceWeight      float64 `json:"attendance_weight" validate:"required,min=0,max=1"`
+	GradeWeight           float64 `json:"grade_weight" validate:"required,min=0,max=1"`
+	SubmissionWeight      float64 `json:"submission_weight" validate:"required,min=0,max=1"`
+	InactivityWeight      float64 `json:"inactivity_weight" validate:"required,min=0,max=1"`
+	HighRiskThreshold     float64 `json:"high_risk_threshold" validate:"required,min=0,max=100"`
+	CriticalRiskThreshold float64 `json:"critical_risk_threshold" validate:"required,min=0,max=100"`
+}
+
+// --- Risk History DTOs ---
+
+// RiskHistoryResponse represents risk history for a student
+type RiskHistoryResponse struct {
+	StudentID int64              `json:"student_id"`
+	History   []RiskHistoryEntry `json:"history"`
+	Total     int                `json:"total"`
+}
+
+// RiskHistoryEntry represents a single risk history point
+type RiskHistoryEntry struct {
+	RiskScore      float64   `json:"risk_score"`
+	RiskLevel      string    `json:"risk_level"`
+	AttendanceRate *float64  `json:"attendance_rate,omitempty"`
+	GradeAverage   *float64  `json:"grade_average,omitempty"`
+	SubmissionRate *float64  `json:"submission_rate,omitempty"`
+	CalculatedAt   time.Time `json:"calculated_at"`
+}
+
+// RiskHistoryEntryFromEntity converts domain entity to DTO
+func RiskHistoryEntryFromEntity(e entities.RiskHistoryEntry) RiskHistoryEntry {
+	return RiskHistoryEntry{
+		RiskScore:      e.RiskScore,
+		RiskLevel:      string(e.RiskLevel),
+		AttendanceRate: e.AttendanceRate,
+		GradeAverage:   e.GradeAverage,
+		SubmissionRate: e.SubmissionRate,
+		CalculatedAt:   e.CalculatedAt,
+	}
+}

@@ -86,6 +86,32 @@ type MonthlyAttendanceTrend struct {
 	AttendanceRate float64   `json:"attendance_rate"`
 }
 
+// RiskWeightConfig holds admin-configurable risk score weights
+type RiskWeightConfig struct {
+	ID                     int       `json:"id"`
+	AttendanceWeight       float64   `json:"attendance_weight"`
+	GradeWeight            float64   `json:"grade_weight"`
+	SubmissionWeight       float64   `json:"submission_weight"`
+	InactivityWeight       float64   `json:"inactivity_weight"`
+	HighRiskThreshold      float64   `json:"high_risk_threshold"`
+	CriticalRiskThreshold  float64   `json:"critical_risk_threshold"`
+	UpdatedBy              *int64    `json:"updated_by,omitempty"`
+	UpdatedAt              time.Time `json:"updated_at"`
+}
+
+// RiskHistoryEntry represents a daily risk score snapshot for a student
+type RiskHistoryEntry struct {
+	ID             int64      `json:"id"`
+	StudentID      int64      `json:"student_id"`
+	RiskScore      float64    `json:"risk_score"`
+	RiskLevel      RiskLevel  `json:"risk_level"`
+	AttendanceRate *float64   `json:"attendance_rate,omitempty"`
+	GradeAverage   *float64   `json:"grade_average,omitempty"`
+	SubmissionRate *float64   `json:"submission_rate,omitempty"`
+	RiskFactors    *RiskFactors `json:"risk_factors,omitempty"`
+	CalculatedAt   time.Time  `json:"calculated_at"`
+}
+
 // AttendanceStats holds attendance statistics for a student
 type AttendanceStats struct {
 	StudentID      int64   `json:"student_id"`

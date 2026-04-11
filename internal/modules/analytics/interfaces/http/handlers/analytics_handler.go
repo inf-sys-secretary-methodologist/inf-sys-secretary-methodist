@@ -2,11 +2,15 @@
 package handlers
 
 import (
+	"encoding/csv"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xuri/excelize/v2"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
@@ -237,6 +241,136 @@ func (h *AnalyticsHandler) GetAttendanceTrend(c *gin.Context) {
 
 	resp := response.Success(result)
 	c.JSON(http.StatusOK, resp)
+}
+
+// GetStudentRiskHistory returns risk score history for a student.
+func (h *AnalyticsHandler) GetStudentRiskHistory(c *gin.Context) {
+	studentID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("Invalid student ID"))
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "90"))
+
+	result, err := h.usecase.GetStudentRiskHistory(c.Request.Context(), studentID, limit)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(result))
+}
+
+// GetRiskWeightConfig returns the current risk weight configuration.
+func (h *AnalyticsHandler) GetRiskWeightConfig(c *gin.Context) {
+	cfg, err := h.usecase.GetRiskWeightConfig(c.Request.Context())
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(cfg))
+}
+
+// UpdateRiskWeightConfig updates risk weight configuration (admin only).
+func (h *AnalyticsHandler) UpdateRiskWeightConfig(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("authentication required"))
+		return
+	}
+
+	var req dto.UpdateRiskWeightConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("Invalid request body"))
+		return
+	}
+
+	if err := h.usecase.UpdateRiskWeightConfig(c.Request.Context(), req, userID.(int64)); err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(map[string]string{"message": "Risk weight config updated"}))
+}
+
+// ExportAtRiskStudents exports at-risk students as CSV or XLSX.
+func (h *AnalyticsHandler) ExportAtRiskStudents(c *gin.Context) {
+	format := c.DefaultQuery("format", "csv")
+
+	result, err := h.usecase.GetAtRiskStudents(c.Request.Context(), 1, 1000)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	headers := []string{"Student ID", "Name", "Group", "Risk Score", "Risk Level", "Attendance Rate", "Grade Average"}
+
+	switch format {
+	case "xlsx":
+		f := excelize.NewFile()
+		sheet := "At-Risk Students"
+		f.SetSheetName("Sheet1", sheet)
+
+		for i, hdr := range headers {
+			cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+			_ = f.SetCellValue(sheet, cell, hdr)
+		}
+
+		for row, s := range result.Students {
+			r := row + 2
+			_ = f.SetCellValue(sheet, fmt.Sprintf("A%d", r), s.StudentID)
+			_ = f.SetCellValue(sheet, fmt.Sprintf("B%d", r), s.StudentName)
+			if s.GroupName != nil {
+				_ = f.SetCellValue(sheet, fmt.Sprintf("C%d", r), *s.GroupName)
+			}
+			_ = f.SetCellValue(sheet, fmt.Sprintf("D%d", r), s.RiskScore)
+			_ = f.SetCellValue(sheet, fmt.Sprintf("E%d", r), s.RiskLevel)
+			if s.AttendanceRate != nil {
+				_ = f.SetCellValue(sheet, fmt.Sprintf("F%d", r), *s.AttendanceRate)
+			}
+			if s.GradeAverage != nil {
+				_ = f.SetCellValue(sheet, fmt.Sprintf("G%d", r), *s.GradeAverage)
+			}
+		}
+
+		c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+		c.Header("Content-Disposition", "attachment; filename=at-risk-students.xlsx")
+		_ = f.Write(c.Writer)
+
+	default: // csv
+		c.Header("Content-Type", "text/csv; charset=utf-8")
+		c.Header("Content-Disposition", "attachment; filename=at-risk-students.csv")
+
+		w := csv.NewWriter(c.Writer)
+		_ = w.Write(headers)
+
+		for _, s := range result.Students {
+			group := ""
+			if s.GroupName != nil {
+				group = *s.GroupName
+			}
+			attendance := ""
+			if s.AttendanceRate != nil {
+				attendance = fmt.Sprintf("%.1f", *s.AttendanceRate)
+			}
+			grade := ""
+			if s.GradeAverage != nil {
+				grade = fmt.Sprintf("%.1f", *s.GradeAverage)
+			}
+			_ = w.Write([]string{
+				strconv.FormatInt(s.StudentID, 10),
+				s.StudentName,
+				group,
+				fmt.Sprintf("%.1f", s.RiskScore),
+				string(s.RiskLevel),
+				attendance,
+				grade,
+			})
+		}
+		w.Flush()
+	}
 }
 
 // handleError maps errors to HTTP responses

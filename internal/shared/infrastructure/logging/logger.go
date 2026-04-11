@@ -2,11 +2,14 @@
 package logging
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"time"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 // LogLevel represents logging level
@@ -84,6 +87,56 @@ func (l *Logger) log(level, message string, fields map[string]interface{}) {
 	}
 
 	l.logger.Println(string(jsonBytes))
+}
+
+// ContextLogger wraps Logger and auto-injects trace_id and span_id from context.
+type ContextLogger struct {
+	logger  *Logger
+	traceID string
+	spanID  string
+}
+
+// WithContext returns a ContextLogger that includes trace_id/span_id from the span in ctx.
+// If no active span exists, fields are omitted.
+func (l *Logger) WithContext(ctx context.Context) *ContextLogger {
+	cl := &ContextLogger{logger: l}
+	span := trace.SpanFromContext(ctx)
+	if span.SpanContext().IsValid() {
+		cl.traceID = span.SpanContext().TraceID().String()
+		cl.spanID = span.SpanContext().SpanID().String()
+	}
+	return cl
+}
+
+func (cl *ContextLogger) enrichFields(fields map[string]interface{}) map[string]interface{} {
+	if fields == nil {
+		fields = make(map[string]interface{})
+	}
+	if cl.traceID != "" {
+		fields["trace_id"] = cl.traceID
+		fields["span_id"] = cl.spanID
+	}
+	return fields
+}
+
+// Debug logs debug message with trace context.
+func (cl *ContextLogger) Debug(message string, fields map[string]interface{}) {
+	cl.logger.Debug(message, cl.enrichFields(fields))
+}
+
+// Info logs info message with trace context.
+func (cl *ContextLogger) Info(message string, fields map[string]interface{}) {
+	cl.logger.Info(message, cl.enrichFields(fields))
+}
+
+// Warn logs warning message with trace context.
+func (cl *ContextLogger) Warn(message string, fields map[string]interface{}) {
+	cl.logger.Warn(message, cl.enrichFields(fields))
+}
+
+// Error logs error message with trace context.
+func (cl *ContextLogger) Error(message string, fields map[string]interface{}) {
+	cl.logger.Error(message, cl.enrichFields(fields))
 }
 
 func parseLogLevel(level string) LogLevel {

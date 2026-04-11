@@ -49,6 +49,9 @@ package main
 import (
 	"context"
 	"database/sql"
+
+	"github.com/XSAM/otelsql"
+	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"fmt"
 	"log"
 	"log/slog"
@@ -132,6 +135,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/telegram"
+	n8ninfra "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/n8n"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/tracing"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
@@ -201,7 +205,7 @@ func main() {
 	}
 
 	// Initialize database
-	db, err := initDatabase(cfg, logger)
+	db, err := initDatabase(cfg, logger, cfg.Tracing.Enabled)
 	if err != nil {
 		if tracer != nil {
 			_ = tracer.Shutdown(context.Background())
@@ -221,6 +225,18 @@ func main() {
 		"max_open_conns": cfg.Database.MaxOpenConns,
 		"max_idle_conns": cfg.Database.MaxIdleConns,
 	})
+
+	// Initialize n8n webhook client for workflow automation
+	n8nClient := n8ninfra.NewClient(n8ninfra.Config{
+		WebhookURL: cfg.N8N.WebhookURL,
+		Enabled:    cfg.N8N.Enabled,
+	}, logger)
+	if n8nClient.IsEnabled() {
+		logger.Info("n8n webhook integration enabled", map[string]any{
+			"webhook_url": cfg.N8N.WebhookURL,
+		})
+	}
+	_ = n8nClient // Available for EventBus subscription and direct use in handlers
 
 	// Initialize Redis cache
 	redisCache, err := initRedisCache(cfg, logger)
@@ -888,7 +904,7 @@ func main() {
 	logger.Info("Server stopped", nil)
 }
 
-func initDatabase(cfg *config.Config, _ *logging.Logger) (*sql.DB, error) {
+func initDatabase(cfg *config.Config, _ *logging.Logger, tracingEnabled bool) (*sql.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		cfg.Database.Host,
@@ -898,9 +914,24 @@ func initDatabase(cfg *config.Config, _ *logging.Logger) (*sql.DB, error) {
 		cfg.Database.Database,
 	)
 
-	db, err := sql.Open("postgres", dsn)
+	var db *sql.DB
+	var err error
+
+	if tracingEnabled {
+		// Use otelsql for database tracing — all queries appear as spans in traces
+		db, err = otelsql.Open("postgres", dsn,
+			otelsql.WithAttributes(semconv.DBSystemPostgreSQL),
+		)
+	} else {
+		db, err = sql.Open("postgres", dsn)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	// Report DB connection pool metrics to OpenTelemetry
+	if tracingEnabled {
+		_, _ = otelsql.RegisterDBStatsMetrics(db, otelsql.WithAttributes(semconv.DBSystemPostgreSQL))
 	}
 
 	// Configure connection pool for optimal performance
@@ -1732,6 +1763,10 @@ func setupRoutes(
 				analyticsGroup.GET("/groups/:name/summary", analyticsHandlerInstance.GetGroupSummary)
 				analyticsGroup.GET("/risk-level/:level", analyticsHandlerInstance.GetStudentsByRiskLevel)
 				analyticsGroup.GET("/attendance-trend", analyticsHandlerInstance.GetAttendanceTrend)
+				analyticsGroup.GET("/students/:id/risk-history", analyticsHandlerInstance.GetStudentRiskHistory)
+				analyticsGroup.GET("/export", analyticsHandlerInstance.ExportAtRiskStudents)
+				analyticsGroup.GET("/config/weights", analyticsHandlerInstance.GetRiskWeightConfig)
+				analyticsGroup.PUT("/config/weights", analyticsHandlerInstance.UpdateRiskWeightConfig)
 
 				// CORS preflight handlers
 				analyticsGroup.OPTIONS("/at-risk-students", func(c *gin.Context) { c.Status(http.StatusNoContent) })

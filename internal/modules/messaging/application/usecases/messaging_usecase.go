@@ -6,6 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/repositories"
@@ -342,6 +345,13 @@ func (uc *MessagingUseCase) LeaveConversation(ctx context.Context, userID, conve
 
 // SendMessage sends a message to a conversation.
 func (uc *MessagingUseCase) SendMessage(ctx context.Context, userID, conversationID int64, input dto.SendMessageInput) (*entities.Message, error) {
+	ctx, span := otel.Tracer("messaging").Start(ctx, "MessagingUseCase.SendMessage")
+	defer span.End()
+	span.SetAttributes(
+		attribute.Int64("user.id", userID),
+		attribute.Int64("conversation.id", conversationID),
+	)
+
 	// Verify user is a participant
 	participant, err := uc.conversationRepo.GetParticipant(ctx, conversationID, userID)
 	if err != nil {

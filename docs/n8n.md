@@ -291,4 +291,101 @@ docker compose exec postgres psql -U postgres -c "CREATE DATABASE n8n;"
 
 ---
 
-**Последнее обновление**: 2026-01-30
+## Go Backend Integration
+
+### n8n Webhook Client
+
+The project includes a Go client for triggering n8n workflows via webhooks:
+
+**Location:** `internal/shared/infrastructure/n8n/client.go`
+
+```go
+// Initialize in main.go (already wired)
+n8nClient := n8ninfra.NewClient(n8ninfra.Config{
+    WebhookURL: cfg.N8N.WebhookURL,  // from N8N_WEBHOOK_URL env
+    Enabled:    cfg.N8N.Enabled,       // from N8N_ENABLED env
+}, logger)
+
+// Trigger a workflow synchronously
+err := n8nClient.TriggerWorkflow(ctx, "document-created", map[string]any{
+    "document_id": doc.ID,
+    "title":       doc.Title,
+})
+
+// Trigger asynchronously (fire-and-forget, logs errors)
+n8nClient.TriggerAsync("document-created", map[string]any{
+    "document_id": doc.ID,
+    "title":       doc.Title,
+})
+```
+
+### EventBus Integration
+
+The `WebhookEventHandler` subscribes to domain events and forwards them to n8n:
+
+**Location:** `internal/shared/infrastructure/n8n/event_handler.go`
+
+```go
+handler := n8ninfra.NewWebhookEventHandler(n8nClient, logger)
+eventBus.Subscribe("document.created", handler)
+eventBus.Subscribe("document.updated", handler)
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `N8N_ENABLED` | Enable webhook integration | `false` |
+| `N8N_WEBHOOK_URL` | Base URL for n8n | `http://localhost:5678` |
+
+---
+
+## Pre-built Workflows
+
+Three workflow JSON files are available in the `workflows/` directory:
+
+| File | Trigger | Description |
+|------|---------|-------------|
+| `document-notification.json` | Webhook | Document created → Telegram notification |
+| `absence-alert.json` | Schedule (hourly) | At-risk students → Curator Telegram alert |
+| `deadline-reminder.json` | Schedule (daily 9AM) | Approaching deadlines → Assignee reminder |
+
+### Importing Workflows
+
+1. Open n8n UI → Workflows → Import from File
+2. Select a JSON file from `workflows/`
+3. Configure credentials (Telegram Bot, API Auth header)
+4. Activate the workflow
+
+---
+
+## Caddy Reverse Proxy Setup
+
+To expose n8n externally with HTTPS, add to your Caddyfile on the server:
+
+```caddyfile
+n8n.your-domain.com {
+    reverse_proxy localhost:5678 {
+        # WebSocket support for n8n editor
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+```
+
+Then update `.env`:
+
+```bash
+N8N_WEBHOOK_URL=https://n8n.your-domain.com
+N8N_HOST=n8n.your-domain.com
+N8N_PROTOCOL=https
+```
+
+Reload Caddy:
+
+```bash
+sudo systemctl reload caddy
+```
+
+---
+
+**Последнее обновление**: 2026-04-11

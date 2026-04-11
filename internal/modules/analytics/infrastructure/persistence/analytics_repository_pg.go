@@ -235,3 +235,117 @@ func (r *AnalyticsRepositoryPG) GetMonthlyAttendanceTrend(ctx context.Context, m
 
 	return trends, nil
 }
+
+// GetRiskWeightConfig returns the current risk weight configuration.
+func (r *AnalyticsRepositoryPG) GetRiskWeightConfig(ctx context.Context) (*entities.RiskWeightConfig, error) {
+	query := `SELECT id, attendance_weight, grade_weight, submission_weight, inactivity_weight,
+		high_risk_threshold, critical_risk_threshold, updated_by, updated_at
+		FROM risk_weight_config ORDER BY id LIMIT 1`
+
+	var cfg entities.RiskWeightConfig
+	err := r.db.QueryRowContext(ctx, query).Scan(
+		&cfg.ID, &cfg.AttendanceWeight, &cfg.GradeWeight, &cfg.SubmissionWeight, &cfg.InactivityWeight,
+		&cfg.HighRiskThreshold, &cfg.CriticalRiskThreshold, &cfg.UpdatedBy, &cfg.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// Return defaults
+			return &entities.RiskWeightConfig{
+				AttendanceWeight:      0.35,
+				GradeWeight:           0.30,
+				SubmissionWeight:      0.20,
+				InactivityWeight:      0.15,
+				HighRiskThreshold:     70.0,
+				CriticalRiskThreshold: 85.0,
+			}, nil
+		}
+		return nil, fmt.Errorf("failed to get risk weight config: %w", err)
+	}
+	return &cfg, nil
+}
+
+// UpdateRiskWeightConfig updates the risk weight configuration.
+func (r *AnalyticsRepositoryPG) UpdateRiskWeightConfig(ctx context.Context, cfg *entities.RiskWeightConfig) error {
+	query := `UPDATE risk_weight_config SET
+		attendance_weight = $1, grade_weight = $2, submission_weight = $3, inactivity_weight = $4,
+		high_risk_threshold = $5, critical_risk_threshold = $6,
+		updated_by = $7, updated_at = NOW()
+		WHERE id = (SELECT id FROM risk_weight_config ORDER BY id LIMIT 1)`
+
+	_, err := r.db.ExecContext(ctx, query,
+		cfg.AttendanceWeight, cfg.GradeWeight, cfg.SubmissionWeight, cfg.InactivityWeight,
+		cfg.HighRiskThreshold, cfg.CriticalRiskThreshold, cfg.UpdatedBy,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update risk weight config: %w", err)
+	}
+	return nil
+}
+
+// SaveRiskHistory saves a risk score snapshot for a student.
+func (r *AnalyticsRepositoryPG) SaveRiskHistory(ctx context.Context, entry *entities.RiskHistoryEntry) error {
+	var factorsJSON []byte
+	if entry.RiskFactors != nil {
+		var err error
+		factorsJSON, err = json.Marshal(entry.RiskFactors)
+		if err != nil {
+			return fmt.Errorf("failed to marshal risk factors: %w", err)
+		}
+	}
+
+	query := `INSERT INTO student_risk_history
+		(student_id, risk_score, risk_level, attendance_rate, grade_average, submission_rate, risk_factors, calculated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+
+	_, err := r.db.ExecContext(ctx, query,
+		entry.StudentID, entry.RiskScore, entry.RiskLevel,
+		entry.AttendanceRate, entry.GradeAverage, entry.SubmissionRate,
+		factorsJSON, entry.CalculatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to save risk history: %w", err)
+	}
+	return nil
+}
+
+// GetStudentRiskHistory returns risk history for a student, ordered by date descending.
+func (r *AnalyticsRepositoryPG) GetStudentRiskHistory(ctx context.Context, studentID int64, limit int) ([]entities.RiskHistoryEntry, error) {
+	if limit <= 0 || limit > 365 {
+		limit = 90
+	}
+
+	query := `SELECT id, student_id, risk_score, risk_level, attendance_rate, grade_average, submission_rate, risk_factors, calculated_at
+		FROM student_risk_history
+		WHERE student_id = $1
+		ORDER BY calculated_at DESC
+		LIMIT $2`
+
+	rows, err := r.db.QueryContext(ctx, query, studentID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get risk history: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var history []entities.RiskHistoryEntry
+	for rows.Next() {
+		var e entities.RiskHistoryEntry
+		var factorsJSON []byte
+		err := rows.Scan(
+			&e.ID, &e.StudentID, &e.RiskScore, &e.RiskLevel,
+			&e.AttendanceRate, &e.GradeAverage, &e.SubmissionRate,
+			&factorsJSON, &e.CalculatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan risk history: %w", err)
+		}
+		if len(factorsJSON) > 0 {
+			var factors entities.RiskFactors
+			if jsonErr := json.Unmarshal(factorsJSON, &factors); jsonErr == nil {
+				e.RiskFactors = &factors
+			}
+		}
+		history = append(history, e)
+	}
+
+	return history, nil
+}

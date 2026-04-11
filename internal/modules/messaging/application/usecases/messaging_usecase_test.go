@@ -186,8 +186,8 @@ func TestMessagingUseCase_CreateDirectConversation(t *testing.T) {
 			RecipientID: 2,
 		}
 
-		mockConvRepo.On("GetDirectConversation", ctx, int64(1), int64(2)).Return(nil, nil)
-		mockConvRepo.On("Create", ctx, mock.AnythingOfType("*entities.Conversation")).Return(nil)
+		mockConvRepo.On("GetDirectConversation", mock.Anything, int64(1), int64(2)).Return(nil, nil)
+		mockConvRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Conversation")).Return(nil)
 
 		conv, err := uc.CreateDirectConversation(ctx, 1, input)
 
@@ -214,7 +214,7 @@ func TestMessagingUseCase_CreateDirectConversation(t *testing.T) {
 			RecipientID: 2,
 		}
 
-		mockConvRepo.On("GetDirectConversation", ctx, int64(1), int64(2)).Return(existingConv, nil)
+		mockConvRepo.On("GetDirectConversation", mock.Anything, int64(1), int64(2)).Return(existingConv, nil)
 
 		conv, err := uc.CreateDirectConversation(ctx, 1, input)
 
@@ -243,8 +243,8 @@ func TestMessagingUseCase_CreateGroupConversation(t *testing.T) {
 			ParticipantIDs: []int64{2, 3, 4},
 		}
 
-		mockConvRepo.On("Create", ctx, mock.AnythingOfType("*entities.Conversation")).Return(nil)
-		mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
+		mockConvRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Conversation")).Return(nil)
+		mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
 
 		conv, err := uc.CreateGroupConversation(ctx, 1, input)
 
@@ -280,9 +280,9 @@ func TestMessagingUseCase_GetConversation(t *testing.T) {
 			UpdatedAt: now,
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-		mockConvRepo.On("GetUnreadCount", ctx, int64(1), int64(1)).Return(5, nil)
-		mockMsgRepo.On("GetLastMessage", ctx, int64(1)).Return(nil, nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+		mockConvRepo.On("GetUnreadCount", mock.Anything, int64(1), int64(1)).Return(5, nil)
+		mockMsgRepo.On("GetLastMessage", mock.Anything, int64(1)).Return(nil, nil)
 
 		result, err := uc.GetConversation(ctx, 1, 1)
 
@@ -311,7 +311,7 @@ func TestMessagingUseCase_GetConversation(t *testing.T) {
 			},
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
 
 		result, err := uc.GetConversation(ctx, 1, 1)
 
@@ -344,7 +344,7 @@ func TestMessagingUseCase_ListConversations(t *testing.T) {
 			Offset: 0,
 		}
 
-		mockConvRepo.On("List", ctx, mock.AnythingOfType("entities.ConversationFilter")).Return(conversations, int64(2), nil)
+		mockConvRepo.On("List", mock.Anything, mock.AnythingOfType("entities.ConversationFilter")).Return(conversations, int64(2), nil)
 
 		result, total, err := uc.ListConversations(ctx, 1, input)
 
@@ -377,8 +377,8 @@ func TestMessagingUseCase_SendMessage(t *testing.T) {
 			Content: "Hello, World!",
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-		mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
 
 		msg, err := uc.SendMessage(ctx, 1, 1, input)
 
@@ -416,9 +416,9 @@ func TestMessagingUseCase_SendMessage(t *testing.T) {
 			ReplyToID: &replyToID,
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-		mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
-		mockMsgRepo.On("GetByID", ctx, int64(10)).Return(replyToMsg, nil)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
+		mockMsgRepo.On("GetByID", mock.Anything, int64(10)).Return(replyToMsg, nil)
 
 		msg, err := uc.SendMessage(ctx, 1, 1, input)
 
@@ -459,8 +459,8 @@ func TestMessagingUseCase_GetMessages(t *testing.T) {
 			Limit: 50,
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-		mockMsgRepo.On("List", ctx, mock.AnythingOfType("entities.MessageFilter")).Return(messages, nil)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("List", mock.Anything, mock.AnythingOfType("entities.MessageFilter")).Return(messages, nil)
 
 		result, hasMore, err := uc.GetMessages(ctx, 1, 1, input)
 
@@ -495,8 +495,8 @@ func TestMessagingUseCase_GetMessages(t *testing.T) {
 			Limit: 2,
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-		mockMsgRepo.On("List", ctx, mock.AnythingOfType("entities.MessageFilter")).Return(messages, nil)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("List", mock.Anything, mock.AnythingOfType("entities.MessageFilter")).Return(messages, nil)
 
 		result, hasMore, err := uc.GetMessages(ctx, 1, 1, input)
 
@@ -533,8 +533,8 @@ func TestMessagingUseCase_EditMessage(t *testing.T) {
 			Content: "Edited message",
 		}
 
-		mockMsgRepo.On("GetByID", ctx, int64(1)).Return(msg, nil)
-		mockMsgRepo.On("Update", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
+		mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(msg, nil)
+		mockMsgRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
 
 		result, err := uc.EditMessage(ctx, 1, 1, input)
 
@@ -567,7 +567,7 @@ func TestMessagingUseCase_EditMessage(t *testing.T) {
 			Content: "Edited message",
 		}
 
-		mockMsgRepo.On("GetByID", ctx, int64(1)).Return(msg, nil)
+		mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(msg, nil)
 
 		result, err := uc.EditMessage(ctx, 1, 1, input)
 
@@ -608,9 +608,9 @@ func TestMessagingUseCase_DeleteMessage(t *testing.T) {
 			},
 		}
 
-		mockMsgRepo.On("GetByID", ctx, int64(1)).Return(msg, nil)
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-		mockMsgRepo.On("Update", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
+		mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(msg, nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+		mockMsgRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
 
 		err := uc.DeleteMessage(ctx, 1, 1)
 
@@ -646,9 +646,9 @@ func TestMessagingUseCase_DeleteMessage(t *testing.T) {
 			},
 		}
 
-		mockMsgRepo.On("GetByID", ctx, int64(1)).Return(msg, nil)
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-		mockMsgRepo.On("Update", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
+		mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(msg, nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+		mockMsgRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
 
 		err := uc.DeleteMessage(ctx, 1, 1)
 
@@ -684,8 +684,8 @@ func TestMessagingUseCase_DeleteMessage(t *testing.T) {
 			},
 		}
 
-		mockMsgRepo.On("GetByID", ctx, int64(1)).Return(msg, nil)
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+		mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(msg, nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
 
 		err := uc.DeleteMessage(ctx, 1, 1)
 
@@ -713,8 +713,8 @@ func TestMessagingUseCase_MarkAsRead(t *testing.T) {
 			Role:           entities.ParticipantRoleMember,
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-		mockConvRepo.On("UpdateLastRead", ctx, int64(1), int64(1), int64(10)).Return(nil)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+		mockConvRepo.On("UpdateLastRead", mock.Anything, int64(1), int64(1), int64(10)).Return(nil)
 
 		err := uc.MarkAsRead(ctx, 1, 1, 10)
 
@@ -746,8 +746,8 @@ func TestMessagingUseCase_SearchMessages(t *testing.T) {
 			{ID: 2, Content: "Hello there", CreatedAt: now},
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-		mockMsgRepo.On("Search", ctx, int64(1), "Hello", 20, 0).Return(messages, int64(2), nil)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("Search", mock.Anything, int64(1), "Hello", 20, 0).Return(messages, int64(2), nil)
 
 		result, total, err := uc.SearchMessages(ctx, 1, 1, "Hello", 20, 0)
 
@@ -782,9 +782,9 @@ func TestMessagingUseCase_AddParticipants(t *testing.T) {
 			UserIDs: []int64{2, 3},
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-		mockConvRepo.On("AddParticipant", ctx, mock.AnythingOfType("*entities.Participant")).Return(nil).Times(2)
-		mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil).Times(2)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+		mockConvRepo.On("AddParticipant", mock.Anything, mock.AnythingOfType("*entities.Participant")).Return(nil).Times(2)
+		mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil).Times(2)
 
 		err := uc.AddParticipants(ctx, 1, 1, input)
 
@@ -810,7 +810,7 @@ func TestMessagingUseCase_AddParticipants(t *testing.T) {
 			UserIDs: []int64{3},
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
 
 		err := uc.AddParticipants(ctx, 1, 1, input)
 
@@ -839,7 +839,7 @@ func TestMessagingUseCase_AddParticipants(t *testing.T) {
 			UserIDs: []int64{3},
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
 
 		err := uc.AddParticipants(ctx, 1, 1, input)
 
@@ -878,8 +878,8 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 			Description: &newDescription,
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-		mockConvRepo.On("Update", ctx, mock.AnythingOfType("*entities.Conversation")).Return(nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+		mockConvRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Conversation")).Return(nil)
 
 		result, err := uc.UpdateConversation(ctx, 1, 1, input)
 
@@ -914,7 +914,7 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 			Title: &newTitle,
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
 
 		result, err := uc.UpdateConversation(ctx, 1, 1, input)
 
@@ -937,7 +937,7 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 			Title: &newTitle,
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(nil, entities.ErrConversationNotFound)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, entities.ErrConversationNotFound)
 
 		result, err := uc.UpdateConversation(ctx, 1, 1, input)
 
@@ -970,8 +970,8 @@ func TestMessagingUseCase_UpdateConversation(t *testing.T) {
 			AvatarURL: &newAvatarURL,
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-		mockConvRepo.On("Update", ctx, mock.AnythingOfType("*entities.Conversation")).Return(nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+		mockConvRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Conversation")).Return(nil)
 
 		result, err := uc.UpdateConversation(ctx, 1, 1, input)
 
@@ -1002,9 +1002,9 @@ func TestMessagingUseCase_LeaveConversation(t *testing.T) {
 			},
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-		mockConvRepo.On("RemoveParticipant", ctx, int64(1), int64(1)).Return(nil)
-		mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+		mockConvRepo.On("RemoveParticipant", mock.Anything, int64(1), int64(1)).Return(nil)
+		mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
 
 		err := uc.LeaveConversation(ctx, 1, 1)
 
@@ -1026,7 +1026,7 @@ func TestMessagingUseCase_LeaveConversation(t *testing.T) {
 			Type: entities.ConversationTypeDirect,
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
 
 		err := uc.LeaveConversation(ctx, 1, 1)
 
@@ -1052,7 +1052,7 @@ func TestMessagingUseCase_LeaveConversation(t *testing.T) {
 			},
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
 
 		err := uc.LeaveConversation(ctx, 1, 1)
 
@@ -1078,7 +1078,7 @@ func TestMessagingUseCase_LeaveConversation(t *testing.T) {
 			},
 		}
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
 
 		err := uc.LeaveConversation(ctx, 1, 1)
 
@@ -1103,7 +1103,7 @@ func TestMessagingUseCase_SendMessage_ErrorCases(t *testing.T) {
 			Content: "Hello, World!",
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
 
 		msg, err := uc.SendMessage(ctx, 1, 1, input)
 
@@ -1140,9 +1140,9 @@ func TestMessagingUseCase_SendMessage_ErrorCases(t *testing.T) {
 			},
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-		mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
-		mockMsgRepo.On("CreateAttachment", ctx, mock.AnythingOfType("*entities.Attachment")).Return(nil)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
+		mockMsgRepo.On("CreateAttachment", mock.Anything, mock.AnythingOfType("*entities.Attachment")).Return(nil)
 
 		msg, err := uc.SendMessage(ctx, 1, 1, input)
 
@@ -1182,9 +1182,9 @@ func TestMessagingUseCase_SendMessage_ErrorCases(t *testing.T) {
 			},
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-		mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
-		mockMsgRepo.On("CreateAttachment", ctx, mock.AnythingOfType("*entities.Attachment")).Return(nil)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
+		mockMsgRepo.On("CreateAttachment", mock.Anything, mock.AnythingOfType("*entities.Attachment")).Return(nil)
 
 		msg, err := uc.SendMessage(ctx, 1, 1, input)
 
@@ -1211,7 +1211,7 @@ func TestMessagingUseCase_GetMessages_ErrorCases(t *testing.T) {
 			Limit: 50,
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
 
 		result, hasMore, err := uc.GetMessages(ctx, 1, 1, input)
 
@@ -1239,8 +1239,8 @@ func TestMessagingUseCase_GetMessages_ErrorCases(t *testing.T) {
 			Limit: 0, // Should default to 50
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-		mockMsgRepo.On("List", ctx, mock.AnythingOfType("entities.MessageFilter")).Return([]*entities.Message{}, nil)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("List", mock.Anything, mock.AnythingOfType("entities.MessageFilter")).Return([]*entities.Message{}, nil)
 
 		result, hasMore, err := uc.GetMessages(ctx, 1, 1, input)
 
@@ -1263,7 +1263,7 @@ func TestMessagingUseCase_SearchMessages_ErrorCases(t *testing.T) {
 
 		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
 
 		result, total, err := uc.SearchMessages(ctx, 1, 1, "test", 20, 0)
 
@@ -1287,8 +1287,8 @@ func TestMessagingUseCase_SearchMessages_ErrorCases(t *testing.T) {
 			Role:           entities.ParticipantRoleMember,
 		}
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-		mockMsgRepo.On("Search", ctx, int64(1), "test", 20, 0).Return([]*entities.Message{}, int64(0), nil)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+		mockMsgRepo.On("Search", mock.Anything, int64(1), "test", 20, 0).Return([]*entities.Message{}, int64(0), nil)
 
 		result, total, err := uc.SearchMessages(ctx, 1, 1, "test", 0, 0) // Should use default 20
 
@@ -1311,7 +1311,7 @@ func TestMessagingUseCase_MarkAsRead_ErrorCases(t *testing.T) {
 
 		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(nil, entities.ErrNotParticipant)
 
 		err := uc.MarkAsRead(ctx, 1, 1, 10)
 
@@ -1343,7 +1343,7 @@ func TestMessagingUseCase_ListConversations_WithFilters(t *testing.T) {
 			Offset: 0,
 		}
 
-		mockConvRepo.On("List", ctx, mock.AnythingOfType("entities.ConversationFilter")).Return(conversations, int64(1), nil)
+		mockConvRepo.On("List", mock.Anything, mock.AnythingOfType("entities.ConversationFilter")).Return(conversations, int64(1), nil)
 
 		result, total, err := uc.ListConversations(ctx, 1, input)
 
@@ -1365,7 +1365,7 @@ func TestMessagingUseCase_ListConversations_WithFilters(t *testing.T) {
 			Limit: 0, // Should default to 20
 		}
 
-		mockConvRepo.On("List", ctx, mock.AnythingOfType("entities.ConversationFilter")).Return([]*entities.Conversation{}, int64(0), nil)
+		mockConvRepo.On("List", mock.Anything, mock.AnythingOfType("entities.ConversationFilter")).Return([]*entities.Conversation{}, int64(0), nil)
 
 		result, total, err := uc.ListConversations(ctx, 1, input)
 
@@ -1391,7 +1391,7 @@ func TestMessagingUseCase_EditMessage_ErrorCases(t *testing.T) {
 			Content: "Edited message",
 		}
 
-		mockMsgRepo.On("GetByID", ctx, int64(1)).Return(nil, entities.ErrMessageNotFound)
+		mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, entities.ErrMessageNotFound)
 
 		result, err := uc.EditMessage(ctx, 1, 1, input)
 
@@ -1412,7 +1412,7 @@ func TestMessagingUseCase_DeleteMessage_ErrorCases(t *testing.T) {
 
 		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
-		mockMsgRepo.On("GetByID", ctx, int64(1)).Return(nil, entities.ErrMessageNotFound)
+		mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, entities.ErrMessageNotFound)
 
 		err := uc.DeleteMessage(ctx, 1, 1)
 
@@ -1436,7 +1436,7 @@ func TestMessagingUseCase_CreateDirectConversation_Errors(t *testing.T) {
 			RecipientID: 2,
 		}
 
-		mockConvRepo.On("GetDirectConversation", ctx, int64(1), int64(2)).Return(nil, assert.AnError)
+		mockConvRepo.On("GetDirectConversation", mock.Anything, int64(1), int64(2)).Return(nil, assert.AnError)
 
 		conv, err := uc.CreateDirectConversation(ctx, 1, input)
 
@@ -1557,14 +1557,14 @@ func TestNotifyParticipants(t *testing.T) {
 
 		uc := NewMessagingUseCase(mockConvRepo, nil, hub, logger, mockNotifier, nil)
 
-		mockConvRepo.On("GetParticipants", ctx, int64(1)).Return([]entities.Participant{
+		mockConvRepo.On("GetParticipants", mock.Anything, int64(1)).Return([]entities.Participant{
 			{UserID: 10}, // sender, should be skipped
 			{UserID: 20}, // offline participant
 			{UserID: 30}, // offline participant
 		}, nil)
 
-		mockNotifier.On("NotifyNewMessage", ctx, int64(20), "Sender", "Hello", int64(1), int64(100)).Return(nil)
-		mockNotifier.On("NotifyNewMessage", ctx, int64(30), "Sender", "Hello", int64(1), int64(100)).Return(nil)
+		mockNotifier.On("NotifyNewMessage", mock.Anything, int64(20), "Sender", "Hello", int64(1), int64(100)).Return(nil)
+		mockNotifier.On("NotifyNewMessage", mock.Anything, int64(30), "Sender", "Hello", int64(1), int64(100)).Return(nil)
 
 		msg := &entities.Message{
 			ID:         100,
@@ -1587,7 +1587,7 @@ func TestNotifyParticipants(t *testing.T) {
 		uc := NewMessagingUseCase(mockConvRepo, nil, hub, logger, mockNotifier, nil)
 
 		leftAt := time.Now()
-		mockConvRepo.On("GetParticipants", ctx, int64(1)).Return([]entities.Participant{
+		mockConvRepo.On("GetParticipants", mock.Anything, int64(1)).Return([]entities.Participant{
 			{UserID: 10},                  // sender
 			{UserID: 20, LeftAt: &leftAt}, // left participant, should be skipped
 		}, nil)
@@ -1612,7 +1612,7 @@ func TestNotifyParticipants(t *testing.T) {
 
 		uc := NewMessagingUseCase(mockConvRepo, nil, hub, logger, nil, nil)
 
-		mockConvRepo.On("GetParticipants", ctx, int64(1)).Return([]entities.Participant{}, errors.New("db error"))
+		mockConvRepo.On("GetParticipants", mock.Anything, int64(1)).Return([]entities.Participant{}, errors.New("db error"))
 
 		msg := &entities.Message{ID: 1, Content: "test", SenderName: "S"}
 		assert.NotPanics(t, func() {
@@ -1633,13 +1633,13 @@ func TestNotifyParticipants(t *testing.T) {
 			longContent += "x"
 		}
 
-		mockConvRepo.On("GetParticipants", ctx, int64(1)).Return([]entities.Participant{
+		mockConvRepo.On("GetParticipants", mock.Anything, int64(1)).Return([]entities.Participant{
 			{UserID: 10}, // sender
 			{UserID: 20}, // offline
 		}, nil)
 
 		truncated := longContent[:97] + "..."
-		mockNotifier.On("NotifyNewMessage", ctx, int64(20), "Sender", truncated, int64(1), int64(100)).Return(nil)
+		mockNotifier.On("NotifyNewMessage", mock.Anything, int64(20), "Sender", truncated, int64(1), int64(100)).Return(nil)
 
 		msg := &entities.Message{
 			ID:         100,
@@ -1661,12 +1661,12 @@ func TestNotifyParticipants(t *testing.T) {
 
 		uc := NewMessagingUseCase(mockConvRepo, nil, hub, logger, mockNotifier, nil)
 
-		mockConvRepo.On("GetParticipants", ctx, int64(1)).Return([]entities.Participant{
+		mockConvRepo.On("GetParticipants", mock.Anything, int64(1)).Return([]entities.Participant{
 			{UserID: 10},
 			{UserID: 20},
 		}, nil)
 
-		mockNotifier.On("NotifyNewMessage", ctx, int64(20), "Sender", "Hi", int64(1), int64(1)).Return(errors.New("send failed"))
+		mockNotifier.On("NotifyNewMessage", mock.Anything, int64(20), "Sender", "Hi", int64(1), int64(1)).Return(errors.New("send failed"))
 
 		msg := &entities.Message{ID: 1, Content: "Hi", SenderName: "Sender"}
 
@@ -1689,8 +1689,8 @@ func TestSearchMessages(t *testing.T) {
 
 		uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
-		mockConvRepo.On("GetParticipant", ctx, int64(1), int64(10)).Return(&entities.Participant{UserID: 10}, nil)
-		mockMsgRepo.On("Search", ctx, int64(1), "test", 20, 0).Return([]*entities.Message{}, int64(0), nil)
+		mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(10)).Return(&entities.Participant{UserID: 10}, nil)
+		mockMsgRepo.On("Search", mock.Anything, int64(1), "test", 20, 0).Return([]*entities.Message{}, int64(0), nil)
 
 		messages, total, err := uc.SearchMessages(ctx, 10, 1, "test", -1, 0)
 		assert.NoError(t, err)
@@ -1708,8 +1708,8 @@ func TestCreateGroupConversation_SystemMessageError(t *testing.T) {
 
 	uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
-	mockConvRepo.On("Create", ctx, mock.AnythingOfType("*entities.Conversation")).Return(nil)
-	mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(errors.New("msg error"))
+	mockConvRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Conversation")).Return(nil)
+	mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(errors.New("msg error"))
 
 	conv, err := uc.CreateGroupConversation(ctx, 1, dto.CreateGroupConversationInput{
 		Title:          "Test",
@@ -1729,7 +1729,7 @@ func TestGetConversation_Errors(t *testing.T) {
 		hub := websocket.NewHub(logger)
 		uc := NewMessagingUseCase(mockConvRepo, nil, hub, logger, nil, nil)
 
-		mockConvRepo.On("GetByID", ctx, int64(1)).Return(nil, errors.New("not found"))
+		mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, errors.New("not found"))
 
 		conv, err := uc.GetConversation(ctx, 10, 1)
 		assert.Error(t, err)
@@ -1744,8 +1744,8 @@ func TestMarkAsRead_Error(t *testing.T) {
 	hub := websocket.NewHub(logger)
 	uc := NewMessagingUseCase(mockConvRepo, nil, hub, logger, nil, nil)
 
-	mockConvRepo.On("GetParticipant", ctx, int64(1), int64(10)).Return(&entities.Participant{UserID: 10}, nil)
-	mockConvRepo.On("UpdateLastRead", ctx, int64(1), int64(10), int64(5)).Return(errors.New("db error"))
+	mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(10)).Return(&entities.Participant{UserID: 10}, nil)
+	mockConvRepo.On("UpdateLastRead", mock.Anything, int64(1), int64(10), int64(5)).Return(errors.New("db error"))
 
 	err := uc.MarkAsRead(ctx, 10, 1, 5)
 	assert.Error(t, err)
@@ -1764,8 +1764,8 @@ func TestCreateDirectConversation_CreateError(t *testing.T) {
 
 	input := dto.CreateDirectConversationInput{RecipientID: 2}
 
-	mockConvRepo.On("GetDirectConversation", ctx, int64(1), int64(2)).Return(nil, nil)
-	mockConvRepo.On("Create", ctx, mock.AnythingOfType("*entities.Conversation")).Return(errors.New("db error"))
+	mockConvRepo.On("GetDirectConversation", mock.Anything, int64(1), int64(2)).Return(nil, nil)
+	mockConvRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Conversation")).Return(errors.New("db error"))
 
 	conv, err := uc.CreateDirectConversation(ctx, 1, input)
 
@@ -1789,7 +1789,7 @@ func TestCreateGroupConversation_CreateError(t *testing.T) {
 		ParticipantIDs: []int64{2},
 	}
 
-	mockConvRepo.On("Create", ctx, mock.AnythingOfType("*entities.Conversation")).Return(errors.New("db error"))
+	mockConvRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Conversation")).Return(errors.New("db error"))
 
 	conv, err := uc.CreateGroupConversation(ctx, 1, input)
 
@@ -1817,9 +1817,9 @@ func TestGetConversation_UnreadCountError(t *testing.T) {
 		},
 	}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-	mockConvRepo.On("GetUnreadCount", ctx, int64(1), int64(1)).Return(0, errors.New("db error"))
-	mockMsgRepo.On("GetLastMessage", ctx, int64(1)).Return(nil, nil)
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	mockConvRepo.On("GetUnreadCount", mock.Anything, int64(1), int64(1)).Return(0, errors.New("db error"))
+	mockMsgRepo.On("GetLastMessage", mock.Anything, int64(1)).Return(nil, nil)
 
 	result, err := uc.GetConversation(ctx, 1, 1)
 
@@ -1847,9 +1847,9 @@ func TestGetConversation_LastMessageError(t *testing.T) {
 		},
 	}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-	mockConvRepo.On("GetUnreadCount", ctx, int64(1), int64(1)).Return(3, nil)
-	mockMsgRepo.On("GetLastMessage", ctx, int64(1)).Return(nil, errors.New("db error"))
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	mockConvRepo.On("GetUnreadCount", mock.Anything, int64(1), int64(1)).Return(3, nil)
+	mockMsgRepo.On("GetLastMessage", mock.Anything, int64(1)).Return(nil, errors.New("db error"))
 
 	result, err := uc.GetConversation(ctx, 1, 1)
 
@@ -1883,9 +1883,9 @@ func TestGetConversation_WithLastMessage(t *testing.T) {
 		Content: "Last message",
 	}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-	mockConvRepo.On("GetUnreadCount", ctx, int64(1), int64(1)).Return(0, nil)
-	mockMsgRepo.On("GetLastMessage", ctx, int64(1)).Return(lastMsg, nil)
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	mockConvRepo.On("GetUnreadCount", mock.Anything, int64(1), int64(1)).Return(0, nil)
+	mockMsgRepo.On("GetLastMessage", mock.Anything, int64(1)).Return(lastMsg, nil)
 
 	result, err := uc.GetConversation(ctx, 1, 1)
 
@@ -1908,7 +1908,7 @@ func TestListConversations_ListError(t *testing.T) {
 
 	input := dto.ConversationFilterInput{Limit: 20}
 
-	mockConvRepo.On("List", ctx, mock.AnythingOfType("entities.ConversationFilter")).Return([]*entities.Conversation{}, int64(0), errors.New("db error"))
+	mockConvRepo.On("List", mock.Anything, mock.AnythingOfType("entities.ConversationFilter")).Return([]*entities.Conversation{}, int64(0), errors.New("db error"))
 
 	result, total, err := uc.ListConversations(ctx, 1, input)
 
@@ -1940,8 +1940,8 @@ func TestUpdateConversation_UpdateRepoError(t *testing.T) {
 	newTitle := "New Title"
 	input := dto.UpdateConversationInput{Title: &newTitle}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-	mockConvRepo.On("Update", ctx, mock.AnythingOfType("*entities.Conversation")).Return(errors.New("db error"))
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	mockConvRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Conversation")).Return(errors.New("db error"))
 
 	result, err := uc.UpdateConversation(ctx, 1, 1, input)
 
@@ -1973,8 +1973,8 @@ func TestUpdateConversation_DirectConversationNonAdmin(t *testing.T) {
 	newTitle := "DM Title"
 	input := dto.UpdateConversationInput{Title: &newTitle}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-	mockConvRepo.On("Update", ctx, mock.AnythingOfType("*entities.Conversation")).Return(nil)
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	mockConvRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Conversation")).Return(nil)
 
 	result, err := uc.UpdateConversation(ctx, 1, 1, input)
 
@@ -2005,10 +2005,10 @@ func TestAddParticipants_SkipsExistingParticipant(t *testing.T) {
 	// Try to add user 2 (already a participant) and user 3 (new)
 	input := dto.AddParticipantsInput{UserIDs: []int64{2, 3}}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
 	// Only user 3 should be added
-	mockConvRepo.On("AddParticipant", ctx, mock.AnythingOfType("*entities.Participant")).Return(nil).Once()
-	mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil).Once()
+	mockConvRepo.On("AddParticipant", mock.Anything, mock.AnythingOfType("*entities.Participant")).Return(nil).Once()
+	mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil).Once()
 
 	err := uc.AddParticipants(ctx, 1, 1, input)
 
@@ -2036,8 +2036,8 @@ func TestAddParticipants_AddParticipantError(t *testing.T) {
 
 	input := dto.AddParticipantsInput{UserIDs: []int64{5}}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-	mockConvRepo.On("AddParticipant", ctx, mock.AnythingOfType("*entities.Participant")).Return(errors.New("db error"))
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	mockConvRepo.On("AddParticipant", mock.Anything, mock.AnythingOfType("*entities.Participant")).Return(errors.New("db error"))
 
 	err := uc.AddParticipants(ctx, 1, 1, input)
 
@@ -2065,9 +2065,9 @@ func TestAddParticipants_SystemMessageError(t *testing.T) {
 
 	input := dto.AddParticipantsInput{UserIDs: []int64{5}}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-	mockConvRepo.On("AddParticipant", ctx, mock.AnythingOfType("*entities.Participant")).Return(nil)
-	mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(errors.New("msg error"))
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	mockConvRepo.On("AddParticipant", mock.Anything, mock.AnythingOfType("*entities.Participant")).Return(nil)
+	mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(errors.New("msg error"))
 
 	err := uc.AddParticipants(ctx, 1, 1, input)
 
@@ -2087,7 +2087,7 @@ func TestAddParticipants_GetByIDError(t *testing.T) {
 
 	input := dto.AddParticipantsInput{UserIDs: []int64{5}}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(nil, errors.New("not found"))
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, errors.New("not found"))
 
 	err := uc.AddParticipants(ctx, 1, 1, input)
 
@@ -2104,7 +2104,7 @@ func TestLeaveConversation_GetByIDError(t *testing.T) {
 
 	uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(nil, errors.New("not found"))
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, errors.New("not found"))
 
 	err := uc.LeaveConversation(ctx, 1, 1)
 
@@ -2130,8 +2130,8 @@ func TestLeaveConversation_RemoveParticipantError(t *testing.T) {
 		},
 	}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-	mockConvRepo.On("RemoveParticipant", ctx, int64(1), int64(1)).Return(errors.New("db error"))
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	mockConvRepo.On("RemoveParticipant", mock.Anything, int64(1), int64(1)).Return(errors.New("db error"))
 
 	err := uc.LeaveConversation(ctx, 1, 1)
 
@@ -2158,9 +2158,9 @@ func TestLeaveConversation_SystemMessageError(t *testing.T) {
 		},
 	}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-	mockConvRepo.On("RemoveParticipant", ctx, int64(1), int64(1)).Return(nil)
-	mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(errors.New("msg error"))
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	mockConvRepo.On("RemoveParticipant", mock.Anything, int64(1), int64(1)).Return(nil)
+	mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(errors.New("msg error"))
 
 	err := uc.LeaveConversation(ctx, 1, 1)
 
@@ -2188,9 +2188,9 @@ func TestLeaveConversation_AdminWithMultipleAdmins(t *testing.T) {
 		},
 	}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-	mockConvRepo.On("RemoveParticipant", ctx, int64(1), int64(1)).Return(nil)
-	mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	mockConvRepo.On("RemoveParticipant", mock.Anything, int64(1), int64(1)).Return(nil)
+	mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
 
 	err := uc.LeaveConversation(ctx, 1, 1)
 
@@ -2217,8 +2217,8 @@ func TestSendMessage_CreateError(t *testing.T) {
 
 	input := dto.SendMessageInput{Content: "Hello"}
 
-	mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-	mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(errors.New("db error"))
+	mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+	mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(errors.New("db error"))
 
 	msg, err := uc.SendMessage(ctx, 1, 1, input)
 
@@ -2247,7 +2247,7 @@ func TestSendMessage_EmptyContent(t *testing.T) {
 
 	input := dto.SendMessageInput{Content: ""} // empty content
 
-	mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
+	mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
 
 	msg, err := uc.SendMessage(ctx, 1, 1, input)
 
@@ -2286,9 +2286,9 @@ func TestSendMessage_AttachmentCreateError(t *testing.T) {
 		},
 	}
 
-	mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-	mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
-	mockMsgRepo.On("CreateAttachment", ctx, mock.AnythingOfType("*entities.Attachment")).Return(errors.New("attachment error"))
+	mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+	mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
+	mockMsgRepo.On("CreateAttachment", mock.Anything, mock.AnythingOfType("*entities.Attachment")).Return(errors.New("attachment error"))
 
 	msg, err := uc.SendMessage(ctx, 1, 1, input)
 
@@ -2322,9 +2322,9 @@ func TestSendMessage_ReplyError(t *testing.T) {
 		ReplyToID: &replyToID,
 	}
 
-	mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-	mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
-	mockMsgRepo.On("GetByID", ctx, int64(10)).Return(nil, errors.New("not found"))
+	mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+	mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
+	mockMsgRepo.On("GetByID", mock.Anything, int64(10)).Return(nil, errors.New("not found"))
 
 	msg, err := uc.SendMessage(ctx, 1, 1, input)
 
@@ -2357,7 +2357,7 @@ func TestEditMessage_EditValidationError(t *testing.T) {
 	// Empty content should fail Edit validation
 	input := dto.EditMessageInput{Content: ""}
 
-	mockMsgRepo.On("GetByID", ctx, int64(1)).Return(msg, nil)
+	mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(msg, nil)
 
 	result, err := uc.EditMessage(ctx, 1, 1, input)
 
@@ -2388,8 +2388,8 @@ func TestEditMessage_UpdateRepoError(t *testing.T) {
 
 	input := dto.EditMessageInput{Content: "Updated"}
 
-	mockMsgRepo.On("GetByID", ctx, int64(1)).Return(msg, nil)
-	mockMsgRepo.On("Update", ctx, mock.AnythingOfType("*entities.Message")).Return(errors.New("db error"))
+	mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(msg, nil)
+	mockMsgRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(errors.New("db error"))
 
 	result, err := uc.EditMessage(ctx, 1, 1, input)
 
@@ -2418,8 +2418,8 @@ func TestDeleteMessage_ConvGetByIDError(t *testing.T) {
 		CreatedAt:      now,
 	}
 
-	mockMsgRepo.On("GetByID", ctx, int64(1)).Return(msg, nil)
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(nil, errors.New("conv not found"))
+	mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(msg, nil)
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(nil, errors.New("conv not found"))
 
 	err := uc.DeleteMessage(ctx, 1, 1)
 
@@ -2457,8 +2457,8 @@ func TestDeleteMessage_AlreadyDeleted(t *testing.T) {
 		},
 	}
 
-	mockMsgRepo.On("GetByID", ctx, int64(1)).Return(msg, nil)
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+	mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(msg, nil)
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
 
 	err := uc.DeleteMessage(ctx, 1, 1)
 
@@ -2495,9 +2495,9 @@ func TestDeleteMessage_UpdateRepoError(t *testing.T) {
 		},
 	}
 
-	mockMsgRepo.On("GetByID", ctx, int64(1)).Return(msg, nil)
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
-	mockMsgRepo.On("Update", ctx, mock.AnythingOfType("*entities.Message")).Return(errors.New("db error"))
+	mockMsgRepo.On("GetByID", mock.Anything, int64(1)).Return(msg, nil)
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	mockMsgRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(errors.New("db error"))
 
 	err := uc.DeleteMessage(ctx, 1, 1)
 
@@ -2524,8 +2524,8 @@ func TestGetMessages_ListError(t *testing.T) {
 
 	input := dto.MessageFilterInput{Limit: 50}
 
-	mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-	mockMsgRepo.On("List", ctx, mock.AnythingOfType("entities.MessageFilter")).Return([]*entities.Message{}, errors.New("db error"))
+	mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+	mockMsgRepo.On("List", mock.Anything, mock.AnythingOfType("entities.MessageFilter")).Return([]*entities.Message{}, errors.New("db error"))
 
 	result, hasMore, err := uc.GetMessages(ctx, 1, 1, input)
 
@@ -2559,8 +2559,8 @@ func TestGetMessages_WithAvatarURLs(t *testing.T) {
 
 	input := dto.MessageFilterInput{Limit: 50}
 
-	mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-	mockMsgRepo.On("List", ctx, mock.AnythingOfType("entities.MessageFilter")).Return(messages, nil)
+	mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+	mockMsgRepo.On("List", mock.Anything, mock.AnythingOfType("entities.MessageFilter")).Return(messages, nil)
 
 	result, _, err := uc.GetMessages(ctx, 1, 1, input)
 
@@ -2587,8 +2587,8 @@ func TestSearchMessages_SearchError(t *testing.T) {
 		Role:           entities.ParticipantRoleMember,
 	}
 
-	mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-	mockMsgRepo.On("Search", ctx, int64(1), "test", 20, 0).Return([]*entities.Message{}, int64(0), errors.New("search error"))
+	mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+	mockMsgRepo.On("Search", mock.Anything, int64(1), "test", 20, 0).Return([]*entities.Message{}, int64(0), errors.New("search error"))
 
 	_, total, err := uc.SearchMessages(ctx, 1, 1, "test", 20, 0)
 
@@ -2613,7 +2613,7 @@ func TestListConversations_WithSearchFilter(t *testing.T) {
 		Limit:  10,
 	}
 
-	mockConvRepo.On("List", ctx, mock.AnythingOfType("entities.ConversationFilter")).Return([]*entities.Conversation{}, int64(0), nil)
+	mockConvRepo.On("List", mock.Anything, mock.AnythingOfType("entities.ConversationFilter")).Return([]*entities.Conversation{}, int64(0), nil)
 
 	result, total, err := uc.ListConversations(ctx, 1, input)
 
@@ -2637,8 +2637,8 @@ func TestCreateGroupConversation_WithoutDescription(t *testing.T) {
 		ParticipantIDs: []int64{2, 3},
 	}
 
-	mockConvRepo.On("Create", ctx, mock.AnythingOfType("*entities.Conversation")).Return(nil)
-	mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
+	mockConvRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Conversation")).Return(nil)
+	mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
 
 	conv, err := uc.CreateGroupConversation(ctx, 1, input)
 
@@ -2668,8 +2668,8 @@ func TestSendMessage_WithNotifier(t *testing.T) {
 
 	input := dto.SendMessageInput{Content: "Hello"}
 
-	mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-	mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
+	mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+	mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
 
 	// For the goroutine: notifyParticipants will use context.Background()
 	mockConvRepo.On("GetParticipants", mock.Anything, int64(1)).Return([]entities.Participant{
@@ -2707,8 +2707,8 @@ func TestGetMessages_WithFilterParams(t *testing.T) {
 		Search:   &search,
 	}
 
-	mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-	mockMsgRepo.On("List", ctx, mock.AnythingOfType("entities.MessageFilter")).Return([]*entities.Message{}, nil)
+	mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+	mockMsgRepo.On("List", mock.Anything, mock.AnythingOfType("entities.MessageFilter")).Return([]*entities.Message{}, nil)
 
 	result, hasMore, err := uc.GetMessages(ctx, 1, 1, input)
 
@@ -2739,7 +2739,7 @@ func TestLeaveConversation_AdminWithLeftAdmin(t *testing.T) {
 		},
 	}
 
-	mockConvRepo.On("GetByID", ctx, int64(1)).Return(conv, nil)
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
 
 	err := uc.LeaveConversation(ctx, 1, 1)
 
@@ -2779,9 +2779,9 @@ func TestSendMessage_ShortMimeType(t *testing.T) {
 		},
 	}
 
-	mockConvRepo.On("GetParticipant", ctx, int64(1), int64(1)).Return(participant, nil)
-	mockMsgRepo.On("Create", ctx, mock.AnythingOfType("*entities.Message")).Return(nil)
-	mockMsgRepo.On("CreateAttachment", ctx, mock.AnythingOfType("*entities.Attachment")).Return(nil)
+	mockConvRepo.On("GetParticipant", mock.Anything, int64(1), int64(1)).Return(participant, nil)
+	mockMsgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
+	mockMsgRepo.On("CreateAttachment", mock.Anything, mock.AnythingOfType("*entities.Attachment")).Return(nil)
 
 	msg, err := uc.SendMessage(ctx, 1, 1, input)
 

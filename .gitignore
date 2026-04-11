@@ -42,7 +42,7 @@ Thumbs.db
 dist/
 build/
 bin/
-server
+/server
 /agentsim
 cmd/server/server
 

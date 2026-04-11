@@ -4,6 +4,7 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/dto"
@@ -296,4 +297,77 @@ func (uc *AnalyticsUseCase) CreateLesson(ctx context.Context, req *dto.CreateLes
 	}
 
 	return lesson, nil
+}
+
+// GetRiskWeightConfig returns the current risk weight configuration.
+func (uc *AnalyticsUseCase) GetRiskWeightConfig(ctx context.Context) (*dto.RiskWeightConfigResponse, error) {
+	cfg, err := uc.analyticsRepo.GetRiskWeightConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get risk weight config: %w", err)
+	}
+	return &dto.RiskWeightConfigResponse{
+		AttendanceWeight:      cfg.AttendanceWeight,
+		GradeWeight:           cfg.GradeWeight,
+		SubmissionWeight:      cfg.SubmissionWeight,
+		InactivityWeight:      cfg.InactivityWeight,
+		HighRiskThreshold:     cfg.HighRiskThreshold,
+		CriticalRiskThreshold: cfg.CriticalRiskThreshold,
+		UpdatedAt:             cfg.UpdatedAt,
+	}, nil
+}
+
+// UpdateRiskWeightConfig updates the risk weight configuration (admin only).
+func (uc *AnalyticsUseCase) UpdateRiskWeightConfig(ctx context.Context, req dto.UpdateRiskWeightConfigRequest, updatedBy int64) error {
+	// Validate weights sum to 1.0
+	sum := req.AttendanceWeight + req.GradeWeight + req.SubmissionWeight + req.InactivityWeight
+	if math.Abs(sum-1.0) > 0.01 {
+		return fmt.Errorf("weights must sum to 1.0, got %.2f", sum)
+	}
+
+	cfg := &entities.RiskWeightConfig{
+		AttendanceWeight:      req.AttendanceWeight,
+		GradeWeight:           req.GradeWeight,
+		SubmissionWeight:      req.SubmissionWeight,
+		InactivityWeight:      req.InactivityWeight,
+		HighRiskThreshold:     req.HighRiskThreshold,
+		CriticalRiskThreshold: req.CriticalRiskThreshold,
+		UpdatedBy:             &updatedBy,
+	}
+
+	if err := uc.analyticsRepo.UpdateRiskWeightConfig(ctx, cfg); err != nil {
+		return fmt.Errorf("failed to update risk weight config: %w", err)
+	}
+
+	if uc.auditLogger != nil {
+		uc.auditLogger.LogAuditEvent(ctx, "update", "risk_weight_config", map[string]interface{}{
+			"updated_by":        updatedBy,
+			"attendance_weight": req.AttendanceWeight,
+			"grade_weight":      req.GradeWeight,
+		})
+	}
+
+	return nil
+}
+
+// GetStudentRiskHistory returns risk score history for a student.
+func (uc *AnalyticsUseCase) GetStudentRiskHistory(ctx context.Context, studentID int64, limit int) (*dto.RiskHistoryResponse, error) {
+	if limit <= 0 {
+		limit = 90
+	}
+
+	history, err := uc.analyticsRepo.GetStudentRiskHistory(ctx, studentID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get risk history: %w", err)
+	}
+
+	entries := make([]dto.RiskHistoryEntry, 0, len(history))
+	for _, e := range history {
+		entries = append(entries, dto.RiskHistoryEntryFromEntity(e))
+	}
+
+	return &dto.RiskHistoryResponse{
+		StudentID: studentID,
+		History:   entries,
+		Total:     len(entries),
+	}, nil
 }
