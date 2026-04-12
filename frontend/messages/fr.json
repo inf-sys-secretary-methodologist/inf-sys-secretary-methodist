@@ -256,27 +256,47 @@
       "admin": {
         "title": "Administrateur",
         "description": "Contrôle total du système",
-        "features": ["Gestion des utilisateurs", "Configuration système", "Toutes les opérations"]
+        "features": [
+          "Gestion des utilisateurs",
+          "Configuration système",
+          "Toutes les opérations"
+        ]
       },
       "methodist": {
         "title": "Méthodiste",
         "description": "Travail avec documents et modèles",
-        "features": ["Création de documents", "Gestion des modèles", "Génération de rapports"]
+        "features": [
+          "Création de documents",
+          "Gestion des modèles",
+          "Génération de rapports"
+        ]
       },
       "secretary": {
         "title": "Secrétaire",
         "description": "Organisation du processus éducatif",
-        "features": ["Planification des cours", "Suivi des présences", "Travail avec étudiants"]
+        "features": [
+          "Planification des cours",
+          "Suivi des présences",
+          "Travail avec étudiants"
+        ]
       },
       "teacher": {
         "title": "Enseignant",
         "description": "Accès aux matériels pédagogiques",
-        "features": ["Consultation emploi du temps", "Listes d'étudiants", "Calendrier événements"]
+        "features": [
+          "Consultation emploi du temps",
+          "Listes d'étudiants",
+          "Calendrier événements"
+        ]
       },
       "student": {
         "title": "Étudiant",
         "description": "Consultation d'informations",
-        "features": ["Emploi du temps personnel", "Documents", "Annonces"]
+        "features": [
+          "Emploi du temps personnel",
+          "Documents",
+          "Annonces"
+        ]
       }
     },
     "faq": {
@@ -1726,20 +1746,13 @@
       "letters": "Lettres",
       "protocols": "Protocoles",
       "contracts": "Contrats",
-      "other": "Autre",
-      "certificate": "Certificat",
-      "statement": "Déclaration",
-      "order": "Ordre",
-      "protocol": "Protocole",
-      "report": "Rapport"
+      "other": "Autre"
     },
     "noFavorites": "Aucun modèle favori pour l'instant",
     "noRecent": "Aucun modèle utilisé récemment",
-    "noSearchResults": "Aucun modèle ne correspond à votre recherche",
     "loadError": "Échec du chargement des modèles",
     "addToFavorites": "Ajouter aux favoris",
     "removeFromFavorites": "Retirer des favoris",
-    "create": "Créer",
     "generate": {
       "title": "Générer un document",
       "subtitle": "Remplissez les variables pour générer un document",
