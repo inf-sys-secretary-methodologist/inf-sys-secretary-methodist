@@ -1751,6 +1751,10 @@
     "noFavorites": "لا توجد قوالب مفضلة بعد",
     "noRecent": "لا توجد قوالب مستخدمة مؤخرًا",
     "loadError": "فشل في تحميل القوالب",
+    "create": "إنشاء",
+    "createFromTemplate": "إنشاء من القالب",
+    "documentTitle": "عنوان المستند",
+    "enterTitle": "أدخل عنوان المستند",
     "addToFavorites": "إضافة إلى المفضلة",
     "removeFromFavorites": "إزالة من المفضلة",
     "generate": {

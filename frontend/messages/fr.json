@@ -1751,6 +1751,10 @@
     "noFavorites": "Aucun modèle favori pour l'instant",
     "noRecent": "Aucun modèle utilisé récemment",
     "loadError": "Échec du chargement des modèles",
+    "create": "Créer",
+    "createFromTemplate": "Créer à partir du modèle",
+    "documentTitle": "Titre du document",
+    "enterTitle": "Entrez le titre du document",
     "addToFavorites": "Ajouter aux favoris",
     "removeFromFavorites": "Retirer des favoris",
     "generate": {
