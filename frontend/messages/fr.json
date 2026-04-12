@@ -868,7 +868,24 @@
     },
     "automation": {
       "title": "Automatisation",
-      "description": "Gestion de l'automatisation des processus via n8n"
+      "description": "Gestion de l'automatisation des processus via n8n",
+      "platform": "Plateforme n8n",
+      "platformDesc": "Automatisation auto-hébergée avec plus de 400 intégrations",
+      "checking": "Vérification...",
+      "connected": "Connecté",
+      "offline": "Hors ligne",
+      "dashboard": "Tableau de bord n8n",
+      "openN8n": "Ouvrir n8n",
+      "refreshStatus": "Actualiser le statut",
+      "workflowsTitle": "Workflows disponibles",
+      "workflowsDesc": "Workflows d'automatisation préconfigurés. Importez-les dans n8n pour les activer.",
+      "workflow1Name": "Document créé → Telegram",
+      "workflow1Desc": "Notification lors de la création d'un nouveau document",
+      "workflow2Name": "Absences → Alerte au curateur",
+      "workflow2Desc": "Alerte le curateur lorsque le score de risque est élevé",
+      "workflow3Name": "Échéance → Rappel",
+      "workflow3Desc": "Rappels quotidiens pour les échéances approchantes",
+      "ready": "Prêt"
     }
   },
   "notifications": {
@@ -1756,6 +1773,7 @@
     "createFromTemplate": "Créer à partir du modèle",
     "documentTitle": "Titre du document",
     "enterTitle": "Entrez le titre du document",
+    "backToDocuments": "Retour aux documents",
     "addToFavorites": "Ajouter aux favoris",
     "removeFromFavorites": "Retirer des favoris",
     "generate": {

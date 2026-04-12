@@ -868,7 +868,24 @@
     },
     "automation": {
       "title": "Автоматизация",
-      "description": "Управление автоматизацией процессов через n8n"
+      "description": "Управление автоматизацией процессов через n8n",
+      "platform": "Платформа n8n",
+      "platformDesc": "Self-hosted автоматизация с 400+ интеграциями",
+      "checking": "Проверка...",
+      "connected": "Подключено",
+      "offline": "Не в сети",
+      "dashboard": "Панель n8n",
+      "openN8n": "Открыть n8n",
+      "refreshStatus": "Обновить статус",
+      "workflowsTitle": "Доступные воркфлоу",
+      "workflowsDesc": "Готовые автоматизации. Импортируйте их в n8n для активации.",
+      "workflow1Name": "Документ → Telegram",
+      "workflow1Desc": "Уведомление при создании нового документа",
+      "workflow2Name": "Пропуски → Алерт куратору",
+      "workflow2Desc": "Оповещение куратора при высоком риске студента",
+      "workflow3Name": "Дедлайн → Напоминание",
+      "workflow3Desc": "Ежедневные напоминания о приближающихся дедлайнах",
+      "ready": "Готов"
     }
   },
   "notifications": {
@@ -1667,6 +1684,7 @@
     "createFromTemplate": "Создать из шаблона",
     "documentTitle": "Название документа",
     "enterTitle": "Введите название документа",
+    "backToDocuments": "Назад к документам",
     "preview": "Предпросмотр",
     "variables": "Переменные",
     "code": "Код",

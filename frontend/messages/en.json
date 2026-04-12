@@ -848,7 +848,24 @@
     },
     "automation": {
       "title": "Automation",
-      "description": "Manage workflow automation via n8n"
+      "description": "Manage workflow automation via n8n",
+      "platform": "n8n Platform",
+      "platformDesc": "Self-hosted workflow automation with 400+ integrations",
+      "checking": "Checking...",
+      "connected": "Connected",
+      "offline": "Offline",
+      "dashboard": "n8n Dashboard",
+      "openN8n": "Open n8n",
+      "refreshStatus": "Refresh Status",
+      "workflowsTitle": "Available Workflows",
+      "workflowsDesc": "Pre-configured automation workflows. Import them into n8n to activate.",
+      "workflow1Name": "Document Created → Telegram",
+      "workflow1Desc": "Sends notification when a new document is created",
+      "workflow2Name": "Student Absences → Curator Alert",
+      "workflow2Desc": "Alerts curator when student has high risk score",
+      "workflow3Name": "Deadline → Reminder",
+      "workflow3Desc": "Daily reminders for approaching task deadlines",
+      "ready": "Ready"
     }
   },
   "notifications": {
@@ -1738,6 +1755,7 @@
     "createFromTemplate": "Create from Template",
     "documentTitle": "Document Title",
     "enterTitle": "Enter document title",
+    "backToDocuments": "Back to documents",
     "generate": {
       "title": "Generate Document",
       "subtitle": "Fill in the variables to generate a document",

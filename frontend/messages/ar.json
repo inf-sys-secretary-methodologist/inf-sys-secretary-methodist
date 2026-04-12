@@ -868,7 +868,24 @@
     },
     "automation": {
       "title": "الأتمتة",
-      "description": "إدارة أتمتة العمليات عبر n8n"
+      "description": "إدارة أتمتة العمليات عبر n8n",
+      "platform": "منصة n8n",
+      "platformDesc": "أتمتة مستضافة ذاتياً مع أكثر من 400 تكامل",
+      "checking": "جارٍ التحقق...",
+      "connected": "متصل",
+      "offline": "غير متصل",
+      "dashboard": "لوحة تحكم n8n",
+      "openN8n": "فتح n8n",
+      "refreshStatus": "تحديث الحالة",
+      "workflowsTitle": "سير العمل المتاحة",
+      "workflowsDesc": "سير عمل أتمتة مُعدة مسبقاً. قم باستيرادها في n8n لتفعيلها.",
+      "workflow1Name": "مستند جديد → تيليجرام",
+      "workflow1Desc": "إشعار عند إنشاء مستند جديد",
+      "workflow2Name": "غياب الطلاب → تنبيه المشرف",
+      "workflow2Desc": "تنبيه المشرف عند ارتفاع درجة المخاطر",
+      "workflow3Name": "موعد نهائي → تذكير",
+      "workflow3Desc": "تذكيرات يومية للمواعيد النهائية القادمة",
+      "ready": "جاهز"
     }
   },
   "notifications": {
@@ -1756,6 +1773,7 @@
     "createFromTemplate": "إنشاء من القالب",
     "documentTitle": "عنوان المستند",
     "enterTitle": "أدخل عنوان المستند",
+    "backToDocuments": "العودة إلى المستندات",
     "addToFavorites": "إضافة إلى المفضلة",
     "removeFromFavorites": "إزالة من المفضلة",
     "generate": {
