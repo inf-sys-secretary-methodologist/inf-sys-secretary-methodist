@@ -81,6 +81,8 @@ import (
 	aiHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/interfaces/http/handlers"
 	analyticsUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/usecases"
 	analyticsPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/infrastructure/persistence"
+	analyticsEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
+	analyticsScheduler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/infrastructure/scheduler"
 	analyticsHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/interfaces/http/handlers"
 	announcementUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
 	announcementPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/infrastructure/persistence"
@@ -105,6 +107,7 @@ import (
 	messagingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/persistence"
 	messagingWebsocket "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
 	messagingHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http"
+	notifDTO "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
 	notifServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	notifRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
@@ -431,6 +434,34 @@ func main() {
 	attendanceRepo := analyticsPersistence.NewAttendanceRepositoryPG(db)
 	gradeRepo := analyticsPersistence.NewGradeRepositoryPG(db)
 	analyticsUseCase := analyticsUsecases.NewAnalyticsUseCase(analyticsRepo, attendanceRepo, gradeRepo, auditLogger)
+
+	// Start risk recalculation scheduler (daily at 3:00 AM)
+	// Alert curators when student risk > 70
+	riskAlertFunc := func(ctx context.Context, student analyticsEntities.StudentRiskScore) {
+		if notificationUseCase == nil {
+			return
+		}
+		groupName := ""
+		if student.GroupName != nil {
+			groupName = *student.GroupName
+		}
+		_, _ = notificationUseCase.Create(ctx, &notifDTO.CreateNotificationInput{
+			UserID:   student.StudentID,
+			Type:     "warning",
+			Priority: "high",
+			Title:    "Студент в зоне риска",
+			Message:  fmt.Sprintf("Студент %s (группа %s) имеет risk score %.0f/100 (уровень: %s)", student.StudentName, groupName, student.RiskScore, student.RiskLevel),
+			Link:     fmt.Sprintf("/analytics?student=%d", student.StudentID),
+		})
+	}
+	riskScheduler, err := analyticsScheduler.NewRiskRecalcScheduler(analyticsRepo, logger, riskAlertFunc)
+	if err != nil {
+		logger.Warn("Failed to initialize risk recalculation scheduler", map[string]any{"error": err.Error()})
+	} else {
+		riskScheduler.Start()
+		defer func() { _ = riskScheduler.Stop() }()
+	}
+
 	logger.Info("Analytics module initialized", nil)
 
 	// Initialize users module

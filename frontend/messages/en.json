@@ -1849,7 +1849,33 @@
     },
     "noStudents": "No at-risk students found",
     "noStudentsHint": "Students at risk will appear here",
-    "noAtRiskStudents": "No students at risk"
+    "noAtRiskStudents": "No students at risk",
+    "riskHistory": {
+      "title": "Risk History",
+      "noData": "No risk history data available",
+      "riskScore": "Risk Score"
+    },
+    "export": {
+      "button": "Export",
+      "loading": "Exporting...",
+      "success": "File downloaded successfully",
+      "error": "Export failed"
+    },
+    "weights": {
+      "title": "Risk Weight Settings",
+      "description": "Configure weights for student risk score calculation",
+      "attendance": "Attendance",
+      "grades": "Grades",
+      "submissions": "Submissions",
+      "inactivity": "Inactivity",
+      "total": "Total",
+      "mustBe100": "must be 100%",
+      "save": "Save",
+      "saving": "Saving...",
+      "saveSuccess": "Weights updated",
+      "saveError": "Failed to save weights",
+      "loadError": "Failed to load weight settings"
+    }
   },
   "ai": {
     "title": "AI Assistant",

@@ -125,6 +125,34 @@ export interface BulkMarkAttendanceRequest {
   records: BulkAttendanceRecord[]
 }
 
+// Risk weight configuration
+export interface RiskWeightConfig {
+  attendance_weight: number
+  grade_weight: number
+  submission_weight: number
+  inactivity_weight: number
+  high_risk_threshold: number
+  critical_risk_threshold: number
+  updated_at: string
+}
+
+// Risk history entry
+export interface RiskHistoryEntry {
+  risk_score: number
+  risk_level: string
+  attendance_rate?: number
+  grade_average?: number
+  submission_rate?: number
+  calculated_at: string
+}
+
+// Risk history response
+export interface RiskHistoryResponse {
+  student_id: number
+  history: RiskHistoryEntry[]
+  total: number
+}
+
 // API response wrapper
 interface ApiResponse<T> {
   success: boolean
@@ -239,5 +267,47 @@ export const analyticsApi = {
       { params: { date: lessonDate } }
     )
     return response.data
+  },
+
+  /**
+   * Get risk score history for a student
+   */
+  async getStudentRiskHistory(
+    studentId: number,
+    limit: number = 90
+  ): Promise<RiskHistoryResponse> {
+    const response = await apiClient.get<ApiResponse<RiskHistoryResponse>>(
+      `/api/analytics/students/${studentId}/risk-history`,
+      { params: { limit } }
+    )
+    return response.data
+  },
+
+  /**
+   * Get risk weight configuration
+   */
+  async getRiskWeightConfig(): Promise<RiskWeightConfig> {
+    const response = await apiClient.get<ApiResponse<RiskWeightConfig>>(
+      '/api/analytics/config/weights'
+    )
+    return response.data
+  },
+
+  /**
+   * Update risk weight configuration (admin only)
+   */
+  async updateRiskWeightConfig(config: Omit<RiskWeightConfig, 'updated_at'>): Promise<void> {
+    await apiClient.put('/api/analytics/config/weights', config)
+  },
+
+  /**
+   * Export at-risk students as CSV or XLSX
+   */
+  async exportAtRiskStudents(format: 'csv' | 'xlsx' = 'csv'): Promise<Blob> {
+    const response = await apiClient.get(`/api/analytics/export`, {
+      params: { format },
+      responseType: 'blob',
+    })
+    return response.data as unknown as Blob
   },
 }

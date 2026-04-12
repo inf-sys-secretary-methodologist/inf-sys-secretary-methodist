@@ -12,27 +12,40 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
+// RiskAlertFunc is called when a student enters high/critical risk zone.
+// Implementations should send notifications (e.g. via NotificationUseCase).
+type RiskAlertFunc func(ctx context.Context, student entities.StudentRiskScore)
+
 // RiskRecalcScheduler recalculates student risk scores daily and saves history.
 type RiskRecalcScheduler struct {
 	scheduler     gocron.Scheduler
 	analyticsRepo repositories.AnalyticsRepository
 	logger        *logging.Logger
+	alertFunc     RiskAlertFunc
 }
 
 // NewRiskRecalcScheduler creates a new risk recalculation scheduler.
+// alertFunc is optional — if provided, it's called for each student with risk > 70.
 func NewRiskRecalcScheduler(
 	analyticsRepo repositories.AnalyticsRepository,
 	logger *logging.Logger,
+	alertFuncs ...RiskAlertFunc,
 ) (*RiskRecalcScheduler, error) {
 	s, err := gocron.NewScheduler()
 	if err != nil {
 		return nil, err
 	}
 
+	var alertFn RiskAlertFunc
+	if len(alertFuncs) > 0 {
+		alertFn = alertFuncs[0]
+	}
+
 	rs := &RiskRecalcScheduler{
 		scheduler:     s,
 		analyticsRepo: analyticsRepo,
 		logger:        logger,
+		alertFunc:     alertFn,
 	}
 
 	// Run daily at 3:00 AM
@@ -102,6 +115,11 @@ func (rs *RiskRecalcScheduler) recalculate() {
 				continue
 			}
 			totalSaved++
+
+			// Alert for high/critical risk students
+			if rs.alertFunc != nil && s.RiskScore >= 70 {
+				rs.alertFunc(ctx, s)
+			}
 		}
 
 		offset += batchSize
