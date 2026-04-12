@@ -844,6 +844,10 @@
         "enabled": "Heures calmes activées",
         "disabled": "Heures calmes désactivées"
       }
+    },
+    "automation": {
+      "title": "Automatisation",
+      "description": "Gestion de l'automatisation des processus via n8n"
     }
   },
   "notifications": {
@@ -1852,7 +1856,33 @@
     },
     "noStudents": "Aucun étudiant à risque trouvé",
     "noStudentsHint": "Les étudiants à risque apparaîtront ici",
-    "noAtRiskStudents": "Aucun étudiant à risque"
+    "noAtRiskStudents": "Aucun étudiant à risque",
+    "riskHistory": {
+      "title": "Historique des risques",
+      "noData": "Aucune donnée d'historique disponible",
+      "riskScore": "Score de risque"
+    },
+    "export": {
+      "button": "Exporter",
+      "loading": "Exportation...",
+      "success": "Fichier téléchargé avec succès",
+      "error": "Échec de l'exportation"
+    },
+    "weights": {
+      "title": "Configuration des poids de risque",
+      "description": "Configurez les poids pour le calcul du score de risque",
+      "attendance": "Assiduité",
+      "grades": "Notes",
+      "submissions": "Rendus",
+      "inactivity": "Inactivité",
+      "total": "Total",
+      "mustBe100": "doit être 100%",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "saveSuccess": "Poids mis à jour",
+      "saveError": "Échec de la sauvegarde",
+      "loadError": "Impossible de charger les paramètres"
+    }
   },
   "ai": {
     "title": "Assistant IA",
