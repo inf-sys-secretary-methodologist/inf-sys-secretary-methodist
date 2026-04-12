@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { Palette, Sun, Moon, Monitor, Sparkles, RotateCcw, Eye, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { AppLayout } from '@/components/layout'
+import { SettingsTabs } from '@/components/settings/SettingsTabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -85,6 +86,7 @@ export default function AppearanceSettingsPage() {
 
   return (
     <AppLayout>
+      <SettingsTabs />
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Bell, Mail, Smartphone, MessageSquare, Clock, RotateCcw, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { AppLayout } from '@/components/layout'
+import { SettingsTabs } from '@/components/settings/SettingsTabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -130,6 +131,7 @@ export default function NotificationSettingsPage() {
 
   return (
     <AppLayout>
+      <SettingsTabs />
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>

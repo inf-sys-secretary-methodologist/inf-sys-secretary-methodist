@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { Workflow, ExternalLink, CheckCircle2, XCircle, RefreshCw } from 'lucide-react'
 import { AppLayout } from '@/components/layout'
+import { SettingsTabs } from '@/components/settings/SettingsTabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +40,7 @@ export default function AutomationSettingsPage() {
 
   return (
     <AppLayout>
+      <SettingsTabs />
       <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Workflow className="h-6 w-6 text-primary" />
