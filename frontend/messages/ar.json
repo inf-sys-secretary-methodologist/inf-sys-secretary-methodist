@@ -171,7 +171,8 @@
     "openMenu": "فتح القائمة",
     "mainNavigation": "التنقل الرئيسي",
     "mobileNavigation": "التنقل للجوال",
-    "aiAssistant": "مساعد الذكاء الاصطناعي"
+    "aiAssistant": "مساعد الذكاء الاصطناعي",
+    "settingsPage": "الإعدادات"
   },
   "roles": {
     "system_admin": "مدير النظام",

@@ -171,7 +171,8 @@
     "openMenu": "Open menu",
     "mainNavigation": "Main navigation",
     "mobileNavigation": "Mobile navigation",
-    "aiAssistant": "AI Assistant"
+    "aiAssistant": "AI Assistant",
+    "settingsPage": "Settings"
   },
   "roles": {
     "system_admin": "Administrator",

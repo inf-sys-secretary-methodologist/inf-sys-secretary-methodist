@@ -150,6 +150,11 @@ export const navigationConfig: NavEntry[] = [
         icon: Database,
         roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST],
       },
+      {
+        nameKey: 'settingsPage',
+        url: '/settings/appearance',
+        icon: Settings,
+      },
     ],
   },
 ]

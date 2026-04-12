@@ -171,7 +171,8 @@
     "openMenu": "Открыть меню",
     "mainNavigation": "Основная навигация",
     "mobileNavigation": "Мобильная навигация",
-    "aiAssistant": "AI Ассистент"
+    "aiAssistant": "AI Ассистент",
+    "settingsPage": "Настройки"
   },
   "roles": {
     "system_admin": "Администратор",

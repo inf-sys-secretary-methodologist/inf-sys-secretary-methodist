@@ -19,7 +19,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   return (
     <div>
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 sm:px-6">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
           <nav className="flex gap-1 overflow-x-auto py-2" aria-label={t('title')}>
             {settingsNav.map(({ href, labelKey, icon: Icon }) => {
               const isActive = pathname === href
