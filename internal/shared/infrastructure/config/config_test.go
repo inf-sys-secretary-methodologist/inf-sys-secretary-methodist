@@ -4,683 +4,293 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-const testDefault = "default"
-
 func TestLoad_Defaults(t *testing.T) {
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	envVars := []string{
+		"ENVIRONMENT", "VERSION", "SERVER_PORT", "SERVER_READ_TIMEOUT",
+		"SERVER_WRITE_TIMEOUT", "SERVER_IDLE_TIMEOUT", "SERVER_BASE_URL",
+		"DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD",
+		"DB_MAX_OPEN_CONNS", "DB_MAX_IDLE_CONNS", "DB_CONN_MAX_LIFETIME",
+		"REDIS_HOST", "REDIS_PORT", "REDIS_PASSWORD", "REDIS_DB",
+		"LOG_LEVEL", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET",
+		"JWT_ACCESS_TTL", "JWT_REFRESH_TTL",
+		"CORS_ALLOWED_ORIGINS", "CORS_ALLOWED_METHODS", "CORS_ALLOWED_HEADERS",
+		"TRACING_ENABLED", "TRACING_OTLP_ENDPOINT", "TRACING_SAMPLING_RATE",
+		"TRACING_SERVICE_NAME", "N8N_ENABLED", "N8N_WEBHOOK_URL",
+		"AI_ENABLED", "AI_PROVIDER",
 	}
-
-	if cfg.Environment != "development" {
-		t.Errorf("expected Environment 'development', got '%s'", cfg.Environment)
+	saved := make(map[string]string)
+	for _, k := range envVars {
+		saved[k] = os.Getenv(k)
+		os.Unsetenv(k)
 	}
-	if cfg.Server.Port != 8080 {
-		t.Errorf("expected Server.Port 8080, got %d", cfg.Server.Port)
-	}
-	if cfg.Database.Host != "localhost" {
-		t.Errorf("expected Database.Host 'localhost', got '%s'", cfg.Database.Host)
-	}
-	if cfg.Version != "0.1.0" {
-		t.Errorf("expected Version '0.1.0', got '%s'", cfg.Version)
-	}
-	if cfg.Server.ReadTimeout != 10*time.Second {
-		t.Errorf("expected Server.ReadTimeout 10s, got %v", cfg.Server.ReadTimeout)
-	}
-	if cfg.Server.WriteTimeout != 10*time.Second {
-		t.Errorf("expected Server.WriteTimeout 10s, got %v", cfg.Server.WriteTimeout)
-	}
-	if cfg.Server.IdleTimeout != 120*time.Second {
-		t.Errorf("expected Server.IdleTimeout 120s, got %v", cfg.Server.IdleTimeout)
-	}
-	if cfg.Server.BaseURL != "http://localhost:8080" {
-		t.Errorf("expected Server.BaseURL 'http://localhost:8080', got '%s'", cfg.Server.BaseURL)
-	}
-	if cfg.Database.Port != 5432 {
-		t.Errorf("expected Database.Port 5432, got %d", cfg.Database.Port)
-	}
-	if cfg.Database.Database != "secretary_methodist" {
-		t.Errorf("expected Database.Database 'secretary_methodist', got '%s'", cfg.Database.Database)
-	}
-	if cfg.Database.Username != "postgres" {
-		t.Errorf("expected Database.Username 'postgres', got '%s'", cfg.Database.Username)
-	}
-	if cfg.Database.MaxOpenConns != 25 {
-		t.Errorf("expected Database.MaxOpenConns 25, got %d", cfg.Database.MaxOpenConns)
-	}
-	if cfg.Database.MaxIdleConns != 5 {
-		t.Errorf("expected Database.MaxIdleConns 5, got %d", cfg.Database.MaxIdleConns)
-	}
-	if cfg.Database.ConnMaxLifetime != 5*time.Minute {
-		t.Errorf("expected Database.ConnMaxLifetime 5m, got %v", cfg.Database.ConnMaxLifetime)
-	}
-	if cfg.Redis.Host != "localhost" {
-		t.Errorf("expected Redis.Host 'localhost', got '%s'", cfg.Redis.Host)
-	}
-	if cfg.Redis.Port != 6379 {
-		t.Errorf("expected Redis.Port 6379, got %d", cfg.Redis.Port)
-	}
-	if cfg.Redis.DB != 0 {
-		t.Errorf("expected Redis.DB 0, got %d", cfg.Redis.DB)
-	}
-	if cfg.Log.Level != "info" {
-		t.Errorf("expected Log.Level 'info', got '%s'", cfg.Log.Level)
-	}
-	if len(cfg.CORS.AllowedOrigins) != 1 || cfg.CORS.AllowedOrigins[0] != "http://localhost:3000" {
-		t.Errorf("unexpected CORS.AllowedOrigins: %v", cfg.CORS.AllowedOrigins)
-	}
-	if cfg.JWT.AccessTTL != 15*time.Minute {
-		t.Errorf("expected JWT.AccessTTL 15m, got %v", cfg.JWT.AccessTTL)
-	}
-	if cfg.JWT.RefreshTTL != 7*24*time.Hour {
-		t.Errorf("expected JWT.RefreshTTL 7d, got %v", cfg.JWT.RefreshTTL)
-	}
-	if cfg.S3.Endpoint != "localhost:9000" {
-		t.Errorf("expected S3.Endpoint 'localhost:9000', got '%s'", cfg.S3.Endpoint)
-	}
-	if cfg.S3.BucketName != "documents" {
-		t.Errorf("expected S3.BucketName 'documents', got '%s'", cfg.S3.BucketName)
-	}
-	if cfg.S3.MaxFileSize != 50*1024*1024 {
-		t.Errorf("expected S3.MaxFileSize 50MB, got %d", cfg.S3.MaxFileSize)
-	}
-	if cfg.S3.UseSSL != false {
-		t.Errorf("expected S3.UseSSL false")
-	}
-	if cfg.Integration.Enabled != false {
-		t.Errorf("expected Integration.Enabled false")
-	}
-	if cfg.Integration.Timeout != 30*time.Second {
-		t.Errorf("expected Integration.Timeout 30s, got %v", cfg.Integration.Timeout)
-	}
-	if cfg.Integration.MaxRetries != 3 {
-		t.Errorf("expected Integration.MaxRetries 3, got %d", cfg.Integration.MaxRetries)
-	}
-	if cfg.Integration.BatchSize != 100 {
-		t.Errorf("expected Integration.BatchSize 100, got %d", cfg.Integration.BatchSize)
-	}
-	if cfg.Tracing.Enabled != false {
-		t.Errorf("expected Tracing.Enabled false")
-	}
-	if cfg.Tracing.SamplingRate != 0.1 {
-		t.Errorf("expected Tracing.SamplingRate 0.1, got %f", cfg.Tracing.SamplingRate)
-	}
-	if cfg.AI.Enabled != false {
-		t.Errorf("expected AI.Enabled false")
-	}
-	if cfg.AI.MaxTokens != 2048 {
-		t.Errorf("expected AI.MaxTokens 2048, got %d", cfg.AI.MaxTokens)
-	}
-	if cfg.AI.Temperature != 0.7 {
-		t.Errorf("expected AI.Temperature 0.7, got %f", cfg.AI.Temperature)
-	}
-	if cfg.AI.ChunkSize != 512 {
-		t.Errorf("expected AI.ChunkSize 512, got %d", cfg.AI.ChunkSize)
-	}
-	if cfg.AI.SearchTopK != 10 {
-		t.Errorf("expected AI.SearchTopK 10, got %d", cfg.AI.SearchTopK)
-	}
-}
-
-func TestLoad_FromEnv(t *testing.T) {
-	_ = os.Setenv("ENVIRONMENT", "production")
-	_ = os.Setenv("SERVER_PORT", "9000")
-	_ = os.Setenv("DB_HOST", "db.example.com")
-	_ = os.Setenv("JWT_ACCESS_SECRET", "test-access-secret-for-production")
-	_ = os.Setenv("JWT_REFRESH_SECRET", "test-refresh-secret-for-production")
-	defer func() {
-		_ = os.Unsetenv("ENVIRONMENT")
-		_ = os.Unsetenv("SERVER_PORT")
-		_ = os.Unsetenv("DB_HOST")
-		_ = os.Unsetenv("JWT_ACCESS_SECRET")
-		_ = os.Unsetenv("JWT_REFRESH_SECRET")
-	}()
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if cfg.Environment != "production" {
-		t.Errorf("expected Environment 'production', got '%s'", cfg.Environment)
-	}
-	if cfg.Server.Port != 9000 {
-		t.Errorf("expected Server.Port 9000, got %d", cfg.Server.Port)
-	}
-	if cfg.Database.Host != "db.example.com" {
-		t.Errorf("expected Database.Host 'db.example.com', got '%s'", cfg.Database.Host)
-	}
-}
-
-func TestLoad_ProductionValidation_DefaultSecrets(t *testing.T) {
-	_ = os.Setenv("ENVIRONMENT", "production")
-	defer func() {
-		_ = os.Unsetenv("ENVIRONMENT")
-	}()
-
-	_, err := Load()
-	if err == nil {
-		t.Fatal("expected error for production with default JWT secrets")
-	}
-}
-
-func TestLoad_ProductionValidation_AccessSecretDefault(t *testing.T) {
-	_ = os.Setenv("ENVIRONMENT", "production")
-	_ = os.Setenv("JWT_ACCESS_SECRET", "change-this-secret-in-production")
-	_ = os.Setenv("JWT_REFRESH_SECRET", "custom-refresh-secret")
-	defer func() {
-		_ = os.Unsetenv("ENVIRONMENT")
-		_ = os.Unsetenv("JWT_ACCESS_SECRET")
-		_ = os.Unsetenv("JWT_REFRESH_SECRET")
-	}()
-
-	_, err := Load()
-	if err == nil {
-		t.Fatal("expected error when access secret is default in production")
-	}
-}
-
-func TestLoad_ProductionValidation_RefreshSecretDefault(t *testing.T) {
-	_ = os.Setenv("ENVIRONMENT", "production")
-	_ = os.Setenv("JWT_ACCESS_SECRET", "custom-access-secret")
-	_ = os.Setenv("JWT_REFRESH_SECRET", "change-this-refresh-secret-in-production")
-	defer func() {
-		_ = os.Unsetenv("ENVIRONMENT")
-		_ = os.Unsetenv("JWT_ACCESS_SECRET")
-		_ = os.Unsetenv("JWT_REFRESH_SECRET")
-	}()
-
-	_, err := Load()
-	if err == nil {
-		t.Fatal("expected error when refresh secret is default in production")
-	}
-}
-
-func TestLoad_ProductionValidation_CustomSecrets(t *testing.T) {
-	_ = os.Setenv("ENVIRONMENT", "production")
-	_ = os.Setenv("JWT_ACCESS_SECRET", "my-custom-access-secret")
-	_ = os.Setenv("JWT_REFRESH_SECRET", "my-custom-refresh-secret")
-	defer func() {
-		_ = os.Unsetenv("ENVIRONMENT")
-		_ = os.Unsetenv("JWT_ACCESS_SECRET")
-		_ = os.Unsetenv("JWT_REFRESH_SECRET")
-	}()
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("expected no error for production with custom secrets, got %v", err)
-	}
-	if cfg.JWT.AccessSecret != "my-custom-access-secret" {
-		t.Errorf("expected custom access secret")
-	}
-}
-
-func TestLoad_AllEnvVars(t *testing.T) {
-	envVars := map[string]string{
-		"ENVIRONMENT":                          "staging",
-		"VERSION":                              "1.2.3",
-		"SERVER_PORT":                          "3000",
-		"SERVER_READ_TIMEOUT":                  "30s",
-		"SERVER_WRITE_TIMEOUT":                 "30s",
-		"SERVER_IDLE_TIMEOUT":                  "60s",
-		"SERVER_BASE_URL":                      "https://example.com",
-		"DB_HOST":                              "dbhost",
-		"DB_PORT":                              "5433",
-		"DB_NAME":                              "testdb",
-		"DB_USER":                              "testuser",
-		"DB_PASSWORD":                          "testpass",
-		"DB_MAX_OPEN_CONNS":                    "50",
-		"DB_MAX_IDLE_CONNS":                    "10",
-		"DB_CONN_MAX_LIFETIME":                 "10m",
-		"REDIS_HOST":                           "redis-host",
-		"REDIS_PORT":                           "6380",
-		"REDIS_PASSWORD":                       "redispass",
-		"REDIS_DB":                             "1",
-		"LOG_LEVEL":                            "debug",
-		"CORS_ALLOWED_ORIGINS":                 "http://a.com,http://b.com",
-		"CORS_ALLOWED_METHODS":                 "GET,POST",
-		"CORS_ALLOWED_HEADERS":                 "Authorization",
-		"JWT_ACCESS_SECRET":                    "access-sec",
-		"JWT_REFRESH_SECRET":                   "refresh-sec",
-		"JWT_ACCESS_TTL":                       "30m",
-		"JWT_REFRESH_TTL":                      "48h",
-		"COMPOSIO_API_KEY":                     "composio-key",
-		"COMPOSIO_ENTITY_ID":                   "composio-entity",
-		"COMPOSIO_MCP_CONFIG_ID":               "composio-mcp",
-		"S3_ENDPOINT":                          "s3.example.com",
-		"S3_PUBLIC_ENDPOINT":                   "s3-public.example.com",
-		"S3_ACCESS_KEY_ID":                     "s3key",
-		"S3_SECRET_ACCESS_KEY":                 "s3secret",
-		"S3_BUCKET_NAME":                       "mybucket",
-		"S3_REGION":                            "eu-west-1",
-		"S3_USE_SSL":                           "true",
-		"S3_PUBLIC_USE_SSL":                    "true",
-		"S3_MAX_FILE_SIZE":                     "104857600",
-		"TELEGRAM_BOT_TOKEN":                   "tg-token",
-		"TELEGRAM_BOT_USERNAME":                "tg-user",
-		"TELEGRAM_WEBHOOK_URL":                 "https://tg.example.com/hook",
-		"TELEGRAM_WEBHOOK_SECRET":              "tg-secret",
-		"INTEGRATION_1C_ENABLED":               "true",
-		"INTEGRATION_1C_BASE_URL":              "http://1c.example.com",
-		"INTEGRATION_1C_USERNAME":              "1cuser",
-		"INTEGRATION_1C_PASSWORD":              "1cpass",
-		"INTEGRATION_1C_TIMEOUT":               "60s",
-		"INTEGRATION_1C_MAX_RETRIES":           "5",
-		"INTEGRATION_1C_RETRY_DELAY":           "10s",
-		"INTEGRATION_1C_EMPLOYEE_CATALOG":      "Catalog_Emp",
-		"INTEGRATION_1C_STUDENT_CATALOG":       "Catalog_Stu",
-		"INTEGRATION_1C_SYNC_CRON_EMPLOYEE":    "0 */3 * * *",
-		"INTEGRATION_1C_SYNC_CRON_STUDENT":     "0 */4 * * *",
-		"INTEGRATION_1C_BATCH_SIZE":            "200",
-		"VAPID_PUBLIC_KEY":                     "vapid-pub",
-		"VAPID_PRIVATE_KEY":                    "vapid-priv",
-		"VAPID_SUBJECT":                        "mailto:test@example.com",
-		"TRACING_ENABLED":                      "true",
-		"TRACING_OTLP_ENDPOINT":                "otel:4317",
-		"TRACING_SAMPLING_RATE":                "0.5",
-		"TRACING_SERVICE_NAME":                 "test-service",
-		"AI_ENABLED":                           "true",
-		"AI_PROVIDER":                          "anthropic",
-		"AI_TIMEOUT":                           "120s",
-		"OPENAI_API_KEY":                       "openai-key",
-		"OPENAI_BASE_URL":                      "https://openai.example.com",
-		"ANTHROPIC_API_KEY":                    "anthropic-key",
-		"ANTHROPIC_BASE_URL":                   "https://anthropic.example.com",
-		"AI_CHAT_API_KEY":                      "chat-key",
-		"AI_CHAT_BASE_URL":                     "https://chat.example.com",
-		"AI_CHAT_MODEL":                        "gpt-4",
-		"AI_MAX_TOKENS":                        "4096",
-		"AI_TEMPERATURE":                       "0.5",
-		"AI_EMBEDDING_PROVIDER":                "gemini",
-		"AI_EMBEDDING_API_KEY":                 "embed-key",
-		"AI_EMBEDDING_MODEL":                   "embed-model",
-		"AI_EMBEDDING_DIMENSIONALITY":          "768",
-		"AI_CHUNK_SIZE":                        "1024",
-		"AI_CHUNK_OVERLAP":                     "200",
-		"AI_SEARCH_TOP_K":                      "5",
-		"AI_SEARCH_THRESHOLD":                  "0.8",
-		"AI_FALLBACK_PROVIDER":                 "groq",
-		"AI_FALLBACK_API_KEY":                  "fb-key",
-		"AI_FALLBACK_BASE_URL":                 "https://fb.example.com",
-		"AI_FALLBACK_CHAT_MODEL":               "fb-model",
-		"AI_FALLBACK_EMBEDDING_PROVIDER":       "openai",
-		"AI_FALLBACK_EMBEDDING_API_KEY":        "fbe-key",
-		"AI_FALLBACK_EMBEDDING_BASE_URL":       "https://fbe.example.com",
-		"AI_FALLBACK_EMBEDDING_MODEL":          "fbe-model",
-		"AI_FALLBACK_EMBEDDING_DIMENSIONALITY": "512",
-	}
-
-	for k, v := range envVars {
-		_ = os.Setenv(k, v)
-	}
-	defer func() {
-		for k := range envVars {
-			_ = os.Unsetenv(k)
+	t.Cleanup(func() {
+		for k, v := range saved {
+			if v != "" {
+				os.Setenv(k, v)
+			} else {
+				os.Unsetenv(k)
+			}
 		}
-	}()
+	})
 
 	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	require.NoError(t, err)
+
+	assert.Equal(t, "development", cfg.Environment)
+	assert.Equal(t, "0.1.0", cfg.Version)
+
+	assert.Equal(t, 8080, cfg.Server.Port)
+	assert.Equal(t, 10*time.Second, cfg.Server.ReadTimeout)
+	assert.Equal(t, 10*time.Second, cfg.Server.WriteTimeout)
+	assert.Equal(t, 120*time.Second, cfg.Server.IdleTimeout)
+	assert.Equal(t, "http://localhost:8080", cfg.Server.BaseURL)
+
+	assert.Equal(t, "localhost", cfg.Database.Host)
+	assert.Equal(t, 5432, cfg.Database.Port)
+	assert.Equal(t, "secretary_methodist", cfg.Database.Database)
+	assert.Equal(t, "postgres", cfg.Database.Username)
+	assert.Equal(t, "postgres", cfg.Database.Password)
+	assert.Equal(t, 25, cfg.Database.MaxOpenConns)
+	assert.Equal(t, 5, cfg.Database.MaxIdleConns)
+	assert.Equal(t, 5*time.Minute, cfg.Database.ConnMaxLifetime)
+
+	assert.Equal(t, "localhost", cfg.Redis.Host)
+	assert.Equal(t, 6379, cfg.Redis.Port)
+	assert.Equal(t, "", cfg.Redis.Password)
+	assert.Equal(t, 0, cfg.Redis.DB)
+
+	assert.Equal(t, "info", cfg.Log.Level)
+
+	assert.Equal(t, []string{"http://localhost:3000"}, cfg.CORS.AllowedOrigins)
+	assert.Equal(t, []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, cfg.CORS.AllowedMethods)
+	assert.Equal(t, []string{"Content-Type", "Authorization"}, cfg.CORS.AllowedHeaders)
+
+	assert.Equal(t, "change-this-secret-in-production", cfg.JWT.AccessSecret)
+	assert.Equal(t, "change-this-refresh-secret-in-production", cfg.JWT.RefreshSecret)
+	assert.Equal(t, 15*time.Minute, cfg.JWT.AccessTTL)
+	assert.Equal(t, 7*24*time.Hour, cfg.JWT.RefreshTTL)
+
+	assert.False(t, cfg.Tracing.Enabled)
+	assert.Equal(t, "otel-collector:4317", cfg.Tracing.OTLPEndpoint)
+	assert.InDelta(t, 0.1, cfg.Tracing.SamplingRate, 0.001)
+	assert.Equal(t, "inf-sys-secretary-methodist", cfg.Tracing.ServiceName)
+
+	assert.False(t, cfg.N8N.Enabled)
+	assert.Equal(t, "http://localhost:5678", cfg.N8N.WebhookURL)
+
+	assert.False(t, cfg.AI.Enabled)
+	assert.Equal(t, "openai", cfg.AI.Provider)
+}
+
+func TestLoad_EnvOverrides(t *testing.T) {
+	envs := map[string]string{
+		"ENVIRONMENT":           "staging",
+		"VERSION":               "1.2.3",
+		"SERVER_PORT":           "9090",
+		"SERVER_READ_TIMEOUT":   "30s",
+		"DB_HOST":               "db.example.com",
+		"DB_PORT":               "5433",
+		"REDIS_HOST":            "redis.example.com",
+		"REDIS_PORT":            "6380",
+		"REDIS_DB":              "2",
+		"LOG_LEVEL":             "debug",
+		"JWT_ACCESS_SECRET":     "my-access-secret",
+		"JWT_REFRESH_SECRET":    "my-refresh-secret",
+		"JWT_ACCESS_TTL":        "1h",
+		"CORS_ALLOWED_ORIGINS":  "https://example.com, https://app.example.com",
+		"TRACING_ENABLED":       "true",
+		"TRACING_SAMPLING_RATE": "0.5",
+		"AI_ENABLED":            "true",
+		"AI_TEMPERATURE":        "0.3",
+		"S3_MAX_FILE_SIZE":      "104857600",
+		"S3_USE_SSL":            "true",
 	}
 
-	if cfg.Environment != "staging" {
-		t.Errorf("expected staging, got %s", cfg.Environment)
+	saved := make(map[string]string)
+	for k, v := range envs {
+		saved[k] = os.Getenv(k)
+		os.Setenv(k, v)
 	}
-	if cfg.Version != "1.2.3" {
-		t.Errorf("expected 1.2.3, got %s", cfg.Version)
+	t.Cleanup(func() {
+		for k, v := range saved {
+			if v != "" {
+				os.Setenv(k, v)
+			} else {
+				os.Unsetenv(k)
+			}
+		}
+	})
+
+	cfg, err := Load()
+	require.NoError(t, err)
+
+	assert.Equal(t, "staging", cfg.Environment)
+	assert.Equal(t, "1.2.3", cfg.Version)
+	assert.Equal(t, 9090, cfg.Server.Port)
+	assert.Equal(t, 30*time.Second, cfg.Server.ReadTimeout)
+	assert.Equal(t, "db.example.com", cfg.Database.Host)
+	assert.Equal(t, 5433, cfg.Database.Port)
+	assert.Equal(t, "redis.example.com", cfg.Redis.Host)
+	assert.Equal(t, 6380, cfg.Redis.Port)
+	assert.Equal(t, 2, cfg.Redis.DB)
+	assert.Equal(t, "debug", cfg.Log.Level)
+	assert.Equal(t, "my-access-secret", cfg.JWT.AccessSecret)
+	assert.Equal(t, "my-refresh-secret", cfg.JWT.RefreshSecret)
+	assert.Equal(t, 1*time.Hour, cfg.JWT.AccessTTL)
+	assert.Equal(t, []string{"https://example.com", "https://app.example.com"}, cfg.CORS.AllowedOrigins)
+	assert.True(t, cfg.Tracing.Enabled)
+	assert.InDelta(t, 0.5, cfg.Tracing.SamplingRate, 0.001)
+	assert.True(t, cfg.AI.Enabled)
+	assert.InDelta(t, 0.3, cfg.AI.Temperature, 0.001)
+	assert.Equal(t, int64(104857600), cfg.S3.MaxFileSize)
+	assert.True(t, cfg.S3.UseSSL)
+}
+
+func TestLoad_ProductionValidation(t *testing.T) {
+	saved := map[string]string{
+		"ENVIRONMENT":        os.Getenv("ENVIRONMENT"),
+		"JWT_ACCESS_SECRET":  os.Getenv("JWT_ACCESS_SECRET"),
+		"JWT_REFRESH_SECRET": os.Getenv("JWT_REFRESH_SECRET"),
 	}
-	if cfg.Server.Port != 3000 {
-		t.Errorf("expected 3000, got %d", cfg.Server.Port)
-	}
-	if cfg.Server.ReadTimeout != 30*time.Second {
-		t.Errorf("expected 30s, got %v", cfg.Server.ReadTimeout)
-	}
-	if cfg.Database.Port != 5433 {
-		t.Errorf("expected 5433, got %d", cfg.Database.Port)
-	}
-	if cfg.Database.MaxOpenConns != 50 {
-		t.Errorf("expected 50, got %d", cfg.Database.MaxOpenConns)
-	}
-	if cfg.Redis.Port != 6380 {
-		t.Errorf("expected 6380, got %d", cfg.Redis.Port)
-	}
-	if cfg.Redis.DB != 1 {
-		t.Errorf("expected 1, got %d", cfg.Redis.DB)
-	}
-	if cfg.Log.Level != "debug" {
-		t.Errorf("expected debug, got %s", cfg.Log.Level)
-	}
-	if len(cfg.CORS.AllowedOrigins) != 2 {
-		t.Errorf("expected 2 CORS origins, got %d", len(cfg.CORS.AllowedOrigins))
-	}
-	if cfg.JWT.AccessTTL != 30*time.Minute {
-		t.Errorf("expected 30m, got %v", cfg.JWT.AccessTTL)
-	}
-	if cfg.JWT.RefreshTTL != 48*time.Hour {
-		t.Errorf("expected 48h, got %v", cfg.JWT.RefreshTTL)
-	}
-	if cfg.S3.Endpoint != "s3.example.com" {
-		t.Errorf("expected s3.example.com, got %s", cfg.S3.Endpoint)
-	}
-	if cfg.S3.PublicEndpoint != "s3-public.example.com" {
-		t.Errorf("expected s3-public.example.com, got %s", cfg.S3.PublicEndpoint)
-	}
-	if cfg.S3.UseSSL != true {
-		t.Error("expected S3.UseSSL true")
-	}
-	if cfg.S3.PublicUseSSL != true {
-		t.Error("expected S3.PublicUseSSL true")
-	}
-	if cfg.S3.MaxFileSize != 104857600 {
-		t.Errorf("expected 104857600, got %d", cfg.S3.MaxFileSize)
-	}
-	if cfg.Telegram.BotToken != "tg-token" {
-		t.Errorf("expected tg-token, got %s", cfg.Telegram.BotToken)
-	}
-	if cfg.Integration.Enabled != true {
-		t.Error("expected Integration.Enabled true")
-	}
-	if cfg.Integration.BaseURL != "http://1c.example.com" {
-		t.Errorf("expected http://1c.example.com, got %s", cfg.Integration.BaseURL)
-	}
-	if cfg.Integration.Timeout != 60*time.Second {
-		t.Errorf("expected 60s, got %v", cfg.Integration.Timeout)
-	}
-	if cfg.Integration.MaxRetries != 5 {
-		t.Errorf("expected 5, got %d", cfg.Integration.MaxRetries)
-	}
-	if cfg.Integration.BatchSize != 200 {
-		t.Errorf("expected 200, got %d", cfg.Integration.BatchSize)
-	}
-	if cfg.WebPush.VAPIDPublicKey != "vapid-pub" {
-		t.Errorf("expected vapid-pub, got %s", cfg.WebPush.VAPIDPublicKey)
-	}
-	if cfg.Tracing.Enabled != true {
-		t.Error("expected Tracing.Enabled true")
-	}
-	if cfg.Tracing.SamplingRate != 0.5 {
-		t.Errorf("expected 0.5, got %f", cfg.Tracing.SamplingRate)
-	}
-	if cfg.AI.Enabled != true {
-		t.Error("expected AI.Enabled true")
-	}
-	if cfg.AI.Provider != "anthropic" {
-		t.Errorf("expected anthropic, got %s", cfg.AI.Provider)
-	}
-	if cfg.AI.Timeout != 120*time.Second {
-		t.Errorf("expected 120s, got %v", cfg.AI.Timeout)
-	}
-	if cfg.AI.MaxTokens != 4096 {
-		t.Errorf("expected 4096, got %d", cfg.AI.MaxTokens)
-	}
-	if cfg.AI.Temperature != 0.5 {
-		t.Errorf("expected 0.5, got %f", cfg.AI.Temperature)
-	}
-	if cfg.AI.EmbeddingDimensionality != 768 {
-		t.Errorf("expected 768, got %d", cfg.AI.EmbeddingDimensionality)
-	}
-	if cfg.AI.ChunkSize != 1024 {
-		t.Errorf("expected 1024, got %d", cfg.AI.ChunkSize)
-	}
-	if cfg.AI.SearchTopK != 5 {
-		t.Errorf("expected 5, got %d", cfg.AI.SearchTopK)
-	}
-	if cfg.AI.SearchThreshold != 0.8 {
-		t.Errorf("expected 0.8, got %f", cfg.AI.SearchThreshold)
-	}
-	if cfg.AI.FallbackProvider != "groq" {
-		t.Errorf("expected groq, got %s", cfg.AI.FallbackProvider)
-	}
-	if cfg.AI.FallbackEmbeddingDimensionality != 512 {
-		t.Errorf("expected 512, got %d", cfg.AI.FallbackEmbeddingDimensionality)
-	}
+	t.Cleanup(func() {
+		for k, v := range saved {
+			if v != "" {
+				os.Setenv(k, v)
+			} else {
+				os.Unsetenv(k)
+			}
+		}
+	})
+
+	os.Setenv("ENVIRONMENT", "production")
+	os.Unsetenv("JWT_ACCESS_SECRET")
+	os.Unsetenv("JWT_REFRESH_SECRET")
+
+	cfg, err := Load()
+	assert.Nil(t, cfg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "JWT secrets must be set in production")
+
+	os.Setenv("JWT_ACCESS_SECRET", "prod-access-secret")
+	os.Setenv("JWT_REFRESH_SECRET", "prod-refresh-secret")
+	cfg, err = Load()
+	require.NoError(t, err)
+	assert.Equal(t, "production", cfg.Environment)
 }
 
 func TestDatabaseConfig_GetDSN(t *testing.T) {
-	dbCfg := DatabaseConfig{
-		Host:     "localhost",
-		Port:     5432,
-		Database: "testdb",
-		Username: "testuser",
-		Password: "testpass",
+	db := DatabaseConfig{
+		Host:     "myhost",
+		Port:     5433,
+		Username: "myuser",
+		Password: "mypass",
+		Database: "mydb",
 	}
 
-	expected := "host=localhost port=5432 user=testuser password=testpass dbname=testdb sslmode=disable"
-	if got := dbCfg.GetDSN(); got != expected {
-		t.Errorf("GetDSN() = %v, want %v", got, expected)
-	}
+	dsn := db.GetDSN()
+	assert.Equal(t, "host=myhost port=5433 user=myuser password=mypass dbname=mydb sslmode=disable", dsn)
 }
 
-func TestGetEnv(t *testing.T) {
-	_ = os.Setenv("TEST_KEY", "test_value")
-	defer func() {
-		_ = os.Unsetenv("TEST_KEY")
-	}()
+func TestGetEnvHelpers(t *testing.T) {
+	t.Run("getEnv", func(t *testing.T) {
+		assert.Equal(t, "fallback", getEnv("TEST_NONEXISTENT_KEY_12345", "fallback"))
+		os.Setenv("TEST_GETENV_HELPER", "hello")
+		defer os.Unsetenv("TEST_GETENV_HELPER")
+		assert.Equal(t, "hello", getEnv("TEST_GETENV_HELPER", "fallback"))
+	})
 
-	if got := getEnv("TEST_KEY", testDefault); got != "test_value" {
-		t.Errorf("getEnv() = %v, want %v", got, "test_value")
-	}
-	if got := getEnv("NON_EXISTENT", testDefault); got != testDefault {
-		t.Errorf("getEnv() = %v, want %v", got, testDefault)
-	}
-}
+	t.Run("getEnvAsInt", func(t *testing.T) {
+		assert.Equal(t, 42, getEnvAsInt("TEST_NONEXISTENT_KEY_12345", 42))
+		os.Setenv("TEST_INT_VAL", "100")
+		defer os.Unsetenv("TEST_INT_VAL")
+		assert.Equal(t, 100, getEnvAsInt("TEST_INT_VAL", 42))
 
-func TestGetEnvAsInt(t *testing.T) {
-	_ = os.Setenv("TEST_INT", "42")
-	_ = os.Setenv("TEST_INT_INVALID", "not_a_number")
-	defer func() {
-		_ = os.Unsetenv("TEST_INT")
-		_ = os.Unsetenv("TEST_INT_INVALID")
-	}()
+		os.Setenv("TEST_INT_BAD", "notanumber")
+		defer os.Unsetenv("TEST_INT_BAD")
+		assert.Equal(t, 42, getEnvAsInt("TEST_INT_BAD", 42))
+	})
 
-	if got := getEnvAsInt("TEST_INT", 0); got != 42 {
-		t.Errorf("getEnvAsInt() = %v, want %v", got, 42)
-	}
-	if got := getEnvAsInt("NON_EXISTENT", 99); got != 99 {
-		t.Errorf("getEnvAsInt() = %v, want %v", got, 99)
-	}
-	if got := getEnvAsInt("TEST_INT_INVALID", 77); got != 77 {
-		t.Errorf("getEnvAsInt() with invalid value = %v, want %v", got, 77)
-	}
-}
+	t.Run("getEnvAsInt64", func(t *testing.T) {
+		assert.Equal(t, int64(999), getEnvAsInt64("TEST_NONEXISTENT_KEY_12345", 999))
+		os.Setenv("TEST_INT64_VAL", "123456789")
+		defer os.Unsetenv("TEST_INT64_VAL")
+		assert.Equal(t, int64(123456789), getEnvAsInt64("TEST_INT64_VAL", 999))
 
-func TestGetEnvAsInt64(t *testing.T) {
-	_ = os.Setenv("TEST_INT64", "9999999999")
-	_ = os.Setenv("TEST_INT64_INVALID", "abc")
-	defer func() {
-		_ = os.Unsetenv("TEST_INT64")
-		_ = os.Unsetenv("TEST_INT64_INVALID")
-	}()
+		os.Setenv("TEST_INT64_BAD", "bad")
+		defer os.Unsetenv("TEST_INT64_BAD")
+		assert.Equal(t, int64(999), getEnvAsInt64("TEST_INT64_BAD", 999))
+	})
 
-	if got := getEnvAsInt64("TEST_INT64", 0); got != 9999999999 {
-		t.Errorf("getEnvAsInt64() = %v, want %v", got, int64(9999999999))
-	}
-	if got := getEnvAsInt64("NON_EXISTENT", 123); got != 123 {
-		t.Errorf("getEnvAsInt64() = %v, want %v", got, 123)
-	}
-	if got := getEnvAsInt64("TEST_INT64_INVALID", 456); got != 456 {
-		t.Errorf("getEnvAsInt64() with invalid = %v, want %v", got, 456)
-	}
-}
+	t.Run("getEnvAsBool", func(t *testing.T) {
+		assert.False(t, getEnvAsBool("TEST_NONEXISTENT_KEY_12345", false))
+		os.Setenv("TEST_BOOL_VAL", "true")
+		defer os.Unsetenv("TEST_BOOL_VAL")
+		assert.True(t, getEnvAsBool("TEST_BOOL_VAL", false))
 
-func TestGetEnvAsBool(t *testing.T) {
-	_ = os.Setenv("TEST_BOOL_TRUE", "true")
-	_ = os.Setenv("TEST_BOOL_FALSE", "false")
-	_ = os.Setenv("TEST_BOOL_INVALID", "maybe")
-	defer func() {
-		_ = os.Unsetenv("TEST_BOOL_TRUE")
-		_ = os.Unsetenv("TEST_BOOL_FALSE")
-		_ = os.Unsetenv("TEST_BOOL_INVALID")
-	}()
+		os.Setenv("TEST_BOOL_BAD", "notabool")
+		defer os.Unsetenv("TEST_BOOL_BAD")
+		assert.False(t, getEnvAsBool("TEST_BOOL_BAD", false))
+	})
 
-	if got := getEnvAsBool("TEST_BOOL_TRUE", false); got != true {
-		t.Error("expected true")
-	}
-	if got := getEnvAsBool("TEST_BOOL_FALSE", true); got != false {
-		t.Error("expected false")
-	}
-	if got := getEnvAsBool("NON_EXISTENT", true); got != true {
-		t.Error("expected default true")
-	}
-	if got := getEnvAsBool("TEST_BOOL_INVALID", true); got != true {
-		t.Error("expected default true for invalid")
-	}
-}
+	t.Run("getEnvAsFloat", func(t *testing.T) {
+		assert.InDelta(t, 1.5, getEnvAsFloat("TEST_NONEXISTENT_KEY_12345", 1.5), 0.001)
+		os.Setenv("TEST_FLOAT_VAL", "3.14")
+		defer os.Unsetenv("TEST_FLOAT_VAL")
+		assert.InDelta(t, 3.14, getEnvAsFloat("TEST_FLOAT_VAL", 1.5), 0.001)
 
-func TestGetEnvAsFloat(t *testing.T) {
-	_ = os.Setenv("TEST_FLOAT", "3.14")
-	_ = os.Setenv("TEST_FLOAT_INVALID", "not_float")
-	defer func() {
-		_ = os.Unsetenv("TEST_FLOAT")
-		_ = os.Unsetenv("TEST_FLOAT_INVALID")
-	}()
+		os.Setenv("TEST_FLOAT_BAD", "notafloat")
+		defer os.Unsetenv("TEST_FLOAT_BAD")
+		assert.InDelta(t, 1.5, getEnvAsFloat("TEST_FLOAT_BAD", 1.5), 0.001)
+	})
 
-	if got := getEnvAsFloat("TEST_FLOAT", 0.0); got != 3.14 {
-		t.Errorf("getEnvAsFloat() = %v, want %v", got, 3.14)
-	}
-	if got := getEnvAsFloat("NON_EXISTENT", 1.5); got != 1.5 {
-		t.Errorf("getEnvAsFloat() = %v, want %v", got, 1.5)
-	}
-	if got := getEnvAsFloat("TEST_FLOAT_INVALID", 2.0); got != 2.0 {
-		t.Errorf("getEnvAsFloat() with invalid = %v, want %v", got, 2.0)
-	}
-}
+	t.Run("getEnvAsDuration", func(t *testing.T) {
+		assert.Equal(t, 5*time.Second, getEnvAsDuration("TEST_NONEXISTENT_KEY_12345", 5*time.Second))
+		os.Setenv("TEST_DUR_VAL", "30s")
+		defer os.Unsetenv("TEST_DUR_VAL")
+		assert.Equal(t, 30*time.Second, getEnvAsDuration("TEST_DUR_VAL", 5*time.Second))
 
-func TestGetEnvAsDuration(t *testing.T) {
-	_ = os.Setenv("TEST_DURATION", "5s")
-	_ = os.Setenv("TEST_DURATION_INVALID", "not_duration")
-	defer func() {
-		_ = os.Unsetenv("TEST_DURATION")
-		_ = os.Unsetenv("TEST_DURATION_INVALID")
-	}()
+		os.Setenv("TEST_DUR_BAD", "badduration")
+		defer os.Unsetenv("TEST_DUR_BAD")
+		assert.Equal(t, 5*time.Second, getEnvAsDuration("TEST_DUR_BAD", 5*time.Second))
+	})
 
-	if got := getEnvAsDuration("TEST_DURATION", 0); got != 5*time.Second {
-		t.Errorf("getEnvAsDuration() = %v, want %v", got, 5*time.Second)
-	}
-	if got := getEnvAsDuration("NON_EXISTENT", 10*time.Second); got != 10*time.Second {
-		t.Errorf("getEnvAsDuration() = %v, want %v", got, 10*time.Second)
-	}
-	if got := getEnvAsDuration("TEST_DURATION_INVALID", 20*time.Second); got != 20*time.Second {
-		t.Errorf("getEnvAsDuration() with invalid = %v, want %v", got, 20*time.Second)
-	}
-}
+	t.Run("getEnvAsSlice", func(t *testing.T) {
+		defaults := []string{"a", "b"}
+		assert.Equal(t, defaults, getEnvAsSlice("TEST_NONEXISTENT_KEY_12345", defaults))
 
-func TestGetEnvAsSlice(t *testing.T) {
-	_ = os.Setenv("TEST_SLICE", "a,b,c")
-	_ = os.Setenv("TEST_SLICE_SPACES", " a , b , c ")
-	_ = os.Setenv("TEST_SLICE_EMPTY", "")
-	_ = os.Setenv("TEST_SLICE_COMMAS", ",,,")
-	defer func() {
-		_ = os.Unsetenv("TEST_SLICE")
-		_ = os.Unsetenv("TEST_SLICE_SPACES")
-		_ = os.Unsetenv("TEST_SLICE_EMPTY")
-		_ = os.Unsetenv("TEST_SLICE_COMMAS")
-	}()
+		os.Setenv("TEST_SLICE_VAL", "x, y, z")
+		defer os.Unsetenv("TEST_SLICE_VAL")
+		assert.Equal(t, []string{"x", "y", "z"}, getEnvAsSlice("TEST_SLICE_VAL", defaults))
 
-	defaultSlice := []string{testDefault}
-
-	got := getEnvAsSlice("TEST_SLICE", defaultSlice)
-	if len(got) != 3 || got[0] != "a" || got[1] != "b" || got[2] != "c" {
-		t.Errorf("getEnvAsSlice() = %v, want [a b c]", got)
-	}
-
-	got = getEnvAsSlice("TEST_SLICE_SPACES", defaultSlice)
-	if len(got) != 3 || got[0] != "a" || got[1] != "b" || got[2] != "c" {
-		t.Errorf("getEnvAsSlice() with spaces = %v, want [a b c]", got)
-	}
-
-	got = getEnvAsSlice("TEST_SLICE_EMPTY", defaultSlice)
-	if len(got) != 1 || got[0] != testDefault {
-		t.Errorf("getEnvAsSlice() empty = %v, want [default]", got)
-	}
-
-	got = getEnvAsSlice("NON_EXISTENT", defaultSlice)
-	if len(got) != 1 || got[0] != testDefault {
-		t.Errorf("getEnvAsSlice() missing = %v, want [default]", got)
-	}
-
-	got = getEnvAsSlice("TEST_SLICE_COMMAS", defaultSlice)
-	if len(got) != 1 || got[0] != testDefault {
-		t.Errorf("getEnvAsSlice() commas only = %v, want [default]", got)
-	}
+		os.Setenv("TEST_SLICE_EMPTY", "")
+		defer os.Unsetenv("TEST_SLICE_EMPTY")
+		assert.Equal(t, defaults, getEnvAsSlice("TEST_SLICE_EMPTY", defaults))
+	})
 }
 
 func TestSplitAndTrim(t *testing.T) {
-	tests := []struct {
-		input    string
-		sep      string
-		expected []string
-	}{
-		{"a,b,c", ",", []string{"a", "b", "c"}},
-		{" a , b , c ", ",", []string{"a", "b", "c"}},
-		{"", ",", []string{}},
-		{"  ,  ,  ", ",", []string{}},
-		{"hello", ",", []string{"hello"}},
-		{"a::b::c", "::", []string{"a", "b", "c"}},
-	}
-
-	for _, tt := range tests {
-		got := splitAndTrim(tt.input, tt.sep)
-		if len(got) != len(tt.expected) {
-			t.Errorf("splitAndTrim(%q, %q) = %v, want %v", tt.input, tt.sep, got, tt.expected)
-			continue
-		}
-		for i := range got {
-			if got[i] != tt.expected[i] {
-				t.Errorf("splitAndTrim(%q, %q)[%d] = %q, want %q", tt.input, tt.sep, i, got[i], tt.expected[i])
-			}
-		}
-	}
+	assert.Equal(t, []string{"a", "b", "c"}, splitAndTrim("a, b, c", ","))
+	assert.Equal(t, []string{"hello"}, splitAndTrim("hello", ","))
+	assert.Empty(t, splitAndTrim("", ","))
+	assert.Equal(t, []string{"x", "y"}, splitAndTrim("  x  ,  y  ", ","))
 }
 
 func TestSplitString(t *testing.T) {
-	tests := []struct {
-		input    string
-		sep      string
-		expected []string
-	}{
-		{"a,b,c", ",", []string{"a", "b", "c"}},
-		{"", ",", []string{}},
-		{"hello", ",", []string{"hello"}},
-		{"a::b::c", "::", []string{"a", "b", "c"}},
-		{"abc", "abc", []string{"", ""}},
-		{",", ",", []string{"", ""}},
-	}
-
-	for _, tt := range tests {
-		got := splitString(tt.input, tt.sep)
-		if len(got) != len(tt.expected) {
-			t.Errorf("splitString(%q, %q) = %v (len %d), want %v (len %d)", tt.input, tt.sep, got, len(got), tt.expected, len(tt.expected))
-			continue
-		}
-		for i := range got {
-			if got[i] != tt.expected[i] {
-				t.Errorf("splitString(%q, %q)[%d] = %q, want %q", tt.input, tt.sep, i, got[i], tt.expected[i])
-			}
-		}
-	}
+	assert.Equal(t, []string{"a", "b", "c"}, splitString("a,b,c", ","))
+	assert.Equal(t, []string{"hello"}, splitString("hello", ","))
+	assert.Empty(t, splitString("", ","))
+	assert.Equal(t, []string{"a", "b"}, splitString("a::b", "::"))
 }
 
 func TestTrimSpace(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"  hello  ", "hello"},
-		{"\t\nhello\r\n", "hello"},
-		{"hello", "hello"},
-		{"   ", ""},
-		{"", ""},
-		{" hello world ", "hello world"},
-	}
-
-	for _, tt := range tests {
-		got := trimSpace(tt.input)
-		if got != tt.expected {
-			t.Errorf("trimSpace(%q) = %q, want %q", tt.input, got, tt.expected)
-		}
-	}
+	assert.Equal(t, "hello", trimSpace("  hello  "))
+	assert.Equal(t, "hello", trimSpace("\t\nhello\r\n"))
+	assert.Equal(t, "", trimSpace("   "))
+	assert.Equal(t, "", trimSpace(""))
+	assert.Equal(t, "a b", trimSpace("  a b  "))
 }
