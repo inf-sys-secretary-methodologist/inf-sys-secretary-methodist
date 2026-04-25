@@ -173,7 +173,8 @@
     "mobileNavigation": "Mobile navigation",
     "aiAssistant": "AI Assistant",
     "settingsPage": "Settings",
-    "tasks": "Tasks"
+    "tasks": "Tasks",
+    "announcements": "Announcements"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -2017,6 +2018,94 @@
       "createFailed": "Failed to create task",
       "updateFailed": "Failed to update task",
       "deleteFailed": "Failed to delete task"
+    }
+  },
+  "announcements": {
+    "title": "Announcements",
+    "description": "Announcement feed for staff and students",
+    "search": "Search",
+    "searchPlaceholder": "Search by title or content...",
+    "reset": "Reset",
+    "create": "Create announcement",
+    "edit": "Edit",
+    "delete": "Delete",
+    "menu": "Announcement menu",
+    "pinned": "Pinned",
+    "pinnedOnly": "Pinned only",
+    "noAnnouncements": "No announcements",
+    "loading": "Loading announcements...",
+    "loadFailed": "Failed to load announcements",
+    "noAttachments": "No attachments",
+    "status": {
+      "label": "Status",
+      "all": "All statuses",
+      "draft": "Draft",
+      "published": "Published",
+      "archived": "Archived"
+    },
+    "priority": {
+      "label": "Priority",
+      "all": "Any priority",
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "audience": {
+      "label": "Audience",
+      "all": "All",
+      "students": "Students",
+      "teachers": "Teachers",
+      "staff": "Staff",
+      "admins": "Admins"
+    },
+    "actions": {
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "archive": "Archive"
+    },
+    "tabs": {
+      "all": "All",
+      "draft": "Drafts",
+      "published": "Published",
+      "archived": "Archive"
+    },
+    "attachments": {
+      "title": "Attachments",
+      "uploadFile": "Upload file",
+      "uploading": "Uploading...",
+      "remove": "Remove attachment"
+    },
+    "form": {
+      "createTitle": "New announcement",
+      "editTitle": "Edit announcement",
+      "titleLabel": "Title",
+      "titlePlaceholder": "What is the announcement about?",
+      "summaryLabel": "Summary",
+      "summaryPlaceholder": "Short essence (optional)",
+      "contentLabel": "Content",
+      "contentPlaceholder": "Full announcement text...",
+      "priorityLabel": "Priority",
+      "audienceLabel": "Audience",
+      "publishAtLabel": "Publish at",
+      "expireAtLabel": "Expires at",
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "comma-separated: important, deadline",
+      "pinnedLabel": "Pin to top",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "titleRequired": "Title is required",
+      "contentRequired": "Content is required",
+      "createFailed": "Failed to create announcement",
+      "updateFailed": "Failed to update announcement",
+      "deleteFailed": "Failed to delete announcement",
+      "publishFailed": "Failed to publish",
+      "unpublishFailed": "Failed to unpublish",
+      "archiveFailed": "Failed to archive",
+      "uploadFailed": "Failed to upload file",
+      "removeAttachmentFailed": "Failed to remove attachment"
     }
   }
 }

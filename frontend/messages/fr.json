@@ -173,7 +173,8 @@
     "mobileNavigation": "Navigation mobile",
     "aiAssistant": "Assistant IA",
     "settingsPage": "Paramètres",
-    "tasks": "Tâches"
+    "tasks": "Tâches",
+    "announcements": "Annonces"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -2037,6 +2038,94 @@
       "createFailed": "Échec de la création de la tâche",
       "updateFailed": "Échec de la mise à jour de la tâche",
       "deleteFailed": "Échec de la suppression de la tâche"
+    }
+  },
+  "announcements": {
+    "title": "Annonces",
+    "description": "Fil d'annonces pour le personnel et les étudiants",
+    "search": "Rechercher",
+    "searchPlaceholder": "Rechercher par titre ou contenu...",
+    "reset": "Réinitialiser",
+    "create": "Créer une annonce",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "menu": "Menu de l'annonce",
+    "pinned": "Épinglée",
+    "pinnedOnly": "Uniquement épinglées",
+    "noAnnouncements": "Aucune annonce",
+    "loading": "Chargement des annonces...",
+    "loadFailed": "Échec du chargement des annonces",
+    "noAttachments": "Aucune pièce jointe",
+    "status": {
+      "label": "Statut",
+      "all": "Tous les statuts",
+      "draft": "Brouillon",
+      "published": "Publiée",
+      "archived": "Archivée"
+    },
+    "priority": {
+      "label": "Priorité",
+      "all": "Toute priorité",
+      "low": "Basse",
+      "normal": "Normale",
+      "high": "Haute",
+      "urgent": "Urgente"
+    },
+    "audience": {
+      "label": "Public",
+      "all": "Tous",
+      "students": "Étudiants",
+      "teachers": "Enseignants",
+      "staff": "Personnel",
+      "admins": "Administrateurs"
+    },
+    "actions": {
+      "publish": "Publier",
+      "unpublish": "Dépublier",
+      "archive": "Archiver"
+    },
+    "tabs": {
+      "all": "Toutes",
+      "draft": "Brouillons",
+      "published": "Publiées",
+      "archived": "Archives"
+    },
+    "attachments": {
+      "title": "Pièces jointes",
+      "uploadFile": "Téléverser un fichier",
+      "uploading": "Téléversement...",
+      "remove": "Supprimer la pièce jointe"
+    },
+    "form": {
+      "createTitle": "Nouvelle annonce",
+      "editTitle": "Modifier l'annonce",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "De quoi parle l'annonce ?",
+      "summaryLabel": "Résumé",
+      "summaryPlaceholder": "Brève essence (optionnel)",
+      "contentLabel": "Contenu",
+      "contentPlaceholder": "Texte complet de l'annonce...",
+      "priorityLabel": "Priorité",
+      "audienceLabel": "Public",
+      "publishAtLabel": "Publier à partir de",
+      "expireAtLabel": "Expire le",
+      "tagsLabel": "Étiquettes",
+      "tagsPlaceholder": "séparées par virgule : important, échéance",
+      "pinnedLabel": "Épingler en haut",
+      "save": "Enregistrer",
+      "cancel": "Annuler"
+    },
+    "errors": {
+      "titleRequired": "Le titre est obligatoire",
+      "contentRequired": "Le contenu est obligatoire",
+      "createFailed": "Échec de la création de l'annonce",
+      "updateFailed": "Échec de la mise à jour de l'annonce",
+      "deleteFailed": "Échec de la suppression de l'annonce",
+      "publishFailed": "Échec de la publication",
+      "unpublishFailed": "Échec de la dépublication",
+      "archiveFailed": "Échec de l'archivage",
+      "uploadFailed": "Échec du téléversement",
+      "removeAttachmentFailed": "Échec de la suppression de la pièce jointe"
     }
   }
 }

@@ -173,7 +173,8 @@
     "mobileNavigation": "التنقل للجوال",
     "aiAssistant": "مساعد الذكاء الاصطناعي",
     "settingsPage": "الإعدادات",
-    "tasks": "المهام"
+    "tasks": "المهام",
+    "announcements": "الإعلانات"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -2037,6 +2038,94 @@
       "createFailed": "فشل إنشاء المهمة",
       "updateFailed": "فشل تحديث المهمة",
       "deleteFailed": "فشل حذف المهمة"
+    }
+  },
+  "announcements": {
+    "title": "الإعلانات",
+    "description": "تغذية الإعلانات للموظفين والطلاب",
+    "search": "بحث",
+    "searchPlaceholder": "ابحث بالعنوان أو المحتوى...",
+    "reset": "إعادة تعيين",
+    "create": "إنشاء إعلان",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "menu": "قائمة الإعلان",
+    "pinned": "مثبّت",
+    "pinnedOnly": "المثبّتة فقط",
+    "noAnnouncements": "لا توجد إعلانات",
+    "loading": "جاري تحميل الإعلانات...",
+    "loadFailed": "فشل تحميل الإعلانات",
+    "noAttachments": "لا توجد مرفقات",
+    "status": {
+      "label": "الحالة",
+      "all": "كل الحالات",
+      "draft": "مسودة",
+      "published": "منشور",
+      "archived": "مؤرشف"
+    },
+    "priority": {
+      "label": "الأولوية",
+      "all": "كل الأولويات",
+      "low": "منخفضة",
+      "normal": "عادية",
+      "high": "عالية",
+      "urgent": "عاجلة"
+    },
+    "audience": {
+      "label": "الجمهور",
+      "all": "الجميع",
+      "students": "الطلاب",
+      "teachers": "المعلمون",
+      "staff": "الموظفون",
+      "admins": "المشرفون"
+    },
+    "actions": {
+      "publish": "نشر",
+      "unpublish": "إلغاء النشر",
+      "archive": "أرشفة"
+    },
+    "tabs": {
+      "all": "الكل",
+      "draft": "المسودات",
+      "published": "المنشورة",
+      "archived": "الأرشيف"
+    },
+    "attachments": {
+      "title": "المرفقات",
+      "uploadFile": "تحميل ملف",
+      "uploading": "جاري التحميل...",
+      "remove": "حذف المرفق"
+    },
+    "form": {
+      "createTitle": "إعلان جديد",
+      "editTitle": "تعديل الإعلان",
+      "titleLabel": "العنوان",
+      "titlePlaceholder": "ما موضوع الإعلان؟",
+      "summaryLabel": "ملخص",
+      "summaryPlaceholder": "ملخص قصير (اختياري)",
+      "contentLabel": "المحتوى",
+      "contentPlaceholder": "النص الكامل للإعلان...",
+      "priorityLabel": "الأولوية",
+      "audienceLabel": "الجمهور",
+      "publishAtLabel": "النشر في",
+      "expireAtLabel": "ينتهي في",
+      "tagsLabel": "الوسوم",
+      "tagsPlaceholder": "مفصولة بفاصلة: مهم، موعد نهائي",
+      "pinnedLabel": "تثبيت في الأعلى",
+      "save": "حفظ",
+      "cancel": "إلغاء"
+    },
+    "errors": {
+      "titleRequired": "العنوان مطلوب",
+      "contentRequired": "المحتوى مطلوب",
+      "createFailed": "فشل إنشاء الإعلان",
+      "updateFailed": "فشل تحديث الإعلان",
+      "deleteFailed": "فشل حذف الإعلان",
+      "publishFailed": "فشل النشر",
+      "unpublishFailed": "فشل إلغاء النشر",
+      "archiveFailed": "فشل الأرشفة",
+      "uploadFailed": "فشل تحميل الملف",
+      "removeAttachmentFailed": "فشل حذف المرفق"
     }
   }
 }

@@ -173,7 +173,8 @@
     "mobileNavigation": "Мобильная навигация",
     "aiAssistant": "AI Ассистент",
     "settingsPage": "Настройки",
-    "tasks": "Задачи"
+    "tasks": "Задачи",
+    "announcements": "Объявления"
   },
   "roles": {
     "system_admin": "Администратор",
@@ -2037,6 +2038,94 @@
       "createFailed": "Не удалось создать задачу",
       "updateFailed": "Не удалось обновить задачу",
       "deleteFailed": "Не удалось удалить задачу"
+    }
+  },
+  "announcements": {
+    "title": "Объявления",
+    "description": "Лента объявлений для сотрудников и студентов",
+    "search": "Поиск",
+    "searchPlaceholder": "Поиск по названию или содержимому...",
+    "reset": "Сбросить",
+    "create": "Создать объявление",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "menu": "Меню объявления",
+    "pinned": "Закреплено",
+    "pinnedOnly": "Только закреплённые",
+    "noAnnouncements": "Объявлений нет",
+    "loading": "Загрузка объявлений...",
+    "loadFailed": "Не удалось загрузить объявления",
+    "noAttachments": "Вложений нет",
+    "status": {
+      "label": "Статус",
+      "all": "Все статусы",
+      "draft": "Черновик",
+      "published": "Опубликовано",
+      "archived": "В архиве"
+    },
+    "priority": {
+      "label": "Приоритет",
+      "all": "Любой приоритет",
+      "low": "Низкий",
+      "normal": "Обычный",
+      "high": "Высокий",
+      "urgent": "Срочный"
+    },
+    "audience": {
+      "label": "Аудитория",
+      "all": "Все",
+      "students": "Студенты",
+      "teachers": "Преподаватели",
+      "staff": "Сотрудники",
+      "admins": "Администраторы"
+    },
+    "actions": {
+      "publish": "Опубликовать",
+      "unpublish": "Снять с публикации",
+      "archive": "В архив"
+    },
+    "tabs": {
+      "all": "Все",
+      "draft": "Черновики",
+      "published": "Опубликованные",
+      "archived": "Архив"
+    },
+    "attachments": {
+      "title": "Вложения",
+      "uploadFile": "Загрузить файл",
+      "uploading": "Загрузка...",
+      "remove": "Удалить вложение"
+    },
+    "form": {
+      "createTitle": "Новое объявление",
+      "editTitle": "Редактирование объявления",
+      "titleLabel": "Заголовок",
+      "titlePlaceholder": "О чём объявление?",
+      "summaryLabel": "Краткое описание",
+      "summaryPlaceholder": "Несколько слов сути (необязательно)",
+      "contentLabel": "Содержание",
+      "contentPlaceholder": "Полный текст объявления...",
+      "priorityLabel": "Приоритет",
+      "audienceLabel": "Аудитория",
+      "publishAtLabel": "Опубликовать с",
+      "expireAtLabel": "Истекает",
+      "tagsLabel": "Теги",
+      "tagsPlaceholder": "через запятую: важное, дедлайн",
+      "pinnedLabel": "Закрепить вверху",
+      "save": "Сохранить",
+      "cancel": "Отмена"
+    },
+    "errors": {
+      "titleRequired": "Введите заголовок",
+      "contentRequired": "Введите содержание",
+      "createFailed": "Не удалось создать объявление",
+      "updateFailed": "Не удалось обновить объявление",
+      "deleteFailed": "Не удалось удалить объявление",
+      "publishFailed": "Не удалось опубликовать",
+      "unpublishFailed": "Не удалось снять с публикации",
+      "archiveFailed": "Не удалось архивировать",
+      "uploadFailed": "Не удалось загрузить файл",
+      "removeAttachmentFailed": "Не удалось удалить вложение"
     }
   }
 }
