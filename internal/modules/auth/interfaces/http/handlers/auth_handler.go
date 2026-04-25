@@ -13,6 +13,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/messages"
 	emailServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
@@ -61,7 +62,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	ctx := c.Request.Context()
 	if err := h.usecase.Register(ctx, input); err != nil {
 		if errors.Is(err, domain.ErrRoleNotAllowedForSelfRegistration) {
-			c.JSON(http.StatusForbidden, response.Forbidden("Эта роль недоступна для самостоятельной регистрации"))
+			c.JSON(http.StatusForbidden, response.Forbidden(messages.RoleNotAllowedForSelfRegistration))
 			return
 		}
 		httpErr := response.MapDomainError(err)
