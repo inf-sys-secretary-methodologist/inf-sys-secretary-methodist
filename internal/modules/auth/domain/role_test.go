@@ -70,3 +70,23 @@ func TestScopeStruct(t *testing.T) {
 	s := Scope{FacultyID: &fid}
 	assert.Equal(t, "f1", *s.FacultyID)
 }
+
+func TestRoleType_IsAllowedForSelfRegistration(t *testing.T) {
+	tests := []struct {
+		name string
+		role RoleType
+		want bool
+	}{
+		{"student is allowed", RoleStudent, true},
+		{"teacher is allowed", RoleTeacher, true},
+		{"methodist is denied", RoleMethodist, false},
+		{"academic_secretary is denied", RoleAcademicSecretary, false},
+		{"system_admin is denied", RoleSystemAdmin, false},
+		{"unknown role is denied", RoleType("unknown"), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.role.IsAllowedForSelfRegistration())
+		})
+	}
+}
