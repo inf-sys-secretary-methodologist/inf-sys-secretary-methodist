@@ -37,16 +37,18 @@ func createDefaultRequest() *dto.CreateAnnouncementRequest {
 // --- MockAnnouncementRepository ---
 
 type MockAnnouncementRepository struct {
-	announcements map[int64]*entities.Announcement
-	attachments   map[int64][]*entities.AnnouncementAttachment
-	nextID        int64
+	announcements   map[int64]*entities.Announcement
+	attachments     map[int64][]*entities.AnnouncementAttachment
+	nextID          int64
+	nextAttachmentID int64
 }
 
 func NewMockAnnouncementRepository() *MockAnnouncementRepository {
 	return &MockAnnouncementRepository{
-		announcements: make(map[int64]*entities.Announcement),
-		attachments:   make(map[int64][]*entities.AnnouncementAttachment),
-		nextID:        1,
+		announcements:    make(map[int64]*entities.Announcement),
+		attachments:      make(map[int64][]*entities.AnnouncementAttachment),
+		nextID:           1,
+		nextAttachmentID: 1,
 	}
 }
 
@@ -149,6 +151,8 @@ func (m *MockAnnouncementRepository) IncrementViewCount(_ context.Context, id in
 }
 
 func (m *MockAnnouncementRepository) AddAttachment(_ context.Context, attachment *entities.AnnouncementAttachment) error {
+	attachment.ID = m.nextAttachmentID
+	m.nextAttachmentID++
 	m.attachments[attachment.AnnouncementID] = append(m.attachments[attachment.AnnouncementID], attachment)
 	return nil
 }

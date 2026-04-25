@@ -52,6 +52,10 @@ func (m *mockAttachmentStorage) Delete(_ context.Context, key string) error {
 	return nil
 }
 
+func (m *mockAttachmentStorage) GetPresignedURL(_ context.Context, key string, _ time.Duration) (string, error) {
+	return "https://example.test/" + key, nil
+}
+
 func TestAddAttachment_Success(t *testing.T) {
 	repo := NewMockAnnouncementRepository()
 	storage := newMockAttachmentStorage()

@@ -35,6 +35,7 @@ type AnnouncementUseCase struct {
 	auditLogger         *logging.AuditLogger
 	notificationUseCase *notifUsecases.NotificationUseCase
 	userIDsProvider     UserIDsProvider
+	attachmentStorage   AttachmentStorage // optional; wired via SetAttachmentStorage
 }
 
 // NewAnnouncementUseCase creates a new AnnouncementUseCase.
