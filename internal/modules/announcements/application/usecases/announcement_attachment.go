@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path"
-
-	"github.com/google/uuid"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
 )
@@ -49,13 +46,9 @@ func (uc *AnnouncementUseCase) AddAttachment(
 		return nil, ErrAnnouncementNotFound
 	}
 
-	// 2. Upload to storage. Key includes a UUID so concurrent uploads of
-	// identically-named files don't collide.
-	key := path.Join(
-		"announcements",
-		fmt.Sprintf("%d", announcementID),
-		uuid.NewString()+"-"+fileName,
-	)
+	// 2. Upload to storage. Keying scheme owned by attachmentStorageKey() —
+	// see attachment_storage.go for the layout.
+	key := attachmentStorageKey(announcementID, fileName)
 	if _, err := uc.attachmentStorage.Upload(ctx, key, reader, size, mimeType); err != nil {
 		return nil, fmt.Errorf("failed to upload attachment: %w", err)
 	}

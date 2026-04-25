@@ -78,8 +78,12 @@ export function AnnouncementForm({
         is_pinned: isPinned,
       }
       if (summary.trim()) input.summary = summary.trim()
-      if (publishAt) input.publish_at = new Date(publishAt).toISOString()
-      if (expireAt) input.expire_at = new Date(expireAt).toISOString()
+      // Parse "YYYY-MM-DD" from <input type="date"> as local midnight,
+      // not UTC midnight. new Date("2026-04-30") would produce UTC midnight,
+      // shifting the date by the user's UTC offset; appending T00:00:00
+      // (no Z) makes the JS Date constructor treat it as local time.
+      if (publishAt) input.publish_at = new Date(`${publishAt}T00:00:00`).toISOString()
+      if (expireAt) input.expire_at = new Date(`${expireAt}T00:00:00`).toISOString()
       const tagsList = tagsInput
         .split(',')
         .map((s) => s.trim())

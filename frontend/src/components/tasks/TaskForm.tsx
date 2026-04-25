@@ -50,7 +50,9 @@ export function TaskForm({ task, onSubmit, onCancel, className }: TaskFormProps)
         priority,
       }
       if (description.trim()) input.description = description.trim()
-      if (dueDate) input.due_date = new Date(dueDate).toISOString()
+      // Parse "YYYY-MM-DD" as local midnight rather than UTC midnight, so the
+      // due date the user picked stays the same after timezone conversion.
+      if (dueDate) input.due_date = new Date(`${dueDate}T00:00:00`).toISOString()
       await onSubmit(input)
     } finally {
       setSubmitting(false)
