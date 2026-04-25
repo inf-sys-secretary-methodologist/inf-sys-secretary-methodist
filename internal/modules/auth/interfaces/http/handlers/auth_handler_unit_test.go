@@ -312,6 +312,40 @@ func TestRegister(t *testing.T) {
 		assert.True(t, w.Code >= 400)
 	})
 
+	t.Run("returns 403 for privileged role", func(t *testing.T) {
+		privilegedRoles := []string{
+			string(domain.RoleSystemAdmin),
+			string(domain.RoleMethodist),
+			string(domain.RoleAcademicSecretary),
+		}
+		for _, role := range privilegedRoles {
+			t.Run(role, func(t *testing.T) {
+				mockRepo := new(MockUserRepository)
+				handler := setupHandler(mockRepo)
+
+				router := gin.New()
+				router.POST("/register", handler.Register)
+
+				payload := map[string]string{
+					"email":    "attacker-" + role + "@example.com",
+					"password": testPassword,
+					"name":     "Attacker User",
+					"role":     role,
+				}
+				body, _ := json.Marshal(payload)
+				req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				w := httptest.NewRecorder()
+
+				router.ServeHTTP(w, req)
+
+				assert.Equal(t, http.StatusForbidden, w.Code,
+					"privileged role %s must be rejected with 403", role)
+				mockRepo.AssertNotCalled(t, "Create")
+			})
+		}
+	})
+
 	t.Run("registration succeeds but auto-login fails", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
 		handler := setupHandler(mockRepo)
