@@ -16,11 +16,12 @@ describe('TaskFilters', () => {
     render(<TaskFilters value={{}} onChange={onChange} />)
 
     const search = screen.getByPlaceholderText(/searchPlaceholder|search/i)
-    await user.type(search, 'отчёт')
+    // Single keystroke is enough — the controlled component forwards each
+    // change to the parent. Cumulative string would require a stateful wrapper.
+    await user.type(search, 'r')
 
     expect(onChange).toHaveBeenCalled()
-    const lastCall = onChange.mock.calls.at(-1)?.[0]
-    expect(lastCall.search).toBe('отчёт')
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ search: 'r' }))
   })
 
   it('calls onChange when status is selected', async () => {
