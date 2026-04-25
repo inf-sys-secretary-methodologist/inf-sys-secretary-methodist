@@ -422,6 +422,10 @@ func main() {
 	// Initialize announcements module
 	announcementRepo := announcementPersistence.NewAnnouncementRepositoryPG(db)
 	announcementUseCase := announcementUsecases.NewAnnouncementUseCase(announcementRepo, auditLogger, notificationUseCase, nil)
+	if s3Client != nil {
+		announcementUseCase.SetAttachmentStorage(s3Client)
+		logger.Info("Announcement attachment storage wired (S3)", nil)
+	}
 	logger.Info("Announcements module initialized", nil)
 
 	// Initialize dashboard module
@@ -1745,6 +1749,10 @@ func setupRoutes(
 				announcementsGroup.POST("/:id/unpublish", announcementHandlerInstance.Unpublish)
 				announcementsGroup.POST("/:id/archive", announcementHandlerInstance.Archive)
 
+				// Attachments
+				announcementsGroup.POST("/:id/attachments", announcementHandlerInstance.UploadAttachment)
+				announcementsGroup.DELETE("/:id/attachments/:attachmentID", announcementHandlerInstance.DeleteAttachment)
+
 				// CORS preflight handlers
 				announcementsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				announcementsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
@@ -1754,6 +1762,8 @@ func setupRoutes(
 				announcementsGroup.OPTIONS("/:id/publish", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				announcementsGroup.OPTIONS("/:id/unpublish", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				announcementsGroup.OPTIONS("/:id/archive", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				announcementsGroup.OPTIONS("/:id/attachments", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				announcementsGroup.OPTIONS("/:id/attachments/:attachmentID", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 
 			logger.Info("Announcements module routes registered", nil)
