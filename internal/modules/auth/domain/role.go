@@ -1,6 +1,14 @@
 package domain
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+// ErrRoleNotAllowedForSelfRegistration is returned when a user attempts
+// to self-register with a role that is not whitelisted for public
+// registration (e.g. system_admin, methodist, academic_secretary).
+var ErrRoleNotAllowedForSelfRegistration = errors.New("role not allowed for self-registration")
 
 // RoleType представляет тип роли
 type RoleType string

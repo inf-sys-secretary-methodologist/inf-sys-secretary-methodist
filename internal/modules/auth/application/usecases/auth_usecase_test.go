@@ -577,7 +577,7 @@ func TestRegister_Errors(t *testing.T) {
 		input := dto.RegisterInput{
 			Email:    "newuser@example.com",
 			Password: "SecurePass123!",
-			Role:     "admin",
+			Role:     string(domain.RoleStudent),
 		}
 
 		err := useCase.Register(context.Background(), input)
@@ -939,7 +939,7 @@ func TestRegister_PasswordTooLong(t *testing.T) {
 	input := dto.RegisterInput{
 		Email:    "longpass@example.com",
 		Password: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", // 73 'a' chars
-		Role:     "admin",
+		Role:     string(domain.RoleStudent),
 	}
 
 	err := useCase.Register(context.Background(), input)

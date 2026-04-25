@@ -208,6 +208,12 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 func (u *AuthUseCase) Register(ctx context.Context, input dto.RegisterInput) error {
 	startTime := time.Now()
 
+	role := domain.RoleType(input.Role)
+	if !role.IsAllowedForSelfRegistration() {
+		u.logRegistration(ctx, input.Email, input.Role, false, "role not allowed for self-registration")
+		return domain.ErrRoleNotAllowedForSelfRegistration
+	}
+
 	// Hash password with increased cost
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcryptCost)
 	if err != nil {
