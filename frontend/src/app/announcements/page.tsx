@@ -42,6 +42,11 @@ import { useAuthStore } from '@/stores/authStore'
 
 type StatusTab = 'all' | AnnouncementStatus
 
+// Backend supports up to 100 (validate min=1,max=100 in ListAnnouncementsRequest).
+// Pagination UI is tracked separately; until then this acts as a single-page
+// fetch ceiling.
+const ANNOUNCEMENTS_PAGE_SIZE = 100
+
 export default function AnnouncementsPage() {
   const t = useTranslations('announcements')
   useAuthCheck()
@@ -57,7 +62,7 @@ export default function AnnouncementsPage() {
   const effectiveFilters: AnnouncementFilterParams = {
     ...filters,
     status: tab === 'all' ? filters.status : tab,
-    limit: 100,
+    limit: ANNOUNCEMENTS_PAGE_SIZE,
   }
   const { announcements, total, isLoading, error, mutate } = useAnnouncements(effectiveFilters)
   const { announcement: editingAnnouncement, mutate: mutateOne } = useAnnouncement(editingId)

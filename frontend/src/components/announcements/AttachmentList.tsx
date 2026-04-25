@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { File, Image as ImageIcon, FileText, Trash2, Upload } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
@@ -38,6 +38,9 @@ export function AttachmentList({
   className,
 }: AttachmentListProps) {
   const t = useTranslations('announcements')
+  // Unique id so multiple AttachmentList instances on the same page don't
+  // collide via the htmlFor → id link.
+  const inputId = useId()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
 
@@ -93,14 +96,14 @@ export function AttachmentList({
       {onUpload && (
         <div>
           <label
-            htmlFor="ann-attachment-upload"
+            htmlFor={inputId}
             className="inline-flex items-center gap-2 text-sm font-medium text-primary cursor-pointer hover:underline"
           >
             <Upload className="h-4 w-4" />
             {uploading ? t('attachments.uploading') : t('attachments.uploadFile')}
           </label>
           <input
-            id="ann-attachment-upload"
+            id={inputId}
             ref={fileInputRef}
             type="file"
             onChange={handleFileChange}
