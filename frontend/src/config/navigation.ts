@@ -12,6 +12,7 @@ import {
   Settings,
   Sparkles,
   ListTodo,
+  Megaphone,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -117,6 +118,19 @@ export const navigationConfig: NavEntry[] = [
     url: '/tasks',
     icon: ListTodo,
     roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+  },
+  // Announcements - standalone (all authenticated users; STUDENT view-only)
+  {
+    nameKey: 'announcements',
+    url: '/announcements',
+    icon: Megaphone,
+    roles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+      UserRole.STUDENT,
+    ],
   },
   // Messages - standalone
   {
