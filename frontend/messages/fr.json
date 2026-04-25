@@ -172,7 +172,8 @@
     "mainNavigation": "Navigation principale",
     "mobileNavigation": "Navigation mobile",
     "aiAssistant": "Assistant IA",
-    "settingsPage": "Paramètres"
+    "settingsPage": "Paramètres",
+    "tasks": "Tâches"
   },
   "roles": {
     "system_admin": "Administrateur",
