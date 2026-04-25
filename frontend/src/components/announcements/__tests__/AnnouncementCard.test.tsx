@@ -56,8 +56,10 @@ describe('AnnouncementCard', () => {
 
   it('renders tags', () => {
     render(<AnnouncementCard announcement={baseAnnouncement} />)
-    expect(screen.getByText(/важное/i)).toBeInTheDocument()
-    expect(screen.getByText(/студенты/i)).toBeInTheDocument()
+    // Tags are rendered with # prefix; exact-match avoids collision with
+    // identical words appearing inside title/summary text.
+    expect(screen.getByText('#важное')).toBeInTheDocument()
+    expect(screen.getByText('#студенты')).toBeInTheDocument()
   })
 
   it('shows pinned indicator when is_pinned=true', () => {
