@@ -1,7 +1,7 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.101.0 (см. `VERSION` в корне)
-> **Состояние на:** 25 апреля 2026 (после релиза Tasks Module Frontend, GitHub #200)
+> **Версия проекта:** 0.102.0 (см. `VERSION` в корне)
+> **Состояние на:** 25 апреля 2026 (после релиза Announcements Module + Backend Attachments, GitHub #202)
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`
 
 ## Содержание
@@ -78,11 +78,12 @@ Backend + Frontend + API + проверено в use-flow.
 
 | Модуль | Backend | Frontend | Что отсутствует |
 |--------|:-------:|:--------:|-----------------|
-| **schedule** (расписание пар) | ✅ 2806 LOC | ⚠️ только календарь events | Нет страницы расписания пар (15 таблиц в БД) |
-| **announcements** | ✅ 1664 LOC | ❌ | Нет страницы `/announcements` (только в ActivityFeed дашборда) |
+| **schedule** (расписание пар) | ⚠️ только events | ⚠️ только календарь events | Нет lesson-handlers/usecase, страницы расписания пар |
 | **files** | ✅ 1933 LOC | ❌ | Нет файлового менеджера (только через документы и вложения) |
 
-**~~tasks~~** — закрыто **GitHub [#200](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/200)** в релизе **0.101.0**. Страница `/tasks` создана с фильтрами и Dialog для CRUD. Code review verdict: TDD 9 / Frontend 9 / Code Quality 9.
+**Закрыто в недавних релизах:**
+- **~~tasks~~** — GitHub [#200](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/200) в релизе **0.101.0**. Страница `/tasks` с фильтрами и Dialog для CRUD. Verdict: 9/9/9.
+- **~~announcements~~** — GitHub [#202](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/202) в релизе **0.102.0**. Страница `/announcements` со status-табами + Dialog с AttachmentList. Backend дополнен endpoint-ами для upload/remove attachments через S3. Verdict: 9/9/9/9.
 
 **Покрытие тестами** (in-progress, цель 60%, сейчас ~50%):
 - documents/usecases: 33%
@@ -261,9 +262,9 @@ Backend + Frontend + API + проверено в use-flow.
 | 1 | Workflow automation | in-progress (15%) |
 | 8 | Backend Test Coverage 60% | in-progress (~50%) |
 | **24** | **Tasks Module Frontend** | **✅ done 2026-04-25** (17 коммитов TDD, GH #200, релиз 0.101.0) |
-| 25 | **Schedule Lessons Frontend** (новая) | pending high |
-| 26 | **Announcements Frontend** (новая) | pending medium |
-| 27 | **Files Frontend** (новая) | pending medium |
+| 25 | Schedule Lessons Frontend | **blocked** (нет backend для schedule_lessons — только events) |
+| **26** | **Announcements Frontend + Backend Attachments** | **✅ done 2026-04-25** (24 коммита TDD full-stack, GH #202, релиз 0.102.0) |
+| 27 | **Files Frontend** | pending medium |
 | **28** | **🔐 SECURITY: Self-registration** | **✅ done 2026-04-25** (8 коммитов TDD, GH #199) |
 | 23 | Web Speech API в AI-чате | pending medium |
 | 2 | External calendars | pending medium |
@@ -274,12 +275,12 @@ Backend + Frontend + API + проверено в use-flow.
 
 ## Краткая сводка
 
-✅ **Готово к продакшну:** auth, users, documents, dashboard, notifications, messaging, reporting, integration, analytics, ai, **tasks (с 0.101.0)**
+✅ **Готово к продакшну (12 модулей):** auth, users, documents, dashboard, notifications, messaging, reporting, integration, analytics, ai, **tasks (с 0.101.0)**, **announcements (с 0.102.0)**
 
-⚠️ **Backend без UI:** schedule (пары), announcements, files
+⚠️ **Backend без UI:** schedule (пары — backend только частично), files
 
-❌ **Не реализовано:** workflow (согласование), электронная подпись, авто-расписание, внешние календари
+❌ **Не реализовано:** workflow (согласование), электронная подпись, авто-расписание, внешние календари, schedule lessons backend
 
 🔐 **Безопасность:** privilege escalation при регистрации **закрыта** (GitHub #199, фикс 2026-04-25). Глубинная защита в 4 слоях: domain → usecase → handler → frontend.
 
-📊 **Прогресс:** на 2026-04-25 закрыто 70 GitHub issues, 511+ коммитов. Code review compliance: все недавние релизы прошли с оценкой ≥9/10 по TDD, DDD, CA.
+📊 **Прогресс:** на 2026-04-25 закрыто 71+ GitHub issues, ~535+ коммитов. Code review compliance: все недавние релизы (0.100.1, 0.101.0, 0.102.0) прошли с оценкой ≥9/10 по TDD, DDD, CA.

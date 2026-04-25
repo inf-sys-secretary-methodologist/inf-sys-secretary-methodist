@@ -15,6 +15,37 @@
 
 ---
 
+## [0.102.0] — 2026-04-25
+
+### Added — Announcements Module Frontend + Backend Attachments (GitHub [#202](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/202))
+
+**Frontend:**
+- Страница `/announcements` с табами по статусу (all/draft/published/archived) и Dialog для CRUD + AttachmentList
+- Компоненты `AnnouncementCard`, `AnnouncementFilters`, `AnnouncementForm`, `AttachmentList`
+- SWR hooks: `useAnnouncements`, `useAnnouncement` + CRUD + status actions (publish/unpublish/archive) + attachment mutations
+- TypeScript types для всех enum (status × 3, priority × 4, target_audience × 5)
+- Navigation entry (видим всем 5 ролям, EDIT-actions только не-student)
+- Route-config rule для `/announcements`
+- 4 локализации (ru/en/fr/ar) parity verified
+
+**Backend (новое для attachments):**
+- `AttachmentStorage` interface (consumer-side в usecase, DIP pattern из files module)
+- `AnnouncementUseCase.AddAttachment/RemoveAttachment` с rollback на ошибке persist
+- HTTP handlers `UploadAttachment/DeleteAttachment` (multipart parsing)
+- Routes `POST /api/announcements/:id/attachments`, `DELETE /api/announcements/:id/attachments/:attachmentID`
+- DI: `SetAttachmentStorage(s3Client)` в main.go
+- Sentinel errors: `ErrStorageNotConfigured`, `ErrAttachmentNotFound`
+- Storage keying scheme isolated в `attachmentStorageKey()` helper
+
+### Fixed
+- Timezone bug в `<input type="date">` submit (AnnouncementForm + TaskForm) — теперь parsing как local midnight, не UTC midnight
+- AttachmentList использует `useId()` для защиты от коллизий htmlFor→id при multiple lists
+- Magic `limit: 100` извлечён в `ANNOUNCEMENTS_PAGE_SIZE` константу
+
+**Code review verdict:** TDD 9 / DDD 9 / Clean Architecture 9 / Code Quality 9.
+
+**Тесты:** Frontend 148 suites / **2265 tests** + Backend 92 packages — все green.
+
 ## [0.101.0] — 2026-04-25
 
 ### Added — Tasks Module Frontend (GitHub [#200](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/200))
