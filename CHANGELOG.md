@@ -15,6 +15,26 @@
 
 ---
 
+## [0.101.0] — 2026-04-25
+
+### Added — Tasks Module Frontend (GitHub [#200](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/200))
+
+- Страница `/tasks` — управление задачами с фильтрами и Dialog для create/edit
+- Компоненты `TaskCard`, `TaskFilters`, `TaskForm` — стиль mirrors `calendar/EventCard`
+- SWR hooks `useTasks`, `useTask` + CRUD мутации (`createTask`, `updateTask`, `deleteTask`)
+- TypeScript типы: `Task`, `TaskStatus`, `TaskPriority`, `CreateTaskInput`, `UpdateTaskInput`, `TaskFilterParams`
+- Navigation entry для `system_admin`, `methodist`, `academic_secretary`
+- 4 локализации (ru/en/fr/ar) с parity verification
+- Locale-aware date formatting через `useLocale() + localeMap` pattern
+- Table-driven тесты для 7 статусов и 4 приоритетов
+
+### Fixed
+- Pre-existing pre-existing assertions для TEACHER/ACADEMIC_SECRETARY ролей в `navigation.test.ts` (admin group flatten после settingsPage)
+
+**Code review verdict:** TDD 9 / Frontend Architecture 9 / Code Quality 9.
+
+**Тесты:** 142 frontend suites / 2214 tests + 92 backend packages — all green.
+
 ## [0.100.1] — 2026-04-25
 
 ### Security

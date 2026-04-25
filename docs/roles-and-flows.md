@@ -1,7 +1,7 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.100.1 (см. `VERSION` в корне)
-> **Состояние на:** 25 апреля 2026 (после фикса GitHub #199)
+> **Версия проекта:** 0.101.0 (см. `VERSION` в корне)
+> **Состояние на:** 25 апреля 2026 (после релиза Tasks Module Frontend, GitHub #200)
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`
 
 ## Содержание
@@ -79,9 +79,10 @@ Backend + Frontend + API + проверено в use-flow.
 | Модуль | Backend | Frontend | Что отсутствует |
 |--------|:-------:|:--------:|-----------------|
 | **schedule** (расписание пар) | ✅ 2806 LOC | ⚠️ только календарь events | Нет страницы расписания пар (15 таблиц в БД) |
-| **tasks** | ✅ 3734 LOC | ❌ | Нет страницы `/tasks` (есть в route-config, но page отсутствует) |
 | **announcements** | ✅ 1664 LOC | ❌ | Нет страницы `/announcements` (только в ActivityFeed дашборда) |
 | **files** | ✅ 1933 LOC | ❌ | Нет файлового менеджера (только через документы и вложения) |
+
+**~~tasks~~** — закрыто **GitHub [#200](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/200)** в релизе **0.101.0**. Страница `/tasks` создана с фильтрами и Dialog для CRUD. Code review verdict: TDD 9 / Frontend 9 / Code Quality 9.
 
 **Покрытие тестами** (in-progress, цель 60%, сейчас ~50%):
 - documents/usecases: 33%
@@ -259,7 +260,7 @@ Backend + Frontend + API + проверено в use-flow.
 |----|--------|--------|
 | 1 | Workflow automation | in-progress (15%) |
 | 8 | Backend Test Coverage 60% | in-progress (~50%) |
-| 24 | **Tasks Module Frontend** (новая) | pending high |
+| **24** | **Tasks Module Frontend** | **✅ done 2026-04-25** (17 коммитов TDD, GH #200, релиз 0.101.0) |
 | 25 | **Schedule Lessons Frontend** (новая) | pending high |
 | 26 | **Announcements Frontend** (новая) | pending medium |
 | 27 | **Files Frontend** (новая) | pending medium |
@@ -273,10 +274,12 @@ Backend + Frontend + API + проверено в use-flow.
 
 ## Краткая сводка
 
-✅ **Готово к продакшну:** auth, users, documents, dashboard, notifications, messaging, reporting, integration, analytics, ai
+✅ **Готово к продакшну:** auth, users, documents, dashboard, notifications, messaging, reporting, integration, analytics, ai, **tasks (с 0.101.0)**
 
-⚠️ **Backend без UI:** schedule (пары), tasks, announcements, files
+⚠️ **Backend без UI:** schedule (пары), announcements, files
 
 ❌ **Не реализовано:** workflow (согласование), электронная подпись, авто-расписание, внешние календари
 
 🔐 **Безопасность:** privilege escalation при регистрации **закрыта** (GitHub #199, фикс 2026-04-25). Глубинная защита в 4 слоях: domain → usecase → handler → frontend.
+
+📊 **Прогресс:** на 2026-04-25 закрыто 70 GitHub issues, 511+ коммитов. Code review compliance: все недавние релизы прошли с оценкой ≥9/10 по TDD, DDD, CA.
