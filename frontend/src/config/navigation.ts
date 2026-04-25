@@ -11,6 +11,7 @@ import {
   FileCheck,
   Settings,
   Sparkles,
+  ListTodo,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -109,6 +110,13 @@ export const navigationConfig: NavEntry[] = [
       UserRole.TEACHER,
       UserRole.STUDENT,
     ],
+  },
+  // Tasks - standalone (admin/methodist/academic_secretary only, mirrors route-config.ts)
+  {
+    nameKey: 'tasks',
+    url: '/tasks',
+    icon: ListTodo,
+    roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
   },
   // Messages - standalone
   {

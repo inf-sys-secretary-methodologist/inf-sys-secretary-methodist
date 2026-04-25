@@ -24,6 +24,7 @@ describe('navigationConfig', () => {
       'documentsGroup',
       'analyticsGroup',
       'calendar',
+      'tasks',
       'messages',
       'aiAssistant',
       'adminGroup',
