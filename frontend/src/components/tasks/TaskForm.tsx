@@ -1,6 +1,8 @@
 'use client'
 
+import * as React from 'react'
 import { useState } from 'react'
+import { format } from 'date-fns'
 import { useTranslations } from 'next-intl'
 
 import { cn } from '@/lib/utils'
@@ -26,11 +28,15 @@ export function TaskForm({ task, onSubmit, onCancel, className }: TaskFormProps)
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'normal')
-  const [dueDate, setDueDate] = useState(task?.due_date ? task.due_date.slice(0, 10) : '')
+  // Format the existing due date in the user's local timezone (yyyy-MM-dd)
+  // so the date-input value matches what the user actually scheduled.
+  const [dueDate, setDueDate] = useState(
+    task?.due_date ? format(new Date(task.due_date), 'yyyy-MM-dd') : ''
+  )
   const [titleError, setTitleError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = async (e: { preventDefault: () => void }) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!title.trim()) {
       setTitleError(t('errors.titleRequired'))
