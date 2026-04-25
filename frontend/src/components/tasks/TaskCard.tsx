@@ -1,9 +1,11 @@
 'use client'
 
 import { format } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, fr, ar } from 'date-fns/locale'
 import { Calendar, User, AlertTriangle, MoreHorizontal } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
+
+const localeMap = { ru, en: enUS, fr, ar }
 
 import { cn } from '@/lib/utils'
 import {
@@ -59,6 +61,8 @@ const STATUS_COLORS: Record<TaskStatus, string> = {
 
 export function TaskCard({ task, onClick, onEdit, onDelete, className }: TaskCardProps) {
   const t = useTranslations('tasks')
+  const locale = useLocale()
+  const dateLocale = localeMap[locale as keyof typeof localeMap] || enUS
   const priorityColors = PRIORITY_COLORS[task.priority]
 
   return (
@@ -165,7 +169,7 @@ export function TaskCard({ task, onClick, onEdit, onDelete, className }: TaskCar
               )}
             >
               <Calendar className="h-3.5 w-3.5" />
-              <span>{format(new Date(task.due_date), 'd MMM yyyy', { locale: ru })}</span>
+              <span>{format(new Date(task.due_date), 'd MMM yyyy', { locale: dateLocale })}</span>
             </div>
           )}
 
