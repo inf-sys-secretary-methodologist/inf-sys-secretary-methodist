@@ -256,9 +256,6 @@ export function RegisterForm({ redirectTo = '/login', onSuccess, className }: Re
         >
           <option value={UserRole.STUDENT}>{tRoles('student')}</option>
           <option value={UserRole.TEACHER}>{tRoles('teacher')}</option>
-          <option value={UserRole.ACADEMIC_SECRETARY}>{tRoles('academic_secretary')}</option>
-          <option value={UserRole.METHODIST}>{tRoles('methodist')}</option>
-          <option value={UserRole.SYSTEM_ADMIN}>{tRoles('system_admin')}</option>
         </select>
         {errors.role && (
           <p className="text-sm text-red-600 dark:text-red-400">{errors.role.message}</p>

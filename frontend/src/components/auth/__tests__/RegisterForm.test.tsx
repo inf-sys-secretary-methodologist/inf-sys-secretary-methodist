@@ -148,17 +148,14 @@ describe('RegisterForm', () => {
     expect(submitButton).not.toBeDisabled()
   })
 
-  it('has all role options', () => {
+  it('has only self-registration role options (student, teacher)', () => {
     render(<RegisterForm />)
 
     const roleSelect = screen.getByRole('combobox') as HTMLSelectElement
 
-    expect(roleSelect.options).toHaveLength(5)
+    expect(roleSelect.options).toHaveLength(2)
     expect(roleSelect.options[0]).toHaveValue(UserRole.STUDENT)
     expect(roleSelect.options[1]).toHaveValue(UserRole.TEACHER)
-    expect(roleSelect.options[2]).toHaveValue(UserRole.ACADEMIC_SECRETARY)
-    expect(roleSelect.options[3]).toHaveValue(UserRole.METHODIST)
-    expect(roleSelect.options[4]).toHaveValue(UserRole.SYSTEM_ADMIN)
   })
 
   it('defaults to STUDENT role', () => {
