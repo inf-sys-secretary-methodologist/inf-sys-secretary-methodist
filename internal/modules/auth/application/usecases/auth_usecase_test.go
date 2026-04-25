@@ -147,12 +147,46 @@ func TestRegister(t *testing.T) {
 	input := dto.RegisterInput{
 		Email:    "newuser@example.com",
 		Password: "SecurePass123!",
-		Role:     "admin",
+		Role:     string(domain.RoleStudent),
 	}
 
 	err := useCase.Register(context.Background(), input)
 	if err != nil {
 		t.Fatalf("Register failed: %v", err)
+	}
+}
+
+func TestRegister_RejectsPrivilegedRoles(t *testing.T) {
+	tests := []struct {
+		name    string
+		role    domain.RoleType
+		wantErr error
+	}{
+		{"student is allowed", domain.RoleStudent, nil},
+		{"teacher is allowed", domain.RoleTeacher, nil},
+		{"methodist is rejected", domain.RoleMethodist, domain.ErrRoleNotAllowedForSelfRegistration},
+		{"academic_secretary is rejected", domain.RoleAcademicSecretary, domain.ErrRoleNotAllowedForSelfRegistration},
+		{"system_admin is rejected", domain.RoleSystemAdmin, domain.ErrRoleNotAllowedForSelfRegistration},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := newMockUserRepository()
+			useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+
+			input := dto.RegisterInput{
+				Name:     "Test User",
+				Email:    "newuser-" + tt.name + "@example.com",
+				Password: "SecurePass123!",
+				Role:     string(tt.role),
+			}
+
+			err := useCase.Register(context.Background(), input)
+			if tt.wantErr == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, tt.wantErr)
+			}
+		})
 	}
 }
 
