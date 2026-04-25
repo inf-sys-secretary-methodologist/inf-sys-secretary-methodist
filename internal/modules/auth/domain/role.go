@@ -18,6 +18,14 @@ const (
 	RoleStudent RoleType = "student"
 )
 
+// IsAllowedForSelfRegistration reports whether the role can be chosen
+// during public registration. Only Student and Teacher are allowed;
+// privileged roles (Methodist, AcademicSecretary, SystemAdmin) must be
+// created by an administrator to prevent privilege escalation.
+func (r RoleType) IsAllowedForSelfRegistration() bool {
+	return r == RoleStudent || r == RoleTeacher
+}
+
 // ResourceType представляет тип ресурса
 type ResourceType string
 
