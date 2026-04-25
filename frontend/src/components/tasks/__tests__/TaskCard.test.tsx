@@ -1,7 +1,7 @@
 import { render, screen } from '@/test-utils'
 import userEvent from '@testing-library/user-event'
 import { TaskCard } from '../TaskCard'
-import type { Task } from '@/types/tasks'
+import { TASK_STATUSES, TASK_PRIORITIES, type Task, type TaskStatus, type TaskPriority } from '@/types/tasks'
 
 const baseTask: Task = {
   id: 1,
@@ -58,5 +58,19 @@ describe('TaskCard', () => {
     render(<TaskCard task={baseTask} onClick={onClick} />)
     await user.click(screen.getByText('Подготовить отчёт'))
     expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
+  // Table-driven: every TaskStatus enum value renders without error
+  // and produces a status badge containing the i18n key.
+  it.each(TASK_STATUSES)('renders status badge for status=%s', (status: TaskStatus) => {
+    render(<TaskCard task={{ ...baseTask, status }} />)
+    expect(screen.getByText(`status.${status}`)).toBeInTheDocument()
+  })
+
+  // Table-driven: every TaskPriority enum value renders without error
+  // and produces a priority badge.
+  it.each(TASK_PRIORITIES)('renders priority badge for priority=%s', (priority: TaskPriority) => {
+    render(<TaskCard task={{ ...baseTask, priority }} />)
+    expect(screen.getByText(`priority.${priority}`)).toBeInTheDocument()
   })
 })
