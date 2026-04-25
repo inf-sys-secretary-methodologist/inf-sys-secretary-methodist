@@ -84,6 +84,25 @@ describe('navigationConfig', () => {
     expect(itemKeys).toContain('integration')
   })
 
+  it('contains announcements entry pointing to /announcements for all authenticated users', () => {
+    const annEntry = navigationConfig.find((e) => e.nameKey === 'announcements')
+    expect(annEntry).toBeDefined()
+    expect(isNavGroup(annEntry!)).toBe(false)
+    if (annEntry && !isNavGroup(annEntry)) {
+      expect(annEntry.url).toBe('/announcements')
+      // Visible to all roles (including STUDENT in view-only mode).
+      expect(annEntry.roles).toEqual(
+        expect.arrayContaining([
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+          UserRole.STUDENT,
+        ])
+      )
+    }
+  })
+
   it('contains tasks entry pointing to /tasks for privileged roles', () => {
     const tasksEntry = navigationConfig.find((e) => e.nameKey === 'tasks')
     expect(tasksEntry).toBeDefined()
