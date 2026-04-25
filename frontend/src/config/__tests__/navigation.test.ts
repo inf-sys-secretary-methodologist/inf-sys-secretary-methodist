@@ -180,10 +180,15 @@ describe('getAvailableNavEntries', () => {
     expect(entryKeys).toContain('messages')
     expect(entryKeys).toContain('aiAssistant')
 
-    // Teacher should have access to users (from admin group) but not integration
-    // Since only users is available, admin group should be flattened to users item
-    const usersEntry = entries.find((e) => e.nameKey === 'users')
-    expect(usersEntry).toBeDefined()
+    // Teacher should have access to users (inside admin group) but not integration.
+    // Admin group also contains settingsPage (no role restriction → visible to all),
+    // so the group has 2+ visible items and is NOT flattened. Look inside adminGroup.
+    const adminGroup = entries.find((e) => e.nameKey === 'adminGroup') as NavGroup
+    expect(adminGroup).toBeDefined()
+    expect(isNavGroup(adminGroup)).toBe(true)
+    const adminItemKeys = adminGroup.items.map((i) => i.nameKey)
+    expect(adminItemKeys).toContain('users')
+    expect(adminItemKeys).not.toContain('integration')
 
     // Teacher should NOT have access to analytics group
     expect(entryKeys).not.toContain('analyticsGroup')
@@ -217,11 +222,15 @@ describe('getAvailableNavEntries', () => {
     expect(entryKeys).toContain('messages')
     expect(entryKeys).toContain('aiAssistant')
 
-    // Academic Secretary should have users but not integration
-    // So admin group should be flattened to users item
-    const usersEntry = entries.find((e) => e.nameKey === 'users')
-    expect(usersEntry).toBeDefined()
-    expect(entryKeys).not.toContain('integration')
+    // Academic Secretary should have users but not integration.
+    // Admin group also contains settingsPage (no role restriction), so the group
+    // has 2+ visible items and is NOT flattened. Look inside adminGroup.
+    const adminGroup = entries.find((e) => e.nameKey === 'adminGroup') as NavGroup
+    expect(adminGroup).toBeDefined()
+    expect(isNavGroup(adminGroup)).toBe(true)
+    const adminItemKeys = adminGroup.items.map((i) => i.nameKey)
+    expect(adminItemKeys).toContain('users')
+    expect(adminItemKeys).not.toContain('integration')
   })
 
   it('accepts string role', () => {
