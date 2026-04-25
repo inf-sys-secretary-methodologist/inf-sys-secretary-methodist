@@ -1,6 +1,8 @@
 # Роли и пользовательские потоки
 
-> Состояние на **25 апреля 2026** (последнее обновление: после фикса GitHub #199). Источники: код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, taskmaster.
+> **Версия проекта:** 0.100.1 (см. `VERSION` в корне)
+> **Состояние на:** 25 апреля 2026 (после фикса GitHub #199)
+> **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`
 
 ## Содержание
 
