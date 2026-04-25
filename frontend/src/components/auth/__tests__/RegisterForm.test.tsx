@@ -48,6 +48,19 @@ describe('RegisterForm', () => {
     expect(screen.getByText('login')).toBeInTheDocument()
   })
 
+  it('only offers self-registration roles (student, teacher) in role select', () => {
+    render(<RegisterForm />)
+
+    const select = screen.getByRole('combobox') as HTMLSelectElement
+    const optionValues = Array.from(select.options).map((o) => o.value)
+
+    expect(optionValues).toContain(UserRole.STUDENT)
+    expect(optionValues).toContain(UserRole.TEACHER)
+    expect(optionValues).not.toContain(UserRole.ACADEMIC_SECRETARY)
+    expect(optionValues).not.toContain(UserRole.METHODIST)
+    expect(optionValues).not.toContain(UserRole.SYSTEM_ADMIN)
+  })
+
   it('toggles password visibility for both fields', async () => {
     const user = userEvent.setup()
     render(<RegisterForm />)
