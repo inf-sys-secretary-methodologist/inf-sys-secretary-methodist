@@ -172,7 +172,8 @@
     "mainNavigation": "التنقل الرئيسي",
     "mobileNavigation": "التنقل للجوال",
     "aiAssistant": "مساعد الذكاء الاصطناعي",
-    "settingsPage": "الإعدادات"
+    "settingsPage": "الإعدادات",
+    "tasks": "المهام"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -1984,6 +1985,58 @@
       "panicking": "ذعر!",
       "relaxed": "مسترخي",
       "inspired": "ملهم"
+    }
+  },
+  "tasks": {
+    "title": "المهام",
+    "description": "إدارة المهام والمشاريع",
+    "search": "بحث",
+    "searchPlaceholder": "ابحث بالعنوان أو الوصف...",
+    "reset": "إعادة تعيين",
+    "create": "إنشاء مهمة",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "menu": "قائمة المهمة",
+    "overdue": "متأخرة",
+    "noTasks": "لا توجد مهام",
+    "loading": "جاري تحميل المهام...",
+    "loadFailed": "فشل تحميل المهام",
+    "status": {
+      "label": "الحالة",
+      "all": "كل الحالات",
+      "new": "جديدة",
+      "assigned": "مُسندة",
+      "in_progress": "قيد التنفيذ",
+      "review": "قيد المراجعة",
+      "completed": "مكتملة",
+      "canceled": "ملغاة",
+      "deferred": "مؤجلة"
+    },
+    "priority": {
+      "label": "الأولوية",
+      "all": "كل الأولويات",
+      "low": "منخفضة",
+      "normal": "عادية",
+      "high": "عالية",
+      "urgent": "عاجلة"
+    },
+    "form": {
+      "createTitle": "مهمة جديدة",
+      "editTitle": "تعديل المهمة",
+      "titleLabel": "العنوان",
+      "titlePlaceholder": "ماذا يجب أن يُنجز؟",
+      "descriptionLabel": "الوصف",
+      "descriptionPlaceholder": "تفاصيل إضافية...",
+      "priorityLabel": "الأولوية",
+      "dueDateLabel": "تاريخ الاستحقاق",
+      "save": "حفظ",
+      "cancel": "إلغاء"
+    },
+    "errors": {
+      "titleRequired": "العنوان مطلوب",
+      "createFailed": "فشل إنشاء المهمة",
+      "updateFailed": "فشل تحديث المهمة",
+      "deleteFailed": "فشل حذف المهمة"
     }
   }
 }

@@ -172,7 +172,8 @@
     "mainNavigation": "Main navigation",
     "mobileNavigation": "Mobile navigation",
     "aiAssistant": "AI Assistant",
-    "settingsPage": "Settings"
+    "settingsPage": "Settings",
+    "tasks": "Tasks"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -1964,6 +1965,58 @@
       "panicking": "Panicking!",
       "relaxed": "Relaxed",
       "inspired": "Inspired"
+    }
+  },
+  "tasks": {
+    "title": "Tasks",
+    "description": "Manage tasks and projects",
+    "search": "Search",
+    "searchPlaceholder": "Search by title or description...",
+    "reset": "Reset",
+    "create": "Create task",
+    "edit": "Edit",
+    "delete": "Delete",
+    "menu": "Task menu",
+    "overdue": "Overdue",
+    "noTasks": "No tasks",
+    "loading": "Loading tasks...",
+    "loadFailed": "Failed to load tasks",
+    "status": {
+      "label": "Status",
+      "all": "All statuses",
+      "new": "New",
+      "assigned": "Assigned",
+      "in_progress": "In progress",
+      "review": "In review",
+      "completed": "Completed",
+      "canceled": "Canceled",
+      "deferred": "Deferred"
+    },
+    "priority": {
+      "label": "Priority",
+      "all": "Any priority",
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "form": {
+      "createTitle": "New task",
+      "editTitle": "Edit task",
+      "titleLabel": "Title",
+      "titlePlaceholder": "What needs to be done?",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Additional details...",
+      "priorityLabel": "Priority",
+      "dueDateLabel": "Due date",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "titleRequired": "Title is required",
+      "createFailed": "Failed to create task",
+      "updateFailed": "Failed to update task",
+      "deleteFailed": "Failed to delete task"
     }
   }
 }

@@ -172,7 +172,8 @@
     "mainNavigation": "Основная навигация",
     "mobileNavigation": "Мобильная навигация",
     "aiAssistant": "AI Ассистент",
-    "settingsPage": "Настройки"
+    "settingsPage": "Настройки",
+    "tasks": "Задачи"
   },
   "roles": {
     "system_admin": "Администратор",
@@ -1984,6 +1985,58 @@
       "panicking": "Паника!",
       "relaxed": "Расслаблен",
       "inspired": "Вдохновлён"
+    }
+  },
+  "tasks": {
+    "title": "Задачи",
+    "description": "Управление задачами и проектами",
+    "search": "Поиск",
+    "searchPlaceholder": "Поиск по названию или описанию...",
+    "reset": "Сбросить",
+    "create": "Создать задачу",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "menu": "Меню задачи",
+    "overdue": "Просрочена",
+    "noTasks": "Задач нет",
+    "loading": "Загрузка задач...",
+    "loadFailed": "Не удалось загрузить задачи",
+    "status": {
+      "label": "Статус",
+      "all": "Все статусы",
+      "new": "Новая",
+      "assigned": "Назначена",
+      "in_progress": "В работе",
+      "review": "На проверке",
+      "completed": "Завершена",
+      "canceled": "Отменена",
+      "deferred": "Отложена"
+    },
+    "priority": {
+      "label": "Приоритет",
+      "all": "Любой приоритет",
+      "low": "Низкий",
+      "normal": "Обычный",
+      "high": "Высокий",
+      "urgent": "Срочный"
+    },
+    "form": {
+      "createTitle": "Новая задача",
+      "editTitle": "Редактирование задачи",
+      "titleLabel": "Название",
+      "titlePlaceholder": "Что нужно сделать?",
+      "descriptionLabel": "Описание",
+      "descriptionPlaceholder": "Дополнительные детали...",
+      "priorityLabel": "Приоритет",
+      "dueDateLabel": "Срок выполнения",
+      "save": "Сохранить",
+      "cancel": "Отмена"
+    },
+    "errors": {
+      "titleRequired": "Введите название задачи",
+      "createFailed": "Не удалось создать задачу",
+      "updateFailed": "Не удалось обновить задачу",
+      "deleteFailed": "Не удалось удалить задачу"
     }
   }
 }

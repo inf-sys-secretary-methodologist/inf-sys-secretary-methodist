@@ -1985,5 +1985,57 @@
       "relaxed": "Détendu",
       "inspired": "Inspiré"
     }
+  },
+  "tasks": {
+    "title": "Tâches",
+    "description": "Gestion des tâches et des projets",
+    "search": "Rechercher",
+    "searchPlaceholder": "Rechercher par titre ou description...",
+    "reset": "Réinitialiser",
+    "create": "Créer une tâche",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "menu": "Menu de la tâche",
+    "overdue": "En retard",
+    "noTasks": "Aucune tâche",
+    "loading": "Chargement des tâches...",
+    "loadFailed": "Échec du chargement des tâches",
+    "status": {
+      "label": "Statut",
+      "all": "Tous les statuts",
+      "new": "Nouvelle",
+      "assigned": "Assignée",
+      "in_progress": "En cours",
+      "review": "En revue",
+      "completed": "Terminée",
+      "canceled": "Annulée",
+      "deferred": "Reportée"
+    },
+    "priority": {
+      "label": "Priorité",
+      "all": "Toute priorité",
+      "low": "Basse",
+      "normal": "Normale",
+      "high": "Haute",
+      "urgent": "Urgente"
+    },
+    "form": {
+      "createTitle": "Nouvelle tâche",
+      "editTitle": "Modifier la tâche",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "Que faut-il faire ?",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Détails supplémentaires...",
+      "priorityLabel": "Priorité",
+      "dueDateLabel": "Date d'échéance",
+      "save": "Enregistrer",
+      "cancel": "Annuler"
+    },
+    "errors": {
+      "titleRequired": "Le titre est obligatoire",
+      "createFailed": "Échec de la création de la tâche",
+      "updateFailed": "Échec de la mise à jour de la tâche",
+      "deleteFailed": "Échec de la suppression de la tâche"
+    }
   }
 }
