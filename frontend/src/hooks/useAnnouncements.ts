@@ -5,6 +5,7 @@ import { apiClient } from '@/lib/api'
 import { SWR_DEDUPING } from '@/config/swr'
 import type {
   Announcement,
+  AnnouncementAttachment,
   AnnouncementListResponse,
   AnnouncementFilterParams,
   CreateAnnouncementInput,
@@ -104,4 +105,30 @@ export async function unpublishAnnouncement(id: number): Promise<void> {
 
 export async function archiveAnnouncement(id: number): Promise<void> {
   await apiClient.post(`${ANNOUNCEMENTS_BASE_URL}/${id}/archive`)
+}
+
+// Attachment mutations
+
+export async function uploadAnnouncementAttachment(
+  announcementId: number,
+  file: File
+): Promise<AnnouncementAttachment> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return apiClient.post<AnnouncementAttachment>(
+    `${ANNOUNCEMENTS_BASE_URL}/${announcementId}/attachments`,
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }
+  )
+}
+
+export async function deleteAnnouncementAttachment(
+  announcementId: number,
+  attachmentId: number
+): Promise<void> {
+  await apiClient.delete(
+    `${ANNOUNCEMENTS_BASE_URL}/${announcementId}/attachments/${attachmentId}`
+  )
 }
