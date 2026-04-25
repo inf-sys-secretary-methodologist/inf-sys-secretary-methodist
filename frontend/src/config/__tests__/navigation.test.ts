@@ -82,6 +82,24 @@ describe('navigationConfig', () => {
     expect(itemKeys).toContain('users')
     expect(itemKeys).toContain('integration')
   })
+
+  it('contains tasks entry pointing to /tasks for privileged roles', () => {
+    const tasksEntry = navigationConfig.find((e) => e.nameKey === 'tasks')
+    expect(tasksEntry).toBeDefined()
+    expect(isNavGroup(tasksEntry!)).toBe(false)
+    if (tasksEntry && !isNavGroup(tasksEntry)) {
+      expect(tasksEntry.url).toBe('/tasks')
+      expect(tasksEntry.roles).toEqual(
+        expect.arrayContaining([
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+        ])
+      )
+      // Students should not see tasks (matches route-config.ts)
+      expect(tasksEntry.roles).not.toContain(UserRole.STUDENT)
+    }
+  })
 })
 
 describe('isNavGroup', () => {
