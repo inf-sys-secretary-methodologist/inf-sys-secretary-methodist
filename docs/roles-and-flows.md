@@ -1,6 +1,6 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.102.0 (см. `VERSION` в корне)
+> **Версия проекта:** 0.102.1 (см. `VERSION` в корне)
 > **Состояние на:** 25 апреля 2026 (после релиза Announcements Module + Backend Attachments, GitHub #202)
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`
 

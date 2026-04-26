@@ -1632,7 +1632,7 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
   title: Inf-Sys Secretary-Methodist API
-  version: 0.102.0
+  version: 0.102.1
 paths:
   /api/admin/notifications:
     post:

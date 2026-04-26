@@ -15,6 +15,12 @@
 
 ---
 
+## [0.102.1] — 2026-04-26
+
+### Fixed — Files Frontend bug fix (GitHub [#203](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/203))
+
+- **FileUploader**: заменён программный `inputRef.click()` на нативный `<label htmlFor>` — Safari блокировал программный клик на скрытом file input, диалог выбора файлов не открывался при нажатии на дропзону
+
 ## [0.102.0] — 2026-04-25
 
 ### Added — Announcements Module Frontend + Backend Attachments (GitHub [#202](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/202))
