@@ -2201,5 +2201,40 @@
     "title": "جدول الحصص",
     "comingSoon": "وحدة جدول الحصص قيد التطوير",
     "comingSoonDescription": "هنا ستدير جداول الدروس والقاعات والاستبدالات"
+  },
+  "adminSettings": {
+    "title": "إعدادات النظام",
+    "appearance": {
+      "title": "المظهر",
+      "subtitle": "السمة العامة والشعار والهوية البصرية للنظام",
+      "brandTitle": "الهوية البصرية",
+      "brandDescription": "الشعار ونظام الألوان والأيقونة المفضلة — تُطبق على جميع المستخدمين",
+      "logoLabel": "شعار النظام",
+      "primaryColorLabel": "اللون الأساسي",
+      "faviconLabel": "الأيقونة المفضلة"
+    },
+    "notifications": {
+      "title": "الإشعارات",
+      "subtitle": "إعدادات تسليم الإشعارات العامة",
+      "smtpTitle": "خادم SMTP",
+      "smtpDescription": "إعدادات البريد الصادر لجميع الإشعارات",
+      "smtpHost": "المضيف",
+      "smtpPort": "المنفذ",
+      "smtpUser": "اسم المستخدم",
+      "smtpPassword": "كلمة المرور",
+      "pushTitle": "إشعارات الدفع",
+      "pushDescription": "مفاتيح VAPID لإشعارات الويب",
+      "vapidPublicKey": "مفتاح VAPID العام",
+      "vapidPrivateKey": "مفتاح VAPID الخاص",
+      "telegramTitle": "بوت تيليجرام",
+      "telegramDescription": "رمز البوت لإشعارات النظام",
+      "botToken": "رمز البوت"
+    },
+    "automation": {
+      "title": "الأتمتة",
+      "subtitle": "إدارة سير عمل n8n والعمليات الآلية",
+      "workflowsTitle": "سير العمل",
+      "workflowsDescription": "٣ عمليات آلية: إشعارات المستندات، تنبيهات الغياب، تذكيرات المواعيد النهائية"
+    }
   }
 }

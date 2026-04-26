@@ -2201,5 +2201,40 @@
     "title": "Class Schedule",
     "comingSoon": "The class schedule module is under development",
     "comingSoonDescription": "Here you will manage lesson timetables, classrooms, and substitutions"
+  },
+  "adminSettings": {
+    "title": "System Settings",
+    "appearance": {
+      "title": "Appearance",
+      "subtitle": "Global theme, logo, and system branding",
+      "brandTitle": "Branding",
+      "brandDescription": "Logo, color scheme, and favicon — applied to all users",
+      "logoLabel": "System logo",
+      "primaryColorLabel": "Primary color",
+      "faviconLabel": "Favicon"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Global notification delivery settings",
+      "smtpTitle": "SMTP Server",
+      "smtpDescription": "Outgoing mail settings for all notifications",
+      "smtpHost": "Host",
+      "smtpPort": "Port",
+      "smtpUser": "Username",
+      "smtpPassword": "Password",
+      "pushTitle": "Push Notifications",
+      "pushDescription": "VAPID keys for Web Push",
+      "vapidPublicKey": "VAPID Public Key",
+      "vapidPrivateKey": "VAPID Private Key",
+      "telegramTitle": "Telegram Bot",
+      "telegramDescription": "Bot token for system notifications",
+      "botToken": "Bot Token"
+    },
+    "automation": {
+      "title": "Automation",
+      "subtitle": "Manage n8n workflows and automated processes",
+      "workflowsTitle": "Workflows",
+      "workflowsDescription": "3 automated workflows: document notifications, absence alerts, deadline reminders"
+    }
   }
 }

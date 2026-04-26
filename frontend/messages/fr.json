@@ -2201,5 +2201,40 @@
     "title": "Emploi du temps",
     "comingSoon": "Le module d'emploi du temps est en cours de développement",
     "comingSoonDescription": "Ici vous gérerez les emplois du temps des cours, les salles et les remplacements"
+  },
+  "adminSettings": {
+    "title": "Paramètres système",
+    "appearance": {
+      "title": "Apparence",
+      "subtitle": "Thème global, logo et identité visuelle du système",
+      "brandTitle": "Identité visuelle",
+      "brandDescription": "Logo, palette de couleurs et favicon — appliqués à tous les utilisateurs",
+      "logoLabel": "Logo du système",
+      "primaryColorLabel": "Couleur principale",
+      "faviconLabel": "Favicon"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Paramètres globaux de livraison des notifications",
+      "smtpTitle": "Serveur SMTP",
+      "smtpDescription": "Paramètres de messagerie sortante pour toutes les notifications",
+      "smtpHost": "Hôte",
+      "smtpPort": "Port",
+      "smtpUser": "Utilisateur",
+      "smtpPassword": "Mot de passe",
+      "pushTitle": "Notifications push",
+      "pushDescription": "Clés VAPID pour Web Push",
+      "vapidPublicKey": "Clé publique VAPID",
+      "vapidPrivateKey": "Clé privée VAPID",
+      "telegramTitle": "Bot Telegram",
+      "telegramDescription": "Jeton du bot pour les notifications système",
+      "botToken": "Jeton du bot"
+    },
+    "automation": {
+      "title": "Automatisation",
+      "subtitle": "Gestion des workflows n8n et des processus automatisés",
+      "workflowsTitle": "Workflows",
+      "workflowsDescription": "3 workflows automatisés : notifications de documents, alertes d'absences, rappels de délais"
+    }
   }
 }

@@ -2201,5 +2201,40 @@
     "title": "Расписание занятий",
     "comingSoon": "Модуль расписания занятий находится в разработке",
     "comingSoonDescription": "Здесь будет управление расписанием учебных пар, аудиториями и заменами"
+  },
+  "adminSettings": {
+    "title": "Системные настройки",
+    "appearance": {
+      "title": "Оформление",
+      "subtitle": "Глобальная тема, логотип и фирменный стиль системы",
+      "brandTitle": "Фирменный стиль",
+      "brandDescription": "Логотип, цветовая схема и favicon — применяются ко всем пользователям",
+      "logoLabel": "Логотип системы",
+      "primaryColorLabel": "Основной цвет",
+      "faviconLabel": "Favicon"
+    },
+    "notifications": {
+      "title": "Уведомления",
+      "subtitle": "Глобальные параметры доставки уведомлений",
+      "smtpTitle": "SMTP-сервер",
+      "smtpDescription": "Настройки исходящей почты для всех уведомлений",
+      "smtpHost": "Хост",
+      "smtpPort": "Порт",
+      "smtpUser": "Пользователь",
+      "smtpPassword": "Пароль",
+      "pushTitle": "Push-уведомления",
+      "pushDescription": "VAPID-ключи для Web Push",
+      "vapidPublicKey": "Публичный ключ VAPID",
+      "vapidPrivateKey": "Приватный ключ VAPID",
+      "telegramTitle": "Telegram-бот",
+      "telegramDescription": "Токен бота для системных уведомлений",
+      "botToken": "Токен бота"
+    },
+    "automation": {
+      "title": "Автоматизация",
+      "subtitle": "Управление n8n workflows и автоматическими процессами",
+      "workflowsTitle": "Рабочие процессы",
+      "workflowsDescription": "3 автоматических workflow: уведомления документов, алерты пропусков, напоминания дедлайнов"
+    }
   }
 }
