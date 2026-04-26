@@ -53,11 +53,11 @@ export function FileUploader({ onUpload, uploading = false, className }: FileUpl
   )
 
   return (
-    <div
+    <label
+      htmlFor="file-uploader-input"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      onClick={() => !uploading && inputRef.current?.click()}
       className={cn(
         'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors cursor-pointer',
         dragOver
@@ -78,12 +78,13 @@ export function FileUploader({ onUpload, uploading = false, className }: FileUpl
       )}
       <input
         ref={inputRef}
+        id="file-uploader-input"
         type="file"
         data-testid="file-upload-input"
         onChange={handleInputChange}
         disabled={uploading}
         className="sr-only"
       />
-    </div>
+    </label>
   )
 }
