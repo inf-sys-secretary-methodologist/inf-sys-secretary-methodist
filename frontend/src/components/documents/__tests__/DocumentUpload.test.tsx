@@ -291,17 +291,12 @@ describe('DocumentUploadComponent', () => {
     expect(screen.getByDisplayValue('Test description')).toBeInTheDocument()
   })
 
-  it('clicks file input when select files button is clicked', async () => {
+  it('select files button is a label linked to file input via htmlFor', () => {
     render(<DocumentUploadComponent {...defaultProps} />)
 
-    const fileInput = document.getElementById('file-upload') as HTMLInputElement
-    const clickSpy = jest.spyOn(fileInput, 'click')
-
-    const selectFilesButton = screen.getByText('Select files')
-    fireEvent.click(selectFilesButton)
-
-    expect(clickSpy).toHaveBeenCalled()
-    clickSpy.mockRestore()
+    const selectLabel = screen.getByText('Select files')
+    expect(selectLabel.tagName).toBe('LABEL')
+    expect(selectLabel).toHaveAttribute('for', 'file-upload')
   })
 })
 
