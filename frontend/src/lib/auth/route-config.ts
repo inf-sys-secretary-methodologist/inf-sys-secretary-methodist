@@ -96,6 +96,18 @@ export const protectedRoutes: RouteConfig[] = [
     ],
   },
 
+  // Files - all authenticated users
+  {
+    path: '/files',
+    allowedRoles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+      UserRole.STUDENT,
+    ],
+  },
+
   // Announcements - all authenticated users; STUDENT view-only
   {
     path: '/announcements',

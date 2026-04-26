@@ -174,7 +174,8 @@
     "aiAssistant": "AI Assistant",
     "settingsPage": "Settings",
     "tasks": "Tasks",
-    "announcements": "Announcements"
+    "announcements": "Announcements",
+    "files": "Files"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -259,27 +260,47 @@
       "admin": {
         "title": "Administrator",
         "description": "Full system control",
-        "features": ["User management", "System configuration", "All operations"]
+        "features": [
+          "User management",
+          "System configuration",
+          "All operations"
+        ]
       },
       "methodist": {
         "title": "Methodist",
         "description": "Working with documents and templates",
-        "features": ["Document creation", "Template management", "Report generation"]
+        "features": [
+          "Document creation",
+          "Template management",
+          "Report generation"
+        ]
       },
       "secretary": {
         "title": "Secretary",
         "description": "Educational process organization",
-        "features": ["Class scheduling", "Attendance tracking", "Student work"]
+        "features": [
+          "Class scheduling",
+          "Attendance tracking",
+          "Student work"
+        ]
       },
       "teacher": {
         "title": "Teacher",
         "description": "Access to educational materials",
-        "features": ["Schedule viewing", "Student lists", "Event calendar"]
+        "features": [
+          "Schedule viewing",
+          "Student lists",
+          "Event calendar"
+        ]
       },
       "student": {
         "title": "Student",
         "description": "Information viewing",
-        "features": ["Personal schedule", "Documents", "Announcements"]
+        "features": [
+          "Personal schedule",
+          "Documents",
+          "Announcements"
+        ]
       }
     },
     "faq": {
@@ -2106,6 +2127,74 @@
       "archiveFailed": "Failed to archive",
       "uploadFailed": "Failed to upload file",
       "removeAttachmentFailed": "Failed to remove attachment"
+    }
+  },
+  "files": {
+    "title": "File Manager",
+    "description": "Upload, manage, and preview files",
+    "search": "Search",
+    "searchPlaceholder": "Search by file name...",
+    "reset": "Reset",
+    "upload": "Upload file",
+    "delete": "Delete",
+    "download": "Download",
+    "preview": {
+      "title": "File preview",
+      "noPreview": "Preview not available for this file type",
+      "close": "Close preview"
+    },
+    "noFiles": "No files uploaded yet",
+    "loading": "Loading files...",
+    "loadFailed": "Failed to load files",
+    "dropzone": {
+      "title": "Drag & drop files here",
+      "subtitle": "or click to browse",
+      "uploading": "Uploading...",
+      "success": "File uploaded successfully",
+      "error": "Upload failed"
+    },
+    "filters": {
+      "type": "File type",
+      "allTypes": "All types",
+      "images": "Images",
+      "documents": "Documents",
+      "spreadsheets": "Spreadsheets",
+      "presentations": "Presentations",
+      "archives": "Archives",
+      "other": "Other",
+      "date": "Date",
+      "size": "Size",
+      "author": "Author"
+    },
+    "grid": {
+      "name": "Name",
+      "size": "Size",
+      "type": "Type",
+      "uploaded": "Uploaded",
+      "author": "Author",
+      "actions": "Actions"
+    },
+    "versions": {
+      "title": "Version history",
+      "version": "Version {number}",
+      "current": "Current",
+      "comment": "Comment",
+      "noVersions": "No versions",
+      "createVersion": "Upload new version",
+      "commentPlaceholder": "Version comment (optional)",
+      "download": "Download this version"
+    },
+    "errors": {
+      "uploadFailed": "Failed to upload file",
+      "deleteFailed": "Failed to delete file",
+      "downloadFailed": "Failed to download file",
+      "versionFailed": "Failed to create version",
+      "fileTooLarge": "File is too large",
+      "invalidType": "Invalid file type"
+    },
+    "confirm": {
+      "delete": "Are you sure you want to delete this file?",
+      "deleteTitle": "Delete file"
     }
   }
 }

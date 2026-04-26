@@ -174,7 +174,8 @@
     "aiAssistant": "مساعد الذكاء الاصطناعي",
     "settingsPage": "الإعدادات",
     "tasks": "المهام",
-    "announcements": "الإعلانات"
+    "announcements": "الإعلانات",
+    "files": "الملفات"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -2126,6 +2127,74 @@
       "archiveFailed": "فشل الأرشفة",
       "uploadFailed": "فشل تحميل الملف",
       "removeAttachmentFailed": "فشل حذف المرفق"
+    }
+  },
+  "files": {
+    "title": "مدير الملفات",
+    "description": "تحميل وإدارة ومعاينة الملفات",
+    "search": "بحث",
+    "searchPlaceholder": "البحث باسم الملف...",
+    "reset": "إعادة تعيين",
+    "upload": "تحميل ملف",
+    "delete": "حذف",
+    "download": "تنزيل",
+    "preview": {
+      "title": "معاينة الملف",
+      "noPreview": "المعاينة غير متاحة لهذا النوع من الملفات",
+      "close": "إغلاق المعاينة"
+    },
+    "noFiles": "لم يتم تحميل أي ملفات بعد",
+    "loading": "جاري تحميل الملفات...",
+    "loadFailed": "فشل في تحميل الملفات",
+    "dropzone": {
+      "title": "اسحب وأفلت الملفات هنا",
+      "subtitle": "أو انقر للتصفح",
+      "uploading": "جاري التحميل...",
+      "success": "تم تحميل الملف بنجاح",
+      "error": "فشل التحميل"
+    },
+    "filters": {
+      "type": "نوع الملف",
+      "allTypes": "جميع الأنواع",
+      "images": "صور",
+      "documents": "مستندات",
+      "spreadsheets": "جداول بيانات",
+      "presentations": "عروض تقديمية",
+      "archives": "أرشيفات",
+      "other": "أخرى",
+      "date": "التاريخ",
+      "size": "الحجم",
+      "author": "المؤلف"
+    },
+    "grid": {
+      "name": "الاسم",
+      "size": "الحجم",
+      "type": "النوع",
+      "uploaded": "تم التحميل",
+      "author": "المؤلف",
+      "actions": "الإجراءات"
+    },
+    "versions": {
+      "title": "سجل الإصدارات",
+      "version": "الإصدار {number}",
+      "current": "الحالي",
+      "comment": "تعليق",
+      "noVersions": "لا توجد إصدارات",
+      "createVersion": "تحميل إصدار جديد",
+      "commentPlaceholder": "تعليق الإصدار (اختياري)",
+      "download": "تنزيل هذا الإصدار"
+    },
+    "errors": {
+      "uploadFailed": "فشل في تحميل الملف",
+      "deleteFailed": "فشل في حذف الملف",
+      "downloadFailed": "فشل في تنزيل الملف",
+      "versionFailed": "فشل في إنشاء الإصدار",
+      "fileTooLarge": "الملف كبير جدًا",
+      "invalidType": "نوع ملف غير صالح"
+    },
+    "confirm": {
+      "delete": "هل أنت متأكد من أنك تريد حذف هذا الملف؟",
+      "deleteTitle": "حذف الملف"
     }
   }
 }

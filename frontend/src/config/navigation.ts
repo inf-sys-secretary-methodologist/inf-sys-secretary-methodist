@@ -13,6 +13,7 @@ import {
   Sparkles,
   ListTodo,
   Megaphone,
+  FolderOpen,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -63,6 +64,18 @@ export const navigationConfig: NavEntry[] = [
         nameKey: 'documents',
         url: '/documents',
         icon: FileText,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+          UserRole.STUDENT,
+        ],
+      },
+      {
+        nameKey: 'files',
+        url: '/files',
+        icon: FolderOpen,
         roles: [
           UserRole.SYSTEM_ADMIN,
           UserRole.METHODIST,

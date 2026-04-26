@@ -174,7 +174,8 @@
     "aiAssistant": "Assistant IA",
     "settingsPage": "Paramètres",
     "tasks": "Tâches",
-    "announcements": "Annonces"
+    "announcements": "Annonces",
+    "files": "Fichiers"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -2126,6 +2127,74 @@
       "archiveFailed": "Échec de l'archivage",
       "uploadFailed": "Échec du téléversement",
       "removeAttachmentFailed": "Échec de la suppression de la pièce jointe"
+    }
+  },
+  "files": {
+    "title": "Gestionnaire de fichiers",
+    "description": "Télécharger, gérer et prévisualiser des fichiers",
+    "search": "Rechercher",
+    "searchPlaceholder": "Rechercher par nom de fichier...",
+    "reset": "Réinitialiser",
+    "upload": "Télécharger un fichier",
+    "delete": "Supprimer",
+    "download": "Télécharger",
+    "preview": {
+      "title": "Aperçu du fichier",
+      "noPreview": "Aperçu non disponible pour ce type de fichier",
+      "close": "Fermer l'aperçu"
+    },
+    "noFiles": "Aucun fichier téléchargé",
+    "loading": "Chargement des fichiers...",
+    "loadFailed": "Échec du chargement des fichiers",
+    "dropzone": {
+      "title": "Glissez-déposez des fichiers ici",
+      "subtitle": "ou cliquez pour parcourir",
+      "uploading": "Téléchargement...",
+      "success": "Fichier téléchargé avec succès",
+      "error": "Échec du téléchargement"
+    },
+    "filters": {
+      "type": "Type de fichier",
+      "allTypes": "Tous les types",
+      "images": "Images",
+      "documents": "Documents",
+      "spreadsheets": "Feuilles de calcul",
+      "presentations": "Présentations",
+      "archives": "Archives",
+      "other": "Autres",
+      "date": "Date",
+      "size": "Taille",
+      "author": "Auteur"
+    },
+    "grid": {
+      "name": "Nom",
+      "size": "Taille",
+      "type": "Type",
+      "uploaded": "Téléchargé",
+      "author": "Auteur",
+      "actions": "Actions"
+    },
+    "versions": {
+      "title": "Historique des versions",
+      "version": "Version {number}",
+      "current": "Actuelle",
+      "comment": "Commentaire",
+      "noVersions": "Aucune version",
+      "createVersion": "Télécharger une nouvelle version",
+      "commentPlaceholder": "Commentaire de version (facultatif)",
+      "download": "Télécharger cette version"
+    },
+    "errors": {
+      "uploadFailed": "Échec du téléchargement du fichier",
+      "deleteFailed": "Échec de la suppression du fichier",
+      "downloadFailed": "Échec du téléchargement du fichier",
+      "versionFailed": "Échec de la création de la version",
+      "fileTooLarge": "Le fichier est trop volumineux",
+      "invalidType": "Type de fichier invalide"
+    },
+    "confirm": {
+      "delete": "Êtes-vous sûr de vouloir supprimer ce fichier ?",
+      "deleteTitle": "Supprimer le fichier"
     }
   }
 }

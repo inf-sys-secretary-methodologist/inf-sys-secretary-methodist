@@ -174,7 +174,8 @@
     "aiAssistant": "AI Ассистент",
     "settingsPage": "Настройки",
     "tasks": "Задачи",
-    "announcements": "Объявления"
+    "announcements": "Объявления",
+    "files": "Файлы"
   },
   "roles": {
     "system_admin": "Администратор",
@@ -2126,6 +2127,74 @@
       "archiveFailed": "Не удалось архивировать",
       "uploadFailed": "Не удалось загрузить файл",
       "removeAttachmentFailed": "Не удалось удалить вложение"
+    }
+  },
+  "files": {
+    "title": "Файловый менеджер",
+    "description": "Загрузка, управление и предпросмотр файлов",
+    "search": "Поиск",
+    "searchPlaceholder": "Поиск по имени файла...",
+    "reset": "Сбросить",
+    "upload": "Загрузить файл",
+    "delete": "Удалить",
+    "download": "Скачать",
+    "preview": {
+      "title": "Предпросмотр файла",
+      "noPreview": "Предпросмотр недоступен для этого типа файлов",
+      "close": "Закрыть предпросмотр"
+    },
+    "noFiles": "Файлы ещё не загружены",
+    "loading": "Загрузка файлов...",
+    "loadFailed": "Не удалось загрузить файлы",
+    "dropzone": {
+      "title": "Перетащите файлы сюда",
+      "subtitle": "или нажмите для выбора",
+      "uploading": "Загрузка...",
+      "success": "Файл успешно загружен",
+      "error": "Ошибка загрузки"
+    },
+    "filters": {
+      "type": "Тип файла",
+      "allTypes": "Все типы",
+      "images": "Изображения",
+      "documents": "Документы",
+      "spreadsheets": "Таблицы",
+      "presentations": "Презентации",
+      "archives": "Архивы",
+      "other": "Прочие",
+      "date": "Дата",
+      "size": "Размер",
+      "author": "Автор"
+    },
+    "grid": {
+      "name": "Имя",
+      "size": "Размер",
+      "type": "Тип",
+      "uploaded": "Загружен",
+      "author": "Автор",
+      "actions": "Действия"
+    },
+    "versions": {
+      "title": "История версий",
+      "version": "Версия {number}",
+      "current": "Текущая",
+      "comment": "Комментарий",
+      "noVersions": "Нет версий",
+      "createVersion": "Загрузить новую версию",
+      "commentPlaceholder": "Комментарий к версии (необязательно)",
+      "download": "Скачать эту версию"
+    },
+    "errors": {
+      "uploadFailed": "Не удалось загрузить файл",
+      "deleteFailed": "Не удалось удалить файл",
+      "downloadFailed": "Не удалось скачать файл",
+      "versionFailed": "Не удалось создать версию",
+      "fileTooLarge": "Файл слишком большой",
+      "invalidType": "Недопустимый тип файла"
+    },
+    "confirm": {
+      "delete": "Вы уверены, что хотите удалить этот файл?",
+      "deleteTitle": "Удаление файла"
     }
   }
 }
