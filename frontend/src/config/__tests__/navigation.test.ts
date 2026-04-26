@@ -23,6 +23,7 @@ describe('navigationConfig', () => {
       'dashboard',
       'documentsGroup',
       'analyticsGroup',
+      'schedule',
       'calendar',
       'tasks',
       'announcements',
@@ -179,6 +180,7 @@ describe('getAvailableNavEntries', () => {
     expect(entryKeys).toContain('aiAssistant')
     expect(entryKeys).toContain('tasks')
     expect(entryKeys).toContain('announcements')
+    expect(entryKeys).toContain('schedule')
 
     // Documents group has 2 items for student (documents + files), so it stays as a group
     const docsGroup = entries.find((e) => e.nameKey === 'documentsGroup')
@@ -310,6 +312,7 @@ describe('getAvailableNavItems (legacy)', () => {
     expect(itemKeys).toContain('dashboard')
     expect(itemKeys).toContain('documents')
     expect(itemKeys).toContain('files')
+    expect(itemKeys).toContain('schedule')
     expect(itemKeys).toContain('calendar')
     expect(itemKeys).toContain('tasks')
     expect(itemKeys).toContain('announcements')

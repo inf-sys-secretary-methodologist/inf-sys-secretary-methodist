@@ -14,6 +14,7 @@ import {
   ListTodo,
   Megaphone,
   FolderOpen,
+  GraduationCap,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -120,6 +121,19 @@ export const navigationConfig: NavEntry[] = [
         icon: TrendingUp,
         roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
       },
+    ],
+  },
+  // Schedule - class timetable (all roles per 0.102.2 matrix)
+  {
+    nameKey: 'schedule',
+    url: '/schedule',
+    icon: GraduationCap,
+    roles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+      UserRole.STUDENT,
     ],
   },
   // Calendar - standalone
