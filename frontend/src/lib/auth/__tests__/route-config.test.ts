@@ -51,6 +51,18 @@ describe('route-config', () => {
       const dashboardRoute = protectedRoutes.find((r) => r.path === '/dashboard')
       expect(dashboardRoute?.allowedRoles).toEqual(Object.values(UserRole))
     })
+
+    it('includes /files for all authenticated roles', () => {
+      const filesRoute = protectedRoutes.find((r) => r.path === '/files')
+      expect(filesRoute).toBeDefined()
+      expect(filesRoute?.allowedRoles).toEqual([
+        UserRole.SYSTEM_ADMIN,
+        UserRole.METHODIST,
+        UserRole.ACADEMIC_SECRETARY,
+        UserRole.TEACHER,
+        UserRole.STUDENT,
+      ])
+    })
   })
 
   describe('matchesRoute', () => {
