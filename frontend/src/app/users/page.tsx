@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { withAuth } from '@/components/auth/withAuth'
 import { useAuthStore } from '@/stores/authStore'
 import { UserRole } from '@/types/auth'
+import { can, Resource, Action } from '@/lib/auth/permissions'
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import {
@@ -54,7 +55,7 @@ function UsersManagementPage() {
   const tRoles = useTranslations('roles')
   const tCommon = useTranslations('common')
   const { user: currentUser, isAuthenticated, isLoading: authLoading } = useAuthStore()
-  const isAdmin = currentUser?.role === UserRole.SYSTEM_ADMIN
+  const canManageUsers = can(currentUser?.role, Resource.USERS, Action.CREATE)
   const [searchQuery, setSearchQuery] = useState('')
   const [nameFilter, setNameFilter] = useState('')
   const [emailFilter, setEmailFilter] = useState('')
@@ -551,7 +552,7 @@ function UsersManagementPage() {
                             </div>
                             <span className="font-medium">{user.name}</span>
                           </div>
-                          {isAdmin && (
+                          {canManageUsers && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm">
@@ -631,7 +632,7 @@ function UsersManagementPage() {
                         <TableHead className="hidden lg:table-cell">
                           {t('tableHeaders.createdAt')}
                         </TableHead>
-                        {isAdmin && (
+                        {canManageUsers && (
                           <TableHead className="text-right">{t('tableHeaders.actions')}</TableHead>
                         )}
                       </TableRow>
@@ -640,7 +641,7 @@ function UsersManagementPage() {
                       {users.length === 0 ? (
                         <TableRow>
                           <TableCell
-                            colSpan={isAdmin ? 7 : 6}
+                            colSpan={canManageUsers ? 7 : 6}
                             className="h-24 text-center text-muted-foreground"
                           >
                             {t('noUsersFound')}
@@ -700,7 +701,7 @@ function UsersManagementPage() {
                                 {formatDate(user.created_at)}
                               </div>
                             </TableCell>
-                            {isAdmin && (
+                            {canManageUsers && (
                               <TableCell className="text-right">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
