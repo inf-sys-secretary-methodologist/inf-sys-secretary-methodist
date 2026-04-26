@@ -4,8 +4,8 @@ jest.mock('@/hooks/useAuth', () => ({
   useAuthCheck: jest.fn(),
 }))
 
-jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ user: { role: 'academic_secretary' } }),
+jest.mock('@/components/layout', () => ({
+  AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
 import SchedulePage from '../page'
