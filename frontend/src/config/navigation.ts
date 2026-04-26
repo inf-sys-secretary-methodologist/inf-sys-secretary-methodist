@@ -92,17 +92,27 @@ export const navigationConfig: NavEntry[] = [
       },
     ],
   },
-  // Analytics group
+  // Analytics group — teacher gets limited reports access
   {
     nameKey: 'analyticsGroup',
     icon: BarChart3,
-    roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+    roles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+    ],
     items: [
       {
         nameKey: 'reports',
         url: '/reports',
         icon: BarChart3,
-        roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+        ],
       },
       {
         nameKey: 'analytics',
@@ -125,12 +135,18 @@ export const navigationConfig: NavEntry[] = [
       UserRole.STUDENT,
     ],
   },
-  // Tasks - standalone (admin/methodist/academic_secretary only, mirrors route-config.ts)
+  // Tasks/assignments - all roles; student & teacher: own scope
   {
     nameKey: 'tasks',
     url: '/tasks',
     icon: ListTodo,
-    roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+    roles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+      UserRole.STUDENT,
+    ],
   },
   // Announcements - standalone (all authenticated users; STUDENT view-only)
   {
@@ -183,7 +199,7 @@ export const navigationConfig: NavEntry[] = [
         nameKey: 'integration',
         url: '/integration',
         icon: Database,
-        roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST],
+        roles: [UserRole.SYSTEM_ADMIN],
       },
       {
         nameKey: 'settingsPage',

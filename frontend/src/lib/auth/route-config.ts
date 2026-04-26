@@ -48,10 +48,10 @@ export const protectedRoutes: RouteConfig[] = [
       UserRole.TEACHER,
     ],
   },
-  // 1C Integration - admin and methodist only
+  // 1C Integration - admin only (per 0.102.2 PermissionMatrix)
   {
     path: '/integration',
-    allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST],
+    allowedRoles: [UserRole.SYSTEM_ADMIN],
   },
 
   // Methodist routes
@@ -71,17 +71,35 @@ export const protectedRoutes: RouteConfig[] = [
   },
   {
     path: '/reports',
-    allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+    allowedRoles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+    ],
   },
 
-  // Secretary routes
+  // Schedule - all roles can view; secretary has full management
   {
     path: '/schedule',
-    allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.ACADEMIC_SECRETARY, UserRole.METHODIST],
+    allowedRoles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.METHODIST,
+      UserRole.TEACHER,
+      UserRole.STUDENT,
+    ],
   },
+  // Tasks/assignments - all roles; student & teacher: own scope
   {
     path: '/tasks',
-    allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.ACADEMIC_SECRETARY, UserRole.METHODIST],
+    allowedRoles: [
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+      UserRole.STUDENT,
+    ],
   },
 
   // Calendar routes

@@ -104,7 +104,7 @@ describe('navigationConfig', () => {
     }
   })
 
-  it('contains tasks entry pointing to /tasks for privileged roles', () => {
+  it('contains tasks entry pointing to /tasks for all roles (per 0.102.2 matrix)', () => {
     const tasksEntry = navigationConfig.find((e) => e.nameKey === 'tasks')
     expect(tasksEntry).toBeDefined()
     expect(isNavGroup(tasksEntry!)).toBe(false)
@@ -115,10 +115,10 @@ describe('navigationConfig', () => {
           UserRole.SYSTEM_ADMIN,
           UserRole.METHODIST,
           UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+          UserRole.STUDENT,
         ])
       )
-      // Students should not see tasks (matches route-config.ts)
-      expect(tasksEntry.roles).not.toContain(UserRole.STUDENT)
     }
   })
 })
@@ -169,15 +169,16 @@ describe('getAvailableNavEntries', () => {
     expect(entries.length).toBe(navigationConfig.length)
   })
 
-  it('returns correct entries for STUDENT role', () => {
+  it('returns correct entries for STUDENT role (per 0.102.2 matrix)', () => {
     const entries = getAvailableNavEntries(UserRole.STUDENT)
     const entryKeys = entries.map((e) => e.nameKey)
 
-    // Student should have dashboard, documents group (only documents item), calendar, messages, aiAssistant
     expect(entryKeys).toContain('dashboard')
     expect(entryKeys).toContain('calendar')
     expect(entryKeys).toContain('messages')
     expect(entryKeys).toContain('aiAssistant')
+    expect(entryKeys).toContain('tasks')
+    expect(entryKeys).toContain('announcements')
 
     // Documents group has 2 items for student (documents + files), so it stays as a group
     const docsGroup = entries.find((e) => e.nameKey === 'documentsGroup')
@@ -190,44 +191,52 @@ describe('getAvailableNavEntries', () => {
     expect(entryKeys).not.toContain('integration')
   })
 
-  it('returns correct entries for TEACHER role', () => {
+  it('returns correct entries for TEACHER role (per 0.102.2 matrix)', () => {
     const entries = getAvailableNavEntries(UserRole.TEACHER)
     const entryKeys = entries.map((e) => e.nameKey)
 
-    // Teacher should have dashboard, documents group, calendar, messages, aiAssistant, and users from admin
     expect(entryKeys).toContain('dashboard')
     expect(entryKeys).toContain('calendar')
     expect(entryKeys).toContain('messages')
     expect(entryKeys).toContain('aiAssistant')
+    expect(entryKeys).toContain('tasks')
+    expect(entryKeys).toContain('announcements')
 
-    // Teacher should have access to users (inside admin group) but not integration.
-    // Admin group also contains settingsPage (no role restriction → visible to all),
-    // so the group has 2+ visible items and is NOT flattened. Look inside adminGroup.
+    // Teacher sees reports (limited) but not analytics — analyticsGroup has only 1 item
+    // for teacher (reports), so it gets flattened to direct 'reports' link
+    expect(entryKeys).toContain('reports')
+    expect(entryKeys).not.toContain('analyticsGroup')
+    expect(entryKeys).not.toContain('analytics')
+
+    // Admin group: users + settingsPage (2 items) → stays as group
     const adminGroup = entries.find((e) => e.nameKey === 'adminGroup') as NavGroup
     expect(adminGroup).toBeDefined()
     expect(isNavGroup(adminGroup)).toBe(true)
     const adminItemKeys = adminGroup.items.map((i) => i.nameKey)
     expect(adminItemKeys).toContain('users')
     expect(adminItemKeys).not.toContain('integration')
-
-    // Teacher should NOT have access to analytics group
-    expect(entryKeys).not.toContain('analyticsGroup')
-    expect(entryKeys).not.toContain('reports')
-    expect(entryKeys).not.toContain('analytics')
   })
 
-  it('returns correct entries for METHODIST role', () => {
+  it('returns correct entries for METHODIST role (per 0.102.2 matrix)', () => {
     const entries = getAvailableNavEntries(UserRole.METHODIST)
     const entryKeys = entries.map((e) => e.nameKey)
 
-    // Methodist should have access to all entries
     expect(entryKeys).toContain('dashboard')
     expect(entryKeys).toContain('documentsGroup')
     expect(entryKeys).toContain('analyticsGroup')
     expect(entryKeys).toContain('calendar')
+    expect(entryKeys).toContain('tasks')
+    expect(entryKeys).toContain('announcements')
     expect(entryKeys).toContain('messages')
     expect(entryKeys).toContain('aiAssistant')
     expect(entryKeys).toContain('adminGroup')
+
+    // Methodist should NOT see integration (admin-only per 0.102.2)
+    const adminGroup = entries.find((e) => e.nameKey === 'adminGroup') as NavGroup
+    expect(adminGroup).toBeDefined()
+    const adminItemKeys = adminGroup.items.map((i) => i.nameKey)
+    expect(adminItemKeys).toContain('users')
+    expect(adminItemKeys).not.toContain('integration')
   })
 
   it('returns correct entries for ACADEMIC_SECRETARY role', () => {
@@ -294,13 +303,16 @@ describe('getAvailableNavItems (legacy)', () => {
     expect(itemKeys).toContain('integration')
   })
 
-  it('returns flat list of items for STUDENT', () => {
+  it('returns flat list of items for STUDENT (per 0.102.2 matrix)', () => {
     const items = getAvailableNavItems(UserRole.STUDENT)
     const itemKeys = items.map((i) => i.nameKey)
 
     expect(itemKeys).toContain('dashboard')
     expect(itemKeys).toContain('documents')
+    expect(itemKeys).toContain('files')
     expect(itemKeys).toContain('calendar')
+    expect(itemKeys).toContain('tasks')
+    expect(itemKeys).toContain('announcements')
     expect(itemKeys).toContain('messages')
     expect(itemKeys).toContain('aiAssistant')
 

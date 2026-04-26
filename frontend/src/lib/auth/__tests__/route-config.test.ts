@@ -120,26 +120,26 @@ describe('route-config', () => {
       })
     })
 
-    describe('reports routes', () => {
-      it('allows admin, methodist, and secretary to access reports', () => {
+    describe('reports routes (per 0.102.2 matrix)', () => {
+      it('allows admin, methodist, secretary, and teacher to access reports', () => {
         expect(hasRouteAccess('/reports', UserRole.SYSTEM_ADMIN)).toBe(true)
         expect(hasRouteAccess('/reports', UserRole.METHODIST)).toBe(true)
         expect(hasRouteAccess('/reports', UserRole.ACADEMIC_SECRETARY)).toBe(true)
+        expect(hasRouteAccess('/reports', UserRole.TEACHER)).toBe(true)
       })
 
-      it('denies teacher and student access to reports', () => {
-        expect(hasRouteAccess('/reports', UserRole.TEACHER)).toBe(false)
+      it('denies student access to reports', () => {
         expect(hasRouteAccess('/reports', UserRole.STUDENT)).toBe(false)
       })
     })
 
-    describe('integration routes', () => {
-      it('allows only admin and methodist', () => {
+    describe('integration routes (per 0.102.2 matrix)', () => {
+      it('allows only admin', () => {
         expect(hasRouteAccess('/integration', UserRole.SYSTEM_ADMIN)).toBe(true)
-        expect(hasRouteAccess('/integration', UserRole.METHODIST)).toBe(true)
       })
 
-      it('denies other roles', () => {
+      it('denies all other roles including methodist', () => {
+        expect(hasRouteAccess('/integration', UserRole.METHODIST)).toBe(false)
         expect(hasRouteAccess('/integration', UserRole.ACADEMIC_SECRETARY)).toBe(false)
         expect(hasRouteAccess('/integration', UserRole.TEACHER)).toBe(false)
         expect(hasRouteAccess('/integration', UserRole.STUDENT)).toBe(false)
