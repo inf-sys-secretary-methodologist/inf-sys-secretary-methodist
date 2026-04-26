@@ -344,6 +344,12 @@ describe('can', () => {
       expect(can(UserRole.TEACHER, Resource.CURRICULUM, Action.APPROVE)).toBe(false)
       expect(can(UserRole.STUDENT, Resource.CURRICULUM, Action.APPROVE)).toBe(false)
     })
+
+    it('rejects approve for non-curriculum resources even for admin', () => {
+      expect(can(UserRole.SYSTEM_ADMIN, Resource.REPORTS, Action.APPROVE)).toBe(false)
+      expect(can(UserRole.SYSTEM_ADMIN, Resource.USERS, Action.APPROVE)).toBe(false)
+      expect(can(UserRole.SYSTEM_ADMIN, Resource.SCHEDULE, Action.APPROVE)).toBe(false)
+    })
   })
 
   describe('edge cases', () => {

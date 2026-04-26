@@ -81,12 +81,11 @@ const PERMISSION_MATRIX: PermissionMatrix = {
   },
 }
 
-const ACTION_MIN_LEVEL: Record<Action, AccessLevel> = {
+const ACTION_MIN_LEVEL: Record<Exclude<Action, Action.APPROVE>, AccessLevel> = {
   [Action.READ]: AccessLevel.LIMITED,
   [Action.CREATE]: AccessLevel.FULL,
   [Action.UPDATE]: AccessLevel.OWN,
   [Action.DELETE]: AccessLevel.FULL,
-  [Action.APPROVE]: AccessLevel.FULL,
 }
 
 export function getAccessLevel(
@@ -109,7 +108,7 @@ export function can(
     return role === UserRole.SYSTEM_ADMIN && resource === Resource.CURRICULUM
   }
   const level = getAccessLevel(role, resource)
-  return level >= ACTION_MIN_LEVEL[action]
+  return level >= ACTION_MIN_LEVEL[action as Exclude<Action, Action.APPROVE>]
 }
 
 // --- Legacy functions (backward compat) ---
