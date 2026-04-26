@@ -15,6 +15,19 @@
 
 ---
 
+## [0.104.0] — 2026-04-26
+
+### Added — Resource-based permission matrix (GitHub [#206](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/206))
+
+- Resource-based permission system: `can(role, resource, action)` replacing primitive `canEdit()`
+- 8 resources × 5 actions × 5 roles = full PermissionMatrix matching `docs/roles-and-flows.md`
+- `Resource`, `Action`, `AccessLevel` enums for type-safe permission checks
+- `getAccessLevel(role, resource)` for granular access level inspection
+- `APPROVE` action special-cased to `system_admin` + `curriculum` only
+- Users page migrated from manual `isAdmin` check to `can(role, USERS, CREATE)`
+- Legacy functions (`canEdit`, `isAdmin`, `isViewOnly`) marked `@deprecated`, kept for backward compat
+- 92 new permission tests (73 unit + 19 integration)
+
 ## [0.103.0] — 2026-04-26
 
 ### Added — Admin Settings + Schedule placeholder + permission matrix fix (GitHub [#205](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/205), [#208](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/208), [#209](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/209))
