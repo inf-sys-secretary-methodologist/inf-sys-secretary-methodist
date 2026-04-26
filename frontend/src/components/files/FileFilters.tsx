@@ -12,7 +12,7 @@ export interface FileFilterValues {
   fileType?: string
 }
 
-const FILE_TYPE_OPTIONS = ['image', 'documents', 'spreadsheets', 'presentations', 'archives', 'other'] as const
+const FILE_TYPE_OPTIONS = ['images', 'documents', 'spreadsheets', 'presentations', 'archives', 'other'] as const
 
 interface FileFiltersProps {
   value: FileFilterValues

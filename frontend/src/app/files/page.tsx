@@ -34,7 +34,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { canEdit } from '@/lib/auth/permissions'
 
 const MIME_TYPE_GROUPS: Record<string, (mime: string) => boolean> = {
-  image: (m) => m.startsWith('image/'),
+  images: (m) => m.startsWith('image/'),
   documents: (m) => m.includes('pdf') || m.includes('document') || m.includes('text/'),
   spreadsheets: (m) => m.includes('spreadsheet') || m.includes('excel') || m.includes('csv'),
   presentations: (m) => m.includes('presentation') || m.includes('powerpoint'),
@@ -44,7 +44,7 @@ const MIME_TYPE_GROUPS: Record<string, (mime: string) => boolean> = {
 
 function matchesMimeGroup(mimeType: string, group: string): boolean {
   if (group === 'other') {
-    return !['image', 'documents', 'spreadsheets', 'presentations', 'archives'].some(
+    return !['images', 'documents', 'spreadsheets', 'presentations', 'archives'].some(
       (g) => MIME_TYPE_GROUPS[g](mimeType)
     )
   }

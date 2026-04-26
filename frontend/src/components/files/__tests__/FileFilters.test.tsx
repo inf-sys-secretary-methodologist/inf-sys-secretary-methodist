@@ -35,9 +35,9 @@ describe('FileFilters', () => {
     render(<FileFilters value={defaultFilters} onChange={onChange} />)
 
     const select = screen.getByLabelText('filters.type')
-    await user.selectOptions(select, 'image')
+    await user.selectOptions(select, 'images')
 
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ fileType: 'image' }))
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ fileType: 'images' }))
   })
 
   it('renders reset button that clears all filters', async () => {
@@ -45,7 +45,7 @@ describe('FileFilters', () => {
     const user = userEvent.setup()
 
     render(
-      <FileFilters value={{ search: 'test', fileType: 'image' }} onChange={onChange} />
+      <FileFilters value={{ search: 'test', fileType: 'images' }} onChange={onChange} />
     )
 
     const resetBtn = screen.getByRole('button', { name: /reset/i })
