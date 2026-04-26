@@ -15,6 +15,34 @@
 
 ---
 
+## [0.103.0] — 2026-04-26
+
+### Added — Admin Settings + Schedule placeholder + permission matrix fix (GitHub [#205](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/205), [#208](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/208), [#209](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/209))
+
+**Admin Settings (GH #205):**
+- 3 новые страницы `/admin/settings/{appearance,notifications,automation}` с tab-навигацией
+- Appearance: загрузка логотипа, favicon, выбор основного цвета
+- Notifications: настройки SMTP, Push (VAPID), Telegram
+- Automation: статусы n8n workflows (документы, посещаемость, дедлайны)
+- Navigation entry `adminSettings` (system_admin only), иконка Shield
+- 4 локализации (ru/en/fr/ar) parity verified
+
+**Schedule placeholder (GH #208):**
+- Страница `/schedule` с заглушкой «coming soon»
+- Route-config: доступ всем 5 ролям
+- Navigation entry с иконкой GraduationCap
+- 4 локализации (ru/en/fr/ar) parity verified
+
+**Permission matrix alignment (GH #205):**
+- `/integration` — только system_admin (убран methodist)
+- `/tasks` — все 5 ролей (было 3)
+- `/reports` — добавлен teacher
+- `/schedule` — все 5 ролей (новый маршрут)
+- Navigation config синхронизирован с route-config
+
+**Documents uploader fix (GH #209):**
+- DocumentUpload: заменён `Button onClick → .click()` на нативный `<label htmlFor>` (Safari fix, аналогично FileUploader из 0.102.1)
+
 ## [0.102.2] — 2026-04-26
 
 ### Changed — Docs: roles-and-flows update + personal vs global settings clarification

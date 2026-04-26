@@ -1,6 +1,6 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.102.2 (см. `VERSION` в корне)
+> **Версия проекта:** 0.103.0 (см. `VERSION` в корне)
 > **Состояние на:** 26 апреля 2026 (после релиза Announcements + перераспределения админ-полномочий + уточнения личных настроек)
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`
 
