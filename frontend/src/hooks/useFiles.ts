@@ -84,6 +84,15 @@ export async function downloadFile(id: number): Promise<DownloadResponse> {
   return apiClient.get<DownloadResponse>(`${FILES_BASE_URL}/${id}/download`)
 }
 
+export async function downloadFileVersion(
+  fileId: number,
+  versionNumber: number
+): Promise<DownloadResponse> {
+  return apiClient.get<DownloadResponse>(
+    `${FILES_BASE_URL}/${fileId}/versions/${versionNumber}`
+  )
+}
+
 export async function createFileVersion(
   fileId: number,
   file: File,

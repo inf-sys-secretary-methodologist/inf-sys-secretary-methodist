@@ -3,17 +3,12 @@
 import { useTranslations } from 'next-intl'
 import { Download, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { formatFileSize } from '@/lib/utils'
 import type { FileVersion } from '@/types/files'
 
 interface VersionHistoryProps {
   versions: FileVersion[]
   onDownload?: (versionNumber: number) => void
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 export function VersionHistory({ versions, onDownload }: VersionHistoryProps) {

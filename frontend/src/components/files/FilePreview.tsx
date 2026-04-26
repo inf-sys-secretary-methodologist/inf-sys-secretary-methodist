@@ -39,6 +39,7 @@ export function FilePreview({ fileName, mimeType, downloadUrl, onClose }: FilePr
           <iframe
             src={downloadUrl}
             title={fileName}
+            sandbox="allow-same-origin"
             className="h-[500px] w-full rounded"
           />
         )}

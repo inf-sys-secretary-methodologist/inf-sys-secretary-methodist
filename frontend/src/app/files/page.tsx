@@ -23,14 +23,19 @@ import {
   uploadFile,
   deleteFile,
   downloadFile,
+  downloadFileVersion,
   createFileVersion,
 } from '@/hooks/useFiles'
 import type { FileItem, FileFilterParams } from '@/types/files'
 import { useAuthCheck } from '@/hooks/useAuth'
+import { useAuthStore } from '@/stores/authStore'
+import { canEdit } from '@/lib/auth/permissions'
 
 export default function FilesPage() {
   const t = useTranslations('files')
   useAuthCheck()
+  const user = useAuthStore((s) => s.user)
+  const userCanEdit = canEdit(user?.role)
   const [filters, setFilters] = useState<FileFilterParams>({ page: 1, limit: 20 })
   const [uploading, setUploading] = useState(false)
   const [previewFile, setPreviewFile] = useState<(FileItem & { downloadUrl?: string }) | null>(null)
@@ -81,10 +86,10 @@ export default function FilesPage() {
     }
   }
 
-  const handleVersionDownload = async (_versionNumber: number) => {
+  const handleVersionDownload = async (versionNumber: number) => {
     if (!versionsFileId) return
     try {
-      const result = await downloadFile(versionsFileId)
+      const result = await downloadFileVersion(versionsFileId, versionNumber)
       window.open(result.presigned_url, '_blank')
     } catch {
       toast.error(t('errors.downloadFailed'))
@@ -122,7 +127,7 @@ export default function FilesPage() {
         </div>
 
         {/* Upload zone */}
-        <FileUploader onUpload={handleUpload} uploading={uploading} />
+        {userCanEdit && <FileUploader onUpload={handleUpload} uploading={uploading} />}
 
         {/* File grid */}
         {isLoading ? (
@@ -137,7 +142,7 @@ export default function FilesPage() {
             <FileGrid
               files={files}
               onDownload={handleDownload}
-              onDelete={handleDelete}
+              onDelete={userCanEdit ? handleDelete : undefined}
               onPreview={handlePreview}
               onVersions={(id) => setVersionsFileId(id)}
             />
@@ -184,21 +189,28 @@ export default function FilesPage() {
         </Dialog>
 
         {/* Version history dialog */}
-        <Dialog open={versionsFileId !== null} onOpenChange={(open) => !open && setVersionsFileId(null)}>
+        <Dialog open={versionsFileId !== null} onOpenChange={(open) => {
+          if (!open) {
+            setVersionsFileId(null)
+            setVersionUploadOpen(false)
+          }
+        }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{t('versions.title')}</DialogTitle>
             </DialogHeader>
             <VersionHistory versions={versions} onDownload={handleVersionDownload} />
-            <div className="mt-4">
-              {versionUploadOpen ? (
-                <FileUploader onUpload={handleVersionUpload} uploading={uploading} />
-              ) : (
-                <Button variant="outline" onClick={() => setVersionUploadOpen(true)}>
-                  {t('versions.createVersion')}
-                </Button>
-              )}
-            </div>
+            {userCanEdit && (
+              <div className="mt-4">
+                {versionUploadOpen ? (
+                  <FileUploader onUpload={handleVersionUpload} uploading={uploading} />
+                ) : (
+                  <Button variant="outline" onClick={() => setVersionUploadOpen(true)}>
+                    {t('versions.createVersion')}
+                  </Button>
+                )}
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

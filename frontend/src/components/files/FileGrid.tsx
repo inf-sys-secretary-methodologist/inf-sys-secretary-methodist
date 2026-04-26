@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { formatFileSize } from '@/lib/utils'
 import type { FileItem } from '@/types/files'
 
 interface FileGridProps {
@@ -19,13 +20,6 @@ interface FileGridProps {
   onDelete?: (id: number) => void
   onPreview?: (file: FileItem) => void
   onVersions?: (id: number) => void
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
 }
 
 function getMimeIcon(mimeType: string) {
