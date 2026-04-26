@@ -1,6 +1,16 @@
 # Taskmaster
 .taskmaster/
 
+# Local-only two-level memory standard (CLAUDE.md, memory/, SESSION_START.md,
+# _tools/build_session_start.py, .claude/handoffs/). Не пушить в GitHub —
+# это рабочая память Даниила, не часть продуктового кода. Файлы существуют
+# локально, но git их не отслеживает.
+/CLAUDE.md
+/SESSION_START.md
+/memory/
+/_tools/
+# .claude/ уже ignored глобально (~/.config/git/ignore), оставляем как есть
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
