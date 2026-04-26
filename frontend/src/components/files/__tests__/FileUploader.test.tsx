@@ -5,7 +5,7 @@ import { FileUploader } from '../FileUploader'
 describe('FileUploader', () => {
   it('renders dropzone with title text', () => {
     render(<FileUploader onUpload={jest.fn()} />)
-    expect(screen.getByText(/drag.*drop|перетащите/i)).toBeInTheDocument()
+    expect(screen.getByText('dropzone.title')).toBeInTheDocument()
   })
 
   it('calls onUpload when a file is selected via input', async () => {
@@ -23,7 +23,7 @@ describe('FileUploader', () => {
 
   it('shows uploading state', () => {
     render(<FileUploader onUpload={jest.fn()} uploading />)
-    expect(screen.getByText(/uploading|загрузка/i)).toBeInTheDocument()
+    expect(screen.getByText('dropzone.uploading')).toBeInTheDocument()
   })
 
   it('disables input while uploading', () => {
