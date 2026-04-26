@@ -179,9 +179,9 @@ describe('getAvailableNavEntries', () => {
     expect(entryKeys).toContain('messages')
     expect(entryKeys).toContain('aiAssistant')
 
-    // Documents group should be flattened to single item since student only has access to documents
-    const docsEntry = entries.find((e) => e.nameKey === 'documents')
-    expect(docsEntry).toBeDefined()
+    // Documents group has 2 items for student (documents + files), so it stays as a group
+    const docsGroup = entries.find((e) => e.nameKey === 'documentsGroup')
+    expect(docsGroup).toBeDefined()
 
     // Student should NOT have access to analytics group or admin group
     expect(entryKeys).not.toContain('analyticsGroup')
@@ -258,14 +258,16 @@ describe('getAvailableNavEntries', () => {
     expect(entries.length).toBeGreaterThan(0)
   })
 
-  it('flattens groups with single item', () => {
-    // For student, documents group has only documents (not templates)
-    // So it should return the item directly, not the group
+  it('keeps documents group for student (documents + files)', () => {
     const entries = getAvailableNavEntries(UserRole.STUDENT)
 
-    const docsEntry = entries.find((e) => e.nameKey === 'documents')
-    expect(docsEntry).toBeDefined()
-    expect(isNavGroup(docsEntry!)).toBe(false)
+    const docsGroup = entries.find((e) => e.nameKey === 'documentsGroup')
+    expect(docsGroup).toBeDefined()
+    expect(isNavGroup(docsGroup!)).toBe(true)
+    const itemKeys = (docsGroup as NavGroup).items.map((i) => i.nameKey)
+    expect(itemKeys).toContain('documents')
+    expect(itemKeys).toContain('files')
+    expect(itemKeys).not.toContain('templates')
   })
 })
 
