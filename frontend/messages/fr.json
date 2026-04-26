@@ -2196,5 +2196,10 @@
       "delete": "Êtes-vous sûr de vouloir supprimer ce fichier ?",
       "deleteTitle": "Supprimer le fichier"
     }
+  },
+  "schedule": {
+    "title": "Emploi du temps",
+    "comingSoon": "Le module d'emploi du temps est en cours de développement",
+    "comingSoonDescription": "Ici vous gérerez les emplois du temps des cours, les salles et les remplacements"
   }
 }
