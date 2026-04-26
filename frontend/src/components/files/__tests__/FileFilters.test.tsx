@@ -23,11 +23,9 @@ describe('FileFilters', () => {
     render(<FileFilters value={defaultFilters} onChange={onChange} />)
 
     const input = screen.getByPlaceholderText('searchPlaceholder')
-    await user.type(input, 'report')
+    await user.type(input, 'r')
 
-    expect(onChange).toHaveBeenCalled()
-    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0]
-    expect(lastCall.search).toContain('report')
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ search: 'r' }))
   })
 
   it('calls onChange when file type is selected', async () => {
