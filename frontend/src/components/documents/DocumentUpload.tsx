@@ -195,14 +195,12 @@ export function DocumentUploadComponent({
           {t('dragAndDrop')}
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{t('orClickButton')}</p>
-        <Button
-          variant="outline"
-          className="cursor-pointer"
-          disabled={isUploading}
-          onClick={() => document.getElementById('file-upload')?.click()}
+        <label
+          htmlFor="file-upload"
+          className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium cursor-pointer hover:bg-accent hover:text-accent-foreground"
         >
           {t('selectFiles')}
-        </Button>
+        </label>
         <p className="text-xs text-gray-500 dark:text-gray-500 mt-4">{t('supportedFormats')}</p>
       </div>
 
