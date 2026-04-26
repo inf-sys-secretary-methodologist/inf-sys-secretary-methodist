@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { FolderOpen, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -16,6 +16,8 @@ import {
 import { FileUploader } from '@/components/files/FileUploader'
 import { FileGrid } from '@/components/files/FileGrid'
 import { FilePreview } from '@/components/files/FilePreview'
+import { FileFilters, type FileFilterValues } from '@/components/files/FileFilters'
+import { ConfirmDeleteDialog } from '@/components/files/ConfirmDeleteDialog'
 import { VersionHistory } from '@/components/files/VersionHistory'
 import {
   useFiles,
@@ -31,19 +33,52 @@ import { useAuthCheck } from '@/hooks/useAuth'
 import { useAuthStore } from '@/stores/authStore'
 import { canEdit } from '@/lib/auth/permissions'
 
+const MIME_TYPE_GROUPS: Record<string, (mime: string) => boolean> = {
+  image: (m) => m.startsWith('image/'),
+  documents: (m) => m.includes('pdf') || m.includes('document') || m.includes('text/'),
+  spreadsheets: (m) => m.includes('spreadsheet') || m.includes('excel') || m.includes('csv'),
+  presentations: (m) => m.includes('presentation') || m.includes('powerpoint'),
+  archives: (m) => m.includes('zip') || m.includes('tar') || m.includes('rar') || m.includes('7z'),
+  other: () => true,
+}
+
+function matchesMimeGroup(mimeType: string, group: string): boolean {
+  if (group === 'other') {
+    return !['image', 'documents', 'spreadsheets', 'presentations', 'archives'].some(
+      (g) => MIME_TYPE_GROUPS[g](mimeType)
+    )
+  }
+  return MIME_TYPE_GROUPS[group]?.(mimeType) ?? false
+}
+
 export default function FilesPage() {
   const t = useTranslations('files')
   useAuthCheck()
   const user = useAuthStore((s) => s.user)
   const userCanEdit = canEdit(user?.role)
-  const [filters, setFilters] = useState<FileFilterParams>({ page: 1, limit: 20 })
+
+  const [paginationParams, setPaginationParams] = useState<FileFilterParams>({ page: 1, limit: 100 })
+  const [clientFilters, setClientFilters] = useState<FileFilterValues>({})
   const [uploading, setUploading] = useState(false)
   const [previewFile, setPreviewFile] = useState<(FileItem & { downloadUrl?: string }) | null>(null)
   const [versionsFileId, setVersionsFileId] = useState<number | null>(null)
   const [versionUploadOpen, setVersionUploadOpen] = useState(false)
+  const [deleteFileId, setDeleteFileId] = useState<number | null>(null)
 
-  const { files, totalPages, isLoading, error, mutate } = useFiles(filters)
+  const { files, totalPages, isLoading, error, mutate } = useFiles(paginationParams)
   const { versions, mutate: mutateVersions } = useFileVersions(versionsFileId)
+
+  const filteredFiles = useMemo(() => {
+    let result = files
+    if (clientFilters.search) {
+      const q = clientFilters.search.toLowerCase()
+      result = result.filter((f) => f.original_name.toLowerCase().includes(q))
+    }
+    if (clientFilters.fileType) {
+      result = result.filter((f) => matchesMimeGroup(f.mime_type, clientFilters.fileType!))
+    }
+    return result
+  }, [files, clientFilters])
 
   const handleUpload = async (file: File) => {
     setUploading(true)
@@ -67,13 +102,19 @@ export default function FilesPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm(t('confirm.delete'))) return
+  const handleDeleteRequest = (id: number) => {
+    setDeleteFileId(id)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (deleteFileId === null) return
     try {
-      await deleteFile(id)
+      await deleteFile(deleteFileId)
       await mutate()
     } catch {
       toast.error(t('errors.deleteFailed'))
+    } finally {
+      setDeleteFileId(null)
     }
   }
 
@@ -112,13 +153,12 @@ export default function FilesPage() {
   }
 
   const handlePageChange = (page: number) => {
-    setFilters((prev) => ({ ...prev, page }))
+    setPaginationParams((prev) => ({ ...prev, page }))
   }
 
   return (
     <AppLayout>
       <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FolderOpen className="h-6 w-6" />
@@ -126,10 +166,10 @@ export default function FilesPage() {
           </div>
         </div>
 
-        {/* Upload zone */}
         {userCanEdit && <FileUploader onUpload={handleUpload} uploading={uploading} />}
 
-        {/* File grid */}
+        <FileFilters value={clientFilters} onChange={setClientFilters} />
+
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -140,32 +180,31 @@ export default function FilesPage() {
         ) : (
           <>
             <FileGrid
-              files={files}
+              files={filteredFiles}
               onDownload={handleDownload}
-              onDelete={userCanEdit ? handleDelete : undefined}
+              onDelete={userCanEdit ? handleDeleteRequest : undefined}
               onPreview={handlePreview}
               onVersions={(id) => setVersionsFileId(id)}
             />
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={filters.page === 1}
-                  onClick={() => handlePageChange((filters.page || 1) - 1)}
+                  disabled={paginationParams.page === 1}
+                  onClick={() => handlePageChange((paginationParams.page || 1) - 1)}
                 >
                   &laquo;
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  {filters.page} / {totalPages}
+                  {paginationParams.page} / {totalPages}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={filters.page === totalPages}
-                  onClick={() => handlePageChange((filters.page || 1) + 1)}
+                  disabled={paginationParams.page === totalPages}
+                  onClick={() => handlePageChange((paginationParams.page || 1) + 1)}
                 >
                   &raquo;
                 </Button>
@@ -174,7 +213,6 @@ export default function FilesPage() {
           </>
         )}
 
-        {/* Preview dialog */}
         <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
           <DialogContent className="max-w-3xl">
             {previewFile && previewFile.downloadUrl && (
@@ -188,7 +226,6 @@ export default function FilesPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Version history dialog */}
         <Dialog open={versionsFileId !== null} onOpenChange={(open) => {
           if (!open) {
             setVersionsFileId(null)
@@ -213,6 +250,12 @@ export default function FilesPage() {
             )}
           </DialogContent>
         </Dialog>
+
+        <ConfirmDeleteDialog
+          open={deleteFileId !== null}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteFileId(null)}
+        />
       </div>
     </AppLayout>
   )
