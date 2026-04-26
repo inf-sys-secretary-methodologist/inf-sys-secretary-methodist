@@ -30,7 +30,7 @@ describe('VersionHistory', () => {
 
   it('renders version numbers', () => {
     render(<VersionHistory versions={[v1, v2]} />)
-    expect(screen.getByText(/versions\.version/)).toBeInTheDocument()
+    expect(screen.getAllByText(/versions\.version/)).toHaveLength(2)
   })
 
   it('renders version comment when present', () => {
