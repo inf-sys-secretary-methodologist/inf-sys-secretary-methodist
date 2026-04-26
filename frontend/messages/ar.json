@@ -175,7 +175,9 @@
     "settingsPage": "الإعدادات",
     "tasks": "المهام",
     "announcements": "الإعلانات",
-    "files": "الملفات"
+    "files": "الملفات",
+    "schedule": "جدول",
+    "adminSettings": "إعدادات النظام"
   },
   "roles": {
     "system_admin": "مدير النظام",

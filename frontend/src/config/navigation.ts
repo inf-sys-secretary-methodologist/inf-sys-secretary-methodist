@@ -7,6 +7,7 @@ import {
   Calendar,
   MessageCircle,
   Database,
+  Shield,
   TrendingUp,
   FileCheck,
   Settings,
@@ -213,6 +214,12 @@ export const navigationConfig: NavEntry[] = [
         nameKey: 'integration',
         url: '/integration',
         icon: Database,
+        roles: [UserRole.SYSTEM_ADMIN],
+      },
+      {
+        nameKey: 'adminSettings',
+        url: '/admin/settings/appearance',
+        icon: Shield,
         roles: [UserRole.SYSTEM_ADMIN],
       },
       {

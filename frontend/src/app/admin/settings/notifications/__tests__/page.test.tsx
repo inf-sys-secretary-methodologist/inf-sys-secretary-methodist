@@ -13,7 +13,7 @@ import AdminNotificationsPage from '../page'
 describe('AdminNotificationsPage', () => {
   it('renders page title', () => {
     render(<AdminNotificationsPage />)
-    expect(screen.getByText('notifications.title')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('notifications.title')
   })
 
   it('renders SMTP section', () => {

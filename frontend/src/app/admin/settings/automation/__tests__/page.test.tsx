@@ -13,7 +13,7 @@ import AdminAutomationPage from '../page'
 describe('AdminAutomationPage', () => {
   it('renders page title', () => {
     render(<AdminAutomationPage />)
-    expect(screen.getByText('automation.title')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('automation.title')
   })
 
   it('renders workflows section', () => {

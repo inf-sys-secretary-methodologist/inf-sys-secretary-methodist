@@ -13,7 +13,7 @@ import AdminAppearancePage from '../page'
 describe('AdminAppearancePage', () => {
   it('renders page title', () => {
     render(<AdminAppearancePage />)
-    expect(screen.getByText('appearance.title')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('appearance.title')
   })
 
   it('renders brand section', () => {

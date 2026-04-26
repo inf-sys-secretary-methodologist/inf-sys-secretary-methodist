@@ -175,7 +175,9 @@
     "settingsPage": "Paramètres",
     "tasks": "Tâches",
     "announcements": "Annonces",
-    "files": "Fichiers"
+    "files": "Fichiers",
+    "schedule": "Planning",
+    "adminSettings": "Paramètres système"
   },
   "roles": {
     "system_admin": "Administrateur",

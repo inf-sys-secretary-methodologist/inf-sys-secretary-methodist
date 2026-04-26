@@ -175,7 +175,9 @@
     "settingsPage": "Настройки",
     "tasks": "Задачи",
     "announcements": "Объявления",
-    "files": "Файлы"
+    "files": "Файлы",
+    "schedule": "Расписание",
+    "adminSettings": "Системные настройки"
   },
   "roles": {
     "system_admin": "Администратор",
