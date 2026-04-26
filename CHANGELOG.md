@@ -15,6 +15,12 @@
 
 ---
 
+## [0.102.2] — 2026-04-26
+
+### Changed — Docs: roles-and-flows update + personal vs global settings clarification
+
+- Обновлён `docs/roles-and-flows.md`: добавлен раздел «Личные vs глобальные настройки», матрица доступа (PermissionMatrix), уточнены сценарии по ролям, актуализированы открытые задачи
+
 ## [0.102.1] — 2026-04-26
 
 ### Fixed — Files Frontend bug fix (GitHub [#203](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/203))
