@@ -20,6 +20,8 @@ type CreateLessonInput struct {
 	TimeStart    string `json:"time_start" validate:"required"`
 	TimeEnd      string `json:"time_end" validate:"required"`
 	WeekType     string `json:"week_type" validate:"required,oneof=all odd even"`
+	DateStart    string `json:"date_start" validate:"required"`
+	DateEnd      string `json:"date_end" validate:"required"`
 	Notes        *string `json:"notes,omitempty"`
 }
 

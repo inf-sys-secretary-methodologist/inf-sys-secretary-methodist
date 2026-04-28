@@ -32,6 +32,8 @@ type CreateLessonInputForUC struct {
 	TimeStart    string
 	TimeEnd      string
 	WeekType     domain.WeekType
+	DateStart    time.Time
+	DateEnd      time.Time
 	Notes        *string
 }
 
@@ -101,6 +103,8 @@ func (uc *LessonUseCase) Create(ctx context.Context, userID int64, input CreateL
 		input.TimeEnd,
 		input.WeekType,
 	)
+	lesson.DateStart = input.DateStart
+	lesson.DateEnd = input.DateEnd
 	lesson.Notes = input.Notes
 
 	if err := lesson.Validate(); err != nil {
@@ -218,17 +222,11 @@ func (uc *LessonUseCase) CreateChange(ctx context.Context, userID int64, input C
 		return nil, fmt.Errorf("%w: invalid change type", ErrInvalidInput)
 	}
 
-	change := &entities.ScheduleChange{
-		LessonID:       input.LessonID,
-		ChangeType:     input.ChangeType,
-		OriginalDate:   input.OriginalDate,
-		NewDate:        input.NewDate,
-		NewClassroomID: input.NewClassroomID,
-		NewTeacherID:   input.NewTeacherID,
-		Reason:         input.Reason,
-		CreatedBy:      userID,
-		CreatedAt:      time.Now(),
-	}
+	change := entities.NewScheduleChange(input.LessonID, input.ChangeType, input.OriginalDate, userID)
+	change.NewDate = input.NewDate
+	change.NewClassroomID = input.NewClassroomID
+	change.NewTeacherID = input.NewTeacherID
+	change.Reason = input.Reason
 
 	if err := uc.changeRepo.Create(ctx, change); err != nil {
 		return nil, fmt.Errorf("failed to create schedule change: %w", err)

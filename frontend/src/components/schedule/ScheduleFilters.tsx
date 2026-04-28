@@ -88,7 +88,7 @@ export function ScheduleFilters({
           <SelectItem value={ALL_VALUE}>{t('filters.group')}</SelectItem>
           {groups.map((g) => (
             <SelectItem key={g.id} value={String(g.id)}>
-              {g.name} ({g.course} курс)
+              {g.name} ({g.course})
             </SelectItem>
           ))}
         </SelectContent>

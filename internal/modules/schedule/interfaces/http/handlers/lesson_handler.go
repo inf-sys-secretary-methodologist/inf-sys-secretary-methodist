@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -45,6 +46,29 @@ func (h *LessonHandler) getIDParam(c *gin.Context, param string) (int64, bool) {
 	return id, true
 }
 
+// canModifySchedule checks if user has permission to create/update/delete lessons.
+// Only system_admin and academic_secretary have full schedule access.
+func (h *LessonHandler) canModifySchedule(c *gin.Context) bool {
+	role, exists := c.Get("user_role")
+	if !exists {
+		return false
+	}
+	roleStr, ok := role.(string)
+	if !ok {
+		return false
+	}
+	return roleStr == "system_admin" || roleStr == "academic_secretary"
+}
+
+// requireScheduleWrite checks permission and returns 403 if denied.
+func (h *LessonHandler) requireScheduleWrite(c *gin.Context) bool {
+	if !h.canModifySchedule(c) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden: insufficient permissions for schedule modification"})
+		return false
+	}
+	return true
+}
+
 // handleError handles use case errors.
 func (h *LessonHandler) handleError(c *gin.Context, err error) {
 	switch {
@@ -61,6 +85,9 @@ func (h *LessonHandler) handleError(c *gin.Context, err error) {
 
 // Create handles lesson creation.
 func (h *LessonHandler) Create(c *gin.Context) {
+	if !h.requireScheduleWrite(c) {
+		return
+	}
 	userID, ok := h.getUserID(c)
 	if !ok {
 		return
@@ -69,6 +96,17 @@ func (h *LessonHandler) Create(c *gin.Context) {
 	var input dto.CreateLessonInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	dateStart, err := time.Parse("2006-01-02", input.DateStart)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date_start format, expected YYYY-MM-DD"})
+		return
+	}
+	dateEnd, err := time.Parse("2006-01-02", input.DateEnd)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date_end format, expected YYYY-MM-DD"})
 		return
 	}
 
@@ -83,6 +121,8 @@ func (h *LessonHandler) Create(c *gin.Context) {
 		TimeStart:    input.TimeStart,
 		TimeEnd:      input.TimeEnd,
 		WeekType:     domain.WeekType(input.WeekType),
+		DateStart:    dateStart,
+		DateEnd:      dateEnd,
 		Notes:        input.Notes,
 	}
 
@@ -176,6 +216,9 @@ func (h *LessonHandler) GetByID(c *gin.Context) {
 
 // Update updates a lesson.
 func (h *LessonHandler) Update(c *gin.Context) {
+	if !h.requireScheduleWrite(c) {
+		return
+	}
 	userID, ok := h.getUserID(c)
 	if !ok {
 		return
@@ -228,6 +271,9 @@ func (h *LessonHandler) Update(c *gin.Context) {
 
 // Delete deletes a lesson.
 func (h *LessonHandler) Delete(c *gin.Context) {
+	if !h.requireScheduleWrite(c) {
+		return
+	}
 	userID, ok := h.getUserID(c)
 	if !ok {
 		return
@@ -248,6 +294,9 @@ func (h *LessonHandler) Delete(c *gin.Context) {
 
 // CreateChange creates a schedule change.
 func (h *LessonHandler) CreateChange(c *gin.Context) {
+	if !h.requireScheduleWrite(c) {
+		return
+	}
 	userID, ok := h.getUserID(c)
 	if !ok {
 		return
