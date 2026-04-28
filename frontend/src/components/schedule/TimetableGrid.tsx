@@ -17,7 +17,7 @@ interface TimetableGridProps {
  * Timetable grid: 6 columns (Mon-Sat) x 5 standard time slots.
  * Each cell displays LessonCards matching that day + time slot.
  */
-export function TimetableGrid({ lessons, onLessonClick, canEdit }: TimetableGridProps) {
+export function TimetableGrid({ lessons, onLessonClick }: TimetableGridProps) {
   const t = useTranslations('schedule')
 
   const getLessonsForCell = (dayOfWeek: number, timeStart: string): Lesson[] => {
@@ -34,7 +34,7 @@ export function TimetableGrid({ lessons, onLessonClick, canEdit }: TimetableGrid
             <th className="sticky left-0 z-10 bg-background p-2 text-xs font-medium text-muted-foreground w-[100px] border-b border-r">
               {/* Time column header */}
             </th>
-            {DAY_NAMES.map((day, index) => (
+            {DAY_NAMES.map((day) => (
               <th
                 key={day}
                 className="p-2 text-xs font-semibold text-center border-b min-w-[140px]"

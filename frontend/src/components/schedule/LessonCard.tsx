@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { MapPin, User, BookOpen } from 'lucide-react'
+import { MapPin, User } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import type { Lesson } from '@/types/schedule'
