@@ -177,7 +177,9 @@
     "announcements": "الإعلانات",
     "files": "الملفات",
     "schedule": "جدول",
-    "adminSettings": "إعدادات النظام"
+    "adminSettings": "إعدادات النظام",
+    "educationGroup": "التعليم",
+    "communicationGroup": "التواصل"
   },
   "roles": {
     "system_admin": "مدير النظام",

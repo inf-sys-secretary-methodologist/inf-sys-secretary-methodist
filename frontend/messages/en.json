@@ -177,7 +177,9 @@
     "announcements": "Announcements",
     "files": "Files",
     "schedule": "Schedule",
-    "adminSettings": "System Settings"
+    "adminSettings": "System Settings",
+    "educationGroup": "Education",
+    "communicationGroup": "Communication"
   },
   "roles": {
     "system_admin": "Administrator",

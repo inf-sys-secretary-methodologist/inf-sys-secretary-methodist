@@ -124,10 +124,9 @@ export const navigationConfig: NavEntry[] = [
       },
     ],
   },
-  // Schedule - class timetable (all roles per 0.102.2 matrix)
+  // Education group — schedule + calendar + tasks
   {
-    nameKey: 'schedule',
-    url: '/schedule',
+    nameKey: 'educationGroup',
     icon: GraduationCap,
     roles: [
       UserRole.SYSTEM_ADMIN,
@@ -136,57 +135,73 @@ export const navigationConfig: NavEntry[] = [
       UserRole.TEACHER,
       UserRole.STUDENT,
     ],
-  },
-  // Calendar - standalone
-  {
-    nameKey: 'calendar',
-    url: '/calendar',
-    icon: Calendar,
-    roles: [
-      UserRole.SYSTEM_ADMIN,
-      UserRole.METHODIST,
-      UserRole.ACADEMIC_SECRETARY,
-      UserRole.TEACHER,
-      UserRole.STUDENT,
+    items: [
+      {
+        nameKey: 'schedule',
+        url: '/schedule',
+        icon: GraduationCap,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+          UserRole.STUDENT,
+        ],
+      },
+      {
+        nameKey: 'calendar',
+        url: '/calendar',
+        icon: Calendar,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+          UserRole.STUDENT,
+        ],
+      },
+      {
+        nameKey: 'tasks',
+        url: '/tasks',
+        icon: ListTodo,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+          UserRole.STUDENT,
+        ],
+      },
     ],
   },
-  // Tasks/assignments - all roles; student & teacher: own scope
+  // Communication group — announcements + messages + AI
   {
-    nameKey: 'tasks',
-    url: '/tasks',
-    icon: ListTodo,
-    roles: [
-      UserRole.SYSTEM_ADMIN,
-      UserRole.METHODIST,
-      UserRole.ACADEMIC_SECRETARY,
-      UserRole.TEACHER,
-      UserRole.STUDENT,
-    ],
-  },
-  // Announcements - standalone (all authenticated users; STUDENT view-only)
-  {
-    nameKey: 'announcements',
-    url: '/announcements',
-    icon: Megaphone,
-    roles: [
-      UserRole.SYSTEM_ADMIN,
-      UserRole.METHODIST,
-      UserRole.ACADEMIC_SECRETARY,
-      UserRole.TEACHER,
-      UserRole.STUDENT,
-    ],
-  },
-  // Messages - standalone
-  {
-    nameKey: 'messages',
-    url: '/messages',
+    nameKey: 'communicationGroup',
     icon: MessageCircle,
-  },
-  // AI Assistant - standalone
-  {
-    nameKey: 'aiAssistant',
-    url: '/ai',
-    icon: Sparkles,
+    items: [
+      {
+        nameKey: 'announcements',
+        url: '/announcements',
+        icon: Megaphone,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+          UserRole.STUDENT,
+        ],
+      },
+      {
+        nameKey: 'messages',
+        url: '/messages',
+        icon: MessageCircle,
+      },
+      {
+        nameKey: 'aiAssistant',
+        url: '/ai',
+        icon: Sparkles,
+      },
+    ],
   },
   // Admin group
   {

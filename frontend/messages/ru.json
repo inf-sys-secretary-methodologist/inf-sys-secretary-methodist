@@ -177,7 +177,9 @@
     "announcements": "Объявления",
     "files": "Файлы",
     "schedule": "Расписание",
-    "adminSettings": "Системные настройки"
+    "adminSettings": "Системные настройки",
+    "educationGroup": "Учебный процесс",
+    "communicationGroup": "Коммуникации"
   },
   "roles": {
     "system_admin": "Администратор",

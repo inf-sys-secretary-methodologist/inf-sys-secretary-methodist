@@ -308,6 +308,6 @@ export const analyticsApi = {
       params: { format },
       responseType: 'blob',
     })
-    return response.data as unknown as Blob
+    return (response as { data: Blob }).data
   },
 }
