@@ -85,11 +85,11 @@ func (h *LessonHandler) handleError(c *gin.Context, err error) {
 
 // Create handles lesson creation.
 func (h *LessonHandler) Create(c *gin.Context) {
-	if !h.requireScheduleWrite(c) {
-		return
-	}
 	userID, ok := h.getUserID(c)
 	if !ok {
+		return
+	}
+	if !h.requireScheduleWrite(c) {
 		return
 	}
 
@@ -216,11 +216,11 @@ func (h *LessonHandler) GetByID(c *gin.Context) {
 
 // Update updates a lesson.
 func (h *LessonHandler) Update(c *gin.Context) {
-	if !h.requireScheduleWrite(c) {
-		return
-	}
 	userID, ok := h.getUserID(c)
 	if !ok {
+		return
+	}
+	if !h.requireScheduleWrite(c) {
 		return
 	}
 
@@ -271,11 +271,11 @@ func (h *LessonHandler) Update(c *gin.Context) {
 
 // Delete deletes a lesson.
 func (h *LessonHandler) Delete(c *gin.Context) {
-	if !h.requireScheduleWrite(c) {
-		return
-	}
 	userID, ok := h.getUserID(c)
 	if !ok {
+		return
+	}
+	if !h.requireScheduleWrite(c) {
 		return
 	}
 
@@ -294,11 +294,11 @@ func (h *LessonHandler) Delete(c *gin.Context) {
 
 // CreateChange creates a schedule change.
 func (h *LessonHandler) CreateChange(c *gin.Context) {
-	if !h.requireScheduleWrite(c) {
-		return
-	}
 	userID, ok := h.getUserID(c)
 	if !ok {
+		return
+	}
+	if !h.requireScheduleWrite(c) {
 		return
 	}
 
