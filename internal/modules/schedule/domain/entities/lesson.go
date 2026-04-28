@@ -47,8 +47,7 @@ type TeacherInfo struct {
 	Email string `json:"email"`
 }
 
-func NewLesson(semesterID, disciplineID, lessonTypeID, teacherID, groupID, classroomID int64, day domain.DayOfWeek, timeStart, timeEnd string, weekType domain.WeekType) *Lesson {
-	now := time.Now()
+func NewLesson(semesterID, disciplineID, lessonTypeID, teacherID, groupID, classroomID int64, day domain.DayOfWeek, timeStart, timeEnd string, weekType domain.WeekType, dateStart, dateEnd, now time.Time) *Lesson {
 	return &Lesson{
 		SemesterID:   semesterID,
 		DisciplineID: disciplineID,
@@ -60,8 +59,8 @@ func NewLesson(semesterID, disciplineID, lessonTypeID, teacherID, groupID, class
 		TimeStart:    timeStart,
 		TimeEnd:      timeEnd,
 		WeekType:     weekType,
-		DateStart:    now,
-		DateEnd:      now.Add(120 * 24 * time.Hour),
+		DateStart:    dateStart,
+		DateEnd:      dateEnd,
 		IsCancelled:  false,
 		CreatedAt:    now,
 		UpdatedAt:    now,

@@ -19,12 +19,12 @@ type ScheduleChange struct {
 	CreatedAt      time.Time         `json:"created_at"`
 }
 
-func NewScheduleChange(lessonID int64, changeType domain.ChangeType, originalDate time.Time, createdBy int64) *ScheduleChange {
+func NewScheduleChange(lessonID int64, changeType domain.ChangeType, originalDate time.Time, createdBy int64, now time.Time) *ScheduleChange {
 	return &ScheduleChange{
 		LessonID:     lessonID,
 		ChangeType:   changeType,
 		OriginalDate: originalDate,
 		CreatedBy:    createdBy,
-		CreatedAt:    time.Now(),
+		CreatedAt:    now,
 	}
 }

@@ -91,6 +91,7 @@ func NewLessonUseCase(
 
 // Create creates a new lesson.
 func (uc *LessonUseCase) Create(ctx context.Context, userID int64, input CreateLessonInputForUC) (*entities.Lesson, error) {
+	now := time.Now()
 	lesson := entities.NewLesson(
 		input.SemesterID,
 		input.DisciplineID,
@@ -102,9 +103,10 @@ func (uc *LessonUseCase) Create(ctx context.Context, userID int64, input CreateL
 		input.TimeStart,
 		input.TimeEnd,
 		input.WeekType,
+		input.DateStart,
+		input.DateEnd,
+		now,
 	)
-	lesson.DateStart = input.DateStart
-	lesson.DateEnd = input.DateEnd
 	lesson.Notes = input.Notes
 
 	if err := lesson.Validate(); err != nil {
@@ -222,7 +224,7 @@ func (uc *LessonUseCase) CreateChange(ctx context.Context, userID int64, input C
 		return nil, fmt.Errorf("%w: invalid change type", ErrInvalidInput)
 	}
 
-	change := entities.NewScheduleChange(input.LessonID, input.ChangeType, input.OriginalDate, userID)
+	change := entities.NewScheduleChange(input.LessonID, input.ChangeType, input.OriginalDate, userID, time.Now())
 	change.NewDate = input.NewDate
 	change.NewClassroomID = input.NewClassroomID
 	change.NewTeacherID = input.NewTeacherID
