@@ -8,6 +8,18 @@ jest.mock('@/components/layout', () => ({
   AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
+jest.mock('@/hooks/useSchedule', () => ({
+  useScheduleTimetable: () => ({ lessons: [], isLoading: false, error: null, mutate: jest.fn() }),
+  useClassrooms: () => ({ classrooms: [], isLoading: false, error: null }),
+  useStudentGroups: () => ({ groups: [], isLoading: false, error: null }),
+  useSemesters: () => ({ semesters: [], isLoading: false, error: null }),
+  useLessonTypes: () => ({ lessonTypes: [], isLoading: false, error: null }),
+}))
+
+jest.mock('@/stores/authStore', () => ({
+  useAuthStore: (selector: (s: { user: null }) => unknown) => selector({ user: null }),
+}))
+
 import SchedulePage from '../page'
 
 describe('SchedulePage', () => {
@@ -16,8 +28,15 @@ describe('SchedulePage', () => {
     expect(screen.getByText('title')).toBeInTheDocument()
   })
 
-  it('shows coming soon message', () => {
+  it('shows empty state when no lessons', () => {
     render(<SchedulePage />)
-    expect(screen.getByText('comingSoon')).toBeInTheDocument()
+    expect(screen.getByText('empty')).toBeInTheDocument()
+  })
+
+  it('renders week type tabs', () => {
+    render(<SchedulePage />)
+    expect(screen.getByText('filters.allWeeks')).toBeInTheDocument()
+    expect(screen.getByText('filters.oddWeeks')).toBeInTheDocument()
+    expect(screen.getByText('filters.evenWeeks')).toBeInTheDocument()
   })
 })
