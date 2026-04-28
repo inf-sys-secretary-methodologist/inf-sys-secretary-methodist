@@ -15,6 +15,30 @@
 
 ---
 
+## [0.105.0] — 2026-04-28
+
+### Added — Schedule Lessons module (GitHub [#201](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/201))
+
+**Backend:**
+- Domain: Lesson, Classroom, ScheduleChange, StudentGroup, Discipline, Semester, LessonType entities
+- Domain types: DayOfWeek, WeekType, ChangeType enums with validators
+- Repository interfaces + PostgreSQL implementations (lessons, classrooms, references, changes)
+- LessonUseCase with CRUD, timetable query, schedule changes, reference data
+- LessonHandler with 17 HTTP endpoints + permission guards (admin/secretary only for writes)
+- Routes: `/api/schedule/lessons/*`, `/api/schedule/changes`, `/api/classrooms`, `/api/student-groups`, `/api/disciplines`, `/api/semesters`, `/api/lesson-types`
+
+**Frontend:**
+- TimetableGrid component (6 columns Mon-Sat × 5 time slots)
+- LessonCard component (colored by lesson type, discipline/teacher/classroom info)
+- ScheduleFilters (semester, group, classroom selects)
+- `/schedule` page with week-type tabs, role-based edit controls, loading/empty states
+- SWR hooks for all schedule endpoints
+- i18n ×4 (ru/en/fr/ar) — 46 new keys per locale
+
+**Security:**
+- Permission guards: only `system_admin` and `academic_secretary` can create/update/delete lessons
+- 22 handler tests covering permission matrix (401/403 paths)
+
 ## [0.104.0] — 2026-04-26
 
 ### Added — Resource-based permission matrix (GitHub [#206](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/206))

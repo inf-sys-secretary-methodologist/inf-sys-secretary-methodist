@@ -1,6 +1,6 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.104.0 (см. `VERSION` в корне)
+> **Версия проекта:** 0.105.0 (см. `VERSION` в корне)
 > **Состояние на:** 26 апреля 2026 (после релиза Announcements + перераспределения админ-полномочий + уточнения личных настроек)
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`
 
@@ -117,7 +117,7 @@ Backend + Frontend + API + проверено в use-flow.
 
 | Модуль | Backend | Frontend | Что отсутствует |
 |--------|:-------:|:--------:|-----------------|
-| **schedule** (расписание пар) | ⚠️ только events | ⚠️ только календарь events | Нет lesson-handlers/usecase, страницы расписания пар |
+| **schedule** (расписание пар) | ✅ events + lessons | ✅ `/schedule` timetable grid + `/calendar` events | Полноценное расписание: CRUD пар, замены, справочники |
 | **files** | ✅ 1933 LOC | ❌ | Нет файлового менеджера (только через документы и вложения) |
 
 **Закрыто в недавних релизах:**
