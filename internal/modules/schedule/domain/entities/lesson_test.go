@@ -7,8 +7,12 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
 )
 
-func TestNewLesson(t *testing.T) {
-	lesson := NewLesson(1, 2, 3, 4, 5, 6, domain.Monday, "09:00", "10:30", domain.WeekTypeAll)
+func TestNewLesson_Deterministic(t *testing.T) {
+	fixedTime := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	dateStart := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	dateEnd := time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	lesson := NewLesson(1, 2, 3, 4, 5, 6, domain.Monday, "09:00", "10:30", domain.WeekTypeAll, dateStart, dateEnd, fixedTime)
 	if lesson == nil {
 		t.Fatal("NewLesson returned nil")
 	}
@@ -21,23 +25,47 @@ func TestNewLesson(t *testing.T) {
 	if lesson.TimeStart != "09:00" {
 		t.Errorf("TimeStart = %v, want 09:00", lesson.TimeStart)
 	}
-	if lesson.TimeEnd != "10:30" {
-		t.Errorf("TimeEnd = %v, want 10:30", lesson.TimeEnd)
+	if !lesson.DateStart.Equal(dateStart) {
+		t.Errorf("DateStart = %v, want %v", lesson.DateStart, dateStart)
+	}
+	if !lesson.DateEnd.Equal(dateEnd) {
+		t.Errorf("DateEnd = %v, want %v", lesson.DateEnd, dateEnd)
+	}
+	if !lesson.CreatedAt.Equal(fixedTime) {
+		t.Errorf("CreatedAt = %v, want %v", lesson.CreatedAt, fixedTime)
+	}
+	if !lesson.UpdatedAt.Equal(fixedTime) {
+		t.Errorf("UpdatedAt = %v, want %v", lesson.UpdatedAt, fixedTime)
 	}
 	if lesson.IsCancelled {
 		t.Error("new lesson should not be cancelled")
 	}
-	if lesson.CreatedAt.IsZero() {
-		t.Error("CreatedAt should be set")
+}
+
+func TestNewScheduleChange_Deterministic(t *testing.T) {
+	fixedTime := time.Date(2026, 10, 15, 10, 0, 0, 0, time.UTC)
+	origDate := time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)
+
+	change := NewScheduleChange(42, domain.ChangeTypeCancelled, origDate, 7, fixedTime)
+	if change == nil {
+		t.Fatal("NewScheduleChange returned nil")
+	}
+	if change.LessonID != 42 {
+		t.Errorf("LessonID = %d, want 42", change.LessonID)
+	}
+	if !change.CreatedAt.Equal(fixedTime) {
+		t.Errorf("CreatedAt = %v, want %v", change.CreatedAt, fixedTime)
 	}
 }
 
 func TestLesson_Validate(t *testing.T) {
 	validLesson := func() *Lesson {
-		l := NewLesson(1, 1, 1, 1, 1, 1, domain.Monday, "09:00", "10:30", domain.WeekTypeAll)
-		l.DateStart = time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
-		l.DateEnd = time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC)
-		return l
+		now := time.Now()
+		return NewLesson(1, 1, 1, 1, 1, 1, domain.Monday, "09:00", "10:30", domain.WeekTypeAll,
+			time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
+			time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC),
+			now,
+		)
 	}
 
 	tests := []struct {
