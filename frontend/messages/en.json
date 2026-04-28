@@ -2201,8 +2201,50 @@
   },
   "schedule": {
     "title": "Class Schedule",
-    "comingSoon": "The class schedule module is under development",
-    "comingSoonDescription": "Here you will manage lesson timetables, classrooms, and substitutions"
+    "description": "Manage lesson timetables, classrooms, and substitutions",
+    "filters": {
+      "semester": "Semester",
+      "group": "Group",
+      "teacher": "Teacher",
+      "classroom": "Classroom",
+      "weekType": "Week type",
+      "allWeeks": "All weeks",
+      "oddWeeks": "Odd weeks",
+      "evenWeeks": "Even weeks"
+    },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+    "lesson": {
+      "create": "Add lesson",
+      "edit": "Edit",
+      "delete": "Delete",
+      "notes": "Notes",
+      "cancelled": "Cancelled",
+      "noLessons": "No lessons"
+    },
+    "change": {
+      "create": "Create change",
+      "cancelled": "Cancellation",
+      "moved": "Moved",
+      "replacedTeacher": "Teacher replacement",
+      "replacedClassroom": "Classroom replacement",
+      "reason": "Reason",
+      "originalDate": "Original date",
+      "newDate": "New date"
+    },
+    "errors": {
+      "loadFailed": "Failed to load schedule",
+      "createFailed": "Failed to create lesson",
+      "updateFailed": "Failed to update lesson",
+      "deleteFailed": "Failed to delete lesson"
+    },
+    "empty": "Schedule is empty. Add lessons to display."
   },
   "adminSettings": {
     "title": "System Settings",

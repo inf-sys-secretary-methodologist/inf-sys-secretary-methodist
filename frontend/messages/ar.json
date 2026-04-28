@@ -2201,8 +2201,50 @@
   },
   "schedule": {
     "title": "جدول الحصص",
-    "comingSoon": "وحدة جدول الحصص قيد التطوير",
-    "comingSoonDescription": "هنا ستدير جداول الدروس والقاعات والاستبدالات"
+    "description": "إدارة جداول الدروس والقاعات والاستبدالات",
+    "filters": {
+      "semester": "الفصل الدراسي",
+      "group": "المجموعة",
+      "teacher": "المعلم",
+      "classroom": "القاعة",
+      "weekType": "نوع الأسبوع",
+      "allWeeks": "جميع الأسابيع",
+      "oddWeeks": "الأسابيع الفردية",
+      "evenWeeks": "الأسابيع الزوجية"
+    },
+    "days": {
+      "monday": "الاثنين",
+      "tuesday": "الثلاثاء",
+      "wednesday": "الأربعاء",
+      "thursday": "الخميس",
+      "friday": "الجمعة",
+      "saturday": "السبت"
+    },
+    "lesson": {
+      "create": "إضافة درس",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "notes": "ملاحظات",
+      "cancelled": "ملغى",
+      "noLessons": "لا توجد دروس"
+    },
+    "change": {
+      "create": "إنشاء تغيير",
+      "cancelled": "إلغاء",
+      "moved": "نقل",
+      "replacedTeacher": "استبدال المعلم",
+      "replacedClassroom": "تغيير القاعة",
+      "reason": "السبب",
+      "originalDate": "التاريخ الأصلي",
+      "newDate": "التاريخ الجديد"
+    },
+    "errors": {
+      "loadFailed": "فشل تحميل الجدول",
+      "createFailed": "فشل إنشاء الدرس",
+      "updateFailed": "فشل تحديث الدرس",
+      "deleteFailed": "فشل حذف الدرس"
+    },
+    "empty": "الجدول فارغ. أضف دروساً لعرضها."
   },
   "adminSettings": {
     "title": "إعدادات النظام",

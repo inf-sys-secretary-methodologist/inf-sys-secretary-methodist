@@ -2201,8 +2201,50 @@
   },
   "schedule": {
     "title": "Emploi du temps",
-    "comingSoon": "Le module d'emploi du temps est en cours de développement",
-    "comingSoonDescription": "Ici vous gérerez les emplois du temps des cours, les salles et les remplacements"
+    "description": "Gestion des emplois du temps, des salles et des remplacements",
+    "filters": {
+      "semester": "Semestre",
+      "group": "Groupe",
+      "teacher": "Enseignant",
+      "classroom": "Salle",
+      "weekType": "Type de semaine",
+      "allWeeks": "Toutes les semaines",
+      "oddWeeks": "Semaines impaires",
+      "evenWeeks": "Semaines paires"
+    },
+    "days": {
+      "monday": "Lundi",
+      "tuesday": "Mardi",
+      "wednesday": "Mercredi",
+      "thursday": "Jeudi",
+      "friday": "Vendredi",
+      "saturday": "Samedi"
+    },
+    "lesson": {
+      "create": "Ajouter un cours",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "notes": "Notes",
+      "cancelled": "Annulé",
+      "noLessons": "Aucun cours"
+    },
+    "change": {
+      "create": "Créer un changement",
+      "cancelled": "Annulation",
+      "moved": "Déplacé",
+      "replacedTeacher": "Remplacement d'enseignant",
+      "replacedClassroom": "Changement de salle",
+      "reason": "Motif",
+      "originalDate": "Date originale",
+      "newDate": "Nouvelle date"
+    },
+    "errors": {
+      "loadFailed": "Impossible de charger l'emploi du temps",
+      "createFailed": "Impossible de créer le cours",
+      "updateFailed": "Impossible de mettre à jour le cours",
+      "deleteFailed": "Impossible de supprimer le cours"
+    },
+    "empty": "L'emploi du temps est vide. Ajoutez des cours pour les afficher."
   },
   "adminSettings": {
     "title": "Paramètres système",
