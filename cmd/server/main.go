@@ -394,6 +394,14 @@ func main() {
 	eventUseCase := scheduleUsecases.NewEventUseCase(eventRepo, participantRepo, reminderRepo, auditLogger, notificationUseCase)
 	logger.Info("Schedule module initialized", nil)
 
+	// Initialize schedule lessons
+	lessonRepo := schedulePersistence.NewLessonRepositoryPG(db)
+	classroomRepo := schedulePersistence.NewClassroomRepositoryPG(db)
+	referenceRepo := schedulePersistence.NewReferenceRepositoryPG(db)
+	changeRepo := schedulePersistence.NewScheduleChangeRepositoryPG(db)
+	lessonUseCase := scheduleUsecases.NewLessonUseCase(lessonRepo, classroomRepo, referenceRepo, changeRepo, auditLogger)
+	logger.Info("Schedule lessons module initialized", nil)
+
 	// Initialize reminder scheduler
 	var reminderScheduler *notifScheduler.ReminderScheduler
 	reminderScheduler, err = notifScheduler.NewReminderScheduler(
@@ -551,6 +559,7 @@ func main() {
 		taskUseCase,
 		projectUseCase,
 		eventUseCase,
+		lessonUseCase,
 		announcementUseCase,
 		dashboardUseCase,
 		analyticsUseCase,
@@ -1046,6 +1055,7 @@ func setupRoutes(
 	taskUseCase *taskUsecases.TaskUseCase,
 	projectUseCase *taskUsecases.ProjectUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
+	lessonUseCase *scheduleUsecases.LessonUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
 	dashboardUseCase *dashboardUsecases.DashboardUseCase,
 	analyticsUseCase *analyticsUsecases.AnalyticsUseCase,
@@ -1724,6 +1734,60 @@ func setupRoutes(
 			}
 
 			logger.Info("Schedule module routes registered", nil)
+		}
+
+		// Schedule lessons module routes
+		if lessonUseCase != nil {
+			lessonHandlerInstance := scheduleHandler.NewLessonHandler(lessonUseCase)
+
+			scheduleGroup := protectedGroup.Group("/schedule")
+			{
+				scheduleGroup.POST("/lessons", lessonHandlerInstance.Create)
+				scheduleGroup.GET("/lessons", lessonHandlerInstance.List)
+				scheduleGroup.GET("/lessons/timetable", lessonHandlerInstance.GetTimetable)
+				scheduleGroup.GET("/lessons/:id", lessonHandlerInstance.GetByID)
+				scheduleGroup.PUT("/lessons/:id", lessonHandlerInstance.Update)
+				scheduleGroup.DELETE("/lessons/:id", lessonHandlerInstance.Delete)
+				scheduleGroup.POST("/changes", lessonHandlerInstance.CreateChange)
+				scheduleGroup.GET("/changes", lessonHandlerInstance.ListChanges)
+
+				scheduleGroup.OPTIONS("/lessons", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				scheduleGroup.OPTIONS("/lessons/timetable", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				scheduleGroup.OPTIONS("/lessons/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				scheduleGroup.OPTIONS("/changes", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			classroomsGroup := protectedGroup.Group("/classrooms")
+			{
+				classroomsGroup.GET("", lessonHandlerInstance.ListClassrooms)
+				classroomsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			studentGroupsGroup := protectedGroup.Group("/student-groups")
+			{
+				studentGroupsGroup.GET("", lessonHandlerInstance.ListStudentGroups)
+				studentGroupsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			disciplinesGroup := protectedGroup.Group("/disciplines")
+			{
+				disciplinesGroup.GET("", lessonHandlerInstance.ListDisciplines)
+				disciplinesGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			semestersGroup := protectedGroup.Group("/semesters")
+			{
+				semestersGroup.GET("", lessonHandlerInstance.ListSemesters)
+				semestersGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			lessonTypesGroup := protectedGroup.Group("/lesson-types")
+			{
+				lessonTypesGroup.GET("", lessonHandlerInstance.ListLessonTypes)
+				lessonTypesGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			logger.Info("Schedule lessons routes registered", nil)
 		}
 
 		// Announcements module routes
