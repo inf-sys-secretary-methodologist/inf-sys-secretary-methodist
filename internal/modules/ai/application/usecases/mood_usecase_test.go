@@ -72,7 +72,7 @@ type mockAnalyticsRepo struct {
 	err             error
 }
 
-func (m *mockAnalyticsRepo) GetAtRiskStudents(_ context.Context, _, _ int) ([]analyticsEntities.StudentRiskScore, int64, error) {
+func (m *mockAnalyticsRepo) GetAtRiskStudents(_ context.Context, _ *analyticsEntities.TeacherScope, _, _ int) ([]analyticsEntities.StudentRiskScore, int64, error) {
 	if m.err != nil {
 		return nil, 0, m.err
 	}
@@ -87,11 +87,11 @@ func (m *mockAnalyticsRepo) GetGroupSummary(_ context.Context, _ string) (*analy
 	return nil, nil
 }
 
-func (m *mockAnalyticsRepo) GetAllGroupsSummary(_ context.Context) ([]analyticsEntities.GroupAnalyticsSummary, error) {
+func (m *mockAnalyticsRepo) GetAllGroupsSummary(_ context.Context, _ *analyticsEntities.TeacherScope) ([]analyticsEntities.GroupAnalyticsSummary, error) {
 	return nil, nil
 }
 
-func (m *mockAnalyticsRepo) GetStudentsByRiskLevel(_ context.Context, _ analyticsEntities.RiskLevel, _, _ int) ([]analyticsEntities.StudentRiskScore, int64, error) {
+func (m *mockAnalyticsRepo) GetStudentsByRiskLevel(_ context.Context, _ *analyticsEntities.TeacherScope, _ analyticsEntities.RiskLevel, _, _ int) ([]analyticsEntities.StudentRiskScore, int64, error) {
 	return nil, 0, nil
 }
 

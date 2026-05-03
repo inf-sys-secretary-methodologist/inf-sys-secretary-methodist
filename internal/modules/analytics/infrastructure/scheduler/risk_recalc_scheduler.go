@@ -83,7 +83,8 @@ func (rs *RiskRecalcScheduler) recalculate() {
 	totalSaved := 0
 
 	for {
-		students, _, err := rs.analyticsRepo.GetAtRiskStudents(ctx, batchSize, offset)
+		// Background scheduler operates with full dataset access — no scope filter.
+		students, _, err := rs.analyticsRepo.GetAtRiskStudents(ctx, nil, batchSize, offset)
 		if err != nil {
 			rs.logger.Error("Risk recalc: failed to fetch students", map[string]any{
 				"error":  err.Error(),
@@ -132,7 +133,7 @@ func (rs *RiskRecalcScheduler) recalculate() {
 	for _, level := range []entities.RiskLevel{entities.RiskLevelLow, entities.RiskLevelMedium} {
 		offset = 0
 		for {
-			students, _, err := rs.analyticsRepo.GetStudentsByRiskLevel(ctx, level, batchSize, offset)
+			students, _, err := rs.analyticsRepo.GetStudentsByRiskLevel(ctx, nil, level, batchSize, offset)
 			if err != nil {
 				break
 			}

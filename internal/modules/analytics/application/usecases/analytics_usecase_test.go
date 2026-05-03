@@ -34,9 +34,21 @@ type mockAnalyticsRepository struct {
 	allGroupsSummaryErr error
 	studentRiskErr      error
 	riskHistoryErr      error
+
+	// Captured scope arguments — used by delegation tests to assert that
+	// the use case forwards the *TeacherScope it received from the caller
+	// directly to the repository (no silent coercion to nil).
+	atRiskScope         *entities.TeacherScope
+	atRiskScopeCaptured bool
+	allGroupsScope         *entities.TeacherScope
+	allGroupsScopeCaptured bool
+	riskLevelScope         *entities.TeacherScope
+	riskLevelScopeCaptured bool
 }
 
-func (m *mockAnalyticsRepository) GetAtRiskStudents(_ context.Context, _, _ int) ([]entities.StudentRiskScore, int64, error) {
+func (m *mockAnalyticsRepository) GetAtRiskStudents(_ context.Context, scope *entities.TeacherScope, _, _ int) ([]entities.StudentRiskScore, int64, error) {
+	m.atRiskScope = scope
+	m.atRiskScopeCaptured = true
 	return m.atRiskStudents, m.atRiskTotal, m.err
 }
 
@@ -54,14 +66,18 @@ func (m *mockAnalyticsRepository) GetGroupSummary(_ context.Context, _ string) (
 	return m.groupSummary, nil
 }
 
-func (m *mockAnalyticsRepository) GetAllGroupsSummary(_ context.Context) ([]entities.GroupAnalyticsSummary, error) {
+func (m *mockAnalyticsRepository) GetAllGroupsSummary(_ context.Context, scope *entities.TeacherScope) ([]entities.GroupAnalyticsSummary, error) {
+	m.allGroupsScope = scope
+	m.allGroupsScopeCaptured = true
 	if m.allGroupsSummaryErr != nil {
 		return nil, m.allGroupsSummaryErr
 	}
 	return m.allGroupsSummaries, nil
 }
 
-func (m *mockAnalyticsRepository) GetStudentsByRiskLevel(_ context.Context, _ entities.RiskLevel, _, _ int) ([]entities.StudentRiskScore, int64, error) {
+func (m *mockAnalyticsRepository) GetStudentsByRiskLevel(_ context.Context, scope *entities.TeacherScope, _ entities.RiskLevel, _, _ int) ([]entities.StudentRiskScore, int64, error) {
+	m.riskLevelScope = scope
+	m.riskLevelScopeCaptured = true
 	if m.riskLevelErr != nil {
 		return nil, 0, m.riskLevelErr
 	}
@@ -210,7 +226,7 @@ func TestGetAtRiskStudents_Success(t *testing.T) {
 	repo := &mockAnalyticsRepository{atRiskStudents: students, atRiskTotal: 1}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetAtRiskStudents(context.Background(), 1, 10)
+	resp, err := uc.GetAtRiskStudents(context.Background(), nil, 1, 10)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), resp.Total)
 	assert.Equal(t, 1, resp.Page)
@@ -224,7 +240,7 @@ func TestGetAtRiskStudents_RepoError(t *testing.T) {
 	repo := &mockAnalyticsRepository{err: errors.New("db error")}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetAtRiskStudents(context.Background(), 1, 10)
+	resp, err := uc.GetAtRiskStudents(context.Background(), nil, 1, 10)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get at-risk students")
@@ -235,12 +251,12 @@ func TestGetAtRiskStudents_PageNormalization(t *testing.T) {
 	uc := newTestUseCase(repo, nil, nil)
 
 	// page < 1 should normalize to 1
-	resp, err := uc.GetAtRiskStudents(context.Background(), 0, 10)
+	resp, err := uc.GetAtRiskStudents(context.Background(), nil, 0, 10)
 	require.NoError(t, err)
 	assert.Equal(t, 1, resp.Page)
 
 	// negative page
-	resp, err = uc.GetAtRiskStudents(context.Background(), -5, 10)
+	resp, err = uc.GetAtRiskStudents(context.Background(), nil, -5, 10)
 	require.NoError(t, err)
 	assert.Equal(t, 1, resp.Page)
 }
@@ -250,17 +266,17 @@ func TestGetAtRiskStudents_PageSizeNormalization(t *testing.T) {
 	uc := newTestUseCase(repo, nil, nil)
 
 	// pageSize < 1 should normalize to 20
-	resp, err := uc.GetAtRiskStudents(context.Background(), 1, 0)
+	resp, err := uc.GetAtRiskStudents(context.Background(), nil, 1, 0)
 	require.NoError(t, err)
 	assert.Equal(t, 20, resp.PageSize)
 
 	// pageSize > 100 should normalize to 20
-	resp, err = uc.GetAtRiskStudents(context.Background(), 1, 101)
+	resp, err = uc.GetAtRiskStudents(context.Background(), nil, 1, 101)
 	require.NoError(t, err)
 	assert.Equal(t, 20, resp.PageSize)
 
 	// negative pageSize
-	resp, err = uc.GetAtRiskStudents(context.Background(), 1, -1)
+	resp, err = uc.GetAtRiskStudents(context.Background(), nil, 1, -1)
 	require.NoError(t, err)
 	assert.Equal(t, 20, resp.PageSize)
 }
@@ -269,7 +285,7 @@ func TestGetAtRiskStudents_EmptyResult(t *testing.T) {
 	repo := &mockAnalyticsRepository{atRiskStudents: []entities.StudentRiskScore{}, atRiskTotal: 0}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetAtRiskStudents(context.Background(), 1, 10)
+	resp, err := uc.GetAtRiskStudents(context.Background(), nil, 1, 10)
 	require.NoError(t, err)
 	assert.Empty(t, resp.Students)
 	assert.Equal(t, int64(0), resp.Total)
@@ -284,7 +300,7 @@ func TestGetAtRiskStudents_MultipleStudents(t *testing.T) {
 	repo := &mockAnalyticsRepository{atRiskStudents: []entities.StudentRiskScore{s1, s2}, atRiskTotal: 2}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetAtRiskStudents(context.Background(), 1, 10)
+	resp, err := uc.GetAtRiskStudents(context.Background(), nil, 1, 10)
 	require.NoError(t, err)
 	assert.Len(t, resp.Students, 2)
 	assert.Equal(t, "critical", resp.Students[1].RiskLevel)
@@ -363,7 +379,7 @@ func TestGetAllGroupsSummary_Success(t *testing.T) {
 	repo := &mockAnalyticsRepository{allGroupsSummaries: summaries}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetAllGroupsSummary(context.Background())
+	resp, err := uc.GetAllGroupsSummary(context.Background(), nil)
 	require.NoError(t, err)
 	assert.Equal(t, 2, resp.Total)
 	assert.Len(t, resp.Groups, 2)
@@ -375,7 +391,7 @@ func TestGetAllGroupsSummary_Empty(t *testing.T) {
 	repo := &mockAnalyticsRepository{allGroupsSummaries: []entities.GroupAnalyticsSummary{}}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetAllGroupsSummary(context.Background())
+	resp, err := uc.GetAllGroupsSummary(context.Background(), nil)
 	require.NoError(t, err)
 	assert.Equal(t, 0, resp.Total)
 	assert.Empty(t, resp.Groups)
@@ -385,7 +401,7 @@ func TestGetAllGroupsSummary_Error(t *testing.T) {
 	repo := &mockAnalyticsRepository{allGroupsSummaryErr: errors.New("db error")}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetAllGroupsSummary(context.Background())
+	resp, err := uc.GetAllGroupsSummary(context.Background(), nil)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get all groups summary")
@@ -398,7 +414,7 @@ func TestGetStudentsByRiskLevel_Success(t *testing.T) {
 	repo := &mockAnalyticsRepository{riskLevelStudents: []entities.StudentRiskScore{s}, riskLevelTotal: 1}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetStudentsByRiskLevel(context.Background(), "high", 1, 10)
+	resp, err := uc.GetStudentsByRiskLevel(context.Background(), nil, "high", 1, 10)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), resp.Total)
 	assert.Len(t, resp.Students, 1)
@@ -410,7 +426,7 @@ func TestGetStudentsByRiskLevel_PageNormalization(t *testing.T) {
 	repo := &mockAnalyticsRepository{riskLevelStudents: []entities.StudentRiskScore{}, riskLevelTotal: 0}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetStudentsByRiskLevel(context.Background(), "high", -1, 10)
+	resp, err := uc.GetStudentsByRiskLevel(context.Background(), nil, "high", -1, 10)
 	require.NoError(t, err)
 	assert.Equal(t, 1, resp.Page)
 }
@@ -420,12 +436,12 @@ func TestGetStudentsByRiskLevel_PageSizeNormalization(t *testing.T) {
 	uc := newTestUseCase(repo, nil, nil)
 
 	// pageSize > 100
-	resp, err := uc.GetStudentsByRiskLevel(context.Background(), "critical", 1, 200)
+	resp, err := uc.GetStudentsByRiskLevel(context.Background(), nil, "critical", 1, 200)
 	require.NoError(t, err)
 	assert.Equal(t, 20, resp.PageSize)
 
 	// pageSize < 1
-	resp, err = uc.GetStudentsByRiskLevel(context.Background(), "critical", 1, 0)
+	resp, err = uc.GetStudentsByRiskLevel(context.Background(), nil, "critical", 1, 0)
 	require.NoError(t, err)
 	assert.Equal(t, 20, resp.PageSize)
 }
@@ -434,7 +450,7 @@ func TestGetStudentsByRiskLevel_Error(t *testing.T) {
 	repo := &mockAnalyticsRepository{riskLevelErr: errors.New("db error")}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetStudentsByRiskLevel(context.Background(), "high", 1, 10)
+	resp, err := uc.GetStudentsByRiskLevel(context.Background(), nil, "high", 1, 10)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get students by risk level")
@@ -793,12 +809,12 @@ func TestGetAtRiskStudents_PageSizeBoundary(t *testing.T) {
 	uc := newTestUseCase(repo, nil, nil)
 
 	// pageSize exactly 100 is valid
-	resp, err := uc.GetAtRiskStudents(context.Background(), 1, 100)
+	resp, err := uc.GetAtRiskStudents(context.Background(), nil, 1, 100)
 	require.NoError(t, err)
 	assert.Equal(t, 100, resp.PageSize)
 
 	// pageSize exactly 1 is valid
-	resp, err = uc.GetAtRiskStudents(context.Background(), 1, 1)
+	resp, err = uc.GetAtRiskStudents(context.Background(), nil, 1, 1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, resp.PageSize)
 }
@@ -808,12 +824,12 @@ func TestGetStudentsByRiskLevel_PageSizeBoundary(t *testing.T) {
 	uc := newTestUseCase(repo, nil, nil)
 
 	// pageSize exactly 100 is valid
-	resp, err := uc.GetStudentsByRiskLevel(context.Background(), "low", 1, 100)
+	resp, err := uc.GetStudentsByRiskLevel(context.Background(), nil, "low", 1, 100)
 	require.NoError(t, err)
 	assert.Equal(t, 100, resp.PageSize)
 
 	// pageSize exactly 1 is valid
-	resp, err = uc.GetStudentsByRiskLevel(context.Background(), "low", 1, 1)
+	resp, err = uc.GetStudentsByRiskLevel(context.Background(), nil, "low", 1, 1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, resp.PageSize)
 }
@@ -847,7 +863,7 @@ func TestGetAtRiskStudents_PaginationOffset(t *testing.T) {
 	repo := &mockAnalyticsRepository{atRiskStudents: []entities.StudentRiskScore{}, atRiskTotal: 50}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetAtRiskStudents(context.Background(), 3, 10)
+	resp, err := uc.GetAtRiskStudents(context.Background(), nil, 3, 10)
 	require.NoError(t, err)
 	assert.Equal(t, 3, resp.Page)
 	assert.Equal(t, 10, resp.PageSize)
@@ -1090,6 +1106,88 @@ func TestGetStudentRiskHistory_ScopeCheck(t *testing.T) {
 			} else if tc.wantErrIs == nil {
 				assert.NotNil(t, resp)
 			}
+		})
+	}
+}
+
+// --- Scope delegation tests for list-resource endpoints ---
+//
+// These tests pin the contract: when the use case is given a *TeacherScope,
+// it must forward that exact pointer to the repository layer (where the
+// SQL push-down filter lives). A regression here would leak data across
+// teacher boundaries even though the surface API looks correct.
+
+func TestGetAtRiskStudents_ForwardsScopeToRepo(t *testing.T) {
+	teacherScope := entities.NewTeacherScope(7, []string{"ИС-21"})
+
+	tests := []struct {
+		name  string
+		scope *entities.TeacherScope
+	}{
+		{name: "nil scope is forwarded unchanged", scope: nil},
+		{name: "non-nil teacher scope is forwarded unchanged", scope: teacherScope},
+		{name: "empty teacher scope is forwarded unchanged", scope: entities.NewTeacherScope(7, nil)},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := &mockAnalyticsRepository{atRiskStudents: []entities.StudentRiskScore{}, atRiskTotal: 0}
+			uc := newTestUseCase(repo, nil, nil)
+
+			_, err := uc.GetAtRiskStudents(context.Background(), tc.scope, 1, 10)
+			require.NoError(t, err)
+			require.True(t, repo.atRiskScopeCaptured, "repository must be invoked")
+			assert.Same(t, tc.scope, repo.atRiskScope, "scope pointer must match (no silent coercion)")
+		})
+	}
+}
+
+func TestGetAllGroupsSummary_ForwardsScopeToRepo(t *testing.T) {
+	teacherScope := entities.NewTeacherScope(7, []string{"ИС-21"})
+
+	tests := []struct {
+		name  string
+		scope *entities.TeacherScope
+	}{
+		{name: "nil scope is forwarded unchanged", scope: nil},
+		{name: "non-nil teacher scope is forwarded unchanged", scope: teacherScope},
+		{name: "empty teacher scope is forwarded unchanged", scope: entities.NewTeacherScope(7, nil)},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := &mockAnalyticsRepository{allGroupsSummaries: []entities.GroupAnalyticsSummary{}}
+			uc := newTestUseCase(repo, nil, nil)
+
+			_, err := uc.GetAllGroupsSummary(context.Background(), tc.scope)
+			require.NoError(t, err)
+			require.True(t, repo.allGroupsScopeCaptured, "repository must be invoked")
+			assert.Same(t, tc.scope, repo.allGroupsScope)
+		})
+	}
+}
+
+func TestGetStudentsByRiskLevel_ForwardsScopeToRepo(t *testing.T) {
+	teacherScope := entities.NewTeacherScope(7, []string{"ИС-21"})
+
+	tests := []struct {
+		name  string
+		scope *entities.TeacherScope
+	}{
+		{name: "nil scope is forwarded unchanged", scope: nil},
+		{name: "non-nil teacher scope is forwarded unchanged", scope: teacherScope},
+		{name: "empty teacher scope is forwarded unchanged", scope: entities.NewTeacherScope(7, nil)},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := &mockAnalyticsRepository{riskLevelStudents: []entities.StudentRiskScore{}, riskLevelTotal: 0}
+			uc := newTestUseCase(repo, nil, nil)
+
+			_, err := uc.GetStudentsByRiskLevel(context.Background(), tc.scope, "high", 1, 10)
+			require.NoError(t, err)
+			require.True(t, repo.riskLevelScopeCaptured, "repository must be invoked")
+			assert.Same(t, tc.scope, repo.riskLevelScope)
 		})
 	}
 }

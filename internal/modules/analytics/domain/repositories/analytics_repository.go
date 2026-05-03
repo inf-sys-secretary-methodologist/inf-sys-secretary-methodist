@@ -7,16 +7,21 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
 )
 
-// AnalyticsRepository defines the interface for analytics persistence operations
+// AnalyticsRepository defines the interface for analytics persistence operations.
+//
+// List queries that expose group-keyed data accept a *entities.TeacherScope:
+// nil means "no restriction" (admin/methodist/secretary), non-nil means the
+// query MUST be filtered to the scope's whitelist of group names. Filtering
+// is pushed down to SQL so that pagination totals remain accurate.
 type AnalyticsRepository interface {
 	// Risk assessment queries
-	GetAtRiskStudents(ctx context.Context, limit, offset int) ([]entities.StudentRiskScore, int64, error)
+	GetAtRiskStudents(ctx context.Context, scope *entities.TeacherScope, limit, offset int) ([]entities.StudentRiskScore, int64, error)
 	GetStudentRisk(ctx context.Context, studentID int64) (*entities.StudentRiskScore, error)
 	GetGroupSummary(ctx context.Context, groupName string) (*entities.GroupAnalyticsSummary, error)
-	GetAllGroupsSummary(ctx context.Context) ([]entities.GroupAnalyticsSummary, error)
+	GetAllGroupsSummary(ctx context.Context, scope *entities.TeacherScope) ([]entities.GroupAnalyticsSummary, error)
 
 	// Filtered risk queries
-	GetStudentsByRiskLevel(ctx context.Context, riskLevel entities.RiskLevel, limit, offset int) ([]entities.StudentRiskScore, int64, error)
+	GetStudentsByRiskLevel(ctx context.Context, scope *entities.TeacherScope, riskLevel entities.RiskLevel, limit, offset int) ([]entities.StudentRiskScore, int64, error)
 
 	// Trend analysis
 	GetMonthlyAttendanceTrend(ctx context.Context, months int) ([]entities.MonthlyAttendanceTrend, error)

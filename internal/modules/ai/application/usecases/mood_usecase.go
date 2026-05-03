@@ -96,8 +96,9 @@ func (uc *MoodUseCase) ComputeMood(ctx context.Context) (*entities.MoodContext, 
 		mood.OverdueDocuments = newDocs
 	}
 
-	// Get at-risk students
-	atRiskStudents, totalAtRisk, err := uc.analyticsRepo.GetAtRiskStudents(ctx, 100, 0)
+	// Get at-risk students. AI mood aggregation operates over the full
+	// at-risk population — no teacher scope filter applies here.
+	atRiskStudents, totalAtRisk, err := uc.analyticsRepo.GetAtRiskStudents(ctx, nil, 100, 0)
 	if err == nil {
 		mood.AtRiskStudents = int(totalAtRisk)
 

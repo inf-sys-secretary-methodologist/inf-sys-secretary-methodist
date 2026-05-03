@@ -56,7 +56,8 @@ func (h *AnalyticsHandler) GetAtRiskStudents(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	result, err := h.usecase.GetAtRiskStudents(ctx, page, pageSize)
+	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
+	result, err := h.usecase.GetAtRiskStudents(ctx, nil, page, pageSize)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -147,7 +148,8 @@ func (h *AnalyticsHandler) GetGroupSummary(c *gin.Context) {
 // @Router /api/analytics/groups/summary [get]
 func (h *AnalyticsHandler) GetAllGroupsSummary(c *gin.Context) {
 	ctx := c.Request.Context()
-	result, err := h.usecase.GetAllGroupsSummary(ctx)
+	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
+	result, err := h.usecase.GetAllGroupsSummary(ctx, nil)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -203,7 +205,8 @@ func (h *AnalyticsHandler) GetStudentsByRiskLevel(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	result, err := h.usecase.GetStudentsByRiskLevel(ctx, riskLevel, page, pageSize)
+	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
+	result, err := h.usecase.GetStudentsByRiskLevel(ctx, nil, riskLevel, page, pageSize)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -302,7 +305,8 @@ func (h *AnalyticsHandler) UpdateRiskWeightConfig(c *gin.Context) {
 func (h *AnalyticsHandler) ExportAtRiskStudents(c *gin.Context) {
 	format := c.DefaultQuery("format", "csv")
 
-	result, err := h.usecase.GetAtRiskStudents(c.Request.Context(), 1, 1000)
+	// Export reuses GetAtRiskStudents; scope is wired in Cycle 5.
+	result, err := h.usecase.GetAtRiskStudents(c.Request.Context(), nil, 1, 1000)
 	if err != nil {
 		h.handleError(c, err)
 		return

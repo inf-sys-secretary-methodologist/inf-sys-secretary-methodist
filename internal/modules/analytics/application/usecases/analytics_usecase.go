@@ -36,8 +36,11 @@ func NewAnalyticsUseCase(
 	}
 }
 
-// GetAtRiskStudents returns students who are at risk based on attendance and grades
-func (uc *AnalyticsUseCase) GetAtRiskStudents(ctx context.Context, page, pageSize int) (*dto.AtRiskStudentsResponse, error) {
+// GetAtRiskStudents returns students who are at risk based on attendance and grades.
+// When scope is non-nil (teacher role), the underlying query is filtered to
+// the scope's whitelist of group names; pagination totals reflect the
+// post-filter count (filter is pushed down to SQL).
+func (uc *AnalyticsUseCase) GetAtRiskStudents(ctx context.Context, scope *entities.TeacherScope, page, pageSize int) (*dto.AtRiskStudentsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -46,7 +49,7 @@ func (uc *AnalyticsUseCase) GetAtRiskStudents(ctx context.Context, page, pageSiz
 	}
 
 	offset := (page - 1) * pageSize
-	students, total, err := uc.analyticsRepo.GetAtRiskStudents(ctx, pageSize, offset)
+	students, total, err := uc.analyticsRepo.GetAtRiskStudents(ctx, scope, pageSize, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get at-risk students: %w", err)
 	}
@@ -99,9 +102,11 @@ func (uc *AnalyticsUseCase) GetGroupSummary(ctx context.Context, scope *entities
 	return dto.ToGroupSummaryResponse(summary), nil
 }
 
-// GetAllGroupsSummary returns analytics summary for all groups
-func (uc *AnalyticsUseCase) GetAllGroupsSummary(ctx context.Context) (*dto.AllGroupsSummaryResponse, error) {
-	summaries, err := uc.analyticsRepo.GetAllGroupsSummary(ctx)
+// GetAllGroupsSummary returns analytics summary for all groups.
+// When scope is non-nil, the result is filtered to the scope's whitelist
+// in the repository layer.
+func (uc *AnalyticsUseCase) GetAllGroupsSummary(ctx context.Context, scope *entities.TeacherScope) (*dto.AllGroupsSummaryResponse, error) {
+	summaries, err := uc.analyticsRepo.GetAllGroupsSummary(ctx, scope)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all groups summary: %w", err)
 	}
@@ -118,8 +123,10 @@ func (uc *AnalyticsUseCase) GetAllGroupsSummary(ctx context.Context) (*dto.AllGr
 	return response, nil
 }
 
-// GetStudentsByRiskLevel returns students filtered by risk level
-func (uc *AnalyticsUseCase) GetStudentsByRiskLevel(ctx context.Context, riskLevel string, page, pageSize int) (*dto.AtRiskStudentsResponse, error) {
+// GetStudentsByRiskLevel returns students filtered by risk level.
+// When scope is non-nil, the result is further restricted to the scope's
+// whitelist of group names.
+func (uc *AnalyticsUseCase) GetStudentsByRiskLevel(ctx context.Context, scope *entities.TeacherScope, riskLevel string, page, pageSize int) (*dto.AtRiskStudentsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -130,7 +137,7 @@ func (uc *AnalyticsUseCase) GetStudentsByRiskLevel(ctx context.Context, riskLeve
 	level := entities.RiskLevel(riskLevel)
 	offset := (page - 1) * pageSize
 
-	students, total, err := uc.analyticsRepo.GetStudentsByRiskLevel(ctx, level, pageSize, offset)
+	students, total, err := uc.analyticsRepo.GetStudentsByRiskLevel(ctx, scope, level, pageSize, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get students by risk level: %w", err)
 	}

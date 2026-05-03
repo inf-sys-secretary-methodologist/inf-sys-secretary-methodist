@@ -43,8 +43,8 @@ func performRequest(router *gin.Engine, method, path string, body interface{}) *
 
 type mockAnalyticsRepo struct{ mock.Mock }
 
-func (m *mockAnalyticsRepo) GetAtRiskStudents(ctx context.Context, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
-	args := m.Called(ctx, limit, offset)
+func (m *mockAnalyticsRepo) GetAtRiskStudents(ctx context.Context, scope *entities.TeacherScope, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
+	args := m.Called(ctx, scope, limit, offset)
 	return args.Get(0).([]entities.StudentRiskScore), args.Get(1).(int64), args.Error(2)
 }
 func (m *mockAnalyticsRepo) GetStudentRisk(ctx context.Context, studentID int64) (*entities.StudentRiskScore, error) {
@@ -61,15 +61,15 @@ func (m *mockAnalyticsRepo) GetGroupSummary(ctx context.Context, groupName strin
 	}
 	return args.Get(0).(*entities.GroupAnalyticsSummary), args.Error(1)
 }
-func (m *mockAnalyticsRepo) GetAllGroupsSummary(ctx context.Context) ([]entities.GroupAnalyticsSummary, error) {
-	args := m.Called(ctx)
+func (m *mockAnalyticsRepo) GetAllGroupsSummary(ctx context.Context, scope *entities.TeacherScope) ([]entities.GroupAnalyticsSummary, error) {
+	args := m.Called(ctx, scope)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]entities.GroupAnalyticsSummary), args.Error(1)
 }
-func (m *mockAnalyticsRepo) GetStudentsByRiskLevel(ctx context.Context, riskLevel entities.RiskLevel, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
-	args := m.Called(ctx, riskLevel, limit, offset)
+func (m *mockAnalyticsRepo) GetStudentsByRiskLevel(ctx context.Context, scope *entities.TeacherScope, riskLevel entities.RiskLevel, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
+	args := m.Called(ctx, scope, riskLevel, limit, offset)
 	return args.Get(0).([]entities.StudentRiskScore), args.Get(1).(int64), args.Error(2)
 }
 func (m *mockAnalyticsRepo) GetMonthlyAttendanceTrend(ctx context.Context, months int) ([]entities.MonthlyAttendanceTrend, error) {
@@ -190,7 +190,7 @@ func TestNewAttendanceHandler(t *testing.T) { assert.NotNil(t, NewAttendanceHand
 func TestAnalyticsHandler_GetAtRiskStudents_Success(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
 	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
-	ar.On("GetAtRiskStudents", mock.Anything, 20, 0).Return([]entities.StudentRiskScore{}, int64(0), nil)
+	ar.On("GetAtRiskStudents", mock.Anything, mock.Anything, 20, 0).Return([]entities.StudentRiskScore{}, int64(0), nil)
 	router := setupRouter()
 	router.GET("/at-risk", h.GetAtRiskStudents)
 	w := performRequest(router, http.MethodGet, "/at-risk", nil)
@@ -200,7 +200,7 @@ func TestAnalyticsHandler_GetAtRiskStudents_Success(t *testing.T) {
 func TestAnalyticsHandler_GetAtRiskStudents_WithParams(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
 	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
-	ar.On("GetAtRiskStudents", mock.Anything, 10, 10).Return([]entities.StudentRiskScore{}, int64(0), nil)
+	ar.On("GetAtRiskStudents", mock.Anything, mock.Anything, 10, 10).Return([]entities.StudentRiskScore{}, int64(0), nil)
 	router := setupRouter()
 	router.GET("/at-risk", h.GetAtRiskStudents)
 	w := performRequest(router, http.MethodGet, "/at-risk?page=2&page_size=10", nil)
@@ -210,7 +210,7 @@ func TestAnalyticsHandler_GetAtRiskStudents_WithParams(t *testing.T) {
 func TestAnalyticsHandler_GetAtRiskStudents_Error(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
 	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
-	ar.On("GetAtRiskStudents", mock.Anything, mock.Anything, mock.Anything).Return([]entities.StudentRiskScore{}, int64(0), fmt.Errorf("err"))
+	ar.On("GetAtRiskStudents", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]entities.StudentRiskScore{}, int64(0), fmt.Errorf("err"))
 	router := setupRouter()
 	router.GET("/at-risk", h.GetAtRiskStudents)
 	w := performRequest(router, http.MethodGet, "/at-risk", nil)
@@ -281,7 +281,7 @@ func TestAnalyticsHandler_GetGroupSummary_Error(t *testing.T) {
 func TestAnalyticsHandler_GetAllGroupsSummary_Success(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
 	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
-	ar.On("GetAllGroupsSummary", mock.Anything).Return([]entities.GroupAnalyticsSummary{}, nil)
+	ar.On("GetAllGroupsSummary", mock.Anything, mock.Anything).Return([]entities.GroupAnalyticsSummary{}, nil)
 	router := setupRouter()
 	router.GET("/groups/summary", h.GetAllGroupsSummary)
 	w := performRequest(router, http.MethodGet, "/groups/summary", nil)
@@ -291,7 +291,7 @@ func TestAnalyticsHandler_GetAllGroupsSummary_Success(t *testing.T) {
 func TestAnalyticsHandler_GetAllGroupsSummary_Error(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
 	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
-	ar.On("GetAllGroupsSummary", mock.Anything).Return(nil, fmt.Errorf("err"))
+	ar.On("GetAllGroupsSummary", mock.Anything, mock.Anything).Return(nil, fmt.Errorf("err"))
 	router := setupRouter()
 	router.GET("/groups/summary", h.GetAllGroupsSummary)
 	w := performRequest(router, http.MethodGet, "/groups/summary", nil)
@@ -301,7 +301,7 @@ func TestAnalyticsHandler_GetAllGroupsSummary_Error(t *testing.T) {
 func TestAnalyticsHandler_GetStudentsByRiskLevel_Success(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
 	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
-	ar.On("GetStudentsByRiskLevel", mock.Anything, mock.Anything, 20, 0).Return([]entities.StudentRiskScore{}, int64(0), nil)
+	ar.On("GetStudentsByRiskLevel", mock.Anything, mock.Anything, mock.Anything, 20, 0).Return([]entities.StudentRiskScore{}, int64(0), nil)
 	router := setupRouter()
 	router.GET("/risk-level/:level", h.GetStudentsByRiskLevel)
 	w := performRequest(router, http.MethodGet, "/risk-level/high", nil)
@@ -319,7 +319,7 @@ func TestAnalyticsHandler_GetStudentsByRiskLevel_InvalidLevel(t *testing.T) {
 func TestAnalyticsHandler_GetStudentsByRiskLevel_WithParams(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
 	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
-	ar.On("GetStudentsByRiskLevel", mock.Anything, mock.Anything, 10, 10).Return([]entities.StudentRiskScore{}, int64(0), nil)
+	ar.On("GetStudentsByRiskLevel", mock.Anything, mock.Anything, mock.Anything, 10, 10).Return([]entities.StudentRiskScore{}, int64(0), nil)
 	router := setupRouter()
 	router.GET("/risk-level/:level", h.GetStudentsByRiskLevel)
 	w := performRequest(router, http.MethodGet, "/risk-level/low?page=2&page_size=10", nil)
@@ -329,7 +329,7 @@ func TestAnalyticsHandler_GetStudentsByRiskLevel_WithParams(t *testing.T) {
 func TestAnalyticsHandler_GetStudentsByRiskLevel_Error(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
 	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
-	ar.On("GetStudentsByRiskLevel", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]entities.StudentRiskScore{}, int64(0), fmt.Errorf("err"))
+	ar.On("GetStudentsByRiskLevel", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]entities.StudentRiskScore{}, int64(0), fmt.Errorf("err"))
 	router := setupRouter()
 	router.GET("/risk-level/:level", h.GetStudentsByRiskLevel)
 	w := performRequest(router, http.MethodGet, "/risk-level/high", nil)

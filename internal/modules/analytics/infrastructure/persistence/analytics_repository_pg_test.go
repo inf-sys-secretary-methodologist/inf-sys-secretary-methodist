@@ -40,7 +40,7 @@ func TestAnalyticsGetAtRiskStudents_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(riskCols).
 			AddRow(int64(1), "John", &groupName, &ar, &ga, "high", 75.0, []byte(`{"attendance":{"rate":0.75,"absent_count":5,"is_risk":true},"grades":{"average":3.5,"failing_count":2,"is_risk":true}}`)))
 
-	students, total, err := repo.GetAtRiskStudents(context.Background(), 10, 0)
+	students, total, err := repo.GetAtRiskStudents(context.Background(), nil, 10, 0)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), total)
 	assert.Len(t, students, 1)
@@ -58,7 +58,7 @@ func TestAnalyticsGetAtRiskStudents_InvalidJSON(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(riskCols).
 			AddRow(int64(1), "John", nil, nil, nil, "low", 10.0, []byte(`{invalid`)))
 
-	students, _, err := repo.GetAtRiskStudents(context.Background(), 10, 0)
+	students, _, err := repo.GetAtRiskStudents(context.Background(), nil, 10, 0)
 	require.NoError(t, err)
 	assert.Nil(t, students[0].RiskFactors)
 }
@@ -69,7 +69,7 @@ func TestAnalyticsGetAtRiskStudents_CountError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).
 		WillReturnError(fmt.Errorf("count error"))
 
-	_, _, err := repo.GetAtRiskStudents(context.Background(), 10, 0)
+	_, _, err := repo.GetAtRiskStudents(context.Background(), nil, 10, 0)
 	assert.Error(t, err)
 }
 
@@ -83,7 +83,7 @@ func TestAnalyticsGetAtRiskStudents_QueryError(t *testing.T) {
 		WithArgs(10, 0).
 		WillReturnError(fmt.Errorf("query error"))
 
-	_, _, err := repo.GetAtRiskStudents(context.Background(), 10, 0)
+	_, _, err := repo.GetAtRiskStudents(context.Background(), nil, 10, 0)
 	assert.Error(t, err)
 }
 
@@ -97,7 +97,7 @@ func TestAnalyticsGetAtRiskStudents_ScanError(t *testing.T) {
 		WithArgs(10, 0).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("bad"))
 
-	_, _, err := repo.GetAtRiskStudents(context.Background(), 10, 0)
+	_, _, err := repo.GetAtRiskStudents(context.Background(), nil, 10, 0)
 	assert.Error(t, err)
 }
 
@@ -216,7 +216,7 @@ func TestAnalyticsGetAllGroupsSummary_Success(t *testing.T) {
 			AddRow("G1", 20, 0.9, 4.5, 0, 1, 2, 17, 5.0).
 			AddRow("G2", 25, 0.8, 3.5, 2, 3, 5, 15, 20.0))
 
-	summaries, err := repo.GetAllGroupsSummary(context.Background())
+	summaries, err := repo.GetAllGroupsSummary(context.Background(), nil)
 	require.NoError(t, err)
 	assert.Len(t, summaries, 2)
 }
@@ -227,7 +227,7 @@ func TestAnalyticsGetAllGroupsSummary_QueryError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT group_name")).
 		WillReturnError(fmt.Errorf("query error"))
 
-	_, err := repo.GetAllGroupsSummary(context.Background())
+	_, err := repo.GetAllGroupsSummary(context.Background(), nil)
 	assert.Error(t, err)
 }
 
@@ -237,7 +237,7 @@ func TestAnalyticsGetAllGroupsSummary_ScanError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT group_name")).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("bad"))
 
-	_, err := repo.GetAllGroupsSummary(context.Background())
+	_, err := repo.GetAllGroupsSummary(context.Background(), nil)
 	assert.Error(t, err)
 }
 
@@ -255,7 +255,7 @@ func TestAnalyticsGetStudentsByRiskLevel_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(riskCols).
 			AddRow(int64(1), "John", nil, nil, nil, "high", 80.0, nil))
 
-	students, total, err := repo.GetStudentsByRiskLevel(context.Background(), entities.RiskLevelHigh, 10, 0)
+	students, total, err := repo.GetStudentsByRiskLevel(context.Background(), nil, entities.RiskLevelHigh, 10, 0)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), total)
 	assert.Len(t, students, 1)
@@ -273,7 +273,7 @@ func TestAnalyticsGetStudentsByRiskLevel_WithRiskFactorsJSON(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(riskCols).
 			AddRow(int64(1), "John", nil, nil, nil, "high", 80.0, []byte(`{bad`)))
 
-	students, _, err := repo.GetStudentsByRiskLevel(context.Background(), entities.RiskLevelHigh, 10, 0)
+	students, _, err := repo.GetStudentsByRiskLevel(context.Background(), nil, entities.RiskLevelHigh, 10, 0)
 	require.NoError(t, err)
 	assert.Nil(t, students[0].RiskFactors)
 }
@@ -285,7 +285,7 @@ func TestAnalyticsGetStudentsByRiskLevel_CountError(t *testing.T) {
 		WithArgs(entities.RiskLevelHigh).
 		WillReturnError(fmt.Errorf("count error"))
 
-	_, _, err := repo.GetStudentsByRiskLevel(context.Background(), entities.RiskLevelHigh, 10, 0)
+	_, _, err := repo.GetStudentsByRiskLevel(context.Background(), nil, entities.RiskLevelHigh, 10, 0)
 	assert.Error(t, err)
 }
 
@@ -300,7 +300,7 @@ func TestAnalyticsGetStudentsByRiskLevel_QueryError(t *testing.T) {
 		WithArgs(entities.RiskLevelHigh, 10, 0).
 		WillReturnError(fmt.Errorf("query error"))
 
-	_, _, err := repo.GetStudentsByRiskLevel(context.Background(), entities.RiskLevelHigh, 10, 0)
+	_, _, err := repo.GetStudentsByRiskLevel(context.Background(), nil, entities.RiskLevelHigh, 10, 0)
 	assert.Error(t, err)
 }
 
@@ -315,7 +315,7 @@ func TestAnalyticsGetStudentsByRiskLevel_ScanError(t *testing.T) {
 		WithArgs(entities.RiskLevelHigh, 10, 0).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("bad"))
 
-	_, _, err := repo.GetStudentsByRiskLevel(context.Background(), entities.RiskLevelHigh, 10, 0)
+	_, _, err := repo.GetStudentsByRiskLevel(context.Background(), nil, entities.RiskLevelHigh, 10, 0)
 	assert.Error(t, err)
 }
 

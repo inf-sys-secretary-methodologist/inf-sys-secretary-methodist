@@ -21,8 +21,12 @@ func NewAnalyticsRepositoryPG(db *sql.DB) *AnalyticsRepositoryPG {
 	return &AnalyticsRepositoryPG{db: db}
 }
 
-// GetAtRiskStudents returns students with high or critical risk levels
-func (r *AnalyticsRepositoryPG) GetAtRiskStudents(ctx context.Context, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
+// GetAtRiskStudents returns students with high or critical risk levels.
+// When scope is non-nil, results and the count are filtered to the
+// scope's whitelist (group_name = ANY); the SQL implementation is
+// supplied in Cycle 3b — for now scope is plumbed through but ignored
+// so the rest of the stack compiles.
+func (r *AnalyticsRepositoryPG) GetAtRiskStudents(ctx context.Context, _ *entities.TeacherScope, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
 	// Count total
 	var total int64
 	countQuery := `SELECT COUNT(*) FROM v_at_risk_students`
@@ -126,8 +130,9 @@ func (r *AnalyticsRepositoryPG) GetGroupSummary(ctx context.Context, groupName s
 	return &s, nil
 }
 
-// GetAllGroupsSummary returns analytics summary for all groups
-func (r *AnalyticsRepositoryPG) GetAllGroupsSummary(ctx context.Context) ([]entities.GroupAnalyticsSummary, error) {
+// GetAllGroupsSummary returns analytics summary for all groups.
+// scope is plumbed through; SQL filter added in Cycle 3b.
+func (r *AnalyticsRepositoryPG) GetAllGroupsSummary(ctx context.Context, _ *entities.TeacherScope) ([]entities.GroupAnalyticsSummary, error) {
 	query := `
 		SELECT group_name, total_students, avg_attendance_rate, avg_grade,
 			critical_risk_count, high_risk_count, medium_risk_count, low_risk_count,
@@ -158,8 +163,9 @@ func (r *AnalyticsRepositoryPG) GetAllGroupsSummary(ctx context.Context) ([]enti
 	return summaries, nil
 }
 
-// GetStudentsByRiskLevel returns students filtered by risk level
-func (r *AnalyticsRepositoryPG) GetStudentsByRiskLevel(ctx context.Context, riskLevel entities.RiskLevel, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
+// GetStudentsByRiskLevel returns students filtered by risk level.
+// scope is plumbed through; SQL filter added in Cycle 3b.
+func (r *AnalyticsRepositoryPG) GetStudentsByRiskLevel(ctx context.Context, _ *entities.TeacherScope, riskLevel entities.RiskLevel, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
 	// Count total
 	var total int64
 	countQuery := `SELECT COUNT(*) FROM v_student_risk_score WHERE risk_level = $1`
