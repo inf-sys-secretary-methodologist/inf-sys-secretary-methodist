@@ -547,6 +547,10 @@ func main() {
 	// Initialize validator
 	validator := validation.NewValidator()
 
+	// JWT secret reused for token revocation use case (setupRoutes builds
+	// LogoutUseCase with the same secret used to sign access tokens).
+	jwtSecret := []byte(cfg.JWT.AccessSecret)
+
 	// Setup router with all middleware
 	router, telegramPollingService := setupRoutes(
 		authUseCase,
@@ -590,6 +594,7 @@ func main() {
 		userRepo,
 		userProfileRepo,
 		validator,
+		jwtSecret,
 	)
 
 	// Initialize integration module (1C synchronization)
@@ -1088,9 +1093,20 @@ func setupRoutes(
 	userRepo repositories.UserRepository,
 	userProfileRepo usersRepositories.UserProfileRepository,
 	validator *validation.Validator,
+	jwtSecret []byte,
 ) (*gin.Engine, *telegram.PollingService) {
 	router := gin.New()
 	var telegramPollingService *telegram.PollingService
+
+	// Token revocation infrastructure (logout endpoint, AUDIT_REPORT item #4).
+	// If Redis is unavailable, revokedTokenRepo stays nil and JWTMiddlewareWithRevocation
+	// gracefully degrades to plain validation without blacklist lookup.
+	var revokedTokenRepo repositories.RevokedTokenRepository
+	var logoutUseCase *usecases.LogoutUseCase
+	if redisCache != nil {
+		revokedTokenRepo = persistence.NewRedisRevokedTokenRepository(redisCache.Client())
+		logoutUseCase = usecases.NewLogoutUseCase(revokedTokenRepo, jwtSecret)
+	}
 
 	// Global middleware stack (order matters!)
 	router.Use(gin.Recovery())
@@ -1169,6 +1185,18 @@ func setupRoutes(
 		authGroup.OPTIONS("/register", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 		authGroup.OPTIONS("/login", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 		authGroup.OPTIONS("/refresh", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+		// Logout: requires JWT auth (no revocation check — otherwise a
+		// already-revoked token couldn't call logout idempotently).
+		// Endpoint blacklists the access token's JTI in Redis until exp.
+		if logoutUseCase != nil {
+			logoutHandlerInstance := authHandler.NewLogoutHandler(logoutUseCase)
+			authGroup.POST("/logout",
+				authMiddleware.JWTMiddleware(authUseCase),
+				logoutHandlerInstance.Logout,
+			)
+			authGroup.OPTIONS("/logout", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+		}
 	}
 
 	// Public document access routes (no authentication required)
@@ -1212,7 +1240,7 @@ func setupRoutes(
 
 	// Protected routes (require JWT) with auth rate limiting (60 req/min + burst 10)
 	protectedGroup := router.Group("/api")
-	protectedGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
+	protectedGroup.Use(authMiddleware.JWTMiddlewareWithRevocation(authUseCase, revokedTokenRepo))
 	if authRateLimiter != nil {
 		protectedGroup.Use(authRateLimiter.RateLimitMiddleware())
 	}
