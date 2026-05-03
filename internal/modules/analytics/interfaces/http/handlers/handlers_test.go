@@ -184,12 +184,12 @@ func newUC(ar *mockAnalyticsRepo, atr *mockAttendanceRepo, gr *mockGradeRepo) *u
 
 // ===== AnalyticsHandler Tests =====
 
-func TestNewAnalyticsHandler(t *testing.T)  { assert.NotNil(t, NewAnalyticsHandler(nil)) }
+func TestNewAnalyticsHandler(t *testing.T)  { assert.NotNil(t, NewAnalyticsHandler(nil, nil)) }
 func TestNewAttendanceHandler(t *testing.T) { assert.NotNil(t, NewAttendanceHandler(nil)) }
 
 func TestAnalyticsHandler_GetAtRiskStudents_Success(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetAtRiskStudents", mock.Anything, mock.Anything, 20, 0).Return([]entities.StudentRiskScore{}, int64(0), nil)
 	router := setupRouter()
 	router.GET("/at-risk", h.GetAtRiskStudents)
@@ -199,7 +199,7 @@ func TestAnalyticsHandler_GetAtRiskStudents_Success(t *testing.T) {
 
 func TestAnalyticsHandler_GetAtRiskStudents_WithParams(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetAtRiskStudents", mock.Anything, mock.Anything, 10, 10).Return([]entities.StudentRiskScore{}, int64(0), nil)
 	router := setupRouter()
 	router.GET("/at-risk", h.GetAtRiskStudents)
@@ -209,7 +209,7 @@ func TestAnalyticsHandler_GetAtRiskStudents_WithParams(t *testing.T) {
 
 func TestAnalyticsHandler_GetAtRiskStudents_Error(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetAtRiskStudents", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]entities.StudentRiskScore{}, int64(0), fmt.Errorf("err"))
 	router := setupRouter()
 	router.GET("/at-risk", h.GetAtRiskStudents)
@@ -219,7 +219,7 @@ func TestAnalyticsHandler_GetAtRiskStudents_Error(t *testing.T) {
 
 func TestAnalyticsHandler_GetStudentRisk_Success(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetStudentRisk", mock.Anything, int64(1)).Return(&entities.StudentRiskScore{StudentID: 1}, nil)
 	router := setupRouter()
 	router.GET("/students/:id/risk", h.GetStudentRisk)
@@ -228,7 +228,7 @@ func TestAnalyticsHandler_GetStudentRisk_Success(t *testing.T) {
 }
 
 func TestAnalyticsHandler_GetStudentRisk_InvalidID(t *testing.T) {
-	h := NewAnalyticsHandler(nil)
+	h := NewAnalyticsHandler(nil, nil)
 	router := setupRouter()
 	router.GET("/students/:id/risk", h.GetStudentRisk)
 	w := performRequest(router, http.MethodGet, "/students/abc/risk", nil)
@@ -238,7 +238,7 @@ func TestAnalyticsHandler_GetStudentRisk_InvalidID(t *testing.T) {
 func TestAnalyticsHandler_GetStudentRisk_NotFound(t *testing.T) {
 	// Usecase wraps errors, so exact match won't work at handler level
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetStudentRisk", mock.Anything, int64(1)).Return(nil, fmt.Errorf("student not found"))
 	router := setupRouter()
 	router.GET("/students/:id/risk", h.GetStudentRisk)
@@ -248,7 +248,7 @@ func TestAnalyticsHandler_GetStudentRisk_NotFound(t *testing.T) {
 
 func TestAnalyticsHandler_GetGroupSummary_Success(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetGroupSummary", mock.Anything, "G1").Return(&entities.GroupAnalyticsSummary{GroupName: "G1"}, nil)
 	router := setupRouter()
 	router.GET("/groups/:name/summary", h.GetGroupSummary)
@@ -260,7 +260,7 @@ func TestAnalyticsHandler_GetGroupSummary_NotFound(t *testing.T) {
 	// The usecase wraps errors, so "group not found" becomes "failed to get group summary: group not found"
 	// The handler only matches exact "group not found", so this becomes a 500
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetGroupSummary", mock.Anything, "X").Return(nil, fmt.Errorf("group not found"))
 	router := setupRouter()
 	router.GET("/groups/:name/summary", h.GetGroupSummary)
@@ -270,7 +270,7 @@ func TestAnalyticsHandler_GetGroupSummary_NotFound(t *testing.T) {
 
 func TestAnalyticsHandler_GetGroupSummary_Error(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetGroupSummary", mock.Anything, "X").Return(nil, fmt.Errorf("db error"))
 	router := setupRouter()
 	router.GET("/groups/:name/summary", h.GetGroupSummary)
@@ -280,7 +280,7 @@ func TestAnalyticsHandler_GetGroupSummary_Error(t *testing.T) {
 
 func TestAnalyticsHandler_GetAllGroupsSummary_Success(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetAllGroupsSummary", mock.Anything, mock.Anything).Return([]entities.GroupAnalyticsSummary{}, nil)
 	router := setupRouter()
 	router.GET("/groups/summary", h.GetAllGroupsSummary)
@@ -290,7 +290,7 @@ func TestAnalyticsHandler_GetAllGroupsSummary_Success(t *testing.T) {
 
 func TestAnalyticsHandler_GetAllGroupsSummary_Error(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetAllGroupsSummary", mock.Anything, mock.Anything).Return(nil, fmt.Errorf("err"))
 	router := setupRouter()
 	router.GET("/groups/summary", h.GetAllGroupsSummary)
@@ -300,7 +300,7 @@ func TestAnalyticsHandler_GetAllGroupsSummary_Error(t *testing.T) {
 
 func TestAnalyticsHandler_GetStudentsByRiskLevel_Success(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetStudentsByRiskLevel", mock.Anything, mock.Anything, mock.Anything, 20, 0).Return([]entities.StudentRiskScore{}, int64(0), nil)
 	router := setupRouter()
 	router.GET("/risk-level/:level", h.GetStudentsByRiskLevel)
@@ -309,7 +309,7 @@ func TestAnalyticsHandler_GetStudentsByRiskLevel_Success(t *testing.T) {
 }
 
 func TestAnalyticsHandler_GetStudentsByRiskLevel_InvalidLevel(t *testing.T) {
-	h := NewAnalyticsHandler(nil)
+	h := NewAnalyticsHandler(nil, nil)
 	router := setupRouter()
 	router.GET("/risk-level/:level", h.GetStudentsByRiskLevel)
 	w := performRequest(router, http.MethodGet, "/risk-level/invalid", nil)
@@ -318,7 +318,7 @@ func TestAnalyticsHandler_GetStudentsByRiskLevel_InvalidLevel(t *testing.T) {
 
 func TestAnalyticsHandler_GetStudentsByRiskLevel_WithParams(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetStudentsByRiskLevel", mock.Anything, mock.Anything, mock.Anything, 10, 10).Return([]entities.StudentRiskScore{}, int64(0), nil)
 	router := setupRouter()
 	router.GET("/risk-level/:level", h.GetStudentsByRiskLevel)
@@ -328,7 +328,7 @@ func TestAnalyticsHandler_GetStudentsByRiskLevel_WithParams(t *testing.T) {
 
 func TestAnalyticsHandler_GetStudentsByRiskLevel_Error(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetStudentsByRiskLevel", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]entities.StudentRiskScore{}, int64(0), fmt.Errorf("err"))
 	router := setupRouter()
 	router.GET("/risk-level/:level", h.GetStudentsByRiskLevel)
@@ -338,7 +338,7 @@ func TestAnalyticsHandler_GetStudentsByRiskLevel_Error(t *testing.T) {
 
 func TestAnalyticsHandler_GetAttendanceTrend_Success(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetMonthlyAttendanceTrend", mock.Anything, 6).Return([]entities.MonthlyAttendanceTrend{}, nil)
 	router := setupRouter()
 	router.GET("/attendance-trend", h.GetAttendanceTrend)
@@ -348,7 +348,7 @@ func TestAnalyticsHandler_GetAttendanceTrend_Success(t *testing.T) {
 
 func TestAnalyticsHandler_GetAttendanceTrend_WithMonths(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetMonthlyAttendanceTrend", mock.Anything, 12).Return([]entities.MonthlyAttendanceTrend{}, nil)
 	router := setupRouter()
 	router.GET("/attendance-trend", h.GetAttendanceTrend)
@@ -358,7 +358,7 @@ func TestAnalyticsHandler_GetAttendanceTrend_WithMonths(t *testing.T) {
 
 func TestAnalyticsHandler_GetAttendanceTrend_Error(t *testing.T) {
 	ar := new(mockAnalyticsRepo)
-	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)))
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), nil)
 	ar.On("GetMonthlyAttendanceTrend", mock.Anything, 6).Return(nil, fmt.Errorf("err"))
 	router := setupRouter()
 	router.GET("/attendance-trend", h.GetAttendanceTrend)
@@ -635,7 +635,7 @@ func TestAttendanceHandler_CreateLesson_Error(t *testing.T) {
 }
 
 func TestAnalyticsHandler_handleError_StudentNotFound(t *testing.T) {
-	h := NewAnalyticsHandler(nil)
+	h := NewAnalyticsHandler(nil, nil)
 	router := setupRouter()
 	router.GET("/t", func(c *gin.Context) { h.handleError(c, fmt.Errorf("student not found")) })
 	w := performRequest(router, http.MethodGet, "/t", nil)
@@ -643,7 +643,7 @@ func TestAnalyticsHandler_handleError_StudentNotFound(t *testing.T) {
 }
 
 func TestAnalyticsHandler_handleError_GroupNotFound(t *testing.T) {
-	h := NewAnalyticsHandler(nil)
+	h := NewAnalyticsHandler(nil, nil)
 	router := setupRouter()
 	router.GET("/t", func(c *gin.Context) { h.handleError(c, fmt.Errorf("group not found")) })
 	w := performRequest(router, http.MethodGet, "/t", nil)
@@ -651,7 +651,7 @@ func TestAnalyticsHandler_handleError_GroupNotFound(t *testing.T) {
 }
 
 func TestAnalyticsHandler_handleError_Generic(t *testing.T) {
-	h := NewAnalyticsHandler(nil)
+	h := NewAnalyticsHandler(nil, nil)
 	router := setupRouter()
 	router.GET("/t", func(c *gin.Context) { h.handleError(c, fmt.Errorf("other")) })
 	w := performRequest(router, http.MethodGet, "/t", nil)

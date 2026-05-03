@@ -2,7 +2,9 @@
 package handlers
 
 import (
+	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,19 +14,69 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
+// roleTeacher is the canonical wire value of the teacher role used by
+// JWT claims and gin context. Other roles ("methodist",
+// "academic_secretary", "system_admin", "student") bypass the scope
+// filter — methodist/secretary/admin because they are unrestricted by
+// design, and student because /api/analytics/* is gated by
+// RequireNonStudent middleware before this handler runs.
+const roleTeacher = "teacher"
+
 // AnalyticsHandler handles HTTP requests for analytics endpoints.
+//
+// The handler is responsible for assembling the request-scoped
+// *entities.TeacherScope from the authenticated user before delegating
+// to the use case. A nil scopeRepo disables scope assembly entirely
+// (nil scope reaches the use case for every request) — useful for
+// tests that exercise non-scope behaviour.
 type AnalyticsHandler struct {
-	usecase *usecases.AnalyticsUseCase
+	usecase   *usecases.AnalyticsUseCase
+	scopeRepo repositories.TeacherScopeRepository
 }
 
-// NewAnalyticsHandler creates a new analytics handler.
-func NewAnalyticsHandler(usecase *usecases.AnalyticsUseCase) *AnalyticsHandler {
+// NewAnalyticsHandler creates a new analytics handler. Pass scopeRepo
+// to enable role-aware scope filtering; pass nil to disable it (every
+// request gets a nil scope, equivalent to admin access).
+func NewAnalyticsHandler(usecase *usecases.AnalyticsUseCase, scopeRepo repositories.TeacherScopeRepository) *AnalyticsHandler {
 	return &AnalyticsHandler{
-		usecase: usecase,
+		usecase:   usecase,
+		scopeRepo: scopeRepo,
 	}
+}
+
+// buildScope inspects the authenticated user's role from the gin
+// context and, for teachers, queries the canonical group whitelist via
+// scopeRepo. Returns (nil, nil) for unrestricted roles or when no
+// scope repository was injected. A scopeRepo error surfaces as a
+// non-nil error and the handler maps it to HTTP 500 — the request
+// MUST NOT proceed under the wrong scope.
+func (h *AnalyticsHandler) buildScope(ctx context.Context, c *gin.Context) (*entities.TeacherScope, error) {
+	if h.scopeRepo == nil {
+		return nil, nil
+	}
+	roleVal, _ := c.Get("role")
+	role, _ := roleVal.(string)
+	if role != roleTeacher {
+		return nil, nil
+	}
+	userIDVal, ok := c.Get("user_id")
+	if !ok {
+		return nil, errors.New("analytics: teacher request without user_id in context")
+	}
+	userID, ok := userIDVal.(int64)
+	if !ok {
+		return nil, fmt.Errorf("analytics: user_id has unexpected type %T", userIDVal)
+	}
+	groupNames, err := h.scopeRepo.ListGroupNames(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("analytics: failed to load teacher scope: %w", err)
+	}
+	return entities.NewTeacherScope(userID, groupNames), nil
 }
 
 // GetAtRiskStudents returns students at risk based on attendance and grades
@@ -56,8 +108,12 @@ func (h *AnalyticsHandler) GetAtRiskStudents(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
-	result, err := h.usecase.GetAtRiskStudents(ctx, nil, page, pageSize)
+	scope, err := h.buildScope(ctx, c)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	result, err := h.usecase.GetAtRiskStudents(ctx, scope, page, pageSize)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -90,8 +146,12 @@ func (h *AnalyticsHandler) GetStudentRisk(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
-	result, err := h.usecase.GetStudentRisk(ctx, nil, studentID)
+	scope, err := h.buildScope(ctx, c)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	result, err := h.usecase.GetStudentRisk(ctx, scope, studentID)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -124,8 +184,12 @@ func (h *AnalyticsHandler) GetGroupSummary(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
-	result, err := h.usecase.GetGroupSummary(ctx, nil, groupName)
+	scope, err := h.buildScope(ctx, c)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	result, err := h.usecase.GetGroupSummary(ctx, scope, groupName)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -148,8 +212,12 @@ func (h *AnalyticsHandler) GetGroupSummary(c *gin.Context) {
 // @Router /api/analytics/groups/summary [get]
 func (h *AnalyticsHandler) GetAllGroupsSummary(c *gin.Context) {
 	ctx := c.Request.Context()
-	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
-	result, err := h.usecase.GetAllGroupsSummary(ctx, nil)
+	scope, err := h.buildScope(ctx, c)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	result, err := h.usecase.GetAllGroupsSummary(ctx, scope)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -205,8 +273,12 @@ func (h *AnalyticsHandler) GetStudentsByRiskLevel(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
-	result, err := h.usecase.GetStudentsByRiskLevel(ctx, nil, riskLevel, page, pageSize)
+	scope, err := h.buildScope(ctx, c)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	result, err := h.usecase.GetStudentsByRiskLevel(ctx, scope, riskLevel, page, pageSize)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -258,8 +330,13 @@ func (h *AnalyticsHandler) GetStudentRiskHistory(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "90"))
 
-	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
-	result, err := h.usecase.GetStudentRiskHistory(c.Request.Context(), nil, studentID, limit)
+	ctx := c.Request.Context()
+	scope, err := h.buildScope(ctx, c)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	result, err := h.usecase.GetStudentRiskHistory(ctx, scope, studentID, limit)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -305,8 +382,13 @@ func (h *AnalyticsHandler) UpdateRiskWeightConfig(c *gin.Context) {
 func (h *AnalyticsHandler) ExportAtRiskStudents(c *gin.Context) {
 	format := c.DefaultQuery("format", "csv")
 
-	// Export reuses GetAtRiskStudents; scope is wired in Cycle 5.
-	result, err := h.usecase.GetAtRiskStudents(c.Request.Context(), nil, 1, 1000)
+	ctx := c.Request.Context()
+	scope, err := h.buildScope(ctx, c)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	result, err := h.usecase.GetAtRiskStudents(ctx, scope, 1, 1000)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -382,6 +464,13 @@ func (h *AnalyticsHandler) ExportAtRiskStudents(c *gin.Context) {
 
 // handleError maps errors to HTTP responses
 func (h *AnalyticsHandler) handleError(c *gin.Context, err error) {
+	// Scope-forbidden must be mapped explicitly BEFORE MapDomainError —
+	// otherwise the generic mapper falls back to 500 and the teacher
+	// gets a misleading internal error instead of a clean 403.
+	if errors.Is(err, entities.ErrAnalyticsScopeForbidden) {
+		c.JSON(http.StatusForbidden, response.Forbidden("access to this analytics scope is denied"))
+		return
+	}
 	if err.Error() == "student not found" || err.Error() == "group not found" {
 		resp := response.NotFound(err.Error())
 		c.JSON(http.StatusNotFound, resp)

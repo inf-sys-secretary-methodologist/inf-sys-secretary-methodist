@@ -82,6 +82,7 @@ import (
 	analyticsUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/usecases"
 	analyticsPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/infrastructure/persistence"
 	analyticsEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
+	analyticsRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/repositories"
 	analyticsScheduler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/infrastructure/scheduler"
 	analyticsHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/interfaces/http/handlers"
 	announcementUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
@@ -445,6 +446,10 @@ func main() {
 	analyticsRepo := analyticsPersistence.NewAnalyticsRepositoryPG(db)
 	attendanceRepo := analyticsPersistence.NewAttendanceRepositoryPG(db)
 	gradeRepo := analyticsPersistence.NewGradeRepositoryPG(db)
+	// teacherScopeRepo resolves the teacher → group whitelist used by the
+	// /api/analytics/* scope filter (v0.108.3). Reads schedule_lessons +
+	// student_groups via a cross-table SQL JOIN.
+	teacherScopeRepo := analyticsPersistence.NewTeacherScopeRepositoryPG(db)
 	analyticsUseCase := analyticsUsecases.NewAnalyticsUseCase(analyticsRepo, attendanceRepo, gradeRepo, auditLogger)
 
 	// Start risk recalculation scheduler (daily at 3:00 AM)
@@ -595,6 +600,7 @@ func main() {
 		announcementUseCase,
 		dashboardUseCase,
 		analyticsUseCase,
+		teacherScopeRepo,
 		userUseCase,
 		departmentUseCase,
 		positionUseCase,
@@ -1094,6 +1100,7 @@ func setupRoutes(
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
 	dashboardUseCase *dashboardUsecases.DashboardUseCase,
 	analyticsUseCase *analyticsUsecases.AnalyticsUseCase,
+	teacherScopeRepo analyticsRepositories.TeacherScopeRepository,
 	userUseCase *usersUsecases.UserUseCase,
 	departmentUseCase *usersUsecases.DepartmentUseCase,
 	positionUseCase *usersUsecases.PositionUseCase,
@@ -1944,7 +1951,7 @@ func setupRoutes(
 
 		// Analytics module routes (predictive analytics for students)
 		if analyticsUseCase != nil {
-			analyticsHandlerInstance := analyticsHandler.NewAnalyticsHandler(analyticsUseCase)
+			analyticsHandlerInstance := analyticsHandler.NewAnalyticsHandler(analyticsUseCase, teacherScopeRepo)
 			attendanceHandlerInstance := analyticsHandler.NewAttendanceHandler(analyticsUseCase)
 
 			// Analytics routes — students must not see at-risk lists or any
