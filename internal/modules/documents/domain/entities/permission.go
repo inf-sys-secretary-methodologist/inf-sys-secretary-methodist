@@ -16,13 +16,21 @@ const (
 // UserRole represents the role that can be granted permissions
 type UserRole string
 
-// UserRole values.
+// UserRole values. Two parallel naming schemes coexist:
+//   - Legacy short names (admin / secretary) used by DocumentPermission
+//     rows shipped before v0.106.0;
+//   - Full names that match auth.RoleType wire values (system_admin /
+//     academic_secretary) — used by CanBeEditedBy and any newer
+//     domain rule. Cross-module import of auth.RoleType is forbidden
+//     by the architecture, hence the deliberate duplication.
 const (
-	RoleAdmin     UserRole = "admin"
-	RoleSecretary UserRole = "secretary"
-	RoleMethodist UserRole = "methodist"
-	RoleTeacher   UserRole = "teacher"
-	RoleStudent   UserRole = "student"
+	RoleAdmin             UserRole = "admin"
+	RoleSecretary         UserRole = "secretary"
+	RoleMethodist         UserRole = "methodist"
+	RoleTeacher           UserRole = "teacher"
+	RoleStudent           UserRole = "student"
+	RoleAcademicSecretary UserRole = "academic_secretary"
+	RoleSystemAdmin       UserRole = "system_admin"
 )
 
 // DocumentPermission represents a permission granted to a user or role for a document

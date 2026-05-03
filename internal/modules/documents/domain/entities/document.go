@@ -2,8 +2,16 @@
 package entities
 
 import (
+	"errors"
 	"time"
 )
+
+// ErrDocumentEditDenied is returned by CanBeEditedBy when the caller
+// is not allowed to mutate the document (wrong role, or teacher
+// trying to edit another author's document). Exposed as a sentinel so
+// handlers can errors.Is it and map to a stable 403 response without
+// string parsing.
+var ErrDocumentEditDenied = errors.New("not allowed to edit this document")
 
 // DocumentStatus represents the status of a document in workflow
 type DocumentStatus string
@@ -157,4 +165,28 @@ func (d *Document) Restore() {
 // HasFile checks if document has an attached file
 func (d *Document) HasFile() bool {
 	return d.FilePath != nil && *d.FilePath != ""
+}
+
+// CanBeEditedBy reports whether a user holding the given role is
+// allowed to mutate this document.
+//
+// The rule encodes the audit-report decision:
+//   - methodist / academic_secretary / system_admin: any document;
+//   - teacher: only own (userID == AuthorID);
+//   - student / unknown role: never — defense-in-depth alongside the
+//     handler-level RequireNonStudent middleware.
+//
+// Returns nil on allow, ErrDocumentEditDenied on deny.
+func (d *Document) CanBeEditedBy(userID int64, role UserRole) error {
+	switch role {
+	case RoleMethodist, RoleAcademicSecretary, RoleSystemAdmin:
+		return nil
+	case RoleTeacher:
+		if userID == d.AuthorID {
+			return nil
+		}
+		return ErrDocumentEditDenied
+	default:
+		return ErrDocumentEditDenied
+	}
 }
