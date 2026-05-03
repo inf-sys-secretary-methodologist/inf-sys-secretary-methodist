@@ -88,6 +88,10 @@ func TestWebhookEventHandler_KnownEventTypes_RouteToConfiguredPaths(t *testing.T
 			assert.Equal(t, tc.wantPath, gotPath)
 			assert.Equal(t, tc.eventType, gotBody["event_type"])
 			assert.Equal(t, "agg-42", gotBody["aggregate_id"])
+			// occurred_at must round-trip through the RFC3339 formatter
+			// the handler uses — the n8n side parses it as a date and a
+			// format drift would silently break downstream workflows.
+			assert.Equal(t, "2026-05-03T12:00:00Z", gotBody["occurred_at"])
 		})
 	}
 }
