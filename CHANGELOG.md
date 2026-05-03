@@ -15,6 +15,21 @@
 
 ---
 
+## [0.105.3] — 2026-05-03
+
+### Security — block student from documents.create / reports / analytics
+
+- Новая helper-функция `authMiddleware.RequireNonStudent()` — whitelist четырёх не-студенческих ролей через существующий `RequireRole`.
+- Применена в `cmd/server/main.go` на трёх точках:
+  - `POST /api/documents` (read paths остаются открытыми — студенты видят shared через ACL)
+  - `/api/reports/*` — вся группа закрыта от студентов
+  - `/api/analytics/*` — вся группа закрыта от студентов
+- **До фикса:** student имел AccessDenied в Permission Matrix, но handler-уровень не проверял — студенты могли вызывать endpoints напрямую (AUDIT_REPORT item #1).
+
+### Tests
+
+- 6 sub-tests на `RequireNonStudent`: blocks student / allows 4 other roles / blocks missing role.
+
 ## [0.105.2] — 2026-05-03
 
 ### Security — admin guard on /api/integration/*
