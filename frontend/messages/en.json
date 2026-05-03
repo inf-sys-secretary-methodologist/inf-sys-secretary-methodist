@@ -147,7 +147,9 @@
     "backToHome": "← Back to home",
     "footer": "© 2025 Secretary-Methodologist Information System",
     "metaTitle": "Authentication",
-    "metaDescription": "Sign in and register in the system"
+    "metaDescription": "Sign in and register in the system",
+    "forgotPasswordMeta": "Password reset",
+    "resetPasswordMeta": "New password"
   },
   "nav": {
     "home": "Home",
@@ -2282,5 +2284,34 @@
       "workflowsTitle": "Workflows",
       "workflowsDescription": "3 automated workflows: document notifications, absence alerts, deadline reminders"
     }
+  },
+  "forgotPasswordPage": {
+    "title": "Password reset",
+    "subtitle": "Enter your email — we'll send a recovery link",
+    "emailPlaceholder": "Email",
+    "submit": "Send recovery link",
+    "submitting": "Sending...",
+    "successTitle": "If the address is registered — a link has been sent",
+    "successDescription": "Check your inbox and follow the link. It is valid for one hour.",
+    "backToLogin": "Back to sign in",
+    "genericError": "Could not send the link, please try again"
+  },
+  "resetPasswordPage": {
+    "title": "New password",
+    "subtitle": "Choose a new password for your account",
+    "newPasswordLabel": "New password",
+    "confirmPasswordLabel": "Confirm password",
+    "submit": "Save password",
+    "submitting": "Saving...",
+    "successTitle": "Password updated",
+    "successDescription": "You can now sign in with the new password",
+    "goToLogin": "Go to sign in",
+    "verifying": "Verifying link...",
+    "linkExpiredTitle": "Link is no longer valid",
+    "linkExpiredDescription": "The reset link has expired or has already been used",
+    "requestNewLink": "Request a new link",
+    "tokenMissing": "Reset token is missing from the link",
+    "weakPasswordError": "Password does not meet the security requirements",
+    "genericError": "Could not save the password, please try again"
   }
 }

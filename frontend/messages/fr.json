@@ -147,7 +147,9 @@
     "backToHome": "← Retour à l'accueil",
     "footer": "© 2025 Système d'information du secrétaire-méthodiste",
     "metaTitle": "Authentification",
-    "metaDescription": "Connexion et inscription au système"
+    "metaDescription": "Connexion et inscription au système",
+    "forgotPasswordMeta": "Réinitialisation du mot de passe",
+    "resetPasswordMeta": "Nouveau mot de passe"
   },
   "nav": {
     "home": "Accueil",
@@ -2282,5 +2284,34 @@
       "workflowsTitle": "Workflows",
       "workflowsDescription": "3 workflows automatisés : notifications de documents, alertes d'absences, rappels de délais"
     }
+  },
+  "forgotPasswordPage": {
+    "title": "Réinitialisation du mot de passe",
+    "subtitle": "Saisissez votre email — nous vous enverrons un lien de récupération",
+    "emailPlaceholder": "Email",
+    "submit": "Envoyer le lien",
+    "submitting": "Envoi en cours...",
+    "successTitle": "Si l'adresse est enregistrée — un lien a été envoyé",
+    "successDescription": "Vérifiez votre boîte mail et suivez le lien. Il est valable une heure.",
+    "backToLogin": "Retour à la connexion",
+    "genericError": "Impossible d'envoyer le lien, veuillez réessayer"
+  },
+  "resetPasswordPage": {
+    "title": "Nouveau mot de passe",
+    "subtitle": "Choisissez un nouveau mot de passe pour votre compte",
+    "newPasswordLabel": "Nouveau mot de passe",
+    "confirmPasswordLabel": "Confirmez le mot de passe",
+    "submit": "Enregistrer le mot de passe",
+    "submitting": "Enregistrement...",
+    "successTitle": "Mot de passe mis à jour",
+    "successDescription": "Vous pouvez maintenant vous connecter avec le nouveau mot de passe",
+    "goToLogin": "Aller à la connexion",
+    "verifying": "Vérification du lien...",
+    "linkExpiredTitle": "Le lien n'est plus valide",
+    "linkExpiredDescription": "Le lien de réinitialisation a expiré ou a déjà été utilisé",
+    "requestNewLink": "Demander un nouveau lien",
+    "tokenMissing": "Le jeton de réinitialisation est absent du lien",
+    "weakPasswordError": "Le mot de passe ne répond pas aux exigences de sécurité",
+    "genericError": "Impossible d'enregistrer le mot de passe, veuillez réessayer"
   }
 }
