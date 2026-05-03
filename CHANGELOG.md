@@ -15,6 +15,27 @@
 
 ---
 
+## [0.107.0] — 2026-05-03
+
+### Added — Logout endpoint + Redis-based token blacklist
+
+- `POST /api/auth/logout` принимает Bearer access token, добавляет его JTI в Redis blacklist с TTL = `exp − now`. Endpoint защищён обычным `JWTMiddleware` (revocation check намеренно не применяется к самому logout, чтобы он оставался идемпотентным).
+- Новый interface `repositories.RevokedTokenRepository` (`Revoke(jti, ttl)` / `IsRevoked(jti)`).
+- Redis-имплементация `persistence.RedisRevokedTokenRepository` использует `SET jwt:revoked:<jti> 1 EX <ttl>` + `EXISTS`.
+- Новый middleware `JWTMiddlewareWithRevocation(authUseCase, revokedRepo)` — после стандартной валидации сверяется со списком отозванных. Применён к `protectedGroup` и `aiAPIGroup`. При ошибке хранилища fail-closes 401 (лучше принудительный re-login, чем риск пропустить отозванный токен).
+- Если Redis недоступен (`redisCache == nil`), revocation отключается gracefully — middleware ведёт себя как обычный `JWTMiddleware`.
+
+### Tests
+
+- `LogoutUseCase` — 4 теста (happy path, invalid signature, expired exp, missing JTI).
+- `JWTMiddlewareWithRevocation` — 3 теста (revoked → 401, active → 200, nil repo → bypass).
+- `LogoutHandler` — 3 теста (204 / 401 missing auth / 401 invalid token).
+
+### Known limitations
+
+- Refresh tokens не отзываются на сервере: клиент должен их выкинуть. Полная серверная инвалидация refresh — отдельная задача (`SessionRepository` уже существует, но не подключён к `AuthUseCase`).
+- `/api/integration/*` остаётся под обычным `JWTMiddleware`: admin-guard и так блокирует не-админов; admin'у достаточно подождать TTL access token (15 мин).
+
 ## [0.106.0] — 2026-05-03
 
 ### Added — `ResourceDocuments` resource type in PermissionMatrix
