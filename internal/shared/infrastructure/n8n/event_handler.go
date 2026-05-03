@@ -5,6 +5,16 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
+// Webhook path constants — single source of truth shared by the
+// event-driven WebhookEventHandler routing and direct call sites
+// (e.g. the riskAlertFunc in cmd/server/main.go) so a typo in one
+// place cannot drift the two paths apart.
+const (
+	PathDocumentCreated   = "document-created"
+	PathDocumentUpdated   = "document-updated"
+	PathRiskAlertDetected = "risk-alert-detected"
+)
+
 // WebhookEventHandler forwards domain events to n8n webhooks.
 // It maps event types to webhook paths.
 type WebhookEventHandler struct {
@@ -20,8 +30,9 @@ func NewWebhookEventHandler(client *Client, logger *logging.Logger) *WebhookEven
 		client: client,
 		logger: logger,
 		pathMap: map[string]string{
-			"document.created": "document-created",
-			"document.updated": "document-updated",
+			"document.created":    PathDocumentCreated,
+			"document.updated":    PathDocumentUpdated,
+			"risk_alert.detected": PathRiskAlertDetected,
 		},
 	}
 }
