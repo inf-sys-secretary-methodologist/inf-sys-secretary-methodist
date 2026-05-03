@@ -531,7 +531,7 @@ func TestDocumentUseCase_Update(t *testing.T) {
 			Title: &newTitle,
 		}
 
-		result, err := usecase.Update(ctx, 1, input, 1)
+		result, err := usecase.Update(ctx, 1, input, 1, entities.RoleTeacher)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -539,6 +539,69 @@ func TestDocumentUseCase_Update(t *testing.T) {
 
 		mockDocRepo.AssertExpectations(t)
 	})
+}
+
+// TestDocumentUseCase_Update_OwnershipEnforcement table-pins the new
+// v0.108.2 invariant: Update must reject unauthorized callers BEFORE
+// touching the repo.Update / AddHistory side effects, otherwise an
+// audit-history entry plus a partial mutation can leak through even
+// when the call is denied.
+//
+// Cases mirror Document.CanBeEditedBy from the entity layer:
+//   - methodist editing another author's doc -> success
+//   - teacher editing own -> success
+//   - teacher editing another author's -> ErrDocumentEditDenied,
+//     no Update / AddHistory call observed
+//   - student editing own -> ErrDocumentEditDenied (defense in depth
+//     even though the handler-level RequireNonStudent should catch it)
+func TestDocumentUseCase_Update_OwnershipEnforcement(t *testing.T) {
+	const authorID int64 = 100
+
+	cases := []struct {
+		name        string
+		callerID    int64
+		role        entities.UserRole
+		wantErrIs   error
+		wantUpdated bool
+	}{
+		{"methodist edits other author's doc", 200, entities.RoleMethodist, nil, true},
+		{"teacher edits own doc", authorID, entities.RoleTeacher, nil, true},
+		{"teacher edits other author's doc", 200, entities.RoleTeacher, entities.ErrDocumentEditDenied, false},
+		{"student edits own doc (defense in depth)", authorID, entities.RoleStudent, entities.ErrDocumentEditDenied, false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockDocRepo := new(MockDocumentRepository)
+			mockTypeRepo := new(MockDocumentTypeRepository)
+			mockCategoryRepo := new(MockDocumentCategoryRepository)
+			usecase := NewDocumentUseCase(mockDocRepo, mockTypeRepo, mockCategoryRepo, nil, nil)
+
+			doc := &entities.Document{
+				ID: 1, Title: "Old", DocumentTypeID: 1, AuthorID: authorID,
+				Status: entities.DocumentStatusDraft,
+			}
+			mockDocRepo.On("GetByID", mock.Anything, int64(1)).Return(doc, nil).Once()
+			if tc.wantUpdated {
+				mockDocRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Document")).Return(nil).Once()
+				mockDocRepo.On("AddHistory", mock.Anything, mock.AnythingOfType("*entities.DocumentHistory")).Return(nil).Once()
+			}
+
+			newTitle := "New"
+			_, err := usecase.Update(context.Background(), 1, dto.UpdateDocumentInput{Title: &newTitle}, tc.callerID, tc.role)
+
+			if tc.wantErrIs != nil {
+				assert.ErrorIs(t, err, tc.wantErrIs)
+			} else {
+				assert.NoError(t, err)
+			}
+			if !tc.wantUpdated {
+				// Critical: deny path must NOT mutate or log history.
+				mockDocRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
+				mockDocRepo.AssertNotCalled(t, "AddHistory", mock.Anything, mock.Anything)
+			}
+		})
+	}
 }
 
 func TestDocumentUseCase_Search(t *testing.T) {
