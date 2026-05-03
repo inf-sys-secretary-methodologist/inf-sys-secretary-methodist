@@ -15,6 +15,50 @@
 
 ---
 
+## [0.108.0] — 2026-05-03
+
+### Added — Password recovery flow (request → verify → confirm)
+
+- `POST /api/auth/password-reset/request` — принимает `{email}`, всегда возвращает `204` независимо от того, существует ли email (anti-enumeration honored end-to-end на уровне usecase И handler).
+- `GET /api/auth/password-reset/verify/:token` — read-only проверка токена; `204` если действителен, `410 Gone` если истёк/неизвестен. Frontend вызывает перед рендером формы, чтобы не показывать поле пароля для мёртвой ссылки.
+- `POST /api/auth/password-reset/confirm` — принимает `{token, password}`, маппит ошибки usecase в стабильные HTTP-коды: `400` для слабого пароля (можно исправить), `410 Gone` для невалидного токена (нужен новый).
+- Новый interface `repositories.PasswordResetTokenRepository` (`Store` / `LookupUser` / `Delete`). Доменный sentinel `ErrPasswordResetTokenNotFound` для `errors.Is`.
+- Redis-реализация `persistence.RedisPasswordResetTokenRepository` использует `SET pwreset:<token> <userID> EX <ttl>` + `GET` / `DEL`. Empty token / non-positive TTL отвергаются на границе репо.
+- `usecases.PasswordResetUseCase` — 3 публичных метода: `RequestReset(email)`, `VerifyToken(token)`, `ConfirmReset(token, newPassword)`. Доменные ошибки `ErrInvalidResetToken` (collapses unknown-token + vanished-user в один shape, чтобы каллер не мог пробить таблицу users) и `ErrWeakResetPassword`.
+- `entities.User.UpdatePassword(hash)` — domain method, атомарно меняет пароль и `UpdatedAt`. Усекает риск, что usecase забудет обновить timestamp при ротации пароля.
+- `entities.ReconstituteUser(...)` — DDD-фабрика для восстановления загруженного из БД user'а (id + status + timestamps). Тесты v0.108.0 используют её вместо raw `&entities.User{...}`.
+- Frontend: страницы `/forgot-password` и `/reset-password` (Next 15 App Router, под `(auth)` route group). Анти-енумерация на UI: успех показывается одинаковым текстом независимо от ответа API. Form для нового пароля переходит обратно в "ссылка истекла" если confirm вернул 410 (другая вкладка спалила токен).
+- API-методы `authApi.requestPasswordReset`, `verifyPasswordResetToken`, `confirmPasswordReset` в `frontend/src/lib/api/auth.ts`.
+
+### Security
+
+- Токен — 256 бит энтропии (`crypto/rand` + `base64.RawURLEncoding`, ~43 url-safe chars). TTL = 1 час.
+- Single-use enforcement: `ConfirmReset` удаляет токен после успешного сохранения; failure to delete fatal'но (re-usable token defeats the bound).
+- Order matters: weak-password проверяется ДО любого I/O. Утечка токена не даёт спалить аккаунт на 1-символьный пароль.
+- Backend min-length floor (8) намеренно слабее frontend composition policy (upper/lower/digit/special) — backend не может доверять frontend; frontend накладывает UX-проверки сверху.
+- Bcrypt cost 14 (как в Register).
+- Anti-enumeration shape pin'ится на трёх уровнях: usecase test, handler test, frontend manual UX. Unknown email и blocked user возвращают одинаковую успешную "204"-shape без I/O. Storage fault для существующих пользователей всё ещё может теоретически отличаться от 204 через 500 — известный trade-off, задокументирован в коде.
+- Endpoints за публичным rate-limiter'ом (`publicRateLimiter` через `authGroup`) — атакующий не может спамом запроса спалить таблицу через side-effects.
+
+### Frontend
+
+- i18n × 4: `forgotPasswordPage` (9 ключей) и `resetPasswordPage` (16 ключей) добавлены в `ru/en/fr/ar.json` с реальными переводами (не fallback на английский). Parity verified через скрипт.
+- `authPages.forgotPasswordMeta` / `resetPasswordMeta` для страничных метаданных.
+- Schemas `createPasswordRecoverySchema` / `createPasswordResetSchema` уже существовали — недоставала только UI-обвязка.
+
+### Tests
+
+- Backend: `PasswordResetUseCase` — 2 table-driven теста (3 + 4 кейса) + 2 теста VerifyToken. Каждый кейс pin'ит конкретное поведение (anti-enumeration shape, single-use, validation order, opaque error для vanished-user).
+- Backend: `RedisPasswordResetTokenRepository` — 5 кейсов с `miniredis` (round-trip, TTL expiry, single-use Delete, defensive input rejection table-driven).
+- Backend: `PasswordResetHandler` — 3 table-driven (4 + 2 + 5 кейсов) + 1 end-to-end bcrypt-verify через реальный usecase + fake repos.
+- Frontend: `ResetPasswordForm.test.tsx` — 4 кейса (token-missing, verify-resolves, verify-rejects, confirm-410-flip back to expired).
+
+### Code review
+
+Прогон через `superpowers:code-reviewer` агента: TDD=9, DDD=9, CA=9, Security=9, Tests=9, i18n=10. Verdict: **SHIP** (каждая ось ≥9). Первоначальные 8/8 на DDD и Tests подняты после рефакторинга `&entities.User{}` → `ReconstituteUser` и консолидации тестов в table-driven.
+
+---
+
 ## [0.107.0] — 2026-05-03
 
 ### Added — Logout endpoint + Redis-based token blacklist
