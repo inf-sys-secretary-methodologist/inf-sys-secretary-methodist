@@ -472,8 +472,20 @@ func main() {
 		// waiting for the hourly schedule trigger in the
 		// absence-alert workflow. Async; the scheduler's batch loop
 		// must not block on webhook latency.
+		//
+		// PII surface: payload includes student name + numeric risk
+		// score going to the operator-controlled n8n instance. Curator
+		// notifications already carry the same fields, so this opens
+		// no new data-classification gap — but any future addition
+		// (email, phone, grades) must be reviewed against the
+		// roles-and-flows.md data-handling section first.
+		auditLogger.LogAuditEvent(ctx, "risk_alert_dispatched_to_n8n", "analytics", map[string]any{
+			"student_id": student.StudentID,
+			"risk_score": student.RiskScore,
+			"risk_level": student.RiskLevel,
+		})
 		n8nClient.TriggerAsync(n8ninfra.PathRiskAlertDetected, map[string]any{
-			"event_type":   "risk_alert.detected",
+			"event_type":   n8ninfra.EventTypeRiskAlertDetected,
 			"student_id":   student.StudentID,
 			"student_name": student.StudentName,
 			"group_name":   groupName,

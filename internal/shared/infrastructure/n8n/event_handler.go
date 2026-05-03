@@ -15,6 +15,15 @@ const (
 	PathRiskAlertDetected = "risk-alert-detected"
 )
 
+// Event type constants — domain-event identifiers carried in the
+// payload's event_type field. Pair-wise paired with the path
+// constants above so callers do not have to remember both strings.
+const (
+	EventTypeDocumentCreated   = "document.created"
+	EventTypeDocumentUpdated   = "document.updated"
+	EventTypeRiskAlertDetected = "risk_alert.detected"
+)
+
 // WebhookEventHandler forwards domain events to n8n webhooks.
 // It maps event types to webhook paths.
 type WebhookEventHandler struct {
@@ -30,9 +39,9 @@ func NewWebhookEventHandler(client *Client, logger *logging.Logger) *WebhookEven
 		client: client,
 		logger: logger,
 		pathMap: map[string]string{
-			"document.created":    PathDocumentCreated,
-			"document.updated":    PathDocumentUpdated,
-			"risk_alert.detected": PathRiskAlertDetected,
+			EventTypeDocumentCreated:   PathDocumentCreated,
+			EventTypeDocumentUpdated:   PathDocumentUpdated,
+			EventTypeRiskAlertDetected: PathRiskAlertDetected,
 		},
 	}
 }
