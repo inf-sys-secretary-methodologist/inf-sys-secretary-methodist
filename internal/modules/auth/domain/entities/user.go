@@ -63,6 +63,14 @@ func (u *User) Block() {
 	u.UpdatedAt = time.Now()
 }
 
+// UpdatePassword replaces the stored password hash and bumps UpdatedAt
+// so the change is visible to audit / cache-invalidation consumers as
+// a single atomic operation.
+func (u *User) UpdatePassword(hash string) {
+	u.Password = hash
+	u.UpdatedAt = time.Now()
+}
+
 // CanLogin checks if user can login
 func (u *User) CanLogin() error {
 	if !u.IsActive() {
