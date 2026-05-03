@@ -3,6 +3,7 @@ package entities
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 )
@@ -245,5 +246,27 @@ func TestUserStatusConstants(t *testing.T) {
 	}
 	if UserStatusBlocked != "blocked" {
 		t.Errorf("expected UserStatusBlocked to be %q, got %q", "blocked", UserStatusBlocked)
+	}
+}
+
+// TestUser_UpdatePassword_SetsHashAndBumpsTimestamp verifies the small
+// invariant: replacing a password updates UpdatedAt at the same time, so
+// audit / cache-bust consumers can rely on UpdatedAt as the
+// "credentials changed" signal. Without this method, a usecase has to
+// remember to bump UpdatedAt by hand and will eventually forget.
+func TestUser_UpdatePassword_SetsHashAndBumpsTimestamp(t *testing.T) {
+	past := time.Now().Add(-time.Hour)
+	user := &User{
+		Password:  "old-hash",
+		UpdatedAt: past,
+	}
+
+	user.UpdatePassword("new-hash")
+
+	if user.Password != "new-hash" {
+		t.Errorf("expected password %q, got %q", "new-hash", user.Password)
+	}
+	if !user.UpdatedAt.After(past) {
+		t.Errorf("expected UpdatedAt to advance past %v, got %v", past, user.UpdatedAt)
 	}
 }
