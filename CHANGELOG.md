@@ -15,6 +15,37 @@
 
 ---
 
+## [0.108.2] — 2026-05-03
+
+### Fixed — Document.Update teacher ownership check
+
+До этого релиза `usecase.Update` принимал `userID`, но **не сверял** его с `Document.AuthorID`. Любой не-student мог редактировать чужие документы — критическая дыра из аудита.
+
+После релиза:
+
+- **Domain rule** `Document.CanBeEditedBy(userID, role) error` — единый источник истины:
+  - `methodist` / `academic_secretary` / `system_admin` → редактируют любой;
+  - `teacher` → только свои (`userID == AuthorID`);
+  - `student` / неизвестная роль → deny (defense-in-depth, поверх `RequireNonStudent` middleware из v0.105.3).
+- **Sentinel** `entities.ErrDocumentEditDenied` (`var ErrXxx = errors.New(...)`) — handler маппит в HTTP `403` через `errors.Is` ДО generic `MapDomainError` (иначе бы вылезло 500).
+- **Order matters**: проверка стоит между `GetByID` и любой мутацией / `AddHistory` — denied call не оставляет audit-history breadcrumb.
+
+### Added
+
+- `entities.UserRole` enum расширен константами `RoleAcademicSecretary` (`"academic_secretary"`) и `RoleSystemAdmin` (`"system_admin"`) — соответствуют wire-значениям `auth.RoleType`. Cross-module импорт `auth/domain` запрещён архитектурой, отсюда параллельный enum (комментарий в `permission.go` фиксирует duality).
+- `usecase.Update` сигнатура: `(ctx, id, input, userID, role entities.UserRole)`. Breaking change на use-case границе; единственные callers — handler этого модуля и тесты (обновлены в том же commit).
+
+### Tests
+
+- `Document.CanBeEditedBy` — table-driven 7 ролей + sentinel-via-`errors.Is` тест.
+- `TestDocumentUseCase_Update_OwnershipEnforcement` — 4 кейса: methodist/teacher own/teacher other/student. Deny path pin'ится через `AssertNotCalled` на `Update` И `AddHistory`.
+
+### Code review
+
+`superpowers:code-reviewer`: TDD=9, DDD=10, CA=9, Security=10, Tests=9, i18n=N/A — verdict **SHIP** (каждая ось ≥9).
+
+---
+
 ## [0.108.1] — 2026-05-03
 
 ### Fixed — n8n absence-alert connection
