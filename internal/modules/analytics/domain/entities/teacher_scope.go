@@ -76,3 +76,15 @@ func (s *TeacherScope) FilterGroupNames(in []string) []string {
 	}
 	return out
 }
+
+// AllowedGroupNames returns the deduplicated list of group names this
+// scope permits. Order is unspecified (whitelist is a set). Repository
+// implementations use this to push the filter down to SQL via
+// `WHERE group_name = ANY($1)`.
+func (s *TeacherScope) AllowedGroupNames() []string {
+	out := make([]string, 0, len(s.allowedSet))
+	for name := range s.allowedSet {
+		out = append(out, name)
+	}
+	return out
+}
