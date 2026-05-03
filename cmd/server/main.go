@@ -1166,6 +1166,16 @@ func setupRoutes(
 		logger.Info("Email service initialized", nil)
 	}
 
+	// Password recovery flow (v0.108.0). Requires Redis (token store)
+	// and the email service (delivery). Either dependency missing skips
+	// route registration; the frontend forgot-password page then degrades
+	// to "service temporarily unavailable" via the absent 4xx route.
+	var passwordResetUseCase *usecases.PasswordResetUseCase
+	if redisCache != nil && emailService != nil {
+		passwordResetTokenRepo := persistence.NewRedisPasswordResetTokenRepository(redisCache.Client())
+		passwordResetUseCase = usecases.NewPasswordResetUseCase(userRepo, passwordResetTokenRepo, emailService)
+	}
+
 	// Initialize auth handler with email service
 	authHandlerInstance := authHandler.NewAuthHandler(authUseCase, emailService)
 
@@ -1196,6 +1206,21 @@ func setupRoutes(
 				logoutHandlerInstance.Logout,
 			)
 			authGroup.OPTIONS("/logout", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+		}
+
+		// Password recovery (v0.108.0). All three endpoints stay public
+		// (a user who forgot their password has no token); rate-limited
+		// via the same authGroup limiter so an attacker cannot spam the
+		// request endpoint to enumerate emails by side effects.
+		if passwordResetUseCase != nil {
+			pwResetHandler := authHandler.NewPasswordResetHandler(passwordResetUseCase)
+			authGroup.POST("/password-reset/request", pwResetHandler.RequestReset)
+			authGroup.GET("/password-reset/verify/:token", pwResetHandler.VerifyResetToken)
+			authGroup.POST("/password-reset/confirm", pwResetHandler.ConfirmReset)
+
+			authGroup.OPTIONS("/password-reset/request", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			authGroup.OPTIONS("/password-reset/verify/:token", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			authGroup.OPTIONS("/password-reset/confirm", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 		}
 	}
 
