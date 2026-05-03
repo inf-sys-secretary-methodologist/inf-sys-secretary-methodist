@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/lib/pq"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
 )
 
@@ -22,27 +24,46 @@ func NewAnalyticsRepositoryPG(db *sql.DB) *AnalyticsRepositoryPG {
 }
 
 // GetAtRiskStudents returns students with high or critical risk levels.
-// When scope is non-nil, results and the count are filtered to the
-// scope's whitelist (group_name = ANY); the SQL implementation is
-// supplied in Cycle 3b — for now scope is plumbed through but ignored
-// so the rest of the stack compiles.
-func (r *AnalyticsRepositoryPG) GetAtRiskStudents(ctx context.Context, _ *entities.TeacherScope, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
-	// Count total
-	var total int64
-	countQuery := `SELECT COUNT(*) FROM v_at_risk_students`
-	if err := r.db.QueryRowContext(ctx, countQuery).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("failed to count at-risk students: %w", err)
-	}
+// When scope is non-nil, both the COUNT and the data query are filtered
+// by group_name = ANY($1) — the whitelist is pushed down to SQL so that
+// pagination totals reflect the post-filter row set.
+func (r *AnalyticsRepositoryPG) GetAtRiskStudents(ctx context.Context, scope *entities.TeacherScope, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
+	var (
+		total      int64
+		countQuery string
+		dataQuery  string
+		countArgs  []any
+		dataArgs   []any
+	)
 
-	// Get paginated results
-	query := `
+	if scope != nil {
+		groupNames := pq.Array(scope.AllowedGroupNames())
+		countQuery = `SELECT COUNT(*) FROM v_at_risk_students WHERE group_name = ANY($1)`
+		countArgs = []any{groupNames}
+		dataQuery = `
+		SELECT student_id, student_name, group_name, attendance_rate, grade_average,
+			risk_level, risk_score, risk_factors
+		FROM v_at_risk_students
+		WHERE group_name = ANY($1)
+		ORDER BY risk_score DESC
+		LIMIT $2 OFFSET $3`
+		dataArgs = []any{groupNames, limit, offset}
+	} else {
+		countQuery = `SELECT COUNT(*) FROM v_at_risk_students`
+		dataQuery = `
 		SELECT student_id, student_name, group_name, attendance_rate, grade_average,
 			risk_level, risk_score, risk_factors
 		FROM v_at_risk_students
 		ORDER BY risk_score DESC
 		LIMIT $1 OFFSET $2`
+		dataArgs = []any{limit, offset}
+	}
 
-	rows, err := r.db.QueryContext(ctx, query, limit, offset)
+	if err := r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count at-risk students: %w", err)
+	}
+
+	rows, err := r.db.QueryContext(ctx, dataQuery, dataArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get at-risk students: %w", err)
 	}
@@ -131,16 +152,32 @@ func (r *AnalyticsRepositoryPG) GetGroupSummary(ctx context.Context, groupName s
 }
 
 // GetAllGroupsSummary returns analytics summary for all groups.
-// scope is plumbed through; SQL filter added in Cycle 3b.
-func (r *AnalyticsRepositoryPG) GetAllGroupsSummary(ctx context.Context, _ *entities.TeacherScope) ([]entities.GroupAnalyticsSummary, error) {
-	query := `
+// When scope is non-nil, results are filtered to the scope whitelist via
+// WHERE group_name = ANY($1).
+func (r *AnalyticsRepositoryPG) GetAllGroupsSummary(ctx context.Context, scope *entities.TeacherScope) ([]entities.GroupAnalyticsSummary, error) {
+	var (
+		query string
+		args  []any
+	)
+	if scope != nil {
+		query = `
+		SELECT group_name, total_students, avg_attendance_rate, avg_grade,
+			critical_risk_count, high_risk_count, medium_risk_count, low_risk_count,
+			at_risk_percentage
+		FROM v_group_analytics_summary
+		WHERE group_name = ANY($1)
+		ORDER BY at_risk_percentage DESC NULLS LAST`
+		args = []any{pq.Array(scope.AllowedGroupNames())}
+	} else {
+		query = `
 		SELECT group_name, total_students, avg_attendance_rate, avg_grade,
 			critical_risk_count, high_risk_count, medium_risk_count, low_risk_count,
 			at_risk_percentage
 		FROM v_group_analytics_summary
 		ORDER BY at_risk_percentage DESC NULLS LAST`
+	}
 
-	rows, err := r.db.QueryContext(ctx, query)
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all groups summary: %w", err)
 	}
@@ -164,25 +201,48 @@ func (r *AnalyticsRepositoryPG) GetAllGroupsSummary(ctx context.Context, _ *enti
 }
 
 // GetStudentsByRiskLevel returns students filtered by risk level.
-// scope is plumbed through; SQL filter added in Cycle 3b.
-func (r *AnalyticsRepositoryPG) GetStudentsByRiskLevel(ctx context.Context, _ *entities.TeacherScope, riskLevel entities.RiskLevel, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
-	// Count total
-	var total int64
-	countQuery := `SELECT COUNT(*) FROM v_student_risk_score WHERE risk_level = $1`
-	if err := r.db.QueryRowContext(ctx, countQuery, riskLevel).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("failed to count students: %w", err)
-	}
+// When scope is non-nil, the WHERE clause additionally constrains
+// group_name = ANY; both the COUNT and the data query share the same
+// predicate so pagination remains consistent.
+func (r *AnalyticsRepositoryPG) GetStudentsByRiskLevel(ctx context.Context, scope *entities.TeacherScope, riskLevel entities.RiskLevel, limit, offset int) ([]entities.StudentRiskScore, int64, error) {
+	var (
+		total      int64
+		countQuery string
+		dataQuery  string
+		countArgs  []any
+		dataArgs   []any
+	)
 
-	// Get paginated results
-	query := `
+	if scope != nil {
+		groupNames := pq.Array(scope.AllowedGroupNames())
+		countQuery = `SELECT COUNT(*) FROM v_student_risk_score WHERE risk_level = $1 AND group_name = ANY($2)`
+		countArgs = []any{riskLevel, groupNames}
+		dataQuery = `
+		SELECT student_id, student_name, group_name, attendance_rate, grade_average,
+			risk_level, risk_score, risk_factors
+		FROM v_student_risk_score
+		WHERE risk_level = $1 AND group_name = ANY($2)
+		ORDER BY risk_score DESC
+		LIMIT $3 OFFSET $4`
+		dataArgs = []any{riskLevel, groupNames, limit, offset}
+	} else {
+		countQuery = `SELECT COUNT(*) FROM v_student_risk_score WHERE risk_level = $1`
+		countArgs = []any{riskLevel}
+		dataQuery = `
 		SELECT student_id, student_name, group_name, attendance_rate, grade_average,
 			risk_level, risk_score, risk_factors
 		FROM v_student_risk_score
 		WHERE risk_level = $1
 		ORDER BY risk_score DESC
 		LIMIT $2 OFFSET $3`
+		dataArgs = []any{riskLevel, limit, offset}
+	}
 
-	rows, err := r.db.QueryContext(ctx, query, riskLevel, limit, offset)
+	if err := r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count students: %w", err)
+	}
+
+	rows, err := r.db.QueryContext(ctx, dataQuery, dataArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get students by risk level: %w", err)
 	}
