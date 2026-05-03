@@ -89,7 +89,8 @@ func (h *AnalyticsHandler) GetStudentRisk(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	result, err := h.usecase.GetStudentRisk(ctx, studentID)
+	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
+	result, err := h.usecase.GetStudentRisk(ctx, nil, studentID)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -122,7 +123,8 @@ func (h *AnalyticsHandler) GetGroupSummary(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	result, err := h.usecase.GetGroupSummary(ctx, groupName)
+	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
+	result, err := h.usecase.GetGroupSummary(ctx, nil, groupName)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -253,7 +255,8 @@ func (h *AnalyticsHandler) GetStudentRiskHistory(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "90"))
 
-	result, err := h.usecase.GetStudentRiskHistory(c.Request.Context(), studentID, limit)
+	// Scope is wired in Cycle 5 (handler scope assembly); nil = unrestricted.
+	result, err := h.usecase.GetStudentRiskHistory(c.Request.Context(), nil, studentID, limit)
 	if err != nil {
 		h.handleError(c, err)
 		return

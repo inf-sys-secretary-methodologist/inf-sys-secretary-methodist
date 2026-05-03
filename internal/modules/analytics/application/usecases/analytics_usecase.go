@@ -65,18 +65,32 @@ func (uc *AnalyticsUseCase) GetAtRiskStudents(ctx context.Context, page, pageSiz
 	return response, nil
 }
 
-// GetStudentRisk returns the risk assessment for a specific student
-func (uc *AnalyticsUseCase) GetStudentRisk(ctx context.Context, studentID int64) (*dto.StudentRiskResponse, error) {
+// GetStudentRisk returns the risk assessment for a specific student.
+// When scope is non-nil (teacher role), the student's group must be in
+// the scope whitelist or ErrAnalyticsScopeForbidden is returned.
+func (uc *AnalyticsUseCase) GetStudentRisk(ctx context.Context, scope *entities.TeacherScope, studentID int64) (*dto.StudentRiskResponse, error) {
 	risk, err := uc.analyticsRepo.GetStudentRisk(ctx, studentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get student risk: %w", err)
 	}
 
+	if scope != nil {
+		if risk == nil || !scope.AllowsGroupPtr(risk.GroupName) {
+			return nil, entities.ErrAnalyticsScopeForbidden
+		}
+	}
+
 	return dto.ToStudentRiskResponse(risk), nil
 }
 
-// GetGroupSummary returns analytics summary for a specific group
-func (uc *AnalyticsUseCase) GetGroupSummary(ctx context.Context, groupName string) (*dto.GroupSummaryResponse, error) {
+// GetGroupSummary returns analytics summary for a specific group.
+// When scope is non-nil, the group must be in the scope whitelist or
+// ErrAnalyticsScopeForbidden is returned without contacting the repository.
+func (uc *AnalyticsUseCase) GetGroupSummary(ctx context.Context, scope *entities.TeacherScope, groupName string) (*dto.GroupSummaryResponse, error) {
+	if scope != nil && !scope.AllowsGroup(groupName) {
+		return nil, entities.ErrAnalyticsScopeForbidden
+	}
+
 	summary, err := uc.analyticsRepo.GetGroupSummary(ctx, groupName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get group summary: %w", err)
@@ -350,7 +364,20 @@ func (uc *AnalyticsUseCase) UpdateRiskWeightConfig(ctx context.Context, req dto.
 }
 
 // GetStudentRiskHistory returns risk score history for a student.
-func (uc *AnalyticsUseCase) GetStudentRiskHistory(ctx context.Context, studentID int64, limit int) (*dto.RiskHistoryResponse, error) {
+// When scope is non-nil, the student's current group is loaded first and
+// must be in the scope whitelist; otherwise ErrAnalyticsScopeForbidden is
+// returned and the history query is skipped.
+func (uc *AnalyticsUseCase) GetStudentRiskHistory(ctx context.Context, scope *entities.TeacherScope, studentID int64, limit int) (*dto.RiskHistoryResponse, error) {
+	if scope != nil {
+		risk, err := uc.analyticsRepo.GetStudentRisk(ctx, studentID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get student risk for scope check: %w", err)
+		}
+		if risk == nil || !scope.AllowsGroupPtr(risk.GroupName) {
+			return nil, entities.ErrAnalyticsScopeForbidden
+		}
+	}
+
 	if limit <= 0 {
 		limit = 90
 	}
