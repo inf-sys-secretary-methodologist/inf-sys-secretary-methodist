@@ -26,12 +26,14 @@ type mockAnalyticsRepository struct {
 	riskLevelStudents   []entities.StudentRiskScore
 	riskLevelTotal      int64
 	monthlyTrends       []entities.MonthlyAttendanceTrend
+	riskHistory         []entities.RiskHistoryEntry
 	err                 error
 	riskLevelErr        error
 	trendErr            error
 	groupSummaryErr     error
 	allGroupsSummaryErr error
 	studentRiskErr      error
+	riskHistoryErr      error
 }
 
 func (m *mockAnalyticsRepository) GetAtRiskStudents(_ context.Context, _, _ int) ([]entities.StudentRiskScore, int64, error) {
@@ -83,7 +85,10 @@ func (m *mockAnalyticsRepository) SaveRiskHistory(_ context.Context, _ *entities
 	return nil
 }
 func (m *mockAnalyticsRepository) GetStudentRiskHistory(_ context.Context, _ int64, _ int) ([]entities.RiskHistoryEntry, error) {
-	return nil, nil
+	if m.riskHistoryErr != nil {
+		return nil, m.riskHistoryErr
+	}
+	return m.riskHistory, nil
 }
 
 // mockAttendanceRepository implements repositories.AttendanceRepository
@@ -292,7 +297,7 @@ func TestGetStudentRisk_Success(t *testing.T) {
 	repo := &mockAnalyticsRepository{studentRisk: &risk}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetStudentRisk(context.Background(), 1)
+	resp, err := uc.GetStudentRisk(context.Background(), nil, 1)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), resp.StudentID)
 	assert.Equal(t, "high", resp.RiskLevel)
@@ -304,7 +309,7 @@ func TestGetStudentRisk_Error(t *testing.T) {
 	repo := &mockAnalyticsRepository{studentRiskErr: errors.New("not found")}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetStudentRisk(context.Background(), 999)
+	resp, err := uc.GetStudentRisk(context.Background(), nil, 999)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get student risk")
@@ -327,7 +332,7 @@ func TestGetGroupSummary_Success(t *testing.T) {
 	repo := &mockAnalyticsRepository{groupSummary: summary}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetGroupSummary(context.Background(), "CS-101")
+	resp, err := uc.GetGroupSummary(context.Background(), nil, "CS-101")
 	require.NoError(t, err)
 	assert.Equal(t, "CS-101", resp.GroupName)
 	assert.Equal(t, 30, resp.TotalStudents)
@@ -342,7 +347,7 @@ func TestGetGroupSummary_Error(t *testing.T) {
 	repo := &mockAnalyticsRepository{groupSummaryErr: errors.New("group not found")}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetGroupSummary(context.Background(), "INVALID")
+	resp, err := uc.GetGroupSummary(context.Background(), nil, "INVALID")
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get group summary")
@@ -826,7 +831,7 @@ func TestGetStudentRisk_NilOptionalFields(t *testing.T) {
 	repo := &mockAnalyticsRepository{studentRisk: &risk}
 	uc := newTestUseCase(repo, nil, nil)
 
-	resp, err := uc.GetStudentRisk(context.Background(), 2)
+	resp, err := uc.GetStudentRisk(context.Background(), nil, 2)
 	require.NoError(t, err)
 	assert.Nil(t, resp.GroupName)
 	assert.Nil(t, resp.AttendanceRate)
@@ -892,6 +897,199 @@ func TestCreateLesson_AllLessonTypes(t *testing.T) {
 			lesson, err := uc.CreateLesson(context.Background(), req)
 			require.NoError(t, err)
 			assert.Equal(t, entities.LessonType(lt), lesson.LessonType)
+		})
+	}
+}
+
+// --- Scope check tests for specific-resource endpoints ---
+//
+// The teacher scope filter (v0.108.3) enforces that a teacher may only
+// query analytics for groups derived from their schedule. A nil scope
+// means "unrestricted" and is used for methodist, academic_secretary,
+// and system_admin roles. A non-nil scope strictly whitelists groups.
+
+func TestGetGroupSummary_ScopeCheck(t *testing.T) {
+	summary := &entities.GroupAnalyticsSummary{
+		GroupName: "ИС-21", TotalStudents: 30, AvgAttendanceRate: 0.85, AvgGrade: 4.0,
+	}
+
+	tests := []struct {
+		name       string
+		scope      *entities.TeacherScope
+		queryGroup string
+		wantErrIs  error
+		wantNil    bool
+	}{
+		{
+			name:       "nil scope (admin/methodist/secretary) passes through",
+			scope:      nil,
+			queryGroup: "ИС-21",
+			wantErrIs:  nil,
+		},
+		{
+			name:       "teacher with target group in scope passes",
+			scope:      entities.NewTeacherScope(7, []string{"ИС-21", "ПИ-31"}),
+			queryGroup: "ИС-21",
+			wantErrIs:  nil,
+		},
+		{
+			name:       "teacher with target group outside scope is forbidden",
+			scope:      entities.NewTeacherScope(7, []string{"ПИ-31"}),
+			queryGroup: "ИС-21",
+			wantErrIs:  entities.ErrAnalyticsScopeForbidden,
+			wantNil:    true,
+		},
+		{
+			name:       "teacher with empty scope is denied any group",
+			scope:      entities.NewTeacherScope(7, nil),
+			queryGroup: "ИС-21",
+			wantErrIs:  entities.ErrAnalyticsScopeForbidden,
+			wantNil:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := &mockAnalyticsRepository{groupSummary: summary}
+			uc := newTestUseCase(repo, nil, nil)
+
+			resp, err := uc.GetGroupSummary(context.Background(), tc.scope, tc.queryGroup)
+			if tc.wantErrIs != nil {
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tc.wantErrIs)
+			} else {
+				require.NoError(t, err)
+			}
+			if tc.wantNil {
+				assert.Nil(t, resp)
+			} else if tc.wantErrIs == nil {
+				assert.NotNil(t, resp)
+			}
+		})
+	}
+}
+
+func TestGetStudentRisk_ScopeCheck(t *testing.T) {
+	tests := []struct {
+		name           string
+		scope          *entities.TeacherScope
+		studentGroup   *string
+		wantErrIs      error
+		wantNil        bool
+	}{
+		{
+			name:         "nil scope passes through regardless of student group",
+			scope:        nil,
+			studentGroup: ptrString("ИС-21"),
+			wantErrIs:    nil,
+		},
+		{
+			name:         "teacher with student group in scope passes",
+			scope:        entities.NewTeacherScope(7, []string{"ИС-21"}),
+			studentGroup: ptrString("ИС-21"),
+			wantErrIs:    nil,
+		},
+		{
+			name:         "teacher with student group outside scope is forbidden",
+			scope:        entities.NewTeacherScope(7, []string{"ПИ-31"}),
+			studentGroup: ptrString("ИС-21"),
+			wantErrIs:    entities.ErrAnalyticsScopeForbidden,
+			wantNil:      true,
+		},
+		{
+			name:         "teacher querying student with no group is forbidden (cannot affirm membership)",
+			scope:        entities.NewTeacherScope(7, []string{"ИС-21"}),
+			studentGroup: nil,
+			wantErrIs:    entities.ErrAnalyticsScopeForbidden,
+			wantNil:      true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			risk := sampleStudentRisk()
+			risk.GroupName = tc.studentGroup
+			repo := &mockAnalyticsRepository{studentRisk: &risk}
+			uc := newTestUseCase(repo, nil, nil)
+
+			resp, err := uc.GetStudentRisk(context.Background(), tc.scope, 1)
+			if tc.wantErrIs != nil {
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tc.wantErrIs)
+			} else {
+				require.NoError(t, err)
+			}
+			if tc.wantNil {
+				assert.Nil(t, resp)
+			} else if tc.wantErrIs == nil {
+				assert.NotNil(t, resp)
+			}
+		})
+	}
+}
+
+func TestGetStudentRiskHistory_ScopeCheck(t *testing.T) {
+	historyEntry := entities.RiskHistoryEntry{
+		ID: 1, StudentID: 1, RiskScore: 60.0, RiskLevel: entities.RiskLevelMedium,
+	}
+
+	tests := []struct {
+		name         string
+		scope        *entities.TeacherScope
+		studentGroup *string
+		wantErrIs    error
+		wantNil      bool
+	}{
+		{
+			name:         "nil scope passes through",
+			scope:        nil,
+			studentGroup: ptrString("ИС-21"),
+			wantErrIs:    nil,
+		},
+		{
+			name:         "teacher with student group in scope passes",
+			scope:        entities.NewTeacherScope(7, []string{"ИС-21"}),
+			studentGroup: ptrString("ИС-21"),
+			wantErrIs:    nil,
+		},
+		{
+			name:         "teacher with student group outside scope is forbidden",
+			scope:        entities.NewTeacherScope(7, []string{"ПИ-31"}),
+			studentGroup: ptrString("ИС-21"),
+			wantErrIs:    entities.ErrAnalyticsScopeForbidden,
+			wantNil:      true,
+		},
+		{
+			name:         "teacher querying student with no group is forbidden",
+			scope:        entities.NewTeacherScope(7, []string{"ИС-21"}),
+			studentGroup: nil,
+			wantErrIs:    entities.ErrAnalyticsScopeForbidden,
+			wantNil:      true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			risk := sampleStudentRisk()
+			risk.GroupName = tc.studentGroup
+			repo := &mockAnalyticsRepository{
+				studentRisk: &risk,
+				riskHistory: []entities.RiskHistoryEntry{historyEntry},
+			}
+			uc := newTestUseCase(repo, nil, nil)
+
+			resp, err := uc.GetStudentRiskHistory(context.Background(), tc.scope, 1, 90)
+			if tc.wantErrIs != nil {
+				require.Error(t, err)
+				assert.ErrorIs(t, err, tc.wantErrIs)
+			} else {
+				require.NoError(t, err)
+			}
+			if tc.wantNil {
+				assert.Nil(t, resp)
+			} else if tc.wantErrIs == nil {
+				assert.NotNil(t, resp)
+			}
 		})
 	}
 }
