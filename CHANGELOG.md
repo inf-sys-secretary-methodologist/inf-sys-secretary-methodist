@@ -15,6 +15,18 @@
 
 ---
 
+## [0.105.2] — 2026-05-03
+
+### Security — admin guard on /api/integration/*
+
+- `Module.RegisterRoutes(router, requireAdmin)` теперь принимает `gin.HandlerFunc` admin-middleware и применяет его ко всей группе `/integration` (sync, employees, students, conflicts).
+- В `cmd/server/main.go` передаётся `authMiddleware.RequireRole(string(authDomain.RoleSystemAdmin))` — только роль `system_admin` может запускать 1С sync, читать sync logs, просматривать external маппинги и резолвить конфликты.
+- **До фикса:** любой авторизованный пользователь (включая student) мог триггерить sync — критическая дыра из AUDIT_REPORT item #3.
+
+### Fixed — admin role string mismatch on /api/admin/*
+
+- `cmd/server/main.go:2023` использовал `RequireRole("admin")`, но БД хранит роль как `"system_admin"` (см. migration 001 CHECK constraint). Старый guard молча не пропускал никого. Заменено на `string(authDomain.RoleSystemAdmin)` — `/api/admin/*` стал реально доступен админам.
+
 ## [0.105.0] — 2026-04-28
 
 ### Added — Schedule Lessons module (GitHub [#201](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/201))
