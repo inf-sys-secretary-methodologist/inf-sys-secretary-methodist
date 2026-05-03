@@ -15,6 +15,21 @@
 
 ---
 
+## [0.106.0] — 2026-05-03
+
+### Added — `ResourceDocuments` resource type in PermissionMatrix
+
+- Новая константа `domain.ResourceDocuments` (`"documents"`) рядом с уже существующими `ResourceUsers`, `ResourceCurriculum`, `ResourceSchedule`, `ResourceAssignments`, `ResourceReports`.
+- Записи в `PermissionMatrix` для всех 5 ролей с явными access levels:
+  - `system_admin`, `methodist`, `academic_secretary` — Full CRUD;
+  - `teacher` — Full create + Limited read (ACL) + Own update + Own delete;
+  - `student` — Denied create/update/delete + Limited read (ACL).
+- **До фикса:** documents был центральной сущностью, но в матрице отсутствовал — код опирался на ad-hoc проверки в `sharing_usecase`. Аудит зафиксировал это как критическую неполноту авторизации (AUDIT_REPORT, academic_secretary section).
+
+### Tests
+
+- `permission_documents_test.go` — `TestPermissionMatrix_DocumentsResourceForAllRoles` (5 ролей × 4 действия) и `TestPermissionMatrix_DocumentsAccessLevels` (20 sub-tests, фиксирует точные access levels — защита от регрессии).
+
 ## [0.105.3] — 2026-05-03
 
 ### Security — block student from documents.create / reports / analytics
