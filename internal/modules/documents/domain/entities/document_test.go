@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -621,5 +622,61 @@ func TestNewDocumentVersion_WithFile(t *testing.T) {
 	}
 	if dv.StorageKey == nil || *dv.StorageKey != "/path/file.pdf" {
 		t.Errorf("expected storage key '/path/file.pdf', got %v", dv.StorageKey)
+	}
+}
+
+// TestDocument_CanBeEditedBy table-pins the edit-permission rule for
+// every role in the system. Without this method the Update use case
+// has to assemble the rule by hand at every call site, which is how
+// the gap that this v0.108.2 release closes was introduced — teachers
+// could update any document because no caller checked AuthorID.
+//
+// Rule (mirrors the audit report):
+//   - methodist / academic_secretary / system_admin: edit any document
+//   - teacher: only own documents (userID == AuthorID)
+//   - student: never (defense-in-depth — handler also blocks via
+//     RequireNonStudent middleware introduced in v0.105.3)
+//   - any unknown role: deny
+func TestDocument_CanBeEditedBy(t *testing.T) {
+	const authorID int64 = 100
+	const otherUserID int64 = 200
+	doc := &Document{ID: 1, AuthorID: authorID}
+
+	cases := []struct {
+		name      string
+		userID    int64
+		role      UserRole
+		wantAllow bool
+	}{
+		{"methodist edits another author's doc", otherUserID, RoleMethodist, true},
+		{"academic_secretary edits another author's doc", otherUserID, "academic_secretary", true},
+		{"system_admin edits another author's doc", otherUserID, "system_admin", true},
+		{"teacher edits own doc", authorID, RoleTeacher, true},
+		{"teacher edits another author's doc -> denied", otherUserID, RoleTeacher, false},
+		{"student edits own doc -> denied (defense in depth)", authorID, RoleStudent, false},
+		{"unknown role -> denied", otherUserID, "alien", false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := doc.CanBeEditedBy(tc.userID, tc.role)
+			if tc.wantAllow && err != nil {
+				t.Errorf("expected allow, got error: %v", err)
+			}
+			if !tc.wantAllow && err == nil {
+				t.Errorf("expected denial, got nil error")
+			}
+		})
+	}
+}
+
+// TestDocument_CanBeEditedBy_DenialIsErrEditDenied — denial must
+// surface ErrDocumentEditDenied via errors.Is so handlers can map to
+// a stable HTTP code (403) without string parsing.
+func TestDocument_CanBeEditedBy_DenialIsErrEditDenied(t *testing.T) {
+	doc := &Document{ID: 1, AuthorID: 1}
+	err := doc.CanBeEditedBy(2, RoleTeacher)
+	if !errors.Is(err, ErrDocumentEditDenied) {
+		t.Errorf("expected errors.Is(err, ErrDocumentEditDenied) == true, got %v", err)
 	}
 }
