@@ -105,25 +105,22 @@ func NewModule(db *sql.DB, cfg *config.IntegrationConfig, logger *logging.Logger
 	return module, nil
 }
 
-// RegisterRoutes registers all integration module routes
-func (m *Module) RegisterRoutes(router *gin.RouterGroup) {
+// RegisterRoutes registers all integration module routes under /integration.
+// requireAdmin is applied to the entire group so that only system_admin role
+// can trigger sync, view sync logs, browse external employees/students or
+// resolve conflicts. Other authenticated roles receive HTTP 403.
+func (m *Module) RegisterRoutes(router *gin.RouterGroup, requireAdmin gin.HandlerFunc) {
 	if !m.config.Enabled {
 		m.logger.Warn("Integration module is disabled, routes not registered", nil)
 		return
 	}
 
 	integrationGroup := router.Group("/integration")
+	integrationGroup.Use(requireAdmin)
 	{
-		// Sync routes
 		m.syncHandler.RegisterRoutes(integrationGroup)
-
-		// Employee routes
 		m.employeeHandler.RegisterRoutes(integrationGroup)
-
-		// Student routes
 		m.studentHandler.RegisterRoutes(integrationGroup)
-
-		// Conflict routes
 		m.conflictHandler.RegisterRoutes(integrationGroup)
 	}
 

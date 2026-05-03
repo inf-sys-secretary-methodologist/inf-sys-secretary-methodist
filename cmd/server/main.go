@@ -88,6 +88,7 @@ import (
 	announcementPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/infrastructure/persistence"
 	announcementHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/handlers"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure/persistence"
 	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
@@ -599,10 +600,12 @@ func main() {
 			"error": err.Error(),
 		})
 	} else if integrationModule.IsEnabled() {
-		// Register routes under protected API group
+		// Register routes under protected API group with admin guard.
+		// Only system_admin role may invoke 1C sync, browse external entities
+		// or resolve conflicts — see AUDIT_REPORT critical item #3.
 		apiGroup := router.Group("/api")
 		apiGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
-		integrationModule.RegisterRoutes(apiGroup)
+		integrationModule.RegisterRoutes(apiGroup, authMiddleware.RequireRole(string(authDomain.RoleSystemAdmin)))
 
 		// Start scheduler for periodic sync
 		if err := integrationModule.StartScheduler(context.Background()); err != nil {
@@ -2018,9 +2021,11 @@ func setupRoutes(
 			logger.Warn("Files module routes not registered - S3 storage not available", nil)
 		}
 
-		// Admin only routes
+		// Admin only routes — DB stores role as "system_admin" (see migration 001),
+		// so RequireRole must use the same value. The previous "admin" string
+		// silently failed to match anyone (AUDIT_REPORT, system_admin section).
 		adminGroup := protectedGroup.Group("/admin")
-		adminGroup.Use(authMiddleware.RequireRole("admin"))
+		adminGroup.Use(authMiddleware.RequireRole(string(authDomain.RoleSystemAdmin)))
 		{
 			adminGroup.GET("/users", func(c *gin.Context) {
 				c.JSON(http.StatusOK, gin.H{"message": "Admin users list"})
