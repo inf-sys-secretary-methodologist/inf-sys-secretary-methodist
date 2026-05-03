@@ -33,6 +33,12 @@ var PermissionMatrix = map[RoleType]map[ResourceType]map[ActionType]AccessLevel{
 			ActionRead:   AccessFull,
 			ActionExport: AccessFull,
 		},
+		ResourceDocuments: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+			ActionDelete: AccessFull,
+		},
 	},
 	RoleMethodist: {
 		ResourceUsers: {
@@ -61,6 +67,12 @@ var PermissionMatrix = map[RoleType]map[ResourceType]map[ActionType]AccessLevel{
 			ActionCreate: AccessFull,
 			ActionRead:   AccessFull,
 			ActionExport: AccessFull,
+		},
+		ResourceDocuments: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+			ActionDelete: AccessFull,
 		},
 	},
 	RoleAcademicSecretary: {
@@ -91,6 +103,12 @@ var PermissionMatrix = map[RoleType]map[ResourceType]map[ActionType]AccessLevel{
 			ActionRead:   AccessFull,
 			ActionExport: AccessFull,
 		},
+		ResourceDocuments: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessFull,
+			ActionUpdate: AccessFull,
+			ActionDelete: AccessFull,
+		},
 	},
 	RoleTeacher: {
 		ResourceUsers: {
@@ -119,6 +137,12 @@ var PermissionMatrix = map[RoleType]map[ResourceType]map[ActionType]AccessLevel{
 			ActionCreate: AccessFull,
 			ActionRead:   AccessLimited,
 			ActionExport: AccessLimited,
+		},
+		ResourceDocuments: {
+			ActionCreate: AccessFull,
+			ActionRead:   AccessLimited,
+			ActionUpdate: AccessOwn,
+			ActionDelete: AccessOwn,
 		},
 	},
 	RoleStudent: {
@@ -149,6 +173,12 @@ var PermissionMatrix = map[RoleType]map[ResourceType]map[ActionType]AccessLevel{
 			ActionCreate: AccessDenied,
 			ActionRead:   AccessDenied,
 			ActionExport: AccessDenied,
+		},
+		ResourceDocuments: {
+			ActionCreate: AccessDenied,
+			ActionRead:   AccessLimited,
+			ActionUpdate: AccessDenied,
+			ActionDelete: AccessDenied,
 		},
 	},
 }

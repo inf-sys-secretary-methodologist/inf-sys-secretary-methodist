@@ -48,6 +48,12 @@ const (
 	ResourceAssignments ResourceType = "assignments"
 	// ResourceReports represents the reports resource type.
 	ResourceReports ResourceType = "reports"
+	// ResourceDocuments represents the documents resource type — methodical
+	// materials, RPDs, administrative paperwork. Access scope per role:
+	// system_admin / methodist / academic_secretary — full CRUD;
+	// teacher — full create, own update+delete, limited read (ACL);
+	// student — denied write, limited read (only what is shared via ACL).
+	ResourceDocuments ResourceType = "documents"
 )
 
 // ActionType представляет тип действия
