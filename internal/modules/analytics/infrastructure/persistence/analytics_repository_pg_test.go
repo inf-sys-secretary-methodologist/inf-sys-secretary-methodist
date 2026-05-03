@@ -436,3 +436,23 @@ func TestAnalyticsGetAtRiskStudents_NilScopeDoesNotFilter(t *testing.T) {
 	require.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestAnalyticsGetAtRiskStudents_EmptyScopeYieldsZeroRows(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+	scope := entities.NewTeacherScope(7, nil) // teacher with no scheduled groups
+
+	// Both queries still run (deny-all is enforced at SQL via '{}'::text[]),
+	// but the row set is empty.
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM v_at_risk_students WHERE group_name = ANY")).
+		WithArgs(sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(0)))
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE group_name = ANY")).
+		WithArgs(sqlmock.AnyArg(), 10, 0).
+		WillReturnRows(sqlmock.NewRows(riskCols))
+
+	students, total, err := repo.GetAtRiskStudents(context.Background(), scope, 10, 0)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), total, "empty whitelist must produce zero count (deny-all)")
+	assert.Empty(t, students)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}

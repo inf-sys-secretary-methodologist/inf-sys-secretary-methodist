@@ -31,18 +31,30 @@ const roleTeacher = "teacher"
 //
 // The handler is responsible for assembling the request-scoped
 // *entities.TeacherScope from the authenticated user before delegating
-// to the use case. A nil scopeRepo disables scope assembly entirely
-// (nil scope reaches the use case for every request) — useful for
-// tests that exercise non-scope behaviour.
+// to the use case. scopeRepo MUST be non-nil — see NewAnalyticsHandler.
 type AnalyticsHandler struct {
 	usecase   *usecases.AnalyticsUseCase
 	scopeRepo repositories.TeacherScopeRepository
 }
 
-// NewAnalyticsHandler creates a new analytics handler. Pass scopeRepo
-// to enable role-aware scope filtering; pass nil to disable it (every
-// request gets a nil scope, equivalent to admin access).
+// NewAnalyticsHandler creates a new analytics handler.
+//
+// scopeRepo is required (non-nil): a nil repo would silently disable
+// the teacher-scope filter, which is a failure-open posture — every
+// teacher request would surface the entire dataset. Tests that do not
+// exercise scope behaviour should pass a no-op implementation rather
+// than nil. The handler panics on construction with a nil repo to fail
+// loudly during DI wiring.
 func NewAnalyticsHandler(usecase *usecases.AnalyticsUseCase, scopeRepo repositories.TeacherScopeRepository) *AnalyticsHandler {
+	if scopeRepo == nil {
+		// Test-only constructor `NewAnalyticsHandler(nil, nil)` is allowed
+		// because some bootstrapping tests assert only that the handler
+		// pointer is non-nil; they never exercise scope assembly. In
+		// production, main.go always wires a real repo.
+		if usecase != nil {
+			panic("analytics: NewAnalyticsHandler requires non-nil scopeRepo when usecase is provided")
+		}
+	}
 	return &AnalyticsHandler{
 		usecase:   usecase,
 		scopeRepo: scopeRepo,
@@ -51,16 +63,28 @@ func NewAnalyticsHandler(usecase *usecases.AnalyticsUseCase, scopeRepo repositor
 
 // buildScope inspects the authenticated user's role from the gin
 // context and, for teachers, queries the canonical group whitelist via
-// scopeRepo. Returns (nil, nil) for unrestricted roles or when no
-// scope repository was injected. A scopeRepo error surfaces as a
-// non-nil error and the handler maps it to HTTP 500 — the request
-// MUST NOT proceed under the wrong scope.
+// scopeRepo. Returns (nil, nil) for unrestricted non-teacher roles. A
+// scopeRepo error surfaces as a non-nil error and the handler maps it
+// to HTTP 500 — the request MUST NOT proceed under the wrong scope.
+//
+// Defense in depth: the handler does not assume RequireNonStudent
+// middleware ran. Missing role or user_id surfaces as an error rather
+// than a silent admin fallback, so a future routing mistake (handler
+// registered without auth middleware) cannot cause data exposure.
 func (h *AnalyticsHandler) buildScope(ctx context.Context, c *gin.Context) (*entities.TeacherScope, error) {
 	if h.scopeRepo == nil {
+		// Bootstrapping path only — production constructor enforces
+		// non-nil. Treat as unrestricted to keep test ergonomics.
 		return nil, nil
 	}
-	roleVal, _ := c.Get("role")
-	role, _ := roleVal.(string)
+	roleVal, ok := c.Get("role")
+	if !ok {
+		return nil, errors.New("analytics: role missing from request context (auth middleware misconfigured)")
+	}
+	role, ok := roleVal.(string)
+	if !ok {
+		return nil, fmt.Errorf("analytics: role has unexpected type %T", roleVal)
+	}
 	if role != roleTeacher {
 		return nil, nil
 	}

@@ -157,3 +157,88 @@ func TestAnalyticsHandler_GetAtRiskStudents_TeacherScopeReachesRepo(t *testing.T
 	assert.Equal(t, http.StatusOK, w.Code)
 	ar.AssertExpectations(t)
 }
+
+// --- buildScope defense-in-depth: missing context yields 500, never silent admin ---
+
+func TestAnalyticsHandler_GetGroupSummary_500WhenRoleMissing(t *testing.T) {
+	ar := new(mockAnalyticsRepo)
+	sr := new(mockTeacherScopeRepo)
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), sr)
+
+	router := setupRouter() // NO auth middleware → no role in context
+	router.GET("/groups/:name/summary", h.GetGroupSummary)
+	w := performRequest(router, http.MethodGet, "/groups/G/summary", nil)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code,
+		"missing role must yield 500, not silent admin access")
+	ar.AssertNotCalled(t, "GetGroupSummary", mock.Anything, mock.Anything)
+	sr.AssertNotCalled(t, "ListGroupNames", mock.Anything, mock.Anything)
+}
+
+func TestAnalyticsHandler_GetGroupSummary_500WhenTeacherWithoutUserID(t *testing.T) {
+	ar := new(mockAnalyticsRepo)
+	sr := new(mockTeacherScopeRepo)
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), sr)
+
+	router := setupRouter()
+	router.Use(func(c *gin.Context) {
+		// Role set, but user_id missing — pathological state.
+		c.Set("role", "teacher")
+		c.Next()
+	})
+	router.GET("/groups/:name/summary", h.GetGroupSummary)
+	w := performRequest(router, http.MethodGet, "/groups/G/summary", nil)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	sr.AssertNotCalled(t, "ListGroupNames", mock.Anything, mock.Anything)
+}
+
+func TestNewAnalyticsHandler_PanicsOnNilScopeRepoWithUseCase(t *testing.T) {
+	ar := new(mockAnalyticsRepo)
+	uc := newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo))
+	assert.PanicsWithValue(t,
+		"analytics: NewAnalyticsHandler requires non-nil scopeRepo when usecase is provided",
+		func() { _ = NewAnalyticsHandler(uc, nil) },
+		"failure-open prevention: production wiring must never silently admin-passthrough")
+}
+
+// --- N2: handler-level scope coverage for the remaining list endpoints ---
+
+func TestAnalyticsHandler_GetAllGroupsSummary_TeacherScopeReachesRepo(t *testing.T) {
+	ar := new(mockAnalyticsRepo)
+	sr := new(mockTeacherScopeRepo)
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), sr)
+
+	sr.On("ListGroupNames", mock.Anything, int64(7)).Return([]string{"ИС-21"}, nil)
+	ar.On("GetAllGroupsSummary", mock.Anything, mock.MatchedBy(func(s *entities.TeacherScope) bool {
+		return s != nil && s.AllowsGroup("ИС-21")
+	})).Return([]entities.GroupAnalyticsSummary{}, nil)
+
+	router := setupRouter()
+	router.Use(stubAuth(7, "teacher"))
+	router.GET("/groups/summary", h.GetAllGroupsSummary)
+	w := performRequest(router, http.MethodGet, "/groups/summary", nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	ar.AssertExpectations(t)
+}
+
+func TestAnalyticsHandler_GetStudentsByRiskLevel_TeacherScopeReachesRepo(t *testing.T) {
+	ar := new(mockAnalyticsRepo)
+	sr := new(mockTeacherScopeRepo)
+	h := NewAnalyticsHandler(newUC(ar, new(mockAttendanceRepo), new(mockGradeRepo)), sr)
+
+	sr.On("ListGroupNames", mock.Anything, int64(7)).Return([]string{"ИС-21"}, nil)
+	ar.On("GetStudentsByRiskLevel", mock.Anything,
+		mock.MatchedBy(func(s *entities.TeacherScope) bool { return s != nil && s.AllowsGroup("ИС-21") }),
+		entities.RiskLevelHigh, 20, 0,
+	).Return([]entities.StudentRiskScore{}, int64(0), nil)
+
+	router := setupRouter()
+	router.Use(stubAuth(7, "teacher"))
+	router.GET("/risk-level/:level", h.GetStudentsByRiskLevel)
+	w := performRequest(router, http.MethodGet, "/risk-level/high", nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	ar.AssertExpectations(t)
+}
