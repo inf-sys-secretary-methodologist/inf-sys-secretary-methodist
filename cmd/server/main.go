@@ -240,7 +240,6 @@ func main() {
 			"webhook_url": cfg.N8N.WebhookURL,
 		})
 	}
-	_ = n8nClient // Available for EventBus subscription and direct use in handlers
 
 	// Initialize Redis cache
 	redisCache, err := initRedisCache(cfg, logger)
@@ -451,20 +450,36 @@ func main() {
 	// Start risk recalculation scheduler (daily at 3:00 AM)
 	// Alert curators when student risk > 70
 	riskAlertFunc := func(ctx context.Context, student analyticsEntities.StudentRiskScore) {
-		if notificationUseCase == nil {
-			return
-		}
 		groupName := ""
 		if student.GroupName != nil {
 			groupName = *student.GroupName
 		}
-		_, _ = notificationUseCase.Create(ctx, &notifDTO.CreateNotificationInput{
-			UserID:   student.StudentID,
-			Type:     "warning",
-			Priority: "high",
-			Title:    "Студент в зоне риска",
-			Message:  fmt.Sprintf("Студент %s (группа %s) имеет risk score %.0f/100 (уровень: %s)", student.StudentName, groupName, student.RiskScore, student.RiskLevel),
-			Link:     fmt.Sprintf("/analytics?student=%d", student.StudentID),
+
+		// In-system curator notification (best-effort).
+		if notificationUseCase != nil {
+			_, _ = notificationUseCase.Create(ctx, &notifDTO.CreateNotificationInput{
+				UserID:   student.StudentID,
+				Type:     "warning",
+				Priority: "high",
+				Title:    "Студент в зоне риска",
+				Message:  fmt.Sprintf("Студент %s (группа %s) имеет risk score %.0f/100 (уровень: %s)", student.StudentName, groupName, student.RiskScore, student.RiskLevel),
+				Link:     fmt.Sprintf("/analytics?student=%d", student.StudentID),
+			})
+		}
+
+		// Fan out to n8n so external workflows (Telegram broadcasts,
+		// curator email digests, etc.) react in seconds instead of
+		// waiting for the hourly schedule trigger in the
+		// absence-alert workflow. Async; the scheduler's batch loop
+		// must not block on webhook latency.
+		n8nClient.TriggerAsync(n8ninfra.PathRiskAlertDetected, map[string]any{
+			"event_type":   "risk_alert.detected",
+			"student_id":   student.StudentID,
+			"student_name": student.StudentName,
+			"group_name":   groupName,
+			"risk_score":   student.RiskScore,
+			"risk_level":   student.RiskLevel,
+			"occurred_at":  time.Now().UTC().Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}
 	riskScheduler, err := analyticsScheduler.NewRiskRecalcScheduler(analyticsRepo, logger, riskAlertFunc)
