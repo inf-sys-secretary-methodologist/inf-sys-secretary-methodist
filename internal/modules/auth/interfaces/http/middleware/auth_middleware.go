@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
@@ -58,6 +60,56 @@ func JWTMiddleware(authUseCase *usecases.AuthUseCase) gin.HandlerFunc {
 		c.Set("claims", claims)
 
 		c.Next()
+	}
+}
+
+// JWTMiddlewareWithRevocation behaves like JWTMiddleware but additionally
+// rejects access tokens whose JTI is present in the revoked-token store.
+// This is the path used in production to make /api/auth/logout effective:
+// once a token's JTI is revoked, this middleware returns 401 before the
+// request reaches any handler.
+//
+// Pass revokedRepo=nil to bypass the revocation check (useful in dev or
+// in tests that do not exercise logout).
+func JWTMiddlewareWithRevocation(authUseCase *usecases.AuthUseCase, revokedRepo repositories.RevokedTokenRepository) gin.HandlerFunc {
+	base := JWTMiddleware(authUseCase)
+
+	return func(c *gin.Context) {
+		// Run the underlying validator first; if it aborted, we are done.
+		base(c)
+		if c.IsAborted() {
+			return
+		}
+		if revokedRepo == nil {
+			return
+		}
+
+		claimsAny, exists := c.Get("claims")
+		if !exists {
+			return
+		}
+		claims, ok := claimsAny.(*jwt.MapClaims)
+		if !ok {
+			return
+		}
+		jti, _ := (*claims)["jti"].(string)
+		if jti == "" {
+			return
+		}
+
+		revoked, err := revokedRepo.IsRevoked(c.Request.Context(), jti)
+		if err != nil {
+			// Fail closed on storage errors — better to force re-login than
+			// to risk accepting a token that may have been revoked.
+			c.JSON(http.StatusUnauthorized, response.Unauthorized("Не удалось проверить токен"))
+			c.Abort()
+			return
+		}
+		if revoked {
+			c.JSON(http.StatusUnauthorized, response.Unauthorized("Токен отозван"))
+			c.Abort()
+			return
+		}
 	}
 }
 
