@@ -902,7 +902,7 @@ func TestDocumentUseCase_Update_AllFields(t *testing.T) {
 			IsPublic:    &isPublic,
 		}
 
-		result, err := usecase.Update(ctx, 1, input, 1)
+		result, err := usecase.Update(ctx, 1, input, 1, entities.RoleTeacher)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -918,7 +918,7 @@ func TestDocumentUseCase_Update_AllFields(t *testing.T) {
 		newTitle := "Title"
 		input := dto.UpdateDocumentInput{Title: &newTitle}
 
-		result, err := usecase.Update(ctx, 999, input, 1)
+		result, err := usecase.Update(ctx, 999, input, 1, entities.RoleTeacher)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -936,7 +936,7 @@ func TestDocumentUseCase_Update_AllFields(t *testing.T) {
 		newTitle := testTitleNew
 		input := dto.UpdateDocumentInput{Title: &newTitle}
 
-		result, err := usecase.Update(ctx, 1, input, 1)
+		result, err := usecase.Update(ctx, 1, input, 1, entities.RoleTeacher)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)

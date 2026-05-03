@@ -3,6 +3,7 @@ package http
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
@@ -178,6 +180,11 @@ func (h *DocumentHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, resp)
 		return
 	}
+	// Role drives the v0.108.2 ownership check inside the use case.
+	// Default to a deny-by-default value if the middleware did not set
+	// it — Document.CanBeEditedBy refuses unknown roles.
+	roleVal, _ := c.Get("role")
+	role, _ := roleVal.(string)
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -215,8 +222,15 @@ func (h *DocumentHandler) Update(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	doc, err := h.usecase.Update(ctx, id, input, userID.(int64))
+	doc, err := h.usecase.Update(ctx, id, input, userID.(int64), entities.UserRole(role))
 	if err != nil {
+		// ErrDocumentEditDenied is the v0.108.2 deny path; map to 403
+		// before falling through to the generic mapper which would
+		// otherwise emit 500.
+		if errors.Is(err, entities.ErrDocumentEditDenied) {
+			c.JSON(http.StatusForbidden, response.Forbidden("Недостаточно прав для редактирования документа"))
+			return
+		}
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return

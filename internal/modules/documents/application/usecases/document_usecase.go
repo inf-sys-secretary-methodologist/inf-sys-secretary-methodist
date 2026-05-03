@@ -123,11 +123,25 @@ func (uc *DocumentUseCase) GetByID(ctx context.Context, id int64) (*dto.Document
 	return dto.ToDocumentOutput(doc), nil
 }
 
-// Update updates an existing document
-func (uc *DocumentUseCase) Update(ctx context.Context, id int64, input dto.UpdateDocumentInput, userID int64) (*dto.DocumentOutput, error) {
+// Update updates an existing document.
+//
+// Authorization is enforced via Document.CanBeEditedBy before any
+// mutation: methodist / academic_secretary / system_admin may edit
+// any document, teacher only their own (AuthorID match), student /
+// unknown role denied. Denial returns ErrDocumentEditDenied wrapped
+// from the entity, reachable via errors.Is for handler mapping to
+// HTTP 403.
+func (uc *DocumentUseCase) Update(ctx context.Context, id int64, input dto.UpdateDocumentInput, userID int64, role entities.UserRole) (*dto.DocumentOutput, error) {
 	doc, err := uc.documentRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, errors.ErrNotFound
+	}
+
+	// Ownership / role check BEFORE any mutation or history write —
+	// otherwise a denied call would still leak a 'document_updated'
+	// audit-history breadcrumb and partially mutate the in-memory doc.
+	if err := doc.CanBeEditedBy(userID, role); err != nil {
+		return nil, err
 	}
 
 	// Update fields
