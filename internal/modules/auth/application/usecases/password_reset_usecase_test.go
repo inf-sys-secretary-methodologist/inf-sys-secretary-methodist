@@ -277,3 +277,36 @@ func TestPasswordResetUseCase_ConfirmReset_UserVanished_ReturnsErrInvalidResetTo
 	userRepo.AssertNotCalled(t, "Save", mock.Anything, mock.Anything)
 	tokenRepo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
 }
+
+// TestPasswordResetUseCase_VerifyToken_Valid — a stored token must
+// verify cleanly without consuming it. The frontend calls this before
+// rendering the new-password form so the user does not type a password
+// only to be told the link is dead.
+func TestPasswordResetUseCase_VerifyToken_Valid(t *testing.T) {
+	userRepo := new(mockUserLookupRepo)
+	tokenRepo := new(mockPasswordResetTokenRepo)
+	tokenRepo.On("LookupUser", mock.Anything, "good-token").Return(int64(42), nil)
+	emailer := new(mockEmailSender)
+
+	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)
+	err := uc.VerifyToken(context.Background(), "good-token")
+
+	assert.NoError(t, err)
+	tokenRepo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
+}
+
+// TestPasswordResetUseCase_VerifyToken_Invalid — unknown / expired
+// token surfaces ErrInvalidResetToken (errors.Is reachable). Same
+// shape as ConfirmReset so the frontend can use one error mapping.
+func TestPasswordResetUseCase_VerifyToken_Invalid(t *testing.T) {
+	userRepo := new(mockUserLookupRepo)
+	tokenRepo := new(mockPasswordResetTokenRepo)
+	tokenRepo.On("LookupUser", mock.Anything, "bad-token").
+		Return(int64(0), repositories.ErrPasswordResetTokenNotFound)
+	emailer := new(mockEmailSender)
+
+	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)
+	err := uc.VerifyToken(context.Background(), "bad-token")
+
+	assert.ErrorIs(t, err, ErrInvalidResetToken)
+}
