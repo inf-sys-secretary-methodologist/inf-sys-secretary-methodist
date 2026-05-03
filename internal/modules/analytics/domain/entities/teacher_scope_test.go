@@ -106,6 +106,43 @@ func TestTeacherScope_FilterGroupNames(t *testing.T) {
 	}
 }
 
+func TestTeacherScope_AllowedGroupNames(t *testing.T) {
+	tests := []struct {
+		name      string
+		whitelist []string
+		wantSet   map[string]struct{}
+	}{
+		{
+			name:      "returns deduplicated whitelist",
+			whitelist: []string{"ИС-21", "ИС-22", "ИС-21"},
+			wantSet:   map[string]struct{}{"ИС-21": {}, "ИС-22": {}},
+		},
+		{
+			name:      "drops empty strings",
+			whitelist: []string{"ИС-21", "", "ПИ-31"},
+			wantSet:   map[string]struct{}{"ИС-21": {}, "ПИ-31": {}},
+		},
+		{
+			name:      "empty for nil whitelist",
+			whitelist: nil,
+			wantSet:   map[string]struct{}{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			s := entities.NewTeacherScope(1, tc.whitelist)
+			got := s.AllowedGroupNames()
+			gotSet := make(map[string]struct{}, len(got))
+			for _, n := range got {
+				gotSet[n] = struct{}{}
+			}
+			assert.Equal(t, tc.wantSet, gotSet)
+			assert.Len(t, got, len(tc.wantSet), "result must be deduplicated")
+		})
+	}
+}
+
 func TestErrAnalyticsScopeForbidden_IsExportedSentinel(t *testing.T) {
 	require.NotNil(t, entities.ErrAnalyticsScopeForbidden, "sentinel must exist for errors.Is matching")
 	assert.NotEmpty(t, entities.ErrAnalyticsScopeForbidden.Error())
