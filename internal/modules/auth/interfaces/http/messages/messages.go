@@ -24,12 +24,4 @@ const (
 	// PasswordResetWeakPassword is shown when the new password fails the
 	// backend minimum-length check.
 	PasswordResetWeakPassword = "Пароль не соответствует требованиям безопасности"
-
-	// PasswordResetTokenRequired is shown when the confirm body lacks a
-	// token field.
-	PasswordResetTokenRequired = "Токен сброса пароля обязателен"
-
-	// PasswordResetPasswordRequired is shown when the confirm body lacks
-	// a password field.
-	PasswordResetPasswordRequired = "Новый пароль обязателен"
 )
