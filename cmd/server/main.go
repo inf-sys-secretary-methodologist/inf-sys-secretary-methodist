@@ -1375,7 +1375,9 @@ func setupRoutes(
 
 			documentsGroup := protectedGroup.Group("/documents")
 			{
-				documentsGroup.POST("", docHandlerInstance.Create)
+				// Students must not create documents (AUDIT_REPORT item #1).
+				// Read paths stay open: students see what is shared with them via ACL.
+				documentsGroup.POST("", authMiddleware.RequireNonStudent(), docHandlerInstance.Create)
 				documentsGroup.GET("", docHandlerInstance.List)
 				// Search route must be before /:id to avoid route conflict
 				documentsGroup.GET("/search", docHandlerInstance.Search)
@@ -1528,6 +1530,9 @@ func setupRoutes(
 			protectedGroup.OPTIONS("/report-types/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 
 			reportsGroup := protectedGroup.Group("/reports")
+			// Students have no business with reports — block the entire group
+			// (AUDIT_REPORT item #1).
+			reportsGroup.Use(authMiddleware.RequireNonStudent())
 			{
 				// CRUD operations
 				reportsGroup.POST("", reportHandlerInstance.Create)
@@ -1862,8 +1867,11 @@ func setupRoutes(
 			analyticsHandlerInstance := analyticsHandler.NewAnalyticsHandler(analyticsUseCase)
 			attendanceHandlerInstance := analyticsHandler.NewAttendanceHandler(analyticsUseCase)
 
-			// Analytics routes
+			// Analytics routes — students must not see at-risk lists or any
+			// aggregated analytics about themselves or their peers
+			// (AUDIT_REPORT item #1).
 			analyticsGroup := protectedGroup.Group("/analytics")
+			analyticsGroup.Use(authMiddleware.RequireNonStudent())
 			{
 				analyticsGroup.GET("/at-risk-students", analyticsHandlerInstance.GetAtRiskStudents)
 				analyticsGroup.GET("/students/:id/risk", analyticsHandlerInstance.GetStudentRisk)

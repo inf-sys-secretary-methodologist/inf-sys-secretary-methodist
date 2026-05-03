@@ -89,6 +89,14 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 	}
 }
 
+// RequireNonStudent blocks any request whose role is "student" or whose
+// role is missing from context. Use on endpoints that students must not
+// reach: document creation, reports, analytics. Convenience wrapper around
+// RequireRole with the four non-student roles whitelisted.
+func RequireNonStudent() gin.HandlerFunc {
+	return RequireRole("system_admin", "methodist", "academic_secretary", "teacher")
+}
+
 // SecurityHeadersMiddleware adds security headers to responses
 func SecurityHeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
