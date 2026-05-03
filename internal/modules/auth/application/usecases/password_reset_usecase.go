@@ -113,6 +113,20 @@ func (u *PasswordResetUseCase) RequestReset(ctx context.Context, email string) e
 	return nil
 }
 
+// VerifyToken reports whether token is currently a valid reset token
+// without consuming it. Used by the frontend to decide whether to
+// render the new-password form. Returns ErrInvalidResetToken for
+// unknown / expired tokens; storage faults bubble up wrapped.
+func (u *PasswordResetUseCase) VerifyToken(ctx context.Context, token string) error {
+	if _, err := u.tokenRepo.LookupUser(ctx, token); err != nil {
+		if errors.Is(err, repositories.ErrPasswordResetTokenNotFound) {
+			return ErrInvalidResetToken
+		}
+		return fmt.Errorf("lookup reset token: %w", err)
+	}
+	return nil
+}
+
 // ConfirmReset consumes a previously issued reset token and replaces
 // the target user's password.
 //
