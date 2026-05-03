@@ -358,3 +358,81 @@ func TestAnalyticsGetMonthlyAttendanceTrend_ScanError(t *testing.T) {
 	_, err := repo.GetMonthlyAttendanceTrend(context.Background(), 6)
 	assert.Error(t, err)
 }
+
+// ---- Scope-filtered SQL (Cycle 3b): WHERE group_name = ANY($N) ----
+//
+// Pinning the SQL contract: when a non-nil *TeacherScope is passed, the
+// repository MUST push the whitelist into the WHERE clause so that
+// pagination COUNT(*) and the data query both reflect the post-filter
+// row set.
+
+func TestAnalyticsGetAtRiskStudents_AppliesScopeFilter(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+	scope := entities.NewTeacherScope(7, []string{"ИС-21"})
+
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM v_at_risk_students WHERE group_name = ANY")).
+		WithArgs(sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(0)))
+
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE group_name = ANY")).
+		WithArgs(sqlmock.AnyArg(), 10, 0).
+		WillReturnRows(sqlmock.NewRows(riskCols))
+
+	students, total, err := repo.GetAtRiskStudents(context.Background(), scope, 10, 0)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), total)
+	assert.Empty(t, students)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnalyticsGetAllGroupsSummary_AppliesScopeFilter(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+	scope := entities.NewTeacherScope(7, []string{"ИС-21", "ПИ-31"})
+
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE group_name = ANY")).
+		WithArgs(sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"group_name", "total_students", "avg_attendance_rate", "avg_grade",
+			"critical_risk_count", "high_risk_count", "medium_risk_count", "low_risk_count",
+			"at_risk_percentage",
+		}))
+
+	summaries, err := repo.GetAllGroupsSummary(context.Background(), scope)
+	require.NoError(t, err)
+	assert.Empty(t, summaries)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnalyticsGetStudentsByRiskLevel_AppliesScopeFilter(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+	scope := entities.NewTeacherScope(7, []string{"ИС-21"})
+
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM v_student_risk_score WHERE risk_level = $1 AND group_name = ANY")).
+		WithArgs(entities.RiskLevelHigh, sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(0)))
+
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE risk_level = $1 AND group_name = ANY")).
+		WithArgs(entities.RiskLevelHigh, sqlmock.AnyArg(), 10, 0).
+		WillReturnRows(sqlmock.NewRows(riskCols))
+
+	students, total, err := repo.GetStudentsByRiskLevel(context.Background(), scope, entities.RiskLevelHigh, 10, 0)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), total)
+	assert.Empty(t, students)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnalyticsGetAtRiskStudents_NilScopeDoesNotFilter(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+
+	// nil scope → unchanged legacy SQL without WHERE clause.
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM v_at_risk_students")).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(0)))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM v_at_risk_students\n\t\tORDER BY")).
+		WithArgs(10, 0).
+		WillReturnRows(sqlmock.NewRows(riskCols))
+
+	_, _, err := repo.GetAtRiskStudents(context.Background(), nil, 10, 0)
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
