@@ -111,3 +111,10 @@ runtime-state/
 
 # Server admin docs (contains sensitive data)
 SERVER_ADMIN.md
+
+# Local-only plan drafts and demo seed (not part of product code).
+# Other docs/plans/*.md files ARE tracked — these specific dated drafts
+# were committed by accident and untracked retroactively.
+docs/plans/2026-04-26-resource-permission-matrix.md
+docs/plans/2026-04-27-schedule-lessons.md
+migrations/seed_demo_data.sql
