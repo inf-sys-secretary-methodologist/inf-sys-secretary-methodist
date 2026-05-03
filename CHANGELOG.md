@@ -15,6 +15,43 @@
 
 ---
 
+## [0.108.1] — 2026-05-03
+
+### Fixed — n8n absence-alert connection
+
+До этого релиза `n8nClient` инициализировался в `cmd/server/main.go`, но сразу же выбрасывался в `_` — ни один production-путь не использовал webhook'и. Сегодняшний `RiskRecalcScheduler` создавал уведомления внутри системы, но не сигнализировал внешним workflow'ам (`workflows/absence-alert.json` мог реагировать только своим Schedule trigger'ом раз в час).
+
+После релиза:
+
+- `RiskRecalcScheduler.recalculate()` для каждого студента с `risk score ≥ 70` дополнительно вызывает `n8nClient.TriggerAsync(n8n.PathRiskAlertDetected, ...)`. Внешние workflow'ы (Telegram broadcast, curator email digests) реагируют в течение секунд вместо часов.
+- Async, fire-and-forget — batch loop scheduler'а не блокируется на webhook latency. `TriggerAsync` поглощает транспортные ошибки в Warn log; flaky n8n не останавливает daily recalc.
+
+### Added
+
+- `n8n/event_handler.go` константы путей и event-типов для единого источника истины:
+  - `PathDocumentCreated` / `PathDocumentUpdated` / `PathRiskAlertDetected`
+  - `EventTypeDocumentCreated` / `EventTypeDocumentUpdated` / `EventTypeRiskAlertDetected`
+- Запись `risk_alert.detected` → `risk-alert-detected` в `pathMap` — любое будущее `RiskAlertDetected` доменное событие, опубликованное на EventBus, маршрутизируется в существующий absence-alert workflow без дополнительных кодовых изменений.
+- Audit log событие `risk_alert_dispatched_to_n8n` пишется до каждого fan-out — есть аудит-след вне зависимости от исхода webhook'а.
+
+### Tests
+
+- `event_handler_test.go` — два теста: table-driven по всем трём известным event-типам (через реальный `httptest.Server` + реальный `Client`, а не моки), плюс кейс на молчаливый drop неизвестных событий. Pin'ит и `occurred_at` в RFC3339 формате — drift в форматтере моментально ловится.
+
+### PII / data classification note
+
+Payload содержит `student_name` + `risk_score` уровня риска уходящие на operator-controlled n8n. Curator notifications уже несут те же поля — новых data-classification дыр нет, но любое будущее добавление поля (email, phone, grades) требует review против `docs/roles-and-flows.md`.
+
+### Code review
+
+`superpowers:code-reviewer`: TDD=9, DDD=9, CA=8, Security=7, Tests=8, i18n=N/A — verdict **SHIP**. После фиксов post-review (event_type constants, audit log, PII note, occurred_at assertion) подняты CA, Security, Tests до целевых ≥9.
+
+### Conflict resolution (housekeeping)
+
+Также в этом релизе очищены остатки незавершённого `git stash pop` в 5 файлах (`.env.example`, `compose.yml`, `frontend/src/app/page.tsx`, `internal/shared/infrastructure/config/config.go`, `internal/modules/auth/interfaces/http/handlers/auth_handler_test.go`) — каждый конфликт разрешён в пользу текущего main HEAD. `stash@{0}` ('WIP: environment config updates and login button') оставлен в стеке для последующего ручного review/drop.
+
+---
+
 ## [0.108.0] — 2026-05-03
 
 ### Added — Password recovery flow (request → verify → confirm)
