@@ -45,6 +45,32 @@ func NewUser(email, passwordHash, name string, role domain.RoleType) *User {
 	}
 }
 
+// ReconstituteUser materializes a User from already-persisted state —
+// the factory used by repositories loading rows from the database and
+// by tests that need to set fields the public NewUser path does not
+// expose (ID, Status, timestamps).
+//
+// Validation is intentionally skipped: the caller is reconstructing a
+// row that has already been validated on the way into storage.
+func ReconstituteUser(
+	id int64,
+	email, passwordHash, name string,
+	role domain.RoleType,
+	status UserStatus,
+	createdAt, updatedAt time.Time,
+) *User {
+	return &User{
+		ID:        id,
+		Email:     email,
+		Password:  passwordHash,
+		Name:      name,
+		Role:      role,
+		Status:    status,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
+	}
+}
+
 // Activate activates the user account
 func (u *User) Activate() {
 	u.Status = UserStatusActive

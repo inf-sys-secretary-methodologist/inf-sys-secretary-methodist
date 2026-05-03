@@ -86,6 +86,19 @@ func buildResetHandler(t *testing.T) (
 	return NewPasswordResetHandler(uc), userRepo, tokenRepo, emailer
 }
 
+// mkUser builds a User via the domain factory ReconstituteUser instead
+// of constructing &entities.User{...} — the project's red-flag rule
+// forbids raw composite literals of domain types outside the domain
+// package, even in tests.
+func mkUser(id int64, email string, status entities.UserStatus) *entities.User {
+	now := time.Now()
+	return entities.ReconstituteUser(
+		id, email, "old-bcrypt-hash", "Test User",
+		domain.RoleStudent, status,
+		now.Add(-time.Hour), now.Add(-time.Hour),
+	)
+}
+
 // =================== POST /password-reset/request ===================
 
 // TestPasswordResetHandler_Request — table-driven over the four
@@ -106,9 +119,8 @@ func TestPasswordResetHandler_Request(t *testing.T) {
 			name: "known email -> 204 + email + token stored",
 			body: `{"email":"alice@example.com"}`,
 			setup: func(u *fakeUserRepoForResetHandler, tr *fakeResetTokenRepo, em *fakeEmailerForResetHandler) {
-				u.On("GetByEmail", mock.Anything, "alice@example.com").Return(&entities.User{
-					ID: 1, Email: "alice@example.com", Status: entities.UserStatusActive, Role: domain.RoleStudent,
-				}, nil)
+				u.On("GetByEmail", mock.Anything, "alice@example.com").
+					Return(mkUser(1, "alice@example.com", entities.UserStatusActive), nil)
 				tr.On("Store", mock.Anything, mock.AnythingOfType("string"), int64(1), mock.AnythingOfType("time.Duration")).Return(nil)
 				em.On("SendPasswordResetEmail", mock.Anything, "alice@example.com", mock.AnythingOfType("string")).Return(nil)
 			},
@@ -233,9 +245,8 @@ func TestPasswordResetHandler_Confirm(t *testing.T) {
 			body: `{"token":"good-tok","password":"NewStrongPass1!"}`,
 			setup: func(u *fakeUserRepoForResetHandler, tr *fakeResetTokenRepo) {
 				tr.On("LookupUser", mock.Anything, "good-tok").Return(int64(1), nil)
-				u.On("GetByID", mock.Anything, int64(1)).Return(&entities.User{
-					ID: 1, Email: "alice@example.com", Password: "old", Status: entities.UserStatusActive,
-				}, nil)
+				u.On("GetByID", mock.Anything, int64(1)).
+					Return(mkUser(1, "alice@example.com", entities.UserStatusActive), nil)
 				u.On("Save", mock.Anything, mock.AnythingOfType("*entities.User")).Return(nil)
 				tr.On("Delete", mock.Anything, "good-tok").Return(nil)
 			},
@@ -299,10 +310,7 @@ func TestPasswordResetHandler_Confirm(t *testing.T) {
 func TestPasswordResetHandler_Confirm_RotatedPasswordIsBcrypt(t *testing.T) {
 	h, userRepo, tokenRepo, _ := buildResetHandler(t)
 
-	user := &entities.User{
-		ID: 1, Email: "alice@example.com", Password: "old",
-		Status: entities.UserStatusActive,
-	}
+	user := mkUser(1, "alice@example.com", entities.UserStatusActive)
 	tokenRepo.On("LookupUser", mock.Anything, "tok").Return(int64(1), nil)
 	userRepo.On("GetByID", mock.Anything, int64(1)).Return(user, nil)
 	var saved *entities.User
