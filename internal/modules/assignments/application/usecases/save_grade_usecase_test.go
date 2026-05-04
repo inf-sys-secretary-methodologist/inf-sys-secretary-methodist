@@ -184,6 +184,11 @@ func makeAssignment(t *testing.T, id, teacherID int64) *entities.Assignment {
 
 type fakeAssignmentRepo struct {
 	byID map[int64]*entities.Assignment
+
+	// List support — used by ListAssignmentsUseCase tests.
+	listResult     repositories.AssignmentListResult
+	listErr        error
+	lastListFilter *repositories.AssignmentListFilter
 }
 
 func newFakeAssignmentRepo() *fakeAssignmentRepo {
@@ -195,6 +200,14 @@ func (r *fakeAssignmentRepo) GetByID(ctx context.Context, id int64) (*entities.A
 		return a, nil
 	}
 	return nil, repositories.ErrAssignmentNotFound
+}
+func (r *fakeAssignmentRepo) List(ctx context.Context, filter repositories.AssignmentListFilter) (repositories.AssignmentListResult, error) {
+	f := filter
+	r.lastListFilter = &f
+	if r.listErr != nil {
+		return repositories.AssignmentListResult{}, r.listErr
+	}
+	return r.listResult, nil
 }
 
 type fakeSubmissionRepo struct {

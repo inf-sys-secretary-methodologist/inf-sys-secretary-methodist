@@ -61,3 +61,13 @@ func (r *AssignmentRepositoryPG) GetByID(ctx context.Context, id int64) (*entiti
 		maxScore, due, createdAt, updatedAt,
 	), nil
 }
+
+// List is a deliberate stub during the RED stage of the v0.110.0 list
+// flow. The behaviour-defining tests live next to the use case
+// (ListAssignmentsUseCase) and exercise List via a fake. The real
+// SQL implementation lands in the same release together with sqlmock
+// coverage. Returning an explicit error rather than an empty result
+// fails loudly if this stub ever escapes the development branch.
+func (r *AssignmentRepositoryPG) List(ctx context.Context, filter repositories.AssignmentListFilter) (repositories.AssignmentListResult, error) {
+	return repositories.AssignmentListResult{}, errors.New("AssignmentRepositoryPG.List: not implemented (v0.110.0 cycle 4 pending)")
+}
