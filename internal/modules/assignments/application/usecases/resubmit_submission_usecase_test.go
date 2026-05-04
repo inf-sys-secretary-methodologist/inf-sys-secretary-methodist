@@ -11,6 +11,7 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 // TestResubmitSubmissionUseCase_ReturnedToPendingHappyPath asserts the core
@@ -143,6 +144,131 @@ func TestResubmitSubmissionUseCase_ForeignStudentDenied(t *testing.T) {
 	for _, e := range audit.events {
 		assert.NotEqual(t, "assignment.resubmitted", e.Action,
 			"resubmitted success event must not fire on denied path")
+	}
+}
+
+// TestResubmitSubmissionUseCase_ErrorMatrix sweeps the failure modes of
+// Execute as a single table — pinning each branch's error wrapping AND
+// the side-effect contract on that branch (which calls fire, which audit
+// events appear or stay silent). All cases pass at HEAD; this is honest
+// backfill of code already written, not a TDD cycle.
+//
+// The happy path is intentionally NOT in this table — it lives in its
+// own test above to keep the matrix focused on the negative space and
+// the best-effort notifier semantics.
+func TestResubmitSubmissionUseCase_ErrorMatrix(t *testing.T) {
+	pendingSubFixture := func() *entities.Submission {
+		return entities.NewSubmission(assignmentID, studentID, fixedNow.Add(-2*time.Hour))
+	}
+	returnedSubFixture := func() *entities.Submission {
+		s := entities.NewSubmission(assignmentID, studentID, fixedNow.Add(-2*time.Hour))
+		require.NoError(t, s.Return("missing details", authorTeacherID, fixedNow.Add(-time.Hour)))
+		return s
+	}
+
+	tests := []struct {
+		name             string
+		assignmentExists bool
+		seed             *entities.Submission
+		notifierErr      error
+		notifierNil      bool
+		wantErrIs        error // nil means happy
+		wantSaveCalls    int
+		wantNotifyCalled bool
+		wantSuccessAudit bool
+		wantFailureAudit bool
+	}{
+		{
+			name:             "assignment not found surfaces repository sentinel",
+			assignmentExists: false,
+			wantErrIs:        repositories.ErrAssignmentNotFound,
+		},
+		{
+			name:             "submission not found surfaces repository sentinel",
+			assignmentExists: true,
+			seed:             nil,
+			wantErrIs:        repositories.ErrSubmissionNotFound,
+		},
+		{
+			name:             "pending submission rejected by entity invariant",
+			assignmentExists: true,
+			seed:             pendingSubFixture(),
+			wantErrIs:        entities.ErrNotReturned,
+		},
+		{
+			name:             "notifier failure does not abort (best-effort semantics)",
+			assignmentExists: true,
+			seed:             returnedSubFixture(),
+			notifierErr:      errors.New("smtp down"),
+			wantSaveCalls:    1,
+			wantNotifyCalled: true,
+			wantSuccessAudit: true,
+			wantFailureAudit: true,
+		},
+		{
+			name:             "nil notifier — happy path skips notify silently",
+			assignmentExists: true,
+			seed:             returnedSubFixture(),
+			notifierNil:      true,
+			wantSaveCalls:    1,
+			wantSuccessAudit: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ar := newFakeAssignmentRepo()
+			if tc.assignmentExists {
+				ar.seed(makeAssignment(t, assignmentID, authorTeacherID))
+			}
+			sr := newFakeSubmissionRepo()
+			if tc.seed != nil {
+				sr.seed(tc.seed)
+			}
+
+			recNotifier := &recordingResubmitNotifier{err: tc.notifierErr}
+			var notifier usecases.ResubmitSubmissionNotifier
+			if !tc.notifierNil {
+				notifier = recNotifier
+			}
+			audit := &recordingAuditSink{}
+
+			uc := usecases.NewResubmitSubmissionUseCase(ar, sr, notifier, audit, func() time.Time { return fixedNow })
+
+			err := uc.Execute(context.Background(), studentID, usecases.ResubmitSubmissionInput{
+				AssignmentID: assignmentID,
+				StudentID:    studentID,
+			})
+
+			if tc.wantErrIs != nil {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, tc.wantErrIs),
+					"expected error wrapping %v, got %v", tc.wantErrIs, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, tc.wantSaveCalls, sr.saveCalls,
+				"Save call count mismatch")
+			if !tc.notifierNil {
+				assert.Equal(t, tc.wantNotifyCalled, recNotifier.called,
+					"notifier invocation mismatch")
+			}
+
+			hasSuccess, hasFailure := false, false
+			for _, e := range audit.events {
+				switch e.Action {
+				case "assignment.resubmitted":
+					hasSuccess = true
+				case "assignment.resubmit_notify_failed":
+					hasFailure = true
+				}
+			}
+			assert.Equal(t, tc.wantSuccessAudit, hasSuccess,
+				"assignment.resubmitted audit presence")
+			assert.Equal(t, tc.wantFailureAudit, hasFailure,
+				"assignment.resubmit_notify_failed audit presence")
+		})
 	}
 }
 
