@@ -413,6 +413,9 @@ func main() {
 	saveGradeUseCase := assignUsecases.NewSaveGradeUseCase(
 		assignmentRepo, submissionRepo, gradeNotifier, auditLogger, nil,
 	)
+	listAssignmentsUseCase := assignUsecases.NewListAssignmentsUseCase(assignmentRepo)
+	getAssignmentUseCase := assignUsecases.NewGetAssignmentUseCase(assignmentRepo)
+	listSubmissionsUseCase := assignUsecases.NewListSubmissionsUseCase(assignmentRepo, submissionRepo)
 	logger.Info("Assignments module initialized", nil)
 
 	// Initialize schedule module
@@ -623,6 +626,9 @@ func main() {
 		taskUseCase,
 		projectUseCase,
 		saveGradeUseCase,
+		listAssignmentsUseCase,
+		getAssignmentUseCase,
+		listSubmissionsUseCase,
 		eventUseCase,
 		lessonUseCase,
 		announcementUseCase,
@@ -1124,6 +1130,9 @@ func setupRoutes(
 	taskUseCase *taskUsecases.TaskUseCase,
 	projectUseCase *taskUsecases.ProjectUseCase,
 	saveGradeUseCase *assignUsecases.SaveGradeUseCase,
+	listAssignmentsUseCase *assignUsecases.ListAssignmentsUseCase,
+	getAssignmentUseCase *assignUsecases.GetAssignmentUseCase,
+	listSubmissionsUseCase *assignUsecases.ListSubmissionsUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
@@ -1822,10 +1831,16 @@ func setupRoutes(
 		// even probe) grading endpoints for their peers.
 		if saveGradeUseCase != nil {
 			gradeHandlerInstance := assignHandler.NewGradeHandler(saveGradeUseCase)
+			assignmentsHandler := assignHandler.NewAssignmentsHandler(
+				listAssignmentsUseCase, getAssignmentUseCase, listSubmissionsUseCase,
+			)
 
 			assignmentsGroup := protectedGroup.Group("/assignments")
 			assignmentsGroup.Use(authMiddleware.RequireNonStudent())
 			{
+				assignmentsGroup.GET("", assignmentsHandler.ListAssignments)
+				assignmentsGroup.GET("/:id", assignmentsHandler.GetAssignment)
+				assignmentsGroup.GET("/:id/submissions", assignmentsHandler.ListSubmissions)
 				assignmentsGroup.POST("/:id/grades", gradeHandlerInstance.SaveGrade)
 				assignmentsGroup.OPTIONS("/:id/grades", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}

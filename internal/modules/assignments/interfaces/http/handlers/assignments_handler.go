@@ -2,13 +2,16 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
@@ -88,9 +91,7 @@ type SubmissionViewDTO struct {
 	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
-// ListAssignments handles GET /api/assignments. Stub during the RED
-// stage of cycle 5 — replaced with the real implementation in the
-// GREEN commit once the failing tests are in place.
+// ListAssignments handles GET /api/assignments.
 //
 // @Summary List assignments visible to the caller
 // @Tags assignments
@@ -105,10 +106,31 @@ type SubmissionViewDTO struct {
 // @Security BearerAuth
 // @Router /api/assignments [get]
 func (h *AssignmentsHandler) ListAssignments(c *gin.Context) {
-	c.JSON(http.StatusInternalServerError, response.ErrorResponse("NOT_IMPLEMENTED", "ListAssignments not implemented"))
+	scope, ok := callerScopeFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+
+	out, err := h.listUC.Execute(c.Request.Context(), assignUsecases.ListAssignmentsInput{
+		Caller:    scope,
+		Subject:   c.Query("subject"),
+		GroupName: c.Query("group_name"),
+		Limit:     parseQueryInt(c, "page_size"),
+		Offset:    parseQueryInt(c, "offset"),
+	})
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(gin.H{
+		"items": mapAssignments(out.Items),
+		"total": out.Total,
+	}))
 }
 
-// GetAssignment handles GET /api/assignments/:id. Stub during RED.
+// GetAssignment handles GET /api/assignments/:id.
 //
 // @Summary Get a single assignment by id
 // @Tags assignments
@@ -122,11 +144,30 @@ func (h *AssignmentsHandler) ListAssignments(c *gin.Context) {
 // @Security BearerAuth
 // @Router /api/assignments/{id} [get]
 func (h *AssignmentsHandler) GetAssignment(c *gin.Context) {
-	c.JSON(http.StatusInternalServerError, response.ErrorResponse("NOT_IMPLEMENTED", "GetAssignment not implemented"))
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid assignment id"))
+		return
+	}
+	scope, ok := callerScopeFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+
+	a, err := h.getUC.Execute(c.Request.Context(), assignUsecases.GetAssignmentInput{
+		Caller:       scope,
+		AssignmentID: id,
+	})
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(mapAssignment(a)))
 }
 
-// ListSubmissions handles GET /api/assignments/:id/submissions. Stub
-// during RED.
+// ListSubmissions handles GET /api/assignments/:id/submissions.
 //
 // @Summary List submissions for an assignment
 // @Tags assignments
@@ -141,9 +182,137 @@ func (h *AssignmentsHandler) GetAssignment(c *gin.Context) {
 // @Security BearerAuth
 // @Router /api/assignments/{id}/submissions [get]
 func (h *AssignmentsHandler) ListSubmissions(c *gin.Context) {
-	c.JSON(http.StatusInternalServerError, response.ErrorResponse("NOT_IMPLEMENTED", "ListSubmissions not implemented"))
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid assignment id"))
+		return
+	}
+	scope, ok := callerScopeFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+
+	var statusFilter *entities.SubmissionStatus
+	if raw := c.Query("status"); raw != "" {
+		s := entities.SubmissionStatus(raw)
+		if !s.IsValid() {
+			c.JSON(http.StatusBadRequest, response.BadRequest("invalid status: "+raw))
+			return
+		}
+		statusFilter = &s
+	}
+
+	items, err := h.listSubsUC.Execute(c.Request.Context(), assignUsecases.ListSubmissionsInput{
+		Caller:       scope,
+		AssignmentID: id,
+		Status:       statusFilter,
+	})
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response.Success(gin.H{
+		"items": mapSubmissionViews(items),
+	}))
 }
 
-// All shared helpers (callerScopeFromContext, mapAssignment, etc.) and
-// the centralised handleError live in the GREEN commit alongside the
-// real handler bodies — they would be dead code in the RED commit.
+// callerScopeFromContext converts the gin auth context (user_id +
+// role) into a use-case CallerScope. Failure-closed: if either the
+// id or role is missing/invalid we return ok=false, the caller
+// responds 401, and the request never reaches the use case.
+func callerScopeFromContext(c *gin.Context) (assignUsecases.CallerScope, bool) {
+	userID, ok := teacherIDFromContext(c)
+	if !ok {
+		return assignUsecases.CallerScope{}, false
+	}
+	roleVal, exists := c.Get("role")
+	if !exists {
+		return assignUsecases.CallerScope{}, false
+	}
+	roleStr, _ := roleVal.(string)
+	if roleStr == "" {
+		return assignUsecases.CallerScope{}, false
+	}
+	return assignUsecases.CallerScope{
+		UserID: userID,
+		// Only "teacher" is restricted to own assignments. The other
+		// non-student roles (system_admin, methodist, academic_secretary)
+		// see every assignment in the system.
+		Unrestricted: roleStr != "teacher",
+	}, true
+}
+
+func parseQueryInt(c *gin.Context, key string) int {
+	raw := c.Query(key)
+	if raw == "" {
+		return 0
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+func mapAssignment(a *entities.Assignment) AssignmentDTO {
+	return AssignmentDTO{
+		ID:          a.ID,
+		Title:       a.Title(),
+		Description: a.Description(),
+		TeacherID:   a.TeacherID(),
+		GroupName:   a.GroupName(),
+		Subject:     a.Subject(),
+		MaxScore:    a.MaxScore(),
+		DueDate:     a.DueDate(),
+		CreatedAt:   a.CreatedAt(),
+		UpdatedAt:   a.UpdatedAt(),
+	}
+}
+
+func mapAssignments(in []*entities.Assignment) []AssignmentDTO {
+	out := make([]AssignmentDTO, 0, len(in))
+	for _, a := range in {
+		out = append(out, mapAssignment(a))
+	}
+	return out
+}
+
+func mapSubmissionViews(in []views.SubmissionView) []SubmissionViewDTO {
+	out := make([]SubmissionViewDTO, 0, len(in))
+	for _, v := range in {
+		out = append(out, SubmissionViewDTO{
+			ID:           v.ID,
+			AssignmentID: v.AssignmentID,
+			StudentID:    v.StudentID,
+			StudentName:  v.StudentName,
+			GradeValue:   v.GradeValue,
+			Feedback:     v.Feedback,
+			GradedBy:     v.GradedBy,
+			GradedAt:     v.GradedAt,
+			Status:       string(v.Status),
+			CreatedAt:    v.CreatedAt,
+			UpdatedAt:    v.UpdatedAt,
+		})
+	}
+	return out
+}
+
+// handleError centralises domain → HTTP mapping for the read handlers.
+// Same explicit-sentinel-first pattern as grade_handler so module
+// errors get their actionable status (403, 404) instead of falling
+// through to the generic mapper's 500.
+func (h *AssignmentsHandler) handleError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, repositories.ErrAssignmentNotFound):
+		c.JSON(http.StatusNotFound, response.NotFound("assignment"))
+		return
+	case errors.Is(err, entities.ErrAssignmentScopeForbidden):
+		c.JSON(http.StatusForbidden, response.Forbidden("you cannot access this assignment"))
+		return
+	}
+
+	httpErr := response.MapDomainError(err)
+	c.JSON(httpErr.Status, httpErr.Response)
+}
