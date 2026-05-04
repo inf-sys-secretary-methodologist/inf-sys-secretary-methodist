@@ -1,4 +1,5 @@
 import { render, screen } from '@/test-utils'
+import userEvent from '@testing-library/user-event'
 import { SubmissionRow } from '../SubmissionRow'
 import type { SubmissionView } from '@/types/assignments'
 
@@ -53,5 +54,48 @@ describe('SubmissionRow', () => {
     const returned: SubmissionView = { ...base, status: 'returned' }
     render(<SubmissionRow assignmentId={10} maxScore={100} submission={returned} />)
     expect(screen.getByText(/status\.returned/)).toBeInTheDocument()
+  })
+})
+
+describe('SubmissionRow Return button integration', () => {
+  it('renders Return button when status is pending', () => {
+    render(<SubmissionRow assignmentId={10} maxScore={100} submission={base} />)
+    expect(
+      screen.getByRole('button', { name: /returnButton/ })
+    ).toBeInTheDocument()
+  })
+
+  it('renders Return button when status is graded', () => {
+    const graded: SubmissionView = {
+      ...base,
+      id: 2,
+      status: 'graded',
+      grade_value: 85,
+      feedback: 'great',
+      graded_at: '2026-05-02T10:00:00Z',
+    }
+    render(<SubmissionRow assignmentId={10} maxScore={100} submission={graded} />)
+    expect(
+      screen.getByRole('button', { name: /returnButton/ })
+    ).toBeInTheDocument()
+  })
+
+  it('does NOT render Return button when status is returned', () => {
+    const returned: SubmissionView = { ...base, status: 'returned' }
+    render(<SubmissionRow assignmentId={10} maxScore={100} submission={returned} />)
+    expect(
+      screen.queryByRole('button', { name: /returnButton/ })
+    ).not.toBeInTheDocument()
+  })
+
+  it('opens ReturnDialog on click', async () => {
+    const user = userEvent.setup()
+    render(<SubmissionRow assignmentId={10} maxScore={100} submission={base} />)
+
+    // Dialog title is hidden by default (Radix)
+    expect(screen.queryByText(/returnDialog\.title/)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /returnButton/ }))
+    expect(screen.getByText(/returnDialog\.title/)).toBeInTheDocument()
   })
 })
