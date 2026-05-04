@@ -103,7 +103,7 @@ func (h *ResubmitHandler) Resubmit(c *gin.Context) {
 // handler. Unknown role → ok=false → 401, identical posture to
 // actorIDFromContext on the return side.
 func studentIDFromContext(c *gin.Context) (int64, bool) {
-	userID, ok := teacherIDFromContext(c)
+	userID, ok := userIDFromContext(c)
 	if !ok {
 		return 0, false
 	}

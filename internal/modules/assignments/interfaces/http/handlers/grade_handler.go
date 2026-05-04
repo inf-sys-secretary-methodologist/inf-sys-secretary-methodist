@@ -82,7 +82,7 @@ func (h *GradeHandler) SaveGrade(c *gin.Context) {
 		return
 	}
 
-	teacherID, ok := teacherIDFromContext(c)
+	teacherID, ok := userIDFromContext(c)
 	if !ok {
 		// Auth middleware misconfiguration. We refuse to fall back to a
 		// silent admin/system identity — failing here surfaces routing
@@ -110,11 +110,13 @@ func (h *GradeHandler) SaveGrade(c *gin.Context) {
 	}))
 }
 
-// teacherIDFromContext extracts the authenticated user id from the gin
-// context. Handles both int64 and float64 (gin's default JWT claim
-// numeric type) so that swapping the auth middleware does not silently
-// break the handler.
-func teacherIDFromContext(c *gin.Context) (int64, bool) {
+// userIDFromContext extracts the authenticated user id from the gin
+// context, role-agnostic. Callers layer their own role whitelist on top
+// (callerScopeFromContext / actorIDFromContext / studentIDFromContext)
+// — this helper just unwraps the JWT subject. Handles int64, int, and
+// float64 (gin's default JWT claim numeric type) so swapping the auth
+// middleware does not silently break the handler.
+func userIDFromContext(c *gin.Context) (int64, bool) {
 	v, ok := c.Get("user_id")
 	if !ok {
 		return 0, false

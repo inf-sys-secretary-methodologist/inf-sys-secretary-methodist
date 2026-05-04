@@ -115,7 +115,7 @@ func (h *ReturnHandler) Return(c *gin.Context) {
 // silently get write access via this handler. Unknown role → ok=false →
 // 401, identical posture as the read-side AssignmentsHandler.
 func actorIDFromContext(c *gin.Context) (int64, bool) {
-	userID, ok := teacherIDFromContext(c)
+	userID, ok := userIDFromContext(c)
 	if !ok {
 		return 0, false
 	}

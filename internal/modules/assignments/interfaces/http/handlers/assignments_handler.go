@@ -243,7 +243,7 @@ const (
 // last gate; unknown roles fall through to the same 401 path as
 // missing context.
 func callerScopeFromContext(c *gin.Context) (assignUsecases.CallerScope, bool) {
-	userID, ok := teacherIDFromContext(c)
+	userID, ok := userIDFromContext(c)
 	if !ok {
 		return assignUsecases.CallerScope{}, false
 	}
