@@ -49,9 +49,8 @@ func (uc *ListSubmissionsUseCase) Execute(ctx context.Context, in ListSubmission
 	if err != nil {
 		return nil, fmt.Errorf("list submissions: load assignment: %w", err)
 	}
-	if !in.Caller.Unrestricted && a.TeacherID() != in.Caller.UserID {
-		return nil, fmt.Errorf("%w: user %d is not the author (%d)",
-			entities.ErrAssignmentScopeForbidden, in.Caller.UserID, a.TeacherID())
+	if err := a.AuthorizeAccess(in.Caller.Unrestricted, in.Caller.UserID); err != nil {
+		return nil, err
 	}
 
 	subs, err := uc.submissionRepo.ListByAssignment(ctx, in.AssignmentID, in.Status)

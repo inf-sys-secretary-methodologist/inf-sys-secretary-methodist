@@ -37,9 +37,8 @@ func (uc *GetAssignmentUseCase) Execute(ctx context.Context, in GetAssignmentInp
 	if err != nil {
 		return nil, fmt.Errorf("get assignment: %w", err)
 	}
-	if !in.Caller.Unrestricted && a.TeacherID() != in.Caller.UserID {
-		return nil, fmt.Errorf("%w: user %d is not the author (%d)",
-			entities.ErrAssignmentScopeForbidden, in.Caller.UserID, a.TeacherID())
+	if err := a.AuthorizeAccess(in.Caller.Unrestricted, in.Caller.UserID); err != nil {
+		return nil, err
 	}
 	return a, nil
 }

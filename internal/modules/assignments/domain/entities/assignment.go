@@ -154,11 +154,12 @@ func (a *Assignment) AuthorizeGrader(userID int64) error {
 //
 // Centralising the read-side rule in the aggregate keeps the
 // GetAssignment and ListSubmissions use cases from re-implementing
-// (and accidentally diverging from) the same predicate. Stub during
-// the RED stage of the v0.110.0 reviewer DDD fix; the GREEN commit
-// replaces the body once the failing test is in place.
+// (and accidentally diverging from) the same predicate.
 func (a *Assignment) AuthorizeAccess(unrestricted bool, userID int64) error {
-	return fmt.Errorf("%w: AuthorizeAccess not implemented", ErrAssignmentScopeForbidden)
+	if unrestricted {
+		return nil
+	}
+	return a.AuthorizeGrader(userID)
 }
 
 // NewSubmissionScore is the domain method that owns the cross-aggregate
