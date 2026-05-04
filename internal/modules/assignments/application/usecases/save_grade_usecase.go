@@ -79,6 +79,15 @@ func (uc *SaveGradeUseCase) Execute(ctx context.Context, teacherID int64, in Sav
 	}
 
 	if err := assignment.AuthorizeGrader(teacherID); err != nil {
+		// Audit a denied grading attempt explicitly. A grading flow is
+		// security-relevant; forensic trail must include refused
+		// attempts, not only successes. Failure-closed bias from
+		// v0.108.3 carried through.
+		uc.logAudit(ctx, teacherID, "assignment.grade_denied", map[string]any{
+			"assignment_id": in.AssignmentID,
+			"student_id":    in.StudentID,
+			"reason":        "not_author",
+		})
 		return err
 	}
 
