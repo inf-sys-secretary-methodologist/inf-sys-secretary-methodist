@@ -175,7 +175,8 @@ func (r *SubmissionRepositoryPG) ListByAssignment(ctx context.Context, assignmen
 	query := `
 		SELECT s.id, s.assignment_id, s.student_id, COALESCE(u.name, ''),
 		       s.grade_value, s.feedback, s.graded_by, s.graded_at,
-		       s.status, s.created_at, s.updated_at
+		       s.status, s.return_reason, s.returned_by, s.returned_at,
+		       s.created_at, s.updated_at
 		FROM submissions s
 		JOIN users u ON u.id = s.student_id
 		WHERE s.assignment_id = $1
@@ -191,19 +192,23 @@ func (r *SubmissionRepositoryPG) ListByAssignment(ctx context.Context, assignmen
 	var out []views.SubmissionView
 	for rows.Next() {
 		var (
-			id, aid, sid int64
-			studentName  string
-			gradeValue   sql.NullInt64
-			feedback     sql.NullString
-			gradedBy     sql.NullInt64
-			gradedAt     sql.NullTime
-			statusStr    string
-			createdAt    time.Time
-			updatedAt    time.Time
+			id, aid, sid   int64
+			studentName    string
+			gradeValue     sql.NullInt64
+			feedback       sql.NullString
+			gradedBy       sql.NullInt64
+			gradedAt       sql.NullTime
+			statusStr      string
+			returnReason   sql.NullString
+			returnedByNull sql.NullInt64
+			returnedAtNull sql.NullTime
+			createdAt      time.Time
+			updatedAt      time.Time
 		)
 		if err := rows.Scan(&id, &aid, &sid, &studentName,
 			&gradeValue, &feedback, &gradedBy, &gradedAt,
-			&statusStr, &createdAt, &updatedAt); err != nil {
+			&statusStr, &returnReason, &returnedByNull, &returnedAtNull,
+			&createdAt, &updatedAt); err != nil {
 			return nil, fmt.Errorf("submissions: list by assignment scan: %w", err)
 		}
 
@@ -221,6 +226,16 @@ func (r *SubmissionRepositoryPG) ListByAssignment(ctx context.Context, assignmen
 			t := gradedAt.Time
 			ga = &t
 		}
+		var rb *int64
+		if returnedByNull.Valid {
+			v := returnedByNull.Int64
+			rb = &v
+		}
+		var rat *time.Time
+		if returnedAtNull.Valid {
+			t := returnedAtNull.Time
+			rat = &t
+		}
 
 		out = append(out, views.SubmissionView{
 			ID:           id,
@@ -231,6 +246,9 @@ func (r *SubmissionRepositoryPG) ListByAssignment(ctx context.Context, assignmen
 			Feedback:     feedback.String,
 			GradedBy:     gb,
 			GradedAt:     ga,
+			ReturnReason: returnReason.String,
+			ReturnedBy:   rb,
+			ReturnedAt:   rat,
 			Status:       entities.SubmissionStatus(statusStr),
 			CreatedAt:    createdAt,
 			UpdatedAt:    updatedAt,
