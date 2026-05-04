@@ -2,6 +2,8 @@ package entities
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -59,7 +61,17 @@ type NewAssignmentParams struct {
 // Each violation wraps ErrInvalidAssignment with the offending field so
 // errors.Is still resolves the sentinel for the 422 mapping.
 func NewAssignment(p NewAssignmentParams) (*Assignment, error) {
-	// stub for RED — no validation
+	title := strings.TrimSpace(p.Title)
+	if title == "" {
+		return nil, fmt.Errorf("%w: title must not be empty", ErrInvalidAssignment)
+	}
+	groupName := strings.TrimSpace(p.GroupName)
+	if groupName == "" {
+		return nil, fmt.Errorf("%w: group_name must not be empty", ErrInvalidAssignment)
+	}
+	if p.MaxScore <= 0 {
+		return nil, fmt.Errorf("%w: max_score must be positive, got %d", ErrInvalidAssignment, p.MaxScore)
+	}
 	return &Assignment{
 		title:       p.Title,
 		description: p.Description,
@@ -105,6 +117,9 @@ func (a *Assignment) UpdatedAt() time.Time { return a.updatedAt }
 // otherwise. Today the rule is "only the author"; if co-teaching is
 // added later, this is the single place to extend.
 func (a *Assignment) AuthorizeGrader(userID int64) error {
-	// stub for RED — always permits
-	return nil
+	if userID == a.teacherID {
+		return nil
+	}
+	return fmt.Errorf("%w: user %d is not the author (%d)",
+		ErrAssignmentScopeForbidden, userID, a.teacherID)
 }
