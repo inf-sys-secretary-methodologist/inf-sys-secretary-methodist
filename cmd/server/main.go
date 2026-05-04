@@ -413,6 +413,12 @@ func main() {
 	saveGradeUseCase := assignUsecases.NewSaveGradeUseCase(
 		assignmentRepo, submissionRepo, gradeNotifier, auditLogger, nil,
 	)
+	returnNotifier := &assignmentsReturnNotifier{
+		notif: notificationUseCase,
+	}
+	returnSubmissionUseCase := assignUsecases.NewReturnSubmissionUseCase(
+		assignmentRepo, submissionRepo, returnNotifier, auditLogger, nil,
+	)
 	listAssignmentsUseCase := assignUsecases.NewListAssignmentsUseCase(assignmentRepo)
 	getAssignmentUseCase := assignUsecases.NewGetAssignmentUseCase(assignmentRepo)
 	listSubmissionsUseCase := assignUsecases.NewListSubmissionsUseCase(assignmentRepo, submissionRepo)
@@ -626,6 +632,7 @@ func main() {
 		taskUseCase,
 		projectUseCase,
 		saveGradeUseCase,
+		returnSubmissionUseCase,
 		listAssignmentsUseCase,
 		getAssignmentUseCase,
 		listSubmissionsUseCase,
@@ -1130,6 +1137,7 @@ func setupRoutes(
 	taskUseCase *taskUsecases.TaskUseCase,
 	projectUseCase *taskUsecases.ProjectUseCase,
 	saveGradeUseCase *assignUsecases.SaveGradeUseCase,
+	returnSubmissionUseCase *assignUsecases.ReturnSubmissionUseCase,
 	listAssignmentsUseCase *assignUsecases.ListAssignmentsUseCase,
 	getAssignmentUseCase *assignUsecases.GetAssignmentUseCase,
 	listSubmissionsUseCase *assignUsecases.ListSubmissionsUseCase,
@@ -1831,6 +1839,7 @@ func setupRoutes(
 		// even probe) grading endpoints for their peers.
 		if saveGradeUseCase != nil {
 			gradeHandlerInstance := assignHandler.NewGradeHandler(saveGradeUseCase)
+			returnHandlerInstance := assignHandler.NewReturnHandler(returnSubmissionUseCase)
 			assignmentsHandler := assignHandler.NewAssignmentsHandler(
 				listAssignmentsUseCase, getAssignmentUseCase, listSubmissionsUseCase,
 			)
@@ -1843,6 +1852,8 @@ func setupRoutes(
 				assignmentsGroup.GET("/:id/submissions", assignmentsHandler.ListSubmissions)
 				assignmentsGroup.POST("/:id/grades", gradeHandlerInstance.SaveGrade)
 				assignmentsGroup.OPTIONS("/:id/grades", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				assignmentsGroup.POST("/:id/returns", returnHandlerInstance.Return)
+				assignmentsGroup.OPTIONS("/:id/returns", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 
 			logger.Info("Assignments module routes registered", nil)
@@ -2261,6 +2272,47 @@ func (n *assignmentsGradeNotifier) NotifyGraded(ctx context.Context, studentID, 
 		Link:     fmt.Sprintf("/assignments/%d", assignmentID),
 	})
 	return err
+}
+
+// assignmentsReturnNotifier adapts the platform NotificationUseCase to
+// the assignments module's narrow ReturnSubmissionNotifier port. Same
+// DI-seam pattern as assignmentsGradeNotifier — the assignments module
+// itself stays free of cross-module Go imports.
+type assignmentsReturnNotifier struct {
+	notif *notifUsecases.NotificationUseCase
+}
+
+// NotifyReturned creates a "task"-typed notification telling the
+// student that their submission was returned for revision. Returns nil
+// silently when the notification subsystem is disabled (notif == nil).
+// The reason text is intentionally truncated in the message body to
+// fit a notification card; the full reason lives on the submission row
+// so the frontend can render it on /assignments/:id.
+func (n *assignmentsReturnNotifier) NotifyReturned(ctx context.Context, studentID, assignmentID int64, reason string) error {
+	if n == nil || n.notif == nil {
+		return nil
+	}
+	_, err := n.notif.Create(ctx, &notifDto.CreateNotificationInput{
+		UserID:   studentID,
+		Type:     notifEntities.NotificationTypeTask,
+		Priority: notifEntities.PriorityNormal,
+		Title:    "Работа возвращена на доработку",
+		Message:  fmt.Sprintf("Преподаватель просит исправить работу: %s", truncateForNotification(reason, 200)),
+		Link:     fmt.Sprintf("/assignments/%d", assignmentID),
+	})
+	return err
+}
+
+// truncateForNotification trims a string to maxLen runes and appends
+// an ellipsis when truncation occurs. Inline because it's used only by
+// the return-notifier adapter; promote to a shared helper if a third
+// caller appears.
+func truncateForNotification(s string, maxLen int) string {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
+		return s
+	}
+	return string(runes[:maxLen]) + "…"
 }
 
 // livenessHandler returns a simple liveness probe endpoint for Kubernetes.
