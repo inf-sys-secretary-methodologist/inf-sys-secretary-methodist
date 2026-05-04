@@ -73,10 +73,10 @@ func NewAssignment(p NewAssignmentParams) (*Assignment, error) {
 		return nil, fmt.Errorf("%w: max_score must be positive, got %d", ErrInvalidAssignment, p.MaxScore)
 	}
 	return &Assignment{
-		title:       p.Title,
+		title:       title,
 		description: p.Description,
 		teacherID:   p.TeacherID,
-		groupName:   p.GroupName,
+		groupName:   groupName,
 		subject:     p.Subject,
 		maxScore:    p.MaxScore,
 		dueDate:     p.DueDate,
