@@ -3,7 +3,10 @@
 // project-management tasks module).
 package entities
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // ErrInvalidScore signals that a score value violates one of the Score
 // invariants: max must be positive, value must be in [0, max]. Handlers
@@ -20,9 +23,22 @@ type Score struct {
 }
 
 // NewScore returns a Score after enforcing invariants. Returns
-// ErrInvalidScore on violation.
+// ErrInvalidScore (wrapped with context) on violation.
+//
+// Invariants:
+//   - max > 0  (an assignment with non-positive max would be meaningless)
+//   - value >= 0
+//   - value <= max
 func NewScore(value, max int) (Score, error) {
-	// stub for RED — invariants are not enforced yet
+	if max <= 0 {
+		return Score{}, fmt.Errorf("%w: max must be positive, got %d", ErrInvalidScore, max)
+	}
+	if value < 0 {
+		return Score{}, fmt.Errorf("%w: value cannot be negative, got %d", ErrInvalidScore, value)
+	}
+	if value > max {
+		return Score{}, fmt.Errorf("%w: value %d exceeds max %d", ErrInvalidScore, value, max)
+	}
 	return Score{value: value, max: max}, nil
 }
 
