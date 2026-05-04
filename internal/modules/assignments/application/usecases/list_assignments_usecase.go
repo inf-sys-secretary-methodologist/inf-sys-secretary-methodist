@@ -2,7 +2,7 @@ package usecases
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
@@ -56,9 +56,49 @@ func NewListAssignmentsUseCase(repo repositories.AssignmentRepository) *ListAssi
 	return &ListAssignmentsUseCase{repo: repo}
 }
 
-// Execute is the use-case entry point. Stub returns ErrNotImplemented
-// during the RED stage of the TDD cycle — it makes the failing tests
-// compile while clearly signalling the missing behaviour.
+// Execute builds a repository filter from the caller's scope, queries
+// the repository and returns the assignments visible to that caller.
+//
+// Caller-scope mapping:
+//   - Unrestricted=true → no TeacherID filter (methodist / secretary / admin)
+//   - Unrestricted=false → forced TeacherID = caller.UserID (teacher)
+//
+// Pagination policy lives here, not in the repository, so callers can
+// not opt out by passing huge Limit values: <=0 defaults to
+// DefaultListLimit, anything above MaxListLimit is clamped down.
 func (uc *ListAssignmentsUseCase) Execute(ctx context.Context, in ListAssignmentsInput) (ListAssignmentsOutput, error) {
-	return ListAssignmentsOutput{}, errors.New("ListAssignmentsUseCase.Execute: not implemented")
+	filter := repositories.AssignmentListFilter{
+		Subject:   in.Subject,
+		GroupName: in.GroupName,
+		Limit:     clampLimit(in.Limit),
+		Offset:    clampOffset(in.Offset),
+	}
+	if !in.Caller.Unrestricted {
+		teacherID := in.Caller.UserID
+		filter.TeacherID = &teacherID
+	}
+
+	res, err := uc.repo.List(ctx, filter)
+	if err != nil {
+		return ListAssignmentsOutput{}, fmt.Errorf("list assignments: %w", err)
+	}
+	return ListAssignmentsOutput{Items: res.Items, Total: res.Total}, nil
+}
+
+func clampLimit(v int) int {
+	switch {
+	case v <= 0:
+		return DefaultListLimit
+	case v > MaxListLimit:
+		return MaxListLimit
+	default:
+		return v
+	}
+}
+
+func clampOffset(v int) int {
+	if v < 0 {
+		return 0
+	}
+	return v
 }
