@@ -14,6 +14,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
+var errFakeAssignmentRepoFault = errors.New("db down")
+
 func TestListAssignmentsUseCase_Execute(t *testing.T) {
 	caller := func(userID int64, unrestricted bool) usecases.CallerScope {
 		return usecases.CallerScope{UserID: userID, Unrestricted: unrestricted}
@@ -109,12 +111,15 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 			},
 		},
 		{
-			name: "repository error is wrapped",
+			// errors.Is preserves the sentinel through the use-case
+			// "list assignments:" wrap; a regression that replaces %w
+			// with %v would break the chain and the assertion below.
+			name: "repository error is wrapped (sentinel preserved)",
 			input: usecases.ListAssignmentsInput{
 				Caller: caller(authorTeacherID, true),
 			},
-			repoErr: errors.New("db down"),
-			wantErr: errors.New("db down"),
+			repoErr: errFakeAssignmentRepoFault,
+			wantErr: errFakeAssignmentRepoFault,
 		},
 		{
 			name: "items and total propagate to caller",
@@ -147,7 +152,8 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 
 			if tc.wantErr != nil {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), tc.wantErr.Error())
+				assert.True(t, errors.Is(err, tc.wantErr),
+					"expected wrap of %v, got %v", tc.wantErr, err)
 				return
 			}
 

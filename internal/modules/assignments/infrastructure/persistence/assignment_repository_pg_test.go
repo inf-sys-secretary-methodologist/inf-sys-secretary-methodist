@@ -119,7 +119,7 @@ func TestAssignmentRepositoryPG_List(t *testing.T) {
 			AddRow(int64(1), "L1", "d1", teacherID, "ИС-21", "Algo", 100, sql.NullTime{}, now, now).
 			AddRow(int64(2), "L2", "d2", teacherID, "ИС-22", "Algo", 50, sql.NullTime{}, now, now)
 
-		mock.ExpectQuery(regexp.QuoteMeta("FROM assignments")).
+		mock.ExpectQuery(regexp.QuoteMeta("ORDER BY created_at DESC")).
 			WithArgs(sql.NullInt64{}, "", "", 50, 0).
 			WillReturnRows(rows)
 
@@ -146,7 +146,7 @@ func TestAssignmentRepositoryPG_List(t *testing.T) {
 			"subject", "max_score", "due_date", "created_at", "updated_at",
 		}).AddRow(int64(1), "L1", "d", teacherID, "ИС-21", "Algo", 100, sql.NullTime{}, now, now)
 
-		mock.ExpectQuery(regexp.QuoteMeta("FROM assignments")).
+		mock.ExpectQuery(regexp.QuoteMeta("ORDER BY created_at DESC")).
 			WithArgs(expectTID, "", "", 50, 0).
 			WillReturnRows(rows)
 
@@ -167,7 +167,7 @@ func TestAssignmentRepositoryPG_List(t *testing.T) {
 			WithArgs(sql.NullInt64{}, "Algo", "ИС-21").
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-		mock.ExpectQuery(regexp.QuoteMeta("FROM assignments")).
+		mock.ExpectQuery(regexp.QuoteMeta("ORDER BY created_at DESC")).
 			WithArgs(sql.NullInt64{}, "Algo", "ИС-21", 25, 100).
 			WillReturnRows(sqlmock.NewRows([]string{
 				"id", "title", "description", "teacher_id", "group_name",
@@ -202,7 +202,7 @@ func TestAssignmentRepositoryPG_List(t *testing.T) {
 			WithArgs(sql.NullInt64{}, "", "").
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(5))
 
-		mock.ExpectQuery(regexp.QuoteMeta("FROM assignments")).
+		mock.ExpectQuery(regexp.QuoteMeta("ORDER BY created_at DESC")).
 			WithArgs(sql.NullInt64{}, "", "", 50, 0).
 			WillReturnError(fmt.Errorf("query failed"))
 

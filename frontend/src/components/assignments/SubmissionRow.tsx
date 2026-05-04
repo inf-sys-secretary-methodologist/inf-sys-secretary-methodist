@@ -89,7 +89,16 @@ export function SubmissionRow({ assignmentId, maxScore, submission, onGraded }: 
       )}
 
       <div className="mt-4">
+        {/*
+          Key includes status + grade so React remounts GradeForm when
+          a submission flips pending → graded. Without remount the form
+          keeps its previous useState(initialValue) and would display
+          stale user input after a successful save (the inputs would
+          be disabled, but the visible value would not match the
+          persisted normalisation).
+        */}
         <GradeForm
+          key={`${submission.id}:${submission.status}:${submission.grade_value ?? ''}`}
           assignmentId={assignmentId}
           maxScore={maxScore}
           submission={submission}

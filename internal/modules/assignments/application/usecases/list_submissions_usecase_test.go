@@ -15,6 +15,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 )
 
+var errFakeSubmissionRepoFault = errors.New("db down")
+
 func TestListSubmissionsUseCase_Execute(t *testing.T) {
 	statusPending := entities.StatusPending
 	statusGraded := entities.StatusGraded
@@ -96,12 +98,15 @@ func TestListSubmissionsUseCase_Execute(t *testing.T) {
 			wantCount: 2,
 		},
 		{
-			name:    "submission repo error wrapped",
+			// Verify the sentinel survives the use-case wrap via errors.Is
+			// — a future change replacing %w with %v would break the chain
+			// and silently let this test pass with assert.Contains.
+			name:    "submission repo error wrapped (sentinel preserved)",
 			caller:  usecases.CallerScope{UserID: authorTeacherID, Unrestricted: false},
 			askID:   assignmentID,
 			seedID:  assignmentID,
-			repoErr: errors.New("db down"),
-			wantErr: errors.New("db down"),
+			repoErr: errFakeSubmissionRepoFault,
+			wantErr: errFakeSubmissionRepoFault,
 		},
 		{
 			name:      "empty submissions returned as empty slice",
@@ -131,7 +136,8 @@ func TestListSubmissionsUseCase_Execute(t *testing.T) {
 
 			if tc.wantErr != nil {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), tc.wantErr.Error())
+				assert.True(t, errors.Is(err, tc.wantErr),
+					"expected wrap of %v, got %v", tc.wantErr, err)
 				return
 			}
 
