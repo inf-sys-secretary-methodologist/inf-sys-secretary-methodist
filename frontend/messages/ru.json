@@ -181,7 +181,8 @@
     "schedule": "Расписание",
     "adminSettings": "Системные настройки",
     "educationGroup": "Учебный процесс",
-    "communicationGroup": "Коммуникации"
+    "communicationGroup": "Коммуникации",
+    "assignments": "Задания"
   },
   "roles": {
     "system_admin": "Администратор",
@@ -2313,5 +2314,64 @@
     "tokenMissing": "В ссылке не указан токен сброса",
     "weakPasswordError": "Пароль не соответствует требованиям безопасности",
     "genericError": "Не удалось сохранить пароль, попробуйте ещё раз"
+  },
+  "assignments": {
+    "title": "Задания",
+    "description": "Список академических заданий и проверка работ",
+    "loadFailed": "Не удалось загрузить задания",
+    "countLabel": "Показано {shown} из {total}",
+    "filters": {
+      "subject": "Предмет",
+      "subjectPlaceholder": "Любой предмет",
+      "group": "Группа",
+      "groupPlaceholder": "Любая группа"
+    },
+    "empty": {
+      "title": "Заданий нет",
+      "description": "Когда задания будут опубликованы, они появятся здесь."
+    },
+    "card": {
+      "openAria": "Открыть задание {title}",
+      "maxScoreLabel": "Макс. {max}"
+    },
+    "detail": {
+      "backToList": "К списку заданий",
+      "loadFailed": "Не удалось загрузить задание",
+      "subject": "Предмет",
+      "group": "Группа",
+      "maxScore": "Макс. балл",
+      "submissionsTitle": "Работы студентов",
+      "submissionsEmpty": "Работ пока нет.",
+      "statusFilterAria": "Фильтр по статусу",
+      "statusAll": "Все"
+    },
+    "status": {
+      "pending": "Ожидает",
+      "graded": "Оценено",
+      "returned": "Возвращено"
+    },
+    "submissionRow": {
+      "studentIdLabel": "ID студента: {id}"
+    },
+    "gradeForm": {
+      "valueLabel": "Балл (из {max})",
+      "feedbackLabel": "Комментарий",
+      "feedbackPlaceholder": "Необязательно",
+      "save": "Сохранить",
+      "alreadySaved": "Сохранено",
+      "saveSuccess": "Оценка для {name} сохранена",
+      "validation": {
+        "NOT_A_NUMBER": "Введите число",
+        "NEGATIVE": "Балл не может быть отрицательным",
+        "OVER_MAX": "Балл не может превышать {max}",
+        "NOT_INTEGER": "Балл должен быть целым числом"
+      },
+      "errors": {
+        "alreadyGraded": "Эта работа уже оценена",
+        "invalidValue": "Недопустимое значение балла",
+        "forbidden": "Недостаточно прав для выставления оценки",
+        "generic": "Не удалось сохранить оценку"
+      }
+    }
   }
 }

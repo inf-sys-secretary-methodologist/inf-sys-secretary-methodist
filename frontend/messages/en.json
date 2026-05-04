@@ -181,7 +181,8 @@
     "schedule": "Schedule",
     "adminSettings": "System Settings",
     "educationGroup": "Education",
-    "communicationGroup": "Communication"
+    "communicationGroup": "Communication",
+    "assignments": "Assignments"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -2313,5 +2314,64 @@
     "tokenMissing": "Reset token is missing from the link",
     "weakPasswordError": "Password does not meet the security requirements",
     "genericError": "Could not save the password, please try again"
+  },
+  "assignments": {
+    "title": "Assignments",
+    "description": "Academic assignments and student grading",
+    "loadFailed": "Failed to load assignments",
+    "countLabel": "Showing {shown} of {total}",
+    "filters": {
+      "subject": "Subject",
+      "subjectPlaceholder": "Any subject",
+      "group": "Group",
+      "groupPlaceholder": "Any group"
+    },
+    "empty": {
+      "title": "No assignments yet",
+      "description": "Published assignments will appear here."
+    },
+    "card": {
+      "openAria": "Open assignment {title}",
+      "maxScoreLabel": "Max {max}"
+    },
+    "detail": {
+      "backToList": "Back to assignments",
+      "loadFailed": "Failed to load assignment",
+      "subject": "Subject",
+      "group": "Group",
+      "maxScore": "Max score",
+      "submissionsTitle": "Student submissions",
+      "submissionsEmpty": "No submissions yet.",
+      "statusFilterAria": "Filter by status",
+      "statusAll": "All"
+    },
+    "status": {
+      "pending": "Pending",
+      "graded": "Graded",
+      "returned": "Returned"
+    },
+    "submissionRow": {
+      "studentIdLabel": "Student ID: {id}"
+    },
+    "gradeForm": {
+      "valueLabel": "Score (out of {max})",
+      "feedbackLabel": "Feedback",
+      "feedbackPlaceholder": "Optional",
+      "save": "Save",
+      "alreadySaved": "Saved",
+      "saveSuccess": "Grade saved for {name}",
+      "validation": {
+        "NOT_A_NUMBER": "Please enter a number",
+        "NEGATIVE": "Score cannot be negative",
+        "OVER_MAX": "Score cannot exceed {max}",
+        "NOT_INTEGER": "Score must be a whole number"
+      },
+      "errors": {
+        "alreadyGraded": "This submission has already been graded",
+        "invalidValue": "Invalid grade value",
+        "forbidden": "You do not have permission to grade",
+        "generic": "Could not save the grade"
+      }
+    }
   }
 }

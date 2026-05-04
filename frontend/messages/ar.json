@@ -181,7 +181,8 @@
     "schedule": "جدول",
     "adminSettings": "إعدادات النظام",
     "educationGroup": "التعليم",
-    "communicationGroup": "التواصل"
+    "communicationGroup": "التواصل",
+    "assignments": "الواجبات"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -2313,5 +2314,64 @@
     "tokenMissing": "رمز إعادة التعيين غير موجود في الرابط",
     "weakPasswordError": "لا تستوفي كلمة المرور متطلبات الأمان",
     "genericError": "تعذّر حفظ كلمة المرور، حاول مرة أخرى"
+  },
+  "assignments": {
+    "title": "المهام",
+    "description": "المهام الأكاديمية وتقييم الطلاب",
+    "loadFailed": "تعذر تحميل المهام",
+    "countLabel": "عرض {shown} من {total}",
+    "filters": {
+      "subject": "المادة",
+      "subjectPlaceholder": "أي مادة",
+      "group": "المجموعة",
+      "groupPlaceholder": "أي مجموعة"
+    },
+    "empty": {
+      "title": "لا توجد مهام",
+      "description": "ستظهر المهام المنشورة هنا."
+    },
+    "card": {
+      "openAria": "فتح المهمة {title}",
+      "maxScoreLabel": "الحد الأقصى {max}"
+    },
+    "detail": {
+      "backToList": "العودة إلى المهام",
+      "loadFailed": "تعذر تحميل المهمة",
+      "subject": "المادة",
+      "group": "المجموعة",
+      "maxScore": "الدرجة القصوى",
+      "submissionsTitle": "تسليمات الطلاب",
+      "submissionsEmpty": "لا توجد تسليمات بعد.",
+      "statusFilterAria": "التصفية حسب الحالة",
+      "statusAll": "الكل"
+    },
+    "status": {
+      "pending": "قيد الانتظار",
+      "graded": "تم التقييم",
+      "returned": "أُعيد"
+    },
+    "submissionRow": {
+      "studentIdLabel": "رقم الطالب: {id}"
+    },
+    "gradeForm": {
+      "valueLabel": "الدرجة (من {max})",
+      "feedbackLabel": "تعليق",
+      "feedbackPlaceholder": "اختياري",
+      "save": "حفظ",
+      "alreadySaved": "تم الحفظ",
+      "saveSuccess": "تم حفظ درجة {name}",
+      "validation": {
+        "NOT_A_NUMBER": "يرجى إدخال رقم",
+        "NEGATIVE": "لا يمكن أن تكون الدرجة سالبة",
+        "OVER_MAX": "لا يمكن أن تتجاوز الدرجة {max}",
+        "NOT_INTEGER": "يجب أن تكون الدرجة عددًا صحيحًا"
+      },
+      "errors": {
+        "alreadyGraded": "تم تقييم هذا التسليم بالفعل",
+        "invalidValue": "قيمة درجة غير صالحة",
+        "forbidden": "ليس لديك إذن للتقييم",
+        "generic": "تعذر حفظ الدرجة"
+      }
+    }
   }
 }

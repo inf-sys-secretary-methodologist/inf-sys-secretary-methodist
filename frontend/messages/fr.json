@@ -181,7 +181,8 @@
     "schedule": "Planning",
     "adminSettings": "Paramètres système",
     "educationGroup": "Enseignement",
-    "communicationGroup": "Communication"
+    "communicationGroup": "Communication",
+    "assignments": "Devoirs"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -2313,5 +2314,64 @@
     "tokenMissing": "Le jeton de réinitialisation est absent du lien",
     "weakPasswordError": "Le mot de passe ne répond pas aux exigences de sécurité",
     "genericError": "Impossible d'enregistrer le mot de passe, veuillez réessayer"
+  },
+  "assignments": {
+    "title": "Devoirs",
+    "description": "Devoirs académiques et évaluation des étudiants",
+    "loadFailed": "Échec du chargement des devoirs",
+    "countLabel": "Affichage de {shown} sur {total}",
+    "filters": {
+      "subject": "Matière",
+      "subjectPlaceholder": "Toute matière",
+      "group": "Groupe",
+      "groupPlaceholder": "Tout groupe"
+    },
+    "empty": {
+      "title": "Aucun devoir",
+      "description": "Les devoirs publiés apparaîtront ici."
+    },
+    "card": {
+      "openAria": "Ouvrir le devoir {title}",
+      "maxScoreLabel": "Max {max}"
+    },
+    "detail": {
+      "backToList": "Retour aux devoirs",
+      "loadFailed": "Échec du chargement du devoir",
+      "subject": "Matière",
+      "group": "Groupe",
+      "maxScore": "Note max",
+      "submissionsTitle": "Travaux des étudiants",
+      "submissionsEmpty": "Aucun travail pour le moment.",
+      "statusFilterAria": "Filtrer par statut",
+      "statusAll": "Tous"
+    },
+    "status": {
+      "pending": "En attente",
+      "graded": "Noté",
+      "returned": "Renvoyé"
+    },
+    "submissionRow": {
+      "studentIdLabel": "ID étudiant : {id}"
+    },
+    "gradeForm": {
+      "valueLabel": "Note (sur {max})",
+      "feedbackLabel": "Commentaire",
+      "feedbackPlaceholder": "Optionnel",
+      "save": "Enregistrer",
+      "alreadySaved": "Enregistré",
+      "saveSuccess": "Note enregistrée pour {name}",
+      "validation": {
+        "NOT_A_NUMBER": "Veuillez saisir un nombre",
+        "NEGATIVE": "La note ne peut pas être négative",
+        "OVER_MAX": "La note ne peut pas dépasser {max}",
+        "NOT_INTEGER": "La note doit être un nombre entier"
+      },
+      "errors": {
+        "alreadyGraded": "Ce travail a déjà été noté",
+        "invalidValue": "Valeur de note invalide",
+        "forbidden": "Vous n'avez pas l'autorisation de noter",
+        "generic": "Impossible d'enregistrer la note"
+      }
+    }
   }
 }

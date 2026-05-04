@@ -172,6 +172,21 @@ export const navigationConfig: NavEntry[] = [
           UserRole.STUDENT,
         ],
       },
+      {
+        // Academic assignments — separate from project-management tasks.
+        // Hidden from students because the v0.110.0 page is the
+        // grading view (the read-side endpoint is gated by the
+        // RequireNonStudent middleware on the backend).
+        nameKey: 'assignments',
+        url: '/assignments',
+        icon: GraduationCap,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+        ],
+      },
     ],
   },
   // Communication group — announcements + messages + AI
