@@ -8,7 +8,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // ReturnSubmissionNotifier is the narrow port through which the use case
@@ -37,17 +36,19 @@ type ReturnSubmissionUseCase struct {
 	assignmentRepo repositories.AssignmentRepository
 	submissionRepo repositories.SubmissionRepository
 	notifier       ReturnSubmissionNotifier
-	auditLogger    *logging.AuditLogger
+	auditSink      AuditSink
 	clock          func() time.Time
 }
 
 // NewReturnSubmissionUseCase wires the use case. clock defaults to
 // time.Now when nil so production callers do not have to supply one.
+// auditSink takes the narrow AuditSink port — *logging.AuditLogger
+// satisfies it structurally so production wiring stays unchanged.
 func NewReturnSubmissionUseCase(
 	assignmentRepo repositories.AssignmentRepository,
 	submissionRepo repositories.SubmissionRepository,
 	notifier ReturnSubmissionNotifier,
-	auditLogger *logging.AuditLogger,
+	auditSink AuditSink,
 	clock func() time.Time,
 ) *ReturnSubmissionUseCase {
 	if clock == nil {
@@ -57,7 +58,7 @@ func NewReturnSubmissionUseCase(
 		assignmentRepo: assignmentRepo,
 		submissionRepo: submissionRepo,
 		notifier:       notifier,
-		auditLogger:    auditLogger,
+		auditSink:      auditSink,
 		clock:          clock,
 	}
 }
@@ -100,6 +101,13 @@ func (uc *ReturnSubmissionUseCase) Execute(ctx context.Context, actorID int64, i
 		return fmt.Errorf("return submission: load submission: %w", err)
 	}
 
+	// Capture prior-grade state BEFORE Return clears it. The audit event
+	// emitted at the end of the flow needs the values that Return is
+	// about to wipe — forensic compliance: a reviewer reading the audit
+	// log post-incident must see what was undone.
+	prevGrade := submission.GradeValue()
+	prevFeedback := submission.Feedback()
+
 	if err := submission.Return(in.Reason, actorID, uc.clock()); err != nil {
 		return err
 	}
@@ -123,22 +131,30 @@ func (uc *ReturnSubmissionUseCase) Execute(ctx context.Context, actorID int64, i
 		}
 	}
 
-	uc.logAudit(ctx, actorID, "assignment.returned", map[string]any{
+	returnedFields := map[string]any{
 		"assignment_id": in.AssignmentID,
 		"student_id":    in.StudentID,
 		"reason":        in.Reason,
-	})
+	}
+	// Include previous_grade / previous_feedback only when there was a
+	// prior grade to clear. Pending → Returned has no prior grade —
+	// emitting empty/null keys would add noise to the audit stream.
+	if prevGrade != nil {
+		returnedFields["previous_grade"] = *prevGrade
+		returnedFields["previous_feedback"] = prevFeedback
+	}
+	uc.logAudit(ctx, actorID, "assignment.returned", returnedFields)
 
 	return nil
 }
 
 func (uc *ReturnSubmissionUseCase) logAudit(ctx context.Context, actorID int64, action string, fields map[string]any) {
-	if uc.auditLogger == nil {
+	if uc.auditSink == nil {
 		return
 	}
 	enriched := map[string]any{"actor_user_id": actorID}
 	for k, v := range fields {
 		enriched[k] = v
 	}
-	uc.auditLogger.LogAuditEvent(ctx, action, "assignment", enriched)
+	uc.auditSink.LogAuditEvent(ctx, action, "assignment", enriched)
 }

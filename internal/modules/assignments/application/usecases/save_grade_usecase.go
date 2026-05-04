@@ -10,7 +10,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // SaveGradeNotifier is a narrow port through which the SaveGrade use case
@@ -36,17 +35,19 @@ type SaveGradeUseCase struct {
 	assignmentRepo repositories.AssignmentRepository
 	submissionRepo repositories.SubmissionRepository
 	notifier       SaveGradeNotifier
-	auditLogger    *logging.AuditLogger
+	auditSink      AuditSink
 	clock          func() time.Time
 }
 
 // NewSaveGradeUseCase wires the use case. clock defaults to time.Now when
-// nil so production callers do not have to supply one.
+// nil so production callers do not have to supply one. auditSink takes the
+// narrow AuditSink port so tests can substitute a recording double; the
+// concrete *logging.AuditLogger satisfies it structurally.
 func NewSaveGradeUseCase(
 	assignmentRepo repositories.AssignmentRepository,
 	submissionRepo repositories.SubmissionRepository,
 	notifier SaveGradeNotifier,
-	auditLogger *logging.AuditLogger,
+	auditSink AuditSink,
 	clock func() time.Time,
 ) *SaveGradeUseCase {
 	if clock == nil {
@@ -56,7 +57,7 @@ func NewSaveGradeUseCase(
 		assignmentRepo: assignmentRepo,
 		submissionRepo: submissionRepo,
 		notifier:       notifier,
-		auditLogger:    auditLogger,
+		auditSink:      auditSink,
 		clock:          clock,
 	}
 }
@@ -136,12 +137,12 @@ func (uc *SaveGradeUseCase) Execute(ctx context.Context, teacherID int64, in Sav
 }
 
 func (uc *SaveGradeUseCase) logAudit(ctx context.Context, teacherID int64, action string, fields map[string]any) {
-	if uc.auditLogger == nil {
+	if uc.auditSink == nil {
 		return
 	}
 	enriched := map[string]any{"actor_user_id": teacherID}
 	for k, v := range fields {
 		enriched[k] = v
 	}
-	uc.auditLogger.LogAuditEvent(ctx, action, "assignment", enriched)
+	uc.auditSink.LogAuditEvent(ctx, action, "assignment", enriched)
 }
