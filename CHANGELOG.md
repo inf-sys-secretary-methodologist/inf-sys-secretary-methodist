@@ -15,6 +15,54 @@
 
 ---
 
+## [0.111.0] — 2026-05-04
+
+### Added — Assignments returned-transition flow
+
+Closes academic re-grading loop, оставленный недоделанным после v0.110.0. Teacher / methodist / academic_secretary / system_admin теперь может вернуть submission на доработку с reason — статус flip'ается `pending|graded → returned`, prior grade clears на entity и в DB.
+
+- **Domain**:
+  - `Submission.Return(reason, returnedBy, now)` — invariants: status≠returned (else `ErrAlreadyReturned`); reason trimmed-non-empty; reason ≤4096 chars; `returnedBy > 0` (`ErrInvalidReturn` wraps все три). Clears prior grade на entity (`gradeValue / feedback / gradedBy / gradedAt = nil`).
+  - `Assignment.AuthorizeGrader(actorID)` reused для return permission **без нового метода**. Семантика «может ли user mutate submissions on this assignment» symmetric для grade и return. YAGNI на split — если когда-нибудь permissions diverge, тогда и расщеплять.
+- **Use case** `ReturnSubmissionUseCase` — load → `AuthorizeGrader` → load-or-create Submission → capture prior grade (для audit) → `Return` → persist → notify (best-effort) → audit `assignment.returned` (с `previous_grade` / `previous_feedback` если был prior grade). Denied attempts emit `assignment.return_denied`. Notifier failure logs `assignment.return_notify_failed` без abort'а transition'а.
+- **Narrow port `AuditSink`** (DIP) — `usecases.AuditSink` interface извлечён в `audit_sink.go`. SaveGrade + ReturnSubmission теперь зависят от interface, не от concrete `*logging.AuditLogger`. Production wiring не трогался — `*logging.AuditLogger` структурно satisfies interface (`map[string]any` ≡ `map[string]interface{}` в Go ≥1.18). Tests fakeable через `recordingAuditSink` с defensive map copy.
+- **Endpoint** `POST /api/assignments/:id/returns` за `RequireNonStudent` + handler role whitelist (defense-in-depth). Failure-closed DI.
+- **Migration 030** — columns `return_reason TEXT` / `returned_by BIGINT REFERENCES users(id) ON DELETE SET NULL` / `returned_at TIMESTAMPTZ` + bidirectional CHECK constraint `chk_submissions_returned_consistency`:
+  - При `status='returned'`: returnTriple non-null AND gradeTriple null.
+  - При `status<>'returned'`: anything goes.
+  - Defense-in-depth: catches direct SQL bypass + Reconstitute path. Symmetric с `chk_submissions_graded_consistency` (existing).
+  - Length cap `chk_submissions_return_reason_length` (4096) mirrors entity invariant.
+- **Frontend**:
+  - `ReturnDialog` component — reason textarea, confirm button, validation на frontend (mirrors entity invariants).
+  - `SubmissionRow` integration — кнопка «Вернуть на доработку» открывает dialog.
+  - Returned submissions render metadata block (reason + `returned_at` через `parseLocalDate`) в `bg-sky-50 dark:bg-sky-950/30` (cohesive со `STATUS_STYLES.returned` — `RotateCcw` icon, `text-sky-700`).
+  - `GradeForm` `isAlreadyGraded` predicate widened: `status === 'graded'` → `status !== 'pending'`. Returned submission показывает empty disabled форму до student-side resubmit'а.
+- **i18n × 4** (ru/en/fr/ar) — 16 новых ключей (dialog labels, error messages, status badge, action button). Parity verified.
+
+### Tests
+
+- 13 RED→GREEN пар (domain entity + invariant validation, migration round-trip via repo Save, repo List, use case happy path, audit content + AuditSink port extraction, handler happy path, frontend API, ReturnDialog, SubmissionRow integration, return metadata render, GradeForm gating).
+- 5 backfill `test:` commits (invariant validation, clear-prior-grade assertion, table-driven authz, notifier-failure semantics, handler whitelist matrix).
+- Frontend: 170 suites / 2461 tests green.
+- Backend: все packages green.
+
+### Code review
+
+`superpowers:code-reviewer` T20: **APPROVED** mean **9.5/10**, must-fix none. DDD / Security / i18n / Migration все 10/10. Single review pass — fix-cycle не понадобился.
+
+### Out of scope
+
+- **Student-side resubmit flow** (`returned → pending`) — отдельный bounded surface (student-facing), отложен к v0.112.0.
+- **`logAudit` helper duplication N=2** между SaveGrade и ReturnSubmission — reviewer flagged как «extract on N=3»; deferred к v0.112.0 когда `ResubmitSubmissionUseCase` станет третьим callsite.
+
+### Architecture
+
+- **Bidirectional CHECK constraint** pattern — для всех future state-transition aggregates: domain enforces invariant on writes, DB CHECK ловит non-domain paths.
+- **Best-effort notifier** semantics закрепился (4-й релиз подряд после v0.108.0 / v0.108.1 / v0.109.0). State (return) — system of record, notification — побочный эффект; failure НЕ откатывает.
+- **Subagent-driven dispatch + structured plan = natural TDD discipline.** 25 tasks × ~2 subagents (impl + review) = ~50 dispatches без потери контекста. Vs v0.109.0 где TDD borderline в Cycle 5 — здесь zero violations.
+
+---
+
 ## [0.110.0] — 2026-05-04
 
 ### Added — Assignments read-side + grading UI
