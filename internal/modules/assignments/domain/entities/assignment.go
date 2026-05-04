@@ -147,6 +147,20 @@ func (a *Assignment) AuthorizeGrader(userID int64) error {
 		ErrAssignmentScopeForbidden, userID, a.teacherID)
 }
 
+// AuthorizeAccess returns nil if the caller may read this assignment.
+// "Unrestricted" callers (methodist / academic_secretary /
+// system_admin at the application layer) always pass; otherwise the
+// rule is the same as AuthorizeGrader — the user must be the author.
+//
+// Centralising the read-side rule in the aggregate keeps the
+// GetAssignment and ListSubmissions use cases from re-implementing
+// (and accidentally diverging from) the same predicate. Stub during
+// the RED stage of the v0.110.0 reviewer DDD fix; the GREEN commit
+// replaces the body once the failing test is in place.
+func (a *Assignment) AuthorizeAccess(unrestricted bool, userID int64) error {
+	return fmt.Errorf("%w: AuthorizeAccess not implemented", ErrAssignmentScopeForbidden)
+}
+
 // NewSubmissionScore is the domain method that owns the cross-aggregate
 // rule "a submission's score must be within this assignment's
 // maxScore." Moving this construction here closes the leak the

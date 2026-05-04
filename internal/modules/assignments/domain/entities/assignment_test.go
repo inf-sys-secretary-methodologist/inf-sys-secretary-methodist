@@ -132,6 +132,39 @@ func TestAssignment_AuthorizeGrader(t *testing.T) {
 	}
 }
 
+func TestAssignment_AuthorizeAccess(t *testing.T) {
+	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
+	a, err := entities.NewAssignment(entities.NewAssignmentParams{
+		Title: "L1", TeacherID: 42, GroupName: "ИС-21",
+		Subject: "Algo", MaxScore: 100, Now: now,
+	})
+	require.NoError(t, err)
+
+	tests := []struct {
+		name         string
+		unrestricted bool
+		userID       int64
+		wantErr      error
+	}{
+		{name: "unrestricted caller bypasses author check", unrestricted: true, userID: 999},
+		{name: "author teacher passes", unrestricted: false, userID: 42},
+		{name: "non-author teacher is forbidden", unrestricted: false, userID: 7, wantErr: entities.ErrAssignmentScopeForbidden},
+		{name: "zero user id is forbidden", unrestricted: false, userID: 0, wantErr: entities.ErrAssignmentScopeForbidden},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := a.AuthorizeAccess(tc.unrestricted, tc.userID)
+			if tc.wantErr != nil {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, tc.wantErr))
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func TestAssignment_NewSubmissionScore(t *testing.T) {
 	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
 	a, err := entities.NewAssignment(entities.NewAssignmentParams{
