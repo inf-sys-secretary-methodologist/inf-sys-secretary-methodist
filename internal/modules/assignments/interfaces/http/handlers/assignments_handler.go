@@ -218,10 +218,29 @@ func (h *AssignmentsHandler) ListSubmissions(c *gin.Context) {
 	}))
 }
 
+// Recognised role values, mirrored from auth/domain/permission.go but
+// duplicated here to avoid an HTTP layer importing the auth domain.
+// Updating this list when a new role is introduced is a deliberate
+// step — the failure-closed default is "unknown role → no access."
+const (
+	roleTeacher           = "teacher"
+	roleMethodist         = "methodist"
+	roleAcademicSecretary = "academic_secretary"
+	roleSystemAdmin       = "system_admin"
+)
+
 // callerScopeFromContext converts the gin auth context (user_id +
-// role) into a use-case CallerScope. Failure-closed: if either the
-// id or role is missing/invalid we return ok=false, the caller
-// responds 401, and the request never reaches the use case.
+// role) into a use-case CallerScope. Failure-closed twice over:
+//   - missing user_id or role → ok=false → 401.
+//   - role not on the explicit whitelist (teacher / methodist /
+//     academic_secretary / system_admin) → ok=false → 401, even
+//     when the upstream middleware has already validated the JWT.
+//
+// Defence-in-depth: a future engineer who removes RequireNonStudent
+// or adds a new role to RequireRole must NOT silently get
+// "unrestricted" data access via this handler. The whitelist is the
+// last gate; unknown roles fall through to the same 401 path as
+// missing context.
 func callerScopeFromContext(c *gin.Context) (assignUsecases.CallerScope, bool) {
 	userID, ok := teacherIDFromContext(c)
 	if !ok {
@@ -232,16 +251,14 @@ func callerScopeFromContext(c *gin.Context) (assignUsecases.CallerScope, bool) {
 		return assignUsecases.CallerScope{}, false
 	}
 	roleStr, _ := roleVal.(string)
-	if roleStr == "" {
+	switch roleStr {
+	case roleMethodist, roleAcademicSecretary, roleSystemAdmin:
+		return assignUsecases.CallerScope{UserID: userID, Unrestricted: true}, true
+	case roleTeacher:
+		return assignUsecases.CallerScope{UserID: userID, Unrestricted: false}, true
+	default:
 		return assignUsecases.CallerScope{}, false
 	}
-	return assignUsecases.CallerScope{
-		UserID: userID,
-		// Only "teacher" is restricted to own assignments. The other
-		// non-student roles (system_admin, methodist, academic_secretary)
-		// see every assignment in the system.
-		Unrestricted: roleStr != "teacher",
-	}, true
 }
 
 func parseQueryInt(c *gin.Context, key string) int {
