@@ -168,3 +168,23 @@ describe('GradeForm', () => {
     expect(button).toBeDisabled()
   })
 })
+
+describe('GradeForm gating for returned status', () => {
+  it('disables grade input and feedback when status is returned', () => {
+    const returnedSubmission: SubmissionView = {
+      ...pendingSubmission,
+      status: 'returned',
+      return_reason: 'redo it',
+      returned_by: 99,
+      returned_at: '2026-05-04T12:00:00Z',
+    }
+    render(<GradeForm assignmentId={10} maxScore={100} submission={returnedSubmission} />)
+    // Inputs disabled — value can't be entered, save button disabled.
+    // Re-grading must go through Return → student resubmit (v0.112.0)
+    // before a teacher can grade again.
+    const valueInput = screen.getByLabelText(/valueLabel/) as HTMLInputElement
+    expect(valueInput).toBeDisabled()
+    const submitButton = screen.getByRole('button')
+    expect(submitButton).toBeDisabled()
+  })
+})
