@@ -2,6 +2,7 @@ package usecases_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 // TestReturnSubmissionUseCase_PendingToReturnedHappyPath asserts the core
@@ -127,6 +129,121 @@ func TestReturnSubmissionUseCase_PendingToReturnedAuditsWithoutPreviousGrade(t *
 	assert.False(t, hasPrev, "previous_grade key must be absent when there was no prior grade (avoid empty-NULL noise)")
 	_, hasPrevFb := ret.Fields["previous_feedback"]
 	assert.False(t, hasPrevFb, "previous_feedback key must be absent when there was no prior grade")
+}
+
+// TestReturnSubmissionUseCase_AuthzAndErrorPaths sweeps the authorisation
+// and error-mapping matrix for Execute as a single table. Each row pins a
+// distinct failure mode plus the side-effect contract the use case must
+// honour on that failure: never persist, never notify, and emit an audit
+// event ONLY for the authz-denied path (matching SaveGrade's policy that
+// post-authz validation failures stay silent on the audit channel).
+//
+// The happy path is intentionally NOT in this table — it lives in its
+// own test above to keep the matrix focused on the negative space.
+func TestReturnSubmissionUseCase_AuthzAndErrorPaths(t *testing.T) {
+	// returnedSubFixture builds a Submission that has already transitioned
+	// to Returned, so that Execute will load it and Return will reject it
+	// with ErrAlreadyReturned. Constructed via the legitimate Return path
+	// (not a struct literal) to keep the entity invariants honest.
+	returnedSubFixture := func() *entities.Submission {
+		s := entities.NewSubmission(assignmentID, studentID, fixedNow.Add(-2*time.Hour))
+		require.NoError(t, s.Return("first return", authorTeacherID, fixedNow.Add(-time.Hour)))
+		return s
+	}
+
+	tests := []struct {
+		name             string
+		actor            int64
+		input            usecases.ReturnSubmissionInput
+		seed             *entities.Submission
+		wantErrIs        error
+		wantSaveCalls    int
+		wantNotifyCalled bool
+		wantAuditAction  string // "" means no audit action expected
+		wantAuditExtra   map[string]any
+	}{
+		{
+			name:  "assignment not found surfaces repository sentinel",
+			actor: authorTeacherID,
+			input: usecases.ReturnSubmissionInput{
+				AssignmentID: 999, StudentID: studentID, Reason: "x",
+			},
+			wantErrIs: repositories.ErrAssignmentNotFound,
+		},
+		{
+			name:  "non-author actor is forbidden and audit return_denied fires",
+			actor: otherTeacherID,
+			input: usecases.ReturnSubmissionInput{
+				AssignmentID: assignmentID, StudentID: studentID, Reason: "x",
+			},
+			wantErrIs:       entities.ErrAssignmentScopeForbidden,
+			wantAuditAction: "assignment.return_denied",
+			wantAuditExtra:  map[string]any{"reason": "not_author"},
+		},
+		{
+			name:  "already-returned submission rejected",
+			actor: authorTeacherID,
+			input: usecases.ReturnSubmissionInput{
+				AssignmentID: assignmentID, StudentID: studentID, Reason: "x",
+			},
+			seed:      returnedSubFixture(),
+			wantErrIs: entities.ErrAlreadyReturned,
+		},
+		{
+			name:  "empty reason rejected by entity invariant",
+			actor: authorTeacherID,
+			input: usecases.ReturnSubmissionInput{
+				AssignmentID: assignmentID, StudentID: studentID, Reason: "",
+			},
+			wantErrIs: entities.ErrInvalidReturn,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ar := newFakeAssignmentRepo()
+			ar.seed(makeAssignment(t, assignmentID, authorTeacherID))
+			sr := newFakeSubmissionRepo()
+			if tc.seed != nil {
+				sr.seed(tc.seed)
+			}
+			notifier := &recordingReturnNotifier{}
+			audit := &recordingAuditSink{}
+
+			uc := usecases.NewReturnSubmissionUseCase(ar, sr, notifier, audit, func() time.Time { return fixedNow })
+
+			err := uc.Execute(context.Background(), tc.actor, tc.input)
+
+			require.Error(t, err)
+			assert.True(t, errors.Is(err, tc.wantErrIs),
+				"expected error wrapping %v, got %v", tc.wantErrIs, err)
+			assert.Equal(t, tc.wantSaveCalls, sr.saveCalls,
+				"submission Save count mismatch on error path")
+			assert.Equal(t, tc.wantNotifyCalled, notifier.called,
+				"notifier should not be invoked on error paths")
+
+			if tc.wantAuditAction != "" {
+				var found *recordedAuditEvent
+				for i := range audit.events {
+					if audit.events[i].Action == tc.wantAuditAction {
+						found = &audit.events[i]
+						break
+					}
+				}
+				require.NotNil(t, found, "expected audit event %q", tc.wantAuditAction)
+				assert.Equal(t, "assignment", found.Resource)
+				assert.Equal(t, tc.actor, found.Fields["actor_user_id"])
+				for k, v := range tc.wantAuditExtra {
+					assert.Equal(t, v, found.Fields[k], "audit field %q mismatch", k)
+				}
+			} else {
+				// No audit expected — assert audit log is silent on this
+				// error path. Post-authz validation failures must not leak
+				// onto the audit stream (consistent with SaveGrade).
+				assert.Empty(t, audit.events, "no audit event should fire on this error path")
+			}
+		})
+	}
 }
 
 // recordingReturnNotifier captures NotifyReturned invocations so the test
