@@ -62,12 +62,72 @@ func (r *AssignmentRepositoryPG) GetByID(ctx context.Context, id int64) (*entiti
 	), nil
 }
 
-// List is a deliberate stub during the RED stage of the v0.110.0 list
-// flow. The behaviour-defining tests live next to the use case
-// (ListAssignmentsUseCase) and exercise List via a fake. The real
-// SQL implementation lands in the same release together with sqlmock
-// coverage. Returning an explicit error rather than an empty result
-// fails loudly if this stub ever escapes the development branch.
+// List returns a page of assignments matching the filter and the
+// total of matching rows. The total is computed by a separate COUNT
+// query rather than a window-function so an empty page past the end
+// of the result set still reports the correct dataset size — the UI
+// pagination needs that to render meaningful page controls.
+//
+// Filters use a sentinel-value pattern: NULL for TeacherID disables
+// the teacher predicate, empty string for subject / group_name
+// disables those. PostgreSQL accepts the cast-style "$1::bigint IS
+// NULL" check uniformly with sql.NullInt64.
 func (r *AssignmentRepositoryPG) List(ctx context.Context, filter repositories.AssignmentListFilter) (repositories.AssignmentListResult, error) {
-	return repositories.AssignmentListResult{}, errors.New("AssignmentRepositoryPG.List: not implemented (v0.110.0 cycle 4 pending)")
+	var tid sql.NullInt64
+	if filter.TeacherID != nil {
+		tid = sql.NullInt64{Int64: *filter.TeacherID, Valid: true}
+	}
+
+	const filterClause = `WHERE ($1::bigint IS NULL OR teacher_id = $1::bigint)
+		AND ($2 = '' OR subject = $2)
+		AND ($3 = '' OR group_name = $3)`
+
+	countQuery := `SELECT COUNT(*) FROM assignments ` + filterClause
+	var total int
+	if err := r.db.QueryRowContext(ctx, countQuery, tid, filter.Subject, filter.GroupName).Scan(&total); err != nil {
+		return repositories.AssignmentListResult{}, fmt.Errorf("assignments: count: %w", err)
+	}
+
+	listQuery := `SELECT ` + assignmentSelectColumns + ` FROM assignments ` + filterClause + `
+		ORDER BY created_at DESC, id DESC
+		LIMIT $4 OFFSET $5`
+
+	rows, err := r.db.QueryContext(ctx, listQuery, tid, filter.Subject, filter.GroupName, filter.Limit, filter.Offset)
+	if err != nil {
+		return repositories.AssignmentListResult{}, fmt.Errorf("assignments: list: %w", err)
+	}
+	defer rows.Close()
+
+	var items []*entities.Assignment
+	for rows.Next() {
+		var (
+			id          int64
+			title       string
+			description sql.NullString
+			teacherID   int64
+			groupName   string
+			subject     string
+			maxScore    int
+			dueDate     sql.NullTime
+			createdAt   time.Time
+			updatedAt   time.Time
+		)
+		if err := rows.Scan(&id, &title, &description, &teacherID, &groupName, &subject,
+			&maxScore, &dueDate, &createdAt, &updatedAt); err != nil {
+			return repositories.AssignmentListResult{}, fmt.Errorf("assignments: list scan: %w", err)
+		}
+		var due *time.Time
+		if dueDate.Valid {
+			d := dueDate.Time
+			due = &d
+		}
+		items = append(items, entities.ReconstituteAssignment(
+			id, title, description.String, teacherID, groupName, subject,
+			maxScore, due, createdAt, updatedAt,
+		))
+	}
+	if err := rows.Err(); err != nil {
+		return repositories.AssignmentListResult{}, fmt.Errorf("assignments: list iter: %w", err)
+	}
+	return repositories.AssignmentListResult{Items: items, Total: total}, nil
 }

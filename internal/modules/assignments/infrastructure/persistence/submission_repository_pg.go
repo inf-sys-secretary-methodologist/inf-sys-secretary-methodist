@@ -127,13 +127,83 @@ func nullableTime(p *time.Time) sql.NullTime {
 	return sql.NullTime{Time: *p, Valid: true}
 }
 
-// ListByAssignment is a deliberate stub during the RED stage of the
-// v0.110.0 list flow. The behaviour-defining tests live next to the
-// use case (ListSubmissionsUseCase) and exercise this method via a
-// fake. The real SQL implementation (with users-table join for
-// student name) lands in the same release together with sqlmock
-// coverage; returning an explicit error here fails loudly if the
-// stub ever escapes the development branch.
+// ListByAssignment returns the read-side projection of submission rows
+// for the given assignment, joined with users.name so the grading UI
+// renders student names without a second round-trip. A nil status
+// pointer means "any status"; the empty-string sentinel inside SQL
+// disables the predicate.
 func (r *SubmissionRepositoryPG) ListByAssignment(ctx context.Context, assignmentID int64, status *entities.SubmissionStatus) ([]views.SubmissionView, error) {
-	return nil, errors.New("SubmissionRepositoryPG.ListByAssignment: not implemented (v0.110.0 cycle 4 pending)")
+	statusFilter := ""
+	if status != nil {
+		statusFilter = string(*status)
+	}
+
+	query := `
+		SELECT s.id, s.assignment_id, s.student_id, COALESCE(u.name, ''),
+		       s.grade_value, s.feedback, s.graded_by, s.graded_at,
+		       s.status, s.created_at, s.updated_at
+		FROM submissions s
+		JOIN users u ON u.id = s.student_id
+		WHERE s.assignment_id = $1
+		  AND ($2 = '' OR s.status = $2)
+		ORDER BY u.name, s.id`
+
+	rows, err := r.db.QueryContext(ctx, query, assignmentID, statusFilter)
+	if err != nil {
+		return nil, fmt.Errorf("submissions: list by assignment: %w", err)
+	}
+	defer rows.Close()
+
+	var out []views.SubmissionView
+	for rows.Next() {
+		var (
+			id, aid, sid int64
+			studentName  string
+			gradeValue   sql.NullInt64
+			feedback     sql.NullString
+			gradedBy     sql.NullInt64
+			gradedAt     sql.NullTime
+			statusStr    string
+			createdAt    time.Time
+			updatedAt    time.Time
+		)
+		if err := rows.Scan(&id, &aid, &sid, &studentName,
+			&gradeValue, &feedback, &gradedBy, &gradedAt,
+			&statusStr, &createdAt, &updatedAt); err != nil {
+			return nil, fmt.Errorf("submissions: list by assignment scan: %w", err)
+		}
+
+		var gv *int
+		if gradeValue.Valid {
+			v := int(gradeValue.Int64)
+			gv = &v
+		}
+		var gb *int64
+		if gradedBy.Valid {
+			gb = &gradedBy.Int64
+		}
+		var ga *time.Time
+		if gradedAt.Valid {
+			t := gradedAt.Time
+			ga = &t
+		}
+
+		out = append(out, views.SubmissionView{
+			ID:           id,
+			AssignmentID: aid,
+			StudentID:    sid,
+			StudentName:  studentName,
+			GradeValue:   gv,
+			Feedback:     feedback.String,
+			GradedBy:     gb,
+			GradedAt:     ga,
+			Status:       entities.SubmissionStatus(statusStr),
+			CreatedAt:    createdAt,
+			UpdatedAt:    updatedAt,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("submissions: list by assignment iter: %w", err)
+	}
+	return out, nil
 }
