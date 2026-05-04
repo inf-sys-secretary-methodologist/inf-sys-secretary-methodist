@@ -62,7 +62,7 @@ describe('navigationConfig', () => {
     expect(itemKeys).toContain('templates')
   })
 
-  it('educationGroup contains schedule, calendar, and tasks', () => {
+  it('educationGroup contains schedule, calendar, tasks, and assignments', () => {
     const eduGroup = navigationConfig.find((e) => e.nameKey === 'educationGroup') as NavGroup
     expect(eduGroup).toBeDefined()
     expect(isNavGroup(eduGroup)).toBe(true)
@@ -70,6 +70,27 @@ describe('navigationConfig', () => {
     expect(itemKeys).toContain('schedule')
     expect(itemKeys).toContain('calendar')
     expect(itemKeys).toContain('tasks')
+    expect(itemKeys).toContain('assignments')
+  })
+
+  it('assignments entry is hidden from STUDENT and visible to all four non-student roles', () => {
+    const eduGroup = navigationConfig.find((e) => e.nameKey === 'educationGroup') as NavGroup
+    const assignments = eduGroup.items.find((i) => i.nameKey === 'assignments')
+    expect(assignments).toBeDefined()
+    expect(assignments!.url).toBe('/assignments')
+    // Student must NOT appear in the roles whitelist — the page is the
+    // grading view; the backend RequireNonStudent middleware is the
+    // real gate, but the navigation already excludes student-side
+    // visibility to avoid a dead-link round-trip.
+    expect(assignments!.roles).not.toContain(UserRole.STUDENT)
+    expect(assignments!.roles).toEqual(
+      expect.arrayContaining([
+        UserRole.SYSTEM_ADMIN,
+        UserRole.METHODIST,
+        UserRole.ACADEMIC_SECRETARY,
+        UserRole.TEACHER,
+      ])
+    )
   })
 
   it('communicationGroup contains announcements, messages, and aiAssistant', () => {
