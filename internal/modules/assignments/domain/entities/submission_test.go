@@ -257,4 +257,32 @@ func TestSubmission_Resubmit_NonReturnedRejected(t *testing.T) {
 	}
 }
 
+func TestSubmission_AuthorizeResubmitter(t *testing.T) {
+	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
+	s := entities.NewSubmission(1, 42, now)
+
+	tests := []struct {
+		name    string
+		actorID int64
+		wantErr error
+	}{
+		{name: "owner can resubmit", actorID: 42},
+		{name: "foreign student is forbidden", actorID: 7, wantErr: entities.ErrSubmissionOwnerOnly},
+		{name: "zero actor id is forbidden", actorID: 0, wantErr: entities.ErrSubmissionOwnerOnly},
+		{name: "negative actor id is forbidden", actorID: -1, wantErr: entities.ErrSubmissionOwnerOnly},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := s.AuthorizeResubmitter(tc.actorID)
+			if tc.wantErr != nil {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, tc.wantErr))
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func intPtr(v int) *int { return &v }
