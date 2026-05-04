@@ -2345,13 +2345,16 @@
       "statusFilterAria": "التصفية حسب الحالة",
       "statusAll": "الكل"
     },
+    "returnButton": "إعادة للتصحيح",
     "status": {
       "pending": "قيد الانتظار",
       "graded": "تم التقييم",
       "returned": "أُعيد"
     },
     "submissionRow": {
-      "studentIdLabel": "رقم الطالب: {id}"
+      "studentIdLabel": "رقم الطالب: {id}",
+      "returnedReasonLabel": "سبب الإرجاع:",
+      "returnedAtLabel": "أُرجعت في:"
     },
     "gradeForm": {
       "valueLabel": "الدرجة (من {max})",
@@ -2359,6 +2362,7 @@
       "feedbackPlaceholder": "اختياري",
       "save": "حفظ",
       "alreadySaved": "تم الحفظ",
+      "returnedReadOnly": "تمت الإعادة",
       "saveSuccess": "تم حفظ درجة {name}",
       "validation": {
         "NOT_A_NUMBER": "يرجى إدخال رقم",
@@ -2371,6 +2375,22 @@
         "invalidValue": "قيمة درجة غير صالحة",
         "forbidden": "ليس لديك إذن للتقييم",
         "generic": "تعذر حفظ الدرجة"
+      }
+    },
+    "returnDialog": {
+      "title": "إعادة للتصحيح",
+      "description": "صف ما يجب إصلاحه في عمل {name}.",
+      "reasonLabel": "السبب",
+      "reasonPlaceholder": "ما يجب إصلاحه",
+      "cancel": "إلغاء",
+      "confirm": "إرجاع",
+      "saving": "جاري الإرجاع…",
+      "successToast": "تم إرجاع عمل {name} للتصحيح",
+      "errors": {
+        "alreadyReturned": "تم إرجاع هذا العمل بالفعل",
+        "invalidReason": "السبب مطلوب ويجب ألا يتجاوز 4096 حرفًا",
+        "forbidden": "ليس لديك الصلاحية لإرجاع هذا العمل",
+        "generic": "تعذر إرجاع العمل"
       }
     }
   }

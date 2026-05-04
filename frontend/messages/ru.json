@@ -2345,13 +2345,16 @@
       "statusFilterAria": "Фильтр по статусу",
       "statusAll": "Все"
     },
+    "returnButton": "Вернуть на доработку",
     "status": {
       "pending": "Ожидает",
       "graded": "Оценено",
       "returned": "Возвращено"
     },
     "submissionRow": {
-      "studentIdLabel": "ID студента: {id}"
+      "studentIdLabel": "ID студента: {id}",
+      "returnedReasonLabel": "Причина возврата:",
+      "returnedAtLabel": "Возвращено:"
     },
     "gradeForm": {
       "valueLabel": "Балл (из {max})",
@@ -2359,6 +2362,7 @@
       "feedbackPlaceholder": "Необязательно",
       "save": "Сохранить",
       "alreadySaved": "Сохранено",
+      "returnedReadOnly": "Возвращено",
       "saveSuccess": "Оценка для {name} сохранена",
       "validation": {
         "NOT_A_NUMBER": "Введите число",
@@ -2371,6 +2375,22 @@
         "invalidValue": "Недопустимое значение балла",
         "forbidden": "Недостаточно прав для выставления оценки",
         "generic": "Не удалось сохранить оценку"
+      }
+    },
+    "returnDialog": {
+      "title": "Возврат на доработку",
+      "description": "Укажите, что нужно исправить в работе студента {name}.",
+      "reasonLabel": "Причина возврата",
+      "reasonPlaceholder": "Что нужно исправить",
+      "cancel": "Отмена",
+      "confirm": "Вернуть",
+      "saving": "Возврат…",
+      "successToast": "Работа {name} возвращена на доработку",
+      "errors": {
+        "alreadyReturned": "Эта работа уже возвращена",
+        "invalidReason": "Причина обязательна и не должна превышать 4096 символов",
+        "forbidden": "У вас нет прав на возврат этой работы",
+        "generic": "Не удалось вернуть работу"
       }
     }
   }

@@ -2345,13 +2345,16 @@
       "statusFilterAria": "Filter by status",
       "statusAll": "All"
     },
+    "returnButton": "Return for revision",
     "status": {
       "pending": "Pending",
       "graded": "Graded",
       "returned": "Returned"
     },
     "submissionRow": {
-      "studentIdLabel": "Student ID: {id}"
+      "studentIdLabel": "Student ID: {id}",
+      "returnedReasonLabel": "Return reason:",
+      "returnedAtLabel": "Returned:"
     },
     "gradeForm": {
       "valueLabel": "Score (out of {max})",
@@ -2359,6 +2362,7 @@
       "feedbackPlaceholder": "Optional",
       "save": "Save",
       "alreadySaved": "Saved",
+      "returnedReadOnly": "Returned",
       "saveSuccess": "Grade saved for {name}",
       "validation": {
         "NOT_A_NUMBER": "Please enter a number",
@@ -2371,6 +2375,22 @@
         "invalidValue": "Invalid grade value",
         "forbidden": "You do not have permission to grade",
         "generic": "Could not save the grade"
+      }
+    },
+    "returnDialog": {
+      "title": "Return for revision",
+      "description": "Describe what needs to be fixed in {name}'s submission.",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "What needs fixing",
+      "cancel": "Cancel",
+      "confirm": "Return",
+      "saving": "Returning…",
+      "successToast": "Submission by {name} was returned for revision",
+      "errors": {
+        "alreadyReturned": "This submission is already returned",
+        "invalidReason": "Reason is required and must not exceed 4096 characters",
+        "forbidden": "You are not allowed to return this submission",
+        "generic": "Could not return the submission"
       }
     }
   }

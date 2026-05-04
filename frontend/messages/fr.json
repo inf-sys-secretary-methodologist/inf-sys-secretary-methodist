@@ -2345,13 +2345,16 @@
       "statusFilterAria": "Filtrer par statut",
       "statusAll": "Tous"
     },
+    "returnButton": "Retourner pour révision",
     "status": {
       "pending": "En attente",
       "graded": "Noté",
       "returned": "Renvoyé"
     },
     "submissionRow": {
-      "studentIdLabel": "ID étudiant : {id}"
+      "studentIdLabel": "ID étudiant : {id}",
+      "returnedReasonLabel": "Motif du retour :",
+      "returnedAtLabel": "Retourné le :"
     },
     "gradeForm": {
       "valueLabel": "Note (sur {max})",
@@ -2359,6 +2362,7 @@
       "feedbackPlaceholder": "Optionnel",
       "save": "Enregistrer",
       "alreadySaved": "Enregistré",
+      "returnedReadOnly": "Retourné",
       "saveSuccess": "Note enregistrée pour {name}",
       "validation": {
         "NOT_A_NUMBER": "Veuillez saisir un nombre",
@@ -2371,6 +2375,22 @@
         "invalidValue": "Valeur de note invalide",
         "forbidden": "Vous n'avez pas l'autorisation de noter",
         "generic": "Impossible d'enregistrer la note"
+      }
+    },
+    "returnDialog": {
+      "title": "Retour pour révision",
+      "description": "Décrivez ce qui doit être corrigé dans le travail de {name}.",
+      "reasonLabel": "Motif",
+      "reasonPlaceholder": "Ce qui doit être corrigé",
+      "cancel": "Annuler",
+      "confirm": "Retourner",
+      "saving": "Retour…",
+      "successToast": "Le travail de {name} a été retourné pour révision",
+      "errors": {
+        "alreadyReturned": "Ce travail est déjà retourné",
+        "invalidReason": "Le motif est obligatoire et ne doit pas dépasser 4096 caractères",
+        "forbidden": "Vous n'avez pas le droit de retourner ce travail",
+        "generic": "Impossible de retourner le travail"
       }
     }
   }
