@@ -66,6 +66,7 @@ func (r *SubmissionRepositoryPG) GetByAssignmentAndStudent(ctx context.Context, 
 	}
 	return entities.ReconstituteSubmission(
 		id, aid, sid, gv, feedback.String, gb, ga,
+		"", nil, nil,
 		entities.SubmissionStatus(status), createdAt, updatedAt,
 	), nil
 }
