@@ -99,3 +99,40 @@ describe('SubmissionRow Return button integration', () => {
     expect(screen.getByText(/returnDialog\.title/)).toBeInTheDocument()
   })
 })
+
+describe('SubmissionRow returned-status metadata', () => {
+  it('renders return_reason when status is returned', () => {
+    const returned: SubmissionView = {
+      ...base,
+      status: 'returned',
+      return_reason: 'revisit derivation step',
+      returned_by: 99,
+      returned_at: '2026-05-04T18:30:00Z',
+    }
+    render(<SubmissionRow assignmentId={10} maxScore={100} submission={returned} />)
+    expect(screen.getByText(/revisit derivation step/)).toBeInTheDocument()
+    expect(screen.getByText(/submissionRow\.returnedReasonLabel/)).toBeInTheDocument()
+  })
+
+  it('renders returned_at as a localised date when status is returned', () => {
+    const returned: SubmissionView = {
+      ...base,
+      status: 'returned',
+      return_reason: 'fix it',
+      returned_by: 99,
+      returned_at: '2026-05-04T18:30:00Z',
+    }
+    render(<SubmissionRow assignmentId={10} maxScore={100} submission={returned} />)
+    // parseLocalDate strips TZ; format(..., 'd MMM yyyy') varies by locale.
+    // jest.setup mocks useLocale to return 'ru' — assert the day-month-year
+    // shape rather than exact string for portability.
+    expect(screen.getByText(/submissionRow\.returnedAtLabel/)).toBeInTheDocument()
+    // The date "4 May 2026" or similar should appear; assert via regex tolerant of locale.
+    expect(screen.getByText(/4 (May|мая|mai|مايو) 2026/)).toBeInTheDocument()
+  })
+
+  it('does NOT render return metadata when status is not returned', () => {
+    render(<SubmissionRow assignmentId={10} maxScore={100} submission={base} />)
+    expect(screen.queryByText(/submissionRow\.returnedReasonLabel/)).not.toBeInTheDocument()
+  })
+})
