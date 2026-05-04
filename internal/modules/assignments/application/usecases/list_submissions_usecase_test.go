@@ -20,8 +20,8 @@ func TestListSubmissionsUseCase_Execute(t *testing.T) {
 	statusGraded := entities.StatusGraded
 
 	twoSubs := []views.SubmissionView{
-		{ID: 1, AssignmentID: assignmentID, StudentID: 7, StudentFirstName: "Иван", StudentLastName: "Петров", Status: entities.StatusPending, CreatedAt: time.Now()},
-		{ID: 2, AssignmentID: assignmentID, StudentID: 8, StudentFirstName: "Анна", StudentLastName: "Смирнова", Status: entities.StatusGraded, CreatedAt: time.Now()},
+		{ID: 1, AssignmentID: assignmentID, StudentID: 7, StudentName: "Иван Петров", Status: entities.StatusPending, CreatedAt: time.Now()},
+		{ID: 2, AssignmentID: assignmentID, StudentID: 8, StudentName: "Анна Смирнова", Status: entities.StatusGraded, CreatedAt: time.Now()},
 	}
 
 	tests := []struct {

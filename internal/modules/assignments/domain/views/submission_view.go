@@ -17,21 +17,23 @@ import (
 )
 
 // SubmissionView is a read-side projection of a submission joined with
-// the student's display fields, suitable for grading-list rendering.
+// the student's display name, suitable for grading-list rendering.
 //
 // Field semantics mirror the persistence row 1:1; pointer fields are
 // nil when the submission is still pending (no grade applied yet).
 type SubmissionView struct {
-	ID               int64
-	AssignmentID     int64
-	StudentID        int64
-	StudentFirstName string
-	StudentLastName  string
-	GradeValue       *int
-	Feedback         string
-	GradedBy         *int64
-	GradedAt         *time.Time
-	Status           entities.SubmissionStatus
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID           int64
+	AssignmentID int64
+	StudentID    int64
+	// StudentName comes from the users.name column via JOIN. It is
+	// rendered as-is by the grading UI; per the project schema, name
+	// is a single varchar column rather than first/last/middle.
+	StudentName string
+	GradeValue  *int
+	Feedback    string
+	GradedBy    *int64
+	GradedAt    *time.Time
+	Status      entities.SubmissionStatus
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

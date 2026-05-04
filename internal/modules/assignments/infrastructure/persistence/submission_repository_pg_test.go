@@ -166,3 +166,72 @@ func TestSubmissionRepositoryPG_Save_TransportErrorWrapped(t *testing.T) {
 	assert.Contains(t, err.Error(), "submissions: upsert")
 	assert.Equal(t, int64(0), sub.ID, "ID must not be set when upsert fails")
 }
+
+func TestSubmissionRepositoryPG_ListByAssignment(t *testing.T) {
+	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
+
+	t.Run("rows hydrate read-model with student name from JOIN", func(t *testing.T) {
+		repo, mock := newSubmissionRepoMock(t)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "assignment_id", "student_id", "student_name",
+			"grade_value", "feedback", "graded_by", "graded_at",
+			"status", "created_at", "updated_at",
+		}).
+			AddRow(int64(1), int64(10), int64(7), "Иван Петров",
+				sql.NullInt64{}, sql.NullString{}, sql.NullInt64{}, sql.NullTime{},
+				"pending", now, now).
+			AddRow(int64(2), int64(10), int64(8), "Анна Смирнова",
+				int64(85), "great", int64(42), now,
+				"graded", now, now)
+
+		mock.ExpectQuery(regexp.QuoteMeta("FROM submissions s")).
+			WithArgs(int64(10), "").
+			WillReturnRows(rows)
+
+		got, err := repo.ListByAssignment(context.Background(), 10, nil)
+		require.NoError(t, err)
+		require.Len(t, got, 2)
+
+		assert.Equal(t, "Иван Петров", got[0].StudentName)
+		assert.Equal(t, entities.StatusPending, got[0].Status)
+		assert.Nil(t, got[0].GradeValue)
+
+		assert.Equal(t, "Анна Смирнова", got[1].StudentName)
+		assert.Equal(t, entities.StatusGraded, got[1].Status)
+		require.NotNil(t, got[1].GradeValue)
+		assert.Equal(t, 85, *got[1].GradeValue)
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("status filter is forwarded as text argument", func(t *testing.T) {
+		repo, mock := newSubmissionRepoMock(t)
+
+		mock.ExpectQuery(regexp.QuoteMeta("FROM submissions s")).
+			WithArgs(int64(10), "graded").
+			WillReturnRows(sqlmock.NewRows([]string{
+				"id", "assignment_id", "student_id", "student_name",
+				"grade_value", "feedback", "graded_by", "graded_at",
+				"status", "created_at", "updated_at",
+			}))
+
+		status := entities.StatusGraded
+		got, err := repo.ListByAssignment(context.Background(), 10, &status)
+		require.NoError(t, err)
+		assert.Empty(t, got)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("transport error wraps", func(t *testing.T) {
+		repo, mock := newSubmissionRepoMock(t)
+
+		mock.ExpectQuery(regexp.QuoteMeta("FROM submissions s")).
+			WithArgs(int64(10), "").
+			WillReturnError(errors.New("conn refused"))
+
+		_, err := repo.ListByAssignment(context.Background(), 10, nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "list by assignment")
+	})
+}
