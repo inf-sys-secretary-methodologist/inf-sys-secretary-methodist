@@ -15,6 +15,63 @@
 
 ---
 
+## [0.112.0] — 2026-05-04
+
+### Added — Assignments student resubmit flow (backend-only)
+
+Closes the academic re-grading loop opened in v0.111.0: the student can now flip a returned submission back to pending so they can supply revisions for a fresh grading cycle. State machine `pending → graded → returned → pending` is fully closed at the domain / use case / endpoint / audit layers.
+
+**Backend-only release** — student-facing frontend pages do not exist yet (every assignments page redirects students to `/forbidden` via `if user.role === 'student' router.replace(...)`). The endpoint lands as a ready seam for a future student-dashboard initiative.
+
+- **Domain**:
+  - `Submission.Resubmit(now)` — invariant: `status='returned'` (else `ErrNotReturned` → 409); clears the return triple (`returnReason / returnedBy / returnedAt`); flips status to `pending`; advances `updatedAt`. The grade triple is left alone — `Return` already nilled it, and resurrecting a stale grade would let the prior teacher verdict bleed into the next attempt.
+  - `Submission.AuthorizeResubmitter(actorID)` — invariant: `actorID > 0 AND actorID == studentID`. Returns `ErrSubmissionOwnerOnly` otherwise (handlers map to 403). Defensive `actorID > 0` rejects missing JWT context even if a student record were ever stored with id 0.
+  - `var ErrNotReturned` and `var ErrSubmissionOwnerOnly` sentinels next to the existing `ErrAlreadyReturned` / `ErrInvalidReturn` / `ErrAlreadyGraded` / `ErrAssignmentScopeForbidden`. `ErrSubmissionOwnerOnly` is intentionally distinct from `ErrAssignmentScopeForbidden` — the former is the student-side rule on the Submission aggregate; the latter is the teacher-side rule on the Assignment aggregate. Conflating would mislead any future reader tracing a 403 back to its invariant.
+- **Use case** `ResubmitSubmissionUseCase` — load assignment (for the teacher id used by the notifier) → load submission by `(assignmentID, studentID)` → `AuthorizeResubmitter` → capture `previous_return_reason` BEFORE clearing → `Resubmit` → `Save` → notify teacher (best-effort) → audit. Three audit events:
+  - `assignment.resubmitted` — success path, includes `previous_return_reason` (forensic mirror to v0.111.0's `previous_grade` capture on the return side).
+  - `assignment.resubmit_denied` — refused attempt (foreign student); records both `actor_user_id` and `student_id` so on-call sees who tried to impersonate whom.
+  - `assignment.resubmit_notify_failed` — SMTP outage observability; does NOT abort the resubmit (best-effort semantics, fifth release in a row).
+- **Endpoint** `POST /api/assignments/:id/resubmit` — student-only.
+  - Path: `:id` = assignmentID. studentID is derived from JWT context (= actorID); no body. Eliminates the entire class of body-vs-JWT mismatch attacks.
+  - Routing: new `studentAssignmentsGroup := protectedGroup.Group("/assignments")` with `RequireRole("student")` middleware. Sibling group rather than under the existing `assignmentsGroup` because that one is gated by `RequireNonStudent` — exact inverse of what resubmit needs.
+  - Handler `studentIDFromContext` whitelist (only `role == "student"`) — defence in depth on top of the route middleware. Removing either alone still rejects every non-student request.
+  - Failure-closed DI: `NewResubmitHandler` panics on nil usecase.
+  - Error mapping: `errors.Is` sentinel-first BEFORE `MapDomainError` fallback — `ErrAssignmentNotFound` 404, `ErrSubmissionNotFound` 404, `ErrSubmissionOwnerOnly` 403, `ErrNotReturned` 409, generic 500.
+- **No new migration** — schema 030 already permits `(status='pending', returnTriple=null, gradeTriple=null)`. Resubmit is a state flip plus three nulls; the bidirectional CHECK constraint passes via the `status<>returned` branch. YAGNI on `resubmit_count` / `resubmitted_at` columns without a consumer (audit log captures the count via `assignment.resubmitted` events).
+- **No frontend, no i18n** — UI deferred to whenever the student dashboard initiative ships. The single inline Russian notification text ("Студент пересдал работу" + body) lives in the `assignmentsResubmitNotifier` adapter at `cmd/server/main.go`, consistent with the grade / return notifier convention.
+- **Refactor `emitAudit` extracted (T0 prereq)** — `SaveGradeUseCase.logAudit` and `ReturnSubmissionUseCase.logAudit` were identical method-pairs. The v0.111.0 reviewer flagged the duplication as "extract on N=3"; the third call site (ResubmitSubmissionUseCase) is exactly that trigger. Helper sits next to the `AuditSink` port in `audit_sink.go` and uses `maps.Copy` instead of the for-range pattern the original methods carried — closes the recurring `mapsloop` lint hint at the single place that now owns the merge.
+
+### Tests
+
+- 4 RED→GREEN domain pairs: `Submission.Resubmit` happy path / `Resubmit` invariant matrix / `AuthorizeResubmitter` happy + denial / use case happy path / handler happy path.
+- 4 honest `test: backfill` commits — labelled accurately, not as RED→GREEN: repo `Save` round-trip post-Resubmit (no impl change), use case denial path (authz wired in T7 alongside happy path), use case error matrix table-driven (5 cases), handler error matrix (8+8 cases plus nil-usecase + payload echo).
+- All Go packages green; frontend tests untouched (no UI changes).
+
+### Code review
+
+`superpowers:code-reviewer` verdict: **SHIP**.
+
+| Axis | Score |
+|------|-------|
+| TDD | 9/10 |
+| DDD | 10/10 |
+| Clean Architecture | 9/10 |
+| Security | 10/10 |
+| Tests | 9/10 |
+| Migration | N/A (justified — schema 030 sufficient) |
+| i18n | N/A (justified — backend-only) |
+
+Reviewer should-fix N1 (rename `teacherIDFromContext` → `userIDFromContext`) and N2 (replace redundant role-mismatch case with case-mismatch verification) addressed in post-review polish commits before tagging. N3 (borderline 2-case table-driven) deemed cosmetic, deferred. Defense-in-depth comment added at the `AuthorizeResubmitter` call site so a future maintainer doing dead-code elimination understands the unreachable-via-HTTP branch is intentional.
+
+### Architecture decisions worth noting
+
+- **Sibling route group pattern**: when an existing route group's middleware is the *exact inverse* of what a new endpoint needs (`RequireNonStudent` vs `RequireRole("student")`), don't try to special-case the existing group — register a new sibling group at the same prefix. The two `protectedGroup.Group("/assignments")` registrations live in the same file paragraphs apart and document the inverse-middleware reasoning inline.
+- **Defense-in-depth on student endpoint**: route middleware (`RequireRole("student")`) + handler whitelist (`studentIDFromContext`) + entity invariant (`AuthorizeResubmitter`). Each layer can stand alone; together they ensure a misconfigured route, a removed middleware, or a future caller bypassing the handler still cannot resubmit another student's work.
+- **`AuthorizeResubmitter` is unreachable through HTTP** at HEAD because the handler enforces `studentID == actorID`. The check is preserved as defence in depth for future callers (CLI, agent runners, alternate routes) and documented at the use-case call site so it is not deleted as dead code.
+- **`emitAudit` N=3 timing**: the helper was deliberately NOT extracted at N=2 (after grade + return). The cost of a premature port — wrong shape, wrong abstraction — outweighs the duplication of two methods. By N=3 the right shape is obvious from the data, and the extraction is mechanical.
+
+---
+
 ## [0.111.0] — 2026-05-04
 
 ### Added — Assignments returned-transition flow
