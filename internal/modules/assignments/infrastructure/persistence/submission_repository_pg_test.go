@@ -31,9 +31,13 @@ func TestSubmissionRepositoryPG_GetByAssignmentAndStudent(t *testing.T) {
 		repo, mock := newSubmissionRepoMock(t)
 		rows := sqlmock.NewRows([]string{
 			"id", "assignment_id", "student_id", "grade_value", "feedback",
-			"graded_by", "graded_at", "status", "created_at", "updated_at",
+			"graded_by", "graded_at", "status",
+			"return_reason", "returned_by", "returned_at",
+			"created_at", "updated_at",
 		}).AddRow(int64(5), int64(10), int64(7), int64(85), "good",
-			int64(42), now, "graded", now, now)
+			int64(42), now, "graded",
+			nil, nil, nil,
+			now, now)
 
 		mock.ExpectQuery(regexp.QuoteMeta("FROM submissions WHERE assignment_id = $1 AND student_id = $2")).
 			WithArgs(int64(10), int64(7)).
@@ -55,9 +59,13 @@ func TestSubmissionRepositoryPG_GetByAssignmentAndStudent(t *testing.T) {
 		repo, mock := newSubmissionRepoMock(t)
 		rows := sqlmock.NewRows([]string{
 			"id", "assignment_id", "student_id", "grade_value", "feedback",
-			"graded_by", "graded_at", "status", "created_at", "updated_at",
+			"graded_by", "graded_at", "status",
+			"return_reason", "returned_by", "returned_at",
+			"created_at", "updated_at",
 		}).AddRow(int64(5), int64(10), int64(7), nil, "",
-			nil, nil, "pending", now, now)
+			nil, nil, "pending",
+			nil, nil, nil,
+			now, now)
 
 		mock.ExpectQuery(regexp.QuoteMeta("FROM submissions WHERE assignment_id = $1 AND student_id = $2")).
 			WithArgs(int64(10), int64(7)).
@@ -69,6 +77,35 @@ func TestSubmissionRepositoryPG_GetByAssignmentAndStudent(t *testing.T) {
 		assert.Nil(t, got.GradeValue())
 		assert.Nil(t, got.GradedBy())
 		assert.Nil(t, got.GradedAt())
+	})
+
+	t.Run("returned row hydrates return triple", func(t *testing.T) {
+		repo, mock := newSubmissionRepoMock(t)
+		rows := sqlmock.NewRows([]string{
+			"id", "assignment_id", "student_id", "grade_value", "feedback",
+			"graded_by", "graded_at", "status",
+			"return_reason", "returned_by", "returned_at",
+			"created_at", "updated_at",
+		}).AddRow(
+			int64(5), int64(10), int64(7),
+			nil, "",
+			nil, nil,
+			"returned",
+			"revisit derivation", int64(99), now,
+			now, now,
+		)
+
+		mock.ExpectQuery(regexp.QuoteMeta("FROM submissions WHERE assignment_id = $1 AND student_id = $2")).
+			WithArgs(int64(10), int64(7)).
+			WillReturnRows(rows)
+
+		got, err := repo.GetByAssignmentAndStudent(context.Background(), 10, 7)
+		require.NoError(t, err)
+		assert.Equal(t, entities.StatusReturned, got.Status())
+		assert.Equal(t, "revisit derivation", got.ReturnReason())
+		require.NotNil(t, got.ReturnedBy())
+		assert.Equal(t, int64(99), *got.ReturnedBy())
+		require.NotNil(t, got.ReturnedAt())
 	})
 
 	t.Run("no rows surfaces ErrSubmissionNotFound", func(t *testing.T) {
@@ -115,6 +152,9 @@ func TestSubmissionRepositoryPG_Save_Upsert(t *testing.T) {
 		sqlmock.AnyArg(), // graded_by
 		sqlmock.AnyArg(), // graded_at
 		"graded",
+		sqlmock.AnyArg(), // return_reason
+		sqlmock.AnyArg(), // returned_by
+		sqlmock.AnyArg(), // returned_at
 		sqlmock.AnyArg(), // created_at
 		sqlmock.AnyArg(), // updated_at
 	).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(99)))
@@ -141,6 +181,7 @@ func TestSubmissionRepositoryPG_Save_OnConflictReturnsExistingID(t *testing.T) {
 			int64(10), int64(7),
 			sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
 			sqlmock.AnyArg(), "graded",
+			sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
 			sqlmock.AnyArg(), sqlmock.AnyArg(),
 		).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(123)))
 
@@ -165,6 +206,46 @@ func TestSubmissionRepositoryPG_Save_TransportErrorWrapped(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "submissions: upsert")
 	assert.Equal(t, int64(0), sub.ID, "ID must not be set when upsert fails")
+}
+
+func TestSubmissionRepositoryPG_Save_PersistsReturnFields(t *testing.T) {
+	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
+	repo, mock := newSubmissionRepoMock(t)
+
+	a, err := entities.NewAssignment(entities.NewAssignmentParams{
+		Title: "Lab", GroupName: "A", Subject: "CS", MaxScore: 100, TeacherID: 99, Now: now,
+	})
+	require.NoError(t, err)
+	score, err := a.NewSubmissionScore(85)
+	require.NoError(t, err)
+
+	sub := entities.NewSubmission(10, 7, now)
+	require.NoError(t, sub.Grade(score, "good", 99, now))
+	// Now return: this clears grade fields and sets the return triple.
+	require.NoError(t, sub.Return("revisit derivation", 99, now))
+
+	// The Save SQL must now write 12 column values. Order MUST be:
+	// assignment_id, student_id, grade_value, feedback, graded_by, graded_at,
+	// status, return_reason, returned_by, returned_at, created_at, updated_at.
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO submissions")).
+		WithArgs(
+			int64(10), int64(7),
+			sql.NullInt64{},                       // grade_value cleared
+			"",                                    // feedback cleared
+			sql.NullInt64{},                       // graded_by cleared
+			sql.NullTime{},                        // graded_at cleared
+			"returned",
+			sql.NullString{String: "revisit derivation", Valid: true}, // return_reason
+			sql.NullInt64{Int64: 99, Valid: true},                     // returned_by
+			sql.NullTime{Time: now, Valid: true},                      // returned_at
+			sqlmock.AnyArg(),                                          // created_at
+			sqlmock.AnyArg(),                                          // updated_at
+		).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(42)))
+
+	require.NoError(t, repo.Save(context.Background(), sub))
+	assert.Equal(t, int64(42), sub.ID)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSubmissionRepositoryPG_ListByAssignment(t *testing.T) {
