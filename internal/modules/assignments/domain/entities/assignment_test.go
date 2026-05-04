@@ -131,3 +131,39 @@ func TestAssignment_AuthorizeGrader(t *testing.T) {
 		})
 	}
 }
+
+func TestAssignment_NewSubmissionScore(t *testing.T) {
+	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
+	a, err := entities.NewAssignment(entities.NewAssignmentParams{
+		Title: "L1", TeacherID: 42, GroupName: "ИС-21",
+		Subject: "Algo", MaxScore: 100, Now: now,
+	})
+	require.NoError(t, err)
+
+	tests := []struct {
+		name    string
+		value   int
+		wantErr error
+		wantVal int
+	}{
+		{name: "value within range constructs Score", value: 85, wantVal: 85},
+		{name: "value equal to max constructs Score", value: 100, wantVal: 100},
+		{name: "zero value is acceptable", value: 0, wantVal: 0},
+		{name: "value over max is rejected", value: 150, wantErr: entities.ErrInvalidScore},
+		{name: "negative value is rejected", value: -1, wantErr: entities.ErrInvalidScore},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			score, err := a.NewSubmissionScore(tc.value)
+			if tc.wantErr != nil {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, tc.wantErr),
+					"expected %v, got %v", tc.wantErr, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantVal, score.Value())
+		})
+	}
+}

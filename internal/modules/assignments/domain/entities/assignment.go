@@ -146,3 +146,14 @@ func (a *Assignment) AuthorizeGrader(userID int64) error {
 	return fmt.Errorf("%w: user %d is not the author (%d)",
 		ErrAssignmentScopeForbidden, userID, a.teacherID)
 }
+
+// NewSubmissionScore is a domain method that owns the cross-aggregate
+// rule "a submission's score must be within this assignment's
+// maxScore." Stub during the RED stage of cycle 6 — the GREEN commit
+// replaces the body with the real construction once the failing test
+// is in place. Until then it returns a sentinel error so any caller
+// that reaches it during RED fails loudly instead of silently producing
+// a default zero Score.
+func (a *Assignment) NewSubmissionScore(value int) (Score, error) {
+	return Score{}, fmt.Errorf("%w: Assignment.NewSubmissionScore not implemented", ErrInvalidScore)
+}
