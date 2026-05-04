@@ -6,6 +6,7 @@ import {
   useAssignment,
   useSubmissions,
   saveGrade,
+  returnSubmission,
 } from '../useAssignments'
 import { apiClient } from '@/lib/api'
 import type {
@@ -174,5 +175,36 @@ describe('saveGrade', () => {
     await expect(
       saveGrade(10, { student_id: 7, value: 85 })
     ).rejects.toThrow('409 already graded')
+  })
+})
+
+describe('returnSubmission', () => {
+  it('POSTs to /api/assignments/:id/returns with student_id and reason', async () => {
+    const responseBody = {
+      assignment_id: 42,
+      student_id: 7,
+      reason: 'revisit derivation',
+    }
+    mockedApiClient.post.mockResolvedValueOnce(apiOk(responseBody))
+
+    const result = await returnSubmission(42, {
+      student_id: 7,
+      reason: 'revisit derivation',
+    })
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/api/assignments/42/returns',
+      { student_id: 7, reason: 'revisit derivation' }
+    )
+    expect(result).toEqual(responseBody)
+  })
+
+  it('propagates axios errors so callers can map status codes', async () => {
+    const err = new Error('409 conflict')
+    mockedApiClient.post.mockRejectedValueOnce(err)
+
+    await expect(
+      returnSubmission(42, { student_id: 7, reason: 'x' })
+    ).rejects.toThrow('409 conflict')
   })
 })
