@@ -227,6 +227,7 @@ const (
 	roleMethodist         = "methodist"
 	roleAcademicSecretary = "academic_secretary"
 	roleSystemAdmin       = "system_admin"
+	roleStudent           = "student"
 )
 
 // callerScopeFromContext converts the gin auth context (user_id +
