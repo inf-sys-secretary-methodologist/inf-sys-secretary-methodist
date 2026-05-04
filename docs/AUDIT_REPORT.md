@@ -63,7 +63,7 @@
 | 5. Открыть документ | ✅ | `document_usecase.go:117` | — |
 | 6. Запустить маршрут согласования | ❌ | `internal/modules/workflow/` пустая | **Workflow модуль не реализован** (issue #41 — заглушка по плану, OK) |
 | 7. Создать задание | ✅ | `tasks/.../task_usecase.go:52` | — |
-| 8. Проверить задание (оценка + notify) | ⚠️ | `task_usecase.go:105` | **SaveGrade usecase отсутствует** — Update задания есть, но логика выставления оценки нет |
+| 8. Проверить задание (оценка + notify) | ✅ | `assignments/.../save_grade_usecase.go` (v0.109.0) | Реализовано как новый bounded context `assignments` — academic Tasks Context. Существующий `tasks` модуль это project management (issue tracker), поэтому SaveGrade жил бы там некорректно. |
 | 9. Отчёт по своим группам (limited) | ⚠️ | `reporting/.../report_usecase.go:55,115` | **Scope-фильтр «только свои группы» не реализован** — преподаватель может видеть отчёты по чужим группам |
 | 10. Создать событие | ✅ | `schedule/.../event_usecase.go:43` | — |
 | 11. Сообщения | ✅ | `messaging/.../messaging_usecase.go:85` | — |
