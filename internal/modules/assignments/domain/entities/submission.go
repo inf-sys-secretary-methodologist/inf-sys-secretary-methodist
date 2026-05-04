@@ -92,6 +92,15 @@ func (s *Submission) UpdatedAt() time.Time { return s.updatedAt }
 // callers must transition through an explicit "returned" first to grade
 // twice.
 func (s *Submission) Grade(score Score, feedback string, gradedBy int64, now time.Time) error {
-	// stub for RED — no transition, no error
+	if s.status == StatusGraded {
+		return ErrAlreadyGraded
+	}
+	v := score.Value()
+	s.gradeValue = &v
+	s.feedback = feedback
+	s.gradedBy = &gradedBy
+	s.gradedAt = &now
+	s.status = StatusGraded
+	s.updatedAt = now
 	return nil
 }
