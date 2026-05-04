@@ -83,7 +83,7 @@ func (uc *ReturnSubmissionUseCase) Execute(ctx context.Context, actorID int64, i
 	if err := assignment.AuthorizeGrader(actorID); err != nil {
 		// Audit a denied attempt explicitly. Returning is a security-
 		// relevant write; forensic trail must include refused attempts.
-		uc.logAudit(ctx, actorID, "assignment.return_denied", map[string]any{
+		emitAudit(uc.auditSink, ctx, actorID, "assignment.return_denied", map[string]any{
 			"assignment_id": in.AssignmentID,
 			"student_id":    in.StudentID,
 			"reason":        "not_author",
@@ -123,7 +123,7 @@ func (uc *ReturnSubmissionUseCase) Execute(ctx context.Context, actorID int64, i
 	// separately so on-call can spot persistent outages.
 	if uc.notifier != nil {
 		if notifyErr := uc.notifier.NotifyReturned(ctx, in.StudentID, in.AssignmentID, in.Reason); notifyErr != nil {
-			uc.logAudit(ctx, actorID, "assignment.return_notify_failed", map[string]any{
+			emitAudit(uc.auditSink, ctx, actorID, "assignment.return_notify_failed", map[string]any{
 				"assignment_id": in.AssignmentID,
 				"student_id":    in.StudentID,
 				"error":         notifyErr.Error(),
@@ -143,18 +143,7 @@ func (uc *ReturnSubmissionUseCase) Execute(ctx context.Context, actorID int64, i
 		returnedFields["previous_grade"] = *prevGrade
 		returnedFields["previous_feedback"] = prevFeedback
 	}
-	uc.logAudit(ctx, actorID, "assignment.returned", returnedFields)
+	emitAudit(uc.auditSink, ctx, actorID, "assignment.returned", returnedFields)
 
 	return nil
-}
-
-func (uc *ReturnSubmissionUseCase) logAudit(ctx context.Context, actorID int64, action string, fields map[string]any) {
-	if uc.auditSink == nil {
-		return
-	}
-	enriched := map[string]any{"actor_user_id": actorID}
-	for k, v := range fields {
-		enriched[k] = v
-	}
-	uc.auditSink.LogAuditEvent(ctx, action, "assignment", enriched)
 }

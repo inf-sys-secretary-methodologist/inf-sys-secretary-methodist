@@ -84,7 +84,7 @@ func (uc *SaveGradeUseCase) Execute(ctx context.Context, teacherID int64, in Sav
 		// security-relevant; forensic trail must include refused
 		// attempts, not only successes. Failure-closed bias from
 		// v0.108.3 carried through.
-		uc.logAudit(ctx, teacherID, "assignment.grade_denied", map[string]any{
+		emitAudit(uc.auditSink, ctx, teacherID, "assignment.grade_denied", map[string]any{
 			"assignment_id": in.AssignmentID,
 			"student_id":    in.StudentID,
 			"reason":        "not_author",
@@ -118,7 +118,7 @@ func (uc *SaveGradeUseCase) Execute(ctx context.Context, teacherID int64, in Sav
 	// separately so on-call can notice persistent outages.
 	if uc.notifier != nil {
 		if notifyErr := uc.notifier.NotifyGraded(ctx, in.StudentID, in.AssignmentID, in.Value, assignment.MaxScore()); notifyErr != nil {
-			uc.logAudit(ctx, teacherID, "assignment.grade_notify_failed", map[string]any{
+			emitAudit(uc.auditSink, ctx, teacherID, "assignment.grade_notify_failed", map[string]any{
 				"assignment_id": in.AssignmentID,
 				"student_id":    in.StudentID,
 				"error":         notifyErr.Error(),
@@ -126,7 +126,7 @@ func (uc *SaveGradeUseCase) Execute(ctx context.Context, teacherID int64, in Sav
 		}
 	}
 
-	uc.logAudit(ctx, teacherID, "assignment.graded", map[string]any{
+	emitAudit(uc.auditSink, ctx, teacherID, "assignment.graded", map[string]any{
 		"assignment_id": in.AssignmentID,
 		"student_id":    in.StudentID,
 		"score":         in.Value,
@@ -134,15 +134,4 @@ func (uc *SaveGradeUseCase) Execute(ctx context.Context, teacherID int64, in Sav
 	})
 
 	return nil
-}
-
-func (uc *SaveGradeUseCase) logAudit(ctx context.Context, teacherID int64, action string, fields map[string]any) {
-	if uc.auditSink == nil {
-		return
-	}
-	enriched := map[string]any{"actor_user_id": teacherID}
-	for k, v := range fields {
-		enriched[k] = v
-	}
-	uc.auditSink.LogAuditEvent(ctx, action, "assignment", enriched)
 }
