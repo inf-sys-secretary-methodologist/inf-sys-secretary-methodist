@@ -280,6 +280,13 @@ func TestGetAssignmentHandler(t *testing.T) {
 			ucErr:      entities.ErrAssignmentScopeForbidden,
 			wantStatus: http.StatusForbidden,
 		},
+		{
+			name:       "unwrapped use case error becomes 500",
+			auth:       readAuth{withUserID: true, withRole: true, userID: 42, role: "teacher"},
+			path:       "/api/assignments/10",
+			ucErr:      errors.New("boom"),
+			wantStatus: http.StatusInternalServerError,
+		},
 	}
 
 	for _, tc := range tests {
@@ -372,6 +379,14 @@ func TestListSubmissionsHandler(t *testing.T) {
 			path:         "/api/assignments/10/submissions",
 			ucErr:        entities.ErrAssignmentScopeForbidden,
 			wantStatus:   http.StatusForbidden,
+			wantUCCalled: true,
+		},
+		{
+			name:         "unwrapped use case error becomes 500",
+			auth:         readAuth{withUserID: true, withRole: true, userID: 42, role: "teacher"},
+			path:         "/api/assignments/10/submissions",
+			ucErr:        errors.New("boom"),
+			wantStatus:   http.StatusInternalServerError,
 			wantUCCalled: true,
 		},
 	}

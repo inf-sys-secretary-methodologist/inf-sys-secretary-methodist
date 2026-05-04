@@ -140,16 +140,20 @@ func TestAssignment_AuthorizeAccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// Cover the full 2×2 matrix (unrestricted × is-author) so the
+	// truth table is unambiguous at a glance and any regression that
+	// flips one cell is caught.
 	tests := []struct {
 		name         string
 		unrestricted bool
 		userID       int64
 		wantErr      error
 	}{
-		{name: "unrestricted caller bypasses author check", unrestricted: true, userID: 999},
-		{name: "author teacher passes", unrestricted: false, userID: 42},
-		{name: "non-author teacher is forbidden", unrestricted: false, userID: 7, wantErr: entities.ErrAssignmentScopeForbidden},
-		{name: "zero user id is forbidden", unrestricted: false, userID: 0, wantErr: entities.ErrAssignmentScopeForbidden},
+		{name: "unrestricted + author passes", unrestricted: true, userID: 42},
+		{name: "unrestricted + non-author passes", unrestricted: true, userID: 999},
+		{name: "restricted + author passes", unrestricted: false, userID: 42},
+		{name: "restricted + non-author is forbidden", unrestricted: false, userID: 7, wantErr: entities.ErrAssignmentScopeForbidden},
+		{name: "restricted + zero user id is forbidden", unrestricted: false, userID: 0, wantErr: entities.ErrAssignmentScopeForbidden},
 	}
 
 	for _, tc := range tests {
