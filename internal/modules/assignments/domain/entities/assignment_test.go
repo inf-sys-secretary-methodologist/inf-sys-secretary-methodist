@@ -80,6 +80,27 @@ func TestNewAssignment_TableDriven(t *testing.T) {
 	}
 }
 
+func TestNewAssignment_StoresTrimmedTitleAndGroupName(t *testing.T) {
+	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
+
+	a, err := entities.NewAssignment(entities.NewAssignmentParams{
+		Title:     "  L1  ",
+		GroupName: "  ИС-21  ",
+		TeacherID: 42,
+		Subject:   "Algo",
+		MaxScore:  100,
+		Now:       now,
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, a)
+	// Domain doc says invariant is "trimmed-non-empty". Storing the raw
+	// input means the entity violates its own invariant — the value
+	// passes validation but is not the canonical form.
+	assert.Equal(t, "L1", a.Title(), "title must be stored canonicalised (trimmed)")
+	assert.Equal(t, "ИС-21", a.GroupName(), "group_name must be stored canonicalised (trimmed)")
+}
+
 func TestAssignment_AuthorizeGrader(t *testing.T) {
 	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
 	a, err := entities.NewAssignment(entities.NewAssignmentParams{
