@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { ru, enUS, fr, ar } from 'date-fns/locale'
 import { useLocale, useTranslations } from 'next-intl'
@@ -8,7 +9,9 @@ import { CheckCircle2, Clock, RotateCcw } from 'lucide-react'
 import type { SubmissionView } from '@/types/assignments'
 import { cn } from '@/lib/utils'
 import { parseLocalDate } from '@/lib/assignments/dates'
+import { Button } from '@/components/ui/button'
 import { GradeForm } from './GradeForm'
+import { ReturnDialog } from './ReturnDialog'
 
 const localeMap = { ru, en: enUS, fr, ar }
 
@@ -43,6 +46,8 @@ export function SubmissionRow({ assignmentId, maxScore, submission, onGraded }: 
   const dateLocale = localeMap[locale] ?? enUS
   const styles = STATUS_STYLES[submission.status]
   const Icon = styles.Icon
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const canReturn = submission.status === 'pending' || submission.status === 'graded'
 
   // Parse with parseLocalDate so the date portion matches the teacher's
   // wall clock; for graded_at the time-of-day display is intentionally
@@ -105,6 +110,30 @@ export function SubmissionRow({ assignmentId, maxScore, submission, onGraded }: 
           onSaved={onGraded}
         />
       </div>
+
+      {canReturn && (
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setDialogOpen(true)}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            {t('returnButton')}
+          </Button>
+        </div>
+      )}
+
+      {canReturn && (
+        <ReturnDialog
+          assignmentId={assignmentId}
+          submission={submission}
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          onReturned={onGraded}
+        />
+      )}
     </article>
   )
 }
