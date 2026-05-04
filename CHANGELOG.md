@@ -15,6 +15,56 @@
 
 ---
 
+## [0.109.0] — 2026-05-04
+
+### Added — Assignments bounded context (academic Tasks Context)
+
+AUDIT_REPORT.md row #8 («SaveGrade в tasks») первоначально звучал как «допилить grading в существующем `internal/modules/tasks/`». При вчитывании в код — категориальная ошибка: `tasks` это **project-management module** (`AssigneeID` / `Watchers` / `Checklists` / `Progress 0..100` / status workflow `new → assigned → in_progress → review → completed → cancelled`), не academic homework. Прилеплять `MaxScore` / `SubjectID` / grade-on-task размыло бы агрегат.
+
+Создан **параллельный bounded context** `internal/modules/assignments/` за миграцией 029 (tables `assignments` + `submissions`). Существующий `tasks` модуль не тронут. AUDIT_REPORT row #8 переформулирован (`✅ via assignments, не tasks`).
+
+- **Domain entities**:
+  - `Score` value object — invariants (`max > 0`, `value ≥ 0`, `value ≤ max`).
+  - `Submission` entity — `pending → graded` transition, `ErrAlreadyGraded` sentinel (re-grading требует явного `returned` перехода — landed в v0.111.0).
+  - `Assignment` aggregate — trimmed canonical title/description, `ErrAssignmentScopeForbidden` (только автор может grade).
+- **Use case** `SaveGradeUseCase` — load → `AuthorizeGrader` → Score validation → lazy-create or load Submission → Grade transition → persist (upsert) → notify (best-effort) → audit. Best-effort notification semantics: SMTP failure НЕ откатывает grade (audit `assignment.grade_notify_failed` отдельным event'ом).
+- **Endpoint** `POST /api/assignments/:id/grades` за `RequireNonStudent` middleware. Failure-closed DI (panic on nil usecase). 403 mapping через `errors.Is` ДО `MapDomainError`.
+- **Adapter pattern в DI seam** — `assignmentsGradeNotifier` объявлен в `cmd/server/main.go` (не в `assignments/infrastructure/`), реализует narrow port `usecases.SaveGradeNotifier`, делегирует на `notificationUseCase.Create`. Domain/usecase пакеты assignments — без cross-module Go imports.
+- **Migration 029** — tables `assignments` (id, title, description, due_date, max_score, subject_id, teacher_id) и `submissions` (id, assignment_id, student_id, grade_value, feedback, graded_by, graded_at, status) с FK на `users(id)` и CHECK constraints (status enum, status='graded' ⇒ grade triple non-null + feedback length 4096).
+- **Backend-only релиз** — read-side endpoints + frontend UI идут в v0.110.0.
+
+### Tests
+
+- 6 TDD циклов RED→GREEN: Score VO / Submission entity / Assignment aggregate / SaveGrade usecase / HTTP handler / trim-fix post-review.
+- 1 честно label'ed `test:backfill` для pg-repos (infra-thin, ON CONFLICT upsert).
+- Authz table-driven (3+ кейса), error matrix table-driven.
+
+### Code review
+
+Первоначальный verdict — **BLOCK** (DDD=7, Test=8, Security=8, SQL=8, Cohesion=7). 5 must-fix исправлены в том же релизе:
+
+1. Trim-bug в `NewAssignment` (validated trimmed, stored raw) → TDD-cycle 6.
+2. `submissions.student_id` без FK → добавлен в `029.up.sql` + `feedback` length CHECK 4096.
+3. ON CONFLICT path в pg-repo не покрыт sqlmock → добавлен.
+4. «existing pending → graded» path в usecase uncovered → покрыт.
+5. Stale swagger → `SaveGradeRequest` exported, `@tag.name assignments` declared, `swag init` re-run.
+
+Plus 2 should-fix включены: permission-denial audit (`assignment.grade_denied`) для security-relevant denied attempts, ранее silent.
+
+Final ≥9 каждая ось.
+
+### TDD honesty
+
+Cycle 5 (handler) — *чуть не нарушил гейт*. Под давлением контекста начал writing full impl сразу. Поймал себя, откатил handler в stub, переписал tests-first → RED → GREEN. Lesson: **под давлением контекста гейт соблюдать. Senior contraction = откатить и сделать правильно даже если уже написал.**
+
+### Known limitations
+
+- `swag` не генерирует `/assignments/*` paths в `swagger.json` несмотря на `@Tags assignments` annotations и export'нутый request type. Tasks endpoints **тоже отсутствуют** в spec (64 paths total, без `/tasks/`, без `/assignments/`). Не регрессия v0.109.0 — existing legacy. Полное покрытие `swag` — отдельная инициатива.
+- `Score.max` сейчас dead data (либо drop, либо thread-through) → выполнено в v0.110.0.
+- `Assignment.NewSubmissionScore(value)` — переместить cross-aggregate validation Score↔MaxScore из usecase в domain → выполнено в v0.110.0.
+
+---
+
 ## [0.108.3] — 2026-05-04
 
 ### Security — Teacher analytics scope filter «свои группы» (correct pagination)
