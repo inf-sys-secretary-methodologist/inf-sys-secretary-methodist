@@ -14,25 +14,20 @@ func TestNewScore_TableDriven(t *testing.T) {
 	tests := []struct {
 		name      string
 		value     int
-		max       int
 		wantErr   error
 		wantValue int
-		wantMax   int
 	}{
-		{name: "zero is valid lower boundary", value: 0, max: 100, wantValue: 0, wantMax: 100},
-		{name: "value equals max is valid upper boundary", value: 100, max: 100, wantValue: 100, wantMax: 100},
-		{name: "mid-range value is valid", value: 50, max: 100, wantValue: 50, wantMax: 100},
-		{name: "small max accepts value at max", value: 5, max: 5, wantValue: 5, wantMax: 5},
+		{name: "zero is valid lower boundary", value: 0, wantValue: 0},
+		{name: "positive value is valid", value: 50, wantValue: 50},
+		{name: "large value is valid (upper bound is enforced by Assignment)", value: 100000, wantValue: 100000},
 
-		{name: "negative value is invalid", value: -1, max: 100, wantErr: entities.ErrInvalidScore},
-		{name: "value above max is invalid", value: 101, max: 100, wantErr: entities.ErrInvalidScore},
-		{name: "max of zero is invalid", value: 0, max: 0, wantErr: entities.ErrInvalidScore},
-		{name: "negative max is invalid", value: 0, max: -5, wantErr: entities.ErrInvalidScore},
+		{name: "negative value is invalid", value: -1, wantErr: entities.ErrInvalidScore},
+		{name: "very negative value is invalid", value: -1000, wantErr: entities.ErrInvalidScore},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := entities.NewScore(tc.value, tc.max)
+			got, err := entities.NewScore(tc.value)
 			if tc.wantErr != nil {
 				require.Error(t, err)
 				assert.True(t, errors.Is(err, tc.wantErr),
@@ -41,7 +36,6 @@ func TestNewScore_TableDriven(t *testing.T) {
 			}
 			require.NoError(t, err)
 			assert.Equal(t, tc.wantValue, got.Value())
-			assert.Equal(t, tc.wantMax, got.Max())
 		})
 	}
 }

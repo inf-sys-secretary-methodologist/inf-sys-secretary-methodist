@@ -154,7 +154,13 @@ func (a *Assignment) AuthorizeGrader(userID int64) error {
 // to know that a Score needs (value, max) and that max comes from the
 // Assignment aggregate.
 //
-// Returns ErrInvalidScore (wrapped) when value is outside [0, maxScore].
+// The non-negative invariant is delegated to NewScore; the upper-bound
+// check is enforced here because only Assignment knows its maxScore.
+// Both rejections wrap ErrInvalidScore so the handler 422 mapping
+// stays a single errors.Is dispatch.
 func (a *Assignment) NewSubmissionScore(value int) (Score, error) {
-	return NewScore(value, a.maxScore)
+	if value > a.maxScore {
+		return Score{}, fmt.Errorf("%w: value %d exceeds max %d", ErrInvalidScore, value, a.maxScore)
+	}
+	return NewScore(value)
 }

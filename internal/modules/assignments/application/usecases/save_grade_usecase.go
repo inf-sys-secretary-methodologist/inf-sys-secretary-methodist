@@ -91,7 +91,7 @@ func (uc *SaveGradeUseCase) Execute(ctx context.Context, teacherID int64, in Sav
 		return err
 	}
 
-	score, err := entities.NewScore(in.Value, assignment.MaxScore())
+	score, err := assignment.NewSubmissionScore(in.Value)
 	if err != nil {
 		return err
 	}

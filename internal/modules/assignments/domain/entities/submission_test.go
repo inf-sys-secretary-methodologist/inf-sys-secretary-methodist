@@ -31,7 +31,7 @@ func TestNewSubmission_StartsPending(t *testing.T) {
 func TestSubmission_Grade(t *testing.T) {
 	created := time.Date(2026, 5, 4, 9, 0, 0, 0, time.UTC)
 	graded := time.Date(2026, 5, 4, 15, 30, 0, 0, time.UTC)
-	score, err := entities.NewScore(85, 100)
+	score, err := entities.NewScore(85)
 	require.NoError(t, err)
 
 	tests := []struct {

@@ -102,7 +102,7 @@ func TestSubmissionRepositoryPG_Save_Upsert(t *testing.T) {
 	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
 	repo, mock := newSubmissionRepoMock(t)
 
-	score, _ := entities.NewScore(85, 100)
+	score, _ := entities.NewScore(85)
 	sub := entities.NewSubmission(10, 7, now)
 	require.NoError(t, sub.Grade(score, "good", 42, now))
 
@@ -128,7 +128,7 @@ func TestSubmissionRepositoryPG_Save_OnConflictReturnsExistingID(t *testing.T) {
 	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
 	repo, mock := newSubmissionRepoMock(t)
 
-	score, _ := entities.NewScore(70, 100)
+	score, _ := entities.NewScore(70)
 	sub := entities.NewSubmission(10, 7, now)
 	require.NoError(t, sub.Grade(score, "ok", 42, now))
 
@@ -154,7 +154,7 @@ func TestSubmissionRepositoryPG_Save_TransportErrorWrapped(t *testing.T) {
 	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
 	repo, mock := newSubmissionRepoMock(t)
 
-	score, _ := entities.NewScore(50, 100)
+	score, _ := entities.NewScore(50)
 	sub := entities.NewSubmission(10, 7, now)
 	require.NoError(t, sub.Grade(score, "", 42, now))
 

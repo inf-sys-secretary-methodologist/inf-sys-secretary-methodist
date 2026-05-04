@@ -28,7 +28,7 @@ var fixedNow = time.Date(2026, 5, 4, 12, 30, 0, 0, time.UTC)
 func TestSaveGradeUseCase_Execute(t *testing.T) {
 	gradedSubFixture := func() *entities.Submission {
 		s := entities.NewSubmission(assignmentID, studentID, fixedNow.Add(-1*time.Hour))
-		score, _ := entities.NewScore(50, 100)
+		score, _ := entities.NewScore(50)
 		_ = s.Grade(score, "previous", authorTeacherID, fixedNow.Add(-30*time.Minute))
 		return s
 	}
