@@ -2,7 +2,7 @@ package usecases
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
@@ -38,9 +38,25 @@ func NewListSubmissionsUseCase(
 	}
 }
 
-// Execute is the entry point. Stub returns ErrNotImplemented during the
-// RED stage — keeps tests compiling while the failing assertions drive
-// the implementation.
+// Execute loads the parent assignment, enforces caller-scope, and then
+// returns the submission read-models for that assignment. Errors
+// surface domain sentinels:
+//
+//   - repositories.ErrAssignmentNotFound       → 404
+//   - entities.ErrAssignmentScopeForbidden     → 403
 func (uc *ListSubmissionsUseCase) Execute(ctx context.Context, in ListSubmissionsInput) ([]views.SubmissionView, error) {
-	return nil, errors.New("ListSubmissionsUseCase.Execute: not implemented")
+	a, err := uc.assignmentRepo.GetByID(ctx, in.AssignmentID)
+	if err != nil {
+		return nil, fmt.Errorf("list submissions: load assignment: %w", err)
+	}
+	if !in.Caller.Unrestricted && a.TeacherID() != in.Caller.UserID {
+		return nil, fmt.Errorf("%w: user %d is not the author (%d)",
+			entities.ErrAssignmentScopeForbidden, in.Caller.UserID, a.TeacherID())
+	}
+
+	subs, err := uc.submissionRepo.ListByAssignment(ctx, in.AssignmentID, in.Status)
+	if err != nil {
+		return nil, fmt.Errorf("list submissions: %w", err)
+	}
+	return subs, nil
 }
