@@ -129,8 +129,8 @@ func TestSaveGradeUseCase_Execute(t *testing.T) {
 				require.Error(t, err)
 				assert.True(t, errors.Is(err, tc.wantErr),
 					"expected error wrapping %v, got %v", tc.wantErr, err)
-				assert.False(t, sr.savedFor(tc.input.AssignmentID, tc.input.StudentID),
-					"submission should not be saved when use case fails")
+				assert.Equal(t, 0, sr.saveCalls,
+					"submission Save must not be called when use case fails")
 				assert.False(t, notifier.called, "notifier should not be called when use case fails")
 				return
 			}
@@ -183,7 +183,9 @@ func (r *fakeAssignmentRepo) GetByID(ctx context.Context, id int64) (*entities.A
 }
 
 type fakeSubmissionRepo struct {
-	byKey map[string]*entities.Submission
+	byKey      map[string]*entities.Submission
+	saveCalls  int
+	lastSaveAt string
 }
 
 func newFakeSubmissionRepo() *fakeSubmissionRepo {
@@ -201,14 +203,12 @@ func (r *fakeSubmissionRepo) GetByAssignmentAndStudent(ctx context.Context, aid,
 }
 func (r *fakeSubmissionRepo) Save(ctx context.Context, s *entities.Submission) error {
 	r.byKey[subKey(s.AssignmentID, s.StudentID)] = s
+	r.saveCalls++
+	r.lastSaveAt = subKey(s.AssignmentID, s.StudentID)
 	return nil
 }
 func (r *fakeSubmissionRepo) lookup(aid, sid int64) *entities.Submission {
 	return r.byKey[subKey(aid, sid)]
-}
-func (r *fakeSubmissionRepo) savedFor(aid, sid int64) bool {
-	s, ok := r.byKey[subKey(aid, sid)]
-	return ok && s.IsGraded()
 }
 
 type recordingNotifier struct {

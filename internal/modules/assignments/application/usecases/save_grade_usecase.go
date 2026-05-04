@@ -4,8 +4,11 @@ package usecases
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
@@ -70,9 +73,66 @@ func NewSaveGradeUseCase(
 //   - entities.ErrInvalidScore                → 422
 //   - entities.ErrAlreadyGraded               → 409
 func (uc *SaveGradeUseCase) Execute(ctx context.Context, teacherID int64, in SaveGradeInput) error {
-	// stub for RED — no-op
-	_ = ctx
-	_ = teacherID
-	_ = in
+	assignment, err := uc.assignmentRepo.GetByID(ctx, in.AssignmentID)
+	if err != nil {
+		return fmt.Errorf("save grade: load assignment: %w", err)
+	}
+
+	if err := assignment.AuthorizeGrader(teacherID); err != nil {
+		return err
+	}
+
+	score, err := entities.NewScore(in.Value, assignment.MaxScore())
+	if err != nil {
+		return err
+	}
+
+	submission, err := uc.submissionRepo.GetByAssignmentAndStudent(ctx, in.AssignmentID, in.StudentID)
+	switch {
+	case errors.Is(err, repositories.ErrSubmissionNotFound):
+		submission = entities.NewSubmission(in.AssignmentID, in.StudentID, uc.clock())
+	case err != nil:
+		return fmt.Errorf("save grade: load submission: %w", err)
+	}
+
+	if err := submission.Grade(score, in.Feedback, teacherID, uc.clock()); err != nil {
+		return err
+	}
+
+	if err := uc.submissionRepo.Save(ctx, submission); err != nil {
+		return fmt.Errorf("save grade: persist submission: %w", err)
+	}
+
+	// Notification is best-effort: a delivery failure must not roll back
+	// the grade — the grade is the system of record. Failures are audited
+	// separately so on-call can notice persistent outages.
+	if uc.notifier != nil {
+		if notifyErr := uc.notifier.NotifyGraded(ctx, in.StudentID, in.AssignmentID, in.Value, assignment.MaxScore()); notifyErr != nil {
+			uc.logAudit(ctx, teacherID, "assignment.grade_notify_failed", map[string]any{
+				"assignment_id": in.AssignmentID,
+				"student_id":    in.StudentID,
+				"error":         notifyErr.Error(),
+			})
+		}
+	}
+
+	uc.logAudit(ctx, teacherID, "assignment.graded", map[string]any{
+		"assignment_id": in.AssignmentID,
+		"student_id":    in.StudentID,
+		"score":         in.Value,
+		"max_score":     assignment.MaxScore(),
+	})
+
 	return nil
+}
+
+func (uc *SaveGradeUseCase) logAudit(ctx context.Context, teacherID int64, action string, fields map[string]any) {
+	if uc.auditLogger == nil {
+		return
+	}
+	enriched := map[string]any{"actor_user_id": teacherID}
+	for k, v := range fields {
+		enriched[k] = v
+	}
+	uc.auditLogger.LogAuditEvent(ctx, action, "assignment", enriched)
 }
