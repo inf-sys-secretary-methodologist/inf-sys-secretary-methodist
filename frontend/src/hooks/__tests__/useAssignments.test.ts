@@ -32,7 +32,11 @@ const wrapper = ({ children }: { children: React.ReactNode }) =>
     children
   )
 
-const apiOk = <T,>(data: T) => ({ data: { success: true, data } as { success: true; data: T } })
+// Mirrors the existing useTasks test convention: apiClient.get/post
+// is typed Promise<T>, and tests mock the resolved value as
+// { data: <payload> } because the fetcher reads response.data and the
+// hook keeps the unwrapped business object as its data.
+const apiOk = <T,>(data: T) => ({ data })
 
 const sampleAssignment: Assignment = {
   id: 10,

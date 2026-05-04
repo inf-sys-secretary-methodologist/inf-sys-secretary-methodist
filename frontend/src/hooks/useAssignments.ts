@@ -22,20 +22,30 @@ interface ApiResponse<T> {
 }
 
 const fetcher = async <T>(url: string): Promise<T> => {
-  // Stub: real fetcher lands in the GREEN commit. Throwing here keeps
-  // the failing tests honest — any code path that reaches the hook in
-  // RED produces a deterministic error rather than undefined data.
-  void url
-  throw new Error('useAssignments: not implemented')
+  const response = await apiClient.get<ApiResponse<T>>(url)
+  return response.data
 }
 
+function buildAssignmentsUrl(filter?: AssignmentListFilter): string {
+  if (!filter) return ASSIGNMENTS_URL
+  const params = new URLSearchParams()
+  if (filter.subject) params.append('subject', filter.subject)
+  if (filter.group_name) params.append('group_name', filter.group_name)
+  if (typeof filter.page_size === 'number') params.append('page_size', String(filter.page_size))
+  if (typeof filter.offset === 'number') params.append('offset', String(filter.offset))
+  const qs = params.toString()
+  return qs ? `${ASSIGNMENTS_URL}?${qs}` : ASSIGNMENTS_URL
+}
+
+// useAssignments returns the page of assignments visible to the caller
+// according to backend caller-scope (teacher: own only; methodist /
+// secretary / admin: any).
 export function useAssignments(filter?: AssignmentListFilter) {
-  void filter
-  const { data, error, isLoading, mutate } = useSWR<AssignmentListResponse>(
-    ASSIGNMENTS_URL,
-    fetcher,
-    { revalidateOnFocus: false, dedupingInterval: SWR_DEDUPING.SHORT }
-  )
+  const url = buildAssignmentsUrl(filter)
+  const { data, error, isLoading, mutate } = useSWR<AssignmentListResponse>(url, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: SWR_DEDUPING.SHORT,
+  })
 
   return {
     items: data?.items || [],
@@ -46,35 +56,47 @@ export function useAssignments(filter?: AssignmentListFilter) {
   }
 }
 
+// useAssignment fetches a single assignment by id. Passing null
+// short-circuits the fetch so callers can keep the hook at the top of
+// a component without firing requests until the id is known.
 export function useAssignment(id: number | null) {
-  void id
-  const { data, error, isLoading, mutate } = useSWR<Assignment>(null, fetcher, {
+  const key = id == null ? null : `${ASSIGNMENTS_URL}/${id}`
+  const { data, error, isLoading, mutate } = useSWR<Assignment>(key, fetcher, {
     revalidateOnFocus: false,
+    dedupingInterval: SWR_DEDUPING.SHORT,
   })
   return { assignment: data, isLoading, error, mutate }
 }
 
+// useSubmissions fetches the submission list for a single assignment.
+// Optional status pins to a single lifecycle state ("pending", "graded",
+// "returned"). Passing null assignmentId short-circuits the fetch.
 export function useSubmissions(
   assignmentId: number | null,
   status?: SubmissionStatus
 ) {
-  void assignmentId
-  void status
-  const { data, error, isLoading, mutate } = useSWR<SubmissionListResponse>(
-    null,
-    fetcher,
-    { revalidateOnFocus: false }
-  )
+  let key: string | null = null
+  if (assignmentId != null) {
+    key = `${ASSIGNMENTS_URL}/${assignmentId}/submissions`
+    if (status) key += `?status=${encodeURIComponent(status)}`
+  }
+  const { data, error, isLoading, mutate } = useSWR<SubmissionListResponse>(key, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: SWR_DEDUPING.SHORT,
+  })
   return { items: data?.items || [], isLoading, error, mutate }
 }
 
+// saveGrade POSTs the grade payload to the backend SaveGrade endpoint.
+// On error the underlying axios error propagates so the caller can
+// distinguish 409 / 422 / 403 by status.
 export async function saveGrade(
   assignmentId: number,
   body: SaveGradeRequest
 ): Promise<SaveGradeResponse> {
-  void assignmentId
-  void body
-  void apiClient
-  void ({} as ApiResponse<unknown>)
-  throw new Error('saveGrade: not implemented')
+  const response = await apiClient.post<ApiResponse<SaveGradeResponse>>(
+    `${ASSIGNMENTS_URL}/${assignmentId}/grades`,
+    body
+  )
+  return response.data
 }
