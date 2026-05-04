@@ -2,6 +2,7 @@ package usecases_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -77,6 +78,72 @@ func TestResubmitSubmissionUseCase_ReturnedToPendingHappyPath(t *testing.T) {
 	assert.Equal(t, "missing details", ret.Fields["previous_return_reason"],
 		"previous_return_reason must be captured before Resubmit clears it")
 	assert.Equal(t, studentID, ret.Fields["actor_user_id"])
+}
+
+// TestResubmitSubmissionUseCase_ForeignStudentDenied is honest backfill
+// coverage of the security-relevant denial path: a non-owning actor must
+// be rejected by AuthorizeResubmitter, the failure must leave a forensic
+// trail (assignment.resubmit_denied audit), and no side effects must
+// land — no Save, no notifier call. The wiring for this already shipped
+// in T7 alongside the happy path (defense-in-depth is unnatural to
+// separate from the main flow), so this is NOT a RED→GREEN cycle —
+// it's coverage of the existing branch.
+func TestResubmitSubmissionUseCase_ForeignStudentDenied(t *testing.T) {
+	const foreignStudentID int64 = 999
+
+	ar := newFakeAssignmentRepo()
+	ar.seed(makeAssignment(t, assignmentID, authorTeacherID))
+
+	// Seed a returned submission owned by studentID — the foreign actor
+	// will try to resubmit it and must be rejected.
+	pre := entities.NewSubmission(assignmentID, studentID, fixedNow.Add(-2*time.Hour))
+	require.NoError(t, pre.Return("missing details", authorTeacherID, fixedNow.Add(-time.Hour)))
+	sr := newFakeSubmissionRepo()
+	sr.seed(pre)
+
+	notifier := &recordingResubmitNotifier{}
+	audit := &recordingAuditSink{}
+
+	uc := usecases.NewResubmitSubmissionUseCase(ar, sr, notifier, audit, func() time.Time { return fixedNow })
+
+	err := uc.Execute(context.Background(), foreignStudentID, usecases.ResubmitSubmissionInput{
+		AssignmentID: assignmentID,
+		StudentID:    studentID, // belongs to studentID, not foreignStudentID
+	})
+
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, entities.ErrSubmissionOwnerOnly),
+		"expected ErrSubmissionOwnerOnly, got %v", err)
+
+	// State invariants on denial path: persistence and notifier must be
+	// completely silent. AuthorizeResubmitter fires before any mutation.
+	assert.Equal(t, 0, sr.saveCalls, "Save must not be called on denied path")
+	assert.False(t, notifier.called, "notifier must not be invoked on denied path")
+	assert.Equal(t, entities.StatusReturned, sr.lookup(assignmentID, studentID).Status(),
+		"submission status must remain unchanged on denial")
+
+	// Forensic trail: a refused attempt must leave an audit event so on-call
+	// can see denied access patterns. Mirrors return_denied / grade_denied.
+	var denied *recordedAuditEvent
+	for i := range audit.events {
+		if audit.events[i].Action == "assignment.resubmit_denied" {
+			denied = &audit.events[i]
+			break
+		}
+	}
+	require.NotNil(t, denied, "expected assignment.resubmit_denied audit event")
+	assert.Equal(t, "assignment", denied.Resource)
+	assert.Equal(t, int64(assignmentID), denied.Fields["assignment_id"])
+	assert.Equal(t, int64(studentID), denied.Fields["student_id"])
+	assert.Equal(t, foreignStudentID, denied.Fields["actor_user_id"])
+	assert.Equal(t, "not_owner", denied.Fields["reason"])
+
+	// And — critically — assignment.resubmitted MUST NOT have fired. A
+	// denied attempt cannot leak a success event onto the audit stream.
+	for _, e := range audit.events {
+		assert.NotEqual(t, "assignment.resubmitted", e.Action,
+			"resubmitted success event must not fire on denied path")
+	}
 }
 
 // recordingResubmitNotifier captures NotifyResubmitted invocations so the
