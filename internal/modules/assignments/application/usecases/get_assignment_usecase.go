@@ -2,7 +2,7 @@ package usecases
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
@@ -27,9 +27,19 @@ func NewGetAssignmentUseCase(repo repositories.AssignmentRepository) *GetAssignm
 	return &GetAssignmentUseCase{repo: repo}
 }
 
-// Execute is the entry point. Stub returns ErrNotImplemented during the
-// RED stage — keeps tests compiling while the failing assertions drive
-// the implementation.
+// Execute fetches the assignment, then enforces the caller-scope rule
+// before returning it. Errors surface domain sentinels:
+//
+//   - repositories.ErrAssignmentNotFound       → 404
+//   - entities.ErrAssignmentScopeForbidden     → 403
 func (uc *GetAssignmentUseCase) Execute(ctx context.Context, in GetAssignmentInput) (*entities.Assignment, error) {
-	return nil, errors.New("GetAssignmentUseCase.Execute: not implemented")
+	a, err := uc.repo.GetByID(ctx, in.AssignmentID)
+	if err != nil {
+		return nil, fmt.Errorf("get assignment: %w", err)
+	}
+	if !in.Caller.Unrestricted && a.TeacherID() != in.Caller.UserID {
+		return nil, fmt.Errorf("%w: user %d is not the author (%d)",
+			entities.ErrAssignmentScopeForbidden, in.Caller.UserID, a.TeacherID())
+	}
+	return a, nil
 }
