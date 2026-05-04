@@ -22,7 +22,7 @@ func NewSubmissionRepositoryPG(db *sql.DB) *SubmissionRepositoryPG {
 	return &SubmissionRepositoryPG{db: db}
 }
 
-const submissionSelectColumns = `id, assignment_id, student_id, grade_value, feedback, graded_by, graded_at, status, created_at, updated_at`
+const submissionSelectColumns = `id, assignment_id, student_id, grade_value, feedback, graded_by, graded_at, status, return_reason, returned_by, returned_at, created_at, updated_at`
 
 // GetByAssignmentAndStudent returns the (assignment, student) submission row.
 func (r *SubmissionRepositoryPG) GetByAssignmentAndStudent(ctx context.Context, assignmentID, studentID int64) (*entities.Submission, error) {
@@ -37,12 +37,16 @@ func (r *SubmissionRepositoryPG) GetByAssignmentAndStudent(ctx context.Context, 
 		gradedBy     sql.NullInt64
 		gradedAt     sql.NullTime
 		status       string
+		returnReason sql.NullString
+		returnedBy   sql.NullInt64
+		returnedAt   sql.NullTime
 		createdAt    time.Time
 		updatedAt    time.Time
 	)
 	err := r.db.QueryRowContext(ctx, query, assignmentID, studentID).Scan(
 		&id, &aid, &sid, &gradeValue, &feedback, &gradedBy, &gradedAt,
-		&status, &createdAt, &updatedAt,
+		&status, &returnReason, &returnedBy, &returnedAt,
+		&createdAt, &updatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -62,12 +66,21 @@ func (r *SubmissionRepositoryPG) GetByAssignmentAndStudent(ctx context.Context, 
 	}
 	var ga *time.Time
 	if gradedAt.Valid {
-		ga = &gradedAt.Time
+		t := gradedAt.Time
+		ga = &t
+	}
+	var rb *int64
+	if returnedBy.Valid {
+		rb = &returnedBy.Int64
+	}
+	var rat *time.Time
+	if returnedAt.Valid {
+		t := returnedAt.Time
+		rat = &t
 	}
 	return entities.ReconstituteSubmission(
 		id, aid, sid, gv, feedback.String, gb, ga,
-		// TODO(T5): scan return_reason / returned_by / returned_at columns; legacy passthrough until migration 030 lands.
-		"", nil, nil,
+		returnReason.String, rb, rat,
 		entities.SubmissionStatus(status), createdAt, updatedAt,
 	), nil
 }
@@ -80,25 +93,33 @@ func (r *SubmissionRepositoryPG) GetByAssignmentAndStudent(ctx context.Context, 
 func (r *SubmissionRepositoryPG) Save(ctx context.Context, s *entities.Submission) error {
 	query := `
 		INSERT INTO submissions (
-			assignment_id, student_id, grade_value, feedback, graded_by, graded_at, status, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			assignment_id, student_id, grade_value, feedback, graded_by, graded_at, status,
+			return_reason, returned_by, returned_at, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		ON CONFLICT (assignment_id, student_id) DO UPDATE SET
-			grade_value = EXCLUDED.grade_value,
-			feedback    = EXCLUDED.feedback,
-			graded_by   = EXCLUDED.graded_by,
-			graded_at   = EXCLUDED.graded_at,
-			status      = EXCLUDED.status,
-			updated_at  = EXCLUDED.updated_at
+			grade_value   = EXCLUDED.grade_value,
+			feedback      = EXCLUDED.feedback,
+			graded_by     = EXCLUDED.graded_by,
+			graded_at     = EXCLUDED.graded_at,
+			status        = EXCLUDED.status,
+			return_reason = EXCLUDED.return_reason,
+			returned_by   = EXCLUDED.returned_by,
+			returned_at   = EXCLUDED.returned_at,
+			updated_at    = EXCLUDED.updated_at
 		RETURNING id`
 
 	gradeValue := nullableInt(s.GradeValue())
 	gradedBy := nullableInt64(s.GradedBy())
 	gradedAt := nullableTime(s.GradedAt())
+	returnReason := nullableString(s.ReturnReason())
+	returnedBy := nullableInt64(s.ReturnedBy())
+	returnedAt := nullableTime(s.ReturnedAt())
 
 	var newID int64
 	err := r.db.QueryRowContext(ctx, query,
 		s.AssignmentID, s.StudentID, gradeValue, s.Feedback(),
 		gradedBy, gradedAt, string(s.Status()),
+		returnReason, returnedBy, returnedAt,
 		s.CreatedAt(), s.UpdatedAt(),
 	).Scan(&newID)
 	if err != nil {
@@ -127,6 +148,17 @@ func nullableTime(p *time.Time) sql.NullTime {
 		return sql.NullTime{}
 	}
 	return sql.NullTime{Time: *p, Valid: true}
+}
+
+// nullableString maps an empty Go string to a SQL NULL. Required for
+// columns whose CHECK constraint forbids non-NULL values outside a
+// specific status (e.g. submissions.return_reason: NULL when status is
+// not 'returned').
+func nullableString(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: s, Valid: true}
 }
 
 // ListByAssignment returns the read-side projection of submission rows

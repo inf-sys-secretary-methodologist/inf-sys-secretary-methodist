@@ -33,7 +33,16 @@ type SubmissionView struct {
 	Feedback    string
 	GradedBy    *int64
 	GradedAt    *time.Time
-	Status      entities.SubmissionStatus
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	// ReturnReason is the explanation captured when status=='returned';
+	// empty string for non-returned rows.
+	ReturnReason string
+	// ReturnedBy is the user id of the actor who returned the
+	// submission; nil for non-returned rows.
+	ReturnedBy *int64
+	// ReturnedAt is when the submission was returned; nil for
+	// non-returned rows.
+	ReturnedAt *time.Time
+	Status     entities.SubmissionStatus
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
