@@ -37,6 +37,9 @@ export interface SubmissionView {
   feedback?: string
   graded_by?: number
   graded_at?: string
+  return_reason?: string
+  returned_by?: number
+  returned_at?: string
   status: SubmissionStatus
   created_at: string
   updated_at: string
@@ -56,6 +59,17 @@ export interface SaveGradeResponse {
   assignment_id: number
   student_id: number
   value: number
+}
+
+export interface ReturnSubmissionRequest {
+  student_id: number
+  reason: string
+}
+
+export interface ReturnSubmissionResponse {
+  assignment_id: number
+  student_id: number
+  reason: string
 }
 
 export interface AssignmentListFilter {

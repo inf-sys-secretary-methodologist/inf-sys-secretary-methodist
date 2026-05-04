@@ -11,6 +11,8 @@ import type {
   SubmissionStatus,
   SaveGradeRequest,
   SaveGradeResponse,
+  ReturnSubmissionRequest,
+  ReturnSubmissionResponse,
 } from '@/types/assignments'
 
 const ASSIGNMENTS_URL = '/api/assignments'
@@ -96,6 +98,22 @@ export async function saveGrade(
 ): Promise<SaveGradeResponse> {
   const response = await apiClient.post<ApiResponse<SaveGradeResponse>>(
     `${ASSIGNMENTS_URL}/${assignmentId}/grades`,
+    body
+  )
+  return response.data
+}
+
+// returnSubmission POSTs the return-for-revision payload to the backend
+// ReturnHandler endpoint. On error the underlying axios error
+// propagates so the caller can distinguish 409 (already returned) /
+// 422 (invalid reason) / 403 (forbidden) by HTTP status — mirrors
+// saveGrade's error contract.
+export async function returnSubmission(
+  assignmentId: number,
+  body: ReturnSubmissionRequest
+): Promise<ReturnSubmissionResponse> {
+  const response = await apiClient.post<ApiResponse<ReturnSubmissionResponse>>(
+    `${ASSIGNMENTS_URL}/${assignmentId}/returns`,
     body
   )
   return response.data
