@@ -62,7 +62,8 @@ func (r *SubmissionRepositoryPG) GetByAssignmentAndStudent(ctx context.Context, 
 	}
 	var gb *int64
 	if gradedBy.Valid {
-		gb = &gradedBy.Int64
+		v := gradedBy.Int64
+		gb = &v
 	}
 	var ga *time.Time
 	if gradedAt.Valid {
@@ -71,7 +72,8 @@ func (r *SubmissionRepositoryPG) GetByAssignmentAndStudent(ctx context.Context, 
 	}
 	var rb *int64
 	if returnedBy.Valid {
-		rb = &returnedBy.Int64
+		v := returnedBy.Int64
+		rb = &v
 	}
 	var rat *time.Time
 	if returnedAt.Valid {
@@ -172,6 +174,10 @@ func (r *SubmissionRepositoryPG) ListByAssignment(ctx context.Context, assignmen
 		statusFilter = string(*status)
 	}
 
+	// NOTE: column list duplicated from `submissionSelectColumns` because
+	// the JOIN-aware shape (s.* aliases + COALESCE on users.name) does not
+	// share the same projection. When adding a submissions column, update
+	// BOTH the constant and this query.
 	query := `
 		SELECT s.id, s.assignment_id, s.student_id, COALESCE(u.name, ''),
 		       s.grade_value, s.feedback, s.graded_by, s.graded_at,
@@ -219,7 +225,8 @@ func (r *SubmissionRepositoryPG) ListByAssignment(ctx context.Context, assignmen
 		}
 		var gb *int64
 		if gradedBy.Valid {
-			gb = &gradedBy.Int64
+			v := gradedBy.Int64
+			gb = &v
 		}
 		var ga *time.Time
 		if gradedAt.Valid {
