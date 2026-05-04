@@ -91,6 +91,13 @@ func (uc *ResubmitSubmissionUseCase) Execute(ctx context.Context, actorID int64,
 		return fmt.Errorf("resubmit submission: load submission: %w", err)
 	}
 
+	// AuthorizeResubmitter is unreachable through the current HTTP entry
+	// point — the handler hard-wires in.StudentID = actorID, so the
+	// equality always holds. The check stays here as defence in depth:
+	// a future caller (a CLI tool, a different route, an agent runner)
+	// might invoke Execute with mismatched ids, and the entity-level
+	// invariant must keep enforcing ownership. Do not delete as "dead
+	// code" — verify the invocation surface first.
 	if err := submission.AuthorizeResubmitter(actorID); err != nil {
 		// Audit a denied resubmit explicitly. Resubmit is a security-
 		// relevant write (it lets the student replace the teacher's

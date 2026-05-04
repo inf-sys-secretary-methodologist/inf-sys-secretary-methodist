@@ -73,7 +73,7 @@ func TestResubmitHandler_RoleWhitelist(t *testing.T) {
 		{name: "academic_secretary rejected", role: "academic_secretary", wantCode: http.StatusUnauthorized, wantUC: false},
 		{name: "system_admin rejected", role: "system_admin", wantCode: http.StatusUnauthorized, wantUC: false},
 		{name: "unknown role rejected", role: "auditor", wantCode: http.StatusUnauthorized, wantUC: false},
-		{name: "empty-string role rejected", role: "garbage-no-auth", wantCode: http.StatusUnauthorized, wantUC: false},
+		{name: "case-mismatched 'Student' rejected (exact match enforced)", role: "Student", wantCode: http.StatusUnauthorized, wantUC: false},
 		{name: "no auth middleware → no user_id → 401", role: "", wantCode: http.StatusUnauthorized, wantUC: false},
 	}
 
