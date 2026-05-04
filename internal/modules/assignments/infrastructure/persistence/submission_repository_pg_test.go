@@ -248,6 +248,50 @@ func TestSubmissionRepositoryPG_Save_PersistsReturnFields(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestSubmissionRepositoryPG_Save_PersistsResubmittedFields(t *testing.T) {
+	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
+	later := time.Date(2026, 5, 4, 18, 0, 0, 0, time.UTC)
+	repo, mock := newSubmissionRepoMock(t)
+
+	a, err := entities.NewAssignment(entities.NewAssignmentParams{
+		Title: "Lab", GroupName: "A", Subject: "CS", MaxScore: 100, TeacherID: 99, Now: now,
+	})
+	require.NoError(t, err)
+	score, err := a.NewSubmissionScore(85)
+	require.NoError(t, err)
+
+	sub := entities.NewSubmission(10, 7, now)
+	require.NoError(t, sub.Grade(score, "good", 99, now))
+	require.NoError(t, sub.Return("revisit derivation", 99, now))
+	require.NoError(t, sub.Resubmit(later))
+	require.Equal(t, entities.StatusPending, sub.Status())
+
+	// After Resubmit the row must persist with status='pending' and both
+	// triples NULL — the grade triple is already null (Return cleared it),
+	// and Resubmit nulls the return triple. Save writes all 12 column
+	// values unconditionally, so no SQL change is required; this backfill
+	// pins the round-trip contract for the new entity transition.
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO submissions")).
+		WithArgs(
+			int64(10), int64(7),
+			sql.NullInt64{},  // grade_value cleared (was set in Grade, nulled by Return)
+			"",               // feedback cleared
+			sql.NullInt64{},  // graded_by cleared
+			sql.NullTime{},   // graded_at cleared
+			"pending",        // status flipped back from returned
+			sql.NullString{}, // return_reason cleared by Resubmit
+			sql.NullInt64{},  // returned_by cleared by Resubmit
+			sql.NullTime{},   // returned_at cleared by Resubmit
+			sqlmock.AnyArg(), // created_at
+			sqlmock.AnyArg(), // updated_at (later, post-Resubmit)
+		).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(42)))
+
+	require.NoError(t, repo.Save(context.Background(), sub))
+	assert.Equal(t, int64(42), sub.ID)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestSubmissionRepositoryPG_ListByAssignment(t *testing.T) {
 	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
 
