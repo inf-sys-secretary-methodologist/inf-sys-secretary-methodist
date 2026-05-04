@@ -15,6 +15,51 @@
 
 ---
 
+## [0.110.0] — 2026-05-04
+
+### Added — Assignments read-side + grading UI
+
+Парная фича к v0.109.0. Backend write-side (SaveGrade) написан и покрыт тестами в v0.109.0; v0.110.0 добавляет read-side endpoints, frontend pages и закрывает 2 should-fix из reviewer'а v0.109.0.
+
+- **3 GET endpoints**:
+  - `GET /api/assignments` — список assignments с pagination.
+  - `GET /api/assignments/:id` — single assignment.
+  - `GET /api/assignments/:id/submissions` — per-student submission rows.
+- Все три endpoints за `RequireNonStudent` middleware **+ handler-level role whitelist** (defense-in-depth поверх middleware).
+- **Domain reorg**:
+  - `Assignment.AuthorizeAccess(userID, role, unrestricted)` — централизация read-side authz в aggregate. Teacher с `unrestricted=false` видит только свои assignments; methodist / academic_secretary / system_admin (`unrestricted=true`) — все.
+  - `Assignment.NewSubmissionScore(value)` — cross-aggregate validation `Score↔MaxScore` перенесён из use case в domain (DDD compliance: invariant в правильном слое).
+  - `Score.max` dropped — dead data after `NewSubmissionScore` thread-through.
+- **Frontend**:
+  - `/assignments` — list page с filter и pagination.
+  - `/assignments/[id]` — detail + grading list view.
+  - `GradeForm` component — score input с live `validateGrade` (frontend-side invariant mirror).
+  - `parseLocalDate` utility — TIMESTAMPTZ из API парсится как local midnight, не `new Date(iso)` (TZ-shift bug в negative-UTC zones).
+  - SWR hooks `useAssignments` / `useAssignment` / `useSubmissions`.
+  - Per-resource Assignment / Submission TypeScript types.
+  - Navigation entry «Задания» (hidden от students через config).
+- **i18n × 4** (ru/en/fr/ar) — assignments page strings, GradeForm labels, статусы submission'ов. Parity verified через `python3 -c "import json; json.load(...)"`.
+
+### Architecture — pagination pattern
+
+Two-query pagination фиксирован: separate `COUNT(*) FROM ... WHERE ...` + `SELECT ... FROM ... WHERE ... LIMIT $X OFFSET $Y` с **тем же** WHERE-предикатом. Window function `COUNT(*) OVER ()` отвергнут — он шёл бы по всему dataset'у в каждой row, и при teacher scope filter (v0.108.3) дал бы wrong totals. Pattern закрепился для всех list endpoints.
+
+### Versioning correction
+
+Pre-versioned как `v0.109.1` (patch) и скорректирован в начале сессии до `v0.110.0` (minor). Reasoning: 3 новых endpoints **+ frontend pages = новая обратно-совместимая функциональность**, SemVer minor по правилам проекта.
+
+### Tests
+
+- Backend: 4 use case tests (List/Get/ListSubmissions) + sqlmock pg tests + 7 handler tests (whitelist role matrix, 403 mapping, pagination) + `Assignment.AuthorizeAccess` table-driven.
+- Frontend: SWR hook tests + GradeForm validation tests + parseLocalDate tests + assignments-page integration tests.
+- 2 backfill commits для test-quality gaps (covered missed branches), 1 backfill для frontend component coverage.
+
+### Code review
+
+Reviewer ≥9 каждая ось. Final SHIP.
+
+---
+
 ## [0.109.0] — 2026-05-04
 
 ### Added — Assignments bounded context (academic Tasks Context)
