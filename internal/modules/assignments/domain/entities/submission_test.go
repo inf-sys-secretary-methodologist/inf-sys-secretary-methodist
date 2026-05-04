@@ -184,4 +184,77 @@ func TestSubmission_Return_FromGradedClearsPriorGrade(t *testing.T) {
 	assert.Equal(t, returnedAt, s.UpdatedAt())
 }
 
+func TestSubmission_Resubmit_FromReturnedClearsTriple(t *testing.T) {
+	created := time.Date(2026, 5, 4, 9, 0, 0, 0, time.UTC)
+	returnedAt := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
+	resubmittedAt := time.Date(2026, 5, 4, 18, 30, 0, 0, time.UTC)
+
+	s := entities.NewSubmission(1, 7, created)
+	require.NoError(t, s.Return("missing details", 99, returnedAt))
+	require.Equal(t, entities.StatusReturned, s.Status())
+
+	err := s.Resubmit(resubmittedAt)
+	require.NoError(t, err)
+
+	assert.Equal(t, entities.StatusPending, s.Status())
+	assert.Equal(t, "", s.ReturnReason(), "return_reason must be cleared on Resubmit")
+	assert.Nil(t, s.ReturnedBy(), "returned_by must be nilled on Resubmit")
+	assert.Nil(t, s.ReturnedAt(), "returned_at must be nilled on Resubmit")
+	assert.Equal(t, resubmittedAt, s.UpdatedAt())
+
+	// Grade fields stay nil — Return already cleared them, Resubmit must
+	// not resurrect them. The resubmit transition only touches the return
+	// triple and the status; everything else is preserved.
+	assert.Nil(t, s.GradeValue())
+	assert.Nil(t, s.GradedBy())
+	assert.Nil(t, s.GradedAt())
+}
+
+func TestSubmission_Resubmit_NonReturnedRejected(t *testing.T) {
+	created := time.Date(2026, 5, 4, 9, 0, 0, 0, time.UTC)
+	gradedAt := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
+	resubmittedAt := time.Date(2026, 5, 4, 18, 30, 0, 0, time.UTC)
+
+	a, err := entities.NewAssignment(entities.NewAssignmentParams{
+		Title: "Lab", GroupName: "A", Subject: "CS", MaxScore: 100, TeacherID: 99, Now: created,
+	})
+	require.NoError(t, err)
+	score, err := a.NewSubmissionScore(85)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name                string
+		setup               func(t *testing.T, s *entities.Submission)
+		wantStatusUnchanged entities.SubmissionStatus
+	}{
+		{
+			name:                "pending status rejected",
+			setup:               func(t *testing.T, s *entities.Submission) {},
+			wantStatusUnchanged: entities.StatusPending,
+		},
+		{
+			name: "graded status rejected",
+			setup: func(t *testing.T, s *entities.Submission) {
+				require.NoError(t, s.Grade(score, "ok", 99, gradedAt))
+			},
+			wantStatusUnchanged: entities.StatusGraded,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			s := entities.NewSubmission(1, 7, created)
+			tc.setup(t, s)
+
+			err := s.Resubmit(resubmittedAt)
+
+			require.Error(t, err)
+			assert.True(t, errors.Is(err, entities.ErrNotReturned),
+				"got %v, want errors.Is(ErrNotReturned) = true", err)
+			assert.Equal(t, tc.wantStatusUnchanged, s.Status(),
+				"status must remain unchanged on rejected Resubmit")
+		})
+	}
+}
+
 func intPtr(v int) *int { return &v }
