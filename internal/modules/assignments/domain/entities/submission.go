@@ -47,8 +47,10 @@ func (s SubmissionStatus) IsValid() bool {
 
 // Submission represents a single student's record against an assignment.
 // One Submission is created per (assignment, student) pair as soon as
-// the assignment is published, with status=Pending and no grade. The
-// teacher transitions it into Graded by calling Grade.
+// the assignment is published, with status=Pending and no grade.
+// Teachers transition it into Graded by calling Grade; teachers,
+// methodists, academic_secretaries and system_admins can transition it
+// (back) into Returned for revision by calling Return.
 type Submission struct {
 	ID           int64
 	AssignmentID int64
@@ -184,10 +186,8 @@ func (s *Submission) Return(reason string, returnedBy int64, now time.Time) erro
 	s.gradedBy = nil
 	s.gradedAt = nil
 	s.returnReason = trimmed
-	rb := returnedBy
-	s.returnedBy = &rb
-	t := now
-	s.returnedAt = &t
+	s.returnedBy = &returnedBy
+	s.returnedAt = &now
 	s.status = StatusReturned
 	s.updatedAt = now
 	return nil

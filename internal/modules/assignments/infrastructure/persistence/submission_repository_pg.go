@@ -66,6 +66,7 @@ func (r *SubmissionRepositoryPG) GetByAssignmentAndStudent(ctx context.Context, 
 	}
 	return entities.ReconstituteSubmission(
 		id, aid, sid, gv, feedback.String, gb, ga,
+		// TODO(T5): scan return_reason / returned_by / returned_at columns; legacy passthrough until migration 030 lands.
 		"", nil, nil,
 		entities.SubmissionStatus(status), createdAt, updatedAt,
 	), nil

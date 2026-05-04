@@ -107,13 +107,13 @@ func TestSubmissionStatus_IsValid(t *testing.T) {
 func TestSubmission_Return_AlreadyReturnedRejected(t *testing.T) {
 	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
 	s := entities.NewSubmission(1, 7, now)
-	if err := s.Return("not enough detail", 99, now); err != nil {
-		t.Fatalf("first Return: unexpected error: %v", err)
-	}
+	require.NoError(t, s.Return("not enough detail", 99, now))
+	require.Equal(t, entities.StatusReturned, s.Status())
+
 	err := s.Return("still not enough", 99, now)
-	if !errors.Is(err, entities.ErrAlreadyReturned) {
-		t.Fatalf("second Return: want ErrAlreadyReturned, got %v", err)
-	}
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, entities.ErrAlreadyReturned),
+		"expected error wrapping ErrAlreadyReturned, got %v", err)
 }
 
 func intPtr(v int) *int { return &v }
