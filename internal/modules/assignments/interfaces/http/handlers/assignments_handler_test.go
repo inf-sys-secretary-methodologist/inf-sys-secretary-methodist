@@ -167,6 +167,44 @@ func TestListAssignmentsHandler(t *testing.T) {
 			wantStatus: http.StatusUnauthorized,
 		},
 		{
+			// Defence-in-depth: even if RequireNonStudent middleware were
+			// ever bypassed, the handler itself must refuse "student"
+			// rather than fall through to "unrestricted" via a negative
+			// rule like `role != "teacher"`.
+			name:       "role 'student' is 401 (defence-in-depth)",
+			auth:       readAuth{withUserID: true, withRole: true, userID: 42, role: "student"},
+			path:       "/api/assignments",
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			// Same defence-in-depth: an unrecognised role must NOT be
+			// silently treated as unrestricted. Forces the handler to
+			// whitelist the four valid non-student roles instead of
+			// blacklisting only "teacher".
+			name:       "unknown role is 401",
+			auth:       readAuth{withUserID: true, withRole: true, userID: 42, role: "auditor"},
+			path:       "/api/assignments",
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "academic_secretary gets unrestricted scope",
+			auth:           readAuth{withUserID: true, withRole: true, userID: 5, role: "academic_secretary"},
+			path:           "/api/assignments",
+			ucOut:          assignUsecases.ListAssignmentsOutput{Total: 0},
+			wantStatus:     http.StatusOK,
+			wantUCCalled:   true,
+			wantUnrestrict: true,
+		},
+		{
+			name:           "system_admin gets unrestricted scope",
+			auth:           readAuth{withUserID: true, withRole: true, userID: 1, role: "system_admin"},
+			path:           "/api/assignments",
+			ucOut:          assignUsecases.ListAssignmentsOutput{Total: 0},
+			wantStatus:     http.StatusOK,
+			wantUCCalled:   true,
+			wantUnrestrict: true,
+		},
+		{
 			name:       "use case error becomes 500",
 			auth:       readAuth{withUserID: true, withRole: true, userID: 42, role: "teacher"},
 			path:       "/api/assignments",
