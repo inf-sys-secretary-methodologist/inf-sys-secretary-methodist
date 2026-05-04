@@ -8,6 +8,7 @@ import { Calendar, Users, BookOpen, ArrowRight } from 'lucide-react'
 
 import type { Assignment } from '@/types/assignments'
 import { cn } from '@/lib/utils'
+import { parseLocalDate } from '@/lib/assignments/dates'
 
 const localeMap = { ru, en: enUS, fr, ar }
 
@@ -25,8 +26,10 @@ export function AssignmentCard({ assignment, className }: AssignmentCardProps) {
   const locale = useLocale() as keyof typeof localeMap
   const dateLocale = localeMap[locale] ?? enUS
 
+  // Parse with parseLocalDate so the calendar date matches the
+  // teacher's wall clock regardless of browser timezone (CLAUDE.md #9).
   const dueLabel = assignment.due_date
-    ? format(new Date(assignment.due_date), 'd MMM yyyy', { locale: dateLocale })
+    ? format(parseLocalDate(assignment.due_date), 'd MMM yyyy', { locale: dateLocale })
     : null
 
   return (

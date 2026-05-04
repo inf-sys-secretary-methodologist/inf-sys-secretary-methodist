@@ -7,6 +7,7 @@ import { CheckCircle2, Clock, RotateCcw } from 'lucide-react'
 
 import type { SubmissionView } from '@/types/assignments'
 import { cn } from '@/lib/utils'
+import { parseLocalDate } from '@/lib/assignments/dates'
 import { GradeForm } from './GradeForm'
 
 const localeMap = { ru, en: enUS, fr, ar }
@@ -43,8 +44,12 @@ export function SubmissionRow({ assignmentId, maxScore, submission, onGraded }: 
   const styles = STATUS_STYLES[submission.status]
   const Icon = styles.Icon
 
+  // Parse with parseLocalDate so the date portion matches the teacher's
+  // wall clock; for graded_at the time-of-day display is intentionally
+  // truncated — the row's purpose is "did this get graded today" not
+  // a precision timestamp (CLAUDE.md #9).
   const gradedAt = submission.graded_at
-    ? format(new Date(submission.graded_at), 'd MMM yyyy, HH:mm', { locale: dateLocale })
+    ? format(parseLocalDate(submission.graded_at), 'd MMM yyyy', { locale: dateLocale })
     : null
 
   return (
