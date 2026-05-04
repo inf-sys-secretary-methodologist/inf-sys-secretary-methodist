@@ -128,6 +128,11 @@ import (
 	taskUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
 	taskPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/infrastructure/persistence"
 	taskHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/interfaces/http/handlers"
+	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
+	assignPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/infrastructure/persistence"
+	assignHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/interfaces/http/handlers"
+	notifDto "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
+	notifEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
 	usersUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	usersRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	usersPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/infrastructure/persistence"
@@ -388,6 +393,26 @@ func main() {
 	projectUseCase := taskUsecases.NewProjectUseCase(projectRepo, auditLogger)
 	logger.Info("Tasks module initialized", nil)
 
+	// Initialize assignments module — academic Tasks Context (separate
+	// bounded context from project-management tasks). v0.109.0 ships the
+	// SaveGrade flow only; submission upload + rubric land in later
+	// releases.
+	assignmentRepo := assignPersistence.NewAssignmentRepositoryPG(db)
+	submissionRepo := assignPersistence.NewSubmissionRepositoryPG(db)
+
+	// Notifier adapter: a struct local to main that translates the
+	// assignments-module narrow port into a NotificationUseCase.Create
+	// call. Keeping the adapter at the DI seam (here, not inside the
+	// assignments module) avoids a cross-module Go import in
+	// domain/usecase code.
+	gradeNotifier := &assignmentsGradeNotifier{
+		notif: notificationUseCase,
+	}
+	saveGradeUseCase := assignUsecases.NewSaveGradeUseCase(
+		assignmentRepo, submissionRepo, gradeNotifier, auditLogger, nil,
+	)
+	logger.Info("Assignments module initialized", nil)
+
 	// Initialize schedule module
 	eventRepo := schedulePersistence.NewEventRepositoryPG(db)
 	participantRepo := schedulePersistence.NewEventParticipantRepositoryPG(db)
@@ -595,6 +620,7 @@ func main() {
 		customReportUseCase,
 		taskUseCase,
 		projectUseCase,
+		saveGradeUseCase,
 		eventUseCase,
 		lessonUseCase,
 		announcementUseCase,
@@ -1095,6 +1121,7 @@ func setupRoutes(
 	customReportUseCase *reportUsecases.CustomReportUseCase,
 	taskUseCase *taskUsecases.TaskUseCase,
 	projectUseCase *taskUsecases.ProjectUseCase,
+	saveGradeUseCase *assignUsecases.SaveGradeUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
@@ -1788,6 +1815,22 @@ func setupRoutes(
 			logger.Info("Tasks module routes registered", nil)
 		}
 
+		// Assignments module routes — academic grading flow.
+		// Behind RequireNonStudent because students must not see (or
+		// even probe) grading endpoints for their peers.
+		if saveGradeUseCase != nil {
+			gradeHandlerInstance := assignHandler.NewGradeHandler(saveGradeUseCase)
+
+			assignmentsGroup := protectedGroup.Group("/assignments")
+			assignmentsGroup.Use(authMiddleware.RequireNonStudent())
+			{
+				assignmentsGroup.POST("/:id/grades", gradeHandlerInstance.SaveGrade)
+				assignmentsGroup.OPTIONS("/:id/grades", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			logger.Info("Assignments module routes registered", nil)
+		}
+
 		// Schedule/Events module routes
 		if eventUseCase != nil {
 			eventHandlerInstance := scheduleHandler.NewEventHandler(eventUseCase)
@@ -2176,6 +2219,32 @@ const (
 	healthStatusOK       = "OK"
 	healthStatusDegraded = "DEGRADED"
 )
+
+// assignmentsGradeNotifier adapts the platform NotificationUseCase to
+// the assignments module's narrow SaveGradeNotifier port. It lives in
+// main.go (the DI seam) so the assignments domain/usecase packages
+// stay free of cross-module Go imports.
+type assignmentsGradeNotifier struct {
+	notif *notifUsecases.NotificationUseCase
+}
+
+// NotifyGraded creates a "task"-typed notification for the student.
+// Returns nil silently when the notification subsystem is disabled
+// (notif == nil) so wiring without notifications still grades cleanly.
+func (n *assignmentsGradeNotifier) NotifyGraded(ctx context.Context, studentID, assignmentID int64, score, maxScore int) error {
+	if n == nil || n.notif == nil {
+		return nil
+	}
+	_, err := n.notif.Create(ctx, &notifDto.CreateNotificationInput{
+		UserID:   studentID,
+		Type:     notifEntities.NotificationTypeTask,
+		Priority: notifEntities.PriorityNormal,
+		Title:    "Получена оценка",
+		Message:  fmt.Sprintf("За задание выставлена оценка: %d из %d", score, maxScore),
+		Link:     fmt.Sprintf("/assignments/%d", assignmentID),
+	})
+	return err
+}
 
 // livenessHandler returns a simple liveness probe endpoint for Kubernetes.
 // It only checks if the application process is running.
