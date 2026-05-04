@@ -82,6 +82,20 @@ func TestSubmissionRepositoryPG_GetByAssignmentAndStudent(t *testing.T) {
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, repositories.ErrSubmissionNotFound))
 	})
+
+	t.Run("transport error wraps with op context", func(t *testing.T) {
+		repo, mock := newSubmissionRepoMock(t)
+		mock.ExpectQuery(regexp.QuoteMeta("FROM submissions WHERE assignment_id = $1 AND student_id = $2")).
+			WithArgs(int64(10), int64(7)).
+			WillReturnError(errors.New("conn refused"))
+
+		got, err := repo.GetByAssignmentAndStudent(context.Background(), 10, 7)
+		assert.Nil(t, got)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "submissions: get by pair")
+		assert.False(t, errors.Is(err, repositories.ErrSubmissionNotFound),
+			"transport error must NOT be misclassified as not-found")
+	})
 }
 
 func TestSubmissionRepositoryPG_Save_Upsert(t *testing.T) {
@@ -108,4 +122,47 @@ func TestSubmissionRepositoryPG_Save_Upsert(t *testing.T) {
 	require.NoError(t, repo.Save(context.Background(), sub))
 	assert.Equal(t, int64(99), sub.ID, "Save must populate the assigned id back onto the entity")
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestSubmissionRepositoryPG_Save_OnConflictReturnsExistingID(t *testing.T) {
+	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
+	repo, mock := newSubmissionRepoMock(t)
+
+	score, _ := entities.NewScore(70, 100)
+	sub := entities.NewSubmission(10, 7, now)
+	require.NoError(t, sub.Grade(score, "ok", 42, now))
+
+	// On a "first grade" race, a concurrent writer has already inserted
+	// the (assignment_id, student_id) row. The unique constraint forces
+	// our INSERT into ON CONFLICT DO UPDATE; the RETURNING id surfaces
+	// the existing row's id (not a freshly generated one).
+	mock.ExpectQuery(regexp.QuoteMeta("ON CONFLICT (assignment_id, student_id) DO UPDATE SET")).
+		WithArgs(
+			int64(10), int64(7),
+			sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
+			sqlmock.AnyArg(), "graded",
+			sqlmock.AnyArg(), sqlmock.AnyArg(),
+		).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(123)))
+
+	require.NoError(t, repo.Save(context.Background(), sub))
+	assert.Equal(t, int64(123), sub.ID,
+		"Save must surface the upserted row id from RETURNING (existing row on conflict)")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestSubmissionRepositoryPG_Save_TransportErrorWrapped(t *testing.T) {
+	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
+	repo, mock := newSubmissionRepoMock(t)
+
+	score, _ := entities.NewScore(50, 100)
+	sub := entities.NewSubmission(10, 7, now)
+	require.NoError(t, sub.Grade(score, "", 42, now))
+
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO submissions")).
+		WillReturnError(errors.New("deadlock detected"))
+
+	err := repo.Save(context.Background(), sub)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "submissions: upsert")
+	assert.Equal(t, int64(0), sub.ID, "ID must not be set when upsert fails")
 }

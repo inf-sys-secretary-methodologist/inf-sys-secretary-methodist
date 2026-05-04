@@ -55,6 +55,21 @@ func TestSaveGradeUseCase_Execute(t *testing.T) {
 			wantSavedFb:    "great work",
 		},
 		{
+			// Reviewer note: the "submission already exists in pending"
+			// path was previously uncovered. Grade must mutate the
+			// existing entity in place rather than create a fresh one.
+			name:      "existing pending submission is graded in place",
+			teacherID: authorTeacherID,
+			input: usecases.SaveGradeInput{
+				AssignmentID: assignmentID, StudentID: studentID,
+				Value: 70, Feedback: "ok",
+			},
+			seedSubmission: entities.NewSubmission(assignmentID, studentID, fixedNow.Add(-2*time.Hour)),
+			wantNotified:   true,
+			wantSavedValue: ptrInt(70),
+			wantSavedFb:    "ok",
+		},
+		{
 			name:      "assignment not found surfaces repository sentinel",
 			teacherID: authorTeacherID,
 			input: usecases.SaveGradeInput{
