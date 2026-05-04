@@ -2,6 +2,7 @@ package entities_test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -114,6 +115,41 @@ func TestSubmission_Return_AlreadyReturnedRejected(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, entities.ErrAlreadyReturned),
 		"expected error wrapping ErrAlreadyReturned, got %v", err)
+}
+
+func TestSubmission_Return_InvariantValidation(t *testing.T) {
+	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name       string
+		reason     string
+		returnedBy int64
+		wantErrIs  error // nil means must succeed
+	}{
+		{name: "empty reason rejected", reason: "", returnedBy: 99, wantErrIs: entities.ErrInvalidReturn},
+		{name: "whitespace-only reason rejected", reason: "   \t\n", returnedBy: 99, wantErrIs: entities.ErrInvalidReturn},
+		{name: "reason at 4096-char boundary accepted", reason: strings.Repeat("a", 4096), returnedBy: 99, wantErrIs: nil},
+		{name: "reason exceeds 4096 chars rejected", reason: strings.Repeat("a", 4097), returnedBy: 99, wantErrIs: entities.ErrInvalidReturn},
+		{name: "zero returnedBy rejected", reason: "fine", returnedBy: 0, wantErrIs: entities.ErrInvalidReturn},
+		{name: "negative returnedBy rejected", reason: "fine", returnedBy: -1, wantErrIs: entities.ErrInvalidReturn},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			s := entities.NewSubmission(1, 7, now)
+
+			err := s.Return(tc.reason, tc.returnedBy, now)
+
+			if tc.wantErrIs == nil {
+				require.NoError(t, err)
+				assert.Equal(t, entities.StatusReturned, s.Status())
+				return
+			}
+			require.Error(t, err)
+			assert.True(t, errors.Is(err, tc.wantErrIs),
+				"got %v, want errors.Is(%v) = true", err, tc.wantErrIs)
+		})
+	}
 }
 
 func intPtr(v int) *int { return &v }
