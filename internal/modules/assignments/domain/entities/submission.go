@@ -63,6 +63,28 @@ func NewSubmission(assignmentID, studentID int64, now time.Time) *Submission {
 	}
 }
 
+// ReconstituteSubmission rebuilds a Submission from a storage row.
+// Bypasses transition rules because the persisted state is already the
+// outcome of those rules. Used exclusively by repository implementations.
+func ReconstituteSubmission(
+	id, assignmentID, studentID int64,
+	gradeValue *int, feedback string, gradedBy *int64, gradedAt *time.Time,
+	status SubmissionStatus, createdAt, updatedAt time.Time,
+) *Submission {
+	return &Submission{
+		ID:           id,
+		AssignmentID: assignmentID,
+		StudentID:    studentID,
+		gradeValue:   gradeValue,
+		feedback:     feedback,
+		gradedBy:     gradedBy,
+		gradedAt:     gradedAt,
+		status:       status,
+		createdAt:    createdAt,
+		updatedAt:    updatedAt,
+	}
+}
+
 // Status exposes the current status (read-only).
 func (s *Submission) Status() SubmissionStatus { return s.status }
 

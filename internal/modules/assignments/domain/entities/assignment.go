@@ -85,6 +85,29 @@ func NewAssignment(p NewAssignmentParams) (*Assignment, error) {
 	}, nil
 }
 
+// ReconstituteAssignment rebuilds an Assignment from authoritative
+// storage. It bypasses NewAssignment's invariant checks because the
+// values are already canonical (the DB enforces the same CHECKs at
+// write time). Used exclusively by repository implementations.
+func ReconstituteAssignment(
+	id int64, title, description string, teacherID int64,
+	groupName, subject string, maxScore int, dueDate *time.Time,
+	createdAt, updatedAt time.Time,
+) *Assignment {
+	return &Assignment{
+		ID:          id,
+		title:       title,
+		description: description,
+		teacherID:   teacherID,
+		groupName:   groupName,
+		subject:     subject,
+		maxScore:    maxScore,
+		dueDate:     dueDate,
+		createdAt:   createdAt,
+		updatedAt:   updatedAt,
+	}
+}
+
 // Title returns the assignment title.
 func (a *Assignment) Title() string { return a.title }
 
