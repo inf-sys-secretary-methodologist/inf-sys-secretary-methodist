@@ -29,6 +29,14 @@ var ErrInvalidReturn = errors.New("assignments: invalid return")
 // Handlers map this sentinel to HTTP 409.
 var ErrNotReturned = errors.New("assignments: submission not in returned state")
 
+// ErrSubmissionOwnerOnly indicates that an actor without ownership of
+// this submission attempted a write that the domain restricts to its
+// student — currently Resubmit. The sentinel is distinct from
+// ErrAssignmentScopeForbidden (which is the teacher-side rule on the
+// Assignment aggregate); a student is never the assignment author, so
+// reusing that name would be misleading. Handlers map to HTTP 403.
+var ErrSubmissionOwnerOnly = errors.New("assignments: caller is not the submission owner")
+
 // SubmissionStatus is the typed enum mirroring the SQL CHECK on
 // submissions.status. It exists so domain code can never pass a "magic
 // string" through a Submission.
@@ -196,6 +204,23 @@ func (s *Submission) Return(reason string, returnedBy int64, now time.Time) erro
 	s.returnedAt = &now
 	s.status = StatusReturned
 	s.updatedAt = now
+	return nil
+}
+
+// AuthorizeResubmitter returns nil if actorID is the student who owns
+// this submission, otherwise ErrSubmissionOwnerOnly. The actor must be
+// strictly positive — a zero or negative actor id signals missing JWT
+// context, which must never accidentally satisfy ownership even if a
+// student record were ever stored with id 0.
+//
+// Centralised on the entity so the Resubmit use case does not duplicate
+// the predicate inline; mirrors Assignment.AuthorizeGrader on the
+// teacher side.
+func (s *Submission) AuthorizeResubmitter(actorID int64) error {
+	if actorID <= 0 || actorID != s.StudentID {
+		return fmt.Errorf("%w: user %d is not the owner (%d)",
+			ErrSubmissionOwnerOnly, actorID, s.StudentID)
+	}
 	return nil
 }
 
