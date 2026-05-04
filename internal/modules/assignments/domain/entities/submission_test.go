@@ -152,4 +152,36 @@ func TestSubmission_Return_InvariantValidation(t *testing.T) {
 	}
 }
 
+func TestSubmission_Return_FromGradedClearsPriorGrade(t *testing.T) {
+	created := time.Date(2026, 5, 4, 9, 0, 0, 0, time.UTC)
+	gradedAt := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
+	returnedAt := time.Date(2026, 5, 4, 18, 30, 0, 0, time.UTC)
+
+	a, err := entities.NewAssignment(entities.NewAssignmentParams{
+		Title: "Lab", GroupName: "A", Subject: "CS", MaxScore: 100, TeacherID: 99, Now: created,
+	})
+	require.NoError(t, err)
+	score, err := a.NewSubmissionScore(85)
+	require.NoError(t, err)
+
+	s := entities.NewSubmission(1, 7, created)
+	require.NoError(t, s.Grade(score, "good", 99, gradedAt))
+	require.True(t, s.IsGraded())
+
+	require.NoError(t, s.Return("revisit derivation", 99, returnedAt))
+
+	assert.Equal(t, entities.StatusReturned, s.Status())
+	assert.Nil(t, s.GradeValue(), "grade_value must be nilled on Return")
+	assert.Nil(t, s.GradedBy(), "graded_by must be nilled on Return")
+	assert.Nil(t, s.GradedAt(), "graded_at must be nilled on Return")
+	assert.Equal(t, "", s.Feedback(), "feedback must be cleared on Return")
+
+	assert.Equal(t, "revisit derivation", s.ReturnReason())
+	require.NotNil(t, s.ReturnedBy())
+	assert.Equal(t, int64(99), *s.ReturnedBy())
+	require.NotNil(t, s.ReturnedAt())
+	assert.Equal(t, returnedAt, *s.ReturnedAt())
+	assert.Equal(t, returnedAt, s.UpdatedAt())
+}
+
 func intPtr(v int) *int { return &v }
