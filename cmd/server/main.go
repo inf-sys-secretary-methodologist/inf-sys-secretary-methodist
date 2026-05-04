@@ -419,6 +419,12 @@ func main() {
 	returnSubmissionUseCase := assignUsecases.NewReturnSubmissionUseCase(
 		assignmentRepo, submissionRepo, returnNotifier, auditLogger, nil,
 	)
+	resubmitNotifier := &assignmentsResubmitNotifier{
+		notif: notificationUseCase,
+	}
+	resubmitSubmissionUseCase := assignUsecases.NewResubmitSubmissionUseCase(
+		assignmentRepo, submissionRepo, resubmitNotifier, auditLogger, nil,
+	)
 	listAssignmentsUseCase := assignUsecases.NewListAssignmentsUseCase(assignmentRepo)
 	getAssignmentUseCase := assignUsecases.NewGetAssignmentUseCase(assignmentRepo)
 	listSubmissionsUseCase := assignUsecases.NewListSubmissionsUseCase(assignmentRepo, submissionRepo)
@@ -633,6 +639,7 @@ func main() {
 		projectUseCase,
 		saveGradeUseCase,
 		returnSubmissionUseCase,
+		resubmitSubmissionUseCase,
 		listAssignmentsUseCase,
 		getAssignmentUseCase,
 		listSubmissionsUseCase,
@@ -1138,6 +1145,7 @@ func setupRoutes(
 	projectUseCase *taskUsecases.ProjectUseCase,
 	saveGradeUseCase *assignUsecases.SaveGradeUseCase,
 	returnSubmissionUseCase *assignUsecases.ReturnSubmissionUseCase,
+	resubmitSubmissionUseCase *assignUsecases.ResubmitSubmissionUseCase,
 	listAssignmentsUseCase *assignUsecases.ListAssignmentsUseCase,
 	getAssignmentUseCase *assignUsecases.GetAssignmentUseCase,
 	listSubmissionsUseCase *assignUsecases.ListSubmissionsUseCase,
@@ -1856,6 +1864,21 @@ func setupRoutes(
 				assignmentsGroup.OPTIONS("/:id/returns", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 
+			// Student-only resubmit route. Lives in a sibling group rather
+			// than under assignmentsGroup because that group is gated by
+			// RequireNonStudent — exactly the inverse of what resubmit
+			// requires. The dedicated RequireRole("student") middleware
+			// here plus the handler-level studentIDFromContext whitelist
+			// give defence in depth: removing either one alone still
+			// rejects every non-student request.
+			resubmitHandlerInstance := assignHandler.NewResubmitHandler(resubmitSubmissionUseCase)
+			studentAssignmentsGroup := protectedGroup.Group("/assignments")
+			studentAssignmentsGroup.Use(authMiddleware.RequireRole("student"))
+			{
+				studentAssignmentsGroup.POST("/:id/resubmit", resubmitHandlerInstance.Resubmit)
+				studentAssignmentsGroup.OPTIONS("/:id/resubmit", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
 			logger.Info("Assignments module routes registered", nil)
 		}
 
@@ -2298,6 +2321,34 @@ func (n *assignmentsReturnNotifier) NotifyReturned(ctx context.Context, studentI
 		Priority: notifEntities.PriorityNormal,
 		Title:    "Работа возвращена на доработку",
 		Message:  fmt.Sprintf("Преподаватель просит исправить работу: %s", truncateForNotification(reason, 200)),
+		Link:     fmt.Sprintf("/assignments/%d", assignmentID),
+	})
+	return err
+}
+
+// assignmentsResubmitNotifier adapts the platform NotificationUseCase to
+// the assignments module's narrow ResubmitSubmissionNotifier port. Same
+// DI-seam pattern as assignmentsGradeNotifier / assignmentsReturnNotifier
+// — the assignments module itself stays free of cross-module Go imports.
+type assignmentsResubmitNotifier struct {
+	notif *notifUsecases.NotificationUseCase
+}
+
+// NotifyResubmitted creates a "task"-typed notification telling the
+// teacher (assignment author) that their student has resubmitted the
+// returned work and a fresh grading attempt awaits. Returns nil silently
+// when the notification subsystem is disabled (notif == nil) so wiring
+// without notifications still resubmits cleanly.
+func (n *assignmentsResubmitNotifier) NotifyResubmitted(ctx context.Context, teacherID, assignmentID int64) error {
+	if n == nil || n.notif == nil {
+		return nil
+	}
+	_, err := n.notif.Create(ctx, &notifDto.CreateNotificationInput{
+		UserID:   teacherID,
+		Type:     notifEntities.NotificationTypeTask,
+		Priority: notifEntities.PriorityNormal,
+		Title:    "Студент пересдал работу",
+		Message:  "Студент отправил исправленную работу — её нужно проверить заново.",
 		Link:     fmt.Sprintf("/assignments/%d", assignmentID),
 	})
 	return err
