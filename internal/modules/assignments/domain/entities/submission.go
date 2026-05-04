@@ -23,6 +23,12 @@ var ErrAlreadyReturned = errors.New("assignments: submission already returned")
 // Handlers map this sentinel to 422 via a single errors.Is dispatch.
 var ErrInvalidReturn = errors.New("assignments: invalid return")
 
+// ErrNotReturned indicates Resubmit was called on a submission whose
+// status is not "returned". Resubmit is the student-side counterpart of
+// Return: it transitions back to pending only from a returned state.
+// Handlers map this sentinel to HTTP 409.
+var ErrNotReturned = errors.New("assignments: submission not in returned state")
+
 // SubmissionStatus is the typed enum mirroring the SQL CHECK on
 // submissions.status. It exists so domain code can never pass a "magic
 // string" through a Submission.
@@ -189,6 +195,27 @@ func (s *Submission) Return(reason string, returnedBy int64, now time.Time) erro
 	s.returnedBy = &returnedBy
 	s.returnedAt = &now
 	s.status = StatusReturned
+	s.updatedAt = now
+	return nil
+}
+
+// Resubmit transitions a returned submission back to pending so that the
+// student can supply revisions for a fresh grading cycle. The return
+// triple (return_reason / returned_by / returned_at) is cleared on the
+// entity — the audit log preserves the history of why the work was sent
+// back. The grade triple is left untouched: Return already cleared it,
+// and Resubmit must not resurrect a stale grade.
+//
+// Allowed only from Returned. Other states reject with ErrNotReturned;
+// handlers map that to HTTP 409.
+func (s *Submission) Resubmit(now time.Time) error {
+	if s.status != StatusReturned {
+		return ErrNotReturned
+	}
+	s.returnReason = ""
+	s.returnedBy = nil
+	s.returnedAt = nil
+	s.status = StatusPending
 	s.updatedAt = now
 	return nil
 }
