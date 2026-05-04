@@ -246,6 +246,58 @@ func TestReturnSubmissionUseCase_AuthzAndErrorPaths(t *testing.T) {
 	}
 }
 
+// TestReturnSubmissionUseCase_NotifierFailureDoesNotAbort pins the
+// best-effort-notifier semantics: a notifier error MUST NOT abort the
+// return. The state transition is the system of record — a transient
+// SMTP outage cannot block the methodist's workflow. The use case must
+// still persist the Returned submission and emit BOTH the failure-audit
+// event (on-call visibility) AND the success-audit event (the actual
+// state transition record).
+func TestReturnSubmissionUseCase_NotifierFailureDoesNotAbort(t *testing.T) {
+	ar := newFakeAssignmentRepo()
+	ar.seed(makeAssignment(t, assignmentID, authorTeacherID))
+	sr := newFakeSubmissionRepo()
+	notifier := &recordingReturnNotifier{err: errors.New("smtp down")}
+	audit := &recordingAuditSink{}
+
+	uc := usecases.NewReturnSubmissionUseCase(ar, sr, notifier, audit, func() time.Time { return fixedNow })
+
+	err := uc.Execute(context.Background(), authorTeacherID, usecases.ReturnSubmissionInput{
+		AssignmentID: assignmentID,
+		StudentID:    studentID,
+		Reason:       "revisit",
+	})
+	require.NoError(t, err, "notifier failure must NOT abort the return")
+
+	saved := sr.lookup(assignmentID, studentID)
+	require.NotNil(t, saved, "submission must be persisted even when notifier fails")
+	assert.Equal(t, entities.StatusReturned, saved.Status())
+	assert.Equal(t, 1, sr.saveCalls)
+	assert.True(t, notifier.called)
+
+	// Both events must be present: failure audit (best-effort visibility for on-call)
+	// AND success audit (the state transition is the system of record).
+	var failed, returned *recordedAuditEvent
+	for i := range audit.events {
+		switch audit.events[i].Action {
+		case "assignment.return_notify_failed":
+			failed = &audit.events[i]
+		case "assignment.returned":
+			returned = &audit.events[i]
+		}
+	}
+	require.NotNil(t, failed, "expected assignment.return_notify_failed audit event")
+	require.NotNil(t, returned, "expected assignment.returned audit event")
+
+	assert.Equal(t, "smtp down", failed.Fields["error"], "audit must capture notifier error message")
+	assert.Equal(t, int64(assignmentID), failed.Fields["assignment_id"])
+	assert.Equal(t, int64(studentID), failed.Fields["student_id"])
+	assert.Equal(t, authorTeacherID, failed.Fields["actor_user_id"])
+
+	assert.Equal(t, "revisit", returned.Fields["reason"])
+	assert.Equal(t, authorTeacherID, returned.Fields["actor_user_id"])
+}
+
 // recordingReturnNotifier captures NotifyReturned invocations so the test
 // can assert payload fidelity. Mirrors recordingNotifier's shape.
 type recordingReturnNotifier struct {
