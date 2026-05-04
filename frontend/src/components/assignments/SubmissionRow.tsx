@@ -93,6 +93,23 @@ export function SubmissionRow({ assignmentId, maxScore, submission, onGraded }: 
         </p>
       )}
 
+      {submission.status === 'returned' && submission.return_reason && (
+        <div className="mt-3 rounded-lg bg-sky-50 dark:bg-sky-950/30 p-3 text-sm">
+          <p className="font-semibold text-sky-700 dark:text-sky-300">
+            {t('submissionRow.returnedReasonLabel')}
+          </p>
+          <p className="mt-1 text-sky-900 dark:text-sky-100">
+            {submission.return_reason}
+          </p>
+          {submission.returned_at && (
+            <p className="mt-2 text-xs text-sky-700 dark:text-sky-400">
+              {t('submissionRow.returnedAtLabel')}{' '}
+              {format(parseLocalDate(submission.returned_at), 'd MMM yyyy', { locale: dateLocale })}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="mt-4">
         {/*
           Key includes status + grade so React remounts GradeForm when
