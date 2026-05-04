@@ -15,6 +15,38 @@
 
 ---
 
+## [0.108.3] — 2026-05-04
+
+### Security — Teacher analytics scope filter «свои группы» (correct pagination)
+
+До этого релиза учитель, открыв `/api/analytics/*`, видел статистику и risk score **по всем группам** учебного заведения — security gap из аудита: teacher должен видеть только группы, которым он реально преподаёт. Кроме того, наивный фильтр в Go-коде после выборки сломал бы pagination (`COUNT(*)` шёл бы по всему dataset'у, а возвращалось бы только подмножество).
+
+После релиза:
+
+- **Domain** — `TeacherScope` value object в `analytics/domain` (private `map[string]struct{}` whitelist групп, фабрика `NewTeacherScope`, методы `AllowsGroup` / `AllowsGroupPtr` / `FilterGroupNames` / `AllowedGroupNames`). Sentinel `ErrAnalyticsScopeForbidden` (`var ErrXxx = errors.New(...)`).
+- **Specific endpoints** (`GetGroupSummary` / `GetStudentRisk` / `GetStudentRiskHistory`) проверяют scope перед I/O — non-allowed group возвращает `ErrAnalyticsScopeForbidden`, маппится в HTTP 403 через `errors.Is` ДО `MapDomainError` (иначе вылезло бы 500).
+- **List endpoints** — фильтр **на уровне SQL** (`WHERE group_name = ANY($N)`), один и тот же предикат разделяет `COUNT` и data query → корректный pagination. Empty whitelist превращается в `'{}'::text[]` → 0 rows (deny-all).
+- **Repository** — `TeacherScopeRepository` port + pg implementation (`SELECT DISTINCT sg.name FROM schedule_lessons sl JOIN student_groups sg ON sg.id = sl.group_id WHERE sl.teacher_id = $1`). Cross-module read **на уровне SQL** — Go импорт schedule из analytics запрещён архитектурой.
+- **Handler** — `buildScope`: для `role=teacher` собирает non-nil scope из repo, для остальных ролей nil (=full access). Missing role/user_id из gin.Context → explicit 500 (defense-in-depth: handler-level invariant, не полагаться на upstream middleware).
+- **Failure-closed DI** — `NewAnalyticsHandler` panics при nil scopeRepo с non-nil usecase. Production wiring должен fail loudly, если кто-то забыл подключить scope repo.
+
+### Tests
+
+- `TeacherScope` VO — table-driven: 4 кейса (allows-listed / denies-non-listed / handles-empty / handles-nil-scope).
+- 9 usecase tests на scope checks (включая denied-attempt path с `AssertNotCalled` на mutation).
+- 4 sqlmock-теста на repository (round-trip, deny-all path).
+- 7 handler tests — scope assembly + 403 mapping + missing-role 500 + role-other-than-teacher → unrestricted.
+
+### Code review
+
+`superpowers:code-reviewer`: ≥9 каждая ось после fix-цикла (M2 missing-role guard, M3 panic-on-nil-DI, N3 / N2 minor). Verdict: **SHIP**.
+
+### TDD honesty
+
+Cycle 3a (`feat(analytics): plumb TeacherScope through repository layer`, `b70cf32d`) был написан как combined feat+test commit: signature change в repo interface мандатно требовал compile fixes везде (handlers / scheduler / mood_usecase / pg test). RED-only commit с new tests **без** signature update сломал бы Go build. Засчитан как backfill (test-after), не как RED→GREEN cycle. На будущее: для signature changes использовать паттерн «новый метод alongside старого → миграция callers → удаление старого» — RED становится возможен.
+
+---
+
 ## [0.108.2] — 2026-05-03
 
 ### Fixed — Document.Update teacher ownership check
