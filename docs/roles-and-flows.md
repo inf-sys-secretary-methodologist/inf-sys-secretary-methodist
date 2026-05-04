@@ -1,7 +1,7 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.108.3 (см. `VERSION` в корне)
-> **Состояние на:** 4 мая 2026 (после релизов password recovery, n8n absence-alert, Document.Update ownership, teacher analytics scope filter)
+> **Версия проекта:** 0.109.0 (см. `VERSION` в корне)
+> **Состояние на:** 4 мая 2026 (после релизов password recovery, n8n absence-alert, Document.Update ownership, teacher analytics scope filter, Assignments bounded context)
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`
 
 > **Изменения в 0.102.2:** Уточнена концепция личных vs глобальных настроек. Каждый пользователь любой роли (включая студента) может настраивать своё рабочее окружение: тему оформления и подключённые лично к нему каналы уведомлений (Telegram, email, WebPush). Глобальные настройки (SMTP-сервер, push-провайдер, brand системы, n8n workflows, интеграция с 1С) — остаются только у системного администратора.
