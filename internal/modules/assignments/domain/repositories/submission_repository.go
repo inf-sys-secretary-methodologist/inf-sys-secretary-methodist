@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 )
 
 // ErrSubmissionNotFound signals that no submission exists for the
@@ -23,4 +24,11 @@ type SubmissionRepository interface {
 	// Save persists the submission (insert when ID==0, update otherwise).
 	// On insert, Save sets the assigned ID on the entity in-place.
 	Save(ctx context.Context, s *entities.Submission) error
+
+	// ListByAssignment returns the read-side projection of submissions
+	// belonging to the given assignment, optionally filtered by status.
+	// The student first/last name come from a JOIN with the users table
+	// so the grading UI can render rows without a second round-trip.
+	// A nil status means "any". An empty result is not an error.
+	ListByAssignment(ctx context.Context, assignmentID int64, status *entities.SubmissionStatus) ([]views.SubmissionView, error)
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 )
 
 // SubmissionRepositoryPG is the SQL implementation of SubmissionRepository.
@@ -124,4 +125,15 @@ func nullableTime(p *time.Time) sql.NullTime {
 		return sql.NullTime{}
 	}
 	return sql.NullTime{Time: *p, Valid: true}
+}
+
+// ListByAssignment is a deliberate stub during the RED stage of the
+// v0.110.0 list flow. The behaviour-defining tests live next to the
+// use case (ListSubmissionsUseCase) and exercise this method via a
+// fake. The real SQL implementation (with users-table join for
+// student name) lands in the same release together with sqlmock
+// coverage; returning an explicit error here fails loudly if the
+// stub ever escapes the development branch.
+func (r *SubmissionRepositoryPG) ListByAssignment(ctx context.Context, assignmentID int64, status *entities.SubmissionStatus) ([]views.SubmissionView, error) {
+	return nil, errors.New("SubmissionRepositoryPG.ListByAssignment: not implemented (v0.110.0 cycle 4 pending)")
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 )
 
 const (
@@ -214,6 +215,12 @@ type fakeSubmissionRepo struct {
 	byKey      map[string]*entities.Submission
 	saveCalls  int
 	lastSaveAt string
+
+	// ListByAssignment support — used by ListSubmissionsUseCase tests.
+	listResult           []views.SubmissionView
+	listErr              error
+	lastListAssignmentID int64
+	lastListStatus       *entities.SubmissionStatus
 }
 
 func newFakeSubmissionRepo() *fakeSubmissionRepo {
@@ -234,6 +241,14 @@ func (r *fakeSubmissionRepo) Save(ctx context.Context, s *entities.Submission) e
 	r.saveCalls++
 	r.lastSaveAt = subKey(s.AssignmentID, s.StudentID)
 	return nil
+}
+func (r *fakeSubmissionRepo) ListByAssignment(ctx context.Context, assignmentID int64, status *entities.SubmissionStatus) ([]views.SubmissionView, error) {
+	r.lastListAssignmentID = assignmentID
+	r.lastListStatus = status
+	if r.listErr != nil {
+		return nil, r.listErr
+	}
+	return r.listResult, nil
 }
 func (r *fakeSubmissionRepo) lookup(aid, sid int64) *entities.Submission {
 	return r.byKey[subKey(aid, sid)]
