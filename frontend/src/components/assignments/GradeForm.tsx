@@ -76,7 +76,19 @@ export function GradeForm({ assignmentId, maxScore, submission, onSaved }: Grade
     }
   }
 
-  const isAlreadyGraded = submission.status === 'graded'
+  // Disable the grade form for any status that is NOT pending: graded
+  // stays disabled (re-grading must go through Return), and returned
+  // stays disabled until the student resubmits (resubmission flow is
+  // v0.112.0). When the status flips back to pending, the SubmissionRow
+  // remounts GradeForm via key={...:status:...} so fresh state is
+  // guaranteed on each transition.
+  const isAlreadyGraded = submission.status !== 'pending'
+  const buttonLabel =
+    submission.status === 'graded'
+      ? t('alreadySaved')
+      : submission.status === 'returned'
+        ? t('returnedReadOnly')
+        : t('save')
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-[120px_1fr_auto] md:items-end">
@@ -110,7 +122,7 @@ export function GradeForm({ assignmentId, maxScore, submission, onSaved }: Grade
 
       <Button type="submit" disabled={submitting || isAlreadyGraded}>
         {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-        {isAlreadyGraded ? t('alreadySaved') : t('save')}
+        {buttonLabel}
       </Button>
 
       {validationError && (
