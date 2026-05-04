@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.108.3
+// @version         0.109.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -26,6 +26,8 @@
 // @tag.description Управление документами
 // @tag.name tasks
 // @tag.description Управление задачами и проектами
+// @tag.name assignments
+// @tag.description Учебные задания и выставление оценок (academic Tasks Context)
 // @tag.name schedule
 // @tag.description Управление расписанием и событиями
 // @tag.name reports

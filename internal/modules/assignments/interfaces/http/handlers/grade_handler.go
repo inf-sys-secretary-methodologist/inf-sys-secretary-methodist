@@ -40,20 +40,21 @@ func NewGradeHandler(usecase SaveGradeUseCasePort) *GradeHandler {
 	return &GradeHandler{usecase: usecase}
 }
 
-// saveGradeRequest is the JSON body schema for POST /api/assignments/:id/grades.
-type saveGradeRequest struct {
-	StudentID int64  `json:"student_id"`
-	Value     int    `json:"value"`
-	Feedback  string `json:"feedback"`
+// SaveGradeRequest is the JSON body schema for POST /api/assignments/:id/grades.
+// Exported so swag can generate the schema in the OpenAPI spec.
+type SaveGradeRequest struct {
+	StudentID int64  `json:"student_id" example:"7"`
+	Value     int    `json:"value"      example:"85"`
+	Feedback  string `json:"feedback"   example:"Great work"`
 }
 
 // SaveGrade records a teacher's grade on a student's submission.
 // @Summary Save a grade for a student's submission
-// @Tags Assignments
+// @Tags assignments
 // @Accept json
 // @Produce json
 // @Param id path int true "Assignment ID"
-// @Param body body saveGradeRequest true "Grade payload"
+// @Param body body SaveGradeRequest true "Grade payload"
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
@@ -70,7 +71,7 @@ func (h *GradeHandler) SaveGrade(c *gin.Context) {
 		return
 	}
 
-	var body saveGradeRequest
+	var body SaveGradeRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, response.BadRequest("invalid request body: "+err.Error()))
 		return
