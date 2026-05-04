@@ -32,7 +32,7 @@ CREATE INDEX IF NOT EXISTS idx_assignments_due_date ON assignments(due_date);
 CREATE TABLE IF NOT EXISTS submissions (
     id BIGSERIAL PRIMARY KEY,
     assignment_id BIGINT NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
-    student_id BIGINT NOT NULL,
+    student_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     grade_value INT,
     feedback TEXT,
     graded_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS submissions (
         (status = 'graded' AND grade_value IS NOT NULL AND graded_by IS NOT NULL AND graded_at IS NOT NULL)
         OR (status <> 'graded')
     ),
+    CONSTRAINT chk_submissions_feedback_length CHECK (feedback IS NULL OR length(feedback) <= 4096),
     CONSTRAINT uq_submissions_assignment_student UNIQUE (assignment_id, student_id)
 );
 
