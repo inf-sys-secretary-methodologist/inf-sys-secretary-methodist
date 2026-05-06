@@ -2427,6 +2427,64 @@
         "approved": "Approuvé",
         "archived": "Archivé"
       }
+    },
+    "detail": {
+      "backToList": "Retour aux programmes",
+      "loadFailed": "Échec du chargement du programme",
+      "notFound": "Programme introuvable",
+      "fields": {
+        "title": "Titre",
+        "code": "Code",
+        "specialty": "Spécialité",
+        "year": "Année de début",
+        "description": "Description"
+      },
+      "actions": {
+        "edit": "Modifier",
+        "submit": "Soumettre pour approbation",
+        "submitting": "Envoi…"
+      },
+      "statusHint": {
+        "pending": "Le programme est en attente d'approbation. Modification verrouillée jusqu'à la décision de l'administrateur.",
+        "approved": "Le programme est approuvé. Les modifications nécessitent un retour par l'administrateur.",
+        "archived": "Le programme est archivé. Modification verrouillée."
+      }
+    },
+    "editDialog": {
+      "title": "Modifier le programme",
+      "description": "Modifiez le programme et enregistrez. L'enregistrement enverra les modifications au serveur.",
+      "labels": {
+        "title": "Titre",
+        "code": "Code",
+        "specialty": "Spécialité",
+        "year": "Année de début",
+        "description": "Description"
+      },
+      "validation": {
+        "titleRequired": "Le titre est requis",
+        "codeRequired": "Le code est requis",
+        "specialtyRequired": "La spécialité est requise",
+        "yearRange": "L'année doit être entre {min} et {max}",
+        "descriptionTooLong": "La description ne doit pas dépasser {max} caractères"
+      },
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "cancel": "Annuler",
+      "successToast": "Programme mis à jour",
+      "errors": {
+        "codeExists": "Un programme avec ce code existe déjà",
+        "notEditable": "Le programme n'est plus en Brouillon — rafraîchissez la page",
+        "forbidden": "Vous n'avez pas la permission de modifier ce programme",
+        "generic": "Échec de l'enregistrement des modifications"
+      }
+    },
+    "submitToast": {
+      "success": "Programme soumis pour approbation",
+      "errors": {
+        "notDraft": "Le programme n'est plus en Brouillon",
+        "forbidden": "Vous n'avez pas la permission de soumettre ce programme",
+        "generic": "Échec de la soumission du programme"
+      }
     }
   },
   "myAssignments": {

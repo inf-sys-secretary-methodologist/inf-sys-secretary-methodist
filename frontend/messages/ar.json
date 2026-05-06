@@ -2427,6 +2427,64 @@
         "approved": "معتمد",
         "archived": "مؤرشف"
       }
+    },
+    "detail": {
+      "backToList": "العودة إلى المناهج",
+      "loadFailed": "تعذر تحميل المنهج",
+      "notFound": "المنهج غير موجود",
+      "fields": {
+        "title": "العنوان",
+        "code": "الرمز",
+        "specialty": "التخصص",
+        "year": "سنة البدء",
+        "description": "الوصف"
+      },
+      "actions": {
+        "edit": "تعديل",
+        "submit": "إرسال للاعتماد",
+        "submitting": "جارٍ الإرسال…"
+      },
+      "statusHint": {
+        "pending": "المنهج بانتظار الاعتماد. التعديل مغلق حتى يقرر المسؤول.",
+        "approved": "المنهج معتمد. للتعديل يلزم إعادته من المسؤول أولاً.",
+        "archived": "المنهج في الأرشيف. التعديل مغلق."
+      }
+    },
+    "editDialog": {
+      "title": "تعديل المنهج",
+      "description": "عدّل المنهج واحفظ. سيتم إرسال التغييرات إلى الخادم.",
+      "labels": {
+        "title": "العنوان",
+        "code": "الرمز",
+        "specialty": "التخصص",
+        "year": "سنة البدء",
+        "description": "الوصف"
+      },
+      "validation": {
+        "titleRequired": "العنوان مطلوب",
+        "codeRequired": "الرمز مطلوب",
+        "specialtyRequired": "التخصص مطلوب",
+        "yearRange": "يجب أن تكون السنة بين {min} و {max}",
+        "descriptionTooLong": "يجب ألا يتجاوز الوصف {max} حرفاً"
+      },
+      "save": "حفظ",
+      "saving": "جارٍ الحفظ…",
+      "cancel": "إلغاء",
+      "successToast": "تم تحديث المنهج",
+      "errors": {
+        "codeExists": "يوجد منهج بهذا الرمز مسبقاً",
+        "notEditable": "لم يعد المنهج في حالة «مسودة» — حدّث الصفحة",
+        "forbidden": "ليس لديك صلاحية تعديل هذا المنهج",
+        "generic": "تعذر حفظ التغييرات"
+      }
+    },
+    "submitToast": {
+      "success": "تم إرسال المنهج للاعتماد",
+      "errors": {
+        "notDraft": "لم يعد المنهج في حالة «مسودة»",
+        "forbidden": "ليس لديك صلاحية إرسال هذا المنهج",
+        "generic": "تعذر إرسال المنهج"
+      }
     }
   },
   "myAssignments": {

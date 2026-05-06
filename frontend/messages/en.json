@@ -2427,6 +2427,64 @@
         "approved": "Approved",
         "archived": "Archived"
       }
+    },
+    "detail": {
+      "backToList": "Back to curricula",
+      "loadFailed": "Failed to load the curriculum",
+      "notFound": "Curriculum not found",
+      "fields": {
+        "title": "Title",
+        "code": "Code",
+        "specialty": "Specialty",
+        "year": "Start year",
+        "description": "Description"
+      },
+      "actions": {
+        "edit": "Edit",
+        "submit": "Submit for approval",
+        "submitting": "Submitting…"
+      },
+      "statusHint": {
+        "pending": "The curriculum is awaiting approval. Editing is locked until the administrator decides.",
+        "approved": "The curriculum is approved. Changes require an administrator to return it first.",
+        "archived": "The curriculum is archived. Editing is locked."
+      }
+    },
+    "editDialog": {
+      "title": "Edit curriculum",
+      "description": "Edit the curriculum and save. Save will submit the changes to the server.",
+      "labels": {
+        "title": "Title",
+        "code": "Code",
+        "specialty": "Specialty",
+        "year": "Start year",
+        "description": "Description"
+      },
+      "validation": {
+        "titleRequired": "Title is required",
+        "codeRequired": "Code is required",
+        "specialtyRequired": "Specialty is required",
+        "yearRange": "Year must be in {min}–{max}",
+        "descriptionTooLong": "Description must not exceed {max} characters"
+      },
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "successToast": "Curriculum updated",
+      "errors": {
+        "codeExists": "A curriculum with this code already exists",
+        "notEditable": "The curriculum is no longer in Draft — refresh the page",
+        "forbidden": "You do not have permission to edit this curriculum",
+        "generic": "Failed to save changes"
+      }
+    },
+    "submitToast": {
+      "success": "Curriculum submitted for approval",
+      "errors": {
+        "notDraft": "The curriculum is no longer in Draft",
+        "forbidden": "You do not have permission to submit this curriculum",
+        "generic": "Failed to submit the curriculum"
+      }
     }
   },
   "myAssignments": {
