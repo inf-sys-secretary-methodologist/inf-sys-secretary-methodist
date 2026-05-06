@@ -39,7 +39,10 @@ func (f *fakeUpdatePort) Execute(_ context.Context, actorID int64, isAdmin bool,
 
 func setupUpdateRouter(update handlers.UpdateCurriculumPort, role string, userID int64) *gin.Engine {
 	r := gin.New()
-	h := handlers.NewCurriculumHandler(&fakeCreatePort{}, stubGetPort{}, stubListPort{}, update)
+	h := handlers.NewCurriculumHandler(
+		&fakeCreatePort{}, stubGetPort{}, stubListPort{}, update,
+		stubSubmitPort{}, stubApprovePort{}, stubRejectPort{},
+	)
 	if role != "" || userID != 0 {
 		r.Use(func(c *gin.Context) {
 			if userID != 0 {

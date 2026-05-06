@@ -35,6 +35,16 @@ func (f *fakeSubmitPort) Execute(_ context.Context, actorID int64, isAdmin bool,
 	return f.out, f.err
 }
 
+// Stub ports for the not-under-test endpoints. Defined here (alongside
+// fakeSubmitPort) so the v0.117.0 stubs live next to each other; other
+// test files in this package reference these types when they wire a
+// CurriculumHandler that doesn't exercise the lifecycle paths.
+type stubSubmitPort struct{}
+
+func (stubSubmitPort) Execute(context.Context, int64, bool, curUsecases.SubmitForApprovalInput) (*entities.Curriculum, error) {
+	return nil, errors.New("stub")
+}
+
 type stubApprovePort struct{}
 
 func (stubApprovePort) Execute(context.Context, int64, curUsecases.ApproveCurriculumInput) (*entities.Curriculum, error) {

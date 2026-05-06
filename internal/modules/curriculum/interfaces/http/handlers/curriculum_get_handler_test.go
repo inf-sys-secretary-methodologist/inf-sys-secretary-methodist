@@ -34,7 +34,10 @@ func setupGetRouter(get handlers.GetCurriculumPort, role string, userID int64) *
 	r := gin.New()
 	// fakeCreatePort lives in curriculum_handler_test.go (same package);
 	// reuse its zero value to satisfy the constructor's nil guard.
-	h := handlers.NewCurriculumHandler(&fakeCreatePort{}, get, stubListPort{}, stubUpdatePort{})
+	h := handlers.NewCurriculumHandler(
+		&fakeCreatePort{}, get, stubListPort{}, stubUpdatePort{},
+		stubSubmitPort{}, stubApprovePort{}, stubRejectPort{},
+	)
 	if role != "" || userID != 0 {
 		r.Use(func(c *gin.Context) {
 			if userID != 0 {

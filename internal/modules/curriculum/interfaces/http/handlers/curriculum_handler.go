@@ -48,15 +48,38 @@ type UpdateCurriculumPort interface {
 	Execute(ctx context.Context, actorID int64, isAdmin bool, in curUsecases.UpdateCurriculumInput) (*entities.Curriculum, error)
 }
 
-// CurriculumHandler exposes the four CRUD endpoints over HTTP.
-type CurriculumHandler struct {
-	create CreateCurriculumPort
-	get    GetCurriculumPort
-	list   ListCurriculaPort
-	update UpdateCurriculumPort
+// SubmitForApprovalPort is the narrow port for the submit use case
+// (v0.117.0 lifecycle transition: draft → pending_approval).
+type SubmitForApprovalPort interface {
+	Execute(ctx context.Context, actorID int64, isAdmin bool, in curUsecases.SubmitForApprovalInput) (*entities.Curriculum, error)
 }
 
-// NewCurriculumHandler wires the handler. All four ports are required
+// ApproveCurriculumPort is the narrow port for the admin-only approve
+// use case (v0.117.0 lifecycle transition: pending_approval → approved).
+type ApproveCurriculumPort interface {
+	Execute(ctx context.Context, adminID int64, in curUsecases.ApproveCurriculumInput) (*entities.Curriculum, error)
+}
+
+// RejectCurriculumPort is the narrow port for the admin-only reject
+// use case (v0.117.0 lifecycle transition: pending_approval → draft,
+// reason captured in audit per ADR-3).
+type RejectCurriculumPort interface {
+	Execute(ctx context.Context, adminID int64, in curUsecases.RejectCurriculumInput) (*entities.Curriculum, error)
+}
+
+// CurriculumHandler exposes the seven curriculum endpoints (four CRUD
+// + three lifecycle transitions) over HTTP.
+type CurriculumHandler struct {
+	create  CreateCurriculumPort
+	get     GetCurriculumPort
+	list    ListCurriculaPort
+	update  UpdateCurriculumPort
+	submit  SubmitForApprovalPort
+	approve ApproveCurriculumPort
+	reject  RejectCurriculumPort
+}
+
+// NewCurriculumHandler wires the handler. All seven ports are required
 // (non-nil): nil dependencies would let requests reach a panic deeper
 // in the call stack instead of failing during DI wiring. Mirrors the
 // failure-closed posture established for analytics in v0.108.3 and
@@ -66,11 +89,18 @@ func NewCurriculumHandler(
 	get GetCurriculumPort,
 	list ListCurriculaPort,
 	update UpdateCurriculumPort,
+	submit SubmitForApprovalPort,
+	approve ApproveCurriculumPort,
+	reject RejectCurriculumPort,
 ) *CurriculumHandler {
-	if create == nil || get == nil || list == nil || update == nil {
-		panic("curriculum: NewCurriculumHandler requires non-nil ports (create / get / list / update)")
+	if create == nil || get == nil || list == nil || update == nil ||
+		submit == nil || approve == nil || reject == nil {
+		panic("curriculum: NewCurriculumHandler requires non-nil ports (create / get / list / update / submit / approve / reject)")
 	}
-	return &CurriculumHandler{create: create, get: get, list: list, update: update}
+	return &CurriculumHandler{
+		create: create, get: get, list: list, update: update,
+		submit: submit, approve: approve, reject: reject,
+	}
 }
 
 // CurriculumDTO is the public response shape for a curriculum row.
@@ -202,6 +232,44 @@ func (h *CurriculumHandler) Get(c *gin.Context) {
 	}
 
 	curriculum, err := h.get.Execute(c.Request.Context(), id)
+	if err != nil {
+		mapCurriculumError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapCurriculum(curriculum)))
+}
+
+// Submit handles POST /api/curriculum/:id/submit.
+// @Summary Submit a draft curriculum for approval
+// @Tags curriculum
+// @Produce json
+// @Param id path int true "Curriculum ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/curriculum/{id}/submit [post]
+func (h *CurriculumHandler) Submit(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	if !canWrite(role) {
+		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may submit curricula"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid curriculum id"))
+		return
+	}
+
+	curriculum, err := h.submit.Execute(c.Request.Context(), actorID, isAdminRole(role),
+		curUsecases.SubmitForApprovalInput{ID: id})
 	if err != nil {
 		mapCurriculumError(c, err)
 		return
@@ -496,6 +564,18 @@ func mapCurriculumError(c *gin.Context, err error) {
 	case errors.Is(err, entities.ErrCannotEditApproved):
 		c.JSON(http.StatusUnprocessableEntity,
 			response.ErrorResponse("NOT_EDITABLE", "curriculum is not in an editable state"))
+		return
+	case errors.Is(err, entities.ErrCannotSubmit):
+		c.JSON(http.StatusUnprocessableEntity,
+			response.ErrorResponse("NOT_DRAFT", "curriculum must be in draft status to submit"))
+		return
+	case errors.Is(err, entities.ErrCannotApprove):
+		c.JSON(http.StatusUnprocessableEntity,
+			response.ErrorResponse("NOT_PENDING", "curriculum must be in pending_approval status to approve"))
+		return
+	case errors.Is(err, entities.ErrCannotReject):
+		c.JSON(http.StatusUnprocessableEntity,
+			response.ErrorResponse("NOT_PENDING", "curriculum must be in pending_approval status to reject"))
 		return
 	case errors.Is(err, entities.ErrInvalidCurriculum):
 		c.JSON(http.StatusUnprocessableEntity,

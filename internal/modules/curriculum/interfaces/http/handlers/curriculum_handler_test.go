@@ -85,7 +85,10 @@ func builtCurriculum(t *testing.T, id int64) *entities.Curriculum {
 // the 403-vs-401 distinction shows up cleanly.
 func setupCreateRouter(create handlers.CreateCurriculumPort, role string, userID int64) *gin.Engine {
 	r := gin.New()
-	h := handlers.NewCurriculumHandler(create, stubGetPort{}, stubListPort{}, stubUpdatePort{})
+	h := handlers.NewCurriculumHandler(
+		create, stubGetPort{}, stubListPort{}, stubUpdatePort{},
+		stubSubmitPort{}, stubApprovePort{}, stubRejectPort{},
+	)
 	if role != "" || userID != 0 {
 		r.Use(func(c *gin.Context) {
 			if userID != 0 {
@@ -123,16 +126,22 @@ func doCreate(t *testing.T, r *gin.Engine, body any) *httptest.ResponseRecorder 
 
 func TestNewCurriculumHandler_PanicsOnNilPort(t *testing.T) {
 	cases := []struct {
-		name   string
-		create handlers.CreateCurriculumPort
-		get    handlers.GetCurriculumPort
-		list   handlers.ListCurriculaPort
-		update handlers.UpdateCurriculumPort
+		name    string
+		create  handlers.CreateCurriculumPort
+		get     handlers.GetCurriculumPort
+		list    handlers.ListCurriculaPort
+		update  handlers.UpdateCurriculumPort
+		submit  handlers.SubmitForApprovalPort
+		approve handlers.ApproveCurriculumPort
+		reject  handlers.RejectCurriculumPort
 	}{
-		{"create nil", nil, stubGetPort{}, stubListPort{}, stubUpdatePort{}},
-		{"get nil", &fakeCreatePort{}, nil, stubListPort{}, stubUpdatePort{}},
-		{"list nil", &fakeCreatePort{}, stubGetPort{}, nil, stubUpdatePort{}},
-		{"update nil", &fakeCreatePort{}, stubGetPort{}, stubListPort{}, nil},
+		{"create nil", nil, stubGetPort{}, stubListPort{}, stubUpdatePort{}, stubSubmitPort{}, stubApprovePort{}, stubRejectPort{}},
+		{"get nil", &fakeCreatePort{}, nil, stubListPort{}, stubUpdatePort{}, stubSubmitPort{}, stubApprovePort{}, stubRejectPort{}},
+		{"list nil", &fakeCreatePort{}, stubGetPort{}, nil, stubUpdatePort{}, stubSubmitPort{}, stubApprovePort{}, stubRejectPort{}},
+		{"update nil", &fakeCreatePort{}, stubGetPort{}, stubListPort{}, nil, stubSubmitPort{}, stubApprovePort{}, stubRejectPort{}},
+		{"submit nil", &fakeCreatePort{}, stubGetPort{}, stubListPort{}, stubUpdatePort{}, nil, stubApprovePort{}, stubRejectPort{}},
+		{"approve nil", &fakeCreatePort{}, stubGetPort{}, stubListPort{}, stubUpdatePort{}, stubSubmitPort{}, nil, stubRejectPort{}},
+		{"reject nil", &fakeCreatePort{}, stubGetPort{}, stubListPort{}, stubUpdatePort{}, stubSubmitPort{}, stubApprovePort{}, nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -141,7 +150,8 @@ func TestNewCurriculumHandler_PanicsOnNilPort(t *testing.T) {
 					t.Fatalf("NewCurriculumHandler with %s did not panic", tc.name)
 				}
 			}()
-			handlers.NewCurriculumHandler(tc.create, tc.get, tc.list, tc.update)
+			handlers.NewCurriculumHandler(tc.create, tc.get, tc.list, tc.update,
+				tc.submit, tc.approve, tc.reject)
 		})
 	}
 }
