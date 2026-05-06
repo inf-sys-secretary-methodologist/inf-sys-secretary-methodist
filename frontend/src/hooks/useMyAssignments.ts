@@ -6,6 +6,7 @@ import { SWR_DEDUPING } from '@/config/swr'
 import type {
   StudentAssignmentView,
   MyAssignmentListResponse,
+  ResubmitSubmissionResponse,
   SubmissionStatus,
 } from '@/types/assignments'
 
@@ -54,6 +55,23 @@ export function useMyAssignments(status?: SubmissionStatus, opts?: FetchOpts) {
     error,
     mutate,
   }
+}
+
+// resubmitSubmission POSTs to the v0.112.0 backend resubmit endpoint
+// to transition the student's own returned submission back to pending.
+// The body is empty per the backend contract — the path id + JWT
+// subject identify the row, and the student supplies no other input
+// on resubmit. On error the underlying axios error propagates so the
+// caller (ResubmitDialog) can branch on 409 (NOT_RETURNED) / 403
+// (defended even though unreachable) / generic.
+export async function resubmitSubmission(
+  assignmentId: number
+): Promise<ResubmitSubmissionResponse> {
+  const response = await apiClient.post<ApiResponse<ResubmitSubmissionResponse>>(
+    `/api/assignments/${assignmentId}/resubmit`,
+    {}
+  )
+  return response.data
 }
 
 // useMyAssignment fetches the student's combined view for a single

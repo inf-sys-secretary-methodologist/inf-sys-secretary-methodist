@@ -114,3 +114,12 @@ export interface MyAssignmentListResponse {
   items: StudentAssignmentView[]
   total: number
 }
+
+// Mirrors backend resubmit_handler.go success payload — assignment id
+// from path + student id from JWT subject. The student supplies no
+// other input on resubmit (body is empty), so the response is a pure
+// echo confirming which row was transitioned.
+export interface ResubmitSubmissionResponse {
+  assignment_id: number
+  student_id: number
+}
