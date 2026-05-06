@@ -102,7 +102,7 @@ describe('MyAssignmentsPage', () => {
     fireEvent.click(screen.getByRole('tab', { name: /returned/i }))
     expect(mockUseMyAssignments).toHaveBeenLastCalledWith('returned')
 
-    fireEvent.click(screen.getByRole('tab', { name: /^graded$/i }))
+    fireEvent.click(screen.getByRole('tab', { name: /graded/i }))
     expect(mockUseMyAssignments).toHaveBeenLastCalledWith('graded')
 
     fireEvent.click(screen.getByRole('tab', { name: /all/i }))
