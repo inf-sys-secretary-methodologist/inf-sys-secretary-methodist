@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { SWRConfig } from 'swr'
 import React from 'react'
-import { useMyAssignments, useMyAssignment } from '../useMyAssignments'
+import { useMyAssignments, useMyAssignment, resubmitSubmission } from '../useMyAssignments'
 import { apiClient } from '@/lib/api'
 import type { StudentAssignmentView, MyAssignmentListResponse } from '@/types/assignments'
 
@@ -105,5 +105,25 @@ describe('useMyAssignment', () => {
     const { result } = renderHook(() => useMyAssignment(10), { wrapper })
     await waitFor(() => expect(result.current.error).toBeDefined())
     expect(result.current.view).toBeUndefined()
+  })
+})
+
+describe('resubmitSubmission', () => {
+  it('POSTs to /api/assignments/:id/resubmit with empty body', async () => {
+    mockedApiClient.post.mockResolvedValueOnce(
+      apiOk({ assignment_id: 10, student_id: 7 })
+    )
+
+    const out = await resubmitSubmission(10)
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/api/assignments/10/resubmit', {})
+    expect(out).toEqual({ assignment_id: 10, student_id: 7 })
+  })
+
+  it('propagates axios errors so callers can map status codes (409 not_returned, 403)', async () => {
+    const err = new Error('409 not in returned state')
+    mockedApiClient.post.mockRejectedValueOnce(err)
+
+    await expect(resubmitSubmission(10)).rejects.toThrow('409 not in returned state')
   })
 })
