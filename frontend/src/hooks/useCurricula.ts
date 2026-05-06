@@ -3,11 +3,7 @@
 import useSWR from 'swr'
 import { apiClient } from '@/lib/api'
 import { SWR_DEDUPING } from '@/config/swr'
-import type {
-  Curriculum,
-  CurriculumListResponse,
-  CurriculumListFilter,
-} from '@/types/curriculum'
+import type { Curriculum, CurriculumListResponse, CurriculumListFilter } from '@/types/curriculum'
 
 const CURRICULUM_URL = '/api/curriculum'
 

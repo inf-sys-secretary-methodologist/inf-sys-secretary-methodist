@@ -34,9 +34,7 @@ describe('CurriculumCard', () => {
   })
 
   it('omits description chip when description is empty', () => {
-    const { container } = render(
-      <CurriculumCard curriculum={{ ...sample, description: '' }} />
-    )
+    const { container } = render(<CurriculumCard curriculum={{ ...sample, description: '' }} />)
     expect(container.textContent).not.toMatch('Учебный план направления подготовки')
   })
 
@@ -47,17 +45,15 @@ describe('CurriculumCard', () => {
     expect(screen.getByText('card.status.draft')).toBeInTheDocument()
   })
 
-  it.each<CurriculumStatus>([
-    'draft',
-    'pending_approval',
-    'approved',
-    'archived',
-  ])('uses a distinct translation key for status=%s', (status) => {
-    render(<CurriculumCard curriculum={{ ...sample, status }} />)
-    const expectedKey =
-      status === 'pending_approval' ? 'card.status.pending' : `card.status.${status}`
-    expect(screen.getByText(expectedKey)).toBeInTheDocument()
-  })
+  it.each<CurriculumStatus>(['draft', 'pending_approval', 'approved', 'archived'])(
+    'uses a distinct translation key for status=%s',
+    (status) => {
+      render(<CurriculumCard curriculum={{ ...sample, status }} />)
+      const expectedKey =
+        status === 'pending_approval' ? 'card.status.pending' : `card.status.${status}`
+      expect(screen.getByText(expectedKey)).toBeInTheDocument()
+    }
+  )
 
   it('renders the openAria translation key on the link', () => {
     render(<CurriculumCard curriculum={sample} />)

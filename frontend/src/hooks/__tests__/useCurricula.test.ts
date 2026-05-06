@@ -3,10 +3,7 @@ import { SWRConfig } from 'swr'
 import React from 'react'
 import { useCurricula, useCurriculum } from '../useCurricula'
 import { apiClient } from '@/lib/api'
-import type {
-  Curriculum,
-  CurriculumListResponse,
-} from '@/types/curriculum'
+import type { Curriculum, CurriculumListResponse } from '@/types/curriculum'
 
 jest.mock('@/lib/api', () => ({
   apiClient: {
@@ -26,7 +23,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) =>
     children
   )
 
-const apiOk = <T,>(data: T) => ({ data })
+const apiOk = <T>(data: T) => ({ data })
 
 const sampleCurriculum: Curriculum = {
   id: 11,
@@ -83,7 +80,9 @@ describe('useCurricula', () => {
     expect(call).toContain('status=pending_approval')
     expect(call).toContain('year=2026')
     // Cyrillic specialty is URL-encoded.
-    expect(call).toContain('specialty=%D0%98%D0%BD%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%82%D0%B8%D0%BA%D0%B0')
+    expect(call).toContain(
+      'specialty=%D0%98%D0%BD%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%82%D0%B8%D0%BA%D0%B0'
+    )
     expect(call).toContain('created_by=5')
     expect(call).toContain('limit=100')
     expect(call).toContain('offset=50')
@@ -98,14 +97,7 @@ describe('useCurricula', () => {
   })
 
   it('still does NOT fetch when enabled=false even with a filter', async () => {
-    renderHook(
-      () =>
-        useCurricula(
-          { status: 'draft' },
-          { enabled: false }
-        ),
-      { wrapper }
-    )
+    renderHook(() => useCurricula({ status: 'draft' }, { enabled: false }), { wrapper })
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(mockedApiClient.get).not.toHaveBeenCalled()
   })

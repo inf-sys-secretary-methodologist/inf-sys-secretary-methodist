@@ -29,10 +29,7 @@ function statusKey(status: CurriculumStatus): string {
   return status === 'pending_approval' ? 'pending' : status
 }
 
-const STATUS_STYLES: Record<
-  CurriculumStatus,
-  { bg: string; text: string; Icon: typeof Clock }
-> = {
+const STATUS_STYLES: Record<CurriculumStatus, { bg: string; text: string; Icon: typeof Clock }> = {
   draft: {
     bg: 'bg-slate-100 dark:bg-slate-800/40',
     text: 'text-slate-700 dark:text-slate-300',
@@ -92,9 +89,7 @@ export function CurriculumCard({ curriculum, className }: CurriculumCardProps) {
       </div>
 
       {curriculum.description && (
-        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-          {curriculum.description}
-        </p>
+        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{curriculum.description}</p>
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">

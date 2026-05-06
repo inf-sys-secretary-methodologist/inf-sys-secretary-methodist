@@ -12,11 +12,7 @@
 // internal/modules/curriculum/domain/entities/curriculum_status.go.
 // Wire format is verbatim — no translation in the type layer; UI
 // labels go through next-intl keys (curriculum.filters.status.*).
-export type CurriculumStatus =
-  | 'draft'
-  | 'pending_approval'
-  | 'approved'
-  | 'archived'
+export type CurriculumStatus = 'draft' | 'pending_approval' | 'approved' | 'archived'
 
 export const CURRICULUM_STATUSES: CurriculumStatus[] = [
   'draft',

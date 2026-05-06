@@ -18,10 +18,8 @@ jest.mock('@/components/layout', () => ({
 
 const mockUseCurricula = jest.fn()
 jest.mock('@/hooks/useCurricula', () => ({
-  useCurricula: (
-    filter?: Record<string, unknown>,
-    opts?: { enabled?: boolean }
-  ) => mockUseCurricula(filter, opts),
+  useCurricula: (filter?: Record<string, unknown>, opts?: { enabled?: boolean }) =>
+    mockUseCurricula(filter, opts),
   useCurriculum: jest.fn(),
 }))
 
