@@ -165,7 +165,7 @@ func (h *CurriculumHandler) Create(c *gin.Context) {
 		Description: body.Description,
 	})
 	if err != nil {
-		mapWriteError(c, err)
+		mapCurriculumError(c, err)
 		return
 	}
 
@@ -203,7 +203,7 @@ func (h *CurriculumHandler) Get(c *gin.Context) {
 
 	curriculum, err := h.get.Execute(c.Request.Context(), id)
 	if err != nil {
-		mapWriteError(c, err)
+		mapCurriculumError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(mapCurriculum(curriculum)))
@@ -268,7 +268,7 @@ func (h *CurriculumHandler) Update(c *gin.Context) {
 			Description: body.Description,
 		})
 	if err != nil {
-		mapWriteError(c, err)
+		mapCurriculumError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, response.Success(mapCurriculum(curriculum)))
@@ -316,7 +316,7 @@ func (h *CurriculumHandler) List(c *gin.Context) {
 
 	page, err := h.list.Execute(c.Request.Context(), in)
 	if err != nil {
-		mapWriteError(c, err)
+		mapCurriculumError(c, err)
 		return
 	}
 
@@ -470,13 +470,17 @@ func isAdminRole(role string) bool {
 	return role == roleSystemAdmin
 }
 
-// mapWriteError maps domain / repository sentinels coming back from
-// the Create / Update use cases to the matching HTTP status. Every
+// mapCurriculumError maps domain / repository sentinels surfaced by
+// any of the four use cases to the matching HTTP status. Every
 // sentinel is matched explicitly via errors.Is BEFORE the generic
 // MapDomainError fallback — otherwise the generic mapper falls
 // through to 500 and clients lose the actionable distinction
 // between e.g. "code conflict" (409) and "internal error" (500).
-func mapWriteError(c *gin.Context, err error) {
+//
+// Used by Create / Get / List / Update; only a subset of sentinels
+// is reachable from each (e.g. ErrCannotEditApproved only from
+// Update), but a single mapper keeps the response shape uniform.
+func mapCurriculumError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, repositories.ErrCurriculumNotFound):
 		c.JSON(http.StatusNotFound, response.NotFound("curriculum"))

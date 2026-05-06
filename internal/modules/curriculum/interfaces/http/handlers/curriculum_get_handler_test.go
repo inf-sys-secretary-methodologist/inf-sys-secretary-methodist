@@ -30,16 +30,6 @@ func (f *fakeGetPort) Execute(_ context.Context, id int64) (*entities.Curriculum
 	return f.out, f.err
 }
 
-// stubCreatePort avoids the failure-closed nil panic for tests that
-// only care about the Get path. fakeCreatePort already exists in the
-// other test file; this is a different concrete type to keep the
-// two test surfaces independent.
-type stubCreatePort struct{}
-
-func (stubCreatePort) Execute(context.Context, int64, struct{}) (*entities.Curriculum, error) {
-	return nil, errors.New("stub: not implemented")
-}
-
 func setupGetRouter(get handlers.GetCurriculumPort, role string, userID int64) *gin.Engine {
 	r := gin.New()
 	// fakeCreatePort lives in curriculum_handler_test.go (same package);

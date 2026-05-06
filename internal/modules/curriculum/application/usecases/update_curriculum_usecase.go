@@ -103,7 +103,11 @@ func (uc *UpdateCurriculumUseCase) Execute(
 
 	if err := uc.repo.Update(ctx, c); err != nil {
 		if errors.Is(err, repositories.ErrCurriculumCodeExists) {
-			uc.emitDenial(ctx, actorID, in.ID, "code_conflict", in.Code)
+			// Use the canonical (post-trim) code here — that's what the
+			// repo actually attempted to insert and the form a future
+			// admin will recognise. Same convention as Create's denial
+			// path (CreateCurriculum uses c.Code() too).
+			uc.emitDenial(ctx, actorID, in.ID, "code_conflict", c.Code())
 		}
 		return nil, err
 	}
