@@ -401,3 +401,110 @@ func TestSubmissionRepositoryPG_ListByAssignment(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
+
+func TestSubmissionRepositoryPG_ListByStudent(t *testing.T) {
+	now := time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC)
+	due := time.Date(2026, 5, 20, 23, 59, 0, 0, time.UTC)
+
+	t.Run("rows hydrate denormalised assignment + submission projection", func(t *testing.T) {
+		repo, mock := newSubmissionRepoMock(t)
+
+		rows := sqlmock.NewRows([]string{
+			"assignment_id", "title", "description", "subject", "group_name",
+			"max_score", "due_date",
+			"a_created_at", "a_updated_at",
+			"submission_id", "student_id",
+			"grade_value", "feedback", "graded_by", "graded_at",
+			"return_reason", "returned_by", "returned_at",
+			"status", "s_created_at", "s_updated_at",
+		}).
+			AddRow(int64(10), "Lab 1", "Solve A", "Math", "БСБО-01-22",
+				100, due,
+				now, now,
+				int64(1), int64(7),
+				sql.NullInt64{}, "", sql.NullInt64{}, sql.NullTime{},
+				nil, nil, nil,
+				"pending", now, now).
+			AddRow(int64(11), "Lab 2", "Solve B", "Math", "БСБО-01-22",
+				50, sql.NullTime{},
+				now, now,
+				int64(2), int64(7),
+				int64(45), "good", int64(42), now,
+				nil, nil, nil,
+				"graded", now, now).
+			AddRow(int64(12), "Essay", "Topic", "Russian", "БСБО-01-22",
+				10, sql.NullTime{},
+				now, now,
+				int64(3), int64(7),
+				nil, "",
+				nil, nil,
+				"please add citations", int64(99), now,
+				"returned", now, now)
+
+		mock.ExpectQuery(regexp.QuoteMeta("FROM submissions s")).
+			WithArgs(int64(7), "").
+			WillReturnRows(rows)
+
+		got, err := repo.ListByStudent(context.Background(), 7, nil)
+		require.NoError(t, err)
+		require.Len(t, got, 3)
+
+		// Pending row.
+		assert.Equal(t, int64(10), got[0].AssignmentID)
+		assert.Equal(t, "Lab 1", got[0].Title)
+		assert.Equal(t, "Math", got[0].Subject)
+		assert.Equal(t, 100, got[0].MaxScore)
+		require.NotNil(t, got[0].DueDate)
+		assert.Equal(t, entities.StatusPending, got[0].Status)
+		assert.Nil(t, got[0].GradeValue)
+
+		// Graded row.
+		assert.Equal(t, entities.StatusGraded, got[1].Status)
+		require.NotNil(t, got[1].GradeValue)
+		assert.Equal(t, 45, *got[1].GradeValue)
+		assert.Equal(t, "good", got[1].Feedback)
+		assert.Nil(t, got[1].DueDate)
+
+		// Returned row.
+		assert.Equal(t, entities.StatusReturned, got[2].Status)
+		assert.Equal(t, "please add citations", got[2].ReturnReason)
+		require.NotNil(t, got[2].ReturnedBy)
+		assert.Equal(t, int64(99), *got[2].ReturnedBy)
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("status filter is forwarded as text argument", func(t *testing.T) {
+		repo, mock := newSubmissionRepoMock(t)
+
+		mock.ExpectQuery(regexp.QuoteMeta("FROM submissions s")).
+			WithArgs(int64(7), "returned").
+			WillReturnRows(sqlmock.NewRows([]string{
+				"assignment_id", "title", "description", "subject", "group_name",
+				"max_score", "due_date",
+				"a_created_at", "a_updated_at",
+				"submission_id", "student_id",
+				"grade_value", "feedback", "graded_by", "graded_at",
+				"return_reason", "returned_by", "returned_at",
+				"status", "s_created_at", "s_updated_at",
+			}))
+
+		status := entities.StatusReturned
+		got, err := repo.ListByStudent(context.Background(), 7, &status)
+		require.NoError(t, err)
+		assert.Empty(t, got)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("transport error wraps", func(t *testing.T) {
+		repo, mock := newSubmissionRepoMock(t)
+
+		mock.ExpectQuery(regexp.QuoteMeta("FROM submissions s")).
+			WithArgs(int64(7), "").
+			WillReturnError(errors.New("conn refused"))
+
+		_, err := repo.ListByStudent(context.Background(), 7, nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "list by student")
+	})
+}

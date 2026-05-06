@@ -46,3 +46,40 @@ type SubmissionView struct {
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
+
+// StudentAssignmentView is a read-side projection used by the student
+// "My assignments" surface. It denormalises the parent assignment
+// alongside the student's submission state so a single round-trip
+// renders both the list page and the detail page without cross-
+// aggregate composition in the handler.
+//
+// The submission columns are nullable for the same reason as
+// SubmissionView; assignment columns are always present (a row only
+// appears here because the parent assignment exists).
+type StudentAssignmentView struct {
+	// Assignment columns (always present).
+	AssignmentID    int64
+	Title           string
+	Description     string
+	Subject         string
+	GroupName       string
+	MaxScore        int
+	DueDate         *time.Time
+	AssignmentCreatedAt time.Time
+	AssignmentUpdatedAt time.Time
+
+	// Submission columns (always present because the JOIN selects rows
+	// where a submission exists for this student).
+	SubmissionID  int64
+	StudentID     int64
+	GradeValue    *int
+	Feedback      string
+	GradedBy      *int64
+	GradedAt      *time.Time
+	ReturnReason  string
+	ReturnedBy    *int64
+	ReturnedAt    *time.Time
+	Status        entities.SubmissionStatus
+	SubmissionCreatedAt time.Time
+	SubmissionUpdatedAt time.Time
+}

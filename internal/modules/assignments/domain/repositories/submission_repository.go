@@ -31,4 +31,11 @@ type SubmissionRepository interface {
 	// so the grading UI can render rows without a second round-trip.
 	// A nil status means "any". An empty result is not an error.
 	ListByAssignment(ctx context.Context, assignmentID int64, status *entities.SubmissionStatus) ([]views.SubmissionView, error)
+
+	// ListByStudent returns the denormalised "my assignments" view for a
+	// single student: every submission row owned by the student joined
+	// with its parent assignment columns. A nil status pointer means
+	// "any status"; an empty result is not an error. Powering the
+	// student-facing list page (v0.113.0).
+	ListByStudent(ctx context.Context, studentID int64, status *entities.SubmissionStatus) ([]views.StudentAssignmentView, error)
 }

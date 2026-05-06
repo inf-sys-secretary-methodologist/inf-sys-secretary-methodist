@@ -250,6 +250,9 @@ func (r *fakeSubmissionRepo) ListByAssignment(ctx context.Context, assignmentID 
 	}
 	return r.listResult, nil
 }
+func (r *fakeSubmissionRepo) ListByStudent(ctx context.Context, studentID int64, status *entities.SubmissionStatus) ([]views.StudentAssignmentView, error) {
+	return nil, nil
+}
 func (r *fakeSubmissionRepo) lookup(aid, sid int64) *entities.Submission {
 	return r.byKey[subKey(aid, sid)]
 }

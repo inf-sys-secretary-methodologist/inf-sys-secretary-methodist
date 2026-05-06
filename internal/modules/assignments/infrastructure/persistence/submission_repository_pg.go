@@ -266,3 +266,11 @@ func (r *SubmissionRepositoryPG) ListByAssignment(ctx context.Context, assignmen
 	}
 	return out, nil
 }
+
+// ListByStudent returns the denormalised "my assignments" view for the
+// given student — one row per (assignment, submission) pair where the
+// student is the owner. STUB until the GREEN cycle of v0.113.0 lands
+// the SQL query.
+func (r *SubmissionRepositoryPG) ListByStudent(ctx context.Context, studentID int64, status *entities.SubmissionStatus) ([]views.StudentAssignmentView, error) {
+	return nil, errors.New("submissions: list by student: not implemented")
+}
