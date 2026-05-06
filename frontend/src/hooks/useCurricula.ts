@@ -3,7 +3,12 @@
 import useSWR from 'swr'
 import { apiClient } from '@/lib/api'
 import { SWR_DEDUPING } from '@/config/swr'
-import type { Curriculum, CurriculumListResponse, CurriculumListFilter } from '@/types/curriculum'
+import type {
+  Curriculum,
+  CurriculumListResponse,
+  CurriculumListFilter,
+  UpdateCurriculumRequest,
+} from '@/types/curriculum'
 
 const CURRICULUM_URL = '/api/curriculum'
 
@@ -79,4 +84,34 @@ export function useCurriculum(id: number | null, opts?: FetchOpts) {
     dedupingInterval: SWR_DEDUPING.SHORT,
   })
   return { curriculum: data, isLoading, error, mutate }
+}
+
+// updateCurriculum PUTs the edit payload to PUT /api/curriculum/:id
+// and returns the unwrapped Curriculum. On error the underlying axios
+// error propagates so the caller (EditCurriculumDialog) can branch
+// on 409 (CODE_EXISTS) / 422 (NOT_EDITABLE / INVALID_INPUT) / 403
+// (forbidden) by HTTP status — mirrors saveGrade's error contract.
+export async function updateCurriculum(
+  id: number,
+  body: UpdateCurriculumRequest
+): Promise<Curriculum> {
+  const response = await apiClient.put<ApiResponse<Curriculum>>(
+    `${CURRICULUM_URL}/${id}`,
+    body
+  )
+  return response.data
+}
+
+// submitCurriculum POSTs to the submit endpoint to transition a
+// draft → pending_approval. Body is empty per the backend contract
+// (path id + JWT subject identify the row + actor). Returns the
+// updated Curriculum with status='pending_approval'. Axios errors
+// propagate — caller distinguishes 422 (NOT_DRAFT) / 403 (forbidden)
+// by HTTP status.
+export async function submitCurriculum(id: number): Promise<Curriculum> {
+  const response = await apiClient.post<ApiResponse<Curriculum>>(
+    `${CURRICULUM_URL}/${id}/submit`,
+    {}
+  )
+  return response.data
 }
