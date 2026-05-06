@@ -31,11 +31,11 @@ func TestCurriculum_AuthorizeEdit(t *testing.T) {
 	const author = int64(42)
 	const stranger = int64(7)
 	cases := []struct {
-		name      string
-		status    CurriculumStatus
-		actorID   int64
-		isAdmin   bool
-		wantSent  error // nil = OK
+		name     string
+		status   CurriculumStatus
+		actorID  int64
+		isAdmin  bool
+		wantSent error // nil = OK
 	}{
 		// Author edits own draft — happy path.
 		{"author edits own draft", StatusDraft, author, false, nil},

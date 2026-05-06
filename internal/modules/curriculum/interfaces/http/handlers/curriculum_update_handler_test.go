@@ -21,12 +21,12 @@ import (
 )
 
 type fakeUpdatePort struct {
-	called      bool
-	gotActor    int64
-	gotIsAdmin  bool
-	gotInput    curUsecases.UpdateCurriculumInput
-	out         *entities.Curriculum
-	err         error
+	called     bool
+	gotActor   int64
+	gotIsAdmin bool
+	gotInput   curUsecases.UpdateCurriculumInput
+	out        *entities.Curriculum
+	err        error
 }
 
 func (f *fakeUpdatePort) Execute(_ context.Context, actorID int64, isAdmin bool, in curUsecases.UpdateCurriculumInput) (*entities.Curriculum, error) {

@@ -25,11 +25,11 @@ func init() { gin.SetMode(gin.TestMode) }
 
 // fakeCreatePort is the test double for the Create use case port.
 type fakeCreatePort struct {
-	called    bool
-	gotActor  int64
-	gotInput  curUsecases.CreateCurriculumInput
-	out       *entities.Curriculum
-	err       error
+	called   bool
+	gotActor int64
+	gotInput curUsecases.CreateCurriculumInput
+	out      *entities.Curriculum
+	err      error
 }
 
 func (f *fakeCreatePort) Execute(_ context.Context, actorID int64, in curUsecases.CreateCurriculumInput) (*entities.Curriculum, error) {
@@ -167,8 +167,8 @@ func TestCurriculumHandler_Create_HappyPath_Methodist(t *testing.T) {
 	assert.Equal(t, 2026, create.gotInput.Year)
 
 	var resp struct {
-		Success bool                   `json:"success"`
-		Data    map[string]any         `json:"data"`
+		Success bool           `json:"success"`
+		Data    map[string]any `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 	assert.True(t, resp.Success)
@@ -234,9 +234,9 @@ func TestCurriculumHandler_Create_MalformedBodyReturns400(t *testing.T) {
 
 func TestCurriculumHandler_Create_DomainErrorMappings(t *testing.T) {
 	cases := []struct {
-		name    string
-		ucErr   error
-		want    int
+		name  string
+		ucErr error
+		want  int
 	}{
 		{"invariant violation → 422", entities.ErrInvalidCurriculum, http.StatusUnprocessableEntity},
 		{"code conflict → 409", repositories.ErrCurriculumCodeExists, http.StatusConflict},

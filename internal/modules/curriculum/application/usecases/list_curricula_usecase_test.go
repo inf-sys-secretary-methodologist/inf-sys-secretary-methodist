@@ -13,10 +13,10 @@ import (
 )
 
 type fakeListRepo struct {
-	got    repositories.CurriculumListFilter
-	out    repositories.CurriculumListResult
-	err    error
-	calls  int
+	got   repositories.CurriculumListFilter
+	out   repositories.CurriculumListResult
+	err   error
+	calls int
 }
 
 func (f *fakeListRepo) List(_ context.Context, filter repositories.CurriculumListFilter) (repositories.CurriculumListResult, error) {

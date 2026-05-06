@@ -17,10 +17,10 @@ import (
 // fakeCreateRepo is a minimal CurriculumRepository test double covering
 // only Save (the use case under test makes no other calls).
 type fakeCreateRepo struct {
-	saveCalls   int
-	saved       *entities.Curriculum
-	saveErr     error
-	idAssigned  int64
+	saveCalls  int
+	saved      *entities.Curriculum
+	saveErr    error
+	idAssigned int64
 }
 
 func (f *fakeCreateRepo) Save(ctx context.Context, c *entities.Curriculum) error {

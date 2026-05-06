@@ -249,7 +249,7 @@ func (r *CurriculumRepositoryPG) Update(ctx context.Context, c *entities.Curricu
 
 // nullableDescription maps an empty Go string to a SQL NULL so the
 // description column stays NULL when absent (the migration leaves
-// description nullable; storing '' would create a needless distinction
+// description nullable; storing ” would create a needless distinction
 // from the JSON-side optional value).
 func nullableDescription(s string) sql.NullString {
 	if s == "" {

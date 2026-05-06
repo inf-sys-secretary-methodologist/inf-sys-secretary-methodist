@@ -81,8 +81,8 @@ func TestCurriculumHandler_Get_HappyPath_AllNonStudentRoles(t *testing.T) {
 			assert.Equal(t, int64(7), get.gotID)
 
 			var resp struct {
-				Success bool                   `json:"success"`
-				Data    map[string]any         `json:"data"`
+				Success bool           `json:"success"`
+				Data    map[string]any `json:"data"`
 			}
 			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 			assert.True(t, resp.Success)
