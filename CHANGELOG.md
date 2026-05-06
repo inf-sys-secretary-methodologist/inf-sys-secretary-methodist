@@ -15,6 +15,23 @@
 
 ---
 
+## [0.113.0] — 2026-05-06
+
+### Added — Student-facing read endpoints (backend)
+
+- `GET /api/assignments/my` — список своих submission'ов с опциональным фильтром `?status=pending|graded|returned`. JOIN `submissions × assignments` по `student_id = JWT.user_id`, `ORDER BY COALESCE(due_date, created_at) DESC, id DESC` (стабильный fallback вместо bottom-of-list для assignments без срока).
+- `GET /api/assignments/:id/my` — детальный view конкретной работы (assignment metadata + submission state в одном round-trip).
+- Оба endpoint'а в существующей `studentAssignmentsGroup` за `RequireRole("student")` + handler whitelist `studentIDFromContext` (defence-in-depth — sibling-pattern reuse от v0.112.0).
+- Domain: `Submission.AuthorizeReader(actorID)` — read-side mirror к `AuthorizeResubmitter`, тот же sentinel `ErrSubmissionOwnerOnly`. Defence-in-depth: invariant defends даже когда HTTP-layer уже keys submission по `(assignmentID, JWT subject)`.
+- View: `views.StudentAssignmentView` — denormalised assignment + submission columns (single SQL round-trip). Лежит в `domain/views/`, public-field DTO без поведения.
+- Repo: `SubmissionRepository.ListByStudent(studentID, status?)` — JOIN с assignments, status passthrough через empty-string sentinel.
+- Use cases: `ListMyAssignmentsUseCase` (narrow port `MyAssignmentsRepository`, failure-closed validation на non-positive student id), `GetMyAssignmentDetailUseCase` (load assignment → load submission → AuthorizeReader → buildStudentAssignmentView). Failure-closed DI: nil deps panic на construction.
+- Handler: `MyAssignmentsHandler` с `List` + `Detail`, ports defined locally, sentinel-first error mapping (404 / 403 / 500), failure-closed DI, role exact-match.
+- Тесты: 4 sqlmock case + 6 use case case (включая прямой exercise AuthorizeReader через `forceReturn` test-knob — invariant breaks test if dropped) + 8 handler case. Reviewer SHIP mean 9.0/10 после fix-cycle (gofmt + AuthorizeReader test gap + doc/SQL drift).
+- ADR-1: scope = "I have a submission" (не group-scoped). JWT не несёт `group_id`, расширение = blast radius. Trade-off: студент видит assignment только после первой grade-попытки teacher'a (lazy submission creation); eager-seeding отложен.
+- Out of scope: frontend pages — v0.114.0.
+- Sync: 8 files version bump (VERSION × 2, main.go @version, package.json × 2, swagger × 3). `docs/roles-and-flows.md` 0.113.0 banner + новый bullet "Мои работы" в student section.
+
 ## [0.112.0] — 2026-05-04
 
 ### Added — Assignments student resubmit flow (backend-only)
