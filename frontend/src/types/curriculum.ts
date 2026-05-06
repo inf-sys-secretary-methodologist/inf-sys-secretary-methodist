@@ -53,10 +53,19 @@ export interface CurriculumListFilter {
   offset?: number
 }
 
-// Mutation request types (CreateCurriculumRequest /
-// UpdateCurriculumRequest / RejectCurriculumRequest) deliberately
-// land alongside their consumers in later releases (v0.119.0 edit
-// dialog / v0.120.0 admin reject dialog) — not pre-defined here.
-// CLAUDE.md rule "никаких на будущее" applies to types whose only
-// caller is a future release; introducing them now would be dead
-// code until then.
+// UpdateCurriculumRequest matches handler UpdateCurriculumRequest
+// at internal/modules/curriculum/interfaces/http/handlers/curriculum_handler.go.
+// Consumed by EditCurriculumDialog (v0.119.0). Backend invariants:
+// title / code / specialty trim non-empty, year ∈ [2000, 2100],
+// description ≤ 4096 chars after trim.
+export interface UpdateCurriculumRequest {
+  title: string
+  code: string
+  specialty: string
+  year: number
+  description: string
+}
+
+// CreateCurriculumRequest / RejectCurriculumRequest land alongside
+// their consumers in later releases (v0.121.0 polish create dialog /
+// v0.120.0 admin reject dialog) — not pre-defined here.
