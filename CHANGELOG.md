@@ -15,6 +15,45 @@
 
 ---
 
+## [0.116.0] — 2026-05-06
+
+### Added — Curriculum module backend (defence-critical 🔴 gap closure, basic CRUD)
+
+- **Новый bounded context `curriculum`** — академические учебные планы (учебный план / curriculum). Закрывает последний 🔴 defence-critical gap из `docs/roles-and-flows.md` PermissionMatrix (методист: full / admin: approve, в коде до сих пор был только entity stub в `auth/domain`).
+- **Domain layer** (`internal/modules/curriculum/domain/entities/`):
+  - `Curriculum` aggregate root — private fields, getters, factory `NewCurriculum` с шестью инвариантами (title/code/specialty trim non-empty; year ∈ [2000, 2100]; description ≤ 4096 chars after trim; created_by > 0). Все нарушения wrap'аются в `ErrInvalidCurriculum` для 422 mapping через `errors.Is`.
+  - `ReconstituteCurriculum` — repo-side factory, bypass'ит NewCurriculum invariants (rows канонические на DB layer; SQL CHECK constraints мирорят domain).
+  - `CurriculumStatus` typed enum (`StatusDraft` / `StatusPendingApproval` / `StatusApproved` / `StatusArchived`) с методами `IsValid` / `CanEdit` / `IsApproved`. Mirror'ит `SubmissionStatus` pattern из assignments. Парность DB-литералам pinned тестом `TestCurriculumStatus_StringMatchesDBLiteral`.
+  - `AuthorizeEdit(actorID, isAdmin)` — predicate с status-gate ПЕРЕД ownership check (approved curricula frozen для всех включая admin). `UpdateBasics` — атомарный content edit (mutate всех 5 полей или ни одного на ошибке).
+  - Sentinels: `ErrInvalidCurriculum` (422), `ErrCurriculumScopeForbidden` (403), `ErrCannotEditApproved` (422).
+- **Repository** (`internal/modules/curriculum/{domain/repositories,infrastructure/persistence}/`):
+  - `CurriculumRepository` interface (GetByID / List / Save / Update) + `CurriculumListFilter` (status / year / specialty / created_by / pagination).
+  - `CurriculumRepositoryPG` — `database/sql` impl с filterClause (`WHERE ($1 = '' OR status = $1) AND ($2::bigint IS NULL OR year = $2::bigint) ...`); ORDER BY year DESC, created_at DESC, id DESC. ON unique-violation (pq.Error.Code == 23505) → `ErrCurriculumCodeExists` (409), zero affected rows on Update → `ErrCurriculumNotFound` (404).
+- **Use cases** (`internal/modules/curriculum/application/usecases/`):
+  - `CreateCurriculumUseCase` — actor-scoped, audit-symmetric (`curriculum.created` / `curriculum.create_denied` reason ∈ {`invalid`, `code_conflict`}), failure-closed nil-repo panic, `clock` injection для тестируемости.
+  - `GetCurriculumUseCase` — thin pass-through к repo (read scope handled by middleware; AuthorizeView entity gate deferred per ADR-3).
+  - `ListCurriculaUseCase` — pagination defaults (zero/negative limit → 50, > 200 → clamp to 200, negative offset → 0); pinning эти clamps в use-case layer (а не в handler) даёт future internal scheduler/batch caller ту же boundedness.
+  - `UpdateCurriculumUseCase` — load → AuthorizeEdit → UpdateBasics → repo.Update. Audit symmetric для всех 5 denied-причин (`not_found` / `forbidden` / `not_editable` / `invalid` / `code_conflict`). Transport errors propagate БЕЗ audit (audit log records policy decisions, not infrastructure outages).
+  - `AuditSink` narrow port — structurally satisfied `*logging.AuditLogger`. Same shape как assignments-side AuditSink; адаптер не нужен.
+- **HTTP handlers** (`internal/modules/curriculum/interfaces/http/handlers/`):
+  - `CurriculumHandler` с 4 endpoint'ами: `POST /api/curriculum`, `GET /api/curriculum`, `GET /api/curriculum/:id`, `PUT /api/curriculum/:id` + OPTIONS preflights. Конструктор panics на любой nil port (failure-closed DI).
+  - Role whitelists: `canWrite` (methodist + system_admin) для Create/Update; `canRead` (4 non-student роли) для Get/List. Defence-in-depth поверх `RequireNonStudent` middleware. Student → 403 даже если middleware reconfigured.
+  - `parsePositiveID` — strict-digit parser (отвергает `+5`, ` 5`, fractional, zero, negative); mirror `Number.isInteger` discipline из v0.114.0.
+  - `parseListInput` — type-aware filter parsing (status enum literal, year ∈ [2000,2100], created_by > 0, limit/offset ≥ 0). 400 на любую boundary failure до DB round-trip.
+  - `mapCurriculumError` — sentinel-first matching через `errors.Is` ДО `MapDomainError` fallback (existing analytics_handler pattern). 4 endpoints share один маппер.
+  - `CurriculumDTO` — RFC3339 timestamps, optional approved_by/at pointers (`omitempty`).
+- **Migration 031** (`migrations/031_create_curricula_schema.up.sql` + down):
+  - `curricula` table с 12 columns + 5 indexes (status / year / specialty / created_by / approved_by).
+  - 7 CHECK constraints mirror domain invariants exactly + `chk_curricula_approved_consistency` (defence-in-depth: status='approved' implies approved_by/at populated — ловит direct SQL bypass и Reconstitute paths).
+  - status enum literals (`'draft'` / `'pending_approval'` / `'approved'` / `'archived'`) pinned в CHECK, parity тестом в domain.
+  - `update_attendance_updated_at` trigger reuse из migration 021 (pattern из assignments 029).
+  - Reverse migration symmetric (drop trigger, drop table).
+- **Wiring** (`cmd/server/main.go`): curriculum module init после assignments. `auditLogger` структурно satisfies `curriculum.AuditSink` — single concrete logger covers both bounded contexts без cross-module Go import. Routes registered под `protectedGroup.Group("/curriculum")` за `RequireNonStudent`.
+- **Тесты**: 22 use case + handler + entity + repo + status тестов (table-driven где ≥3 кейса). Pin'ят observable behaviour (audit content / actor / 403 mapping order), не impl details. Atomicity тесты для `UpdateBasics` — failed validation leaves entity untouched. Boundary tests (year=2000/2100, description=4096 ровно).
+- Reviewer SHIP **mean 9.4/10** every axis (TDD 10 / DDD 10 / CA 9 / Security 9 / Tests 9 / Migration 10 / Cohesion 9). Полировка после ревью: rename `mapWriteError` → `mapCurriculumError` (используется и для Get/List); удалён dead `stubCreatePort` тип; унифицирован `code` field в audit (canonical post-trim form).
+- **Out of scope** (deferred к v0.117.0+): `Discipline` child entity + AddDiscipline/RemoveDiscipline; Approve/SubmitForApproval/Reject/Archive transitions; admin-only approve endpoint; student read scope с specialty filter (требует JWT расширение); frontend (v0.118.0–v0.120.0); workflow approval #41 (заглушка по плану).
+- Sync: 8 files version bump (VERSION + main.go + 2 frontend + 3 swagger + frontend/VERSION) + `docs/roles-and-flows.md` 0.116.0 banner.
+
 ## [0.115.0] — 2026-05-06
 
 ### Added — Student Resubmit UI (academic loop closed end-to-end в UI)
