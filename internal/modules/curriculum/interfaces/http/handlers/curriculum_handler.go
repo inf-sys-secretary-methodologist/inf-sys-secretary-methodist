@@ -209,6 +209,71 @@ func (h *CurriculumHandler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(mapCurriculum(curriculum)))
 }
 
+// UpdateCurriculumRequest is the JSON body schema for PUT /api/curriculum/:id.
+// Exported so swag can generate the schema in the OpenAPI spec.
+type UpdateCurriculumRequest struct {
+	Title       string `json:"title"`
+	Code        string `json:"code"`
+	Specialty   string `json:"specialty"`
+	Year        int    `json:"year"`
+	Description string `json:"description"`
+}
+
+// Update handles PUT /api/curriculum/:id.
+// @Summary Update a draft curriculum
+// @Tags curriculum
+// @Accept json
+// @Produce json
+// @Param id   path int                       true "Curriculum ID"
+// @Param body body UpdateCurriculumRequest   true "Curriculum payload"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/curriculum/{id} [put]
+func (h *CurriculumHandler) Update(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	if !canWrite(role) {
+		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may edit curricula"))
+		return
+	}
+
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid curriculum id"))
+		return
+	}
+
+	var body UpdateCurriculumRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid request body: "+err.Error()))
+		return
+	}
+
+	curriculum, err := h.update.Execute(c.Request.Context(), actorID, isAdminRole(role),
+		curUsecases.UpdateCurriculumInput{
+			ID:          id,
+			Title:       body.Title,
+			Code:        body.Code,
+			Specialty:   body.Specialty,
+			Year:        body.Year,
+			Description: body.Description,
+		})
+	if err != nil {
+		mapWriteError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapCurriculum(curriculum)))
+}
+
 // CurriculaListResponse is the response shape for the list endpoint.
 // Exported so swag picks it up in the OpenAPI spec.
 type CurriculaListResponse struct {
@@ -437,8 +502,9 @@ func mapWriteError(c *gin.Context, err error) {
 	c.JSON(httpErr.Status, httpErr.Response)
 }
 
-// guard against unused warnings while v0.116.0 only exercises some
-// of these helpers (the list and update endpoints land in the next
-// two cycles and use isAdminRole / list filter parsing).
+// roleStudent is mirrored from auth/domain/permission.go for
+// completeness even though no curriculum endpoint exposes the
+// student role today; canRead / canWrite reject student via the
+// switch default. Kept named (not removed) so a future student-
+// scoped read endpoint has the constant ready.
 var _ = roleStudent
-var _ = isAdminRole
