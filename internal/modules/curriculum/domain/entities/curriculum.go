@@ -13,6 +13,21 @@ import (
 // this sentinel to HTTP 422.
 var ErrInvalidCurriculum = errors.New("curriculum: invalid curriculum")
 
+// ErrCurriculumScopeForbidden indicates that a user is not authorised
+// to operate on a particular Curriculum — typically because the user
+// is a methodist who did not author it. Admins override this check
+// (see AuthorizeEdit). Handlers map this sentinel to HTTP 403.
+var ErrCurriculumScopeForbidden = errors.New("curriculum: caller cannot operate on this curriculum")
+
+// ErrCannotEditApproved indicates that a Curriculum is not in a state
+// that permits content edits. Only draft curricula are editable;
+// pending_approval, approved and archived curricula are frozen.
+// Status transitions (Approve / Reject / Archive) are separate
+// domain methods landing in v0.117.0 — they do NOT go through
+// UpdateBasics. Handlers map this sentinel to HTTP 422 (the request
+// is well-formed but conflicts with the curriculum's lifecycle).
+var ErrCannotEditApproved = errors.New("curriculum: cannot edit non-draft curriculum")
+
 // Year-range invariants — chosen wide enough to cover both legacy
 // archived curricula (pre-2010 not realistic in this institution but
 // kept permissive) and forward-looking programmes. Mirrored exactly by
@@ -174,3 +189,31 @@ func (c *Curriculum) CreatedAt() time.Time { return c.createdAt }
 
 // UpdatedAt returns the last-mutation timestamp.
 func (c *Curriculum) UpdatedAt() time.Time { return c.updatedAt }
+
+// AuthorizeEdit returns nil if the caller may modify this
+// curriculum's content via UpdateBasics, or one of the two domain
+// sentinels otherwise.
+//
+// The status gate fires BEFORE the ownership / admin checks:
+// approved and pending_approval curricula are frozen for everyone.
+// Status transitions (Approve / Reject / Archive) are separate
+// domain methods that land in v0.117.0 — UpdateBasics is purely
+// content-mutation (title / code / specialty / year / description)
+// and runs only against draft curricula.
+//
+// When isAdmin is true the ownership check is skipped — admins may
+// edit any draft. Methodists may edit only their own drafts.
+func (c *Curriculum) AuthorizeEdit(actorID int64, isAdmin bool) error {
+	if !c.status.CanEdit() {
+		return fmt.Errorf("%w: status %q is not editable",
+			ErrCannotEditApproved, string(c.status))
+	}
+	if isAdmin {
+		return nil
+	}
+	if actorID == c.createdBy && actorID > 0 {
+		return nil
+	}
+	return fmt.Errorf("%w: actor %d is not the author (%d)",
+		ErrCurriculumScopeForbidden, actorID, c.createdBy)
+}
