@@ -15,6 +15,34 @@
 
 ---
 
+## [0.119.0] — 2026-05-06
+
+### Added — Curriculum frontend detail page + edit dialog + Submit dialog (methodist self-edit cycle closed)
+
+- **`/curriculum/[id]` detail page** — single-curriculum view с back link, metadata header (title / code / specialty / year / description), color-coded status pill, status-aware action section. Status='draft' renders Edit + Submit action buttons; pending+approved+archived render read-only metadata + status hint в colored panel matching the status pill palette. Page-shell guard order: auth → fetch (`enabled` four-condition gate including `id !== null`) → render (notFound / spinner / error / loaded). `Number.isInteger` discipline на path id (mirror v0.114.0 SEC fix).
+- **`EditCurriculumDialog`** — Radix modal с 5-field form (title / code / specialty / year / description). Client validation mirrors domain invariants verbatim (curriculum.go): trim non-empty / year ∈ [2000, 2100] / description ≤ 4096. Save handler `updateCurriculum(id, body)` → `mutate()` SWR refresh + close. Error mapping sentinel-first via axios HTTP status: 409→codeExists / 422→notEditable / 403→forbidden / default→generic; dialog stays open on error. `useEffect` resets form state on `open=true` so re-opening после mutate shows fresh values.
+- **`SubmitCurriculumDialog`** — Radix confirmation modal для draft → pending_approval transition. Mirror к ResubmitDialog (no-input dialog wrapper за explicit confirm). Empty-body POST per backend contract; toast.success + mutate + close on confirm; toast.error + stays open on failure. Pattern: state transitions consistently use dialogs across the codebase (ResubmitDialog, ReturnDialog, теперь SubmitCurriculumDialog).
+- **`updateCurriculum(id, body)` POST helper** — thin wrapper around `apiClient.put` ↦ `/api/curriculum/:id` с `UpdateCurriculumRequest` body, returns unwrapped `Curriculum`. Axios errors propagate.
+- **`submitCurriculum(id)` POST helper** — `apiClient.post` ↦ `/api/curriculum/:id/submit` empty body, returns updated `Curriculum` со status='pending_approval'.
+- **Shared `status.ts` module** — `STATUS_STYLES` (color palette + lucide icon × 4 lifecycle states) + `statusKey()` mapper extracted from `CurriculumCard` and detail page. Single source of truth — recolor / icon change touches one site, not two.
+- **`UpdateCurriculumRequest` type** re-introduced alongside `EditCurriculumDialog` consumer (was dropped в v0.118.0 reviewer fix-cycle per CLAUDE.md "никаких на будущее").
+- **i18n × 4 parity** — 80 keys per locale (was 22 после v0.118.0; +58 keys). Структура: `curriculum.detail.{14}` / `curriculum.editDialog.{20}` / `curriculum.submitDialog.{5}` / `curriculum.submitToast.{4}`. RTL Arabic, French, English content-correct (не stub). `validation.yearRange` interpolation `{min}/{max}` consistent across locales.
+- **Тесты**: 5 RED→GREEN pairs strict TDD (helpers ×2, dialog, page, fix-cycle additions). 53 new module tests:
+  - 12 `useCurricula` hook tests (was 8 — added updateCurriculum + submitCurriculum × 2 pairs)
+  - 17 `EditCurriculumDialog` tests (form initial state, validation × 6, save success, error mapping × 4, form-state reset on reopen, double-click prevention)
+  - 6 `SubmitCurriculumDialog` tests (confirm flow, error mapping × 3, double-click prevention)
+  - 22 page tests (redirect / page-shell guard / metadata / status pill / loadFailed / notFound / Edit + Submit visibility per status × 4 / status hint × 4 / dialog mount + onSaved/onSubmitted wiring / enabled flag × 2 / backToList link)
+- **Frontend total**: 181 suites / 2583 tests passing (was 178/2530 baseline; +3 suites + 53 tests).
+- **Reviewer**: SHIP mean **9.43/10** post-fix-cycle (was 8.67 single-pass, axis 7 cohesion 6/10 due to STATUS_STYLES + statusKey duplication; fix extracted shared module + Submit dialog wrap + 2 missing tests + plan ADR-5 doc fix).
+- Sync: 8 files version bump + `docs/roles-and-flows.md` 0.119.0 banner.
+
+### Out of scope (deferred)
+
+- `/admin/curriculum/approve` admin-only page (pending list + Approve / Reject buttons + reason textarea) → **v0.120.0**
+- Approve / Reject hooks + RejectCurriculumRequest DTO → v0.120.0 (alongside their UI consumers)
+- Create dialog (new draft curriculum) → v0.121.0 polish
+- Pagination UI / status pill в navigation badge → v0.121.0 polish
+
 ## [0.118.0] — 2026-05-06
 
 ### Added — Curriculum frontend list page (defence-ready: methodist+admin browse all curricula)
