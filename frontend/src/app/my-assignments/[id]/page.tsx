@@ -23,9 +23,11 @@ const localeMap = { ru, en: enUS, fr, ar }
 export default function MyAssignmentDetailPage() {
   const router = useRouter()
   const params = useParams<{ id: string }>()
+  // Number.isInteger so '/my-assignments/1.5' rejects at the client
+  // boundary instead of forwarding a fractional id to the backend.
   const id = useMemo(() => {
     const parsed = Number(params?.id)
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null
   }, [params])
 
   const { user, isAuthenticated, isLoading: authLoading } = useAuthCheck()
@@ -33,7 +35,11 @@ export default function MyAssignmentDetailPage() {
   const locale = useLocale() as keyof typeof localeMap
   const dateLocale = localeMap[locale] ?? enUS
 
-  const { view, isLoading, error } = useMyAssignment(id)
+  // Same role-gate as the list page: skip the SWR call while the
+  // caller is not a student, so the /forbidden redirect window does
+  // not fire a 401 round-trip.
+  const isStudent = user?.role === 'student'
+  const { view, isLoading, error } = useMyAssignment(id, { enabled: isStudent })
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && user?.role && user.role !== 'student') {
@@ -41,7 +47,7 @@ export default function MyAssignmentDetailPage() {
     }
   }, [authLoading, isAuthenticated, user, router])
 
-  if (authLoading) {
+  if (authLoading || !isAuthenticated || (user?.role && user.role !== 'student')) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center py-16">

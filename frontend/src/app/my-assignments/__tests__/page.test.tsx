@@ -18,7 +18,8 @@ jest.mock('@/components/layout', () => ({
 
 const mockUseMyAssignments = jest.fn()
 jest.mock('@/hooks/useMyAssignments', () => ({
-  useMyAssignments: (status?: string) => mockUseMyAssignments(status),
+  useMyAssignments: (status?: string, opts?: { enabled?: boolean }) =>
+    mockUseMyAssignments(status, opts),
   useMyAssignment: jest.fn(),
 }))
 
@@ -97,16 +98,28 @@ describe('MyAssignmentsPage', () => {
 
   it('renders status filter tabs and forwards selection to the hook', () => {
     render(<MyAssignmentsPage />)
-    expect(mockUseMyAssignments).toHaveBeenLastCalledWith(undefined)
+    expect(mockUseMyAssignments).toHaveBeenLastCalledWith(undefined, { enabled: true })
 
     fireEvent.click(screen.getByRole('tab', { name: /returned/i }))
-    expect(mockUseMyAssignments).toHaveBeenLastCalledWith('returned')
+    expect(mockUseMyAssignments).toHaveBeenLastCalledWith('returned', { enabled: true })
 
     fireEvent.click(screen.getByRole('tab', { name: /graded/i }))
-    expect(mockUseMyAssignments).toHaveBeenLastCalledWith('graded')
+    expect(mockUseMyAssignments).toHaveBeenLastCalledWith('graded', { enabled: true })
 
     fireEvent.click(screen.getByRole('tab', { name: /all/i }))
-    expect(mockUseMyAssignments).toHaveBeenLastCalledWith(undefined)
+    expect(mockUseMyAssignments).toHaveBeenLastCalledWith(undefined, { enabled: true })
+  })
+
+  it('does NOT fetch when the role is not student (skip 401 round-trip)', () => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 1, role: 'teacher' as const },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<MyAssignmentsPage />)
+    // Hook is still called (rules of hooks), but the second arg
+    // must carry enabled: false so the SWR key short-circuits.
+    expect(mockUseMyAssignments).toHaveBeenCalledWith(undefined, { enabled: false })
   })
 
   it('shows error block when the hook surfaces an error', () => {

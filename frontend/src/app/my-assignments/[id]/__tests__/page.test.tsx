@@ -18,7 +18,8 @@ jest.mock('@/components/layout', () => ({
 
 const mockUseMyAssignment = jest.fn()
 jest.mock('@/hooks/useMyAssignments', () => ({
-  useMyAssignment: (id: number | null) => mockUseMyAssignment(id),
+  useMyAssignment: (id: number | null, opts?: { enabled?: boolean }) =>
+    mockUseMyAssignment(id, opts),
   useMyAssignments: jest.fn(),
 }))
 
@@ -68,15 +69,33 @@ describe('MyAssignmentDetailPage', () => {
     expect(mockReplace).toHaveBeenCalledWith('/forbidden')
   })
 
-  it('passes a parsed numeric id to the hook', () => {
+  it('passes a parsed numeric id to the hook with enabled:true for student', () => {
     render(<MyAssignmentDetailPage />)
-    expect(mockUseMyAssignment).toHaveBeenCalledWith(10)
+    expect(mockUseMyAssignment).toHaveBeenCalledWith(10, { enabled: true })
   })
 
   it('passes null to the hook for invalid path id', () => {
     mockParamsValue = { id: 'abc' }
     render(<MyAssignmentDetailPage />)
-    expect(mockUseMyAssignment).toHaveBeenCalledWith(null)
+    expect(mockUseMyAssignment).toHaveBeenCalledWith(null, { enabled: true })
+  })
+
+  it('passes null to the hook for fractional path id (no useless 4xx)', () => {
+    mockParamsValue = { id: '1.5' }
+    render(<MyAssignmentDetailPage />)
+    expect(mockUseMyAssignment).toHaveBeenCalledWith(null, { enabled: true })
+  })
+
+  it('passes enabled:false when caller is not a student', () => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 1, role: 'teacher' as const },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<MyAssignmentDetailPage />)
+    // Hook still called per rules of hooks, but second arg carries
+    // enabled:false so the SWR key short-circuits to null.
+    expect(mockUseMyAssignment).toHaveBeenCalledWith(10, { enabled: false })
   })
 
   it('renders error block when the hook reports an error', () => {

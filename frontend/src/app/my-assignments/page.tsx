@@ -27,12 +27,18 @@ export default function MyAssignmentsPage() {
 
   const [statusFilter, setStatusFilter] = useState<SubmissionStatus | 'all'>('all')
 
+  // Skip the SWR call entirely while role is unknown / not student so
+  // the redirect-to-/forbidden window does not waste a 401 round-trip.
+  const isStudent = user?.role === 'student'
   const {
     items,
     total,
     isLoading: listLoading,
     error,
-  } = useMyAssignments(statusFilter === 'all' ? undefined : statusFilter)
+  } = useMyAssignments(
+    statusFilter === 'all' ? undefined : statusFilter,
+    { enabled: isStudent }
+  )
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user?.role && user.role !== 'student') {
@@ -40,7 +46,12 @@ export default function MyAssignmentsPage() {
     }
   }, [isLoading, isAuthenticated, user, router])
 
-  if (isLoading) {
+  // Mirror /assignments shape: gate the page body on (auth ready AND
+  // student role) so a logged-out user or a non-student bouncing
+  // through here never sees the chrome or fires the SWR call. The
+  // useEffect above schedules the /forbidden replace; this branch
+  // keeps the UI quiet while it lands.
+  if (isLoading || !isAuthenticated || (user?.role && user.role !== 'student')) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center py-16">
