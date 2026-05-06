@@ -278,6 +278,32 @@ func (c *Curriculum) SubmitForApproval(now time.Time) error {
 	return nil
 }
 
+// Approve transitions a pending_approval curriculum into the
+// approved state and records the admin's identity + timestamp on
+// the entity. The use case enforces admin-only access via the
+// route-level RequireRole(SystemAdmin) middleware plus the
+// handler whitelist; the entity enforces only the status
+// invariant and a non-zero adminID guard (defense in depth
+// against a silent admin scenario where the JWT subject was lost
+// upstream).
+//
+// Atomic: any error leaves the entity untouched.
+func (c *Curriculum) Approve(adminID int64, now time.Time) error {
+	if adminID <= 0 {
+		return fmt.Errorf("%w: admin id must be positive, got %d",
+			ErrCannotApprove, adminID)
+	}
+	if c.status != StatusPendingApproval {
+		return fmt.Errorf("%w: status %q", ErrCannotApprove, string(c.status))
+	}
+	c.status = StatusApproved
+	c.approvedBy = &adminID
+	at := now
+	c.approvedAt = &at
+	c.updatedAt = now
+	return nil
+}
+
 // AuthorizeEdit returns nil if the caller may modify this
 // curriculum's content via UpdateBasics, or one of the two domain
 // sentinels otherwise.
