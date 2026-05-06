@@ -187,6 +187,17 @@ export const navigationConfig: NavEntry[] = [
           UserRole.TEACHER,
         ],
       },
+      {
+        // Student-only mirror of /assignments. The student sees only
+        // their own work — backend GET /api/assignments/my is gated by
+        // RequireRole("student"), so other roles never reach the data.
+        // Showing the entry alongside (rather than swapping) keeps the
+        // navigation layout stable when a developer hops accounts.
+        nameKey: 'myAssignments',
+        url: '/my-assignments',
+        icon: GraduationCap,
+        roles: [UserRole.STUDENT],
+      },
     ],
   },
   // Communication group — announcements + messages + AI

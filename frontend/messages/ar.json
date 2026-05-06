@@ -182,7 +182,8 @@
     "adminSettings": "إعدادات النظام",
     "educationGroup": "التعليم",
     "communicationGroup": "التواصل",
-    "assignments": "الواجبات"
+    "assignments": "الواجبات",
+    "myAssignments": "واجباتي"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -2392,6 +2393,43 @@
         "forbidden": "ليس لديك الصلاحية لإرجاع هذا العمل",
         "generic": "تعذر إرجاع العمل"
       }
+    }
+  },
+  "myAssignments": {
+    "title": "واجباتي",
+    "description": "أعمالك حسب المادة — الحالة والدرجات والملاحظات",
+    "loadFailed": "تعذّر تحميل قائمة الواجبات",
+    "countLabel": "عرض {shown} من {total}",
+    "statusFilterAria": "تصفية حسب الحالة",
+    "statusAll": "الكل",
+    "card": {
+      "openAria": "فتح {title}"
+    },
+    "status": {
+      "pending": "قيد الانتظار",
+      "graded": "تم تقييمه",
+      "returned": "أُعيد للمراجعة"
+    },
+    "empty": {
+      "title": "لا يوجد شيء هنا بعد",
+      "description": "بمجرد أن يقيّم المعلم عملك، سيظهر في هذه القائمة"
+    },
+    "detail": {
+      "backToList": "العودة إلى القائمة",
+      "loadFailed": "تعذّر تحميل الواجب",
+      "subject": "المادة",
+      "group": "المجموعة",
+      "maxScore": "الدرجة القصوى",
+      "dueDate": "الموعد النهائي",
+      "pendingTitle": "في انتظار المراجعة",
+      "pendingDescription": "لم يقيّم المعلم هذا العمل بعد. عُد لاحقًا.",
+      "gradedTitle": "تم التقييم",
+      "gradedAt": "تاريخ التقييم: {date}",
+      "feedbackTitle": "ملاحظات المعلم",
+      "returnedTitle": "أُعيد للمراجعة",
+      "returnedAt": "تاريخ الإعادة: {date}",
+      "returnReasonTitle": "سبب الإعادة",
+      "resubmitHint": "سيظهر زر «إعادة الإرسال» في الإصدار القادم"
     }
   }
 }

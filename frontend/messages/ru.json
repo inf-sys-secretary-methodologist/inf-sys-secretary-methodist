@@ -182,7 +182,8 @@
     "adminSettings": "Системные настройки",
     "educationGroup": "Учебный процесс",
     "communicationGroup": "Коммуникации",
-    "assignments": "Задания"
+    "assignments": "Задания",
+    "myAssignments": "Мои задания"
   },
   "roles": {
     "system_admin": "Администратор",
@@ -2392,6 +2393,43 @@
         "forbidden": "У вас нет прав на возврат этой работы",
         "generic": "Не удалось вернуть работу"
       }
+    }
+  },
+  "myAssignments": {
+    "title": "Мои задания",
+    "description": "Ваши работы по предметам — статус, оценки, замечания",
+    "loadFailed": "Не удалось загрузить список заданий",
+    "countLabel": "Показано {shown} из {total}",
+    "statusFilterAria": "Фильтр по статусу",
+    "statusAll": "Все",
+    "card": {
+      "openAria": "Открыть {title}"
+    },
+    "status": {
+      "pending": "Ожидает",
+      "graded": "Оценено",
+      "returned": "Возвращено"
+    },
+    "empty": {
+      "title": "Здесь пока ничего нет",
+      "description": "Когда преподаватель оценит вашу работу, она появится в этом списке"
+    },
+    "detail": {
+      "backToList": "Назад к списку",
+      "loadFailed": "Не удалось загрузить задание",
+      "subject": "Дисциплина",
+      "group": "Группа",
+      "maxScore": "Макс. балл",
+      "dueDate": "Срок",
+      "pendingTitle": "Ожидает проверки",
+      "pendingDescription": "Преподаватель ещё не оценил вашу работу. Возвращайтесь позже.",
+      "gradedTitle": "Оценено",
+      "gradedAt": "Дата проверки: {date}",
+      "feedbackTitle": "Комментарий преподавателя",
+      "returnedTitle": "Возвращено на доработку",
+      "returnedAt": "Возвращено: {date}",
+      "returnReasonTitle": "Причина возврата",
+      "resubmitHint": "Кнопка «Пересдать» появится в следующем релизе"
     }
   }
 }

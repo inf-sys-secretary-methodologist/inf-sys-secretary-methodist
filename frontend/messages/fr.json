@@ -182,7 +182,8 @@
     "adminSettings": "Paramètres système",
     "educationGroup": "Enseignement",
     "communicationGroup": "Communication",
-    "assignments": "Devoirs"
+    "assignments": "Devoirs",
+    "myAssignments": "Mes devoirs"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -2392,6 +2393,43 @@
         "forbidden": "Vous n'avez pas le droit de retourner ce travail",
         "generic": "Impossible de retourner le travail"
       }
+    }
+  },
+  "myAssignments": {
+    "title": "Mes devoirs",
+    "description": "Vos travaux par matière — statut, notes, commentaires",
+    "loadFailed": "Impossible de charger les devoirs",
+    "countLabel": "Affichage de {shown} sur {total}",
+    "statusFilterAria": "Filtrer par statut",
+    "statusAll": "Tous",
+    "card": {
+      "openAria": "Ouvrir {title}"
+    },
+    "status": {
+      "pending": "En attente",
+      "graded": "Noté",
+      "returned": "Retourné"
+    },
+    "empty": {
+      "title": "Rien ici pour le moment",
+      "description": "Une fois que votre enseignant aura évalué votre travail, il apparaîtra ici"
+    },
+    "detail": {
+      "backToList": "Retour à la liste",
+      "loadFailed": "Impossible de charger le devoir",
+      "subject": "Matière",
+      "group": "Groupe",
+      "maxScore": "Note max",
+      "dueDate": "Échéance",
+      "pendingTitle": "En attente d'évaluation",
+      "pendingDescription": "Votre enseignant n'a pas encore noté ce travail. Revenez plus tard.",
+      "gradedTitle": "Noté",
+      "gradedAt": "Noté le {date}",
+      "feedbackTitle": "Commentaire de l'enseignant",
+      "returnedTitle": "Retourné pour révision",
+      "returnedAt": "Retourné le {date}",
+      "returnReasonTitle": "Motif du retour",
+      "resubmitHint": "Un bouton « Renvoyer » arrivera dans la prochaine version"
     }
   }
 }

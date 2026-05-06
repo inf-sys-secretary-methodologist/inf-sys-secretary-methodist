@@ -182,7 +182,8 @@
     "adminSettings": "System Settings",
     "educationGroup": "Education",
     "communicationGroup": "Communication",
-    "assignments": "Assignments"
+    "assignments": "Assignments",
+    "myAssignments": "My assignments"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -2392,6 +2393,43 @@
         "forbidden": "You are not allowed to return this submission",
         "generic": "Could not return the submission"
       }
+    }
+  },
+  "myAssignments": {
+    "title": "My assignments",
+    "description": "Your work by subject — status, grades, feedback",
+    "loadFailed": "Failed to load assignments",
+    "countLabel": "Showing {shown} of {total}",
+    "statusFilterAria": "Filter by status",
+    "statusAll": "All",
+    "card": {
+      "openAria": "Open {title}"
+    },
+    "status": {
+      "pending": "Pending",
+      "graded": "Graded",
+      "returned": "Returned"
+    },
+    "empty": {
+      "title": "Nothing here yet",
+      "description": "Once your teacher reviews your work, it will show up here"
+    },
+    "detail": {
+      "backToList": "Back to list",
+      "loadFailed": "Failed to load assignment",
+      "subject": "Subject",
+      "group": "Group",
+      "maxScore": "Max score",
+      "dueDate": "Due",
+      "pendingTitle": "Awaiting review",
+      "pendingDescription": "Your teacher has not graded this work yet. Check back later.",
+      "gradedTitle": "Graded",
+      "gradedAt": "Graded on {date}",
+      "feedbackTitle": "Teacher feedback",
+      "returnedTitle": "Returned for revision",
+      "returnedAt": "Returned on {date}",
+      "returnReasonTitle": "Reason for return",
+      "resubmitHint": "A Resubmit button will arrive in the next release"
     }
   }
 }
