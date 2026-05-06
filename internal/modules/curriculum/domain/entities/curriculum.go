@@ -190,6 +190,60 @@ func (c *Curriculum) CreatedAt() time.Time { return c.createdAt }
 // UpdatedAt returns the last-mutation timestamp.
 func (c *Curriculum) UpdatedAt() time.Time { return c.updatedAt }
 
+// UpdateBasics applies a content edit (title / code / specialty /
+// year / description) to a draft curriculum. The method is atomic:
+// if any invariant fails or the status is not editable, the entity
+// is left untouched and the appropriate sentinel is returned.
+//
+// Status gate fires before invariant validation so callers learn
+// "you can't edit this" before "your input is invalid" — the former
+// is a workflow problem (resolve via Reject in v0.117.0); the
+// latter is fixable by re-submitting cleaner input.
+//
+// Authorization (who may call this for which curriculum) lives in
+// AuthorizeEdit and runs in the use case layer; UpdateBasics
+// itself trusts the caller has already passed authorization.
+func (c *Curriculum) UpdateBasics(
+	title, code, specialty string,
+	year int,
+	description string,
+	now time.Time,
+) error {
+	if !c.status.CanEdit() {
+		return fmt.Errorf("%w: status %q is not editable",
+			ErrCannotEditApproved, string(c.status))
+	}
+	trimmedTitle := strings.TrimSpace(title)
+	if trimmedTitle == "" {
+		return fmt.Errorf("%w: title must not be empty", ErrInvalidCurriculum)
+	}
+	trimmedCode := strings.TrimSpace(code)
+	if trimmedCode == "" {
+		return fmt.Errorf("%w: code must not be empty", ErrInvalidCurriculum)
+	}
+	trimmedSpecialty := strings.TrimSpace(specialty)
+	if trimmedSpecialty == "" {
+		return fmt.Errorf("%w: specialty must not be empty", ErrInvalidCurriculum)
+	}
+	if year < minYear || year > maxYear {
+		return fmt.Errorf("%w: year %d outside [%d, %d]",
+			ErrInvalidCurriculum, year, minYear, maxYear)
+	}
+	trimmedDescription := strings.TrimSpace(description)
+	if len([]rune(trimmedDescription)) > maxDescriptionLen {
+		return fmt.Errorf("%w: description length %d exceeds max %d",
+			ErrInvalidCurriculum, len([]rune(trimmedDescription)), maxDescriptionLen)
+	}
+	// All validation passed — apply mutations atomically.
+	c.title = trimmedTitle
+	c.code = trimmedCode
+	c.specialty = trimmedSpecialty
+	c.year = year
+	c.description = trimmedDescription
+	c.updatedAt = now
+	return nil
+}
+
 // AuthorizeEdit returns nil if the caller may modify this
 // curriculum's content via UpdateBasics, or one of the two domain
 // sentinels otherwise.
