@@ -34,7 +34,7 @@ describe('StudentAssignmentCard', () => {
 
   it('renders the pending status pill', () => {
     render(<StudentAssignmentCard view={base} />)
-    expect(screen.getByText('myAssignments.status.pending')).toBeInTheDocument()
+    expect(screen.getByText('status.pending')).toBeInTheDocument()
   })
 
   it('renders the graded status pill with grade/max score', () => {
@@ -43,7 +43,7 @@ describe('StudentAssignmentCard', () => {
         view={{ ...base, status: 'graded', grade_value: 85 }}
       />
     )
-    expect(screen.getByText('myAssignments.status.graded')).toBeInTheDocument()
+    expect(screen.getByText('status.graded')).toBeInTheDocument()
     expect(screen.getByText('85 / 100')).toBeInTheDocument()
   })
 
@@ -53,7 +53,7 @@ describe('StudentAssignmentCard', () => {
         view={{ ...base, status: 'returned', return_reason: 'please add citations' }}
       />
     )
-    expect(screen.getByText('myAssignments.status.returned')).toBeInTheDocument()
+    expect(screen.getByText('status.returned')).toBeInTheDocument()
     expect(screen.getByText(/please add citations/)).toBeInTheDocument()
   })
 
