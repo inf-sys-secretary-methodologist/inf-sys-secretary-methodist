@@ -73,7 +73,7 @@ func (uc *UpdateCurriculumUseCase) Execute(
 	c, err := uc.repo.GetByID(ctx, in.ID)
 	if err != nil {
 		if errors.Is(err, repositories.ErrCurriculumNotFound) {
-			uc.emitDenial(ctx, actorID, in.ID, "not_found", in.Code)
+			emitAudit(uc.audit, ctx, "curriculum.update_denied", denialFields(actorID, in.ID, "not_found", in.Code))
 		}
 		return nil, err
 	}
@@ -81,9 +81,9 @@ func (uc *UpdateCurriculumUseCase) Execute(
 	if err := c.AuthorizeEdit(actorID, isAdmin); err != nil {
 		switch {
 		case errors.Is(err, entities.ErrCannotEditApproved):
-			uc.emitDenial(ctx, actorID, in.ID, "not_editable", in.Code)
+			emitAudit(uc.audit, ctx, "curriculum.update_denied", denialFields(actorID, in.ID, "not_editable", in.Code))
 		case errors.Is(err, entities.ErrCurriculumScopeForbidden):
-			uc.emitDenial(ctx, actorID, in.ID, "forbidden", in.Code)
+			emitAudit(uc.audit, ctx, "curriculum.update_denied", denialFields(actorID, in.ID, "forbidden", in.Code))
 		}
 		return nil, err
 	}
@@ -91,12 +91,12 @@ func (uc *UpdateCurriculumUseCase) Execute(
 	if err := c.UpdateBasics(in.Title, in.Code, in.Specialty, in.Year, in.Description, uc.clock()); err != nil {
 		switch {
 		case errors.Is(err, entities.ErrInvalidCurriculum):
-			uc.emitDenial(ctx, actorID, in.ID, "invalid", in.Code)
+			emitAudit(uc.audit, ctx, "curriculum.update_denied", denialFields(actorID, in.ID, "invalid", in.Code))
 		case errors.Is(err, entities.ErrCannotEditApproved):
 			// Defense in depth: AuthorizeEdit already guarded this above,
 			// but UpdateBasics enforces it again. If a future maintainer
 			// removes the AuthorizeEdit call this denial path still trips.
-			uc.emitDenial(ctx, actorID, in.ID, "not_editable", in.Code)
+			emitAudit(uc.audit, ctx, "curriculum.update_denied", denialFields(actorID, in.ID, "not_editable", in.Code))
 		}
 		return nil, err
 	}
@@ -107,32 +107,18 @@ func (uc *UpdateCurriculumUseCase) Execute(
 			// repo actually attempted to insert and the form a future
 			// admin will recognise. Same convention as Create's denial
 			// path (CreateCurriculum uses c.Code() too).
-			uc.emitDenial(ctx, actorID, in.ID, "code_conflict", c.Code())
+			emitAudit(uc.audit, ctx, "curriculum.update_denied", denialFields(actorID, in.ID, "code_conflict", c.Code()))
 		}
 		return nil, err
 	}
 
-	if uc.audit != nil {
-		uc.audit.LogAuditEvent(ctx, "curriculum.updated", auditResource, map[string]any{
-			"actor_user_id": actorID,
-			"curriculum_id": c.ID,
-			"code":          c.Code(),
-			"year":          c.Year(),
-			"specialty":     c.Specialty(),
-			"status":        string(c.Status()),
-		})
-	}
-	return c, nil
-}
-
-func (uc *UpdateCurriculumUseCase) emitDenial(ctx context.Context, actorID, curriculumID int64, reason, code string) {
-	if uc.audit == nil {
-		return
-	}
-	uc.audit.LogAuditEvent(ctx, "curriculum.update_denied", auditResource, map[string]any{
+	emitAudit(uc.audit, ctx, "curriculum.updated", map[string]any{
 		"actor_user_id": actorID,
-		"curriculum_id": curriculumID,
-		"reason":        reason,
-		"code":          code,
+		"curriculum_id": c.ID,
+		"code":          c.Code(),
+		"year":          c.Year(),
+		"specialty":     c.Specialty(),
+		"status":        string(c.Status()),
 	})
+	return c, nil
 }

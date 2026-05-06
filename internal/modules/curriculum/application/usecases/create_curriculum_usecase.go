@@ -79,44 +79,28 @@ func (uc *CreateCurriculumUseCase) Execute(ctx context.Context, actorID int64, i
 		Now:         uc.clock(),
 	})
 	if err != nil {
-		uc.emitDenial(ctx, actorID, "invalid", in.Code, err)
+		// curriculum_id is 0 because the row was never built — Create
+		// is the only path where the entity itself fails before
+		// allocation. denialFields tolerates a zero id; operators
+		// reading the audit log learn the actor + reason regardless.
+		emitAudit(uc.audit, ctx, "curriculum.create_denied", denialFields(actorID, 0, "invalid", in.Code))
 		return nil, err
 	}
 
 	if err := uc.repo.Save(ctx, c); err != nil {
 		if errors.Is(err, repositories.ErrCurriculumCodeExists) {
-			uc.emitDenial(ctx, actorID, "code_conflict", c.Code(), err)
+			emitAudit(uc.audit, ctx, "curriculum.create_denied", denialFields(actorID, 0, "code_conflict", c.Code()))
 		}
 		return nil, err
 	}
 
-	if uc.audit != nil {
-		uc.audit.LogAuditEvent(ctx, "curriculum.created", auditResource, map[string]any{
-			"actor_user_id": actorID,
-			"curriculum_id": c.ID,
-			"code":          c.Code(),
-			"year":          c.Year(),
-			"specialty":     c.Specialty(),
-			"status":        string(c.Status()),
-		})
-	}
-	return c, nil
-}
-
-// emitDenial centralises the create_denied audit shape so the two
-// denial paths (invariant failure / code conflict) stay in lockstep.
-// The error message is intentionally NOT propagated into the audit
-// payload — operators read the original via errors.Is in the handler
-// layer; the audit captures only the actor and the canonical reason
-// so the forensic record is stable across error-message wording
-// changes.
-func (uc *CreateCurriculumUseCase) emitDenial(ctx context.Context, actorID int64, reason, code string, _ error) {
-	if uc.audit == nil {
-		return
-	}
-	uc.audit.LogAuditEvent(ctx, "curriculum.create_denied", auditResource, map[string]any{
+	emitAudit(uc.audit, ctx, "curriculum.created", map[string]any{
 		"actor_user_id": actorID,
-		"reason":        reason,
-		"code":          code,
+		"curriculum_id": c.ID,
+		"code":          c.Code(),
+		"year":          c.Year(),
+		"specialty":     c.Specialty(),
+		"status":        string(c.Status()),
 	})
+	return c, nil
 }

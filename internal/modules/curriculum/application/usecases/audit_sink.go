@@ -25,6 +25,21 @@ type AuditSink interface {
 // drifting between use cases (e.g. "curriculum" vs "curricula").
 const auditResource = "curriculum"
 
+// denialFields composes the canonical {actor_user_id, curriculum_id,
+// reason, code} field shape that every *_denied audit event
+// carries. Centralising the shape keeps the forensic record
+// consistent across all five use cases (Create / Update / Submit /
+// Approve / Reject) so an operator can grep one column name and
+// see every denial of a given kind.
+func denialFields(actorID, curriculumID int64, reason, code string) map[string]any {
+	return map[string]any{
+		"actor_user_id": actorID,
+		"curriculum_id": curriculumID,
+		"reason":        reason,
+		"code":          code,
+	}
+}
+
 // emitAudit dispatches an audit event for the curriculum bounded
 // context. A nil sink is treated as a successful no-op so use
 // cases never need to sprinkle nil checks at every call site
