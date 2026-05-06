@@ -16,6 +16,7 @@ import {
   Megaphone,
   FolderOpen,
   GraduationCap,
+  BookMarked,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -197,6 +198,21 @@ export const navigationConfig: NavEntry[] = [
         url: '/my-assignments',
         icon: GraduationCap,
         roles: [UserRole.STUDENT],
+      },
+      {
+        // Curriculum module list — methodist authors / admin approves
+        // / secretary + teacher reads. Backend GET /api/curriculum is
+        // gated by RequireNonStudent (v0.116.0), so the navigation
+        // mirrors that role list to avoid a dead-link round-trip.
+        nameKey: 'curriculum',
+        url: '/curriculum',
+        icon: BookMarked,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+        ],
       },
     ],
   },
