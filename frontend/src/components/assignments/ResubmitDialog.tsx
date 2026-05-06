@@ -78,9 +78,7 @@ export function ResubmitDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t('myAssignments.resubmitDialog.title')}</DialogTitle>
-          <DialogDescription>
-            {t('myAssignments.resubmitDialog.description')}
-          </DialogDescription>
+          <DialogDescription>{t('myAssignments.resubmitDialog.description')}</DialogDescription>
         </DialogHeader>
 
         <DialogFooter className="gap-2">

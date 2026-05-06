@@ -2428,8 +2428,21 @@
       "feedbackTitle": "Teacher feedback",
       "returnedTitle": "Returned for revision",
       "returnedAt": "Returned on {date}",
-      "returnReasonTitle": "Reason for return",
-      "resubmitHint": "A Resubmit button will arrive in the next release"
+      "returnReasonTitle": "Reason for return"
+    },
+    "resubmitButton": "Resubmit",
+    "resubmitDialog": {
+      "title": "Resubmit this work?",
+      "description": "The submission will move back to Pending so your teacher can review it again. This action cannot be undone.",
+      "confirm": "Resubmit",
+      "cancel": "Cancel",
+      "submitting": "Submitting…",
+      "successToast": "Submitted for re-review",
+      "errors": {
+        "notReturned": "This submission is no longer in Returned state",
+        "forbidden": "You can only resubmit your own work",
+        "generic": "Could not resubmit. Please try again."
+      }
     }
   }
 }

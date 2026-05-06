@@ -2428,8 +2428,21 @@
       "feedbackTitle": "Commentaire de l'enseignant",
       "returnedTitle": "Retourné pour révision",
       "returnedAt": "Retourné le {date}",
-      "returnReasonTitle": "Motif du retour",
-      "resubmitHint": "Un bouton « Renvoyer » arrivera dans la prochaine version"
+      "returnReasonTitle": "Motif du retour"
+    },
+    "resubmitButton": "Renvoyer",
+    "resubmitDialog": {
+      "title": "Renvoyer ce travail ?",
+      "description": "Le devoir reviendra au statut « En attente ». Votre enseignant pourra l'évaluer à nouveau. Cette action est irréversible.",
+      "confirm": "Renvoyer",
+      "cancel": "Annuler",
+      "submitting": "Envoi…",
+      "successToast": "Envoyé pour nouvelle évaluation",
+      "errors": {
+        "notReturned": "Ce devoir n'est plus au statut « Retourné »",
+        "forbidden": "Vous ne pouvez renvoyer que vos propres travaux",
+        "generic": "Impossible d'envoyer. Réessayez."
+      }
     }
   }
 }

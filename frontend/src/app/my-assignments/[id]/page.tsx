@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
@@ -9,6 +9,8 @@ import { ru, enUS, fr, ar } from 'date-fns/locale'
 import { ArrowLeft, Loader2, CheckCircle2, RotateCcw, Clock } from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
+import { Button } from '@/components/ui/button'
+import { ResubmitDialog } from '@/components/assignments/ResubmitDialog'
 import { useMyAssignment } from '@/hooks/useMyAssignments'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { parseLocalDate } from '@/lib/assignments/dates'
@@ -39,7 +41,9 @@ export default function MyAssignmentDetailPage() {
   // caller is not a student, so the /forbidden redirect window does
   // not fire a 401 round-trip.
   const isStudent = user?.role === 'student'
-  const { view, isLoading, error } = useMyAssignment(id, { enabled: isStudent })
+  const { view, isLoading, error, mutate } = useMyAssignment(id, { enabled: isStudent })
+
+  const [resubmitOpen, setResubmitOpen] = useState(false)
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && user?.role && user.role !== 'student') {
@@ -106,6 +110,26 @@ export default function MyAssignmentDetailPage() {
             </header>
 
             <StatusPanel view={view} dateLocale={dateLocale} />
+
+            {view.status === 'returned' && (
+              <div className="flex justify-end">
+                <Button onClick={() => setResubmitOpen(true)}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  {t('resubmitButton')}
+                </Button>
+              </div>
+            )}
+
+            <ResubmitDialog
+              assignmentId={view.assignment_id}
+              open={resubmitOpen}
+              onClose={() => setResubmitOpen(false)}
+              onResubmitted={() => {
+                // Refresh the SWR cache so the status pill flips to
+                // pending without a manual reload.
+                mutate()
+              }}
+            />
           </>
         )}
       </div>
@@ -204,7 +228,6 @@ function StatusPanel({ view, dateLocale }: StatusPanelProps) {
           </p>
         </div>
       )}
-      <p className="text-xs text-sky-700 dark:text-sky-300 italic">{t('detail.resubmitHint')}</p>
     </section>
   )
 }
