@@ -277,6 +277,56 @@ func (h *CurriculumHandler) Submit(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(mapCurriculum(curriculum)))
 }
 
+// Approve handles POST /api/curriculum/:id/approve.
+// Admin-only — both the route-level RequireRole(SystemAdmin) and
+// the handler-level canApprove whitelist must agree.
+//
+// @Summary Approve a curriculum (admin only)
+// @Tags curriculum
+// @Produce json
+// @Param id path int true "Curriculum ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/curriculum/{id}/approve [post]
+func (h *CurriculumHandler) Approve(c *gin.Context) {
+	adminID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	if !canApprove(role) {
+		c.JSON(http.StatusForbidden, response.Forbidden("only system_admin may approve curricula"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid curriculum id"))
+		return
+	}
+
+	curriculum, err := h.approve.Execute(c.Request.Context(), adminID,
+		curUsecases.ApproveCurriculumInput{ID: id})
+	if err != nil {
+		mapCurriculumError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapCurriculum(curriculum)))
+}
+
+// canApprove is the role whitelist for the admin-only lifecycle
+// endpoints (Approve, Reject). Defense in depth on top of the
+// route-level RequireRole(SystemAdmin) middleware — if the route
+// gate is ever stripped or relaxed, this handler still refuses
+// to dispatch the use case.
+func canApprove(role string) bool {
+	return role == roleSystemAdmin
+}
+
 // UpdateCurriculumRequest is the JSON body schema for PUT /api/curriculum/:id.
 // Exported so swag can generate the schema in the OpenAPI spec.
 type UpdateCurriculumRequest struct {
