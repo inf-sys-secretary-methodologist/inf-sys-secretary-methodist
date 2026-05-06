@@ -1,9 +1,18 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { SWRConfig } from 'swr'
 import React from 'react'
-import { useCurricula, useCurriculum } from '../useCurricula'
+import {
+  useCurricula,
+  useCurriculum,
+  updateCurriculum,
+  submitCurriculum,
+} from '../useCurricula'
 import { apiClient } from '@/lib/api'
-import type { Curriculum, CurriculumListResponse } from '@/types/curriculum'
+import type {
+  Curriculum,
+  CurriculumListResponse,
+  UpdateCurriculumRequest,
+} from '@/types/curriculum'
 
 jest.mock('@/lib/api', () => ({
   apiClient: {
@@ -133,5 +142,48 @@ describe('useCurriculum', () => {
     renderHook(() => useCurriculum(11, { enabled: false }), { wrapper })
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(mockedApiClient.get).not.toHaveBeenCalled()
+  })
+})
+
+describe('updateCurriculum', () => {
+  const body: UpdateCurriculumRequest = {
+    title: 'ИВТ-2026 / 4 года (v2)',
+    code: '09.03.04-2026',
+    specialty: 'Информатика и вычислительная техника',
+    year: 2026,
+    description: 'Обновлённое описание',
+  }
+
+  it('PUTs to /api/curriculum/:id and returns the unwrapped Curriculum', async () => {
+    const updated: Curriculum = { ...sampleCurriculum, ...body, updated_at: '2026-05-06T09:00:00Z' }
+    mockedApiClient.put.mockResolvedValueOnce(apiOk(updated))
+
+    const out = await updateCurriculum(11, body)
+
+    expect(mockedApiClient.put).toHaveBeenCalledWith('/api/curriculum/11', body)
+    expect(out).toEqual(updated)
+  })
+
+  it('propagates axios errors so callers can branch on status code', async () => {
+    mockedApiClient.put.mockRejectedValueOnce(new Error('409 code exists'))
+    await expect(updateCurriculum(11, body)).rejects.toThrow('409 code exists')
+  })
+})
+
+describe('submitCurriculum', () => {
+  it('POSTs to /api/curriculum/:id/submit with empty body and returns Curriculum', async () => {
+    const submitted: Curriculum = { ...sampleCurriculum, status: 'pending_approval' }
+    mockedApiClient.post.mockResolvedValueOnce(apiOk(submitted))
+
+    const out = await submitCurriculum(11)
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/api/curriculum/11/submit', {})
+    expect(out).toEqual(submitted)
+    expect(out.status).toBe('pending_approval')
+  })
+
+  it('propagates axios errors so callers can branch on status code', async () => {
+    mockedApiClient.post.mockRejectedValueOnce(new Error('422 not draft'))
+    await expect(submitCurriculum(11)).rejects.toThrow('422 not draft')
   })
 })
