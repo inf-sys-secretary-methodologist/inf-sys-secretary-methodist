@@ -1,12 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { SWRConfig } from 'swr'
 import React from 'react'
-import {
-  useCurricula,
-  useCurriculum,
-  updateCurriculum,
-  submitCurriculum,
-} from '../useCurricula'
+import { useCurricula, useCurriculum, updateCurriculum, submitCurriculum } from '../useCurricula'
 import { apiClient } from '@/lib/api'
 import type {
   Curriculum,

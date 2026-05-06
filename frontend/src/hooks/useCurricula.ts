@@ -95,10 +95,7 @@ export async function updateCurriculum(
   id: number,
   body: UpdateCurriculumRequest
 ): Promise<Curriculum> {
-  const response = await apiClient.put<ApiResponse<Curriculum>>(
-    `${CURRICULUM_URL}/${id}`,
-    body
-  )
+  const response = await apiClient.put<ApiResponse<Curriculum>>(`${CURRICULUM_URL}/${id}`, body)
   return response.data
 }
 

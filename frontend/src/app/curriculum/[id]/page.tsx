@@ -31,10 +31,7 @@ function statusKey(status: CurriculumStatus): string {
   return status === 'pending_approval' ? 'pending' : status
 }
 
-const STATUS_PILL: Record<
-  CurriculumStatus,
-  { bg: string; text: string; Icon: typeof Clock }
-> = {
+const STATUS_PILL: Record<CurriculumStatus, { bg: string; text: string; Icon: typeof Clock }> = {
   draft: {
     bg: 'bg-slate-100 dark:bg-slate-800/40',
     text: 'text-slate-700 dark:text-slate-300',
@@ -76,9 +73,13 @@ export default function CurriculumDetailPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  const enabled =
-    !authLoading && isAuthenticated && user?.role !== 'student' && id !== null
-  const { curriculum, isLoading: detailLoading, error, mutate } = useCurriculum(id, {
+  const enabled = !authLoading && isAuthenticated && user?.role !== 'student' && id !== null
+  const {
+    curriculum,
+    isLoading: detailLoading,
+    error,
+    mutate,
+  } = useCurriculum(id, {
     enabled,
   })
 
@@ -185,9 +186,7 @@ export default function CurriculumDetailPage() {
                   ) : (
                     <Send className="h-4 w-4 mr-2" />
                   )}
-                  {submitting
-                    ? t('detail.actions.submitting')
-                    : t('detail.actions.submit')}
+                  {submitting ? t('detail.actions.submitting') : t('detail.actions.submit')}
                 </Button>
               </section>
             ) : (

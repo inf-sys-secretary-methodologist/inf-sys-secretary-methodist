@@ -70,8 +70,7 @@ export function EditCurriculumDialog({
   const trimmedTitle = title.trim()
   const trimmedCode = code.trim()
   const trimmedSpecialty = specialty.trim()
-  const yearValid =
-    Number.isInteger(yearNum) && yearNum >= YEAR_MIN && yearNum <= YEAR_MAX
+  const yearValid = Number.isInteger(yearNum) && yearNum >= YEAR_MIN && yearNum <= YEAR_MAX
   const descriptionValid = description.trim().length <= DESCRIPTION_MAX
   const valid =
     trimmedTitle.length > 0 &&

@@ -20,8 +20,7 @@ const mockUseCurriculum = jest.fn()
 const mockSubmitCurriculum = jest.fn()
 jest.mock('@/hooks/useCurricula', () => ({
   useCurricula: jest.fn(),
-  useCurriculum: (id: number | null, opts?: { enabled?: boolean }) =>
-    mockUseCurriculum(id, opts),
+  useCurriculum: (id: number | null, opts?: { enabled?: boolean }) => mockUseCurriculum(id, opts),
   updateCurriculum: jest.fn(),
   submitCurriculum: (...args: unknown[]) => mockSubmitCurriculum(...args),
 }))
@@ -50,8 +49,12 @@ jest.mock('@/components/curriculum/EditCurriculumDialog', () => ({
   }) => (
     <div data-testid="edit-dialog-stub">
       <span>open={String(open)}</span>
-      <button type="button" onClick={onClose}>close-stub</button>
-      <button type="button" onClick={() => onSaved?.()}>saved-stub</button>
+      <button type="button" onClick={onClose}>
+        close-stub
+      </button>
+      <button type="button" onClick={() => onSaved?.()}>
+        saved-stub
+      </button>
     </div>
   ),
 }))
@@ -152,9 +155,7 @@ describe('CurriculumDetailPage', () => {
         mutate: jest.fn(),
       })
       render(<CurriculumDetailPage />)
-      expect(
-        screen.queryByRole('button', { name: 'detail.actions.edit' })
-      ).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'detail.actions.edit' })).not.toBeInTheDocument()
     }
   )
 

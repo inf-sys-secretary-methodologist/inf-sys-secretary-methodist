@@ -38,13 +38,7 @@ beforeEach(() => {
 
 describe('EditCurriculumDialog', () => {
   it('does not render fields when open=false', () => {
-    render(
-      <EditCurriculumDialog
-        curriculum={sample}
-        open={false}
-        onClose={noop}
-      />
-    )
+    render(<EditCurriculumDialog curriculum={sample} open={false} onClose={noop} />)
     expect(screen.queryByLabelText('editDialog.labels.title')).not.toBeInTheDocument()
   })
 
@@ -71,20 +65,19 @@ describe('EditCurriculumDialog', () => {
 
   it('disables Save button when specialty is empty', () => {
     render(<EditCurriculumDialog curriculum={sample} open={true} onClose={noop} />)
-    fireEvent.change(screen.getByLabelText('editDialog.labels.specialty'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('editDialog.labels.specialty'), {
+      target: { value: '' },
+    })
     expect(screen.getByRole('button', { name: 'editDialog.save' })).toBeDisabled()
   })
 
-  it.each([1999, 2101, 0, -2026])(
-    'disables Save button when year is out of range (%i)',
-    (year) => {
-      render(<EditCurriculumDialog curriculum={sample} open={true} onClose={noop} />)
-      fireEvent.change(screen.getByLabelText('editDialog.labels.year'), {
-        target: { value: String(year) },
-      })
-      expect(screen.getByRole('button', { name: 'editDialog.save' })).toBeDisabled()
-    }
-  )
+  it.each([1999, 2101, 0, -2026])('disables Save button when year is out of range (%i)', (year) => {
+    render(<EditCurriculumDialog curriculum={sample} open={true} onClose={noop} />)
+    fireEvent.change(screen.getByLabelText('editDialog.labels.year'), {
+      target: { value: String(year) },
+    })
+    expect(screen.getByRole('button', { name: 'editDialog.save' })).toBeDisabled()
+  })
 
   it('disables Save button when description exceeds 4096 chars', () => {
     render(<EditCurriculumDialog curriculum={sample} open={true} onClose={noop} />)
@@ -100,12 +93,7 @@ describe('EditCurriculumDialog', () => {
     const onClose = jest.fn()
     mockUpdateCurriculum.mockResolvedValueOnce({ ...sample, title: 'Updated title' })
     render(
-      <EditCurriculumDialog
-        curriculum={sample}
-        open={true}
-        onClose={onClose}
-        onSaved={onSaved}
-      />
+      <EditCurriculumDialog curriculum={sample} open={true} onClose={onClose} onSaved={onSaved} />
     )
 
     fireEvent.change(screen.getByLabelText('editDialog.labels.title'), {
@@ -142,12 +130,7 @@ describe('EditCurriculumDialog', () => {
     mockUpdateCurriculum.mockRejectedValueOnce(axiosLikeErr)
 
     render(
-      <EditCurriculumDialog
-        curriculum={sample}
-        open={true}
-        onClose={onClose}
-        onSaved={onSaved}
-      />
+      <EditCurriculumDialog curriculum={sample} open={true} onClose={onClose} onSaved={onSaved} />
     )
     fireEvent.click(screen.getByRole('button', { name: 'editDialog.save' }))
 
