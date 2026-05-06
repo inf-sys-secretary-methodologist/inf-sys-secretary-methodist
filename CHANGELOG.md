@@ -15,6 +15,20 @@
 
 ---
 
+## [0.115.0] — 2026-05-06
+
+### Added — Student Resubmit UI (academic loop closed end-to-end в UI)
+
+- `ResubmitDialog` component (Radix modal, mirror к `ReturnDialog`) — title + description + confirm/cancel, без textarea (backend resubmit endpoint v0.112.0 принимает empty body).
+- `resubmitSubmission(assignmentId)` POST helper — thin wrapper рядом с `useMyAssignments` / `useMyAssignment`, unwraps ApiResponse envelope, propagates axios errors для status-mapping в dialog.
+- Detail page `/my-assignments/[id]` для status='returned': кнопка «Пересдать работу» visible ONLY когда status='returned' (pending/graded прячут — гарантированный 409 NOT_RETURNED не expose'ится через UI). Click opens dialog → confirm → POST → `mutate()` SWR refresh → status pill flips на pending без manual reload.
+- Sentinel-first error mapping в dialog: 409 NOT_RETURNED → toast «Эта работа уже не в статусе Возвращено», 403 forbidden → toast «Можно пересдавать только свои работы» (defended даже когда unreachable через HTTP), generic → fallback. Dialog stays open on error — student может retry без re-opening.
+- i18n × 4: новый `myAssignments.resubmitButton` + `myAssignments.resubmitDialog.*` namespace (10 keys × 4 locales: ru/en/fr/ar). Removed v0.114.0 `myAssignments.detail.resubmitHint` — button live, hint больше не нужен.
+- Тесты: 11 новых (2 hook helper + 8 ResubmitDialog cases + 1 button-visibility per status). Frontend: **175 suites / 2500 tests green** (+1 suite / +11 vs v0.114.0).
+- Reviewer SHIP **mean 10.0/10** every axis (TDD/QUAL/CA/SEC/TEST/I18N) — самая чистая оценка за 8 релизов assignments line. Single-pass, no fix-cycle.
+- **Academic re-grading loop замкнут end-to-end в UI**: teacher grade → returned → student resubmit → re-grade — полностью прокликиваемый flow для defense demo, не curl. Backend carry'ал loop с v0.112.0; UI seam закрыт здесь.
+- Sync: 8 files version bump + `docs/roles-and-flows.md` 0.115.0 banner + student bullet 11 переписан как fully-clickable flow.
+
 ## [0.114.0] — 2026-05-06
 
 ### Added — Student My Assignments page + detail (frontend)

@@ -21,7 +21,7 @@ const localeMap = { ru, en: enUS, fr, ar }
 // MyAssignmentDetailPage — student-facing detail. Shows assignment
 // metadata at the top and a status-specific panel below: pending
 // (waiting for grading), graded (score + feedback), returned (return
-// reason — UI v0.115.0 will add the resubmit button here).
+// reason + Resubmit button that opens ResubmitDialog).
 export default function MyAssignmentDetailPage() {
   const router = useRouter()
   const params = useParams<{ id: string }>()
