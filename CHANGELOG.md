@@ -15,6 +15,22 @@
 
 ---
 
+## [0.114.0] — 2026-05-06
+
+### Added — Student My Assignments page + detail (frontend)
+
+- `/my-assignments` — student-only list page с status filter tabs (all / pending / graded / returned), grid из `StudentAssignmentCard`. Card status pills color-coded: amber pending, emerald graded (с grade fraction `value/max`), sky returned (с return-reason snippet).
+- `/my-assignments/[id]` — detail page с assignment metadata header (title, description, subject, group, max_score, due_date — local-midnight parsing per CLAUDE.md #9) + status-aware panel: pending («Ожидает проверки» amber), graded (большая grade fraction + feedback block в emerald), returned (return_reason + дата + hint про Resubmit button в v0.115.0).
+- Hooks: `useMyAssignments(status?, opts?)`, `useMyAssignment(id, opts?)` — SWR conventions match `useAssignments` (dedupingInterval=SHORT, revalidateOnFocus=false, null-key short-circuit). Optional `enabled: false` flag коротит SWR key к null — pages используют для skip 401 round-trip когда caller не student.
+- Auth guard mirrors `/assignments` в reverse: non-student → `/forbidden` client-side. Body-gate `if (isLoading || !isAuthenticated || non-student)` BEFORE data-loading branch — никаких flash-of-content для logged-out / wrong-role users.
+- Path id parsing: `Number.isInteger && > 0` (не `Number.isFinite`) — fractional ids reject at client boundary без useless 4xx.
+- Navigation: новый `myAssignments` entry под академической группой только для `UserRole.STUDENT`. Sits параллельно с teacher `assignments` (не replaces). Reusing `GraduationCap` icon.
+- i18n × 4: новый top-level `myAssignments.*` namespace (30 keys) + `nav.myAssignments` через ru / en / fr / ar (parity verified python json.load).
+- Тесты: 28 новых (6 hook + 6 card + 9 list page + 8 detail page включая 4 SEC pinning case'а — non-student `enabled:false`, fractional id → null). Frontend total 174 suites / 2489 tests green (+4 suites / +28 vs v0.113.0).
+- Reviewer SHIP после fix-cycle: 3 SEC must-fix (page-shell gate, no-fetch-for-non-student, Number.isInteger) + 1 lint must-fix (eslint --fix, frontend-ci gate).
+- Sync: 8 files version bump + `docs/roles-and-flows.md` 0.114.0 banner.
+- Out of scope: Resubmit button — v0.115.0 закроет academic loop end-to-end в UI.
+
 ## [0.113.0] — 2026-05-06
 
 ### Added — Student-facing read endpoints (backend)
