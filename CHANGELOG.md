@@ -15,6 +15,30 @@
 
 ---
 
+## [0.118.0] — 2026-05-06
+
+### Added — Curriculum frontend list page (defence-ready: methodist+admin browse all curricula)
+
+- **`/curriculum` list page** — read-only methodist/admin/secretary/teacher view of all curricula. Filters: status (`<select>` со 5 опциями All / Draft / Pending approval / Approved / Archived), year (numeric input, [2000, 2100] enforced на backend), specialty (free-text). Cards grid 1-2-3 col responsive; empty state с `BookMarked` иконкой; error block с translated `loadFailed`; spinner на pre-auth и list-loading states.
+- **`useCurricula(filter?, opts?)` hook** — SWR fetch `/api/curriculum` с query-param URL builder (`buildCurriculaUrl` — Cyrillic / RTL specialty корректно URL-encoded через `URLSearchParams`). Optional `FetchOpts.enabled` (default true) — false short-circuits SWR key к `null` для skip 401 round-trip когда student briefly authenticated до redirect (SEC pattern из v0.114.0 my-assignments).
+- **`useCurriculum(id, opts?)` hook** — single-row fetch `/api/curriculum/:id` с null-id и enabled=false short-circuits. API surface для v0.119.0 detail page consumer.
+- **`CurriculumCard` component** — pure presentation list item: title (line-clamp-2) + status pill (color-coded по lifecycle: slate=draft / amber=pending / emerald=approved / zinc=archived с lucide иконками PenLine / Clock / CheckCircle2 / Archive) + description (line-clamp-2 при present, omitted при empty) + footer chips (code / specialty / year). Link к `/curriculum/[id]` (detail page лендится в v0.119.0).
+- **Page-shell guard order**: auth-gate (Loader spinner pre-auth) → fetch-gate (`enabled` flag) → render-gate (listLoading / error / empty / items). Three conditions для enabled: `!isLoading && isAuthenticated && user?.role !== 'student'` — все обязательны (стрictly stricter mirror к /my-assignments).
+- **Navigation entry** — `BookMarked` icon в educationGroup, role whitelist mirror к backend `RequireNonStudent` (admin / methodist / academic_secretary / teacher; student excluded для no dead-link round-trip).
+- **i18n × 4 parity** — 22 keys per locale (21 curriculum.* + nav.curriculum) добавлены в `messages/{ru,en,fr,ar}.json`. Структура: title / description / loadFailed / countLabel / filters.{status, year, yearPlaceholder, specialty, specialtyPlaceholder, statusOptions.{all, draft, pending, approved, archived}} / empty.{title, description} / card.{openAria, status.{draft, pending, approved, archived}}. `pending_approval` wire format маппится к UI-shorter `pending` key для brevity (matches submission status convention).
+- **Тесты**: 4 RED→GREEN pairs strict TDD. 50 unit-tests новых (8 useCurricula+useCurriculum hook tests / 9 CurriculumCard tests / 12 page tests / 21 navigation entry tests + 2 navigation entry insertions в существующий suite). Frontend total: 178 suites / 2530 tests passing (was 175 / 2500 baseline; +3 suites + 30 tests). Tests pin observable behaviour (rendered text / hook outputs / fetch URL / redirect call), не implementation. Table-driven tests где ≥3 cases (status enum × 4).
+- Reviewer SHIP mean **9.43/10** single-pass — fix-cycle (drop 3 future-release request types per CLAUDE.md "никаких на будущее" + add countLabel-hidden coverage) применен; release ships post-fix. Цель 10/10 single-pass not reached в этом релизе — pattern остаётся в работе.
+- Sync: 8 files version bump + `docs/roles-and-flows.md` 0.118.0 banner.
+
+### Out of scope (deferred)
+
+- `/curriculum/[id]` detail page + edit dialog (status-aware: draft editable / pending+approved+archived read-only) → v0.119.0
+- Submit button → v0.119.0 (lives на detail page next to edit)
+- `/admin/curriculum/approve` admin-only page (pending list + Approve / Reject + reason textarea) → v0.120.0
+- Mutation hooks (`createCurriculum` / `updateCurriculum` / `submitCurriculum` / `approveCurriculum` / `rejectCurriculum`) → wired alongside их UI consumers в v0.119.0/v0.120.0
+- Pagination UI → v0.121.0 (limit=100 hard-coded достаточен для methodist daily browse)
+- Status pill в navigation badge ("3 pending approval" для admin) → v0.121.0 optional polish
+
 ## [0.117.0] — 2026-05-06
 
 ### Added — Curriculum approve workflow (Submit / Approve / Reject)
