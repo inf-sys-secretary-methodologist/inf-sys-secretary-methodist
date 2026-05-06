@@ -24,3 +24,21 @@ type AuditSink interface {
 // audit event carries. Centralising it here prevents typos from
 // drifting between use cases (e.g. "curriculum" vs "curricula").
 const auditResource = "curriculum"
+
+// emitAudit dispatches an audit event for the curriculum bounded
+// context. A nil sink is treated as a successful no-op so use
+// cases never need to sprinkle nil checks at every call site
+// (v0.116.0 Create / Update used per-method guards that this
+// helper now centralises — N=5 trigger reached with v0.117.0
+// Submit / Approve / Reject).
+//
+// The caller supplies the full action string ("curriculum.created"
+// / "curriculum.update_denied" / etc.) and the field map. The
+// resource argument is fixed to auditResource so a typo can't
+// drift the event into the wrong stream.
+func emitAudit(sink AuditSink, ctx context.Context, action string, fields map[string]any) {
+	if sink == nil {
+		return
+	}
+	sink.LogAuditEvent(ctx, action, auditResource, fields)
+}
