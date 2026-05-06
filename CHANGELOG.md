@@ -15,6 +15,40 @@
 
 ---
 
+## [0.117.0] — 2026-05-06
+
+### Added — Curriculum approve workflow (Submit / Approve / Reject)
+
+- **Three lifecycle transitions** на curriculum aggregate, замыкающие author→approve loop end-to-end на backend:
+  - `SubmitForApproval(now)` — methodist (или admin) submits draft → pending_approval. Sentinel `ErrCannotSubmit` (422 NOT_DRAFT) на non-draft. Status invariant only; identity policy enforced в use case (ADR-7).
+  - `Approve(adminID, now)` — admin transitions pending_approval → approved, records approvedBy + approvedAt on entity. Sentinel `ErrCannotApprove` (422 NOT_PENDING). Defense-in-depth `adminID > 0` guard catches silent-admin scenarios.
+  - `Reject(now)` — admin transitions pending_approval → draft so methodist may revise + re-submit. Sentinel `ErrCannotReject` (422 NOT_PENDING). Reject reason — **audit-only** per ADR-3 (не stored on entity / DB; future migration may add column without entity API change).
+- **No migration** (ADR-1) — migration 031 (v0.116.0) уже provisioned status / approved_by / approved_at columns nullable. Code-only release.
+- **Three new use cases** — Submit / Approve / Reject. Failure-closed nil-repo panic. Audit symmetry: success + denial paths + transport-skip-audit (audit log records policy decisions, not infrastructure outages):
+  - `curriculum.submitted` / `curriculum.submit_denied` (reasons: `forbidden` / `not_draft` / `not_found`)
+  - `curriculum.approved` / `curriculum.approve_denied` (reasons: `not_pending` / `not_found`)
+  - `curriculum.rejected` (with admin's free-form `reason` field) / `curriculum.reject_denied` (canonical reasons: `not_pending` / `not_found`)
+- **`emitAudit` + `denialFields` helpers extracted** в `audit_sink.go` (N=5 trigger reached: Create + Update + Submit + Approve + Reject all need same shape). v0.116.0 callers (Create + Update) migrated в same release. Behaviour identical; field shape now uniform across all denial events (operator может grep one column name).
+- **Three new HTTP endpoints**:
+  - `POST /api/curriculum/:id/submit` — under existing curriculumGroup за RequireNonStudent; handler `canWrite` whitelist (methodist + admin) + isAdminRole flag propagated к use case.
+  - `POST /api/curriculum/:id/approve` — under new **adminCurriculumGroup** sibling за `RequireRole(SystemAdmin)`; handler `canApprove` whitelist defence-in-depth. Mirror sibling-route pattern из v0.112.0 assignments (when subset of routes needs inverse middleware to its sibling, register parallel group вместо special-casing).
+  - `POST /api/curriculum/:id/reject` — same admin sibling group. Body `{reason: string}` — handler enforces non-empty after trim (400); use case accepts any string (future caller flexibility — CLI, batch).
+- **mapCurriculumError расширен** тремя новыми sentinel branches: `ErrCannotSubmit` → 422 NOT_DRAFT, `ErrCannotApprove` / `ErrCannotReject` → 422 NOT_PENDING. Sentinel-first matching через errors.Is BEFORE generic MapDomainError fallback.
+- **`CurriculumHandler` grew от 4 до 7 ports** — failure-closed: any nil port → constructor panic with single message naming all required dependencies.
+- **Тесты**: 22 commits TDD strict (RED→GREEN per behaviour). 3 entity transition test files + 3 use case test files + 3 handler test files + 1 helper test file. Coverage matrix: every layer × every transition × happy / status-denial / authz-denial / 404 / transport-no-audit / nil-sink. Atomicity pinned at every transition (no mutation on error). Defence-in-depth role tests cover handler whitelist BEZ route middleware (ensures handler self-defends).
+- Reviewer SHIP **mean 10.0/10 every axis** (TDD 10 / DDD 10 / CA 10 / Security 10 / Tests 10 / Cohesion 10) — second 10/10 single-pass за curriculum line.
+- **Author→Approve loop замкнут backend**: methodist creates draft → submits → admin approves OR rejects → (если rejected) methodist edits → submits again. Demo flow для защиты теперь работает на curl level; UI семь endpoint'ов consume в v0.118.0+.
+- Sync: 8 files version bump + `docs/roles-and-flows.md` 0.117.0 banner.
+
+### Out of scope (deferred)
+
+- `Discipline` child entity (Add / Remove / Update) → post-defence
+- `Archive` transition (different lifecycle: archive независим от submit/approve loop, может из любого состояния) → v0.122.0+
+- Permanent `rejection_reason` column на disciplines/curricula → audit-only сейчас (ADR-3); migration без breaking change при product requirement
+- Frontend pages `/curriculum`, `/curriculum/:id`, `/admin/curriculum/approve` → v0.118.0–v0.121.0
+- Notifications (assignments line wired NotificationUseCase via narrow port) → defer к frontend cycle (no UI to consume); audit log is forensic record
+- Workflow approval #41 — заглушка по плану
+
 ## [0.116.0] — 2026-05-06
 
 ### Added — Curriculum module backend (defence-critical 🔴 gap closure, basic CRUD)
