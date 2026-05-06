@@ -183,7 +183,8 @@
     "educationGroup": "Enseignement",
     "communicationGroup": "Communication",
     "assignments": "Devoirs",
-    "myAssignments": "Mes devoirs"
+    "myAssignments": "Mes devoirs",
+    "curriculum": "Programmes"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -2392,6 +2393,39 @@
         "invalidReason": "Le motif est obligatoire et ne doit pas dépasser 4096 caractères",
         "forbidden": "Vous n'avez pas le droit de retourner ce travail",
         "generic": "Impossible de retourner le travail"
+      }
+    }
+  },
+  "curriculum": {
+    "title": "Programmes",
+    "description": "Programmes académiques par spécialités et filières",
+    "loadFailed": "Échec du chargement des programmes",
+    "countLabel": "{shown} sur {total} affichés",
+    "filters": {
+      "status": "Statut",
+      "year": "Année de début",
+      "yearPlaceholder": "p. ex. 2026",
+      "specialty": "Spécialité",
+      "specialtyPlaceholder": "Toute spécialité",
+      "statusOptions": {
+        "all": "Tous les statuts",
+        "draft": "Brouillon",
+        "pending": "En attente",
+        "approved": "Approuvé",
+        "archived": "Archivé"
+      }
+    },
+    "empty": {
+      "title": "Aucun programme",
+      "description": "Les programmes apparaîtront ici une fois ajoutés."
+    },
+    "card": {
+      "openAria": "Ouvrir le programme {title}",
+      "status": {
+        "draft": "Brouillon",
+        "pending": "En attente",
+        "approved": "Approuvé",
+        "archived": "Archivé"
       }
     }
   },

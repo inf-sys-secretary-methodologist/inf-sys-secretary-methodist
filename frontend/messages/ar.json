@@ -183,7 +183,8 @@
     "educationGroup": "التعليم",
     "communicationGroup": "التواصل",
     "assignments": "الواجبات",
-    "myAssignments": "واجباتي"
+    "myAssignments": "واجباتي",
+    "curriculum": "المناهج الدراسية"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -2392,6 +2393,39 @@
         "invalidReason": "السبب مطلوب ويجب ألا يتجاوز 4096 حرفًا",
         "forbidden": "ليس لديك الصلاحية لإرجاع هذا العمل",
         "generic": "تعذر إرجاع العمل"
+      }
+    }
+  },
+  "curriculum": {
+    "title": "المناهج الدراسية",
+    "description": "قائمة المناهج الدراسية للتخصصات وبرامج التأهيل",
+    "loadFailed": "تعذر تحميل المناهج",
+    "countLabel": "عرض {shown} من {total}",
+    "filters": {
+      "status": "الحالة",
+      "year": "سنة البدء",
+      "yearPlaceholder": "مثلاً 2026",
+      "specialty": "التخصص",
+      "specialtyPlaceholder": "أي تخصص",
+      "statusOptions": {
+        "all": "جميع الحالات",
+        "draft": "مسودة",
+        "pending": "بانتظار الاعتماد",
+        "approved": "معتمد",
+        "archived": "مؤرشف"
+      }
+    },
+    "empty": {
+      "title": "لا توجد مناهج",
+      "description": "ستظهر المناهج هنا فور إضافتها."
+    },
+    "card": {
+      "openAria": "فتح المنهج {title}",
+      "status": {
+        "draft": "مسودة",
+        "pending": "قيد الاعتماد",
+        "approved": "معتمد",
+        "archived": "مؤرشف"
       }
     }
   },

@@ -183,7 +183,8 @@
     "educationGroup": "Education",
     "communicationGroup": "Communication",
     "assignments": "Assignments",
-    "myAssignments": "My assignments"
+    "myAssignments": "My assignments",
+    "curriculum": "Curricula"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -2392,6 +2393,39 @@
         "invalidReason": "Reason is required and must not exceed 4096 characters",
         "forbidden": "You are not allowed to return this submission",
         "generic": "Could not return the submission"
+      }
+    }
+  },
+  "curriculum": {
+    "title": "Curricula",
+    "description": "Academic curricula across specialties and programmes",
+    "loadFailed": "Failed to load curricula",
+    "countLabel": "Showing {shown} of {total}",
+    "filters": {
+      "status": "Status",
+      "year": "Start year",
+      "yearPlaceholder": "e.g. 2026",
+      "specialty": "Specialty",
+      "specialtyPlaceholder": "Any specialty",
+      "statusOptions": {
+        "all": "All statuses",
+        "draft": "Draft",
+        "pending": "Pending approval",
+        "approved": "Approved",
+        "archived": "Archived"
+      }
+    },
+    "empty": {
+      "title": "No curricula yet",
+      "description": "Curricula will appear here once they are added."
+    },
+    "card": {
+      "openAria": "Open curriculum {title}",
+      "status": {
+        "draft": "Draft",
+        "pending": "Pending",
+        "approved": "Approved",
+        "archived": "Archived"
       }
     }
   },

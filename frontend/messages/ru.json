@@ -183,7 +183,8 @@
     "educationGroup": "Учебный процесс",
     "communicationGroup": "Коммуникации",
     "assignments": "Задания",
-    "myAssignments": "Мои задания"
+    "myAssignments": "Мои задания",
+    "curriculum": "Учебные планы"
   },
   "roles": {
     "system_admin": "Администратор",
@@ -2392,6 +2393,39 @@
         "invalidReason": "Причина обязательна и не должна превышать 4096 символов",
         "forbidden": "У вас нет прав на возврат этой работы",
         "generic": "Не удалось вернуть работу"
+      }
+    }
+  },
+  "curriculum": {
+    "title": "Учебные планы",
+    "description": "Список учебных планов специальностей и направлений подготовки",
+    "loadFailed": "Не удалось загрузить учебные планы",
+    "countLabel": "Показано {shown} из {total}",
+    "filters": {
+      "status": "Статус",
+      "year": "Год начала",
+      "yearPlaceholder": "Например, 2026",
+      "specialty": "Специальность",
+      "specialtyPlaceholder": "Любая специальность",
+      "statusOptions": {
+        "all": "Все статусы",
+        "draft": "Черновик",
+        "pending": "На утверждении",
+        "approved": "Утверждён",
+        "archived": "Архив"
+      }
+    },
+    "empty": {
+      "title": "Учебных планов нет",
+      "description": "Когда учебные планы будут добавлены, они появятся здесь."
+    },
+    "card": {
+      "openAria": "Открыть учебный план {title}",
+      "status": {
+        "draft": "Черновик",
+        "pending": "На утверждении",
+        "approved": "Утверждён",
+        "archived": "Архив"
       }
     }
   },
