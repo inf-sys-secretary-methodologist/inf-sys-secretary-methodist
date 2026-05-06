@@ -78,3 +78,39 @@ export interface AssignmentListFilter {
   page_size?: number
   offset?: number
 }
+
+// StudentAssignmentView mirrors backend
+// internal/modules/assignments/interfaces/http/handlers/my_assignments_handler.go
+// StudentAssignmentDTO. Denormalised assignment + submission projection
+// returned by GET /api/assignments/my and GET /api/assignments/:id/my.
+export interface StudentAssignmentView {
+  // Assignment columns.
+  assignment_id: number
+  title: string
+  description?: string
+  subject: string
+  group_name: string
+  max_score: number
+  due_date?: string
+  assignment_created_at: string
+  assignment_updated_at: string
+
+  // Submission columns.
+  submission_id: number
+  student_id: number
+  grade_value?: number
+  feedback?: string
+  graded_by?: number
+  graded_at?: string
+  return_reason?: string
+  returned_by?: number
+  returned_at?: string
+  status: SubmissionStatus
+  submission_created_at: string
+  submission_updated_at: string
+}
+
+export interface MyAssignmentListResponse {
+  items: StudentAssignmentView[]
+  total: number
+}
