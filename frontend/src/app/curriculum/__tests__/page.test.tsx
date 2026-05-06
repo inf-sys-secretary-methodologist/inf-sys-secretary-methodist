@@ -166,4 +166,24 @@ describe('CurriculumPage', () => {
     render(<CurriculumPage />)
     expect(screen.getByText('loadFailed')).toBeInTheDocument()
   })
+
+  it('hides countLabel when items list is empty', () => {
+    // The countLabel ("Показано N из M") is only useful when there
+    // are items to count — rendering it for an empty list reads as
+    // "Showing 0 of 0" which is noisy. Pin the conditional in the
+    // page so a future refactor doesn't regress it.
+    render(<CurriculumPage />)
+    expect(screen.queryByText('countLabel')).not.toBeInTheDocument()
+  })
+
+  it('shows countLabel when items list is non-empty', () => {
+    mockUseCurricula.mockReturnValue({
+      items: [sample({ id: 11 })],
+      total: 1,
+      isLoading: false,
+      error: undefined,
+    })
+    render(<CurriculumPage />)
+    expect(screen.getByText('countLabel')).toBeInTheDocument()
+  })
 })

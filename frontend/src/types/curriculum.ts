@@ -53,30 +53,10 @@ export interface CurriculumListFilter {
   offset?: number
 }
 
-// CreateCurriculumRequest matches handler CreateCurriculumRequest. Used
-// by v0.119.0 create dialog; landed here in v0.118.0 alongside the
-// other types so the module's types live in one file.
-export interface CreateCurriculumRequest {
-  title: string
-  code: string
-  specialty: string
-  year: number
-  description: string
-}
-
-// UpdateCurriculumRequest matches handler UpdateCurriculumRequest.
-// Used by v0.119.0 edit dialog.
-export interface UpdateCurriculumRequest {
-  title: string
-  code: string
-  specialty: string
-  year: number
-  description: string
-}
-
-// RejectCurriculumRequest matches handler RejectCurriculumRequest. The
-// reason is required and audited — see v0.117.0 ADR-3 (audit-only,
-// not stored on the entity). Used by v0.120.0 admin reject dialog.
-export interface RejectCurriculumRequest {
-  reason: string
-}
+// Mutation request types (CreateCurriculumRequest /
+// UpdateCurriculumRequest / RejectCurriculumRequest) deliberately
+// land alongside their consumers in later releases (v0.119.0 edit
+// dialog / v0.120.0 admin reject dialog) — not pre-defined here.
+// CLAUDE.md rule "никаких на будущее" applies to types whose only
+// caller is a future release; introducing them now would be dead
+// code until then.
