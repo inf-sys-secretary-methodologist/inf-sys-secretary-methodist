@@ -224,6 +224,19 @@ func (s *Submission) AuthorizeResubmitter(actorID int64) error {
 	return nil
 }
 
+// AuthorizeReader returns nil if actorID is the student who owns this
+// submission, otherwise ErrSubmissionOwnerOnly. Same predicate as
+// AuthorizeResubmitter but kept as a separate method so call sites read
+// the verb that matches the operation (read vs mutation). If a third
+// owner-only operation lands, fold both into a private helper.
+func (s *Submission) AuthorizeReader(actorID int64) error {
+	if actorID <= 0 || actorID != s.StudentID {
+		return fmt.Errorf("%w: user %d is not the owner (%d)",
+			ErrSubmissionOwnerOnly, actorID, s.StudentID)
+	}
+	return nil
+}
+
 // Resubmit transitions a returned submission back to pending so that the
 // student can supply revisions for a fresh grading cycle. The return
 // triple (return_reason / returned_by / returned_at) is cleared on the
