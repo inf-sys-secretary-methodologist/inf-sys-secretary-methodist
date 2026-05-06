@@ -152,4 +152,41 @@ describe('MyAssignmentDetailPage', () => {
     expect(screen.getByText('detail.returnedTitle')).toBeInTheDocument()
     expect(screen.getByText('please add citations')).toBeInTheDocument()
   })
+
+  it('shows the Resubmit button only when status is returned', () => {
+    // pending: no button
+    mockUseMyAssignment.mockReturnValueOnce({
+      view: baseView({ status: 'pending' }),
+      isLoading: false,
+      error: undefined,
+    })
+    const { unmount } = render(<MyAssignmentDetailPage />)
+    expect(
+      screen.queryByRole('button', { name: /resubmitButton/ })
+    ).not.toBeInTheDocument()
+    unmount()
+
+    // graded: no button
+    mockUseMyAssignment.mockReturnValueOnce({
+      view: baseView({ status: 'graded', grade_value: 85 }),
+      isLoading: false,
+      error: undefined,
+    })
+    const r2 = render(<MyAssignmentDetailPage />)
+    expect(
+      screen.queryByRole('button', { name: /resubmitButton/ })
+    ).not.toBeInTheDocument()
+    r2.unmount()
+
+    // returned: button present
+    mockUseMyAssignment.mockReturnValueOnce({
+      view: baseView({ status: 'returned', return_reason: 'redo' }),
+      isLoading: false,
+      error: undefined,
+    })
+    render(<MyAssignmentDetailPage />)
+    expect(
+      screen.getByRole('button', { name: /resubmitButton/ })
+    ).toBeInTheDocument()
+  })
 })
