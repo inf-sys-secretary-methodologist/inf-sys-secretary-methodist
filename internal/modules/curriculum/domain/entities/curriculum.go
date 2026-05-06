@@ -304,6 +304,26 @@ func (c *Curriculum) Approve(adminID int64, now time.Time) error {
 	return nil
 }
 
+// Reject transitions a pending_approval curriculum back to draft.
+// The methodist may revise the content (UpdateBasics is unblocked
+// by status === draft) and then re-submit.
+//
+// Reject reason is intentionally not part of the entity contract —
+// it lives only in the audit log (ADR-3) so a future "rework after
+// rejection" cycle doesn't carry persistent rejection context. If
+// permanent reason storage becomes a product requirement, add via
+// migration without changing this method's shape.
+//
+// Atomic: any error leaves the entity untouched.
+func (c *Curriculum) Reject(now time.Time) error {
+	if c.status != StatusPendingApproval {
+		return fmt.Errorf("%w: status %q", ErrCannotReject, string(c.status))
+	}
+	c.status = StatusDraft
+	c.updatedAt = now
+	return nil
+}
+
 // AuthorizeEdit returns nil if the caller may modify this
 // curriculum's content via UpdateBasics, or one of the two domain
 // sentinels otherwise.
