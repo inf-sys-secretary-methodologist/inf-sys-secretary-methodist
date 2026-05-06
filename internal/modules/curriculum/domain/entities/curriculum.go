@@ -28,6 +28,21 @@ var ErrCurriculumScopeForbidden = errors.New("curriculum: caller cannot operate 
 // is well-formed but conflicts with the curriculum's lifecycle).
 var ErrCannotEditApproved = errors.New("curriculum: cannot edit non-draft curriculum")
 
+// ErrCannotSubmit signals an attempt to submit a curriculum for
+// approval from a status other than draft. Handlers map this
+// sentinel to HTTP 422 (NOT_DRAFT).
+var ErrCannotSubmit = errors.New("curriculum: cannot submit, status must be draft")
+
+// ErrCannotApprove signals an attempt to approve a curriculum that
+// is not currently awaiting approval. Handlers map this sentinel to
+// HTTP 422 (NOT_PENDING).
+var ErrCannotApprove = errors.New("curriculum: cannot approve, status must be pending_approval")
+
+// ErrCannotReject signals an attempt to reject a curriculum that is
+// not currently awaiting approval. Handlers map this sentinel to
+// HTTP 422 (NOT_PENDING).
+var ErrCannotReject = errors.New("curriculum: cannot reject, status must be pending_approval")
+
 // Year-range invariants — chosen wide enough to cover both legacy
 // archived curricula (pre-2010 not realistic in this institution but
 // kept permissive) and forward-looking programmes. Mirrored exactly by
@@ -240,6 +255,25 @@ func (c *Curriculum) UpdateBasics(
 	c.specialty = trimmedSpecialty
 	c.year = year
 	c.description = trimmedDescription
+	c.updatedAt = now
+	return nil
+}
+
+// SubmitForApproval transitions a draft curriculum into the
+// pending_approval state. The status check is the only invariant
+// the entity enforces; identity policy (who may submit — author,
+// admin, neither) is the use case's responsibility.
+//
+// Approval audit fields (approvedBy / approvedAt) stay untouched
+// on Submit — they are populated only by Approve. updatedAt bumps
+// to the caller-supplied 'now'.
+//
+// Atomic: any error leaves the entity untouched.
+func (c *Curriculum) SubmitForApproval(now time.Time) error {
+	if c.status != StatusDraft {
+		return fmt.Errorf("%w: status %q", ErrCannotSubmit, string(c.status))
+	}
+	c.status = StatusPendingApproval
 	c.updatedAt = now
 	return nil
 }
