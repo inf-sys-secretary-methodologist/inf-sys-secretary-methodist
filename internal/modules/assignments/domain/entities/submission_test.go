@@ -285,4 +285,38 @@ func TestSubmission_AuthorizeResubmitter(t *testing.T) {
 	}
 }
 
+// TestSubmission_AuthorizeReader pins the read-side ownership invariant:
+// only the student who owns the submission may read it, even though the
+// HTTP layer already wires studentID = JWT subject. The defence-in-depth
+// pattern matches AuthorizeResubmitter on the mutation side — see
+// docs/plans/2026-05-06-student-dashboard.md ADR-2 for the reuse-vs-split
+// reasoning.
+func TestSubmission_AuthorizeReader(t *testing.T) {
+	now := time.Date(2026, 5, 6, 10, 0, 0, 0, time.UTC)
+	s := entities.NewSubmission(1, 42, now)
+
+	tests := []struct {
+		name    string
+		actorID int64
+		wantErr error
+	}{
+		{name: "owner can read", actorID: 42},
+		{name: "foreign student is forbidden", actorID: 7, wantErr: entities.ErrSubmissionOwnerOnly},
+		{name: "zero actor id is forbidden", actorID: 0, wantErr: entities.ErrSubmissionOwnerOnly},
+		{name: "negative actor id is forbidden", actorID: -1, wantErr: entities.ErrSubmissionOwnerOnly},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := s.AuthorizeReader(tc.actorID)
+			if tc.wantErr != nil {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, tc.wantErr))
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func intPtr(v int) *int { return &v }
