@@ -209,6 +209,115 @@ func (h *CurriculumHandler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(mapCurriculum(curriculum)))
 }
 
+// CurriculaListResponse is the response shape for the list endpoint.
+// Exported so swag picks it up in the OpenAPI spec.
+type CurriculaListResponse struct {
+	Items []CurriculumDTO `json:"items"`
+	Total int             `json:"total"`
+}
+
+// List handles GET /api/curriculum with optional filters.
+// @Summary List curricula matching the supplied filters
+// @Tags curriculum
+// @Produce json
+// @Param status      query string false "Status filter (draft / pending_approval / approved / archived)"
+// @Param year        query int    false "Academic year of programme start"
+// @Param specialty   query string false "Specialty exact match"
+// @Param created_by  query int    false "Filter to a specific methodist's curricula"
+// @Param limit       query int    false "Page size (1..200, default 50)"
+// @Param offset      query int    false "Page offset (default 0)"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Security BearerAuth
+// @Router /api/curriculum [get]
+func (h *CurriculumHandler) List(c *gin.Context) {
+	_, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	if !canRead(role) {
+		c.JSON(http.StatusForbidden, response.Forbidden("students cannot read this curriculum view"))
+		return
+	}
+
+	in, err := parseListInput(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest(err.Error()))
+		return
+	}
+
+	page, err := h.list.Execute(c.Request.Context(), in)
+	if err != nil {
+		mapWriteError(c, err)
+		return
+	}
+
+	dtos := make([]CurriculumDTO, 0, len(page.Items))
+	for _, c := range page.Items {
+		dtos = append(dtos, mapCurriculum(c))
+	}
+	c.JSON(http.StatusOK, response.Success(CurriculaListResponse{
+		Items: dtos,
+		Total: page.Total,
+	}))
+}
+
+// parseListInput converts gin's query strings into a typed
+// ListCurriculaInput, rejecting any value that is guaranteed to
+// fail validation downstream (unknown status literal, year
+// outside the entity's accepted range, non-positive created_by,
+// non-numeric pagination). Use-case-side defaults (limit/offset
+// clamps) still apply for valid-but-extreme inputs.
+func parseListInput(c *gin.Context) (curUsecases.ListCurriculaInput, error) {
+	var in curUsecases.ListCurriculaInput
+
+	if raw := c.Query("status"); raw != "" {
+		st := entities.CurriculumStatus(raw)
+		if !st.IsValid() {
+			return in, errors.New("invalid status filter")
+		}
+		in.Status = &st
+	}
+	if raw := c.Query("year"); raw != "" {
+		y, err := strconv.Atoi(raw)
+		if err != nil {
+			return in, errors.New("invalid year filter")
+		}
+		if y < 2000 || y > 2100 {
+			return in, errors.New("year filter must be in [2000, 2100]")
+		}
+		in.Year = &y
+	}
+	if raw := c.Query("specialty"); raw != "" {
+		in.Specialty = raw
+	}
+	if raw := c.Query("created_by"); raw != "" {
+		v, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || v <= 0 {
+			return in, errors.New("invalid created_by filter")
+		}
+		in.CreatedBy = &v
+	}
+	if raw := c.Query("limit"); raw != "" {
+		v, err := strconv.Atoi(raw)
+		if err != nil || v < 0 {
+			return in, errors.New("invalid limit")
+		}
+		in.Limit = v
+	}
+	if raw := c.Query("offset"); raw != "" {
+		v, err := strconv.Atoi(raw)
+		if err != nil || v < 0 {
+			return in, errors.New("invalid offset")
+		}
+		in.Offset = v
+	}
+	return in, nil
+}
+
 // canRead is the role whitelist for the read endpoints. v0.116.0
 // admits the four non-student roles (methodist, system_admin,
 // academic_secretary, teacher); student access requires the
