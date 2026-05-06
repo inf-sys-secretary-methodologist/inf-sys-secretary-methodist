@@ -35,10 +35,7 @@ export default function MyAssignmentsPage() {
     total,
     isLoading: listLoading,
     error,
-  } = useMyAssignments(
-    statusFilter === 'all' ? undefined : statusFilter,
-    { enabled: isStudent }
-  )
+  } = useMyAssignments(statusFilter === 'all' ? undefined : statusFilter, { enabled: isStudent })
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user?.role && user.role !== 'student') {
@@ -69,11 +66,7 @@ export default function MyAssignmentsPage() {
           <p className="text-muted-foreground">{t('description')}</p>
         </header>
 
-        <div
-          className="flex flex-wrap gap-1.5"
-          role="tablist"
-          aria-label={t('statusFilterAria')}
-        >
+        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label={t('statusFilterAria')}>
           {(['all', ...SUBMISSION_STATUSES] as Array<SubmissionStatus | 'all'>).map((s) => {
             const active = s === statusFilter
             return (

@@ -50,9 +50,7 @@ export function StudentAssignmentCard({ view, className }: StudentAssignmentCard
       </div>
 
       {view.description && (
-        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-          {view.description}
-        </p>
+        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{view.description}</p>
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">

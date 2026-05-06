@@ -80,9 +80,7 @@ export default function MyAssignmentDetailPage() {
           <>
             <header className="space-y-2">
               <h1 className="text-2xl font-bold">{view.title}</h1>
-              {view.description && (
-                <p className="text-muted-foreground">{view.description}</p>
-              )}
+              {view.description && <p className="text-muted-foreground">{view.description}</p>}
               <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
                 <div className="flex gap-2">
                   <dt className="font-medium">{t('detail.subject')}:</dt>
@@ -99,7 +97,9 @@ export default function MyAssignmentDetailPage() {
                 {view.due_date && (
                   <div className="flex gap-2">
                     <dt className="font-medium">{t('detail.dueDate')}:</dt>
-                    <dd>{format(parseLocalDate(view.due_date), 'd MMM yyyy', { locale: dateLocale })}</dd>
+                    <dd>
+                      {format(parseLocalDate(view.due_date), 'd MMM yyyy', { locale: dateLocale })}
+                    </dd>
                   </div>
                 )}
               </dl>
@@ -204,9 +204,7 @@ function StatusPanel({ view, dateLocale }: StatusPanelProps) {
           </p>
         </div>
       )}
-      <p className="text-xs text-sky-700 dark:text-sky-300 italic">
-        {t('detail.resubmitHint')}
-      </p>
+      <p className="text-xs text-sky-700 dark:text-sky-300 italic">{t('detail.resubmitHint')}</p>
     </section>
   )
 }
