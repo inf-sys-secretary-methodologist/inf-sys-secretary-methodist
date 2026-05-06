@@ -133,6 +133,9 @@ import (
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	assignPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/infrastructure/persistence"
 	assignHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/interfaces/http/handlers"
+	curUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/application/usecases"
+	curPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/infrastructure/persistence"
+	curHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/interfaces/http/handlers"
 	notifDto "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
 	notifEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
 	usersUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
@@ -435,6 +438,20 @@ func main() {
 	getMyAssignmentDetailUseCase := assignUsecases.NewGetMyAssignmentDetailUseCase(assignmentRepo, submissionRepo)
 	logger.Info("Assignments module initialized", nil)
 
+	// Initialize curriculum module — academic curriculum (учебный план)
+	// bounded context. v0.116.0 ships basic CRUD (create / read / list /
+	// update); the approval workflow + Discipline child entity land in
+	// v0.117.0. *logging.AuditLogger satisfies the curriculum-side
+	// AuditSink interface structurally (same shape as the assignments
+	// module's port — single concrete logger covers both modules
+	// without a cross-module Go import).
+	curriculumRepo := curPersistence.NewCurriculumRepositoryPG(db)
+	createCurriculumUseCase := curUsecases.NewCreateCurriculumUseCase(curriculumRepo, auditLogger, nil)
+	getCurriculumUseCase := curUsecases.NewGetCurriculumUseCase(curriculumRepo)
+	listCurriculaUseCase := curUsecases.NewListCurriculaUseCase(curriculumRepo)
+	updateCurriculumUseCase := curUsecases.NewUpdateCurriculumUseCase(curriculumRepo, auditLogger, nil)
+	logger.Info("Curriculum module initialized", nil)
+
 	// Initialize schedule module
 	eventRepo := schedulePersistence.NewEventRepositoryPG(db)
 	participantRepo := schedulePersistence.NewEventParticipantRepositoryPG(db)
@@ -650,6 +667,10 @@ func main() {
 		listSubmissionsUseCase,
 		listMyAssignmentsUseCase,
 		getMyAssignmentDetailUseCase,
+		createCurriculumUseCase,
+		getCurriculumUseCase,
+		listCurriculaUseCase,
+		updateCurriculumUseCase,
 		eventUseCase,
 		lessonUseCase,
 		announcementUseCase,
@@ -1158,6 +1179,10 @@ func setupRoutes(
 	listSubmissionsUseCase *assignUsecases.ListSubmissionsUseCase,
 	listMyAssignmentsUseCase *assignUsecases.ListMyAssignmentsUseCase,
 	getMyAssignmentDetailUseCase *assignUsecases.GetMyAssignmentDetailUseCase,
+	createCurriculumUseCase *curUsecases.CreateCurriculumUseCase,
+	getCurriculumUseCase *curUsecases.GetCurriculumUseCase,
+	listCurriculaUseCase *curUsecases.ListCurriculaUseCase,
+	updateCurriculumUseCase *curUsecases.UpdateCurriculumUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
@@ -1894,6 +1919,26 @@ func setupRoutes(
 			}
 
 			logger.Info("Assignments module routes registered", nil)
+		}
+
+		// Curriculum module routes (v0.116.0). Behind RequireNonStudent
+		// because the v0.116.0 read scope is the four non-student roles;
+		// student read with specialty filtering is a future scope.
+		if createCurriculumUseCase != nil {
+			curriculumHandler := curHandler.NewCurriculumHandler(
+				createCurriculumUseCase, getCurriculumUseCase, listCurriculaUseCase, updateCurriculumUseCase,
+			)
+			curriculumGroup := protectedGroup.Group("/curriculum")
+			curriculumGroup.Use(authMiddleware.RequireNonStudent())
+			{
+				curriculumGroup.POST("", curriculumHandler.Create)
+				curriculumGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				curriculumGroup.GET("", curriculumHandler.List)
+				curriculumGroup.GET("/:id", curriculumHandler.Get)
+				curriculumGroup.PUT("/:id", curriculumHandler.Update)
+				curriculumGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+			logger.Info("Curriculum module routes registered", nil)
 		}
 
 		// Schedule/Events module routes
