@@ -58,28 +58,28 @@ type SubmissionView struct {
 // appears here because the parent assignment exists).
 type StudentAssignmentView struct {
 	// Assignment columns (always present).
-	AssignmentID    int64
-	Title           string
-	Description     string
-	Subject         string
-	GroupName       string
-	MaxScore        int
-	DueDate         *time.Time
+	AssignmentID        int64
+	Title               string
+	Description         string
+	Subject             string
+	GroupName           string
+	MaxScore            int
+	DueDate             *time.Time
 	AssignmentCreatedAt time.Time
 	AssignmentUpdatedAt time.Time
 
 	// Submission columns (always present because the JOIN selects rows
 	// where a submission exists for this student).
-	SubmissionID  int64
-	StudentID     int64
-	GradeValue    *int
-	Feedback      string
-	GradedBy      *int64
-	GradedAt      *time.Time
-	ReturnReason  string
-	ReturnedBy    *int64
-	ReturnedAt    *time.Time
-	Status        entities.SubmissionStatus
+	SubmissionID        int64
+	StudentID           int64
+	GradeValue          *int
+	Feedback            string
+	GradedBy            *int64
+	GradedAt            *time.Time
+	ReturnReason        string
+	ReturnedBy          *int64
+	ReturnedAt          *time.Time
+	Status              entities.SubmissionStatus
 	SubmissionCreatedAt time.Time
 	SubmissionUpdatedAt time.Time
 }

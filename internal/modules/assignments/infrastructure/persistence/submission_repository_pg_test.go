@@ -230,10 +230,10 @@ func TestSubmissionRepositoryPG_Save_PersistsReturnFields(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO submissions")).
 		WithArgs(
 			int64(10), int64(7),
-			sql.NullInt64{},                       // grade_value cleared
-			"",                                    // feedback cleared
-			sql.NullInt64{},                       // graded_by cleared
-			sql.NullTime{},                        // graded_at cleared
+			sql.NullInt64{}, // grade_value cleared
+			"",              // feedback cleared
+			sql.NullInt64{}, // graded_by cleared
+			sql.NullTime{},  // graded_at cleared
 			"returned",
 			sql.NullString{String: "revisit derivation", Valid: true}, // return_reason
 			sql.NullInt64{Int64: 99, Valid: true},                     // returned_by

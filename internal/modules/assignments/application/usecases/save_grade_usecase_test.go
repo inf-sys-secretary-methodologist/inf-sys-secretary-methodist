@@ -221,6 +221,12 @@ type fakeSubmissionRepo struct {
 	listErr              error
 	lastListAssignmentID int64
 	lastListStatus       *entities.SubmissionStatus
+
+	// forceReturn, when non-nil, is returned from GetByAssignmentAndStudent
+	// regardless of the (aid, sid) key — used to exercise downstream
+	// ownership invariants on a row whose StudentID does not match the
+	// caller, a state otherwise unreachable through the keyed lookup.
+	forceReturn *entities.Submission
 }
 
 func newFakeSubmissionRepo() *fakeSubmissionRepo {
@@ -231,6 +237,9 @@ func (r *fakeSubmissionRepo) seed(s *entities.Submission) {
 	r.byKey[subKey(s.AssignmentID, s.StudentID)] = s
 }
 func (r *fakeSubmissionRepo) GetByAssignmentAndStudent(ctx context.Context, aid, sid int64) (*entities.Submission, error) {
+	if r.forceReturn != nil {
+		return r.forceReturn, nil
+	}
 	if s, ok := r.byKey[subKey(aid, sid)]; ok {
 		return s, nil
 	}

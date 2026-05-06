@@ -96,35 +96,28 @@ func TestGetMyAssignmentDetailUseCase_Execute(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("ownership invariant defends even when handler routes correctly", func(t *testing.T) {
-		// This case is unreachable via HTTP because the handler hard-wires
-		// studentID = JWT subject and the SQL filter already keys by that
-		// pair. We pin AuthorizeReader behaviour anyway so the invariant
-		// survives a future refactor that bypasses the handler.
+	t.Run("AuthorizeReader rejects a row whose StudentID does not match the caller", func(t *testing.T) {
+		// Pins the use-case-level wiring of AuthorizeReader: if a future
+		// refactor drops the call, this test breaks. The keyed lookup at
+		// the SQL layer makes this state unreachable through the normal
+		// repo path, but defence-in-depth means a foreign-row response
+		// (e.g. from a buggy repo, an alternate caller, or a future
+		// CLI invoker) must still be rejected with ErrSubmissionOwnerOnly,
+		// not silently leaked.
 		ar := newFakeAssignmentRepo()
 		ar.seed(newAssignmentForTest(t, aid, 42, now))
+		foreignSubmission := newReturnedSubmission(t, aid, studentID, now) // StudentID = 7
 		sr := newFakeSubmissionRepo()
-		// Submission keyed for student 7, but the use case sees a
-		// submission whose StudentID does not match the caller — only
-		// possible if the repo returns an unrelated row. Force this by
-		// seeding under a different (aid, sid) key and asking for it.
-		sr.seed(newReturnedSubmission(t, aid, studentID, now))
+		sr.forceReturn = foreignSubmission // any caller gets the StudentID=7 row
 
 		uc := usecases.NewGetMyAssignmentDetailUseCase(ar, sr)
-		// Caller claims to be student 99 but repo returns submission for 7.
-		// The fake repo only returns by (aid, studentID) pair — so we
-		// instead seed a row for the impostor and verify AuthorizeReader
-		// is wired by checking happy path with the legitimate owner above.
-		// Direct invariant exercise lives in submission_test.go.
 		_, err := uc.Execute(context.Background(), usecases.GetMyAssignmentDetailInput{
 			AssignmentID: aid,
-			StudentID:    99,
+			StudentID:    99, // caller is NOT the owner
 		})
-		// Fake repo returns ErrSubmissionNotFound when no row for that pair —
-		// this is the natural happy-path defence: a foreign student simply
-		// has no row keyed under (aid, foreignID).
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, repositories.ErrSubmissionNotFound))
+		assert.True(t, errors.Is(err, entities.ErrSubmissionOwnerOnly),
+			"AuthorizeReader must reject foreign callers — got %v", err)
 	})
 }
 

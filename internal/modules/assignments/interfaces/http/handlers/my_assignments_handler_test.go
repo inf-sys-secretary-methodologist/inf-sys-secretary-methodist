@@ -23,10 +23,10 @@ import (
 // --- Fakes for the two narrow use-case ports ---
 
 type fakeListMyAssignmentsUC struct {
-	out         []views.StudentAssignmentView
-	err         error
-	called      bool
-	gotInput    assignUsecases.ListMyAssignmentsInput
+	out      []views.StudentAssignmentView
+	err      error
+	called   bool
+	gotInput assignUsecases.ListMyAssignmentsInput
 }
 
 func (f *fakeListMyAssignmentsUC) Execute(ctx context.Context, in assignUsecases.ListMyAssignmentsInput) ([]views.StudentAssignmentView, error) {

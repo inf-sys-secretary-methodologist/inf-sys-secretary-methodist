@@ -20,10 +20,10 @@ import (
 // mutation tests) — the read-side fake stays small so the test file
 // reads top-down.
 type fakeStudentScopedRepo struct {
-	out                 []views.StudentAssignmentView
-	err                 error
-	lastStudentID       int64
-	lastStatus          *entities.SubmissionStatus
+	out           []views.StudentAssignmentView
+	err           error
+	lastStudentID int64
+	lastStatus    *entities.SubmissionStatus
 }
 
 func (r *fakeStudentScopedRepo) ListByStudent(ctx context.Context, studentID int64, status *entities.SubmissionStatus) ([]views.StudentAssignmentView, error) {
