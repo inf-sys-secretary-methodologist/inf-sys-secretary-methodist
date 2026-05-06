@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -171,6 +172,86 @@ func (h *CurriculumHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, response.Success(mapCurriculum(curriculum)))
 }
 
+// Get handles GET /api/curriculum/:id.
+// @Summary Fetch a single curriculum by id
+// @Tags curriculum
+// @Produce json
+// @Param id path int true "Curriculum ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Security BearerAuth
+// @Router /api/curriculum/{id} [get]
+func (h *CurriculumHandler) Get(c *gin.Context) {
+	_, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	if !canRead(role) {
+		c.JSON(http.StatusForbidden, response.Forbidden("students cannot read this curriculum view"))
+		return
+	}
+
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid curriculum id"))
+		return
+	}
+
+	curriculum, err := h.get.Execute(c.Request.Context(), id)
+	if err != nil {
+		mapWriteError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapCurriculum(curriculum)))
+}
+
+// canRead is the role whitelist for the read endpoints. v0.116.0
+// admits the four non-student roles (methodist, system_admin,
+// academic_secretary, teacher); student access requires the
+// specialty-scoped variant landing in a future release (ADR-3).
+func canRead(role string) bool {
+	switch role {
+	case roleMethodist, roleSystemAdmin, roleAcademicSecretary, roleTeacher:
+		return true
+	default:
+		return false
+	}
+}
+
+// parsePositiveID parses a path component as a strict positive
+// integer. Empty string, negative, zero and fractional values are
+// rejected at the boundary so the use case never sees a
+// guaranteed-4xx id and the caller learns the issue immediately.
+// Mirrors the Number.isInteger-style discipline established for
+// student-facing detail pages in v0.114.0.
+func parsePositiveID(raw string) (int64, bool) {
+	if raw == "" {
+		return 0, false
+	}
+	// Reject any non-digit byte upfront — strconv.ParseInt would
+	// accept '+5' or leading whitespace; we want strict digits only.
+	for i, r := range raw {
+		if r < '0' || r > '9' {
+			// Allow a single leading '-' so we can produce a clean
+			// "negative" rejection rather than the strconv generic
+			// error path; everything else fails fast.
+			if i == 0 && r == '-' {
+				continue
+			}
+			return 0, false
+		}
+	}
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || id <= 0 {
+		return 0, false
+	}
+	return id, true
+}
+
 // authContext extracts user_id + role from the gin context. Failure-
 // closed: missing either signals the route was reached without going
 // through the auth middleware (or with a malformed JWT) and we
@@ -248,8 +329,7 @@ func mapWriteError(c *gin.Context, err error) {
 }
 
 // guard against unused warnings while v0.116.0 only exercises some
-// of these helpers (read endpoints land in the next two cycles).
-var _ = roleTeacher
-var _ = roleAcademicSecretary
+// of these helpers (the list and update endpoints land in the next
+// two cycles and use isAdminRole / list filter parsing).
 var _ = roleStudent
 var _ = isAdminRole
