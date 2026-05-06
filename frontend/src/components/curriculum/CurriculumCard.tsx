@@ -2,54 +2,15 @@
 
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import {
-  ArrowRight,
-  BookMarked,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  GraduationCap,
-  PenLine,
-  Archive,
-} from 'lucide-react'
+import { ArrowRight, BookMarked, Calendar, GraduationCap } from 'lucide-react'
 
-import type { Curriculum, CurriculumStatus } from '@/types/curriculum'
+import type { Curriculum } from '@/types/curriculum'
 import { cn } from '@/lib/utils'
+import { STATUS_STYLES, statusKey } from './status'
 
 interface CurriculumCardProps {
   curriculum: Curriculum
   className?: string
-}
-
-// statusKey maps the wire-format status to the i18n key suffix used
-// inside curriculum.card.status.* and curriculum.filters.status.*. The
-// 'pending_approval' wire value collapses to 'pending' for UI brevity
-// (matches submission status conventions in the assignments line).
-function statusKey(status: CurriculumStatus): string {
-  return status === 'pending_approval' ? 'pending' : status
-}
-
-const STATUS_STYLES: Record<CurriculumStatus, { bg: string; text: string; Icon: typeof Clock }> = {
-  draft: {
-    bg: 'bg-slate-100 dark:bg-slate-800/40',
-    text: 'text-slate-700 dark:text-slate-300',
-    Icon: PenLine,
-  },
-  pending_approval: {
-    bg: 'bg-amber-50 dark:bg-amber-950/30',
-    text: 'text-amber-700 dark:text-amber-300',
-    Icon: Clock,
-  },
-  approved: {
-    bg: 'bg-emerald-50 dark:bg-emerald-950/30',
-    text: 'text-emerald-700 dark:text-emerald-300',
-    Icon: CheckCircle2,
-  },
-  archived: {
-    bg: 'bg-zinc-100 dark:bg-zinc-800/40',
-    text: 'text-zinc-600 dark:text-zinc-400',
-    Icon: Archive,
-  },
 }
 
 // CurriculumCard — list-item summary linking to the detail / edit page

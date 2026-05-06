@@ -2485,6 +2485,13 @@
         "forbidden": "You do not have permission to submit this curriculum",
         "generic": "Failed to submit the curriculum"
       }
+    },
+    "submitDialog": {
+      "title": "Submit for approval",
+      "description": "The curriculum will be sent to the administrator for review. Editing is locked until they decide.",
+      "cancel": "Cancel",
+      "confirm": "Submit",
+      "submitting": "Submitting…"
     }
   },
   "myAssignments": {

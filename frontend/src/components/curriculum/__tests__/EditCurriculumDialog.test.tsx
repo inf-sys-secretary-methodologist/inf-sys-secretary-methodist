@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@/test-utils'
+import { useState } from 'react'
 import { EditCurriculumDialog } from '../EditCurriculumDialog'
 import type { Curriculum } from '@/types/curriculum'
 
@@ -139,5 +140,67 @@ describe('EditCurriculumDialog', () => {
     // Dialog must stay open on error.
     expect(onClose).not.toHaveBeenCalled()
     expect(onSaved).not.toHaveBeenCalled()
+  })
+
+  it('resets form state when reopened with a refreshed curriculum', () => {
+    function Harness() {
+      const [open, setOpen] = useState(true)
+      const [c, setC] = useState(sample)
+      return (
+        <>
+          <EditCurriculumDialog curriculum={c} open={open} onClose={() => setOpen(false)} />
+          <button type="button" onClick={() => setOpen(false)}>
+            close-host
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setC({ ...sample, title: 'Refreshed title' })
+              setOpen(true)
+            }}
+          >
+            reopen-host
+          </button>
+        </>
+      )
+    }
+
+    render(<Harness />)
+    // Mutate the user's draft input to a divergent value.
+    fireEvent.change(screen.getByLabelText('editDialog.labels.title'), {
+      target: { value: 'User scratch' },
+    })
+    expect(screen.getByDisplayValue('User scratch')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('close-host'))
+    fireEvent.click(screen.getByText('reopen-host'))
+
+    // Form must show the refreshed curriculum's title, not the
+    // user's pre-close scratch value.
+    expect(screen.getByDisplayValue('Refreshed title')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('User scratch')).not.toBeInTheDocument()
+  })
+
+  it('does not double-fire updateCurriculum on rapid double-click', async () => {
+    const onSaved = jest.fn()
+    const onClose = jest.fn()
+    let resolve: (v: unknown) => void = () => {}
+    mockUpdateCurriculum.mockImplementation(
+      () =>
+        new Promise((r) => {
+          resolve = r
+        })
+    )
+
+    render(
+      <EditCurriculumDialog curriculum={sample} open={true} onClose={onClose} onSaved={onSaved} />
+    )
+    const btn = screen.getByRole('button', { name: 'editDialog.save' })
+    fireEvent.click(btn)
+    fireEvent.click(btn)
+
+    expect(mockUpdateCurriculum).toHaveBeenCalledTimes(1)
+    resolve({ ...sample })
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
 })

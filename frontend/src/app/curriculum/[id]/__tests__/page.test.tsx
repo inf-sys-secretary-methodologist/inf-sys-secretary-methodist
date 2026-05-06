@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@/test-utils'
+import { render, screen, fireEvent } from '@/test-utils'
 
 const mockReplace = jest.fn()
 const mockUseParams = jest.fn()
@@ -17,26 +17,17 @@ jest.mock('@/components/layout', () => ({
 }))
 
 const mockUseCurriculum = jest.fn()
-const mockSubmitCurriculum = jest.fn()
 jest.mock('@/hooks/useCurricula', () => ({
   useCurricula: jest.fn(),
   useCurriculum: (id: number | null, opts?: { enabled?: boolean }) => mockUseCurriculum(id, opts),
   updateCurriculum: jest.fn(),
-  submitCurriculum: (...args: unknown[]) => mockSubmitCurriculum(...args),
+  submitCurriculum: jest.fn(),
 }))
 
-const mockToastSuccess = jest.fn()
-const mockToastError = jest.fn()
-jest.mock('sonner', () => ({
-  toast: {
-    success: (...args: unknown[]) => mockToastSuccess(...args),
-    error: (...args: unknown[]) => mockToastError(...args),
-  },
-}))
-
-// EditCurriculumDialog is heavy (Radix dialog). Stub it so the page
-// tests don't have to render the full form — they assert that the
-// page wires the props (curriculum / open / onClose / onSaved).
+// Dialog children are stubbed — page tests assert on which dialog
+// mounts open=true and that the wired callbacks fire mutate(). Each
+// dialog has its own dedicated test suite covering form / submit /
+// error semantics.
 jest.mock('@/components/curriculum/EditCurriculumDialog', () => ({
   EditCurriculumDialog: ({
     open,
@@ -47,13 +38,33 @@ jest.mock('@/components/curriculum/EditCurriculumDialog', () => ({
     onClose: () => void
     onSaved?: () => void
   }) => (
-    <div data-testid="edit-dialog-stub">
-      <span>open={String(open)}</span>
+    <div data-testid="edit-dialog-stub" data-open={String(open)}>
       <button type="button" onClick={onClose}>
-        close-stub
+        edit-close-stub
       </button>
       <button type="button" onClick={() => onSaved?.()}>
-        saved-stub
+        edit-saved-stub
+      </button>
+    </div>
+  ),
+}))
+
+jest.mock('@/components/curriculum/SubmitCurriculumDialog', () => ({
+  SubmitCurriculumDialog: ({
+    open,
+    onClose,
+    onSubmitted,
+  }: {
+    open: boolean
+    onClose: () => void
+    onSubmitted?: () => void
+  }) => (
+    <div data-testid="submit-dialog-stub" data-open={String(open)}>
+      <button type="button" onClick={onClose}>
+        submit-close-stub
+      </button>
+      <button type="button" onClick={() => onSubmitted?.()}>
+        submit-confirmed-stub
       </button>
     </div>
   ),
@@ -203,7 +214,18 @@ describe('CurriculumDetailPage', () => {
     expect(screen.queryByText('detail.statusHint.archived')).not.toBeInTheDocument()
   })
 
-  it('clicking Submit calls submitCurriculum + mutate + toast.success', async () => {
+  it('Submit dialog mounts open=false initially', () => {
+    render(<CurriculumDetailPage />)
+    expect(screen.getByTestId('submit-dialog-stub')).toHaveAttribute('data-open', 'false')
+  })
+
+  it('clicking Submit button opens the SubmitCurriculumDialog', () => {
+    render(<CurriculumDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.actions.submit' }))
+    expect(screen.getByTestId('submit-dialog-stub')).toHaveAttribute('data-open', 'true')
+  })
+
+  it('SubmitCurriculumDialog onSubmitted fires mutate', () => {
     const mutate = jest.fn()
     mockUseCurriculum.mockReturnValue({
       curriculum: sample({ status: 'draft' }),
@@ -211,32 +233,28 @@ describe('CurriculumDetailPage', () => {
       error: undefined,
       mutate,
     })
-    mockSubmitCurriculum.mockResolvedValueOnce(sample({ status: 'pending_approval' }))
-
     render(<CurriculumDetailPage />)
-    fireEvent.click(screen.getByRole('button', { name: 'detail.actions.submit' }))
-
-    await waitFor(() => expect(mockSubmitCurriculum).toHaveBeenCalledWith(11))
-    await waitFor(() => expect(mutate).toHaveBeenCalled())
-    expect(mockToastSuccess).toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'submit-confirmed-stub' }))
+    expect(mutate).toHaveBeenCalled()
   })
 
-  it.each([
-    [422, 'submitToast.errors.notDraft'],
-    [403, 'submitToast.errors.forbidden'],
-    [500, 'submitToast.errors.generic'],
-  ])('clicking Submit maps HTTP %i error to toast key', async (status, expectedKey) => {
-    const axiosLikeErr = Object.assign(new Error('boom'), {
-      isAxiosError: true,
-      response: { status },
+  it('EditCurriculumDialog onSaved fires mutate', () => {
+    const mutate = jest.fn()
+    mockUseCurriculum.mockReturnValue({
+      curriculum: sample({ status: 'draft' }),
+      isLoading: false,
+      error: undefined,
+      mutate,
     })
-    mockSubmitCurriculum.mockRejectedValueOnce(axiosLikeErr)
-
     render(<CurriculumDetailPage />)
-    fireEvent.click(screen.getByRole('button', { name: 'detail.actions.submit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'edit-saved-stub' }))
+    expect(mutate).toHaveBeenCalled()
+  })
 
-    await waitFor(() => expect(mockToastError).toHaveBeenCalled())
-    expect(mockToastError.mock.calls[0][0]).toBe(expectedKey)
+  it('clicking Edit button opens the EditCurriculumDialog', () => {
+    render(<CurriculumDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.actions.edit' }))
+    expect(screen.getByTestId('edit-dialog-stub')).toHaveAttribute('data-open', 'true')
   })
 
   it('passes enabled=false to useCurriculum when role is student', () => {

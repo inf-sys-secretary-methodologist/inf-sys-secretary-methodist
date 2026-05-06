@@ -4,55 +4,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import axios from 'axios'
-import { toast } from 'sonner'
-import {
-  ArrowLeft,
-  Loader2,
-  PenLine,
-  Send,
-  Clock,
-  CheckCircle2,
-  Archive,
-  BookMarked,
-} from 'lucide-react'
+import { ArrowLeft, BookMarked, Loader2, PenLine, Send } from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
-import { useCurriculum, submitCurriculum } from '@/hooks/useCurricula'
+import { useCurriculum } from '@/hooks/useCurricula'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { EditCurriculumDialog } from '@/components/curriculum/EditCurriculumDialog'
+import { SubmitCurriculumDialog } from '@/components/curriculum/SubmitCurriculumDialog'
+import { STATUS_STYLES, statusKey } from '@/components/curriculum/status'
 import type { CurriculumStatus } from '@/types/curriculum'
 import { cn } from '@/lib/utils'
-
-// statusKey collapses the wire-format 'pending_approval' to the
-// shorter UI key 'pending' (matches CurriculumCard convention).
-function statusKey(status: CurriculumStatus): string {
-  return status === 'pending_approval' ? 'pending' : status
-}
-
-const STATUS_PILL: Record<CurriculumStatus, { bg: string; text: string; Icon: typeof Clock }> = {
-  draft: {
-    bg: 'bg-slate-100 dark:bg-slate-800/40',
-    text: 'text-slate-700 dark:text-slate-300',
-    Icon: PenLine,
-  },
-  pending_approval: {
-    bg: 'bg-amber-50 dark:bg-amber-950/30',
-    text: 'text-amber-700 dark:text-amber-300',
-    Icon: Clock,
-  },
-  approved: {
-    bg: 'bg-emerald-50 dark:bg-emerald-950/30',
-    text: 'text-emerald-700 dark:text-emerald-300',
-    Icon: CheckCircle2,
-  },
-  archived: {
-    bg: 'bg-zinc-100 dark:bg-zinc-800/40',
-    text: 'text-zinc-600 dark:text-zinc-400',
-    Icon: Archive,
-  },
-}
 
 // CurriculumDetailPage — single-curriculum view. Status='draft' enables
 // Edit dialog + Submit button; other statuses are read-only with a
@@ -71,7 +33,7 @@ export default function CurriculumDetailPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuthCheck()
   const t = useTranslations('curriculum')
   const [editOpen, setEditOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  const [submitOpen, setSubmitOpen] = useState(false)
 
   const enabled = !authLoading && isAuthenticated && user?.role !== 'student' && id !== null
   const {
@@ -88,32 +50,6 @@ export default function CurriculumDetailPage() {
       router.replace('/forbidden')
     }
   }, [authLoading, isAuthenticated, user, router])
-
-  const handleSubmit = async () => {
-    if (id == null || submitting) return
-    setSubmitting(true)
-    try {
-      await submitCurriculum(id)
-      toast.success(t('submitToast.success'))
-      mutate()
-    } catch (err) {
-      const status = axios.isAxiosError(err) ? err.response?.status : undefined
-      let key: string
-      switch (status) {
-        case 422:
-          key = 'submitToast.errors.notDraft'
-          break
-        case 403:
-          key = 'submitToast.errors.forbidden'
-          break
-        default:
-          key = 'submitToast.errors.generic'
-      }
-      toast.error(t(key))
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -180,21 +116,17 @@ export default function CurriculumDetailPage() {
                   <PenLine className="h-4 w-4 mr-2" />
                   {t('detail.actions.edit')}
                 </Button>
-                <Button onClick={handleSubmit} disabled={submitting}>
-                  {submitting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4 mr-2" />
-                  )}
-                  {submitting ? t('detail.actions.submitting') : t('detail.actions.submit')}
+                <Button onClick={() => setSubmitOpen(true)}>
+                  <Send className="h-4 w-4 mr-2" />
+                  {t('detail.actions.submit')}
                 </Button>
               </section>
             ) : (
               <section
                 className={cn(
                   'rounded-xl border p-4 text-sm',
-                  STATUS_PILL[curriculum.status].bg,
-                  STATUS_PILL[curriculum.status].text
+                  STATUS_STYLES[curriculum.status].bg,
+                  STATUS_STYLES[curriculum.status].text
                 )}
               >
                 {t(`detail.statusHint.${statusKey(curriculum.status)}`)}
@@ -206,6 +138,12 @@ export default function CurriculumDetailPage() {
               open={editOpen}
               onClose={() => setEditOpen(false)}
               onSaved={() => mutate()}
+            />
+            <SubmitCurriculumDialog
+              curriculumId={curriculum.id}
+              open={submitOpen}
+              onClose={() => setSubmitOpen(false)}
+              onSubmitted={() => mutate()}
             />
           </>
         )}
@@ -221,7 +159,7 @@ function StatusPill({
   status: CurriculumStatus
   t: ReturnType<typeof useTranslations>
 }) {
-  const styles = STATUS_PILL[status]
+  const styles = STATUS_STYLES[status]
   const Icon = styles.Icon
   return (
     <div

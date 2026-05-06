@@ -2485,6 +2485,13 @@
         "forbidden": "Vous n'avez pas la permission de soumettre ce programme",
         "generic": "Échec de la soumission du programme"
       }
+    },
+    "submitDialog": {
+      "title": "Soumettre pour approbation",
+      "description": "Le programme sera envoyé à l'administrateur pour examen. La modification est verrouillée jusqu'à sa décision.",
+      "cancel": "Annuler",
+      "confirm": "Soumettre",
+      "submitting": "Envoi…"
     }
   },
   "myAssignments": {
