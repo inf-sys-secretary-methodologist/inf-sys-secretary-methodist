@@ -428,6 +428,11 @@ func main() {
 	listAssignmentsUseCase := assignUsecases.NewListAssignmentsUseCase(assignmentRepo)
 	getAssignmentUseCase := assignUsecases.NewGetAssignmentUseCase(assignmentRepo)
 	listSubmissionsUseCase := assignUsecases.NewListSubmissionsUseCase(assignmentRepo, submissionRepo)
+	// Student-facing read use cases (v0.113.0). The list use case takes
+	// the narrow MyAssignmentsRepository port — submissionRepo satisfies
+	// it because ListByStudent is on the SubmissionRepository surface.
+	listMyAssignmentsUseCase := assignUsecases.NewListMyAssignmentsUseCase(submissionRepo)
+	getMyAssignmentDetailUseCase := assignUsecases.NewGetMyAssignmentDetailUseCase(assignmentRepo, submissionRepo)
 	logger.Info("Assignments module initialized", nil)
 
 	// Initialize schedule module
@@ -643,6 +648,8 @@ func main() {
 		listAssignmentsUseCase,
 		getAssignmentUseCase,
 		listSubmissionsUseCase,
+		listMyAssignmentsUseCase,
+		getMyAssignmentDetailUseCase,
 		eventUseCase,
 		lessonUseCase,
 		announcementUseCase,
@@ -1149,6 +1156,8 @@ func setupRoutes(
 	listAssignmentsUseCase *assignUsecases.ListAssignmentsUseCase,
 	getAssignmentUseCase *assignUsecases.GetAssignmentUseCase,
 	listSubmissionsUseCase *assignUsecases.ListSubmissionsUseCase,
+	listMyAssignmentsUseCase *assignUsecases.ListMyAssignmentsUseCase,
+	getMyAssignmentDetailUseCase *assignUsecases.GetMyAssignmentDetailUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
@@ -1864,17 +1873,22 @@ func setupRoutes(
 				assignmentsGroup.OPTIONS("/:id/returns", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 
-			// Student-only resubmit route. Lives in a sibling group rather
-			// than under assignmentsGroup because that group is gated by
-			// RequireNonStudent — exactly the inverse of what resubmit
-			// requires. The dedicated RequireRole("student") middleware
-			// here plus the handler-level studentIDFromContext whitelist
-			// give defence in depth: removing either one alone still
-			// rejects every non-student request.
+			// Student-only routes. Lives in a sibling group rather than
+			// under assignmentsGroup because that group is gated by
+			// RequireNonStudent — exactly the inverse of what student
+			// endpoints require. The dedicated RequireRole("student")
+			// middleware here plus the handler-level studentIDFromContext
+			// whitelist give defence in depth: removing either one alone
+			// still rejects every non-student request.
 			resubmitHandlerInstance := assignHandler.NewResubmitHandler(resubmitSubmissionUseCase)
+			myAssignmentsHandler := assignHandler.NewMyAssignmentsHandler(
+				listMyAssignmentsUseCase, getMyAssignmentDetailUseCase,
+			)
 			studentAssignmentsGroup := protectedGroup.Group("/assignments")
 			studentAssignmentsGroup.Use(authMiddleware.RequireRole("student"))
 			{
+				studentAssignmentsGroup.GET("/my", myAssignmentsHandler.List)
+				studentAssignmentsGroup.GET("/:id/my", myAssignmentsHandler.Detail)
 				studentAssignmentsGroup.POST("/:id/resubmit", resubmitHandlerInstance.Resubmit)
 				studentAssignmentsGroup.OPTIONS("/:id/resubmit", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
