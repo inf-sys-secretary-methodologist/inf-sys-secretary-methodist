@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -311,6 +312,68 @@ func (h *CurriculumHandler) Approve(c *gin.Context) {
 
 	curriculum, err := h.approve.Execute(c.Request.Context(), adminID,
 		curUsecases.ApproveCurriculumInput{ID: id})
+	if err != nil {
+		mapCurriculumError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapCurriculum(curriculum)))
+}
+
+// RejectCurriculumRequest is the JSON body schema for POST /api/curriculum/:id/reject.
+// Reason is required and non-empty (handler enforces); the use case
+// audits it verbatim per ADR-3 (audit-only, not persisted on the entity).
+type RejectCurriculumRequest struct {
+	Reason string `json:"reason" example:"Не соответствует ФГОС, переделать раздел дисциплин"`
+}
+
+// Reject handles POST /api/curriculum/:id/reject.
+// Admin-only — the canApprove whitelist gates write access on top of
+// the route-level RequireRole(SystemAdmin) middleware (the same role
+// admits both Approve and Reject — both are admin-only lifecycle
+// transitions).
+//
+// @Summary Reject a curriculum (admin only)
+// @Tags curriculum
+// @Accept json
+// @Produce json
+// @Param id   path int                       true "Curriculum ID"
+// @Param body body RejectCurriculumRequest   true "Rejection reason"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/curriculum/{id}/reject [post]
+func (h *CurriculumHandler) Reject(c *gin.Context) {
+	adminID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	if !canApprove(role) {
+		c.JSON(http.StatusForbidden, response.Forbidden("only system_admin may reject curricula"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid curriculum id"))
+		return
+	}
+	var body RejectCurriculumRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid request body: "+err.Error()))
+		return
+	}
+	reason := strings.TrimSpace(body.Reason)
+	if reason == "" {
+		c.JSON(http.StatusBadRequest, response.BadRequest("reason must not be empty"))
+		return
+	}
+
+	curriculum, err := h.reject.Execute(c.Request.Context(), adminID,
+		curUsecases.RejectCurriculumInput{ID: id, Reason: reason})
 	if err != nil {
 		mapCurriculumError(c, err)
 		return
