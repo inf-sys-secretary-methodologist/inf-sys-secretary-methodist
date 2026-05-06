@@ -450,6 +450,12 @@ func main() {
 	getCurriculumUseCase := curUsecases.NewGetCurriculumUseCase(curriculumRepo)
 	listCurriculaUseCase := curUsecases.NewListCurriculaUseCase(curriculumRepo)
 	updateCurriculumUseCase := curUsecases.NewUpdateCurriculumUseCase(curriculumRepo, auditLogger, nil)
+	// v0.117.0 lifecycle transitions: Submit (methodist or admin) +
+	// Approve / Reject (admin-only). Audit-symmetric with the four
+	// CRUD use cases via the shared emitAudit helper.
+	submitCurriculumUseCase := curUsecases.NewSubmitForApprovalUseCase(curriculumRepo, auditLogger, nil)
+	approveCurriculumUseCase := curUsecases.NewApproveCurriculumUseCase(curriculumRepo, auditLogger, nil)
+	rejectCurriculumUseCase := curUsecases.NewRejectCurriculumUseCase(curriculumRepo, auditLogger, nil)
 	logger.Info("Curriculum module initialized", nil)
 
 	// Initialize schedule module
@@ -671,6 +677,9 @@ func main() {
 		getCurriculumUseCase,
 		listCurriculaUseCase,
 		updateCurriculumUseCase,
+		submitCurriculumUseCase,
+		approveCurriculumUseCase,
+		rejectCurriculumUseCase,
 		eventUseCase,
 		lessonUseCase,
 		announcementUseCase,
@@ -1183,6 +1192,9 @@ func setupRoutes(
 	getCurriculumUseCase *curUsecases.GetCurriculumUseCase,
 	listCurriculaUseCase *curUsecases.ListCurriculaUseCase,
 	updateCurriculumUseCase *curUsecases.UpdateCurriculumUseCase,
+	submitCurriculumUseCase *curUsecases.SubmitForApprovalUseCase,
+	approveCurriculumUseCase *curUsecases.ApproveCurriculumUseCase,
+	rejectCurriculumUseCase *curUsecases.RejectCurriculumUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
@@ -1921,12 +1933,13 @@ func setupRoutes(
 			logger.Info("Assignments module routes registered", nil)
 		}
 
-		// Curriculum module routes (v0.116.0). Behind RequireNonStudent
-		// because the v0.116.0 read scope is the four non-student roles;
-		// student read with specialty filtering is a future scope.
+		// Curriculum module routes. Behind RequireNonStudent because
+		// the read scope is the four non-student roles; student read
+		// with specialty filtering is a future scope.
 		if createCurriculumUseCase != nil {
 			curriculumHandler := curHandler.NewCurriculumHandler(
 				createCurriculumUseCase, getCurriculumUseCase, listCurriculaUseCase, updateCurriculumUseCase,
+				submitCurriculumUseCase, approveCurriculumUseCase, rejectCurriculumUseCase,
 			)
 			curriculumGroup := protectedGroup.Group("/curriculum")
 			curriculumGroup.Use(authMiddleware.RequireNonStudent())
@@ -1937,7 +1950,31 @@ func setupRoutes(
 				curriculumGroup.GET("/:id", curriculumHandler.Get)
 				curriculumGroup.PUT("/:id", curriculumHandler.Update)
 				curriculumGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				// v0.117.0 — Submit (methodist or admin). Lives under
+				// the non-student group because it's a write that the
+				// methodist (the curriculum's author) initiates.
+				curriculumGroup.POST("/:id/submit", curriculumHandler.Submit)
+				curriculumGroup.OPTIONS("/:id/submit", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
+
+			// Admin-only sibling group for Approve / Reject. Lives in
+			// a parallel group rather than under curriculumGroup
+			// because that group is gated by RequireNonStudent — the
+			// inverse of what these admin-only endpoints require.
+			// Mirrors the assignments v0.112.0 student-sibling pattern:
+			// when a subset of routes needs an inverse middleware to
+			// its sibling, register a parallel group instead of
+			// special-casing one. The handler-level canApprove
+			// whitelist is defense in depth on top of RequireRole.
+			adminCurriculumGroup := protectedGroup.Group("/curriculum")
+			adminCurriculumGroup.Use(authMiddleware.RequireRole(string(authDomain.RoleSystemAdmin)))
+			{
+				adminCurriculumGroup.POST("/:id/approve", curriculumHandler.Approve)
+				adminCurriculumGroup.OPTIONS("/:id/approve", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				adminCurriculumGroup.POST("/:id/reject", curriculumHandler.Reject)
+				adminCurriculumGroup.OPTIONS("/:id/reject", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
 			logger.Info("Curriculum module routes registered", nil)
 		}
 

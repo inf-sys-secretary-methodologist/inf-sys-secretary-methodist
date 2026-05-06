@@ -21,11 +21,11 @@ import (
 )
 
 type fakeRejectPort struct {
-	called    bool
-	gotAdmin  int64
-	gotInput  curUsecases.RejectCurriculumInput
-	out       *entities.Curriculum
-	err       error
+	called   bool
+	gotAdmin int64
+	gotInput curUsecases.RejectCurriculumInput
+	out      *entities.Curriculum
+	err      error
 }
 
 func (f *fakeRejectPort) Execute(_ context.Context, adminID int64, in curUsecases.RejectCurriculumInput) (*entities.Curriculum, error) {
