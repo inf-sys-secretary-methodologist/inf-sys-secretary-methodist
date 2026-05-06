@@ -269,8 +269,131 @@ func (r *SubmissionRepositoryPG) ListByAssignment(ctx context.Context, assignmen
 
 // ListByStudent returns the denormalised "my assignments" view for the
 // given student — one row per (assignment, submission) pair where the
-// student is the owner. STUB until the GREEN cycle of v0.113.0 lands
-// the SQL query.
+// student is the owner. JOINs with assignments so the student surface
+// renders title/subject/group/due/max_score alongside submission state
+// in a single round-trip. The empty-string sentinel inside the WHERE
+// disables the optional status predicate, mirroring ListByAssignment.
 func (r *SubmissionRepositoryPG) ListByStudent(ctx context.Context, studentID int64, status *entities.SubmissionStatus) ([]views.StudentAssignmentView, error) {
-	return nil, errors.New("submissions: list by student: not implemented")
+	statusFilter := ""
+	if status != nil {
+		statusFilter = string(*status)
+	}
+
+	query := `
+		SELECT a.id, a.title, COALESCE(a.description, ''), a.subject, a.group_name,
+		       a.max_score, a.due_date,
+		       a.created_at, a.updated_at,
+		       s.id, s.student_id,
+		       s.grade_value, s.feedback, s.graded_by, s.graded_at,
+		       s.return_reason, s.returned_by, s.returned_at,
+		       s.status, s.created_at, s.updated_at
+		FROM submissions s
+		JOIN assignments a ON a.id = s.assignment_id
+		WHERE s.student_id = $1
+		  AND ($2 = '' OR s.status = $2)
+		ORDER BY COALESCE(a.due_date, a.created_at) DESC, a.id DESC`
+
+	rows, err := r.db.QueryContext(ctx, query, studentID, statusFilter)
+	if err != nil {
+		return nil, fmt.Errorf("submissions: list by student: %w", err)
+	}
+	defer rows.Close()
+
+	var out []views.StudentAssignmentView
+	for rows.Next() {
+		var (
+			aid                 int64
+			title               string
+			description         string
+			subject             string
+			groupName           string
+			maxScore            int
+			dueDate             sql.NullTime
+			assignmentCreatedAt time.Time
+			assignmentUpdatedAt time.Time
+
+			submissionID        int64
+			studentIDOut        int64
+			gradeValue          sql.NullInt64
+			feedback            sql.NullString
+			gradedBy            sql.NullInt64
+			gradedAt            sql.NullTime
+			returnReason        sql.NullString
+			returnedByNull      sql.NullInt64
+			returnedAtNull      sql.NullTime
+			statusStr           string
+			submissionCreatedAt time.Time
+			submissionUpdatedAt time.Time
+		)
+		if err := rows.Scan(
+			&aid, &title, &description, &subject, &groupName,
+			&maxScore, &dueDate,
+			&assignmentCreatedAt, &assignmentUpdatedAt,
+			&submissionID, &studentIDOut,
+			&gradeValue, &feedback, &gradedBy, &gradedAt,
+			&returnReason, &returnedByNull, &returnedAtNull,
+			&statusStr, &submissionCreatedAt, &submissionUpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("submissions: list by student scan: %w", err)
+		}
+
+		var due *time.Time
+		if dueDate.Valid {
+			t := dueDate.Time
+			due = &t
+		}
+		var gv *int
+		if gradeValue.Valid {
+			v := int(gradeValue.Int64)
+			gv = &v
+		}
+		var gb *int64
+		if gradedBy.Valid {
+			v := gradedBy.Int64
+			gb = &v
+		}
+		var ga *time.Time
+		if gradedAt.Valid {
+			t := gradedAt.Time
+			ga = &t
+		}
+		var rb *int64
+		if returnedByNull.Valid {
+			v := returnedByNull.Int64
+			rb = &v
+		}
+		var rat *time.Time
+		if returnedAtNull.Valid {
+			t := returnedAtNull.Time
+			rat = &t
+		}
+
+		out = append(out, views.StudentAssignmentView{
+			AssignmentID:        aid,
+			Title:               title,
+			Description:         description,
+			Subject:             subject,
+			GroupName:           groupName,
+			MaxScore:            maxScore,
+			DueDate:             due,
+			AssignmentCreatedAt: assignmentCreatedAt,
+			AssignmentUpdatedAt: assignmentUpdatedAt,
+			SubmissionID:        submissionID,
+			StudentID:           studentIDOut,
+			GradeValue:          gv,
+			Feedback:            feedback.String,
+			GradedBy:            gb,
+			GradedAt:            ga,
+			ReturnReason:        returnReason.String,
+			ReturnedBy:          rb,
+			ReturnedAt:          rat,
+			Status:              entities.SubmissionStatus(statusStr),
+			SubmissionCreatedAt: submissionCreatedAt,
+			SubmissionUpdatedAt: submissionUpdatedAt,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("submissions: list by student iter: %w", err)
+	}
+	return out, nil
 }
