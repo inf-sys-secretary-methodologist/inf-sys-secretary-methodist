@@ -64,13 +64,8 @@ func (uc *ListCurriculaUseCase) Execute(ctx context.Context, in ListCurriculaInp
 	if limit <= 0 {
 		limit = defaultListLimit
 	}
-	if limit > maxListLimit {
-		limit = maxListLimit
-	}
-	offset := in.Offset
-	if offset < 0 {
-		offset = 0
-	}
+	limit = min(limit, maxListLimit)
+	offset := max(in.Offset, 0)
 
 	res, err := uc.repo.List(ctx, repositories.CurriculumListFilter{
 		Status:    in.Status,
