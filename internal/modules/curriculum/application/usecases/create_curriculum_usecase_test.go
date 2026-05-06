@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"errors"
+	"maps"
 	"testing"
 	"time"
 
@@ -49,9 +50,7 @@ func (r *recordingAuditSink) LogAuditEvent(_ context.Context, action, resource s
 	// Defensive copy — production code may mutate the map after dispatch
 	// (it doesn't, but pinning the snapshot here protects future maintainers).
 	cp := make(map[string]any, len(fields))
-	for k, v := range fields {
-		cp[k] = v
-	}
+	maps.Copy(cp, fields)
 	r.events = append(r.events, auditCall{Action: action, Resource: resource, Fields: cp})
 }
 
