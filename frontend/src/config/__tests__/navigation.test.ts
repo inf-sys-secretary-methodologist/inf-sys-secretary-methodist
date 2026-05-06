@@ -62,7 +62,7 @@ describe('navigationConfig', () => {
     expect(itemKeys).toContain('templates')
   })
 
-  it('educationGroup contains schedule, calendar, tasks, and assignments', () => {
+  it('educationGroup contains schedule, calendar, tasks, assignments, and curriculum', () => {
     const eduGroup = navigationConfig.find((e) => e.nameKey === 'educationGroup') as NavGroup
     expect(eduGroup).toBeDefined()
     expect(isNavGroup(eduGroup)).toBe(true)
@@ -71,6 +71,7 @@ describe('navigationConfig', () => {
     expect(itemKeys).toContain('calendar')
     expect(itemKeys).toContain('tasks')
     expect(itemKeys).toContain('assignments')
+    expect(itemKeys).toContain('curriculum')
   })
 
   it('assignments entry is hidden from STUDENT and visible to all four non-student roles', () => {
@@ -84,6 +85,24 @@ describe('navigationConfig', () => {
     // visibility to avoid a dead-link round-trip.
     expect(assignments!.roles).not.toContain(UserRole.STUDENT)
     expect(assignments!.roles).toEqual(
+      expect.arrayContaining([
+        UserRole.SYSTEM_ADMIN,
+        UserRole.METHODIST,
+        UserRole.ACADEMIC_SECRETARY,
+        UserRole.TEACHER,
+      ])
+    )
+  })
+
+  it('curriculum entry is hidden from STUDENT and visible to all four non-student roles', () => {
+    const eduGroup = navigationConfig.find((e) => e.nameKey === 'educationGroup') as NavGroup
+    const curriculum = eduGroup.items.find((i) => i.nameKey === 'curriculum')
+    expect(curriculum).toBeDefined()
+    expect(curriculum!.url).toBe('/curriculum')
+    // Student is excluded by GET /api/curriculum RequireNonStudent
+    // gate (v0.116.0); navigation mirrors that to avoid a dead link.
+    expect(curriculum!.roles).not.toContain(UserRole.STUDENT)
+    expect(curriculum!.roles).toEqual(
       expect.arrayContaining([
         UserRole.SYSTEM_ADMIN,
         UserRole.METHODIST,
