@@ -1,12 +1,20 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { SWRConfig } from 'swr'
 import React from 'react'
-import { useCurricula, useCurriculum, updateCurriculum, submitCurriculum } from '../useCurricula'
+import {
+  useCurricula,
+  useCurriculum,
+  updateCurriculum,
+  submitCurriculum,
+  approveCurriculum,
+  rejectCurriculum,
+} from '../useCurricula'
 import { apiClient } from '@/lib/api'
 import type {
   Curriculum,
   CurriculumListResponse,
   UpdateCurriculumRequest,
+  RejectCurriculumRequest,
 } from '@/types/curriculum'
 
 jest.mock('@/lib/api', () => ({
@@ -180,5 +188,48 @@ describe('submitCurriculum', () => {
   it('propagates axios errors so callers can branch on status code', async () => {
     mockedApiClient.post.mockRejectedValueOnce(new Error('422 not draft'))
     await expect(submitCurriculum(11)).rejects.toThrow('422 not draft')
+  })
+})
+
+describe('approveCurriculum', () => {
+  it('POSTs to /api/curriculum/:id/approve with empty body and returns approved Curriculum', async () => {
+    const approved: Curriculum = {
+      ...sampleCurriculum,
+      status: 'approved',
+      approved_by: 1,
+      approved_at: '2026-05-07T08:00:00Z',
+    }
+    mockedApiClient.post.mockResolvedValueOnce(apiOk(approved))
+
+    const out = await approveCurriculum(11)
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/api/curriculum/11/approve', {})
+    expect(out).toEqual(approved)
+    expect(out.status).toBe('approved')
+  })
+
+  it('propagates axios errors so callers can branch on status code', async () => {
+    mockedApiClient.post.mockRejectedValueOnce(new Error('422 not pending'))
+    await expect(approveCurriculum(11)).rejects.toThrow('422 not pending')
+  })
+})
+
+describe('rejectCurriculum', () => {
+  const body: RejectCurriculumRequest = { reason: 'Не соответствует ФГОС' }
+
+  it('POSTs to /api/curriculum/:id/reject with body and returns Curriculum (back to draft)', async () => {
+    const rejected: Curriculum = { ...sampleCurriculum, status: 'draft' }
+    mockedApiClient.post.mockResolvedValueOnce(apiOk(rejected))
+
+    const out = await rejectCurriculum(11, body)
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/api/curriculum/11/reject', body)
+    expect(out).toEqual(rejected)
+    expect(out.status).toBe('draft')
+  })
+
+  it('propagates axios errors so callers can branch on status code', async () => {
+    mockedApiClient.post.mockRejectedValueOnce(new Error('422 not pending'))
+    await expect(rejectCurriculum(11, body)).rejects.toThrow('422 not pending')
   })
 })
