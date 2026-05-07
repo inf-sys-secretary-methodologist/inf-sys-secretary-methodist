@@ -10,6 +10,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 )
 
+const testNameAdmin = "Admin"
+
 func TestToPermissionOutput(t *testing.T) {
 	now := time.Now()
 	userID := int64(5)
@@ -17,7 +19,7 @@ func TestToPermissionOutput(t *testing.T) {
 	userName := "Teacher"
 	userEmail := "teacher@example.com"
 	grantedBy := int64(1)
-	grantedByName := "Admin"
+	grantedByName := testNameAdmin
 	expiresAt := now.Add(24 * time.Hour)
 
 	perm := &entities.DocumentPermission{
@@ -77,7 +79,7 @@ func TestToPermissionOutputList(t *testing.T) {
 func TestToPublicLinkOutput(t *testing.T) {
 	now := time.Now()
 	docTitle := "My Doc"
-	createdByName := "Admin"
+	createdByName := testNameAdmin
 	maxUses := 10
 	passHash := "somehash"
 

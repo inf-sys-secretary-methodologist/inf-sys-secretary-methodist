@@ -15,7 +15,7 @@ func TestToDocumentVersionOutput(t *testing.T) {
 	title := "Title"
 	status := "approved"
 	fileName := "v1.pdf"
-	changedByName := "Admin"
+	changedByName := testNameAdmin
 	changeDesc := "Updated content"
 
 	v := &entities.DocumentVersion{

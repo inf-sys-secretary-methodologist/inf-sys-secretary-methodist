@@ -8,12 +8,14 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
 )
 
+const testTime0900 = "09:00"
+
 func TestNewLesson_Deterministic(t *testing.T) {
 	fixedTime := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
 	dateStart := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
 	dateEnd := time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC)
 
-	lesson := NewLesson(1, 2, 3, 4, 5, 6, domain.Monday, "09:00", "10:30", domain.WeekTypeAll, dateStart, dateEnd, fixedTime)
+	lesson := NewLesson(1, 2, 3, 4, 5, 6, domain.Monday, testTime0900, "10:30", domain.WeekTypeAll, dateStart, dateEnd, fixedTime)
 	if lesson == nil {
 		t.Fatal("NewLesson returned nil")
 	}
@@ -23,7 +25,7 @@ func TestNewLesson_Deterministic(t *testing.T) {
 	if lesson.DayOfWeek != domain.Monday {
 		t.Errorf("DayOfWeek = %v, want Monday", lesson.DayOfWeek)
 	}
-	if lesson.TimeStart != "09:00" {
+	if lesson.TimeStart != testTime0900 {
 		t.Errorf("TimeStart = %v, want 09:00", lesson.TimeStart)
 	}
 	if !lesson.DateStart.Equal(dateStart) {
@@ -62,7 +64,7 @@ func TestNewScheduleChange_Deterministic(t *testing.T) {
 func TestLesson_Validate(t *testing.T) {
 	validLesson := func() *Lesson {
 		now := time.Now()
-		return NewLesson(1, 1, 1, 1, 1, 1, domain.Monday, "09:00", "10:30", domain.WeekTypeAll,
+		return NewLesson(1, 1, 1, 1, 1, 1, domain.Monday, testTime0900, "10:30", domain.WeekTypeAll,
 			time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
 			time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC),
 			now,
@@ -96,12 +98,12 @@ func TestLesson_Validate(t *testing.T) {
 		},
 		{
 			name:    "end time before start time",
-			modify:  func(l *Lesson) { l.TimeStart = "10:30"; l.TimeEnd = "09:00" },
+			modify:  func(l *Lesson) { l.TimeStart = "10:30"; l.TimeEnd = testTime0900 },
 			wantErr: ErrInvalidTimeRange,
 		},
 		{
 			name:    "equal start and end time",
-			modify:  func(l *Lesson) { l.TimeStart = "09:00"; l.TimeEnd = "09:00" },
+			modify:  func(l *Lesson) { l.TimeStart = testTime0900; l.TimeEnd = testTime0900 },
 			wantErr: ErrInvalidTimeRange,
 		},
 		{

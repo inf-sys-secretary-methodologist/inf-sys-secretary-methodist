@@ -587,7 +587,7 @@ func TestDocumentUseCase_Update_OwnershipEnforcement(t *testing.T) {
 				mockDocRepo.On("AddHistory", mock.Anything, mock.AnythingOfType("*entities.DocumentHistory")).Return(nil).Once()
 			}
 
-			newTitle := "New"
+			newTitle := testTitleNew
 			_, err := usecase.Update(context.Background(), 1, dto.UpdateDocumentInput{Title: &newTitle}, tc.callerID, tc.role)
 
 			if tc.wantErrIs != nil {
