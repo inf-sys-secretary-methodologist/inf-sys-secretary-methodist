@@ -46,8 +46,10 @@ export function RejectCurriculumDialog({
   const [submitting, setSubmitting] = useState(false)
 
   // Reset reason on each fresh open так что admin starts blank for
-  // each curriculum в queue (mirror к EditCurriculumDialog pattern
-  // for stale-state avoidance).
+  // each curriculum в queue. Diverges from ReturnDialog's success-only
+  // clear (`setReason('')` после onReturned) — admin's queue use-case
+  // needs blank slate at every open, including error→cancel→reopen
+  // path where the previous draft would otherwise persist.
   useEffect(() => {
     if (open) setReason('')
   }, [open])

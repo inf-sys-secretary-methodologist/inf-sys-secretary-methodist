@@ -254,4 +254,13 @@ describe('AdminCurriculumApprovePage', () => {
     render(<AdminCurriculumApprovePage />)
     expect(screen.getByText('adminApprove.loadFailed')).toBeInTheDocument()
   })
+
+  it('renders only the spinner shell while auth is loading (no headers / no data)', () => {
+    mockUseAuthCheck.mockReturnValue({ user: null, isAuthenticated: false, isLoading: true })
+    render(<AdminCurriculumApprovePage />)
+    // Pre-auth shell hides the page chrome — title is part of the
+    // loaded body, not the spinner shell.
+    expect(screen.queryByText('adminApprove.title')).not.toBeInTheDocument()
+    expect(screen.queryByText('adminApprove.empty.title')).not.toBeInTheDocument()
+  })
 })

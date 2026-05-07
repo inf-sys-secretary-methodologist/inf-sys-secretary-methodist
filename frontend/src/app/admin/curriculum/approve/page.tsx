@@ -144,18 +144,29 @@ export default function AdminCurriculumApprovePage() {
           </div>
         )}
 
-        <ApproveCurriculumDialog
-          curriculumId={approveTargetId ?? 0}
-          open={approveTargetId !== null}
-          onClose={() => setApproveTargetId(null)}
-          onApproved={() => mutate()}
-        />
-        <RejectCurriculumDialog
-          curriculumId={rejectTargetId ?? 0}
-          open={rejectTargetId !== null}
-          onClose={() => setRejectTargetId(null)}
-          onRejected={() => mutate()}
-        />
+        {/*
+          Render dialogs only when a target id is set. Avoids passing
+          a sentinel id (0) into the dialog when closed — defensive
+          against transient confirm fires during open=true→false
+          transition, even though the double-click guard makes that
+          near-impossible in practice.
+        */}
+        {approveTargetId !== null && (
+          <ApproveCurriculumDialog
+            curriculumId={approveTargetId}
+            open={true}
+            onClose={() => setApproveTargetId(null)}
+            onApproved={() => mutate()}
+          />
+        )}
+        {rejectTargetId !== null && (
+          <RejectCurriculumDialog
+            curriculumId={rejectTargetId}
+            open={true}
+            onClose={() => setRejectTargetId(null)}
+            onRejected={() => mutate()}
+          />
+        )}
       </div>
     </AppLayout>
   )

@@ -217,6 +217,28 @@ describe('getAvailableNavEntries', () => {
     expect(adminItemKeys).not.toContain('integration')
   })
 
+  it.each([UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY, UserRole.TEACHER, UserRole.STUDENT])(
+    'curriculumApprove entry is hidden from %s',
+    (role) => {
+      const entries = getAvailableNavEntries(role)
+      const adminGroup = entries.find((e) => e.nameKey === 'adminGroup')
+      // Either adminGroup is filtered out entirely (student) или present but
+      // without curriculumApprove (other non-admin roles).
+      if (adminGroup && isNavGroup(adminGroup)) {
+        const itemKeys = adminGroup.items.map((i) => i.nameKey)
+        expect(itemKeys).not.toContain('curriculumApprove')
+      }
+      // Flat-items helper also confirms — single source of truth.
+      const flatKeys = getAvailableNavItems(role).map((i) => i.nameKey)
+      expect(flatKeys).not.toContain('curriculumApprove')
+    }
+  )
+
+  it('curriculumApprove entry is visible to SYSTEM_ADMIN', () => {
+    const flatKeys = getAvailableNavItems(UserRole.SYSTEM_ADMIN).map((i) => i.nameKey)
+    expect(flatKeys).toContain('curriculumApprove')
+  })
+
   it('accepts string role', () => {
     const entries = getAvailableNavEntries('student')
     expect(entries.length).toBeGreaterThan(0)
