@@ -30,7 +30,9 @@ describe('AnnouncementForm', () => {
   })
 
   it('pre-fills fields when editing existing announcement', () => {
-    render(<AnnouncementForm announcement={baseAnnouncement} onSubmit={jest.fn()} onCancel={jest.fn()} />)
+    render(
+      <AnnouncementForm announcement={baseAnnouncement} onSubmit={jest.fn()} onCancel={jest.fn()} />
+    )
     expect((screen.getByLabelText(/titleLabel|title/i) as HTMLInputElement).value).toBe('Old title')
     expect((screen.getByLabelText(/contentLabel|content/i) as HTMLTextAreaElement).value).toBe(
       'Old content'

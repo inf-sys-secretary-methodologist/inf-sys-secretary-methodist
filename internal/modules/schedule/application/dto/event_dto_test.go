@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 )
 
 func TestToEventOutput(t *testing.T) {
@@ -184,5 +185,5 @@ func TestToRecurrenceRule_Defaults(t *testing.T) {
 
 	require.NotNil(t, rule)
 	assert.Equal(t, entities.WeekdayMonday, rule.WeekStart) // default
-	assert.Equal(t, 1, rule.Interval)                        // default
+	assert.Equal(t, 1, rule.Interval)                       // default
 }

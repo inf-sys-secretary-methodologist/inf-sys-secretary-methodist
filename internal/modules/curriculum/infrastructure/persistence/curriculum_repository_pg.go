@@ -28,7 +28,7 @@ func NewCurriculumRepositoryPG(db *sql.DB) *CurriculumRepositoryPG {
 const curriculumSelectColumns = `id, title, code, specialty, year, description, status, created_by, approved_by, approved_at, created_at, updated_at`
 
 // pqUniqueViolation is the SQLSTATE code for a unique-constraint
-// violation in PostgreSQL. The pg-error mapping is centralised in
+// violation in PostgreSQL. The pg-error mapping is centralized in
 // shared/infrastructure/database/errors.go for cross-module use, but
 // this module mirrors the small inline pattern that existing modules
 // (assignments, tasks) use to keep their bounded contexts free of a
@@ -130,7 +130,7 @@ func (r *CurriculumRepositoryPG) List(ctx context.Context, filter repositories.C
 	if err != nil {
 		return repositories.CurriculumListResult{}, fmt.Errorf("curriculum: list: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var items []*entities.Curriculum
 	for rows.Next() {

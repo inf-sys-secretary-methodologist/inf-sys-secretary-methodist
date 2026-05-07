@@ -38,8 +38,8 @@ type mockAnalyticsRepository struct {
 	// Captured scope arguments — used by delegation tests to assert that
 	// the use case forwards the *TeacherScope it received from the caller
 	// directly to the repository (no silent coercion to nil).
-	atRiskScope         *entities.TeacherScope
-	atRiskScopeCaptured bool
+	atRiskScope            *entities.TeacherScope
+	atRiskScopeCaptured    bool
 	allGroupsScope         *entities.TeacherScope
 	allGroupsScopeCaptured bool
 	riskLevelScope         *entities.TeacherScope
@@ -987,11 +987,11 @@ func TestGetGroupSummary_ScopeCheck(t *testing.T) {
 
 func TestGetStudentRisk_ScopeCheck(t *testing.T) {
 	tests := []struct {
-		name           string
-		scope          *entities.TeacherScope
-		studentGroup   *string
-		wantErrIs      error
-		wantNil        bool
+		name         string
+		scope        *entities.TeacherScope
+		studentGroup *string
+		wantErrIs    error
+		wantNil      bool
 	}{
 		{
 			name:         "nil scope passes through regardless of student group",

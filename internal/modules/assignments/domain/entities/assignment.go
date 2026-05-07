@@ -12,7 +12,7 @@ import (
 // Handlers map this sentinel to HTTP 422.
 var ErrInvalidAssignment = errors.New("assignments: invalid assignment")
 
-// ErrAssignmentScopeForbidden indicates that a user is not authorised to
+// ErrAssignmentScopeForbidden indicates that a user is not authorized to
 // operate on a particular Assignment — typically because the user is a
 // teacher who did not author the Assignment. Handlers map this sentinel
 // to HTTP 403.
@@ -152,7 +152,7 @@ func (a *Assignment) AuthorizeGrader(userID int64) error {
 // system_admin at the application layer) always pass; otherwise the
 // rule is the same as AuthorizeGrader — the user must be the author.
 //
-// Centralising the read-side rule in the aggregate keeps the
+// Centralizing the read-side rule in the aggregate keeps the
 // GetAssignment and ListSubmissions use cases from re-implementing
 // (and accidentally diverging from) the same predicate.
 func (a *Assignment) AuthorizeAccess(unrestricted bool, userID int64) error {

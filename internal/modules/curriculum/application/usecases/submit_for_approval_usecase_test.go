@@ -56,7 +56,7 @@ func TestSubmitForApprovalUseCase_AuthorSubmitsOwnDraft(t *testing.T) {
 	require.Len(t, audit.events, 1)
 	ev := audit.events[0]
 	assert.Equal(t, "curriculum.submitted", ev.Action)
-	assert.Equal(t, int64(author), ev.Fields["actor_user_id"])
+	assert.Equal(t, author, ev.Fields["actor_user_id"])
 	assert.Equal(t, int64(7), ev.Fields["curriculum_id"])
 }
 
@@ -73,7 +73,7 @@ func TestSubmitForApprovalUseCase_AdminSubmitsForeignDraft(t *testing.T) {
 	assert.Equal(t, 1, repo.updateCalls)
 	require.Len(t, audit.events, 1)
 	assert.Equal(t, "curriculum.submitted", audit.events[0].Action)
-	assert.Equal(t, int64(admin), audit.events[0].Fields["actor_user_id"])
+	assert.Equal(t, admin, audit.events[0].Fields["actor_user_id"])
 }
 
 func TestSubmitForApprovalUseCase_StrangerMethodistRejected(t *testing.T) {

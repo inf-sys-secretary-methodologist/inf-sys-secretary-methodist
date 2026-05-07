@@ -37,9 +37,9 @@ func createDefaultRequest() *dto.CreateAnnouncementRequest {
 // --- MockAnnouncementRepository ---
 
 type MockAnnouncementRepository struct {
-	announcements   map[int64]*entities.Announcement
-	attachments     map[int64][]*entities.AnnouncementAttachment
-	nextID          int64
+	announcements    map[int64]*entities.Announcement
+	attachments      map[int64][]*entities.AnnouncementAttachment
+	nextID           int64
 	nextAttachmentID int64
 }
 

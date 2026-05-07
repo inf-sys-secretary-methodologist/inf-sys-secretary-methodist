@@ -58,7 +58,7 @@ func TestRejectCurriculumUseCase_HappyPathRecordsReasonInAuditOnly(t *testing.T)
 	require.Len(t, audit.events, 1)
 	ev := audit.events[0]
 	assert.Equal(t, "curriculum.rejected", ev.Action)
-	assert.Equal(t, int64(admin), ev.Fields["actor_user_id"])
+	assert.Equal(t, admin, ev.Fields["actor_user_id"])
 	assert.Equal(t, int64(7), ev.Fields["curriculum_id"])
 	assert.Equal(t, "Не соответствует ФГОС, переделать раздел дисциплин",
 		ev.Fields["reason"],

@@ -38,7 +38,7 @@ func (w WeekType) IsValid() bool {
 type ChangeType string
 
 const (
-	ChangeTypeCancelled         ChangeType = "cancelled"
+	ChangeTypeCancelled         ChangeType = "canceled"
 	ChangeTypeMoved             ChangeType = "moved"
 	ChangeTypeReplacedTeacher   ChangeType = "replaced_teacher"
 	ChangeTypeReplacedClassroom ChangeType = "replaced_classroom"

@@ -20,7 +20,7 @@ type MyAssignmentsRepository interface {
 // ListMyAssignmentsInput is the use-case input contract.
 type ListMyAssignmentsInput struct {
 	// StudentID is the authenticated caller. Always required and must
-	// be > 0 — defence in depth on top of the handler whitelist.
+	// be > 0 — defense in depth on top of the handler whitelist.
 	StudentID int64
 	// Status, when non-nil, filters submissions to a single lifecycle
 	// state (pending / graded / returned).

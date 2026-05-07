@@ -88,9 +88,7 @@ export async function downloadFileVersion(
   fileId: number,
   versionNumber: number
 ): Promise<DownloadResponse> {
-  return apiClient.get<DownloadResponse>(
-    `${FILES_BASE_URL}/${fileId}/versions/${versionNumber}`
-  )
+  return apiClient.get<DownloadResponse>(`${FILES_BASE_URL}/${fileId}/versions/${versionNumber}`)
 }
 
 export async function createFileVersion(

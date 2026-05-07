@@ -149,11 +149,9 @@ describe('useFiles hooks', () => {
 
       const result = await uploadFile(mockFile)
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith(
-        '/api/files/upload',
-        expect.any(FormData),
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      )
+      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/files/upload', expect.any(FormData), {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
       expect(result).toEqual(mockResponse)
     })
 

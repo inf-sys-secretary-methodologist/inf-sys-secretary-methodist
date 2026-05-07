@@ -27,7 +27,9 @@ describe('TaskForm', () => {
   it('pre-fills fields when editing existing task', () => {
     render(<TaskForm task={baseTask} onSubmit={jest.fn()} onCancel={jest.fn()} />)
     expect((screen.getByLabelText(/titleLabel|title/i) as HTMLInputElement).value).toBe('Old title')
-    expect((screen.getByLabelText(/descriptionLabel|description/i) as HTMLTextAreaElement).value).toBe('Old desc')
+    expect(
+      (screen.getByLabelText(/descriptionLabel|description/i) as HTMLTextAreaElement).value
+    ).toBe('Old desc')
   })
 
   it('calls onSubmit with form data when submitted', async () => {

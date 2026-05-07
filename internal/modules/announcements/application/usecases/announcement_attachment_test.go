@@ -17,10 +17,10 @@ import (
 
 // mockAttachmentStorage stub implements AttachmentStorage for tests.
 type mockAttachmentStorage struct {
-	uploaded     map[string][]byte
-	uploadErr    error
-	deletedKeys  []string
-	deleteErr    error
+	uploaded    map[string][]byte
+	uploadErr   error
+	deletedKeys []string
+	deleteErr   error
 }
 
 func newMockAttachmentStorage() *mockAttachmentStorage {

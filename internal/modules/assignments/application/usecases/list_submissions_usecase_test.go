@@ -27,25 +27,25 @@ func TestListSubmissionsUseCase_Execute(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		caller         usecases.CallerScope
-		askID          int64
-		seedID         int64
-		statusFilter   *entities.SubmissionStatus
-		repoSubs       []views.SubmissionView
-		repoErr        error
-		assignmentErr  error
-		wantErr        error
-		wantStatus     *entities.SubmissionStatus
-		wantCount      int
+		name          string
+		caller        usecases.CallerScope
+		askID         int64
+		seedID        int64
+		statusFilter  *entities.SubmissionStatus
+		repoSubs      []views.SubmissionView
+		repoErr       error
+		assignmentErr error
+		wantErr       error
+		wantStatus    *entities.SubmissionStatus
+		wantCount     int
 	}{
 		{
-			name:       "teacher lists own assignment submissions",
-			caller:     usecases.CallerScope{UserID: authorTeacherID, Unrestricted: false},
-			askID:      assignmentID,
-			seedID:     assignmentID,
-			repoSubs:   twoSubs,
-			wantCount:  2,
+			name:      "teacher lists own assignment submissions",
+			caller:    usecases.CallerScope{UserID: authorTeacherID, Unrestricted: false},
+			askID:     assignmentID,
+			seedID:    assignmentID,
+			repoSubs:  twoSubs,
+			wantCount: 2,
 		},
 		{
 			name:    "teacher denied on foreign assignment",

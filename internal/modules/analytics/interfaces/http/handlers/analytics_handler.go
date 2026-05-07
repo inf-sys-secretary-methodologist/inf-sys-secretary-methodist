@@ -42,7 +42,7 @@ type AnalyticsHandler struct {
 // scopeRepo is required (non-nil): a nil repo would silently disable
 // the teacher-scope filter, which is a failure-open posture — every
 // teacher request would surface the entire dataset. Tests that do not
-// exercise scope behaviour should pass a no-op implementation rather
+// exercise scope behavior should pass a no-op implementation rather
 // than nil. The handler panics on construction with a nil repo to fail
 // loudly during DI wiring.
 func NewAnalyticsHandler(usecase *usecases.AnalyticsUseCase, scopeRepo repositories.TeacherScopeRepository) *AnalyticsHandler {

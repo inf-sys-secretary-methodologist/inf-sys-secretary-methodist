@@ -90,7 +90,7 @@ func (r *SubmissionRepositoryPG) GetByAssignmentAndStudent(ctx context.Context, 
 // Save upserts the submission keyed on (assignment_id, student_id).
 // Insert when ID==0, update otherwise. The unique constraint
 // uq_submissions_assignment_student guarantees that a concurrent
-// "first grading" race materialises at most one row, and the upsert
+// "first grading" race materializes at most one row, and the upsert
 // merges into it deterministically.
 func (r *SubmissionRepositoryPG) Save(ctx context.Context, s *entities.Submission) error {
 	query := `
@@ -193,7 +193,7 @@ func (r *SubmissionRepositoryPG) ListByAssignment(ctx context.Context, assignmen
 	if err != nil {
 		return nil, fmt.Errorf("submissions: list by assignment: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []views.SubmissionView
 	for rows.Next() {
@@ -297,7 +297,7 @@ func (r *SubmissionRepositoryPG) ListByStudent(ctx context.Context, studentID in
 	if err != nil {
 		return nil, fmt.Errorf("submissions: list by student: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []views.StudentAssignmentView
 	for rows.Next() {

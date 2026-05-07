@@ -6,13 +6,7 @@ import { Workflow } from 'lucide-react'
 import { AppLayout } from '@/components/layout'
 import { AdminSettingsTabs } from '@/components/admin/AdminSettingsTabs'
 import { useAuthCheck } from '@/hooks/useAuth'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function AdminAutomationPage() {
   const t = useTranslations('adminSettings')

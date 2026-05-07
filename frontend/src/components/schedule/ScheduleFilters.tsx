@@ -9,12 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type {
-  LessonFilterParams,
-  Semester,
-  StudentGroup,
-  Classroom,
-} from '@/types/schedule'
+import type { LessonFilterParams, Semester, StudentGroup, Classroom } from '@/types/schedule'
 
 interface ScheduleFiltersProps {
   filters: LessonFilterParams
@@ -70,7 +65,8 @@ export function ScheduleFilters({
           <SelectItem value={ALL_VALUE}>{t('filters.semester')}</SelectItem>
           {semesters.map((s) => (
             <SelectItem key={s.id} value={String(s.id)}>
-              {s.name}{s.is_active ? ' *' : ''}
+              {s.name}
+              {s.is_active ? ' *' : ''}
             </SelectItem>
           ))}
         </SelectContent>
@@ -106,7 +102,8 @@ export function ScheduleFilters({
           <SelectItem value={ALL_VALUE}>{t('filters.classroom')}</SelectItem>
           {classrooms.map((c) => (
             <SelectItem key={c.id} value={String(c.id)}>
-              {c.building}-{c.number}{c.name ? ` (${c.name})` : ''}
+              {c.building}-{c.number}
+              {c.name ? ` (${c.name})` : ''}
             </SelectItem>
           ))}
         </SelectContent>

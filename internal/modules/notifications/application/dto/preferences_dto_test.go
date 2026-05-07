@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
 )
 
 func TestToPreferencesOutput(t *testing.T) {
@@ -94,8 +95,8 @@ func TestPreferencesInput_ApplyToEntity_PartialUpdate(t *testing.T) {
 
 	input.ApplyToEntity(p)
 
-	assert.True(t, p.EmailEnabled)  // unchanged
-	assert.True(t, p.PushEnabled)   // unchanged
+	assert.True(t, p.EmailEnabled) // unchanged
+	assert.True(t, p.PushEnabled)  // unchanged
 	assert.True(t, p.TelegramEnabled)
 	assert.Equal(t, "UTC", p.Timezone) // unchanged
 }

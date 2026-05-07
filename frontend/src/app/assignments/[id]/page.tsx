@@ -29,11 +29,7 @@ export default function AssignmentDetailPage() {
 
   const [statusFilter, setStatusFilter] = useState<SubmissionStatus | 'all'>('all')
 
-  const {
-    assignment,
-    isLoading: assignmentLoading,
-    error: assignmentError,
-  } = useAssignment(id)
+  const { assignment, isLoading: assignmentLoading, error: assignmentError } = useAssignment(id)
 
   const {
     items,
@@ -102,7 +98,11 @@ export default function AssignmentDetailPage() {
             <section>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold">{t('detail.submissionsTitle')}</h2>
-                <div className="flex flex-wrap gap-1.5" role="tablist" aria-label={t('detail.statusFilterAria')}>
+                <div
+                  className="flex flex-wrap gap-1.5"
+                  role="tablist"
+                  aria-label={t('detail.statusFilterAria')}
+                >
                   {(['all', ...SUBMISSION_STATUSES] as Array<SubmissionStatus | 'all'>).map((s) => {
                     const active = s === statusFilter
                     return (

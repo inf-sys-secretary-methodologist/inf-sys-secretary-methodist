@@ -47,9 +47,7 @@ describe('AssignmentCard', () => {
   it('parses due_date as local midnight (no UTC day shift)', () => {
     // CLAUDE.md rule #9: a 2026-12-31T00:00:00Z due-date must render
     // as 31 Dec, not 30 Dec, regardless of browser timezone.
-    render(
-      <AssignmentCard assignment={{ ...sample, due_date: '2026-12-31T00:00:00Z' }} />
-    )
+    render(<AssignmentCard assignment={{ ...sample, due_date: '2026-12-31T00:00:00Z' }} />)
     expect(screen.getByText(/31/)).toBeInTheDocument()
   })
 })

@@ -62,7 +62,7 @@ func TestResubmitSubmissionUseCase_ReturnedToPendingHappyPath(t *testing.T) {
 	// a fresh attempt is awaiting grading.
 	assert.True(t, notifier.called, "notifier must be invoked on happy path")
 	assert.Equal(t, authorTeacherID, notifier.lastTeacherID)
-	assert.Equal(t, int64(assignmentID), notifier.lastAssignmentID)
+	assert.Equal(t, assignmentID, notifier.lastAssignmentID)
 
 	// assignment.resubmitted captures actor + ids + previous_return_reason.
 	var ret *recordedAuditEvent
@@ -74,8 +74,8 @@ func TestResubmitSubmissionUseCase_ReturnedToPendingHappyPath(t *testing.T) {
 	}
 	require.NotNil(t, ret, "expected assignment.resubmitted audit event")
 	assert.Equal(t, "assignment", ret.Resource)
-	assert.Equal(t, int64(assignmentID), ret.Fields["assignment_id"])
-	assert.Equal(t, int64(studentID), ret.Fields["student_id"])
+	assert.Equal(t, assignmentID, ret.Fields["assignment_id"])
+	assert.Equal(t, studentID, ret.Fields["student_id"])
 	assert.Equal(t, "missing details", ret.Fields["previous_return_reason"],
 		"previous_return_reason must be captured before Resubmit clears it")
 	assert.Equal(t, studentID, ret.Fields["actor_user_id"])
@@ -134,8 +134,8 @@ func TestResubmitSubmissionUseCase_ForeignStudentDenied(t *testing.T) {
 	}
 	require.NotNil(t, denied, "expected assignment.resubmit_denied audit event")
 	assert.Equal(t, "assignment", denied.Resource)
-	assert.Equal(t, int64(assignmentID), denied.Fields["assignment_id"])
-	assert.Equal(t, int64(studentID), denied.Fields["student_id"])
+	assert.Equal(t, assignmentID, denied.Fields["assignment_id"])
+	assert.Equal(t, studentID, denied.Fields["student_id"])
 	assert.Equal(t, foreignStudentID, denied.Fields["actor_user_id"])
 	assert.Equal(t, "not_owner", denied.Fields["reason"])
 

@@ -99,7 +99,7 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 			},
 		},
 		{
-			name: "explicit limit honoured when within bounds",
+			name: "explicit limit honored when within bounds",
 			input: usecases.ListAssignmentsInput{
 				Caller: caller(authorTeacherID, true),
 				Limit:  25,

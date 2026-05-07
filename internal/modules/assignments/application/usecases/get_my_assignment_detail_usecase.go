@@ -50,7 +50,7 @@ func NewGetMyAssignmentDetailUseCase(
 //
 //   - repositories.ErrAssignmentNotFound  → 404
 //   - repositories.ErrSubmissionNotFound  → 404 (no submission yet)
-//   - entities.ErrSubmissionOwnerOnly     → 403 (defence-in-depth, see ADR-2)
+//   - entities.ErrSubmissionOwnerOnly     → 403 (defense-in-depth, see ADR-2)
 func (uc *GetMyAssignmentDetailUseCase) Execute(ctx context.Context, in GetMyAssignmentDetailInput) (*views.StudentAssignmentView, error) {
 	if in.StudentID <= 0 {
 		return nil, errors.New("get my assignment: student id must be positive")

@@ -37,12 +37,8 @@ export function AnnouncementForm({
   const [title, setTitle] = useState(announcement?.title ?? '')
   const [content, setContent] = useState(announcement?.content ?? '')
   const [summary, setSummary] = useState(announcement?.summary ?? '')
-  const [priority, setPriority] = useState<AnnouncementPriority>(
-    announcement?.priority ?? 'normal'
-  )
-  const [audience, setAudience] = useState<TargetAudience>(
-    announcement?.target_audience ?? 'all'
-  )
+  const [priority, setPriority] = useState<AnnouncementPriority>(announcement?.priority ?? 'normal')
+  const [audience, setAudience] = useState<TargetAudience>(announcement?.target_audience ?? 'all')
   const [isPinned, setIsPinned] = useState(announcement?.is_pinned ?? false)
   const [tagsInput, setTagsInput] = useState(announcement?.tags?.join(', ') ?? '')
   const [publishAt, setPublishAt] = useState(toDateInputValue(announcement?.publish_at))
@@ -103,10 +99,7 @@ export function AnnouncementForm({
   return (
     <form onSubmit={handleSubmit} className={cn('flex flex-col gap-4', className)}>
       <div>
-        <label
-          htmlFor="ann-form-title"
-          className="block text-sm font-medium text-foreground mb-1"
-        >
+        <label htmlFor="ann-form-title" className="block text-sm font-medium text-foreground mb-1">
           {t('form.titleLabel')}
         </label>
         <Input
@@ -249,10 +242,7 @@ export function AnnouncementForm({
       </div>
 
       <div>
-        <label
-          htmlFor="ann-form-tags"
-          className="block text-sm font-medium text-foreground mb-1"
-        >
+        <label htmlFor="ann-form-tags" className="block text-sm font-medium text-foreground mb-1">
           {t('form.tagsLabel')}
         </label>
         <Input

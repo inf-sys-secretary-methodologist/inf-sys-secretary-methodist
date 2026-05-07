@@ -14,10 +14,16 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
+// auditActionReturned is the canonical audit event action emitted by
+// ReturnSubmissionUseCase. Used by multiple test cases that scan
+// audit log events for the matching action — extracted to constant
+// so a future rename touches one site.
+const auditActionReturned = "assignment.returned"
+
 // TestReturnSubmissionUseCase_PendingToReturnedHappyPath asserts the core
 // methodist-driven flow: an assignment exists, no prior submission exists,
 // the methodist (via the assignment's author here for the simplest gate)
-// returns the upload with a reason. The use case must materialise a
+// returns the upload with a reason. The use case must materialize a
 // fresh-pending Submission, transition it to Returned, persist it, and
 // invoke the notifier exactly once with the right payload.
 func TestReturnSubmissionUseCase_PendingToReturnedHappyPath(t *testing.T) {
@@ -81,15 +87,15 @@ func TestReturnSubmissionUseCase_GradedToReturnedAuditsPreviousGrade(t *testing.
 	// Find the assignment.returned event.
 	var ret *recordedAuditEvent
 	for i := range audit.events {
-		if audit.events[i].Action == "assignment.returned" {
+		if audit.events[i].Action == auditActionReturned {
 			ret = &audit.events[i]
 			break
 		}
 	}
 	require.NotNil(t, ret, "expected assignment.returned audit event")
 	assert.Equal(t, "assignment", ret.Resource)
-	assert.Equal(t, int64(assignmentID), ret.Fields["assignment_id"])
-	assert.Equal(t, int64(studentID), ret.Fields["student_id"])
+	assert.Equal(t, assignmentID, ret.Fields["assignment_id"])
+	assert.Equal(t, studentID, ret.Fields["student_id"])
 	assert.Equal(t, "redo derivation step", ret.Fields["reason"])
 	assert.Equal(t, 85, ret.Fields["previous_grade"], "previous_grade must be captured before Return clears it")
 	assert.Equal(t, "good", ret.Fields["previous_feedback"], "previous_feedback must be captured before Return clears it")
@@ -119,7 +125,7 @@ func TestReturnSubmissionUseCase_PendingToReturnedAuditsWithoutPreviousGrade(t *
 
 	var ret *recordedAuditEvent
 	for i := range audit.events {
-		if audit.events[i].Action == "assignment.returned" {
+		if audit.events[i].Action == auditActionReturned {
 			ret = &audit.events[i]
 			break
 		}
@@ -134,7 +140,7 @@ func TestReturnSubmissionUseCase_PendingToReturnedAuditsWithoutPreviousGrade(t *
 // TestReturnSubmissionUseCase_AuthzAndErrorPaths sweeps the authorisation
 // and error-mapping matrix for Execute as a single table. Each row pins a
 // distinct failure mode plus the side-effect contract the use case must
-// honour on that failure: never persist, never notify, and emit an audit
+// honor on that failure: never persist, never notify, and emit an audit
 // event ONLY for the authz-denied path (matching SaveGrade's policy that
 // post-authz validation failures stay silent on the audit channel).
 //
@@ -282,7 +288,7 @@ func TestReturnSubmissionUseCase_NotifierFailureDoesNotAbort(t *testing.T) {
 		switch audit.events[i].Action {
 		case "assignment.return_notify_failed":
 			failed = &audit.events[i]
-		case "assignment.returned":
+		case auditActionReturned:
 			returned = &audit.events[i]
 		}
 	}
@@ -290,8 +296,8 @@ func TestReturnSubmissionUseCase_NotifierFailureDoesNotAbort(t *testing.T) {
 	require.NotNil(t, returned, "expected assignment.returned audit event")
 
 	assert.Equal(t, "smtp down", failed.Fields["error"], "audit must capture notifier error message")
-	assert.Equal(t, int64(assignmentID), failed.Fields["assignment_id"])
-	assert.Equal(t, int64(studentID), failed.Fields["student_id"])
+	assert.Equal(t, assignmentID, failed.Fields["assignment_id"])
+	assert.Equal(t, studentID, failed.Fields["student_id"])
 	assert.Equal(t, authorTeacherID, failed.Fields["actor_user_id"])
 
 	assert.Equal(t, "revisit", returned.Fields["reason"])

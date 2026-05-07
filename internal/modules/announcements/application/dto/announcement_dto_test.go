@@ -4,10 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
 )
 
 func TestToResponse_Basic(t *testing.T) {
@@ -76,12 +77,12 @@ func TestToResponse_WithAuthor(t *testing.T) {
 func TestToResponse_WithAttachments(t *testing.T) {
 	now := time.Now()
 	a := &entities.Announcement{
-		ID:       1,
-		Title:    "Test",
-		Content:  "Content",
-		AuthorID: 1,
-		Status:   domain.AnnouncementStatusDraft,
-		Priority: domain.AnnouncementPriorityNormal,
+		ID:             1,
+		Title:          "Test",
+		Content:        "Content",
+		AuthorID:       1,
+		Status:         domain.AnnouncementStatusDraft,
+		Priority:       domain.AnnouncementPriorityNormal,
 		TargetAudience: domain.TargetAudienceAll,
 		Attachments: []entities.AnnouncementAttachment{
 			{

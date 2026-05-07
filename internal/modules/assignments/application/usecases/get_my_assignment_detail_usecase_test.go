@@ -100,7 +100,7 @@ func TestGetMyAssignmentDetailUseCase_Execute(t *testing.T) {
 		// Pins the use-case-level wiring of AuthorizeReader: if a future
 		// refactor drops the call, this test breaks. The keyed lookup at
 		// the SQL layer makes this state unreachable through the normal
-		// repo path, but defence-in-depth means a foreign-row response
+		// repo path, but defense-in-depth means a foreign-row response
 		// (e.g. from a buggy repo, an alternate caller, or a future
 		// CLI invoker) must still be rejected with ErrSubmissionOwnerOnly,
 		// not silently leaked.

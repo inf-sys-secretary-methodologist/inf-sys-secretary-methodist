@@ -30,7 +30,7 @@ type ResubmitSubmissionInput struct {
 
 // ResubmitSubmissionUseCase records that a student has resubmitted
 // their own returned work for a fresh grading cycle. Mirror of
-// ReturnSubmissionUseCase in shape: load, authorise, transition the
+// ReturnSubmissionUseCase in shape: load, authorize, transition the
 // entity, persist, notify (best-effort), audit.
 //
 // State transition allowed: returned → pending. Other states reject
@@ -70,7 +70,7 @@ func NewResubmitSubmissionUseCase(
 }
 
 // Execute fetches the assignment (for the teacher id used by the
-// notifier), loads the submission, authorises the caller as the
+// notifier), loads the submission, authorizes the caller as the
 // submission's owning student, applies Resubmit, persists, and
 // notifies the teacher. Notification failure is logged but does not
 // abort the resubmit — the state transition is the system of record.
@@ -93,7 +93,7 @@ func (uc *ResubmitSubmissionUseCase) Execute(ctx context.Context, actorID int64,
 
 	// AuthorizeResubmitter is unreachable through the current HTTP entry
 	// point — the handler hard-wires in.StudentID = actorID, so the
-	// equality always holds. The check stays here as defence in depth:
+	// equality always holds. The check stays here as defense in depth:
 	// a future caller (a CLI tool, a different route, an agent runner)
 	// might invoke Execute with mismatched ids, and the entity-level
 	// invariant must keep enforcing ownership. Do not delete as "dead

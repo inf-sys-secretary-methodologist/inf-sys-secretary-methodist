@@ -41,7 +41,7 @@ var (
 //
 //	announcements/{announcement_id}/{uuid}-{file_name}
 //
-// Centralising this here keeps the scheme out of business logic. If the
+// Centralizing this here keeps the scheme out of business logic. If the
 // storage layout ever changes (e.g. partitioning by date, multi-tenant
 // prefix), this is the only place to edit. Strict DDD would push this
 // further into an infrastructure adapter, but for now it lives next to

@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/ddd"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/ddd"
 )
 
 // testEvent implements ddd.DomainEvent for testing

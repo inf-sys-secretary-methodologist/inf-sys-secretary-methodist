@@ -9,10 +9,7 @@ import { CheckCircle2, Loader2 } from 'lucide-react'
 import { FloatingInput } from '@/components/ui/floating-input'
 import { Button } from '@/components/ui/button'
 import { authApi } from '@/lib/api/auth'
-import {
-  createPasswordRecoverySchema,
-  type PasswordRecoveryFormData,
-} from '@/lib/validations/auth'
+import { createPasswordRecoverySchema, type PasswordRecoveryFormData } from '@/lib/validations/auth'
 import { cn } from '@/lib/utils'
 
 interface ForgotPasswordFormProps {
@@ -101,7 +98,10 @@ export function ForgotPasswordForm({ className }: ForgotPasswordFormProps) {
       </Button>
 
       <div className="text-center text-sm">
-        <Link href="/login" className="font-medium text-muted-foreground hover:text-primary transition-colors">
+        <Link
+          href="/login"
+          className="font-medium text-muted-foreground hover:text-primary transition-colors"
+        >
           {t('backToLogin')}
         </Link>
       </div>

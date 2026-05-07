@@ -56,7 +56,7 @@ func TestRequireNonStudent_AllowsOtherRoles(t *testing.T) {
 }
 
 // TestRequireNonStudent_BlocksMissingRole verifies that a request without
-// any role context (no JWTMiddleware ran) is rejected — defence in depth.
+// any role context (no JWTMiddleware ran) is rejected — defense in depth.
 func TestRequireNonStudent_BlocksMissingRole(t *testing.T) {
 	router := gin.New()
 	router.Use(RequireNonStudent())

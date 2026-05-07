@@ -29,7 +29,7 @@ type Lesson struct {
 	DateStart    time.Time        `json:"date_start"`
 	DateEnd      time.Time        `json:"date_end"`
 	Notes        *string          `json:"notes,omitempty"`
-	IsCancelled  bool             `json:"is_cancelled"`
+	IsCancelled  bool             `json:"is_canceled"`
 	CancelReason *string          `json:"cancellation_reason,omitempty"`
 	CreatedAt    time.Time        `json:"created_at"`
 	UpdatedAt    time.Time        `json:"updated_at"`

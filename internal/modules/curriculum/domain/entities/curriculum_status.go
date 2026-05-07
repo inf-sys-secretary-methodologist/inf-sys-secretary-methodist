@@ -14,7 +14,7 @@ package entities
 //	                                            ─Reject──→ draft
 type CurriculumStatus string
 
-// Recognised statuses. The string literals match
+// Recognized statuses. The string literals match
 // chk_curricula_status_enum from migration 031 byte-for-byte —
 // TestCurriculumStatus_StringMatchesDBLiteral pins the parity.
 const (
@@ -24,7 +24,7 @@ const (
 	StatusArchived        CurriculumStatus = "archived"
 )
 
-// IsValid reports whether s is one of the recognised statuses.
+// IsValid reports whether s is one of the recognized statuses.
 // Repository implementations call this on Reconstitute paths so a row
 // that somehow holds an unknown status (a future migration adding a
 // status without releasing the matching domain constant, for example)

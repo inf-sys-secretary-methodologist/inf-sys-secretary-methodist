@@ -7,12 +7,7 @@ import { toast } from 'sonner'
 
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AnnouncementCard } from '@/components/announcements/AnnouncementCard'
 import { AnnouncementFilters } from '@/components/announcements/AnnouncementFilters'
@@ -226,9 +221,7 @@ export default function AnnouncementsPage() {
         <Dialog open={isFormOpen} onOpenChange={(open) => !open && closeForm()}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
-                {creating ? t('form.createTitle') : t('form.editTitle')}
-              </DialogTitle>
+              <DialogTitle>{creating ? t('form.createTitle') : t('form.editTitle')}</DialogTitle>
             </DialogHeader>
             <AnnouncementForm
               announcement={editingAnnouncement}

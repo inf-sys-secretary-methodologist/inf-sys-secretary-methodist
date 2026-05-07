@@ -46,12 +46,8 @@ export function ExportButton() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <DropdownMenuItem onClick={() => handleExport('csv')}>
-          CSV
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleExport('xlsx')}>
-          Excel (XLSX)
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleExport('csv')}>CSV</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleExport('xlsx')}>Excel (XLSX)</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

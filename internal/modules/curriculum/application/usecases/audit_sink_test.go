@@ -11,7 +11,7 @@ import (
 func TestEmitAudit_NilSinkIsNoOp(t *testing.T) {
 	// Must not panic. v0.116.0 use cases were already tolerant of a
 	// nil sink via per-method guards; the package-level helper makes
-	// that contract explicit and centralised.
+	// that contract explicit and centralized.
 	emitAudit(nil, context.Background(), "curriculum.test", map[string]any{"k": "v"})
 }
 

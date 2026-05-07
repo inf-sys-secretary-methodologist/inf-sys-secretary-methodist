@@ -44,28 +44,29 @@ interface AnnouncementCardProps {
   className?: string
 }
 
-const PRIORITY_COLORS: Record<AnnouncementPriority, { bg: string; border: string; text: string }> = {
-  low: {
-    bg: 'bg-slate-50 dark:bg-slate-900/40',
-    border: 'bg-slate-400',
-    text: 'text-slate-700 dark:text-slate-300',
-  },
-  normal: {
-    bg: 'bg-blue-50 dark:bg-blue-950/40',
-    border: 'bg-blue-500',
-    text: 'text-blue-700 dark:text-blue-300',
-  },
-  high: {
-    bg: 'bg-amber-50 dark:bg-amber-950/40',
-    border: 'bg-amber-500',
-    text: 'text-amber-700 dark:text-amber-300',
-  },
-  urgent: {
-    bg: 'bg-rose-50 dark:bg-rose-950/40',
-    border: 'bg-rose-500',
-    text: 'text-rose-700 dark:text-rose-300',
-  },
-}
+const PRIORITY_COLORS: Record<AnnouncementPriority, { bg: string; border: string; text: string }> =
+  {
+    low: {
+      bg: 'bg-slate-50 dark:bg-slate-900/40',
+      border: 'bg-slate-400',
+      text: 'text-slate-700 dark:text-slate-300',
+    },
+    normal: {
+      bg: 'bg-blue-50 dark:bg-blue-950/40',
+      border: 'bg-blue-500',
+      text: 'text-blue-700 dark:text-blue-300',
+    },
+    high: {
+      bg: 'bg-amber-50 dark:bg-amber-950/40',
+      border: 'bg-amber-500',
+      text: 'text-amber-700 dark:text-amber-300',
+    },
+    urgent: {
+      bg: 'bg-rose-50 dark:bg-rose-950/40',
+      border: 'bg-rose-500',
+      text: 'text-rose-700 dark:text-rose-300',
+    },
+  }
 
 const STATUS_COLORS: Record<AnnouncementStatus, string> = {
   draft: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
@@ -235,7 +236,9 @@ export function AnnouncementCard({
 
           <div className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5" />
-            <span>{format(new Date(announcement.created_at), 'd MMM yyyy', { locale: dateLocale })}</span>
+            <span>
+              {format(new Date(announcement.created_at), 'd MMM yyyy', { locale: dateLocale })}
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5">

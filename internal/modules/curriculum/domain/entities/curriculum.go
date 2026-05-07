@@ -13,7 +13,7 @@ import (
 // this sentinel to HTTP 422.
 var ErrInvalidCurriculum = errors.New("curriculum: invalid curriculum")
 
-// ErrCurriculumScopeForbidden indicates that a user is not authorised
+// ErrCurriculumScopeForbidden indicates that a user is not authorized
 // to operate on a particular Curriculum — typically because the user
 // is a methodist who did not author it. Admins override this check
 // (see AuthorizeEdit). Handlers map this sentinel to HTTP 403.
@@ -45,7 +45,7 @@ var ErrCannotReject = errors.New("curriculum: cannot reject, status must be pend
 
 // Year-range invariants — chosen wide enough to cover both legacy
 // archived curricula (pre-2010 not realistic in this institution but
-// kept permissive) and forward-looking programmes. Mirrored exactly by
+// kept permissive) and forward-looking programs. Mirrored exactly by
 // chk_curricula_year_range in migration 031.
 const (
 	minYear           = 2000
@@ -54,7 +54,7 @@ const (
 )
 
 // Curriculum is the aggregate root for a single академический учебный
-// план: a programme published by a methodist that the administrator
+// план: a program published by a methodist that the administrator
 // will eventually approve. Disciplines (child entities, v0.117.0)
 // belong to it. The aggregate validates its own canonical form on
 // every write; the SQL CHECKs in migration 031 are defense-in-depth
@@ -178,7 +178,7 @@ func (c *Curriculum) Code() string { return c.code }
 // Specialty returns the academic specialty (направление подготовки).
 func (c *Curriculum) Specialty() string { return c.specialty }
 
-// Year returns the year of programme start (e.g. 2026 for the
+// Year returns the year of program start (e.g. 2026 for the
 // 2026/2027 учебный год).
 func (c *Curriculum) Year() int { return c.year }
 

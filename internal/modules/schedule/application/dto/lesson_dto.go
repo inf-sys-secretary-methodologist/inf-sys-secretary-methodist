@@ -10,18 +10,18 @@ import (
 
 // CreateLessonInput represents input for creating a new lesson.
 type CreateLessonInput struct {
-	SemesterID   int64  `json:"semester_id" validate:"required"`
-	DisciplineID int64  `json:"discipline_id" validate:"required"`
-	LessonTypeID int64  `json:"lesson_type_id" validate:"required"`
-	TeacherID    int64  `json:"teacher_id" validate:"required"`
-	GroupID      int64  `json:"group_id" validate:"required"`
-	ClassroomID  int64  `json:"classroom_id" validate:"required"`
-	DayOfWeek    int    `json:"day_of_week" validate:"required,min=1,max=7"`
-	TimeStart    string `json:"time_start" validate:"required"`
-	TimeEnd      string `json:"time_end" validate:"required"`
-	WeekType     string `json:"week_type" validate:"required,oneof=all odd even"`
-	DateStart    string `json:"date_start" validate:"required"`
-	DateEnd      string `json:"date_end" validate:"required"`
+	SemesterID   int64   `json:"semester_id" validate:"required"`
+	DisciplineID int64   `json:"discipline_id" validate:"required"`
+	LessonTypeID int64   `json:"lesson_type_id" validate:"required"`
+	TeacherID    int64   `json:"teacher_id" validate:"required"`
+	GroupID      int64   `json:"group_id" validate:"required"`
+	ClassroomID  int64   `json:"classroom_id" validate:"required"`
+	DayOfWeek    int     `json:"day_of_week" validate:"required,min=1,max=7"`
+	TimeStart    string  `json:"time_start" validate:"required"`
+	TimeEnd      string  `json:"time_end" validate:"required"`
+	WeekType     string  `json:"week_type" validate:"required,oneof=all odd even"`
+	DateStart    string  `json:"date_start" validate:"required"`
+	DateEnd      string  `json:"date_end" validate:"required"`
 	Notes        *string `json:"notes,omitempty"`
 }
 
@@ -76,7 +76,7 @@ func (f *LessonFilterInput) ToFilter() repositories.LessonFilter {
 // CreateChangeInput represents input for creating a schedule change.
 type CreateChangeInput struct {
 	LessonID       int64      `json:"lesson_id" validate:"required"`
-	ChangeType     string     `json:"change_type" validate:"required,oneof=cancelled moved replaced_teacher replaced_classroom"`
+	ChangeType     string     `json:"change_type" validate:"required,oneof=canceled moved replaced_teacher replaced_classroom"`
 	OriginalDate   time.Time  `json:"original_date" validate:"required"`
 	NewDate        *time.Time `json:"new_date,omitempty"`
 	NewClassroomID *int64     `json:"new_classroom_id,omitempty"`
@@ -86,29 +86,29 @@ type CreateChangeInput struct {
 
 // LessonOutput represents the output for a lesson.
 type LessonOutput struct {
-	ID           int64              `json:"id"`
-	SemesterID   int64              `json:"semester_id"`
-	DisciplineID int64              `json:"discipline_id"`
-	LessonTypeID int64              `json:"lesson_type_id"`
-	TeacherID    int64              `json:"teacher_id"`
-	GroupID      int64              `json:"group_id"`
-	ClassroomID  int64              `json:"classroom_id"`
-	DayOfWeek    int                `json:"day_of_week"`
-	TimeStart    string             `json:"time_start"`
-	TimeEnd      string             `json:"time_end"`
-	WeekType     string             `json:"week_type"`
-	DateStart    time.Time          `json:"date_start"`
-	DateEnd      time.Time          `json:"date_end"`
-	Notes        *string            `json:"notes,omitempty"`
-	IsCancelled  bool               `json:"is_cancelled"`
-	CancelReason *string            `json:"cancellation_reason,omitempty"`
-	CreatedAt    time.Time          `json:"created_at"`
-	UpdatedAt    time.Time          `json:"updated_at"`
-	Discipline   *DisciplineOutput  `json:"discipline,omitempty"`
-	LessonType   *LessonTypeOutput  `json:"lesson_type,omitempty"`
-	Classroom    *ClassroomOutput   `json:"classroom,omitempty"`
+	ID           int64               `json:"id"`
+	SemesterID   int64               `json:"semester_id"`
+	DisciplineID int64               `json:"discipline_id"`
+	LessonTypeID int64               `json:"lesson_type_id"`
+	TeacherID    int64               `json:"teacher_id"`
+	GroupID      int64               `json:"group_id"`
+	ClassroomID  int64               `json:"classroom_id"`
+	DayOfWeek    int                 `json:"day_of_week"`
+	TimeStart    string              `json:"time_start"`
+	TimeEnd      string              `json:"time_end"`
+	WeekType     string              `json:"week_type"`
+	DateStart    time.Time           `json:"date_start"`
+	DateEnd      time.Time           `json:"date_end"`
+	Notes        *string             `json:"notes,omitempty"`
+	IsCancelled  bool                `json:"is_canceled"`
+	CancelReason *string             `json:"cancellation_reason,omitempty"`
+	CreatedAt    time.Time           `json:"created_at"`
+	UpdatedAt    time.Time           `json:"updated_at"`
+	Discipline   *DisciplineOutput   `json:"discipline,omitempty"`
+	LessonType   *LessonTypeOutput   `json:"lesson_type,omitempty"`
+	Classroom    *ClassroomOutput    `json:"classroom,omitempty"`
 	Group        *StudentGroupOutput `json:"group,omitempty"`
-	Teacher      *TeacherOutput     `json:"teacher,omitempty"`
+	Teacher      *TeacherOutput      `json:"teacher,omitempty"`
 }
 
 // LessonListOutput represents the output for a list of lessons.

@@ -16,15 +16,22 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
-// ListMyAssignmentsUseCasePort and GetMyAssignmentDetailUseCasePort are
-// the narrow ports through which the handler invokes its use cases.
-// Defining them here keeps handler tests free of repo / view fixtures
-// — only the use-case Execute signature is stubbed. Same pattern as
-// the grading-side ports above.
+// ListMyAssignmentsUseCasePort is the narrow port through which the
+// handler invokes the student's "my assignments" list use case.
+// Defining the ports here keeps handler tests free of repo / view
+// fixtures — only the use-case Execute signature is stubbed. Same
+// pattern as the grading-side ports above.
+//
+// GetMyAssignmentDetailUseCasePort below follows the same shape for
+// the single-row read.
 type (
+	// ListMyAssignmentsUseCasePort declares the Execute signature used
+	// by GET /api/assignments/my.
 	ListMyAssignmentsUseCasePort interface {
 		Execute(ctx context.Context, in assignUsecases.ListMyAssignmentsInput) ([]views.StudentAssignmentView, error)
 	}
+	// GetMyAssignmentDetailUseCasePort declares the Execute signature
+	// used by GET /api/assignments/:id/my.
 	GetMyAssignmentDetailUseCasePort interface {
 		Execute(ctx context.Context, in assignUsecases.GetMyAssignmentDetailInput) (*views.StudentAssignmentView, error)
 	}
@@ -33,7 +40,7 @@ type (
 // MyAssignmentsHandler serves the student-facing read surface for the
 // assignments module. Routes mount under studentAssignmentsGroup
 // behind RequireRole("student"); the handler additionally whitelists
-// "student" via studentIDFromContext as defence in depth.
+// "student" via studentIDFromContext as defense in depth.
 type MyAssignmentsHandler struct {
 	listUC   ListMyAssignmentsUseCasePort
 	detailUC GetMyAssignmentDetailUseCasePort

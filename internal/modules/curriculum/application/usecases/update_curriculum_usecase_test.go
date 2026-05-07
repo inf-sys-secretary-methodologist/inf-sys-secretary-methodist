@@ -88,7 +88,7 @@ func TestUpdateCurriculumUseCase_AuthorMethodistUpdatesOwnDraft(t *testing.T) {
 	ev := audit.events[0]
 	assert.Equal(t, "curriculum.updated", ev.Action)
 	assert.Equal(t, "curriculum", ev.Resource)
-	assert.Equal(t, int64(author), ev.Fields["actor_user_id"])
+	assert.Equal(t, author, ev.Fields["actor_user_id"])
 	assert.Equal(t, int64(7), ev.Fields["curriculum_id"])
 	assert.Equal(t, "NEW-2026", ev.Fields["code"])
 }
@@ -126,7 +126,7 @@ func TestUpdateCurriculumUseCase_AdminOverridesOwnership(t *testing.T) {
 
 	require.Len(t, audit.events, 1)
 	assert.Equal(t, "curriculum.updated", audit.events[0].Action)
-	assert.Equal(t, int64(admin), audit.events[0].Fields["actor_user_id"])
+	assert.Equal(t, admin, audit.events[0].Fields["actor_user_id"])
 }
 
 func TestUpdateCurriculumUseCase_NonDraftStatusRejected(t *testing.T) {

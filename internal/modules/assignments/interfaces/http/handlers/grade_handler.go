@@ -18,7 +18,7 @@ import (
 // SaveGradeUseCasePort is the narrow port through which the handler
 // invokes the use case. Defining it here (rather than importing the
 // concrete *SaveGradeUseCase) keeps handler tests free of fake
-// repositories and audit loggers — only the use-case behaviour is
+// repositories and audit loggers — only the use-case behavior is
 // stubbed.
 type SaveGradeUseCasePort interface {
 	Execute(ctx context.Context, teacherID int64, in assignUsecases.SaveGradeInput) error

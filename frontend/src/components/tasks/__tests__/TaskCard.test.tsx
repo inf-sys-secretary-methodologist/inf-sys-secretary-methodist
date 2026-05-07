@@ -1,7 +1,13 @@
 import { render, screen } from '@/test-utils'
 import userEvent from '@testing-library/user-event'
 import { TaskCard } from '../TaskCard'
-import { TASK_STATUSES, TASK_PRIORITIES, type Task, type TaskStatus, type TaskPriority } from '@/types/tasks'
+import {
+  TASK_STATUSES,
+  TASK_PRIORITIES,
+  type Task,
+  type TaskStatus,
+  type TaskPriority,
+} from '@/types/tasks'
 
 const baseTask: Task = {
   id: 1,

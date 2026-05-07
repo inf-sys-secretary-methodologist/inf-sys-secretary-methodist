@@ -35,7 +35,7 @@ type updateCurriculumRepo interface {
 // against the actor + admin flag, applies UpdateBasics, and
 // persists the result. Every outcome is reflected in the audit
 // log so a forensic trail captures both successful edits and
-// every flavour of denial.
+// every flavor of denial.
 type UpdateCurriculumUseCase struct {
 	repo  updateCurriculumRepo
 	audit AuditSink
@@ -105,7 +105,7 @@ func (uc *UpdateCurriculumUseCase) Execute(
 		if errors.Is(err, repositories.ErrCurriculumCodeExists) {
 			// Use the canonical (post-trim) code here — that's what the
 			// repo actually attempted to insert and the form a future
-			// admin will recognise. Same convention as Create's denial
+			// admin will recognize. Same convention as Create's denial
 			// path (CreateCurriculum uses c.Code() too).
 			emitAudit(uc.audit, ctx, "curriculum.update_denied", denialFields(actorID, in.ID, "code_conflict", c.Code()))
 		}

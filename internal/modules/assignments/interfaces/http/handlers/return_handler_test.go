@@ -78,7 +78,7 @@ func TestReturnHandler_HappyPath(t *testing.T) {
 // TestReturnHandler_RoleWhitelist documents the failure-closed role
 // matrix: only the four EDIT_ROLES are permitted to return submissions;
 // anything else (including missing auth context) falls through to 401.
-// The use-case must NOT be invoked when access is denied — defence in
+// The use-case must NOT be invoked when access is denied — defense in
 // depth that mirrors the read-side AssignmentsHandler / GradeHandler.
 func TestReturnHandler_RoleWhitelist(t *testing.T) {
 	tests := []struct {

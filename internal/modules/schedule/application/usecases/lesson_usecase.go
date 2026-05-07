@@ -110,7 +110,7 @@ func (uc *LessonUseCase) Create(ctx context.Context, userID int64, input CreateL
 	lesson.Notes = input.Notes
 
 	if err := lesson.Validate(); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+		return nil, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 
 	if err := uc.lessonRepo.Create(ctx, lesson); err != nil {
@@ -177,7 +177,7 @@ func (uc *LessonUseCase) Update(ctx context.Context, userID, lessonID int64, inp
 	lesson.UpdatedAt = time.Now()
 
 	if err := lesson.Validate(); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+		return nil, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 
 	if err := uc.lessonRepo.Save(ctx, lesson); err != nil {

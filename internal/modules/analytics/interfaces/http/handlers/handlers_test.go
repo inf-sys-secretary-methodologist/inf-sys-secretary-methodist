@@ -208,7 +208,9 @@ func (noopScopeRepo) ListGroupNames(_ context.Context, _ int64) ([]string, error
 
 // ===== AnalyticsHandler Tests =====
 
-func TestNewAnalyticsHandler(t *testing.T)  { assert.NotNil(t, NewAnalyticsHandler(nil, noopScopeRepo{})) }
+func TestNewAnalyticsHandler(t *testing.T) {
+	assert.NotNil(t, NewAnalyticsHandler(nil, noopScopeRepo{}))
+}
 func TestNewAttendanceHandler(t *testing.T) { assert.NotNil(t, NewAttendanceHandler(nil)) }
 
 func TestAnalyticsHandler_GetAtRiskStudents_Success(t *testing.T) {

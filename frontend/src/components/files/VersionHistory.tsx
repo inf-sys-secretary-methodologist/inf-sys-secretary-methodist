@@ -46,9 +46,7 @@ export function VersionHistory({ versions, onDownload }: VersionHistoryProps) {
                   {new Date(version.created_at).toLocaleDateString()}
                 </span>
                 {version.comment && (
-                  <span className="text-xs text-muted-foreground italic">
-                    {version.comment}
-                  </span>
+                  <span className="text-xs text-muted-foreground italic">{version.comment}</span>
                 )}
               </div>
               {onDownload && (

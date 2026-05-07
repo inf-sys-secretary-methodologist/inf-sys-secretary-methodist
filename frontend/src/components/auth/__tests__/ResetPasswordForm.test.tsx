@@ -18,7 +18,12 @@ jest.mock('next/navigation', () => {
   const actual = jest.requireActual('next/navigation')
   return {
     ...actual,
-    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), prefetch: jest.fn(), back: jest.fn() }),
+    useRouter: () => ({
+      push: jest.fn(),
+      replace: jest.fn(),
+      prefetch: jest.fn(),
+      back: jest.fn(),
+    }),
     useSearchParams: jest.fn(),
     usePathname: () => '/reset-password',
   }
@@ -68,7 +73,7 @@ describe('ResetPasswordForm', () => {
   it('renders "link expired" panel when verify rejects', async () => {
     withToken('bad-tok')
     mockedApi.verifyPasswordResetToken.mockRejectedValueOnce(
-      Object.assign(new Error('gone'), { response: { status: 410 } }),
+      Object.assign(new Error('gone'), { response: { status: 410 } })
     )
 
     render(<ResetPasswordForm />)
@@ -87,7 +92,7 @@ describe('ResetPasswordForm', () => {
     withToken('good-tok')
     mockedApi.verifyPasswordResetToken.mockResolvedValueOnce(undefined)
     mockedApi.confirmPasswordReset.mockRejectedValueOnce(
-      Object.assign(new Error('gone'), { response: { status: 410 } }),
+      Object.assign(new Error('gone'), { response: { status: 410 } })
     )
 
     const user = userEvent.setup()

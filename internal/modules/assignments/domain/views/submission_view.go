@@ -7,7 +7,7 @@
 // Read models live in the domain package because they describe the
 // shape of a domain query result, but they are deliberately separate
 // from entities/value objects: views are flat, public-field DTOs and
-// carry no behaviour.
+// carry no behavior.
 package views
 
 import (

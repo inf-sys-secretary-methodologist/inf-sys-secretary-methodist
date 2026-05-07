@@ -96,7 +96,7 @@ func (r *AssignmentRepositoryPG) List(ctx context.Context, filter repositories.A
 	if err != nil {
 		return repositories.AssignmentListResult{}, fmt.Errorf("assignments: list: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var items []*entities.Assignment
 	for rows.Next() {

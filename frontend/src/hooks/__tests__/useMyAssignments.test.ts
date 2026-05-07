@@ -23,7 +23,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) =>
     children
   )
 
-const apiOk = <T,>(data: T) => ({ data })
+const apiOk = <T>(data: T) => ({ data })
 
 const sampleView: StudentAssignmentView = {
   assignment_id: 10,
@@ -110,9 +110,7 @@ describe('useMyAssignment', () => {
 
 describe('resubmitSubmission', () => {
   it('POSTs to /api/assignments/:id/resubmit with empty body', async () => {
-    mockedApiClient.post.mockResolvedValueOnce(
-      apiOk({ assignment_id: 10, student_id: 7 })
-    )
+    mockedApiClient.post.mockResolvedValueOnce(apiOk({ assignment_id: 10, student_id: 7 }))
 
     const out = await resubmitSubmission(10)
 

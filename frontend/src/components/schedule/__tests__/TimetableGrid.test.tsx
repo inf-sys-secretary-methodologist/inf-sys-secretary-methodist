@@ -80,8 +80,18 @@ describe('TimetableGrid', () => {
 
   it('places multiple lessons in the same cell', () => {
     const lessons = [
-      makeMockLesson({ id: 1, day_of_week: 2, time_start: '10:45', discipline: { id: 10, name: 'Физика' } }),
-      makeMockLesson({ id: 2, day_of_week: 2, time_start: '10:45', discipline: { id: 11, name: 'Химия' } }),
+      makeMockLesson({
+        id: 1,
+        day_of_week: 2,
+        time_start: '10:45',
+        discipline: { id: 10, name: 'Физика' },
+      }),
+      makeMockLesson({
+        id: 2,
+        day_of_week: 2,
+        time_start: '10:45',
+        discipline: { id: 11, name: 'Химия' },
+      }),
     ]
     render(<TimetableGrid lessons={lessons} canEdit={false} />)
 

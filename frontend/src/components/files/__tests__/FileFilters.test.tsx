@@ -44,9 +44,7 @@ describe('FileFilters', () => {
     const onChange = jest.fn()
     const user = userEvent.setup()
 
-    render(
-      <FileFilters value={{ search: 'test', fileType: 'images' }} onChange={onChange} />
-    )
+    render(<FileFilters value={{ search: 'test', fileType: 'images' }} onChange={onChange} />)
 
     const resetBtn = screen.getByRole('button', { name: /reset/i })
     await user.click(resetBtn)

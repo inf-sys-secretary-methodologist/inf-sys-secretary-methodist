@@ -21,9 +21,7 @@ export function TimetableGrid({ lessons, onLessonClick }: TimetableGridProps) {
   const t = useTranslations('schedule')
 
   const getLessonsForCell = (dayOfWeek: number, timeStart: string): Lesson[] => {
-    return lessons.filter(
-      (l) => l.day_of_week === dayOfWeek && l.time_start === timeStart
-    )
+    return lessons.filter((l) => l.day_of_week === dayOfWeek && l.time_start === timeStart)
   }
 
   return (
@@ -69,9 +67,7 @@ export function TimetableGrid({ lessons, onLessonClick }: TimetableGridProps) {
                         <LessonCard
                           key={lesson.id}
                           lesson={lesson}
-                          onClick={
-                            onLessonClick ? () => onLessonClick(lesson) : undefined
-                          }
+                          onClick={onLessonClick ? () => onLessonClick(lesson) : undefined}
                         />
                       ))}
                     </div>

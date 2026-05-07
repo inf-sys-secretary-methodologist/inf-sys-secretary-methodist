@@ -4,10 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
 )
 
 func TestToTaskOutput_Basic(t *testing.T) {
@@ -176,10 +177,10 @@ func TestToTaskChecklistOutput(t *testing.T) {
 	completedAt := now
 
 	checklist := &entities.TaskChecklist{
-		ID:        1,
-		TaskID:    10,
-		Title:     "Steps",
-		Position:  1,
+		ID:       1,
+		TaskID:   10,
+		Title:    "Steps",
+		Position: 1,
 		Items: []entities.TaskChecklistItem{
 			{ID: 1, ChecklistID: 1, Title: "Step 1", IsCompleted: true, Position: 1,
 				CompletedBy: &completedBy, CompletedAt: &completedAt, CreatedAt: now},

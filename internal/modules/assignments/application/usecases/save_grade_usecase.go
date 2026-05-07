@@ -62,7 +62,7 @@ func NewSaveGradeUseCase(
 	}
 }
 
-// Execute fetches the assignment, authorises the caller as grader,
+// Execute fetches the assignment, authorizes the caller as grader,
 // validates the score against the assignment's max, applies (or creates
 // then applies) the grade transition on the submission, persists, and
 // notifies the student. Notification failure is logged but does not

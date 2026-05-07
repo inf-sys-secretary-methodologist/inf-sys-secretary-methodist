@@ -58,7 +58,10 @@ describe('TaskFilters', () => {
     const onChange = jest.fn()
     const user = userEvent.setup()
     render(
-      <TaskFilters value={{ status: 'completed', priority: 'high', search: 'x' }} onChange={onChange} />
+      <TaskFilters
+        value={{ status: 'completed', priority: 'high', search: 'x' }}
+        onChange={onChange}
+      />
     )
 
     await user.click(screen.getByRole('button', { name: /reset|сброс/i }))

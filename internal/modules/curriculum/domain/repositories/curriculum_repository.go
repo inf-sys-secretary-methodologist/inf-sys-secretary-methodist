@@ -24,7 +24,7 @@ var ErrCurriculumNotFound = errors.New("curriculum: curriculum not found")
 var ErrCurriculumCodeExists = errors.New("curriculum: code already exists")
 
 // CurriculumListFilter narrows a List query. Zero-valued fields are
-// treated as "no filter on this dimension". Limit/Offset are honoured
+// treated as "no filter on this dimension". Limit/Offset are honored
 // by the repository; a non-positive Limit means "no clamp at the
 // repository layer" — use cases are responsible for choosing a
 // sensible default to keep result sets bounded.

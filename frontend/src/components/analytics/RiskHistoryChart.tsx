@@ -96,7 +96,12 @@ export function RiskHistoryChart({ studentId, limit = 90 }: RiskHistoryChartProp
                   borderRadius: '8px',
                 }}
               />
-              <ReferenceLine y={70} stroke="hsl(var(--destructive))" strokeDasharray="5 5" label="High Risk" />
+              <ReferenceLine
+                y={70}
+                stroke="hsl(var(--destructive))"
+                strokeDasharray="5 5"
+                label="High Risk"
+              />
               <Line
                 type="monotone"
                 dataKey="score"

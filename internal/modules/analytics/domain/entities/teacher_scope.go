@@ -18,7 +18,7 @@ var ErrAnalyticsScopeForbidden = errors.New("analytics: target outside teacher s
 //     academic_secretary, and system_admin roles. Use cases must treat
 //     nil as a pass-through.
 //   - A non-nil scope enforces a strict whitelist. An empty whitelist
-//     denies every group; this is the correct behaviour for a teacher
+//     denies every group; this is the correct behavior for a teacher
 //     who has no scheduled lessons.
 type TeacherScope struct {
 	teacherID  int64

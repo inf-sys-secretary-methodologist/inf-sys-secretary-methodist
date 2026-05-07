@@ -27,7 +27,7 @@ type ReturnSubmissionInput struct {
 
 // ReturnSubmissionUseCase records that a teacher / methodist /
 // academic_secretary / system_admin has returned a student's submission
-// for revision. Mirrors SaveGradeUseCase in shape: load, authorise,
+// for revision. Mirrors SaveGradeUseCase in shape: load, authorize,
 // transition the entity, persist, notify (best-effort), audit.
 //
 // State transitions allowed: pending → returned, graded → returned.
@@ -63,7 +63,7 @@ func NewReturnSubmissionUseCase(
 	}
 }
 
-// Execute fetches the assignment, authorises the caller via
+// Execute fetches the assignment, authorizes the caller via
 // AuthorizeGrader (same permission predicate as grading — anyone who can
 // grade can also return), loads the submission (or creates a fresh one
 // if none yet exists), applies Return, persists, and notifies the

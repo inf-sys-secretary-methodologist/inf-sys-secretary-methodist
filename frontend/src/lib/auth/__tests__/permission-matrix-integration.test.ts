@@ -61,14 +61,12 @@ describe('permission matrix — page-level scenarios', () => {
   })
 
   describe('integration page — admin only', () => {
-    it.each([
-      UserRole.METHODIST,
-      UserRole.ACADEMIC_SECRETARY,
-      UserRole.TEACHER,
-      UserRole.STUDENT,
-    ])('%s cannot access integration', (role) => {
-      expect(can(role, Resource.INTEGRATION, Action.READ)).toBe(false)
-    })
+    it.each([UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY, UserRole.TEACHER, UserRole.STUDENT])(
+      '%s cannot access integration',
+      (role) => {
+        expect(can(role, Resource.INTEGRATION, Action.READ)).toBe(false)
+      }
+    )
 
     it('admin has full integration access', () => {
       expect(can(UserRole.SYSTEM_ADMIN, Resource.INTEGRATION, Action.CREATE)).toBe(true)

@@ -17,7 +17,7 @@ import (
 // ResubmitSubmissionUseCasePort is the narrow port through which the
 // handler invokes the use case. Defining it here (rather than importing
 // the concrete *ResubmitSubmissionUseCase) keeps handler tests free of
-// fake repositories / audit sinks — only the use-case behaviour is
+// fake repositories / audit sinks — only the use-case behavior is
 // stubbed. Same pattern as ReturnSubmissionUseCasePort.
 type ResubmitSubmissionUseCasePort interface {
 	Execute(ctx context.Context, actorID int64, in assignUsecases.ResubmitSubmissionInput) error
@@ -97,7 +97,7 @@ func (h *ResubmitHandler) Resubmit(c *gin.Context) {
 
 // studentIDFromContext extracts the user_id from gin context and applies
 // the student-only role whitelist — the only role permitted on the
-// resubmit endpoint. Defence in depth: a future engineer who removes
+// resubmit endpoint. Defense in depth: a future engineer who removes
 // RequireRole("student") at the route level must NOT silently let
 // teachers, methodists, etc. resubmit on a student's behalf via this
 // handler. Unknown role → ok=false → 401, identical posture to

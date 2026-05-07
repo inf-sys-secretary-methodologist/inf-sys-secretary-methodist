@@ -211,6 +211,7 @@ func TestPasswordResetUseCase_RequestReset(t *testing.T) {
 //     token cannot be spent on a 1-char password;
 //   - user vanished: same opaque ErrInvalidResetToken (do not leak
 //     "user existed but is gone"), no Save / Delete.
+//
 // savedSlot captures the *entities.User passed to Save so the table
 // case can inspect the rotated hash post-call without reaching into
 // testify mock internals.

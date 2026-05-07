@@ -1,7 +1,4 @@
-import {
-  uploadAnnouncementAttachment,
-  deleteAnnouncementAttachment,
-} from '../useAnnouncements'
+import { uploadAnnouncementAttachment, deleteAnnouncementAttachment } from '../useAnnouncements'
 import { apiClient } from '@/lib/api'
 
 jest.mock('@/lib/api', () => ({
@@ -35,7 +32,9 @@ describe('announcement attachment mutations', () => {
     expect(mockedApiClient.post).toHaveBeenCalledWith(
       '/api/announcements/1/attachments',
       expect.any(FormData),
-      expect.objectContaining({ headers: expect.objectContaining({ 'Content-Type': 'multipart/form-data' }) })
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'Content-Type': 'multipart/form-data' }),
+      })
     )
     expect(result.file_name).toBe('doc.pdf')
   })

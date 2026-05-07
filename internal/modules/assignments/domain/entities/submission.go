@@ -42,13 +42,16 @@ var ErrSubmissionOwnerOnly = errors.New("assignments: caller is not the submissi
 // string" through a Submission.
 type SubmissionStatus string
 
+// SubmissionStatus literals — wire-format strings stored on the entity
+// и в DB rows. Mirror tests pin the parity between Go constants and
+// their database literal forms.
 const (
 	StatusPending  SubmissionStatus = "pending"
 	StatusGraded   SubmissionStatus = "graded"
 	StatusReturned SubmissionStatus = "returned"
 )
 
-// IsValid reports whether s is one of the recognised statuses. Repository
+// IsValid reports whether s is one of the recognized statuses. Repository
 // reads use this when reconstituting a Submission from a row.
 func (s SubmissionStatus) IsValid() bool {
 	switch s {
@@ -213,7 +216,7 @@ func (s *Submission) Return(reason string, returnedBy int64, now time.Time) erro
 // context, which must never accidentally satisfy ownership even if a
 // student record were ever stored with id 0.
 //
-// Centralised on the entity so the Resubmit use case does not duplicate
+// Centralized on the entity so the Resubmit use case does not duplicate
 // the predicate inline; mirrors Assignment.AuthorizeGrader on the
 // teacher side.
 func (s *Submission) AuthorizeResubmitter(actorID int64) error {

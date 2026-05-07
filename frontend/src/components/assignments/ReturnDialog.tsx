@@ -63,9 +63,7 @@ export function ReturnDialog({
         student_id: submission.student_id,
         reason: trimmed,
       })
-      toast.success(
-        t('assignments.returnDialog.successToast', { name: submission.student_name })
-      )
+      toast.success(t('assignments.returnDialog.successToast', { name: submission.student_name }))
       onReturned?.()
       setReason('')
       onClose()

@@ -27,7 +27,7 @@ func (r *LessonRepositoryPG) Create(ctx context.Context, lesson *entities.Lesson
 		INSERT INTO schedule_lessons (
 			semester_id, discipline_id, lesson_type_id, teacher_id,
 			group_id, classroom_id, day_of_week, time_start, time_end,
-			week_type, date_start, date_end, notes, is_cancelled,
+			week_type, date_start, date_end, notes, is_canceled,
 			cancellation_reason, created_at, updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 		RETURNING id`
@@ -46,7 +46,7 @@ func (r *LessonRepositoryPG) Save(ctx context.Context, lesson *entities.Lesson) 
 		UPDATE schedule_lessons SET
 			semester_id = $1, discipline_id = $2, lesson_type_id = $3, teacher_id = $4,
 			group_id = $5, classroom_id = $6, day_of_week = $7, time_start = $8, time_end = $9,
-			week_type = $10, date_start = $11, date_end = $12, notes = $13, is_cancelled = $14,
+			week_type = $10, date_start = $11, date_end = $12, notes = $13, is_canceled = $14,
 			cancellation_reason = $15, updated_at = $16
 		WHERE id = $17`
 
@@ -65,7 +65,7 @@ func (r *LessonRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.L
 		SELECT
 			l.id, l.semester_id, l.discipline_id, l.lesson_type_id, l.teacher_id,
 			l.group_id, l.classroom_id, l.day_of_week, l.time_start, l.time_end,
-			l.week_type, l.date_start, l.date_end, l.notes, l.is_cancelled,
+			l.week_type, l.date_start, l.date_end, l.notes, l.is_canceled,
 			l.cancellation_reason, l.created_at, l.updated_at,
 			d.id, d.name, d.code, d.department_id, d.credits, d.hours_total,
 			d.hours_lectures, d.hours_practice, d.hours_labs,
@@ -131,7 +131,7 @@ func (r *LessonRepositoryPG) List(ctx context.Context, filter repositories.Lesso
 	query := `
 		SELECT id, semester_id, discipline_id, lesson_type_id, teacher_id,
 			group_id, classroom_id, day_of_week, time_start, time_end,
-			week_type, date_start, date_end, notes, is_cancelled,
+			week_type, date_start, date_end, notes, is_canceled,
 			cancellation_reason, created_at, updated_at
 		FROM schedule_lessons` + whereClause + ` ORDER BY day_of_week, time_start`
 
@@ -167,7 +167,7 @@ func (r *LessonRepositoryPG) GetTimetable(ctx context.Context, filter repositori
 		SELECT
 			l.id, l.semester_id, l.discipline_id, l.lesson_type_id, l.teacher_id,
 			l.group_id, l.classroom_id, l.day_of_week, l.time_start, l.time_end,
-			l.week_type, l.date_start, l.date_end, l.notes, l.is_cancelled,
+			l.week_type, l.date_start, l.date_end, l.notes, l.is_canceled,
 			l.cancellation_reason, l.created_at, l.updated_at,
 			d.id, d.name, d.code, d.department_id, d.credits, d.hours_total,
 			d.hours_lectures, d.hours_practice, d.hours_labs,

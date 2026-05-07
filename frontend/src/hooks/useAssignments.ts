@@ -73,10 +73,7 @@ export function useAssignment(id: number | null) {
 // useSubmissions fetches the submission list for a single assignment.
 // Optional status pins to a single lifecycle state ("pending", "graded",
 // "returned"). Passing null assignmentId short-circuits the fetch.
-export function useSubmissions(
-  assignmentId: number | null,
-  status?: SubmissionStatus
-) {
+export function useSubmissions(assignmentId: number | null, status?: SubmissionStatus) {
   let key: string | null = null
   if (assignmentId != null) {
     key = `${ASSIGNMENTS_URL}/${assignmentId}/submissions`

@@ -287,7 +287,7 @@ func TestSubmission_AuthorizeResubmitter(t *testing.T) {
 
 // TestSubmission_AuthorizeReader pins the read-side ownership invariant:
 // only the student who owns the submission may read it, even though the
-// HTTP layer already wires studentID = JWT subject. The defence-in-depth
+// HTTP layer already wires studentID = JWT subject. The defense-in-depth
 // pattern matches AuthorizeResubmitter on the mutation side — see
 // docs/plans/2026-05-06-student-dashboard.md ADR-2 for the reuse-vs-split
 // reasoning.

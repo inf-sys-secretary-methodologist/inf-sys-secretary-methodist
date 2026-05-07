@@ -272,10 +272,7 @@ export const analyticsApi = {
   /**
    * Get risk score history for a student
    */
-  async getStudentRiskHistory(
-    studentId: number,
-    limit: number = 90
-  ): Promise<RiskHistoryResponse> {
+  async getStudentRiskHistory(studentId: number, limit: number = 90): Promise<RiskHistoryResponse> {
     const response = await apiClient.get<ApiResponse<RiskHistoryResponse>>(
       `/api/analytics/students/${studentId}/risk-history`,
       { params: { limit } }

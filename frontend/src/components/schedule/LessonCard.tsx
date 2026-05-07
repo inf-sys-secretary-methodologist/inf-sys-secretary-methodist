@@ -55,14 +55,20 @@ export function LessonCard({ lesson, onClick, className }: LessonCardProps) {
       </div>
 
       {teacherName && (
-        <div className="flex items-center gap-1 text-muted-foreground mt-0.5" data-testid="lesson-teacher">
+        <div
+          className="flex items-center gap-1 text-muted-foreground mt-0.5"
+          data-testid="lesson-teacher"
+        >
           <User className="h-3 w-3 shrink-0" />
           <span className="truncate">{teacherName}</span>
         </div>
       )}
 
       {classroomLabel && (
-        <div className="flex items-center gap-1 text-muted-foreground mt-0.5" data-testid="lesson-classroom">
+        <div
+          className="flex items-center gap-1 text-muted-foreground mt-0.5"
+          data-testid="lesson-classroom"
+        >
           <MapPin className="h-3 w-3 shrink-0" />
           <span className="truncate">{classroomLabel}</span>
         </div>

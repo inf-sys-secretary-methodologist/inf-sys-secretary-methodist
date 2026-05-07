@@ -59,11 +59,10 @@ export function useScheduleTimetable(params?: LessonFilterParams) {
  * Fetch all classrooms.
  */
 export function useClassrooms() {
-  const { data, error, isLoading } = useSWR<Classroom[]>(
-    'classrooms',
-    classroomsFetcher,
-    { revalidateOnFocus: false, dedupingInterval: SWR_DEDUPING.LONG }
-  )
+  const { data, error, isLoading } = useSWR<Classroom[]>('classrooms', classroomsFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: SWR_DEDUPING.LONG,
+  })
 
   return { classrooms: data || [], isLoading, error }
 }
@@ -85,11 +84,10 @@ export function useStudentGroups() {
  * Fetch all disciplines.
  */
 export function useDisciplines() {
-  const { data, error, isLoading } = useSWR<Discipline[]>(
-    'disciplines',
-    disciplinesFetcher,
-    { revalidateOnFocus: false, dedupingInterval: SWR_DEDUPING.LONG }
-  )
+  const { data, error, isLoading } = useSWR<Discipline[]>('disciplines', disciplinesFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: SWR_DEDUPING.LONG,
+  })
 
   return { disciplines: data || [], isLoading, error }
 }
@@ -98,11 +96,10 @@ export function useDisciplines() {
  * Fetch all semesters.
  */
 export function useSemesters() {
-  const { data, error, isLoading } = useSWR<Semester[]>(
-    'semesters',
-    semestersFetcher,
-    { revalidateOnFocus: false, dedupingInterval: SWR_DEDUPING.LONG }
-  )
+  const { data, error, isLoading } = useSWR<Semester[]>('semesters', semestersFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: SWR_DEDUPING.LONG,
+  })
 
   return { semesters: data || [], isLoading, error }
 }
@@ -111,11 +108,10 @@ export function useSemesters() {
  * Fetch all lesson types.
  */
 export function useLessonTypes() {
-  const { data, error, isLoading } = useSWR<LessonTypeInfo[]>(
-    'lesson-types',
-    lessonTypesFetcher,
-    { revalidateOnFocus: false, dedupingInterval: SWR_DEDUPING.LONG }
-  )
+  const { data, error, isLoading } = useSWR<LessonTypeInfo[]>('lesson-types', lessonTypesFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: SWR_DEDUPING.LONG,
+  })
 
   return { lessonTypes: data || [], isLoading, error }
 }

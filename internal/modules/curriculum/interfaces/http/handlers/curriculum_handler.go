@@ -17,7 +17,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
-// Recognised role values, mirrored from auth/domain/permission.go but
+// Recognized role values, mirrored from auth/domain/permission.go but
 // duplicated here to avoid an HTTP layer importing the auth domain.
 // Updating this list when a new role is introduced is a deliberate
 // step — the failure-closed default is "unknown role → no access."
@@ -467,7 +467,7 @@ type CurriculaListResponse struct {
 // @Tags curriculum
 // @Produce json
 // @Param status      query string false "Status filter (draft / pending_approval / approved / archived)"
-// @Param year        query int    false "Academic year of programme start"
+// @Param year        query int    false "Academic year of program start"
 // @Param specialty   query string false "Specialty exact match"
 // @Param created_by  query int    false "Filter to a specific methodist's curricula"
 // @Param limit       query int    false "Page size (1..200, default 50)"

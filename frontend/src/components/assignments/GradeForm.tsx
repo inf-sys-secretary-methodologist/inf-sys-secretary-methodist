@@ -93,9 +93,7 @@ export function GradeForm({ assignmentId, maxScore, submission, onSaved }: Grade
   return (
     <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-[120px_1fr_auto] md:items-end">
       <div className="space-y-1.5">
-        <Label htmlFor={`grade-${submission.id}`}>
-          {t('valueLabel', { max: maxScore })}
-        </Label>
+        <Label htmlFor={`grade-${submission.id}`}>{t('valueLabel', { max: maxScore })}</Label>
         <Input
           id={`grade-${submission.id}`}
           inputMode="numeric"
@@ -121,7 +119,11 @@ export function GradeForm({ assignmentId, maxScore, submission, onSaved }: Grade
       </div>
 
       <Button type="submit" disabled={submitting || isAlreadyGraded}>
-        {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+        {submitting ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Save className="h-4 w-4 mr-2" />
+        )}
         {buttonLabel}
       </Button>
 

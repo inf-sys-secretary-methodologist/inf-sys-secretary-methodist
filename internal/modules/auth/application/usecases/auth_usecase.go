@@ -72,7 +72,7 @@ func NewAuthUseCase(
 
 // Login authenticates user and returns JWT tokens
 func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessToken string, refreshToken string, err error) {
-	ctx, span := otel.Tracer("auth").Start(ctx, "AuthUseCase.Login",)
+	ctx, span := otel.Tracer("auth").Start(ctx, "AuthUseCase.Login")
 	defer func() {
 		if err != nil {
 			span.RecordError(err)

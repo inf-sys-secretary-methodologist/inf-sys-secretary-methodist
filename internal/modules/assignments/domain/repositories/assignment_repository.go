@@ -15,7 +15,7 @@ import (
 var ErrAssignmentNotFound = errors.New("assignments: assignment not found")
 
 // AssignmentListFilter narrows a List query. Zero-valued fields are
-// treated as "no filter on this dimension". Limit/Offset are honoured by
+// treated as "no filter on this dimension". Limit/Offset are honored by
 // the repository; a non-positive Limit means "no clamp at the
 // repository layer" — use cases are responsible for choosing a
 // sensible default to keep result sets bounded.

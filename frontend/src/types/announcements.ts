@@ -10,20 +10,9 @@ export type TargetAudience = 'all' | 'students' | 'teachers' | 'staff' | 'admins
 
 export const ANNOUNCEMENT_STATUSES: AnnouncementStatus[] = ['draft', 'published', 'archived']
 
-export const ANNOUNCEMENT_PRIORITIES: AnnouncementPriority[] = [
-  'low',
-  'normal',
-  'high',
-  'urgent',
-]
+export const ANNOUNCEMENT_PRIORITIES: AnnouncementPriority[] = ['low', 'normal', 'high', 'urgent']
 
-export const TARGET_AUDIENCES: TargetAudience[] = [
-  'all',
-  'students',
-  'teachers',
-  'staff',
-  'admins',
-]
+export const TARGET_AUDIENCES: TargetAudience[] = ['all', 'students', 'teachers', 'staff', 'admins']
 
 export interface AnnouncementAuthor {
   id: number

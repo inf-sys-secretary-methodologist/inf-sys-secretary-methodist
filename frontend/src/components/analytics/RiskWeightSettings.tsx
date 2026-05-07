@@ -59,9 +59,13 @@ export function RiskWeightSettings() {
   if (loading) {
     return (
       <Card>
-        <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+        </CardHeader>
         <CardContent className="space-y-4">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
         </CardContent>
       </Card>
     )
@@ -69,7 +73,11 @@ export function RiskWeightSettings() {
 
   if (!config) return null
 
-  const totalWeight = config.attendance_weight + config.grade_weight + config.submission_weight + config.inactivity_weight
+  const totalWeight =
+    config.attendance_weight +
+    config.grade_weight +
+    config.submission_weight +
+    config.inactivity_weight
   const isValid = Math.abs(totalWeight - 1.0) < 0.02
 
   const weights = [
@@ -113,9 +121,7 @@ export function RiskWeightSettings() {
             <span className={isValid ? 'text-green-600' : 'text-destructive font-medium'}>
               {t('weights.total')}: {(totalWeight * 100).toFixed(0)}%
             </span>
-            {!isValid && (
-              <span className="text-destructive ml-2">({t('weights.mustBe100')})</span>
-            )}
+            {!isValid && <span className="text-destructive ml-2">({t('weights.mustBe100')})</span>}
           </div>
           <Button onClick={handleSave} disabled={saving || !isValid} size="sm">
             <Save className="mr-2 h-4 w-4" />

@@ -58,7 +58,7 @@ func doResubmitRequest(t *testing.T, r *gin.Engine, path string) *httptest.Respo
 // TestResubmitHandler_RoleWhitelist documents the failure-closed role
 // matrix: ONLY "student" is permitted to resubmit; every other role
 // (including missing auth context) falls through to 401. The use-case
-// must NOT be invoked when access is denied — defence in depth that
+// must NOT be invoked when access is denied — defense in depth that
 // mirrors the read-side AssignmentsHandler / GradeHandler / ReturnHandler.
 func TestResubmitHandler_RoleWhitelist(t *testing.T) {
 	tests := []struct {

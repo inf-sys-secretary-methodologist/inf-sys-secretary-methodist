@@ -15,7 +15,7 @@ import (
 
 // mockTeacherScopeRepo is a testify-mock implementation of
 // repositories.TeacherScopeRepository, used by handler-level tests to
-// pin scope-assembly behaviour.
+// pin scope-assembly behavior.
 type mockTeacherScopeRepo struct{ mock.Mock }
 
 func (m *mockTeacherScopeRepo) ListGroupNames(ctx context.Context, teacherID int64) ([]string, error) {

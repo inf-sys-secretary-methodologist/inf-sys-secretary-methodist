@@ -8,12 +8,7 @@ import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  TASK_PRIORITIES,
-  type Task,
-  type CreateTaskInput,
-  type TaskPriority,
-} from '@/types/tasks'
+import { TASK_PRIORITIES, type Task, type CreateTaskInput, type TaskPriority } from '@/types/tasks'
 
 interface TaskFormProps {
   task?: Task
@@ -62,10 +57,7 @@ export function TaskForm({ task, onSubmit, onCancel, className }: TaskFormProps)
   return (
     <form onSubmit={handleSubmit} className={cn('flex flex-col gap-4', className)}>
       <div>
-        <label
-          htmlFor="task-form-title"
-          className="block text-sm font-medium text-foreground mb-1"
-        >
+        <label htmlFor="task-form-title" className="block text-sm font-medium text-foreground mb-1">
           {t('form.titleLabel')}
         </label>
         <Input

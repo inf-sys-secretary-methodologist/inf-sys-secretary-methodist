@@ -12,7 +12,14 @@ export interface FileFilterValues {
   fileType?: string
 }
 
-const FILE_TYPE_OPTIONS = ['images', 'documents', 'spreadsheets', 'presentations', 'archives', 'other'] as const
+const FILE_TYPE_OPTIONS = [
+  'images',
+  'documents',
+  'spreadsheets',
+  'presentations',
+  'archives',
+  'other',
+] as const
 
 interface FileFiltersProps {
   value: FileFilterValues
@@ -36,12 +43,7 @@ export function FileFilters({ value, onChange, className }: FileFiltersProps) {
     'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
 
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap',
-        className
-      )}
-    >
+    <div className={cn('flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap', className)}>
       <div className="flex-1 min-w-[200px]">
         <label
           htmlFor="file-filter-search"

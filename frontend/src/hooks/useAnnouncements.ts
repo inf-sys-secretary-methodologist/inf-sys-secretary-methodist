@@ -76,9 +76,7 @@ export function useAnnouncement(id: number | null) {
 
 // Mutations
 
-export async function createAnnouncement(
-  input: CreateAnnouncementInput
-): Promise<Announcement> {
+export async function createAnnouncement(input: CreateAnnouncementInput): Promise<Announcement> {
   return apiClient.post<Announcement>(ANNOUNCEMENTS_BASE_URL, input)
 }
 
@@ -128,7 +126,5 @@ export async function deleteAnnouncementAttachment(
   announcementId: number,
   attachmentId: number
 ): Promise<void> {
-  await apiClient.delete(
-    `${ANNOUNCEMENTS_BASE_URL}/${announcementId}/attachments/${attachmentId}`
-  )
+  await apiClient.delete(`${ANNOUNCEMENTS_BASE_URL}/${announcementId}/attachments/${attachmentId}`)
 }

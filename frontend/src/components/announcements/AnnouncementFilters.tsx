@@ -38,12 +38,7 @@ export function AnnouncementFilters({ value, onChange, className }: Announcement
     'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
 
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap',
-        className
-      )}
-    >
+    <div className={cn('flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap', className)}>
       <div className="flex-1 min-w-[200px]">
         <label
           htmlFor="ann-filter-search"

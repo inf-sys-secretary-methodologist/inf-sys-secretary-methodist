@@ -16,17 +16,25 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
-// ListAssignmentsUseCasePort, GetAssignmentUseCasePort and
-// ListSubmissionsUseCasePort decouple the handler from the concrete
+// ListAssignmentsUseCasePort decouples the handler from the concrete
 // use-case structs so handler tests stub only the relevant Execute
 // signature instead of the full repository graph.
+//
+// GetAssignmentUseCasePort and ListSubmissionsUseCasePort below follow
+// the same shape for the related read endpoints.
 type (
+	// ListAssignmentsUseCasePort declares the Execute signature used by
+	// the GET /api/assignments handler.
 	ListAssignmentsUseCasePort interface {
 		Execute(ctx context.Context, in assignUsecases.ListAssignmentsInput) (assignUsecases.ListAssignmentsOutput, error)
 	}
+	// GetAssignmentUseCasePort declares the Execute signature used by
+	// the GET /api/assignments/:id handler.
 	GetAssignmentUseCasePort interface {
 		Execute(ctx context.Context, in assignUsecases.GetAssignmentInput) (*entities.Assignment, error)
 	}
+	// ListSubmissionsUseCasePort declares the Execute signature used by
+	// the GET /api/assignments/:id/submissions handler.
 	ListSubmissionsUseCasePort interface {
 		Execute(ctx context.Context, in assignUsecases.ListSubmissionsInput) ([]views.SubmissionView, error)
 	}
@@ -218,7 +226,7 @@ func (h *AssignmentsHandler) ListSubmissions(c *gin.Context) {
 	}))
 }
 
-// Recognised role values, mirrored from auth/domain/permission.go but
+// Recognized role values, mirrored from auth/domain/permission.go but
 // duplicated here to avoid an HTTP layer importing the auth domain.
 // Updating this list when a new role is introduced is a deliberate
 // step — the failure-closed default is "unknown role → no access."
@@ -237,7 +245,7 @@ const (
 //     academic_secretary / system_admin) → ok=false → 401, even
 //     when the upstream middleware has already validated the JWT.
 //
-// Defence-in-depth: a future engineer who removes RequireNonStudent
+// Defense-in-depth: a future engineer who removes RequireNonStudent
 // or adds a new role to RequireRole must NOT silently get
 // "unrestricted" data access via this handler. The whitelist is the
 // last gate; unknown roles fall through to the same 401 path as
@@ -317,7 +325,7 @@ func mapSubmissionViews(in []views.SubmissionView) []SubmissionViewDTO {
 	return out
 }
 
-// handleError centralises domain → HTTP mapping for the read handlers.
+// handleError centralizes domain → HTTP mapping for the read handlers.
 // Same explicit-sentinel-first pattern as grade_handler so module
 // errors get their actionable status (403, 404) instead of falling
 // through to the generic mapper's 500.

@@ -55,12 +55,7 @@ describe('ResubmitDialog', () => {
     mockedResubmit.mockResolvedValueOnce({ assignment_id: 10, student_id: 7 })
 
     render(
-      <ResubmitDialog
-        assignmentId={10}
-        open
-        onClose={onClose}
-        onResubmitted={onResubmitted}
-      />
+      <ResubmitDialog assignmentId={10} open onClose={onClose} onResubmitted={onResubmitted} />
     )
 
     await user.click(screen.getByRole('button', { name: /resubmitDialog\.confirm/ }))
@@ -83,9 +78,7 @@ describe('ResubmitDialog', () => {
     await user.click(screen.getByRole('button', { name: /resubmitDialog\.confirm/ }))
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining('notReturned')
-      )
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('notReturned'))
     )
   })
 
@@ -101,9 +94,7 @@ describe('ResubmitDialog', () => {
     await user.click(screen.getByRole('button', { name: /resubmitDialog\.confirm/ }))
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining('forbidden')
-      )
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('forbidden'))
     )
   })
 

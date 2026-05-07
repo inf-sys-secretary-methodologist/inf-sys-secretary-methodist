@@ -4,25 +4,13 @@ import { ConfirmDeleteDialog } from '../ConfirmDeleteDialog'
 
 describe('ConfirmDeleteDialog', () => {
   it('renders title and description when open', () => {
-    render(
-      <ConfirmDeleteDialog
-        open={true}
-        onConfirm={jest.fn()}
-        onCancel={jest.fn()}
-      />
-    )
+    render(<ConfirmDeleteDialog open={true} onConfirm={jest.fn()} onCancel={jest.fn()} />)
     expect(screen.getByText('confirm.deleteTitle')).toBeInTheDocument()
     expect(screen.getByText('confirm.delete')).toBeInTheDocument()
   })
 
   it('does not render content when closed', () => {
-    render(
-      <ConfirmDeleteDialog
-        open={false}
-        onConfirm={jest.fn()}
-        onCancel={jest.fn()}
-      />
-    )
+    render(<ConfirmDeleteDialog open={false} onConfirm={jest.fn()} onCancel={jest.fn()} />)
     expect(screen.queryByText('confirm.deleteTitle')).not.toBeInTheDocument()
   })
 
@@ -30,13 +18,7 @@ describe('ConfirmDeleteDialog', () => {
     const onConfirm = jest.fn()
     const user = userEvent.setup()
 
-    render(
-      <ConfirmDeleteDialog
-        open={true}
-        onConfirm={onConfirm}
-        onCancel={jest.fn()}
-      />
-    )
+    render(<ConfirmDeleteDialog open={true} onConfirm={onConfirm} onCancel={jest.fn()} />)
 
     const confirmBtn = screen.getByRole('button', { name: /delete/i })
     await user.click(confirmBtn)
@@ -47,13 +29,7 @@ describe('ConfirmDeleteDialog', () => {
     const onCancel = jest.fn()
     const user = userEvent.setup()
 
-    render(
-      <ConfirmDeleteDialog
-        open={true}
-        onConfirm={jest.fn()}
-        onCancel={onCancel}
-      />
-    )
+    render(<ConfirmDeleteDialog open={true} onConfirm={jest.fn()} onCancel={onCancel} />)
 
     const cancelBtn = screen.getByRole('button', { name: /cancel/i })
     await user.click(cancelBtn)

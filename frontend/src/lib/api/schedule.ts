@@ -27,41 +27,29 @@ interface ListResponse<T> {
 
 export const scheduleLessonsApi = {
   async list(params?: LessonFilterParams): Promise<Lesson[]> {
-    const response = await apiClient.get<ApiResponse<Lesson[]>>(
-      '/api/schedule/lessons',
-      { params }
-    )
+    const response = await apiClient.get<ApiResponse<Lesson[]>>('/api/schedule/lessons', { params })
     return response.data || []
   },
 
   async getTimetable(params?: LessonFilterParams): Promise<Lesson[]> {
-    const response = await apiClient.get<ApiResponse<Lesson[]>>(
-      '/api/schedule/lessons/timetable',
-      { params }
-    )
+    const response = await apiClient.get<ApiResponse<Lesson[]>>('/api/schedule/lessons/timetable', {
+      params,
+    })
     return response.data || []
   },
 
   async getById(id: number): Promise<Lesson> {
-    const response = await apiClient.get<ApiResponse<Lesson>>(
-      `/api/schedule/lessons/${id}`
-    )
+    const response = await apiClient.get<ApiResponse<Lesson>>(`/api/schedule/lessons/${id}`)
     return response.data
   },
 
   async create(input: CreateLessonInput): Promise<Lesson> {
-    const response = await apiClient.post<ApiResponse<Lesson>>(
-      '/api/schedule/lessons',
-      input
-    )
+    const response = await apiClient.post<ApiResponse<Lesson>>('/api/schedule/lessons', input)
     return response.data
   },
 
   async update(id: number, input: UpdateLessonInput): Promise<Lesson> {
-    const response = await apiClient.put<ApiResponse<Lesson>>(
-      `/api/schedule/lessons/${id}`,
-      input
-    )
+    const response = await apiClient.put<ApiResponse<Lesson>>(`/api/schedule/lessons/${id}`, input)
     return response.data
   },
 
@@ -80,10 +68,9 @@ export const scheduleChangesApi = {
   },
 
   async list(params?: { lesson_id?: number }): Promise<ScheduleChange[]> {
-    const response = await apiClient.get<ListResponse<ScheduleChange>>(
-      '/api/schedule/changes',
-      { params }
-    )
+    const response = await apiClient.get<ListResponse<ScheduleChange>>('/api/schedule/changes', {
+      params,
+    })
     return response.data || []
   },
 }

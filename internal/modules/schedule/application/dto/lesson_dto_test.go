@@ -4,10 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 )
 
 func TestToLessonOutput(t *testing.T) {
@@ -24,7 +25,7 @@ func TestToLessonOutput(t *testing.T) {
 		DisciplineID: 20,
 		LessonTypeID: 30,
 		TeacherID:    40,
-		GroupID:       50,
+		GroupID:      50,
 		ClassroomID:  60,
 		DayOfWeek:    domain.Monday,
 		TimeStart:    "09:00",
@@ -156,7 +157,7 @@ func TestToLessonOutput_NilAssociations(t *testing.T) {
 		DisciplineID: 20,
 		LessonTypeID: 30,
 		TeacherID:    40,
-		GroupID:       50,
+		GroupID:      50,
 		ClassroomID:  60,
 		DayOfWeek:    domain.Tuesday,
 		TimeStart:    "14:00",

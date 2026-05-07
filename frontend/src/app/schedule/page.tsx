@@ -47,9 +47,7 @@ export default function SchedulePage() {
   // Filter lessons by week_type on the client side
   const filteredLessons = useMemo(() => {
     if (weekType === 'all') return lessons
-    return lessons.filter(
-      (l: Lesson) => l.week_type === 'all' || l.week_type === weekType
-    )
+    return lessons.filter((l: Lesson) => l.week_type === 'all' || l.week_type === weekType)
   }, [lessons, weekType])
 
   return (
@@ -80,7 +78,9 @@ export default function SchedulePage() {
           <TabsList>
             {WEEK_TYPES.map((wt) => (
               <TabsTrigger key={wt} value={wt}>
-                {t(`filters.${wt === 'all' ? 'allWeeks' : wt === 'odd' ? 'oddWeeks' : 'evenWeeks'}`)}
+                {t(
+                  `filters.${wt === 'all' ? 'allWeeks' : wt === 'odd' ? 'oddWeeks' : 'evenWeeks'}`
+                )}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -101,10 +101,7 @@ export default function SchedulePage() {
             <p className="text-lg font-medium">{t('empty')}</p>
           </div>
         ) : (
-          <TimetableGrid
-            lessons={filteredLessons}
-            canEdit={userCanEdit}
-          />
+          <TimetableGrid lessons={filteredLessons} canEdit={userCanEdit} />
         )}
       </div>
     </AppLayout>

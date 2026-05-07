@@ -78,8 +78,20 @@ describe('AnnouncementCard', () => {
         announcement={{
           ...baseAnnouncement,
           attachments: [
-            { id: 1, file_name: 'doc.pdf', file_size: 1024, mime_type: 'application/pdf', created_at: '' },
-            { id: 2, file_name: 'pic.png', file_size: 2048, mime_type: 'image/png', created_at: '' },
+            {
+              id: 1,
+              file_name: 'doc.pdf',
+              file_size: 1024,
+              mime_type: 'application/pdf',
+              created_at: '',
+            },
+            {
+              id: 2,
+              file_name: 'pic.png',
+              file_size: 2048,
+              mime_type: 'image/png',
+              created_at: '',
+            },
           ],
         }}
       />
@@ -96,10 +108,13 @@ describe('AnnouncementCard', () => {
   })
 
   // Table-driven for status × 3
-  it.each(ANNOUNCEMENT_STATUSES)('renders status badge for status=%s', (status: AnnouncementStatus) => {
-    render(<AnnouncementCard announcement={{ ...baseAnnouncement, status }} />)
-    expect(screen.getByText(`status.${status}`)).toBeInTheDocument()
-  })
+  it.each(ANNOUNCEMENT_STATUSES)(
+    'renders status badge for status=%s',
+    (status: AnnouncementStatus) => {
+      render(<AnnouncementCard announcement={{ ...baseAnnouncement, status }} />)
+      expect(screen.getByText(`status.${status}`)).toBeInTheDocument()
+    }
+  )
 
   // Table-driven for priority × 4
   it.each(ANNOUNCEMENT_PRIORITIES)(

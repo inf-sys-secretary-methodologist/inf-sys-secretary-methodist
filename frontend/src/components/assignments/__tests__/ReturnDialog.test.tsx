@@ -51,12 +51,7 @@ describe('ReturnDialog', () => {
   it('confirm is disabled while reason is empty', async () => {
     const user = userEvent.setup()
     render(
-      <ReturnDialog
-        assignmentId={10}
-        submission={pendingSubmission}
-        open
-        onClose={jest.fn()}
-      />
+      <ReturnDialog assignmentId={10} submission={pendingSubmission} open onClose={jest.fn()} />
     )
     const confirm = screen.getByRole('button', { name: /returnDialog\.confirm/ })
     expect(confirm).toBeDisabled()
@@ -68,12 +63,7 @@ describe('ReturnDialog', () => {
 
   it('confirm is disabled when reason exceeds 4096 chars', () => {
     render(
-      <ReturnDialog
-        assignmentId={10}
-        submission={pendingSubmission}
-        open
-        onClose={jest.fn()}
-      />
+      <ReturnDialog assignmentId={10} submission={pendingSubmission} open onClose={jest.fn()} />
     )
     const textarea = screen.getByLabelText(/returnDialog\.reasonLabel/) as HTMLTextAreaElement
     // Bypass user.type for performance: directly set the value via fireEvent.
@@ -115,14 +105,7 @@ describe('ReturnDialog', () => {
   it('cancel calls onClose without invoking the API', async () => {
     const user = userEvent.setup()
     const onClose = jest.fn()
-    render(
-      <ReturnDialog
-        assignmentId={10}
-        submission={pendingSubmission}
-        open
-        onClose={onClose}
-      />
-    )
+    render(<ReturnDialog assignmentId={10} submission={pendingSubmission} open onClose={onClose} />)
     await user.click(screen.getByRole('button', { name: /returnDialog\.cancel/ }))
     expect(onClose).toHaveBeenCalled()
     expect(mockedReturnSubmission).not.toHaveBeenCalled()
@@ -147,12 +130,7 @@ describe('ReturnDialog', () => {
       const user = userEvent.setup()
       const onClose = jest.fn()
       render(
-        <ReturnDialog
-          assignmentId={10}
-          submission={pendingSubmission}
-          open
-          onClose={onClose}
-        />
+        <ReturnDialog assignmentId={10} submission={pendingSubmission} open onClose={onClose} />
       )
 
       await user.type(screen.getByLabelText(/returnDialog\.reasonLabel/), 'fix it')
@@ -170,12 +148,7 @@ describe('ReturnDialog', () => {
 
       const user = userEvent.setup()
       render(
-        <ReturnDialog
-          assignmentId={10}
-          submission={pendingSubmission}
-          open
-          onClose={jest.fn()}
-        />
+        <ReturnDialog assignmentId={10} submission={pendingSubmission} open onClose={jest.fn()} />
       )
 
       await user.type(screen.getByLabelText(/returnDialog\.reasonLabel/), 'fix it')

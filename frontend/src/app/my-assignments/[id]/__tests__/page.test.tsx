@@ -161,9 +161,7 @@ describe('MyAssignmentDetailPage', () => {
       error: undefined,
     })
     const { unmount } = render(<MyAssignmentDetailPage />)
-    expect(
-      screen.queryByRole('button', { name: /resubmitButton/ })
-    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /resubmitButton/ })).not.toBeInTheDocument()
     unmount()
 
     // graded: no button
@@ -173,9 +171,7 @@ describe('MyAssignmentDetailPage', () => {
       error: undefined,
     })
     const r2 = render(<MyAssignmentDetailPage />)
-    expect(
-      screen.queryByRole('button', { name: /resubmitButton/ })
-    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /resubmitButton/ })).not.toBeInTheDocument()
     r2.unmount()
 
     // returned: button present
@@ -185,8 +181,6 @@ describe('MyAssignmentDetailPage', () => {
       error: undefined,
     })
     render(<MyAssignmentDetailPage />)
-    expect(
-      screen.getByRole('button', { name: /resubmitButton/ })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /resubmitButton/ })).toBeInTheDocument()
   })
 })

@@ -22,7 +22,10 @@ interface SubmissionRowProps {
   onGraded?: () => void
 }
 
-const STATUS_STYLES: Record<SubmissionView['status'], { bg: string; text: string; Icon: typeof Clock }> = {
+const STATUS_STYLES: Record<
+  SubmissionView['status'],
+  { bg: string; text: string; Icon: typeof Clock }
+> = {
   pending: {
     bg: 'bg-amber-50 dark:bg-amber-950/30',
     text: 'text-amber-700 dark:text-amber-300',
@@ -40,7 +43,12 @@ const STATUS_STYLES: Record<SubmissionView['status'], { bg: string; text: string
   },
 }
 
-export function SubmissionRow({ assignmentId, maxScore, submission, onGraded }: SubmissionRowProps) {
+export function SubmissionRow({
+  assignmentId,
+  maxScore,
+  submission,
+  onGraded,
+}: SubmissionRowProps) {
   const t = useTranslations('assignments')
   const locale = useLocale() as keyof typeof localeMap
   const dateLocale = localeMap[locale] ?? enUS
@@ -87,9 +95,7 @@ export function SubmissionRow({ assignmentId, maxScore, submission, onGraded }: 
           {submission.feedback && (
             <span className="ml-2 text-muted-foreground">{submission.feedback}</span>
           )}
-          {gradedAt && (
-            <span className="ml-2 text-xs text-muted-foreground">{gradedAt}</span>
-          )}
+          {gradedAt && <span className="ml-2 text-xs text-muted-foreground">{gradedAt}</span>}
         </p>
       )}
 
@@ -98,9 +104,7 @@ export function SubmissionRow({ assignmentId, maxScore, submission, onGraded }: 
           <p className="font-semibold text-sky-700 dark:text-sky-300">
             {t('submissionRow.returnedReasonLabel')}
           </p>
-          <p className="mt-1 text-sky-900 dark:text-sky-100">
-            {submission.return_reason}
-          </p>
+          <p className="mt-1 text-sky-900 dark:text-sky-100">{submission.return_reason}</p>
           {submission.returned_at && (
             <p className="mt-2 text-xs text-sky-700 dark:text-sky-400">
               {t('submissionRow.returnedAtLabel')}{' '}
@@ -130,12 +134,7 @@ export function SubmissionRow({ assignmentId, maxScore, submission, onGraded }: 
 
       {canReturn && (
         <div className="mt-3 flex justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setDialogOpen(true)}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
             <RotateCcw className="h-4 w-4 mr-2" />
             {t('returnButton')}
           </Button>

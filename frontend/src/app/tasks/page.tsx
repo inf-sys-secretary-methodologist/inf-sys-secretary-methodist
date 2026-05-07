@@ -7,21 +7,11 @@ import { toast } from 'sonner'
 
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { TaskCard } from '@/components/tasks/TaskCard'
 import { TaskFilters } from '@/components/tasks/TaskFilters'
 import { TaskForm } from '@/components/tasks/TaskForm'
-import {
-  useTasks,
-  createTask,
-  updateTask,
-  deleteTask,
-} from '@/hooks/useTasks'
+import { useTasks, createTask, updateTask, deleteTask } from '@/hooks/useTasks'
 import type { CreateTaskInput, Task, TaskFilterParams } from '@/types/tasks'
 import { useAuthCheck } from '@/hooks/useAuth'
 
@@ -121,9 +111,7 @@ export default function TasksPage() {
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {editingTask ? t('form.editTitle') : t('form.createTitle')}
-              </DialogTitle>
+              <DialogTitle>{editingTask ? t('form.editTitle') : t('form.createTitle')}</DialogTitle>
             </DialogHeader>
             <TaskForm
               task={editingTask}

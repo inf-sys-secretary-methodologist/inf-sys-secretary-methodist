@@ -7,12 +7,7 @@ import { toast } from 'sonner'
 
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { FileUploader } from '@/components/files/FileUploader'
 import { FileGrid } from '@/components/files/FileGrid'
 import { FilePreview } from '@/components/files/FilePreview'
@@ -44,8 +39,8 @@ const MIME_TYPE_GROUPS: Record<string, (mime: string) => boolean> = {
 
 function matchesMimeGroup(mimeType: string, group: string): boolean {
   if (group === 'other') {
-    return !['images', 'documents', 'spreadsheets', 'presentations', 'archives'].some(
-      (g) => MIME_TYPE_GROUPS[g](mimeType)
+    return !['images', 'documents', 'spreadsheets', 'presentations', 'archives'].some((g) =>
+      MIME_TYPE_GROUPS[g](mimeType)
     )
   }
   return MIME_TYPE_GROUPS[group]?.(mimeType) ?? false
@@ -57,7 +52,10 @@ export default function FilesPage() {
   const user = useAuthStore((s) => s.user)
   const userCanEdit = canEdit(user?.role)
 
-  const [paginationParams, setPaginationParams] = useState<FileFilterParams>({ page: 1, limit: 100 })
+  const [paginationParams, setPaginationParams] = useState<FileFilterParams>({
+    page: 1,
+    limit: 100,
+  })
   const [clientFilters, setClientFilters] = useState<FileFilterValues>({})
   const [uploading, setUploading] = useState(false)
   const [previewFile, setPreviewFile] = useState<(FileItem & { downloadUrl?: string }) | null>(null)
@@ -226,12 +224,15 @@ export default function FilesPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={versionsFileId !== null} onOpenChange={(open) => {
-          if (!open) {
-            setVersionsFileId(null)
-            setVersionUploadOpen(false)
-          }
-        }}>
+        <Dialog
+          open={versionsFileId !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setVersionsFileId(null)
+              setVersionUploadOpen(false)
+            }
+          }}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{t('versions.title')}</DialogTitle>

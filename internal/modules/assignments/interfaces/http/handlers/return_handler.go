@@ -17,7 +17,7 @@ import (
 // ReturnSubmissionUseCasePort is the narrow port through which the
 // handler invokes the use case. Defining it here (rather than importing
 // the concrete *ReturnSubmissionUseCase) keeps handler tests free of
-// fake repositories / audit sinks — only the use-case behaviour is
+// fake repositories / audit sinks — only the use-case behavior is
 // stubbed. Same pattern as SaveGradeUseCasePort.
 type ReturnSubmissionUseCasePort interface {
 	Execute(ctx context.Context, actorID int64, in assignUsecases.ReturnSubmissionInput) error
@@ -84,7 +84,7 @@ func (h *ReturnHandler) Return(c *gin.Context) {
 
 	actorID, ok := actorIDFromContext(c)
 	if !ok {
-		// Failure-closed: missing or unrecognised role context surfaces
+		// Failure-closed: missing or unrecognized role context surfaces
 		// as 401 rather than falling through to a silent admin identity.
 		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
 		return
@@ -110,7 +110,7 @@ func (h *ReturnHandler) Return(c *gin.Context) {
 // actorIDFromContext extracts the user_id and role from gin context,
 // applies the failure-closed role whitelist (teacher / methodist /
 // academic_secretary / system_admin), and returns the user_id for the
-// use case to authorise. Defence in depth: a future engineer who
+// use case to authorize. Defense in depth: a future engineer who
 // removes RequireNonStudent or adds a new role to RequireRole must NOT
 // silently get write access via this handler. Unknown role → ok=false →
 // 401, identical posture as the read-side AssignmentsHandler.

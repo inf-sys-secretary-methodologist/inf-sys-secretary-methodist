@@ -42,81 +42,81 @@ export default function AutomationSettingsPage() {
     <AppLayout>
       <SettingsTabs />
       <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Workflow className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <p className="text-muted-foreground">{t('description')}</p>
+        <div className="flex items-center gap-3">
+          <Workflow className="h-6 w-6 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground">{t('description')}</p>
+          </div>
         </div>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{t('platform')}</CardTitle>
-              <CardDescription>{t('platformDesc')}</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {loading ? (
-                <Badge variant="outline">
-                  <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
-                  {t('checking')}
-                </Badge>
-              ) : healthy ? (
-                <Badge variant="default" className="bg-green-600">
-                  <CheckCircle2 className="mr-1 h-3 w-3" />
-                  {t('connected')}
-                </Badge>
-              ) : (
-                <Badge variant="destructive">
-                  <XCircle className="mr-1 h-3 w-3" />
-                  {t('offline')}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div>
-              <p className="text-sm font-medium">{t('dashboard')}</p>
-              <p className="text-sm text-muted-foreground">{n8nURL}</p>
-            </div>
-            <Button variant="outline" size="sm" asChild>
-              <a href={n8nURL} target="_blank" rel="noopener noreferrer">
-                {t('openN8n')}
-                <ExternalLink className="ml-2 h-3 w-3" />
-              </a>
-            </Button>
-          </div>
-
-          <Button variant="ghost" size="sm" onClick={checkHealth} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            {t('refreshStatus')}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('workflowsTitle')}</CardTitle>
-          <CardDescription>{t('workflowsDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {workflows.map((wf, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border p-4">
-                <div>
-                  <p className="text-sm font-medium">{t(wf.nameKey)}</p>
-                  <p className="text-sm text-muted-foreground">{t(wf.descKey)}</p>
-                </div>
-                <Badge variant="outline">{t('ready')}</Badge>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>{t('platform')}</CardTitle>
+                <CardDescription>{t('platformDesc')}</CardDescription>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <div className="flex items-center gap-2">
+                {loading ? (
+                  <Badge variant="outline">
+                    <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                    {t('checking')}
+                  </Badge>
+                ) : healthy ? (
+                  <Badge variant="default" className="bg-green-600">
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    {t('connected')}
+                  </Badge>
+                ) : (
+                  <Badge variant="destructive">
+                    <XCircle className="mr-1 h-3 w-3" />
+                    {t('offline')}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div>
+                <p className="text-sm font-medium">{t('dashboard')}</p>
+                <p className="text-sm text-muted-foreground">{n8nURL}</p>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <a href={n8nURL} target="_blank" rel="noopener noreferrer">
+                  {t('openN8n')}
+                  <ExternalLink className="ml-2 h-3 w-3" />
+                </a>
+              </Button>
+            </div>
+
+            <Button variant="ghost" size="sm" onClick={checkHealth} disabled={loading}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              {t('refreshStatus')}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('workflowsTitle')}</CardTitle>
+            <CardDescription>{t('workflowsDesc')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {workflows.map((wf, i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <p className="text-sm font-medium">{t(wf.nameKey)}</p>
+                    <p className="text-sm text-muted-foreground">{t(wf.descKey)}</p>
+                  </div>
+                  <Badge variant="outline">{t('ready')}</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   )

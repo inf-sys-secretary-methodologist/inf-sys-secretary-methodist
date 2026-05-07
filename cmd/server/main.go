@@ -53,8 +53,6 @@ import (
 	"database/sql"
 
 	"fmt"
-	"github.com/XSAM/otelsql"
-	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"log"
 	"log/slog"
 	"net/http"
@@ -62,6 +60,9 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/XSAM/otelsql"
+	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
@@ -1915,7 +1916,7 @@ func setupRoutes(
 			// RequireNonStudent — exactly the inverse of what student
 			// endpoints require. The dedicated RequireRole("student")
 			// middleware here plus the handler-level studentIDFromContext
-			// whitelist give defence in depth: removing either one alone
+			// whitelist give defense in depth: removing either one alone
 			// still rejects every non-student request.
 			resubmitHandlerInstance := assignHandler.NewResubmitHandler(resubmitSubmissionUseCase)
 			myAssignmentsHandler := assignHandler.NewMyAssignmentsHandler(

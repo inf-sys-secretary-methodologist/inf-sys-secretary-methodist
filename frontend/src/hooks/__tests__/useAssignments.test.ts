@@ -37,7 +37,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) =>
 // is typed Promise<T>, and tests mock the resolved value as
 // { data: <payload> } because the fetcher reads response.data and the
 // hook keeps the unwrapped business object as its data.
-const apiOk = <T,>(data: T) => ({ data })
+const apiOk = <T>(data: T) => ({ data })
 
 const sampleAssignment: Assignment = {
   id: 10,
@@ -172,9 +172,7 @@ describe('saveGrade', () => {
 
   it('throws on API error', async () => {
     mockedApiClient.post.mockRejectedValueOnce(new Error('409 already graded'))
-    await expect(
-      saveGrade(10, { student_id: 7, value: 85 })
-    ).rejects.toThrow('409 already graded')
+    await expect(saveGrade(10, { student_id: 7, value: 85 })).rejects.toThrow('409 already graded')
   })
 })
 
@@ -192,10 +190,10 @@ describe('returnSubmission', () => {
       reason: 'revisit derivation',
     })
 
-    expect(mockedApiClient.post).toHaveBeenCalledWith(
-      '/api/assignments/42/returns',
-      { student_id: 7, reason: 'revisit derivation' }
-    )
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/api/assignments/42/returns', {
+      student_id: 7,
+      reason: 'revisit derivation',
+    })
     expect(result).toEqual(responseBody)
   })
 
@@ -203,8 +201,8 @@ describe('returnSubmission', () => {
     const err = new Error('409 conflict')
     mockedApiClient.post.mockRejectedValueOnce(err)
 
-    await expect(
-      returnSubmission(42, { student_id: 7, reason: 'x' })
-    ).rejects.toThrow('409 conflict')
+    await expect(returnSubmission(42, { student_id: 7, reason: 'x' })).rejects.toThrow(
+      '409 conflict'
+    )
   })
 })

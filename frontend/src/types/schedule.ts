@@ -132,7 +132,14 @@ export type WeekType = 'all' | 'odd' | 'even'
 
 export const WEEK_TYPES: WeekType[] = ['all', 'odd', 'even']
 
-export const DAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const
+export const DAY_NAMES = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+] as const
 
 export const TIME_SLOTS = [
   { start: '09:00', end: '10:30' },

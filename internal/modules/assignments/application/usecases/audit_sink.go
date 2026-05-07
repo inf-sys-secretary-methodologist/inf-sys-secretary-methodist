@@ -21,7 +21,7 @@ type AuditSink interface {
 // actor user id (forensic trail invariant: every event carries who
 // triggered it) and dispatches via AuditSink with resource="assignment".
 //
-// Centralised here because three call sites (SaveGrade, ReturnSubmission,
+// Centralized here because three call sites (SaveGrade, ReturnSubmission,
 // ResubmitSubmission) need the same shape; the v0.111.0 review flagged
 // the duplicated method-pair as "extract on N=3", and this is N=3.
 //

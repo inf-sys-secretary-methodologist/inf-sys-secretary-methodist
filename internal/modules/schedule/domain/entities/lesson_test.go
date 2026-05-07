@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -38,7 +39,7 @@ func TestNewLesson_Deterministic(t *testing.T) {
 		t.Errorf("UpdatedAt = %v, want %v", lesson.UpdatedAt, fixedTime)
 	}
 	if lesson.IsCancelled {
-		t.Error("new lesson should not be cancelled")
+		t.Error("new lesson should not be canceled")
 	}
 }
 
@@ -124,7 +125,7 @@ func TestLesson_Validate(t *testing.T) {
 			} else {
 				if err == nil {
 					t.Errorf("Validate() expected error %v, got nil", tt.wantErr)
-				} else if err != tt.wantErr {
+				} else if !errors.Is(err, tt.wantErr) {
 					t.Errorf("Validate() error = %v, want %v", err, tt.wantErr)
 				}
 			}

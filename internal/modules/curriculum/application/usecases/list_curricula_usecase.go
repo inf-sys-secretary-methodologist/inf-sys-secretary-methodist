@@ -7,7 +7,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/repositories"
 )
 
-// Pagination policy for the use case. Centralised here (rather than
+// Pagination policy for the use case. Centralized here (rather than
 // in the handler) so any future caller — internal scheduler, batch
 // job, or alternate transport — inherits the same boundedness
 // without re-implementing the limits.

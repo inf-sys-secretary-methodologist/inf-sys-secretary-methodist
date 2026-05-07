@@ -122,10 +122,10 @@ func TestSaveGradeHandler_InputValidation(t *testing.T) {
 
 func TestSaveGradeHandler_DomainErrorMapping(t *testing.T) {
 	tests := []struct {
-		name      string
-		ucErr     error
-		wantCode  int
-		wantBody  string
+		name     string
+		ucErr    error
+		wantCode int
+		wantBody string
 	}{
 		{name: "ErrAssignmentNotFound → 404",
 			ucErr: repositories.ErrAssignmentNotFound, wantCode: http.StatusNotFound, wantBody: "NOT_FOUND"},

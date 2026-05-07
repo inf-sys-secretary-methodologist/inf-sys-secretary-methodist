@@ -216,7 +216,9 @@ describe('getAccessLevel', () => {
 
   it('returns denied for non-admin on system_settings', () => {
     expect(getAccessLevel(UserRole.METHODIST, Resource.SYSTEM_SETTINGS)).toBe(AccessLevel.DENIED)
-    expect(getAccessLevel(UserRole.ACADEMIC_SECRETARY, Resource.SYSTEM_SETTINGS)).toBe(AccessLevel.DENIED)
+    expect(getAccessLevel(UserRole.ACADEMIC_SECRETARY, Resource.SYSTEM_SETTINGS)).toBe(
+      AccessLevel.DENIED
+    )
   })
 
   it('returns denied for undefined role', () => {

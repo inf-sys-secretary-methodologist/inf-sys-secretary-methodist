@@ -68,9 +68,7 @@ export function FileGrid({ files, onDownload, onDelete, onPreview, onVersions }:
                   <span className="truncate">{file.original_name}</span>
                 </button>
               </TableCell>
-              <TableCell className="text-muted-foreground">
-                {formatFileSize(file.size)}
-              </TableCell>
+              <TableCell className="text-muted-foreground">{formatFileSize(file.size)}</TableCell>
               <TableCell className="text-muted-foreground">
                 {file.mime_type.split('/').pop()}
               </TableCell>

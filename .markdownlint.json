@@ -15,6 +15,10 @@
   "link-fragments": false,
   "no-trailing-spaces": false,
   "no-hard-tabs": false,
+  "no-blanks-blockquote": false,
+  "ol-prefix": false,
+  "single-title": false,
+  "no-space-in-code": false,
   "no-inline-html": {
     "allowed_elements": [
       "br",

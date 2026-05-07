@@ -10,10 +10,7 @@ import { CheckCircle2, Eye, EyeOff, Loader2, AlertTriangle } from 'lucide-react'
 import { FloatingInput } from '@/components/ui/floating-input'
 import { Button } from '@/components/ui/button'
 import { authApi } from '@/lib/api/auth'
-import {
-  createPasswordResetSchema,
-  type PasswordResetFormData,
-} from '@/lib/validations/auth'
+import { createPasswordResetSchema, type PasswordResetFormData } from '@/lib/validations/auth'
 import { cn } from '@/lib/utils'
 
 type VerifyState = 'verifying' | 'valid' | 'invalid' | 'missing'
@@ -91,7 +88,10 @@ export function ResetPasswordForm({ className }: ResetPasswordFormProps) {
       <div className={cn('space-y-6 text-center', className)}>
         <AlertTriangle className="w-12 h-12 mx-auto text-amber-600" aria-hidden="true" />
         <p className="text-sm text-muted-foreground">{t('tokenMissing')}</p>
-        <Link href="/forgot-password" className="inline-block text-sm font-medium text-primary hover:underline">
+        <Link
+          href="/forgot-password"
+          className="inline-block text-sm font-medium text-primary hover:underline"
+        >
           {t('requestNewLink')}
         </Link>
       </div>
@@ -115,7 +115,10 @@ export function ResetPasswordForm({ className }: ResetPasswordFormProps) {
           <h2 className="text-xl font-semibold">{t('linkExpiredTitle')}</h2>
           <p className="text-sm text-muted-foreground">{t('linkExpiredDescription')}</p>
         </div>
-        <Link href="/forgot-password" className="inline-block text-sm font-medium text-primary hover:underline">
+        <Link
+          href="/forgot-password"
+          className="inline-block text-sm font-medium text-primary hover:underline"
+        >
           {t('requestNewLink')}
         </Link>
       </div>
@@ -130,7 +133,10 @@ export function ResetPasswordForm({ className }: ResetPasswordFormProps) {
           <h2 className="text-xl font-semibold">{t('successTitle')}</h2>
           <p className="text-sm text-muted-foreground">{t('successDescription')}</p>
         </div>
-        <Link href="/login" className="inline-block text-sm font-medium text-primary hover:underline">
+        <Link
+          href="/login"
+          className="inline-block text-sm font-medium text-primary hover:underline"
+        >
           {t('goToLogin')}
         </Link>
       </div>
@@ -178,7 +184,10 @@ export function ResetPasswordForm({ className }: ResetPasswordFormProps) {
             autoComplete="new-password"
             disabled={isSubmitting}
             {...register('confirmPassword')}
-            className={cn('pr-10', errors.confirmPassword && 'border-red-500 focus-visible:ring-red-500')}
+            className={cn(
+              'pr-10',
+              errors.confirmPassword && 'border-red-500 focus-visible:ring-red-500'
+            )}
           />
           <button
             type="button"
