@@ -15,6 +15,31 @@
 
 ---
 
+## [0.121.0] — 2026-05-07
+
+### Changed — Backend lint cleanup sprint (Backend CI + Security & Quality → green)
+
+41 lint issues + 6 gosec issues, накопленных через 24 предыдущих релиза, закрыты single sprint. После v0.121.0 `golangci-lint run --config=.github/golangci.yml` reports **0 issues**, `gosec ./...` reports **0 issues**, все 103 backend packages pass tests.
+
+- **`fix(lint)`** — staticcheck ST1019 duplicate `notifDto`/`notifDTO` import в `cmd/server/main.go` унифицирован под `notifDTO` (Go-идиоматичный acronym caps); unconvert redundant `string(s.RiskLevel)` cast в `analytics_handler.go:480` снят (DTO field уже `string`); errcheck wraps добавлены на `f.SetSheetName` (`analytics_handler.go:427`) и `defer resp.Body.Close` (`n8n/client.go:71`). 4 issues. No behaviour change.
+- **`docs(schedule)`** — 24 revive `exported should have comment` issues закрыты bulk-добавлением Go doc comments на exported types/methods/consts в `internal/modules/schedule/domain/`: `Classroom`, `Lesson` + `TeacherInfo` + `NewLesson` + `Validate` + `ErrInvalid*` block, `StudentGroup`, `Discipline`, `Semester`, `LessonType`, `ScheduleChange` + `NewScheduleChange`, `DayOfWeek`/`WeekType`/`ChangeType` const blocks + `IsValid` methods, и 4 repository интерфейса (`ClassroomFilter`/`Repository`, `LessonFilter`/`Repository`, `ReferenceRepository`, `ScheduleChangeRepository`). Doc strings — смысловые, не generic; явно фиксируют domain-инварианты (например, `Lesson.Validate` упоминает sentinel `ErrInvalid*` для `errors.Is`).
+- **`test(documents,schedule)`** — 3 goconst issues закрыты экстракцией повторяющихся test-литералов в const'ы: `testNameAdmin = "Admin"` (shared между `sharing_dto_test.go` × 2 и `version_dto_test.go` × 1), `testTitleNew` reuse в `document_usecase_test.go:590` (const уже существовал), `testTime0900 = "09:00"` (6 occurrences в `lesson_test.go`). Naming следует convention `test*` для test-only consts.
+- **`refactor(cmd/server)`** — gocyclo cyclomatic complexity 72 у `func main()` снижена ниже планки 70 через extraction двух helper'ов: `handleVersionFlag()` (бывший `--version` блок) + `initSentry(cfg)` (бывший Sentry init). Identical behaviour: `handleVersionFlag` returns true → main делает `if handleVersionFlag() { return }`; `initSentry` no-ops при пустом `SENTRY_DSN`, логирует success/failure без fatal.
+- **`fix(security)`** — 4 gosec G101 false-positives в auth annotated `#nosec G101 -- reason`: `revoked_token_repository_redis.go:14` (`"jwt:revoked:"` Redis key namespace, не credential) + 4 константы в `auth/messages.go` (lines 14/18/22/26 — Russian password-reset UI strings, не credentials; gosec triggers на substring `Password` в имени const).
+- **`fix(schedule)`** — 3 gosec G202 SQL string concatenation issues + 2 secondary G202 (всплыли после nosec'ов выше). Real fix в `reference_repository_pg.go`: `ListStudentGroups` + `ListDisciplines` параметризованы с `LIMIT $1 OFFSET $2` placeholders вместо `fmt.Sprintf("LIMIT %d OFFSET %d", limit, offset)` — args binding через `QueryContext(ctx, query, args...)`. False-positive annotation на 3 `whereClause` концатах (`classroom_repository_pg.go:59`, `lesson_repository_pg.go:131,166`): `buildWhereClause` собирает SQL из hardcoded column names + numbered placeholders, user values уходят в `args`.
+- **CI status post-sprint**: ✅ Backend CI / ✅ Security & Quality / ✅ Documentation CI / ✅ Database CI / ✅ Frontend CI / ✅ CI/CD Pipeline. Все 6 workflows зелёные.
+- **Backend snapshot**: 103 packages green, gosec 0/0 issues, golangci-lint 0/0 issues, gosec scanned 385 files / 80281 lines / 48 nosec annotations / 0 issues.
+- **Reviewer (`superpowers:code-reviewer`)**: SHIP single-pass mean **8.6/10** (TDD 9, DDD 7, Clean Architecture 9, Quality of fixes 9, Commit hygiene 9). DDD ось 7/10 — pre-existing baseline (4 schedule repository интерфейса лежат в `domain/repositories/`, по проектному гейту должны быть в `application/usecases/`); спринт нарушение не создал, отмечено в backlog для отдельного architectural-debt sprint.
+- Sync: 8 files version bump + `docs/roles-and-flows.md` 0.121.0 banner.
+
+### Out of scope (deferred to next slot)
+
+- B → v0.121.x curriculum polish (Create dialog + pagination + nav badge) — следующий слот
+- D → 2 quick patches (templates teacher-own / users secretary-groups) — третий слот
+- Architectural debt: переместить 4 schedule repository интерфейса из `domain/repositories/` в `application/usecases/` (DIP, gate из CLAUDE.md) — отдельный sprint
+- `cmd/server/main.go:161` — заменить `"v0.1.0"` хардкод на чтение `version` файла или ldflags `-X main.version=` — отдельный patch
+- Unit-тесты для `reference_repository_pg.go` `ListStudentGroups`/`ListDisciplines` через `sqlmock` — отдельный backfill-coverage commit
+
 ## [0.120.2] — 2026-05-07
 
 ### Documentation — полная актуализация сценариев по ролям до v0.120 module state
