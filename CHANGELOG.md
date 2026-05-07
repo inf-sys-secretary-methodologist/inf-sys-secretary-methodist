@@ -15,6 +15,37 @@
 
 ---
 
+## [0.120.0] — 2026-05-07
+
+### Added — Curriculum admin approve queue + Approve/Reject dialogs (defence-ready минимум закрыт)
+
+- **`/admin/curriculum/approve` admin-only page** — pending_approval curriculum queue для system_admin. Single-role allowlist (non-admin redirected → `/forbidden`); page-shell guard order auth → fetch → render с `enabled` four-condition gate (`!isLoading && isAuthenticated && user?.role === 'system_admin'`). Filter pinned status='pending_approval' — admin focus is the actionable queue. Each row показывает curriculum metadata (title / code / specialty / year / description, с status pill) + Approve + Reject action buttons.
+- **`ApproveCurriculumDialog`** — Radix confirmation modal для pending_approval → approved transition. Mirror к `SubmitCurriculumDialog` shape (no form, empty body POST). Codebase precedent: state transitions consistently use dialogs (Resubmit / Return / Submit / Approve all wrapped). Toast.success + onApproved callback + close on confirm; toast.error + stays open on failure. Error mapping sentinel-first via axios HTTP status: 422→notPending / 403→forbidden / default→generic.
+- **`RejectCurriculumDialog`** — Radix form modal для pending_approval → draft transition с required reason. Mirror к `ReturnDialog` shape (textarea + Label + character counter + error mapping). Reason trim non-empty + ≤ 4096 chars (mirror to backend domain validation); Confirm disabled until valid. Variant='destructive' on confirm button — visual cue для rejection action. `useEffect` resets reason on each open (admin starts blank for каждой curriculum в queue — divergence from ReturnDialog's success-only clear, documented inline). Per backend ADR-3 (v0.117.0) reason audit-only.
+- **`approveCurriculum(id)` POST helper** — `apiClient.post` ↦ `/api/curriculum/:id/approve` empty body, returns updated `Curriculum` со status='approved' и populated approved_by/at fields.
+- **`rejectCurriculum(id, body)` POST helper** — `apiClient.post` ↦ `/api/curriculum/:id/reject` с `RejectCurriculumRequest` body, returns updated `Curriculum` со status='draft'.
+- **`RejectCurriculumRequest` type** re-introduced alongside `RejectCurriculumDialog` consumer (was deferred в v0.118.0 fix-cycle per CLAUDE.md "никаких на будущее").
+- **Navigation entry** `curriculumApprove` в adminGroup, `ClipboardCheck` icon, single-role allowlist `[SYSTEM_ADMIN]` mirror к backend `RequireRole(SystemAdmin)` gate (mirror сохранён через explicit non-admin filter test для всех 4 non-admin roles).
+- **i18n × 4 parity** — 117 keys per locale (was 80 после v0.119.0; +37 keys). Структура: `curriculum.adminApprove.{title, description, loadFailed, empty.*, actions.*}` / `approveDialog.{5}` / `approveToast.{4}` / `rejectDialog.{7}` / `rejectToast.{5}` + `nav.curriculumApprove`. RTL Arabic / French / English content-correct.
+- **Тесты**: 5 RED→GREEN pairs strict TDD (helpers ×2 / ApproveDialog / RejectDialog / page) + nav RED+GREEN + reviewer fix-cycle additions. 46 new module tests:
+  - 16 `useCurricula` hook tests (was 12 — added approveCurriculum + rejectCurriculum × 2 pairs)
+  - 7 `ApproveCurriculumDialog` tests (renders + confirm flow + error mapping × 3 + double-click prevention)
+  - 12 `RejectCurriculumDialog` tests (renders + 4 validation cases + confirm + error mapping × 4 + double-click prevention)
+  - 17 `/admin/curriculum/approve` page tests (4 non-admin redirects + auth-loading no-redirect + 2 enabled flag cases + filter + headers + empty + rows + Approve dialog open + Reject dialog open + 2 mutate fires + error block + spinner shell)
+  - +5 navigation tests (curriculumApprove entry visible to admin, hidden from 4 non-admin roles)
+- **Frontend total**: 184 suites / 2629 tests passing (was 181/2583 baseline; +3 suites + 46 tests).
+- **Reviewer**: SHIP mean **9.33/10** single-pass + fix-cycle (added nav filter test + spinner shell test + conditional dialog render + inline comment). Two should-fix items closed; третий релиз подряд reviewer не дал 10/10 single-pass, но axis 7 (cohesion) теперь 9/10 (был 6 в v0.119.0 → 8 в v0.118.0 → 9 в v0.120.0 — pattern improving).
+- **Defence-ready минимум 100% закрыт**: methodist creates → submits → admin approves OR rejects → если rejected methodist edits + resubmits — все 7 backend endpoints имеют UI consumers (v0.116.0 + v0.117.0 backend + v0.118.0 list + v0.119.0 detail/edit/submit + v0.120.0 admin approve queue).
+- Sync: 8 files version bump + `docs/roles-and-flows.md` 0.120.0 banner.
+
+### Out of scope (deferred)
+
+- Create dialog (new draft curriculum) → v0.121.0 polish
+- Pagination UI — limit=100 hard-coded достаточен для admin queue → v0.121.0
+- Status pill в navigation badge ("3 pending") → v0.121.0 optional polish
+- Bulk approve / bulk reject — defer (low ROI for defence demo)
+- Notification к methodist on approve/reject — backend audit log records the event; UI notification deferred
+
 ## [0.119.0] — 2026-05-06
 
 ### Added — Curriculum frontend detail page + edit dialog + Submit dialog (methodist self-edit cycle closed)
