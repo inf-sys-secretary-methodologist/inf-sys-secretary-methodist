@@ -6,6 +6,10 @@
 
 > **Изменения в 0.102.2:** Уточнена концепция личных vs глобальных настроек. Каждый пользователь любой роли (включая студента) может настраивать своё рабочее окружение: тему оформления и подключённые лично к нему каналы уведомлений (Telegram, email, WebPush). Глобальные настройки (SMTP-сервер, push-провайдер, brand системы, n8n workflows, интеграция с 1С) — остаются только у системного администратора.
 
+> **Изменения в 0.106.0:** ResourceDocuments добавлен в PermissionMatrix как 5×4 таблица (5 ролей × 4 действия). До этого права на документы были разбросаны по отдельным проверкам в handler'ах; теперь — единая декларативная матрица в `auth/domain/permission.go`. Закрывает несоответствие между документированной матрицей в `roles-and-flows.md` и реально работающими проверками. Тесты pin парность ролей и действий, отказ для неизвестной роли — failure-closed.
+
+> **Изменения в 0.107.0:** Logout endpoint + Redis token blacklist + JWTMiddlewareWithRevocation. До этого JWT жил до истечения срока даже после "выхода" — токен оставался валидным. Теперь `POST /api/auth/logout` помещает jti в Redis blacklist (TTL = remaining lifetime токена), `JWTMiddlewareWithRevocation` проверяет blacklist на каждом запросе. Закрывает security gap из аудита: «Logout не существует, токен невозможно отозвать». Без миграции — состояние blacklist живёт только в Redis, при перезапуске Redis остаются только активные сессии.
+
 > **Изменения в 0.108.x:** v0.108.0 — полноценный flow восстановления пароля (request → verify → confirm) с anti-enumeration. v0.108.1 — алерты о пропусках студентов теперь отправляются и в n8n (раньше workflow JSON лежал, но не подключён). v0.108.2 — `Document.Update` теперь явно проверяет авторство; преподаватель не может редактировать чужие документы (доменное правило `Document.CanBeEditedBy` + 403). v0.108.3 — `/api/analytics/*` теперь применяет scope-фильтр «свои группы» для роли teacher: список групп выводится из `schedule_lessons + student_groups`, фильтр пушится в SQL (`WHERE group_name = ANY($N)`), запрос чужой группы или экспорт по чужим студентам возвращают 403/empty.
 >
 > **Изменения в 0.109.0:** Введён новый bounded context `assignments` (academic Tasks Context) — отдельно от существующего `tasks` модуля (project management / issue tracker). Миграция 029 добавила таблицы `assignments` и `submissions`. Endpoint `POST /api/assignments/:id/grades` (RequireNonStudent) принимает оценку: usecase `SaveGrade` загружает Assignment, проверяет авторство преподавателя через `Assignment.AuthorizeGrader` (только автор может grade — 403 при попытке grade чужого задания), валидирует Score VO против `MaxScore` (422 при выходе за границы), lazy-создаёт Submission если ещё нет, фиксирует переход pending→graded (повторный grade возвращает 409 ErrAlreadyGraded), пишет audit `assignment.graded`, отправляет уведомление студенту через `NotificationUseCase.Create` (best-effort: при ошибке отправки grade не откатывается, фиксируется отдельным audit `assignment.grade_notify_failed`).
@@ -124,6 +128,8 @@ Backend + Frontend + API + проверено в use-flow.
 | **integration** | 5557 | `/integration` (синк 1С) — **только admin** | ✅ |
 | **analytics** | 2430 | `/analytics` (риски студентов, тренды) | ✅ |
 | **ai** | 5837 | `/ai` (RAG-чат с цитированием) | ✅ |
+| **assignments** (академические задания) | ~3500 | `/assignments` (список + grading), `/assignments/[id]/submissions`, `/my-assignments`, `/my-assignments/[id]` (студенту) | ✅ |
+| **curriculum** (учебные планы) | ~2800 | `/curriculum` (список с фильтрами), `/curriculum/[id]` (детали + edit + submit), `/admin/curriculum/approve` (admin queue с Approve/Reject) | ✅ |
 
 ### Инфраструктура (всё работает, эксплуатацию ведёт админ)
 
