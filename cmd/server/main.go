@@ -155,35 +155,45 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
-func main() {
-	// Handle version flag
+// handleVersionFlag prints the version banner when --version is passed and reports whether main should exit.
+func handleVersionFlag() bool {
 	if len(os.Args) > 1 && os.Args[1] == "--version" {
 		fmt.Println("inf-sys-secretary-methodist v0.1.0")
+		return true
+	}
+	return false
+}
+
+// initSentry wires Sentry error tracking when SENTRY_DSN is set. Failures are logged, never fatal.
+func initSentry(cfg *config.Config) {
+	dsn := os.Getenv("SENTRY_DSN")
+	if dsn == "" {
+		return
+	}
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn:              dsn,
+		Environment:      cfg.Environment,
+		Release:          cfg.Version,
+		TracesSampleRate: 0.1,
+		EnableTracing:    true,
+	}); err != nil {
+		log.Printf("Sentry initialization failed: %v", err)
+		return
+	}
+	log.Println("Sentry initialized successfully")
+}
+
+func main() {
+	if handleVersionFlag() {
 		return
 	}
 
-	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// Initialize Sentry for error tracking
-	sentryDSN := os.Getenv("SENTRY_DSN")
-	if sentryDSN != "" {
-		err := sentry.Init(sentry.ClientOptions{
-			Dsn:              sentryDSN,
-			Environment:      cfg.Environment,
-			Release:          cfg.Version,
-			TracesSampleRate: 0.1, // 10% трассировки в production
-			EnableTracing:    true,
-		})
-		if err != nil {
-			log.Printf("Sentry initialization failed: %v", err)
-		} else {
-			log.Println("Sentry initialized successfully")
-		}
-	}
+	initSentry(cfg)
 
 	// Initialize logger
 	logger := logging.NewLogger(cfg.Log.Level)
