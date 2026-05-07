@@ -424,7 +424,7 @@ func (h *AnalyticsHandler) ExportAtRiskStudents(c *gin.Context) {
 	case "xlsx":
 		f := excelize.NewFile()
 		sheet := "At-Risk Students"
-		f.SetSheetName("Sheet1", sheet)
+		_ = f.SetSheetName("Sheet1", sheet)
 
 		for i, hdr := range headers {
 			cell, _ := excelize.CoordinatesToCellName(i+1, 1)
@@ -477,7 +477,7 @@ func (h *AnalyticsHandler) ExportAtRiskStudents(c *gin.Context) {
 				s.StudentName,
 				group,
 				fmt.Sprintf("%.1f", s.RiskScore),
-				string(s.RiskLevel),
+				s.RiskLevel,
 				attendance,
 				grade,
 			})

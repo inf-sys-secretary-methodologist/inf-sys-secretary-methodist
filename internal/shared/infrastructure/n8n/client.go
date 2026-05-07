@@ -68,7 +68,7 @@ func (c *Client) TriggerWorkflow(ctx context.Context, path string, payload map[s
 	if err != nil {
 		return fmt.Errorf("n8n: webhook request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	// Drain body to allow connection reuse
 	_, _ = io.Copy(io.Discard, resp.Body)
 

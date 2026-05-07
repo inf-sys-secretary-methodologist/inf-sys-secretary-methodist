@@ -119,7 +119,6 @@ import (
 	messagingWebsocket "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
 	messagingHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http"
 	notifDTO "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
-	notifDto "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
 	notifServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	notifEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
@@ -2383,7 +2382,7 @@ func (n *assignmentsGradeNotifier) NotifyGraded(ctx context.Context, studentID, 
 	if n == nil || n.notif == nil {
 		return nil
 	}
-	_, err := n.notif.Create(ctx, &notifDto.CreateNotificationInput{
+	_, err := n.notif.Create(ctx, &notifDTO.CreateNotificationInput{
 		UserID:   studentID,
 		Type:     notifEntities.NotificationTypeTask,
 		Priority: notifEntities.PriorityNormal,
@@ -2412,7 +2411,7 @@ func (n *assignmentsReturnNotifier) NotifyReturned(ctx context.Context, studentI
 	if n == nil || n.notif == nil {
 		return nil
 	}
-	_, err := n.notif.Create(ctx, &notifDto.CreateNotificationInput{
+	_, err := n.notif.Create(ctx, &notifDTO.CreateNotificationInput{
 		UserID:   studentID,
 		Type:     notifEntities.NotificationTypeTask,
 		Priority: notifEntities.PriorityNormal,
@@ -2440,7 +2439,7 @@ func (n *assignmentsResubmitNotifier) NotifyResubmitted(ctx context.Context, tea
 	if n == nil || n.notif == nil {
 		return nil
 	}
-	_, err := n.notif.Create(ctx, &notifDto.CreateNotificationInput{
+	_, err := n.notif.Create(ctx, &notifDTO.CreateNotificationInput{
 		UserID:   teacherID,
 		Type:     notifEntities.NotificationTypeTask,
 		Priority: notifEntities.PriorityNormal,
