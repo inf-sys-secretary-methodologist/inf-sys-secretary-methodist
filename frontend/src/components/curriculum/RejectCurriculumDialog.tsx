@@ -99,9 +99,7 @@ export function RejectCurriculumDialog({
         </DialogHeader>
 
         <div className="grid gap-2">
-          <Label htmlFor={`reject-reason-${curriculumId}`}>
-            {t('rejectDialog.reasonLabel')}
-          </Label>
+          <Label htmlFor={`reject-reason-${curriculumId}`}>{t('rejectDialog.reasonLabel')}</Label>
           <Textarea
             id={`reject-reason-${curriculumId}`}
             value={reason}

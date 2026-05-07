@@ -23,9 +23,7 @@ beforeEach(() => {
 describe('ApproveCurriculumDialog', () => {
   it('does not render confirm button when open=false', () => {
     render(<ApproveCurriculumDialog curriculumId={11} open={false} onClose={() => {}} />)
-    expect(
-      screen.queryByRole('button', { name: 'approveDialog.confirm' })
-    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'approveDialog.confirm' })).not.toBeInTheDocument()
   })
 
   it('renders title + description + cancel + confirm when open', () => {

@@ -174,12 +174,8 @@ describe('AdminCurriculumApprovePage', () => {
 
     expect(screen.getByText('Lab 1')).toBeInTheDocument()
     expect(screen.getByText('Lab 2')).toBeInTheDocument()
-    expect(
-      screen.getAllByRole('button', { name: 'adminApprove.actions.approve' })
-    ).toHaveLength(2)
-    expect(
-      screen.getAllByRole('button', { name: 'adminApprove.actions.reject' })
-    ).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: 'adminApprove.actions.approve' })).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: 'adminApprove.actions.reject' })).toHaveLength(2)
   })
 
   it('clicking Approve opens ApproveCurriculumDialog для конкретного curriculum', () => {

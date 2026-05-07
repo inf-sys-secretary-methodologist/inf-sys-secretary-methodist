@@ -92,10 +92,7 @@ export default function AdminCurriculumApprovePage() {
               const styles = STATUS_STYLES[c.status]
               const Icon = styles.Icon
               return (
-                <article
-                  key={c.id}
-                  className="rounded-xl border border-border bg-card p-4 sm:p-5"
-                >
+                <article key={c.id} className="rounded-xl border border-border bg-card p-4 sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <h3 className="font-semibold leading-tight">{c.title}</h3>
@@ -132,11 +129,7 @@ export default function AdminCurriculumApprovePage() {
                   </div>
 
                   <div className="mt-4 flex flex-wrap justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setRejectTargetId(c.id)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setRejectTargetId(c.id)}>
                       <XCircle className="h-4 w-4 mr-2" />
                       {t('adminApprove.actions.reject')}
                     </Button>
