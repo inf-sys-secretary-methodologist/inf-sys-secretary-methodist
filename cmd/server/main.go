@@ -155,10 +155,15 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
+// versionString is the single runtime source for the --version banner.
+// It is updated atomically by _tools/bump_version.sh alongside VERSION
+// and the rest of the version-carrying files.
+const versionString = "0.121.0"
+
 // handleVersionFlag prints the version banner when --version is passed and reports whether main should exit.
 func handleVersionFlag() bool {
 	if len(os.Args) > 1 && os.Args[1] == "--version" {
-		fmt.Println("inf-sys-secretary-methodist v0.1.0")
+		fmt.Println("inf-sys-secretary-methodist v" + versionString)
 		return true
 	}
 	return false
