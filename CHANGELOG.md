@@ -15,6 +15,15 @@
 
 ---
 
+## [0.120.1] — 2026-05-07
+
+### Documentation — `docs/roles-and-flows.md` backfill для полноты brief'а научному руководителю
+
+- **Backfill changelog blocks for v0.106.0 + v0.107.0** — два minor релиза не имели блока «Изменения в X.Y.Z» (v0.106.0 ResourceDocuments в PermissionMatrix; v0.107.0 Logout endpoint + Redis token blacklist + JWTMiddlewareWithRevocation). Добавлены для completeness — brief должен покрывать все minor релизы.
+- **Add `assignments` + `curriculum` в таблицу «Что РАБОТАЕТ полностью»** — модули были shipped end-to-end (assignments через v0.109.0–v0.115.0; curriculum через v0.116.0–v0.120.0), но в таблице отсутствовали. Теперь таблица отражает 12 fully working модулей с указанием LOC и frontend pages.
+
+Документация-only patch — никаких code changes. Версии в 8 файлах bumped 0.120.0 → 0.120.1 для maintaining sync.
+
 ## [0.120.0] — 2026-05-07
 
 ### Added — Curriculum admin approve queue + Approve/Reject dialogs (defence-ready минимум закрыт)

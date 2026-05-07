@@ -1,6 +1,6 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.120.0 (см. `VERSION` в корне)
+> **Версия проекта:** 0.120.1 (см. `VERSION` в корне)
 > **Состояние на:** 7 мая 2026 (после релизов password recovery, n8n absence-alert, Document.Update ownership, teacher analytics scope filter, Assignments bounded context + UI, Returned transition flow, Student resubmit + read endpoints + UI, Curriculum module backend [v0.116.0+v0.117.0], Curriculum frontend list page [v0.118.0], Curriculum detail+edit+submit dialogs [v0.119.0], Curriculum admin approve queue + Approve/Reject dialogs [v0.120.0] — **defence-ready минимум закрыт 100%, curriculum end-to-end UI clickable**)
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`
 
