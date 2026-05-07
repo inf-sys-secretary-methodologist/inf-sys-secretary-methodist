@@ -15,6 +15,21 @@
 
 ---
 
+## [0.120.2] — 2026-05-07
+
+### Documentation — полная актуализация сценариев по ролям до v0.120 module state
+
+Все 5 ролей в `docs/roles-and-flows.md` обновлены чтобы отражать UI-возможности из release series v0.109.0–v0.120.0. До этого описания пропускали недавно shipped модули.
+
+- **🔓 Гость** — без изменений (auth flows стабильны)
+- **👨‍🎓 Студент** — добавлен `/my-assignments` в "Видит в меню" (раньше упоминался только в numbered list)
+- **👨‍🏫 Преподаватель** — добавлены **Assignments** + **Curriculum** в меню; раскрыт grading flow с `/assignments/[id]/submissions` + `ReturnDialog` + status-фильтр; раскрыт read-only Curriculum view; добавлены ограничения `Assignment.AuthorizeGrader` (только автор может grade)
+- **📋 Академический секретарь** — добавлены **Assignments** + **Curriculum** в меню (read access per PermissionMatrix); раскрыт unrestricted scope для assignments + read-only для curriculum
+- **📚 Методист** — раскрыт полный self-edit cycle для Curriculum (v0.118.0–v0.119.0): `/curriculum` list + `/curriculum/[id]` detail с status-aware actions + EditCurriculumDialog (5-field form с client validation) + SubmitCurriculumDialog (confirmation modal); добавлена явная ссылка что admin может отклонить с reason — методист видит её и правит повторно
+- **🛠 Системный администратор** — раскрыт полный approve workflow для Curriculum (v0.120.0): `/admin/curriculum/approve` queue + ApproveCurriculumDialog + RejectCurriculumDialog (с textarea причины + character counter + destructive variant); упомянут уникальный `ActionApprove` privilege; добавлен audit-only характер reject reason per ADR-3
+
+Документация-only patch — никаких code changes. Версии в 8 файлах bumped 0.120.1 → 0.120.2 для maintaining sync.
+
 ## [0.120.1] — 2026-05-07
 
 ### Documentation — `docs/roles-and-flows.md` backfill для полноты brief'а научному руководителю

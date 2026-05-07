@@ -1,6 +1,6 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.120.1 (см. `VERSION` в корне)
+> **Версия проекта:** 0.120.2 (см. `VERSION` в корне)
 > **Состояние на:** 7 мая 2026 (после релизов password recovery, n8n absence-alert, Document.Update ownership, teacher analytics scope filter, Assignments bounded context + UI, Returned transition flow, Student resubmit + read endpoints + UI, Curriculum module backend [v0.116.0+v0.117.0], Curriculum frontend list page [v0.118.0], Curriculum detail+edit+submit dialogs [v0.119.0], Curriculum admin approve queue + Approve/Reject dialogs [v0.120.0] — **defence-ready минимум закрыт 100%, curriculum end-to-end UI clickable**)
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`
 
@@ -193,7 +193,7 @@ Backend + Frontend + API + проверено в use-flow.
 
 ### 👨‍🎓 Студент (`student`)
 
-**Видит в меню:** Dashboard, Documents (просмотр), Schedule (просмотр), Calendar, Messages, AI Assistant, Profile
+**Видит в меню:** Dashboard, Documents (просмотр), Schedule (просмотр), Calendar, **My Assignments** (свои работы), Tasks, Announcements, Messages, AI Assistant, Profile
 
 1. Регистрация → авто-логин
 2. **Dashboard** — виджеты: ближайшие события, объявления, непрочитанные сообщения
@@ -214,7 +214,7 @@ Backend + Frontend + API + проверено в use-flow.
 
 ### 👨‍🏫 Преподаватель (`teacher`)
 
-**Видит в меню:** Dashboard, Documents (full), Schedule (просмотр), Calendar, Messages, AI Assistant, Users (limited), Profile
+**Видит в меню:** Dashboard, Documents (full), Schedule (просмотр), Calendar, Tasks, **Assignments** (grading), **Curriculum** (read), Announcements, Messages, AI Assistant, Users (limited), Profile
 
 1. Регистрация / создание администратором
 2. **Dashboard** — виджеты: задания на проверку, ближайшие пары
@@ -223,47 +223,57 @@ Backend + Frontend + API + проверено в use-flow.
 5. **Calendar** — создание событий, назначение участников
 6. **Users** — список студентов своих групп (read limited)
 7. **Reports (limited)** — по своим группам, экспорт limited
-8. **Messages** — групповые чаты со студентами
-9. **AI Assistant** — расширенные права на RAG
-10. *(Личные настройки — стандартно)*
+8. **Assignments (полный grading flow с 0.110.0–0.115.0):** `/assignments` (список своих заданий с фильтрами subject/group_name) + `/assignments/[id]/submissions` (inline grade form per submission row, status-фильтр pending/graded/returned). Может вернуть работу через `ReturnDialog` (с textarea причины ≤ 4096 символов) — `Submission.Return` очищает grade triple, статус submission → returned, audit `assignment.returned` сохраняет previous_grade. Студент пересдаёт, учитель re-grade'ит.
+9. **Curriculum (read+limited update с 0.118.0+):** `/curriculum` (список с фильтрами по статусу/году/специальности) + `/curriculum/[id]` (детали с status pill). Read-only для учителя; редактирование закрыто `AuthorizeEdit` гейтом (только методист или admin).
+10. **Messages** — групповые чаты со студентами
+11. **AI Assistant** — расширенные права на RAG
+12. *(Личные настройки — стандартно)*
 
-**Что НЕ может:** создавать/редактировать расписание, видеть отчёты других преподавателей, управлять curriculum, создавать пользователей, любые системные настройки.
+**Что НЕ может:** создавать/редактировать расписание, видеть отчёты других преподавателей, **редактировать curriculum** (только read), grade'ить чужие assignments (`Assignment.AuthorizeGrader` — только автор), создавать пользователей, любые системные настройки.
 
 ---
 
 ### 📋 Академический секретарь (`academic_secretary`)
 
-**Видит в меню:** Dashboard, Documents, Analytics group (Reports + Analytics), Calendar, Messages, AI Assistant, Admin group (Users — read limited), Profile
+**Видит в меню:** Dashboard, Documents (full + Templates), Analytics group (Reports + Analytics), Schedule, Calendar, Tasks, **Assignments** (read), **Curriculum** (read), Announcements, Messages, AI Assistant, Admin group (Users — read limited), Profile
 
 1. Создание администратором
 2. **Dashboard** — административные виджеты
-3. **Documents** — full, шаблоны (создание/редактирование)
+3. **Documents + Templates** — full CRUD, шаблоны (создание/редактирование)
 4. **Schedule** — **полное управление расписанием** (создание пар, замены, аудитории)
 5. **Reports** — full create/read/export
 6. **Analytics** — просмотр аналитики студентов (риски, посещаемость, успеваемость)
 7. **Users** — read limited
 8. **Calendar** — управление событиями
-9. **Messages, AI** — стандартно
-10. *(Личные настройки — стандартно)*
+9. **Assignments (read с 0.110.0):** `/assignments` (список всех заданий, не только своих — caller scope unrestricted) + `/assignments/[id]/submissions` (просмотр работ студентов). Может вернуть работу через `ReturnDialog` (`AuthorizeGrader` принимает 4 non-student роли в read-only сценарии; grading закрыт за teacher's ownership).
+10. **Curriculum (read с 0.118.0+):** `/curriculum` (список с фильтрами) + `/curriculum/[id]` (детали с status pill). Read-only — `canWrite` whitelist'ит только methodist + admin.
+11. **Messages, AI** — стандартно
+12. *(Личные настройки — стандартно)*
 
-**Что НЕ может:** управлять curriculum (только читать), создавать пользователей, подписывать задания, любые системные настройки.
+**Что НЕ может:** редактировать curriculum (только read), создавать/обновлять учебные планы (только методист или admin), создавать пользователей, подписывать задания, утверждать учебные планы (admin-only), любые системные настройки.
 
 ---
 
 ### 📚 Методист (`methodist`)
 
-**Видит в меню:** Dashboard, Documents (full + Templates), Analytics group, Calendar, Messages, AI Assistant, Users (read limited), Profile
+**Видит в меню:** Dashboard, Documents (full + Templates), Analytics group, Schedule, Calendar, Tasks, **Assignments** (read), **Curriculum** (full без approve), Announcements, Messages, AI Assistant, Users (read limited), Profile
 
 1. Создание администратором
 2. **Dashboard** — методические виджеты
 3. **Documents + Templates** — full CRUD, создание шаблонов документов
-4. **Curriculum** — **создание/редактирование учебных планов**, отправка на утверждение администратору. Утверждение `ActionApprove` запрещено
+4. **Curriculum (полный self-edit cycle с 0.118.0–0.119.0):**
+   - `/curriculum` — список всех учебных планов с фильтрами status/year/specialty + цветной status pill (черновик / на утверждении / утверждён / архив)
+   - `/curriculum/[id]` — детали с status-aware панелью: для status='draft' доступны кнопки **Редактировать** + **Отправить на утверждение**; для pending/approved/archived — read-only с подсказкой почему
+   - **EditCurriculumDialog** (Radix modal с 5 полями: title / code / specialty / year ∈ [2000, 2100] / description ≤ 4096) — client-side валидация зеркальная к domain invariants, error mapping 409→codeExists / 422→notEditable / 403→forbidden, dialog stays open on error для retry
+   - **SubmitCurriculumDialog** — confirmation modal для перехода draft → pending_approval. После confirm учебный план уходит на утверждение администратору; редактирование блокируется до решения
+   - **Утверждение запрещено** (`ActionApprove` → admin-only). Если admin отклоняет с reason — учебный план возвращается в draft, методист видит причину в audit log + UI feedback, правит и отправляет повторно
 5. **Reports + Analytics** — full доступ, экспорт CSV/XLSX
 6. **Schedule** — read full + limited update
-7. **Users** — read limited
-8. **AI Assistant** — расширенные права
-9. **Calendar, Messages** — стандартно
-10. *(Личные настройки — стандартно)*
+7. **Assignments (read с 0.110.0):** просмотр всех заданий и работ студентов — caller scope unrestricted для методиста
+8. **Users** — read limited
+9. **AI Assistant** — расширенные права
+10. **Calendar, Messages** — стандартно
+11. *(Личные настройки — стандартно)*
 
 **Что НЕ может:**
 - Утверждать учебные планы (`ActionApprove` → только admin)
@@ -282,14 +292,20 @@ Backend + Frontend + API + проверено в use-flow.
 
 ### 🛠 Системный администратор (`system_admin`)
 
-**Видит в меню:** ВСЁ — Dashboard, Documents, Analytics, Calendar, Messages, AI Assistant, Users, Integration, Settings, `/admin/*`
+**Видит в меню:** ВСЁ — Dashboard, Documents, Analytics, Schedule, Calendar, Tasks, **Assignments**, **Curriculum**, Announcements, Messages, AI Assistant, Users, Integration, **Curriculum approval** (`/admin/curriculum/approve`), Admin Settings, `/admin/*`
 
 1. Создаётся при первом деплое или через миграцию
 2. **Dashboard** — полная статистика
 3. **Users** — full CRUD пользователей и ролей. Единственный, кто создаёт привилегированные роли
 4. **Documents** — full доступ ко всему
-5. **Curriculum** — **утверждение учебных планов** (единственный с `ActionApprove`), может отклонять с замечаниями
-6. **Schedule, Reports, Analytics** — full
+5. **Curriculum (полный approve workflow с 0.116.0–0.120.0):**
+   - `/curriculum` — список всех учебных планов (тот же view что у методиста + фильтры по статусу)
+   - `/curriculum/[id]` — детали с full edit override (`isAdmin` flag → `AuthorizeEdit` пропускает ownership-чек на draft'е любого методиста)
+   - **`/admin/curriculum/approve`** — admin-only очередь учебных планов в статусе pending_approval. Single-role allowlist (non-admin redirected → /forbidden). Каждая строка показывает curriculum metadata + status pill + кнопки Approve / Reject:
+     - **ApproveCurriculumDialog** — confirmation modal → status=pending_approval → approved + записывает approved_by/at + audit `curriculum.approved`
+     - **RejectCurriculumDialog** — Radix form с обязательной textarea причины (≤ 4096 символов, character counter, destructive variant) → status → draft + audit `curriculum.rejected` с reason. Reason **audit-only** (не stored на entity per ADR-3) — методист видит её в audit log и UI feedback
+   - **Уникальная привилегия `ActionApprove`** — единственная роль которая может утверждать или отклонять учебные планы
+6. **Schedule, Reports, Analytics, Assignments** — full
 7. **Integration (1С)** — **полное управление**: настройка соединения, маппинг полей, синхронизация, расписание автосинка (cron), частичный синк, откат при ошибках
 8. **Settings/Automation** — управление n8n workflows, запуск тестов вручную
 9. **Settings/Appearance** — **глобальная** тема и brand системы (применяется ко всем)
