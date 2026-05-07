@@ -11,7 +11,7 @@ import (
 )
 
 // revokedTokenKeyPrefix isolates the keyspace from other Redis users.
-const revokedTokenKeyPrefix = "jwt:revoked:"
+const revokedTokenKeyPrefix = "jwt:revoked:" // #nosec G101 -- Redis key namespace, not a credential
 
 // RedisRevokedTokenRepository stores revoked JTIs in Redis with auto-expiry.
 // Each entry's TTL equals the token's remaining lifetime, so the keyspace

@@ -11,17 +11,17 @@ const (
 
 	// PasswordResetEmailRequired is shown when the request body lacks an
 	// email field (or it is empty).
-	PasswordResetEmailRequired = "Email обязателен"
+	PasswordResetEmailRequired = "Email обязателен" // #nosec G101 -- user-facing UI text, not a credential
 
 	// PasswordResetMalformedRequest is shown for unparseable JSON bodies
 	// on the password-reset endpoints.
-	PasswordResetMalformedRequest = "Некорректный формат запроса"
+	PasswordResetMalformedRequest = "Некорректный формат запроса" // #nosec G101 -- user-facing UI text, not a credential
 
 	// PasswordResetTokenExpired is shown when a password-reset token is
 	// missing, expired, or otherwise no longer valid (verify or confirm).
-	PasswordResetTokenExpired = "Срок действия ссылки для сброса пароля истёк"
+	PasswordResetTokenExpired = "Срок действия ссылки для сброса пароля истёк" // #nosec G101 -- user-facing UI text, not a credential
 
 	// PasswordResetWeakPassword is shown when the new password fails the
 	// backend minimum-length check.
-	PasswordResetWeakPassword = "Пароль не соответствует требованиям безопасности"
+	PasswordResetWeakPassword = "Пароль не соответствует требованиям безопасности" // #nosec G101 -- user-facing UI text, not a credential
 )
