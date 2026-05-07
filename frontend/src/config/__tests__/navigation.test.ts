@@ -130,6 +130,15 @@ describe('navigationConfig', () => {
     expect(itemKeys).toContain('users')
     expect(itemKeys).toContain('integration')
   })
+
+  it('adminGroup contains curriculumApprove visible only to SYSTEM_ADMIN', () => {
+    const adminGroup = navigationConfig.find((e) => e.nameKey === 'adminGroup') as NavGroup
+    const entry = adminGroup.items.find((i) => i.nameKey === 'curriculumApprove')
+    expect(entry).toBeDefined()
+    expect(entry!.url).toBe('/admin/curriculum/approve')
+    // Single-role allowlist — only system_admin can approve / reject.
+    expect(entry!.roles).toEqual([UserRole.SYSTEM_ADMIN])
+  })
 })
 
 describe('isNavGroup', () => {
