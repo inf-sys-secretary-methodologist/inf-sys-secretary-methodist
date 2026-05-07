@@ -7,6 +7,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 )
 
+// ScheduleChangeRepository persists and queries ScheduleChange audit records.
 type ScheduleChangeRepository interface {
 	Create(ctx context.Context, change *entities.ScheduleChange) error
 	GetByLessonID(ctx context.Context, lessonID int64) ([]*entities.ScheduleChange, error)

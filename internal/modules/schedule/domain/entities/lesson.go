@@ -7,6 +7,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
 )
 
+// Domain validation errors returned by Lesson.Validate.
 var (
 	ErrInvalidDayOfWeek = errors.New("invalid day of week")
 	ErrInvalidTimeRange = errors.New("end time must be after start time")
@@ -14,6 +15,7 @@ var (
 	ErrInvalidWeekType  = errors.New("invalid week type")
 )
 
+// Lesson represents a recurring scheduled lesson within a semester.
 type Lesson struct {
 	ID           int64            `json:"id"`
 	SemesterID   int64            `json:"semester_id"`
@@ -41,12 +43,14 @@ type Lesson struct {
 	Teacher    *TeacherInfo  `json:"teacher,omitempty"`
 }
 
+// TeacherInfo is the lightweight teacher projection embedded in a Lesson.
 type TeacherInfo struct {
 	ID    int64  `json:"id"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
 }
 
+// NewLesson constructs a Lesson with timestamps set to now and IsCancelled=false. Caller must invoke Validate.
 func NewLesson(semesterID, disciplineID, lessonTypeID, teacherID, groupID, classroomID int64, day domain.DayOfWeek, timeStart, timeEnd string, weekType domain.WeekType, dateStart, dateEnd, now time.Time) *Lesson {
 	return &Lesson{
 		SemesterID:   semesterID,
@@ -67,6 +71,7 @@ func NewLesson(semesterID, disciplineID, lessonTypeID, teacherID, groupID, class
 	}
 }
 
+// Validate enforces day-of-week, week-type, time-range and date-range invariants. Returns a sentinel ErrInvalid* on failure.
 func (l *Lesson) Validate() error {
 	if !l.DayOfWeek.IsValid() {
 		return ErrInvalidDayOfWeek

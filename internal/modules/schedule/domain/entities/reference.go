@@ -2,6 +2,7 @@ package entities
 
 import "time"
 
+// StudentGroup represents a registered group of students attached to a specialty.
 type StudentGroup struct {
 	ID          int64  `json:"id"`
 	SpecialtyID int64  `json:"specialty_id"`
@@ -11,6 +12,7 @@ type StudentGroup struct {
 	Capacity    int    `json:"capacity"`
 }
 
+// Discipline represents a curriculum subject taught in lessons.
 type Discipline struct {
 	ID            int64   `json:"id"`
 	Name          string  `json:"name"`
@@ -23,6 +25,7 @@ type Discipline struct {
 	HoursLabs     *int    `json:"hours_labs,omitempty"`
 }
 
+// Semester represents a teaching period within an academic year.
 type Semester struct {
 	ID             int64     `json:"id"`
 	AcademicYearID int64     `json:"academic_year_id"`
@@ -33,6 +36,7 @@ type Semester struct {
 	IsActive       bool      `json:"is_active"`
 }
 
+// LessonType represents a lesson kind reference (lecture, practice, lab, etc.).
 type LessonType struct {
 	ID        int64   `json:"id"`
 	Name      string  `json:"name"`

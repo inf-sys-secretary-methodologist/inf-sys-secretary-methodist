@@ -6,6 +6,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 )
 
+// ReferenceRepository exposes read-only access to schedule reference data (groups, disciplines, semesters, lesson types).
 type ReferenceRepository interface {
 	ListStudentGroups(ctx context.Context, limit, offset int) ([]*entities.StudentGroup, error)
 	ListDisciplines(ctx context.Context, limit, offset int) ([]*entities.Discipline, error)

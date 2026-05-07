@@ -2,6 +2,7 @@ package entities
 
 import "time"
 
+// Classroom represents a physical classroom available for scheduling lessons.
 type Classroom struct {
 	ID          int64          `json:"id"`
 	Building    string         `json:"building"`

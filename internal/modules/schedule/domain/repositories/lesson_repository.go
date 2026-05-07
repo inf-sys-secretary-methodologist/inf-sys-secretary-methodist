@@ -7,6 +7,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 )
 
+// LessonFilter narrows LessonRepository.List/Count/GetTimetable results.
 type LessonFilter struct {
 	SemesterID   *int64
 	GroupID      *int64
@@ -17,6 +18,7 @@ type LessonFilter struct {
 	WeekType     *domain.WeekType
 }
 
+// LessonRepository persists and queries Lesson aggregates.
 type LessonRepository interface {
 	Create(ctx context.Context, lesson *entities.Lesson) error
 	Save(ctx context.Context, lesson *entities.Lesson) error

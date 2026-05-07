@@ -6,6 +6,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
 )
 
+// ScheduleChange represents an audit record of a one-off modification to a recurring lesson.
 type ScheduleChange struct {
 	ID             int64             `json:"id"`
 	LessonID       int64             `json:"lesson_id"`
@@ -19,6 +20,7 @@ type ScheduleChange struct {
 	CreatedAt      time.Time         `json:"created_at"`
 }
 
+// NewScheduleChange constructs a ScheduleChange with CreatedAt set to now.
 func NewScheduleChange(lessonID int64, changeType domain.ChangeType, originalDate time.Time, createdBy int64, now time.Time) *ScheduleChange {
 	return &ScheduleChange{
 		LessonID:     lessonID,
