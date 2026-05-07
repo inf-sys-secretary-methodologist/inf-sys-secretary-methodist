@@ -184,7 +184,8 @@
     "communicationGroup": "التواصل",
     "assignments": "الواجبات",
     "myAssignments": "واجباتي",
-    "curriculum": "المناهج الدراسية"
+    "curriculum": "المناهج الدراسية",
+    "curriculumApprove": "اعتماد المناهج"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -2492,6 +2493,52 @@
       "cancel": "إلغاء",
       "confirm": "إرسال",
       "submitting": "جارٍ الإرسال…"
+    },
+    "adminApprove": {
+      "title": "مناهج بانتظار الاعتماد",
+      "description": "قائمة المناهج التي تنتظر قرار المسؤول",
+      "loadFailed": "تعذر تحميل القائمة",
+      "empty": {
+        "title": "لا توجد مناهج بانتظار الاعتماد",
+        "description": "ستظهر المناهج هنا عندما يرسلها المنسقون للاعتماد."
+      },
+      "actions": {
+        "approve": "اعتماد",
+        "reject": "رفض"
+      }
+    },
+    "approveDialog": {
+      "title": "اعتماد المنهج",
+      "description": "سيتم تحويل حالة المنهج إلى «معتمد». يتطلب أي تعديل لاحق إعادته من المسؤول أولاً.",
+      "cancel": "إلغاء",
+      "confirm": "اعتماد",
+      "submitting": "جارٍ الاعتماد…"
+    },
+    "approveToast": {
+      "success": "تم اعتماد المنهج",
+      "errors": {
+        "notPending": "المنهج لم يعد بانتظار الاعتماد",
+        "forbidden": "ليس لديك صلاحية الاعتماد",
+        "generic": "تعذر اعتماد المنهج"
+      }
+    },
+    "rejectDialog": {
+      "title": "رفض المنهج",
+      "description": "أوضح السبب — يمكن للمنسق المراجعة وإعادة الإرسال. يُحفظ السبب في سجل التدقيق فقط.",
+      "reasonLabel": "سبب الرفض",
+      "reasonPlaceholder": "ما الذي يجب تعديله",
+      "cancel": "إلغاء",
+      "confirm": "رفض",
+      "submitting": "جارٍ الرفض…"
+    },
+    "rejectToast": {
+      "success": "تم رفض المنهج",
+      "errors": {
+        "notPending": "المنهج لم يعد بانتظار الاعتماد",
+        "invalidReason": "السبب مطلوب ولا يجب أن يتجاوز 4096 حرفاً",
+        "forbidden": "ليس لديك صلاحية الرفض",
+        "generic": "تعذر رفض المنهج"
+      }
     }
   },
   "myAssignments": {

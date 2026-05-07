@@ -184,7 +184,8 @@
     "communicationGroup": "Communication",
     "assignments": "Assignments",
     "myAssignments": "My assignments",
-    "curriculum": "Curricula"
+    "curriculum": "Curricula",
+    "curriculumApprove": "Curriculum approval"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -2492,6 +2493,52 @@
       "cancel": "Cancel",
       "confirm": "Submit",
       "submitting": "Submitting…"
+    },
+    "adminApprove": {
+      "title": "Curricula pending approval",
+      "description": "Queue of curricula awaiting an administrator decision",
+      "loadFailed": "Failed to load the queue",
+      "empty": {
+        "title": "No curricula pending approval",
+        "description": "Curricula will appear here once methodists submit them for approval."
+      },
+      "actions": {
+        "approve": "Approve",
+        "reject": "Reject"
+      }
+    },
+    "approveDialog": {
+      "title": "Approve curriculum",
+      "description": "The curriculum will transition to Approved. Further edits require an administrator to return it first.",
+      "cancel": "Cancel",
+      "confirm": "Approve",
+      "submitting": "Approving…"
+    },
+    "approveToast": {
+      "success": "Curriculum approved",
+      "errors": {
+        "notPending": "The curriculum is no longer pending approval",
+        "forbidden": "You do not have permission to approve",
+        "generic": "Failed to approve the curriculum"
+      }
+    },
+    "rejectDialog": {
+      "title": "Reject curriculum",
+      "description": "Provide a reason — the methodist can revise and re-submit. The reason is stored in the audit log only.",
+      "reasonLabel": "Rejection reason",
+      "reasonPlaceholder": "What needs to be revised",
+      "cancel": "Cancel",
+      "confirm": "Reject",
+      "submitting": "Rejecting…"
+    },
+    "rejectToast": {
+      "success": "Curriculum rejected",
+      "errors": {
+        "notPending": "The curriculum is no longer pending approval",
+        "invalidReason": "Reason is required and must not exceed 4096 characters",
+        "forbidden": "You do not have permission to reject",
+        "generic": "Failed to reject the curriculum"
+      }
     }
   },
   "myAssignments": {

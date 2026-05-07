@@ -184,7 +184,8 @@
     "communicationGroup": "Communication",
     "assignments": "Devoirs",
     "myAssignments": "Mes devoirs",
-    "curriculum": "Programmes"
+    "curriculum": "Programmes",
+    "curriculumApprove": "Approbation des programmes"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -2492,6 +2493,52 @@
       "cancel": "Annuler",
       "confirm": "Soumettre",
       "submitting": "Envoi…"
+    },
+    "adminApprove": {
+      "title": "Programmes en attente d'approbation",
+      "description": "File des programmes attendant une décision de l'administrateur",
+      "loadFailed": "Échec du chargement de la file",
+      "empty": {
+        "title": "Aucun programme en attente",
+        "description": "Les programmes apparaîtront ici lorsque les méthodologistes les soumettront."
+      },
+      "actions": {
+        "approve": "Approuver",
+        "reject": "Rejeter"
+      }
+    },
+    "approveDialog": {
+      "title": "Approuver le programme",
+      "description": "Le programme passera au statut Approuvé. Toute modification ultérieure nécessite un retour par un administrateur.",
+      "cancel": "Annuler",
+      "confirm": "Approuver",
+      "submitting": "Approbation…"
+    },
+    "approveToast": {
+      "success": "Programme approuvé",
+      "errors": {
+        "notPending": "Le programme n'est plus en attente d'approbation",
+        "forbidden": "Vous n'avez pas la permission d'approuver",
+        "generic": "Échec de l'approbation du programme"
+      }
+    },
+    "rejectDialog": {
+      "title": "Rejeter le programme",
+      "description": "Indiquez une raison — le méthodologiste pourra réviser et resoumettre. La raison est conservée uniquement dans le journal d'audit.",
+      "reasonLabel": "Raison du rejet",
+      "reasonPlaceholder": "Ce qui doit être révisé",
+      "cancel": "Annuler",
+      "confirm": "Rejeter",
+      "submitting": "Rejet…"
+    },
+    "rejectToast": {
+      "success": "Programme rejeté",
+      "errors": {
+        "notPending": "Le programme n'est plus en attente d'approbation",
+        "invalidReason": "La raison est requise et ne doit pas dépasser 4096 caractères",
+        "forbidden": "Vous n'avez pas la permission de rejeter",
+        "generic": "Échec du rejet du programme"
+      }
     }
   },
   "myAssignments": {
