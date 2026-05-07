@@ -17,6 +17,7 @@ import {
   FolderOpen,
   GraduationCap,
   BookMarked,
+  ClipboardCheck,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -271,6 +272,16 @@ export const navigationConfig: NavEntry[] = [
         nameKey: 'integration',
         url: '/integration',
         icon: Database,
+        roles: [UserRole.SYSTEM_ADMIN],
+      },
+      {
+        // Curriculum admin queue — pending_approval list с Approve / Reject
+        // dialogs. Backend endpoints (POST /api/curriculum/:id/approve и
+        // /:id/reject) gated by RequireRole(SystemAdmin); navigation mirror
+        // single-role allowlist чтобы non-admins не видели dead-link.
+        nameKey: 'curriculumApprove',
+        url: '/admin/curriculum/approve',
+        icon: ClipboardCheck,
         roles: [UserRole.SYSTEM_ADMIN],
       },
       {
