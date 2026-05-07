@@ -56,6 +56,7 @@ func (r *ClassroomRepositoryPG) GetByID(ctx context.Context, id int64) (*entitie
 func (r *ClassroomRepositoryPG) List(ctx context.Context, filter repositories.ClassroomFilter, limit, offset int) ([]*entities.Classroom, error) {
 	whereClause, args := r.buildWhereClause(filter)
 
+	// #nosec G202 -- whereClause is composed from hardcoded column names + numbered placeholders; filter values bind via args.
 	query := `
 		SELECT id, building, number, name, capacity, type, equipment,
 			is_available, created_at, updated_at

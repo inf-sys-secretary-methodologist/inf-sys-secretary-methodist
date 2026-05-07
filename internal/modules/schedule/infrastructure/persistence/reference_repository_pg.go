@@ -24,11 +24,13 @@ func (r *ReferenceRepositoryPG) ListStudentGroups(ctx context.Context, limit, of
 	query := `SELECT id, specialty_id, name, course, curator_id, capacity
 		FROM student_groups ORDER BY name`
 
+	var args []interface{}
 	if limit > 0 {
-		query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
+		query += " LIMIT $1 OFFSET $2"
+		args = append(args, limit, offset)
 	}
 
-	rows, err := r.db.QueryContext(ctx, query)
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list student groups: %w", err)
 	}
@@ -52,11 +54,13 @@ func (r *ReferenceRepositoryPG) ListDisciplines(ctx context.Context, limit, offs
 		hours_lectures, hours_practice, hours_labs
 		FROM disciplines ORDER BY name`
 
+	var args []interface{}
 	if limit > 0 {
-		query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
+		query += " LIMIT $1 OFFSET $2"
+		args = append(args, limit, offset)
 	}
 
-	rows, err := r.db.QueryContext(ctx, query)
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list disciplines: %w", err)
 	}

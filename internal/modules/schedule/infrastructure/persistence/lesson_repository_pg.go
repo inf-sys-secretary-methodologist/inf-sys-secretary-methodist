@@ -128,6 +128,7 @@ func (r *LessonRepositoryPG) Delete(ctx context.Context, id int64) error {
 func (r *LessonRepositoryPG) List(ctx context.Context, filter repositories.LessonFilter, limit, offset int) ([]*entities.Lesson, error) {
 	whereClause, args := r.buildWhereClause(filter)
 
+	// #nosec G202 -- whereClause is composed from hardcoded column names + numbered placeholders; filter values bind via args.
 	query := `
 		SELECT id, semester_id, discipline_id, lesson_type_id, teacher_id,
 			group_id, classroom_id, day_of_week, time_start, time_end,
@@ -163,6 +164,7 @@ func (r *LessonRepositoryPG) Count(ctx context.Context, filter repositories.Less
 func (r *LessonRepositoryPG) GetTimetable(ctx context.Context, filter repositories.LessonFilter) ([]*entities.Lesson, error) {
 	whereClauseAliased, argsAliased := r.buildWhereClauseAliased(filter, "l")
 
+	// #nosec G202 -- whereClauseAliased uses hardcoded column names + numbered placeholders; the alias arg ("l") is internal; filter values bind via argsAliased.
 	query := `
 		SELECT
 			l.id, l.semester_id, l.discipline_id, l.lesson_type_id, l.teacher_id,
