@@ -66,6 +66,16 @@ export interface UpdateCurriculumRequest {
   description: string
 }
 
-// CreateCurriculumRequest / RejectCurriculumRequest land alongside
-// their consumers in later releases (v0.121.0 polish create dialog /
-// v0.120.0 admin reject dialog) — not pre-defined here.
+// RejectCurriculumRequest matches handler RejectCurriculumRequest at
+// internal/modules/curriculum/interfaces/http/handlers/curriculum_handler.go.
+// Consumed by RejectCurriculumDialog (v0.120.0). Backend invariant:
+// reason trim non-empty (handler enforces; 400 if empty).
+// See backend ADR-3 (v0.117.0): the reason is captured in the audit
+// log only — it is NOT persisted on the entity. Methodist consults
+// the audit log or the latest UI feedback for rejection context.
+export interface RejectCurriculumRequest {
+  reason: string
+}
+
+// CreateCurriculumRequest lands alongside its consumer (v0.121.0
+// polish create dialog) — not pre-defined here.
