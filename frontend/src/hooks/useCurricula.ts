@@ -8,6 +8,7 @@ import type {
   CurriculumListResponse,
   CurriculumListFilter,
   UpdateCurriculumRequest,
+  RejectCurriculumRequest,
 } from '@/types/curriculum'
 
 const CURRICULUM_URL = '/api/curriculum'
@@ -109,6 +110,39 @@ export async function submitCurriculum(id: number): Promise<Curriculum> {
   const response = await apiClient.post<ApiResponse<Curriculum>>(
     `${CURRICULUM_URL}/${id}/submit`,
     {}
+  )
+  return response.data
+}
+
+// approveCurriculum POSTs to the admin-only approve endpoint to
+// transition pending_approval → approved. Body is empty per the
+// backend contract (path id + JWT subject identify the row + admin).
+// Returns the updated Curriculum со status='approved' и populated
+// approved_by / approved_at fields. Axios errors propagate — caller
+// distinguishes 422 (NOT_PENDING) / 403 (forbidden, defended даже
+// unreachable за RequireRole(SystemAdmin) middleware) by HTTP status.
+export async function approveCurriculum(id: number): Promise<Curriculum> {
+  const response = await apiClient.post<ApiResponse<Curriculum>>(
+    `${CURRICULUM_URL}/${id}/approve`,
+    {}
+  )
+  return response.data
+}
+
+// rejectCurriculum POSTs to the admin-only reject endpoint to
+// transition pending_approval → draft. Body carries the rejection
+// reason — backend audits it verbatim (ADR-3 v0.117.0: audit-only,
+// not stored on the entity, so a future rework cycle starts clean).
+// Returns the updated Curriculum со status='draft'. Axios errors
+// propagate — caller distinguishes 422 (NOT_PENDING) / 403 (forbidden)
+// / 400 (empty reason) by HTTP status.
+export async function rejectCurriculum(
+  id: number,
+  body: RejectCurriculumRequest
+): Promise<Curriculum> {
+  const response = await apiClient.post<ApiResponse<Curriculum>>(
+    `${CURRICULUM_URL}/${id}/reject`,
+    body
   )
   return response.data
 }
