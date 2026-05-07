@@ -15,6 +15,15 @@
 
 ---
 
+## [0.121.1] — 2026-05-08
+
+### Fixed — `--version` banner синхронизирован с VERSION файлом
+
+- **`cmd/server/main.go`**: hardcoded `"inf-sys-secretary-methodist v0.1.0"` в `handleVersionFlag()` заменён на `"v" + versionString` где `versionString` — package-level const обновляемая `_tools/bump_version.sh`. До патча `./server --version` выводил `v0.1.0` при VERSION=0.121.0 — pre-existing legacy с момента создания `--version` flag, всплыл во втором независимом ревью v0.121.0 как pre-defence cosmetic risk (научрук может запустить `./server --version` во время демо защиты и увидеть mismatch). После патча `go run ./cmd/server --version` выводит корректный `v0.121.1`.
+- **`_tools/bump_version.sh`**: добавлен один sed-pattern для атомарного обновления `const versionString` вместе с остальными 8 файлами при каждом bump'е. Pattern точно матчит `^const versionString = "$CUR"$` чтобы не задеть unrelated string consts.
+- **No behaviour change** кроме корректного вывода версии. Все тесты проходят, lint clean (0 issues), gosec clean (0 issues).
+- Sync: 8 files version bump + CHANGELOG + roles-and-flows banner. Reviewer-flagged item closed как точечный patch перед защитой.
+
 ## [0.121.0] — 2026-05-07
 
 ### Changed — Backend lint cleanup sprint (Backend CI + Security & Quality → green)
