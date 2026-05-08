@@ -11,7 +11,8 @@ interface MFAEnvelope<T> {
   data: T
 }
 
-// RED stub — real implementation lands in the GREEN follow-up commit.
+// useMFA wraps the three MFA enrollment endpoints. The hook is stateless —
+// callers (typically MFASettingsCard) own UI state.
 export function useMFA() {
   return {
     beginEnrollment: async (): Promise<MFABeginResponse> => {

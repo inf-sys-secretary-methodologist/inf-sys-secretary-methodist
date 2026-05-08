@@ -165,7 +165,9 @@ func (uc *MFAUseCase) logAudit(ctx context.Context, action string, userID int64)
 
 // buildOTPAuthURI returns the standard otpauth:// URI consumed by Google
 // Authenticator, Authy, 1Password, etc. Fixed parameters: SHA1, 6 digits,
-// 30-second period (RFC 4226 + RFC 6238 defaults).
+// 30-second period (RFC 4226 + RFC 6238 defaults). Both label segments are
+// URL-escaped so issuer/email containing ':', '/', spaces, or non-ASCII
+// characters do not corrupt the URI.
 func buildOTPAuthURI(issuer, email, secret string) string {
 	q := url.Values{}
 	q.Set("secret", secret)
@@ -173,5 +175,9 @@ func buildOTPAuthURI(issuer, email, secret string) string {
 	q.Set("algorithm", "SHA1")
 	q.Set("digits", "6")
 	q.Set("period", "30")
-	return fmt.Sprintf("otpauth://totp/%s:%s?%s", issuer, url.QueryEscape(email), q.Encode())
+	return fmt.Sprintf("otpauth://totp/%s:%s?%s",
+		url.PathEscape(issuer),
+		url.PathEscape(email),
+		q.Encode(),
+	)
 }
