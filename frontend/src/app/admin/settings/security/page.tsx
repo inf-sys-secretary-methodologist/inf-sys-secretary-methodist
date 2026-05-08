@@ -6,11 +6,12 @@ import { ShieldCheck } from 'lucide-react'
 import { AppLayout } from '@/components/layout'
 import { AdminSettingsTabs } from '@/components/admin/AdminSettingsTabs'
 import { MFASettingsCard } from '@/components/admin/MFASettingsCard'
-import { useAuthCheck } from '@/hooks/useAuth'
+import { useAuth, useAuthCheck } from '@/hooks/useAuth'
 
 export default function AdminSecurityPage() {
   const t = useTranslations('adminSettings')
   useAuthCheck()
+  const { user } = useAuth()
 
   return (
     <AppLayout>
@@ -23,7 +24,7 @@ export default function AdminSecurityPage() {
 
         <AdminSettingsTabs />
 
-        <MFASettingsCard mfaEnabled={false} />
+        <MFASettingsCard mfaEnabled={user?.mfa_enabled ?? false} />
       </div>
     </AppLayout>
   )

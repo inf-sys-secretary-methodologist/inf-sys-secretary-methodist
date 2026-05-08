@@ -102,12 +102,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		"token":        accessToken,
 		"refreshToken": refreshToken,
 		"user": gin.H{
-			"id":         user.ID,
-			"email":      user.Email,
-			"name":       user.Name,
-			"role":       user.Role,
-			"created_at": user.CreatedAt,
-			"updated_at": user.UpdatedAt,
+			"id":          user.ID,
+			"email":       user.Email,
+			"name":        user.Name,
+			"role":        user.Role,
+			"mfa_enabled": user.MFAEnabled,
+			"created_at":  user.CreatedAt,
+			"updated_at":  user.UpdatedAt,
 		},
 	})
 	c.JSON(http.StatusCreated, resp)
@@ -144,12 +145,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		"token":        accessToken,
 		"refreshToken": refreshToken,
 		"user": gin.H{
-			"id":         user.ID,
-			"email":      user.Email,
-			"name":       user.Name,
-			"role":       user.Role,
-			"created_at": user.CreatedAt,
-			"updated_at": user.UpdatedAt,
+			"id":          user.ID,
+			"email":       user.Email,
+			"name":        user.Name,
+			"role":        user.Role,
+			"mfa_enabled": user.MFAEnabled,
+			"created_at":  user.CreatedAt,
+			"updated_at":  user.UpdatedAt,
 		},
 	})
 	c.JSON(http.StatusOK, resp)

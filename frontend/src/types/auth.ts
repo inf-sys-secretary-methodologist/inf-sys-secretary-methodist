@@ -5,6 +5,7 @@ export interface User {
   name: string
   role: UserRole
   status?: string
+  mfa_enabled?: boolean
   created_at?: string
   updated_at?: string
 }
