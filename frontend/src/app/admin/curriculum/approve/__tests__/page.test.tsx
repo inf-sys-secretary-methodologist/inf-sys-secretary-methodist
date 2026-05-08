@@ -162,6 +162,24 @@ describe('AdminCurriculumApprovePage', () => {
     expect(screen.getByText('adminApprove.empty.title')).toBeInTheDocument()
   })
 
+  it('renders pending count badge with total when items > 0', () => {
+    mockUseCurricula.mockReturnValue({
+      items: [sample({ id: 11 }), sample({ id: 12 })],
+      total: 2,
+      isLoading: false,
+      error: undefined,
+    })
+    render(<AdminCurriculumApprovePage />)
+    const badge = screen.getByTestId('pending-count-badge')
+    expect(badge).toBeInTheDocument()
+    expect(badge).toHaveTextContent('2')
+  })
+
+  it('hides pending count badge when total is zero', () => {
+    render(<AdminCurriculumApprovePage />)
+    expect(screen.queryByTestId('pending-count-badge')).not.toBeInTheDocument()
+  })
+
   it('renders rows with metadata + Approve + Reject buttons for items', () => {
     mockUseCurricula.mockReturnValue({
       items: [sample({ id: 11, title: 'Lab 1' }), sample({ id: 12, title: 'Lab 2' })],
