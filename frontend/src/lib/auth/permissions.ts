@@ -128,10 +128,7 @@ export const VIEW_ONLY_ROLES: UserRole[] = [UserRole.STUDENT]
 // methodist + system_admin only). Diverges from EDIT_ROLES (which
 // includes academic_secretary + teacher) — those roles read-only on
 // curriculum per PermissionMatrix.
-export const CURRICULUM_WRITE_ROLES: UserRole[] = [
-  UserRole.SYSTEM_ADMIN,
-  UserRole.METHODIST,
-]
+export const CURRICULUM_WRITE_ROLES: UserRole[] = [UserRole.SYSTEM_ADMIN, UserRole.METHODIST]
 
 export function canWriteCurriculum(userRole?: UserRole | string): boolean {
   if (!userRole) return false

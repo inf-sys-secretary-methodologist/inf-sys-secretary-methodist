@@ -183,7 +183,10 @@ describe('CurriculumPage', () => {
     ['teacher', false],
   ])('Create button visibility for role %s = %s', (role, visible) => {
     mockUseAuthCheck.mockReturnValue({
-      user: { id: 5, role: role as 'methodist' | 'system_admin' | 'academic_secretary' | 'teacher' },
+      user: {
+        id: 5,
+        role: role as 'methodist' | 'system_admin' | 'academic_secretary' | 'teacher',
+      },
       isAuthenticated: true,
       isLoading: false,
     })
