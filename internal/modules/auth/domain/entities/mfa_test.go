@@ -57,6 +57,37 @@ func TestMFASecret_Decode(t *testing.T) {
 	}
 }
 
+func TestUser_BeginMFAEnrollment(t *testing.T) {
+	secret, err := entities.NewMFASecret(validSecret)
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	t.Run("on un-enrolled user stores pending secret without flipping enabled", func(t *testing.T) {
+		u := entities.NewUser("a@b.c", "hash", "Alice", domain.RoleType("system_admin"))
+		if err := u.BeginMFAEnrollment(secret); err != nil {
+			t.Fatalf("BeginMFAEnrollment: %v", err)
+		}
+		if u.MFAEnabled {
+			t.Errorf("MFAEnabled must remain false until ConfirmEnrollment")
+		}
+		if u.MFASecret == nil || u.MFASecret.String() != validSecret {
+			t.Errorf("pending secret must be stored; got %v", u.MFASecret)
+		}
+	})
+
+	t.Run("on already-enrolled user returns ErrMFAAlreadyEnabled", func(t *testing.T) {
+		u := entities.NewUser("a@b.c", "hash", "Alice", domain.RoleType("system_admin"))
+		if err := u.EnableMFA(secret); err != nil {
+			t.Fatalf("first enable: %v", err)
+		}
+		err := u.BeginMFAEnrollment(secret)
+		if !errors.Is(err, entities.ErrMFAAlreadyEnabled) {
+			t.Errorf("BeginMFAEnrollment: want ErrMFAAlreadyEnabled, got %v", err)
+		}
+	})
+}
+
 func TestUser_EnableMFA(t *testing.T) {
 	secret, err := entities.NewMFASecret(validSecret)
 	if err != nil {
