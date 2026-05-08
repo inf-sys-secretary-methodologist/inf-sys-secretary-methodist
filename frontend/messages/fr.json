@@ -2506,6 +2506,7 @@
     "adminApprove": {
       "title": "Programmes en attente d'approbation",
       "description": "File des programmes attendant une décision de l'administrateur",
+      "pendingCountLabel": "{count} en file",
       "loadFailed": "Échec du chargement de la file",
       "empty": {
         "title": "Aucun programme en attente",

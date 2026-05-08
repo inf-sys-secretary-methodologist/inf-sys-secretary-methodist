@@ -2505,6 +2505,7 @@
     },
     "adminApprove": {
       "title": "Curricula pending approval",
+      "pendingCountLabel": "{count} in queue",
       "description": "Queue of curricula awaiting an administrator decision",
       "loadFailed": "Failed to load the queue",
       "empty": {

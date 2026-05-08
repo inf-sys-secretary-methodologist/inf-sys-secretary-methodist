@@ -43,7 +43,7 @@ export default function AdminCurriculumApprovePage() {
   )
 
   const enabled = !isLoading && isAuthenticated && user?.role === 'system_admin'
-  const { items, isLoading: listLoading, error, mutate } = useCurricula(filter, { enabled })
+  const { items, total, isLoading: listLoading, error, mutate } = useCurricula(filter, { enabled })
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user?.role !== 'system_admin') {
@@ -66,8 +66,19 @@ export default function AdminCurriculumApprovePage() {
       <div className="max-w-5xl mx-auto space-y-6">
         <header className="flex items-center gap-3">
           <ClipboardCheck className="h-7 w-7" />
-          <div>
-            <h1 className="text-2xl font-bold">{t('adminApprove.title')}</h1>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">{t('adminApprove.title')}</h1>
+              {total > 0 && (
+                <span
+                  data-testid="pending-count-badge"
+                  className="inline-flex items-center justify-center rounded-full bg-amber-500/15 px-2.5 py-0.5 text-sm font-semibold text-amber-700 dark:text-amber-300"
+                  aria-label={t('adminApprove.pendingCountLabel', { count: total })}
+                >
+                  {total}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">{t('adminApprove.description')}</p>
           </div>
         </header>

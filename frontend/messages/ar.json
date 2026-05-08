@@ -2506,6 +2506,7 @@
     "adminApprove": {
       "title": "مناهج بانتظار الاعتماد",
       "description": "قائمة المناهج التي تنتظر قرار المسؤول",
+      "pendingCountLabel": "{count} في القائمة",
       "loadFailed": "تعذر تحميل القائمة",
       "empty": {
         "title": "لا توجد مناهج بانتظار الاعتماد",
