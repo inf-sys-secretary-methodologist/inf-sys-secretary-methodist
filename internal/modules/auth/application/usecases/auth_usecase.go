@@ -21,6 +21,7 @@ import (
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/security/totp"
 )
 
 const (
@@ -485,6 +486,124 @@ func (u *AuthUseCase) WithMFAVerification(
 		u.now = now
 	}
 	return u
+}
+
+// VerifyLoginMFA exchanges a (intermediate token + 6-digit code) pair for
+// full access + refresh tokens. It is the second step of the MFA-gated
+// login flow: AuthUseCase.LoginWithUser issued the intermediate after
+// password verification, the frontend collected the code from the user's
+// authenticator, and now we trade them for the real session tokens.
+//
+// On success the jti of the intermediate is added to the revoked-token
+// set so it cannot be replayed. The intermediate stays valid for ~5 min,
+// so the TTL on the revocation entry is bounded by the remaining lifetime
+// at the moment of revocation.
+//
+// Sentinel errors mapped by the handler to HTTP statuses:
+//   - ErrIntermediateInvalid  -> 401 (signature / issuer / purpose / claims)
+//   - ErrIntermediateExpired  -> 401
+//   - ErrIntermediateUsed     -> 401 (replay)
+//   - entities.ErrInvalidMFACode -> 422
+func (u *AuthUseCase) VerifyLoginMFA(ctx context.Context, intermediateToken, code string) (*LoginResult, error) {
+	if u.revokedTokenRepo == nil || u.now == nil {
+		return nil, ErrMFAVerificationNotConfigured
+	}
+
+	parsed, err := jwt.Parse(intermediateToken, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return u.mfaIntermediateSecret, nil
+	})
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, ErrIntermediateExpired
+		}
+		return nil, fmt.Errorf("%w: %w", ErrIntermediateInvalid, err)
+	}
+	if !parsed.Valid {
+		return nil, ErrIntermediateInvalid
+	}
+
+	claims, ok := parsed.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, ErrIntermediateInvalid
+	}
+
+	if iss, _ := claims["iss"].(string); iss != mfaIntermediateIssuer {
+		return nil, ErrIntermediateInvalid
+	}
+	if purpose, _ := claims["purpose"].(string); purpose != mfaIntermediatePurpose {
+		return nil, ErrIntermediateInvalid
+	}
+
+	jti, _ := claims["jti"].(string)
+	if jti == "" {
+		return nil, ErrIntermediateInvalid
+	}
+
+	revoked, err := u.revokedTokenRepo.IsRevoked(ctx, jti)
+	if err != nil {
+		return nil, fmt.Errorf("check revoked jti: %w", err)
+	}
+	if revoked {
+		return nil, ErrIntermediateUsed
+	}
+
+	var userID int64
+	switch v := claims["user_id"].(type) {
+	case float64:
+		userID = int64(v)
+	case int64:
+		userID = v
+	default:
+		return nil, ErrIntermediateInvalid
+	}
+
+	// Bypass cache so we get the live MFASecret (json:"-" stripped from cache).
+	user, err := u.userRepo.GetByIDForAuth(ctx, userID)
+	if err != nil || user == nil {
+		return nil, ErrIntermediateInvalid
+	}
+	if !user.MFAEnabled || user.MFASecret == nil {
+		// Defense in depth: intermediate was issued for an MFA-enabled user;
+		// if the live record has MFA off, treat as invalid (account state
+		// changed mid-flow — fail closed rather than issuing tokens).
+		return nil, entities.ErrMFANotEnabled
+	}
+
+	raw, err := user.MFASecret.Decode()
+	if err != nil {
+		return nil, fmt.Errorf("decode mfa secret: %w", err)
+	}
+	if !totp.Verify(raw, code, u.now(), u.totpDriftWindow) {
+		return nil, entities.ErrInvalidMFACode
+	}
+
+	expFloat, _ := claims["exp"].(float64)
+	ttl := time.Until(time.Unix(int64(expFloat), 0))
+	if ttl > 0 {
+		if err := u.revokedTokenRepo.Revoke(ctx, jti, ttl); err != nil {
+			return nil, fmt.Errorf("revoke jti: %w", err)
+		}
+	}
+
+	accessToken, refreshToken, err := u.generateTokens(ctx, user)
+	if err != nil {
+		return nil, fmt.Errorf("generate tokens: %w", err)
+	}
+
+	u.logAudit(ctx, "login_mfa_verified", "auth", map[string]interface{}{
+		"user_id": user.ID,
+		"email":   user.Email,
+		"role":    user.Role,
+	})
+
+	return &LoginResult{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User:         user,
+	}, nil
 }
 
 // generateIntermediateToken issues a short-lived JWT signed with
