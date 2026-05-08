@@ -9,14 +9,16 @@ import (
 
 // User represents a user entity in the auth domain
 type User struct {
-	ID        int64           `json:"id"`
-	Email     string          `json:"email"`
-	Password  string          `json:"-"` // hashed password, не отдаём в JSON
-	Name      string          `json:"name"`
-	Role      domain.RoleType `json:"role"`
-	Status    UserStatus      `json:"status"`
-	CreatedAt time.Time       `json:"created_at"`
-	UpdatedAt time.Time       `json:"updated_at"`
+	ID         int64           `json:"id"`
+	Email      string          `json:"email"`
+	Password   string          `json:"-"` // hashed password, не отдаём в JSON
+	Name       string          `json:"name"`
+	Role       domain.RoleType `json:"role"`
+	Status     UserStatus      `json:"status"`
+	MFASecret  *MFASecret      `json:"-"` // never returned in JSON
+	MFAEnabled bool            `json:"mfa_enabled"`
+	CreatedAt  time.Time       `json:"created_at"`
+	UpdatedAt  time.Time       `json:"updated_at"`
 }
 
 // UserStatus represents user account status
