@@ -15,6 +15,17 @@
 
 ---
 
+## [0.123.1] — 2026-05-08
+
+### Fixed — CI/CD Pipeline frontend-test prettier violations missed locally
+
+Two prettier errors flagged by CI на v0.123.0 push которые local ESLint не предупредил (cache miss на specific files):
+
+- `frontend/src/lib/auth/permissions.ts:131` — `CURRICULUM_WRITE_ROLES` array должен быть inline `[SYSTEM_ADMIN, METHODIST]` (≤80 char) вместо multi-line
+- `frontend/src/app/curriculum/__tests__/page.test.tsx:186` — role union type literal должен быть multi-line под Prettier print-width
+
+Both auto-fixed via `eslint --fix`. No behaviour change. Tests still 185 suites / 2657 passing. Lesson recorded: run `npx eslint --max-warnings=0` на all files (not just affected) before release commit.
+
 ## [0.123.0] — 2026-05-08
 
 ### Added — Curriculum polish bundle (4 reviewer-driven items)
