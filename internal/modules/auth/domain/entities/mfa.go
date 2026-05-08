@@ -1,6 +1,11 @@
 package entities
 
-import "errors"
+import (
+	"encoding/base32"
+	"errors"
+	"fmt"
+	"time"
+)
 
 // MFASecret is a 160-bit TOTP shared secret encoded as 32-character Base32
 // (RFC 4648 alphabet, no padding). The unexported field forces construction
@@ -23,9 +28,17 @@ var ErrMFANotEnabled = errors.New("MFA is not enabled")
 // MFASecretLength is the canonical Base32 length of a 160-bit TOTP secret.
 const MFASecretLength = 32
 
-// NewMFASecret validates and wraps a Base32-encoded 160-bit secret.
-func NewMFASecret(_ string) (MFASecret, error) {
-	return MFASecret{}, nil // RED stub
+// NewMFASecret validates and wraps a Base32-encoded 160-bit secret. Length
+// must be MFASecretLength (32) and the input must decode under the canonical
+// uppercase RFC 4648 Base32 alphabet without padding.
+func NewMFASecret(encoded string) (MFASecret, error) {
+	if len(encoded) != MFASecretLength {
+		return MFASecret{}, ErrInvalidMFASecret
+	}
+	if _, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(encoded); err != nil {
+		return MFASecret{}, ErrInvalidMFASecret
+	}
+	return MFASecret{encoded: encoded}, nil
 }
 
 // String returns the Base32 form for persistence and otpauth URIs.
@@ -35,17 +48,33 @@ func (s MFASecret) String() string {
 
 // Decode returns the raw 20-byte secret used for HMAC-SHA1.
 func (s MFASecret) Decode() ([]byte, error) {
-	return nil, nil // RED stub
+	raw, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(s.encoded)
+	if err != nil {
+		return nil, fmt.Errorf("decode mfa secret: %w", err)
+	}
+	return raw, nil
 }
 
 // EnableMFA enrolls the user with the provided secret. Returns
 // ErrMFAAlreadyEnabled if the account already has MFA active.
-func (u *User) EnableMFA(_ MFASecret) error {
-	return nil // RED stub
+func (u *User) EnableMFA(secret MFASecret) error {
+	if u.MFAEnabled {
+		return ErrMFAAlreadyEnabled
+	}
+	u.MFASecret = &secret
+	u.MFAEnabled = true
+	u.UpdatedAt = time.Now()
+	return nil
 }
 
 // DisableMFA clears MFA state. Returns ErrMFANotEnabled when the account is
 // not enrolled.
 func (u *User) DisableMFA() error {
-	return nil // RED stub
+	if !u.MFAEnabled {
+		return ErrMFANotEnabled
+	}
+	u.MFASecret = nil
+	u.MFAEnabled = false
+	u.UpdatedAt = time.Now()
+	return nil
 }
