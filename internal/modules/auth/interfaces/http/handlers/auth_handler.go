@@ -90,7 +90,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Password: input.Password,
 	}
 
-	accessToken, refreshToken, user, err := h.usecase.LoginWithUser(ctx, loginInput)
+	result, err := h.usecase.LoginWithUser(ctx, loginInput)
 	if err != nil {
 		// Registration succeeded but auto-login failed
 		resp := response.Success(gin.H{"message": "Пользователь успешно зарегистрирован. Пожалуйста, войдите."})
@@ -99,16 +99,16 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	resp := response.Success(gin.H{
-		"token":        accessToken,
-		"refreshToken": refreshToken,
+		"token":        result.AccessToken,
+		"refreshToken": result.RefreshToken,
 		"user": gin.H{
-			"id":          user.ID,
-			"email":       user.Email,
-			"name":        user.Name,
-			"role":        user.Role,
-			"mfa_enabled": user.MFAEnabled,
-			"created_at":  user.CreatedAt,
-			"updated_at":  user.UpdatedAt,
+			"id":          result.User.ID,
+			"email":       result.User.Email,
+			"name":        result.User.Name,
+			"role":        result.User.Role,
+			"mfa_enabled": result.User.MFAEnabled,
+			"created_at":  result.User.CreatedAt,
+			"updated_at":  result.User.UpdatedAt,
 		},
 	})
 	c.JSON(http.StatusCreated, resp)
@@ -134,7 +134,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	accessToken, refreshToken, user, err := h.usecase.LoginWithUser(ctx, input)
+	result, err := h.usecase.LoginWithUser(ctx, input)
 	if err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
@@ -142,16 +142,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	resp := response.Success(gin.H{
-		"token":        accessToken,
-		"refreshToken": refreshToken,
+		"token":        result.AccessToken,
+		"refreshToken": result.RefreshToken,
 		"user": gin.H{
-			"id":          user.ID,
-			"email":       user.Email,
-			"name":        user.Name,
-			"role":        user.Role,
-			"mfa_enabled": user.MFAEnabled,
-			"created_at":  user.CreatedAt,
-			"updated_at":  user.UpdatedAt,
+			"id":          result.User.ID,
+			"email":       result.User.Email,
+			"name":        result.User.Name,
+			"role":        result.User.Role,
+			"mfa_enabled": result.User.MFAEnabled,
+			"created_at":  result.User.CreatedAt,
+			"updated_at":  result.User.UpdatedAt,
 		},
 	})
 	c.JSON(http.StatusOK, resp)

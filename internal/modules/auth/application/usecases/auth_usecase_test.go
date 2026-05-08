@@ -277,13 +277,14 @@ func TestLoginWithUser(t *testing.T) {
 			Password: "Admin123456!",
 		}
 
-		accessToken, refreshToken, user, err := useCase.LoginWithUser(context.Background(), input)
+		result, err := useCase.LoginWithUser(context.Background(), input)
 
 		assert.NoError(t, err)
-		assert.NotEmpty(t, accessToken)
-		assert.NotEmpty(t, refreshToken)
-		assert.NotNil(t, user)
-		assert.Equal(t, "test@example.com", user.Email)
+		assert.NotNil(t, result)
+		assert.NotEmpty(t, result.AccessToken)
+		assert.NotEmpty(t, result.RefreshToken)
+		assert.NotNil(t, result.User)
+		assert.Equal(t, "test@example.com", result.User.Email)
 	})
 
 	t.Run("invalid password returns error", func(t *testing.T) {
@@ -292,13 +293,11 @@ func TestLoginWithUser(t *testing.T) {
 			Password: "wrongpassword",
 		}
 
-		accessToken, refreshToken, user, err := useCase.LoginWithUser(context.Background(), input)
+		result, err := useCase.LoginWithUser(context.Background(), input)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "authentication failed")
-		assert.Empty(t, accessToken)
-		assert.Empty(t, refreshToken)
-		assert.Nil(t, user)
+		assert.Nil(t, result)
 	})
 
 	t.Run("user not found returns error", func(t *testing.T) {
@@ -311,13 +310,11 @@ func TestLoginWithUser(t *testing.T) {
 			Password: "Admin123456!",
 		}
 
-		accessToken, refreshToken, user, err := useCase.LoginWithUser(context.Background(), input)
+		result, err := useCase.LoginWithUser(context.Background(), input)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "authentication failed")
-		assert.Empty(t, accessToken)
-		assert.Empty(t, refreshToken)
-		assert.Nil(t, user)
+		assert.Nil(t, result)
 	})
 
 	t.Run("blocked user cannot login", func(t *testing.T) {
@@ -336,13 +333,11 @@ func TestLoginWithUser(t *testing.T) {
 			Password: "Admin123456!",
 		}
 
-		accessToken, refreshToken, user, err := useCase.LoginWithUser(context.Background(), input)
+		result, err := useCase.LoginWithUser(context.Background(), input)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "cannot login")
-		assert.Empty(t, accessToken)
-		assert.Empty(t, refreshToken)
-		assert.Nil(t, user)
+		assert.Nil(t, result)
 	})
 
 	t.Run("inactive user cannot login", func(t *testing.T) {
@@ -361,13 +356,11 @@ func TestLoginWithUser(t *testing.T) {
 			Password: "Admin123456!",
 		}
 
-		accessToken, refreshToken, user, err := useCase.LoginWithUser(context.Background(), input)
+		result, err := useCase.LoginWithUser(context.Background(), input)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "cannot login")
-		assert.Empty(t, accessToken)
-		assert.Empty(t, refreshToken)
-		assert.Nil(t, user)
+		assert.Nil(t, result)
 	})
 }
 
@@ -737,11 +730,12 @@ func TestLoginWithUser_WithLoggers(t *testing.T) {
 			Email:    "test@example.com",
 			Password: "Admin123456!",
 		}
-		accessToken, refreshToken, user, err := useCase.LoginWithUser(context.Background(), input)
+		result, err := useCase.LoginWithUser(context.Background(), input)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, accessToken)
-		assert.NotEmpty(t, refreshToken)
-		assert.NotNil(t, user)
+		assert.NotNil(t, result)
+		assert.NotEmpty(t, result.AccessToken)
+		assert.NotEmpty(t, result.RefreshToken)
+		assert.NotNil(t, result.User)
 	})
 
 	t.Run("failed login with user - wrong password with loggers", func(t *testing.T) {
@@ -749,7 +743,7 @@ func TestLoginWithUser_WithLoggers(t *testing.T) {
 			Email:    "test@example.com",
 			Password: "wrong",
 		}
-		_, _, _, err := useCase.LoginWithUser(context.Background(), input)
+		_, err := useCase.LoginWithUser(context.Background(), input)
 		assert.Error(t, err)
 	})
 
@@ -761,7 +755,7 @@ func TestLoginWithUser_WithLoggers(t *testing.T) {
 			Email:    "notfound@test.com",
 			Password: "Admin123456!",
 		}
-		_, _, _, err := uc.LoginWithUser(context.Background(), input)
+		_, err := uc.LoginWithUser(context.Background(), input)
 		assert.Error(t, err)
 	})
 
@@ -779,7 +773,7 @@ func TestLoginWithUser_WithLoggers(t *testing.T) {
 			Email:    "blocked2@test.com",
 			Password: "Admin123456!",
 		}
-		_, _, _, err := uc.LoginWithUser(context.Background(), input)
+		_, err := uc.LoginWithUser(context.Background(), input)
 		assert.Error(t, err)
 	})
 
@@ -797,7 +791,7 @@ func TestLoginWithUser_WithLoggers(t *testing.T) {
 			Email:    "inactive2@test.com",
 			Password: "Admin123456!",
 		}
-		_, _, _, err := uc.LoginWithUser(context.Background(), input)
+		_, err := uc.LoginWithUser(context.Background(), input)
 		assert.Error(t, err)
 	})
 }

@@ -142,12 +142,28 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 	return accessToken, refreshToken, nil
 }
 
-// LoginWithUser authenticates user and returns JWT tokens with user info
-func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (accessToken string, refreshToken string, user *entities.User, err error) {
+// LoginResult is the return shape of LoginWithUser. When the user has MFA
+// enabled, AccessToken+RefreshToken are empty and IntermediateToken is set
+// with MFARequired=true; the caller must complete the second factor through
+// VerifyLoginMFA before receiving full tokens. For users without MFA, the
+// usual access+refresh tokens are issued and IntermediateToken is empty.
+type LoginResult struct {
+	AccessToken       string
+	RefreshToken      string
+	IntermediateToken string
+	MFARequired       bool
+	User              *entities.User
+}
+
+// LoginWithUser authenticates user and returns JWT tokens with user info.
+// Returns *LoginResult so the same call can either issue full access+refresh
+// tokens (no MFA / future MFA-not-required users) or, once login-flow MFA
+// gating lands, an intermediate token with MFARequired=true.
+func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (*LoginResult, error) {
 	startTime := time.Now()
 
 	// Use GetByEmailForAuth to bypass cache and ensure password field is populated
-	user, err = u.userRepo.GetByEmailForAuth(ctx, input.Email)
+	user, err := u.userRepo.GetByEmailForAuth(ctx, input.Email)
 
 	// Dummy hash for timing attack prevention
 	dummyHash := "$2a$14$0000000000000000000000000000000000000000000000000000000"
@@ -160,7 +176,7 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 		// Log failed login attempt
 		u.logLoginAttempt(ctx, input.Email, false, "user not found or invalid email")
 
-		return "", "", nil, fmt.Errorf("authentication failed: %w", domainErrors.ErrUnauthorized)
+		return nil, fmt.Errorf("authentication failed: %w", domainErrors.ErrUnauthorized)
 	}
 
 	// Check password
@@ -168,7 +184,7 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 		// Log failed login - invalid password
 		u.logLoginAttempt(ctx, input.Email, false, "invalid password")
 
-		return "", "", nil, fmt.Errorf("authentication failed: %w", domainErrors.ErrUnauthorized)
+		return nil, fmt.Errorf("authentication failed: %w", domainErrors.ErrUnauthorized)
 	}
 
 	// Check if user can login (status checks)
@@ -180,14 +196,14 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 		}
 		u.logLoginAttempt(ctx, input.Email, false, reason)
 
-		return "", "", nil, fmt.Errorf("cannot login: %w", err)
+		return nil, fmt.Errorf("cannot login: %w", err)
 	}
 
 	// Generate tokens
-	accessToken, refreshToken, err = u.generateTokens(ctx, user)
+	accessToken, refreshToken, err := u.generateTokens(ctx, user)
 	if err != nil {
 		u.logLoginAttempt(ctx, input.Email, false, "token generation failed")
-		return "", "", nil, fmt.Errorf("failed to generate tokens: %w", err)
+		return nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
 	// Log successful login
@@ -201,7 +217,11 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 		"duration_ms": time.Since(startTime).Milliseconds(),
 	})
 
-	return accessToken, refreshToken, user, nil
+	return &LoginResult{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User:         user,
+	}, nil
 }
 
 // Register creates a new user
