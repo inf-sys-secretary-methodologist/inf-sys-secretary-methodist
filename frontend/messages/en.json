@@ -2432,6 +2432,10 @@
       }
     },
     "createButton": "Create draft",
+    "pagination": {
+      "prev": "Previous",
+      "next": "Next"
+    },
     "createDialog": {
       "title": "New curriculum",
       "description": "Fill in the basic details. After creation the plan will be in status 'Draft' — submission for approval is available later on the plan page.",

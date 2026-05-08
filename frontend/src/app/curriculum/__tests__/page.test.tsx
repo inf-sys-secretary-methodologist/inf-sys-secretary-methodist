@@ -234,6 +234,12 @@ describe('CurriculumPage', () => {
   })
 
   it('disables Prev button on first page', () => {
+    mockUseCurricula.mockReturnValue({
+      items: [sample({ id: 11 })],
+      total: 50,
+      isLoading: false,
+      error: undefined,
+    })
     render(<CurriculumPage />)
     expect(screen.getByRole('button', { name: 'pagination.prev' })).toBeDisabled()
   })

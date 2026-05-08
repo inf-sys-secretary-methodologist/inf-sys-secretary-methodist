@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { BookMarked, Loader2, Plus } from 'lucide-react'
+import { BookMarked, ChevronLeft, ChevronRight, Loader2, Plus } from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
@@ -36,6 +36,14 @@ export default function CurriculumPage() {
   const [yearFilter, setYearFilter] = useState('')
   const [specialty, setSpecialty] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+  const [offset, setOffset] = useState(0)
+  const limit = 20
+
+  // Reset offset back to first page whenever filters change so the
+  // user does not land on an out-of-range page from a previous filter.
+  useEffect(() => {
+    setOffset(0)
+  }, [statusFilter, yearFilter, specialty])
 
   const filter = useMemo<CurriculumListFilter>(() => {
     const parsedYear = yearFilter.trim() ? Number(yearFilter.trim()) : undefined
@@ -43,9 +51,10 @@ export default function CurriculumPage() {
       status: statusFilter || undefined,
       year: typeof parsedYear === 'number' && Number.isFinite(parsedYear) ? parsedYear : undefined,
       specialty: specialty.trim() || undefined,
-      limit: 100,
+      limit,
+      offset,
     }
-  }, [statusFilter, yearFilter, specialty])
+  }, [statusFilter, yearFilter, specialty, offset])
 
   // Fetch only when the caller is a confirmed non-student. Student
   // sees the redirect; pre-auth sees the spinner — neither needs a
@@ -151,9 +160,31 @@ export default function CurriculumPage() {
         )}
 
         {items.length > 0 && (
-          <p className="text-right text-sm text-muted-foreground">
-            {t('countLabel', { shown: items.length, total })}
-          </p>
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              {t('countLabel', { shown: items.length, total })}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOffset(Math.max(0, offset - limit))}
+                disabled={offset === 0}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                {t('pagination.prev')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOffset(offset + limit)}
+                disabled={offset + limit >= total}
+              >
+                {t('pagination.next')}
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 

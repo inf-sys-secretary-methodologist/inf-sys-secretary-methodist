@@ -2432,6 +2432,10 @@
       }
     },
     "createButton": "Créer un brouillon",
+    "pagination": {
+      "prev": "Précédent",
+      "next": "Suivant"
+    },
     "createDialog": {
       "title": "Nouveau plan d'études",
       "description": "Renseignez les informations de base. Après création, le plan sera au statut « Brouillon » — la soumission pour approbation sera disponible plus tard sur la page du plan.",
