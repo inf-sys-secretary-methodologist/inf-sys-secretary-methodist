@@ -205,6 +205,52 @@ describe('CurriculumPage', () => {
     expect(screen.getByText('createDialog.title')).toBeInTheDocument()
   })
 
+  it('starts pagination at offset=0 with default limit', () => {
+    render(<CurriculumPage />)
+    const lastCall = mockUseCurricula.mock.calls.at(-1)
+    expect(lastCall?.[0]).toMatchObject({ limit: 20, offset: 0 })
+  })
+
+  it('renders Next button enabled when total > limit', () => {
+    mockUseCurricula.mockReturnValue({
+      items: [sample({ id: 11 })],
+      total: 50,
+      isLoading: false,
+      error: undefined,
+    })
+    render(<CurriculumPage />)
+    expect(screen.getByRole('button', { name: 'pagination.next' })).not.toBeDisabled()
+  })
+
+  it('disables Next button when on last page', () => {
+    mockUseCurricula.mockReturnValue({
+      items: [sample({ id: 11 })],
+      total: 1,
+      isLoading: false,
+      error: undefined,
+    })
+    render(<CurriculumPage />)
+    expect(screen.getByRole('button', { name: 'pagination.next' })).toBeDisabled()
+  })
+
+  it('disables Prev button on first page', () => {
+    render(<CurriculumPage />)
+    expect(screen.getByRole('button', { name: 'pagination.prev' })).toBeDisabled()
+  })
+
+  it('advances offset by limit on Next click', () => {
+    mockUseCurricula.mockReturnValue({
+      items: [sample({ id: 11 })],
+      total: 100,
+      isLoading: false,
+      error: undefined,
+    })
+    render(<CurriculumPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'pagination.next' }))
+    const lastCall = mockUseCurricula.mock.calls.at(-1)
+    expect(lastCall?.[0]).toMatchObject({ limit: 20, offset: 20 })
+  })
+
   it('shows countLabel when items list is non-empty', () => {
     mockUseCurricula.mockReturnValue({
       items: [sample({ id: 11 })],
