@@ -2431,6 +2431,31 @@
         "archived": "The curriculum is archived. Editing is locked."
       }
     },
+    "createButton": "Create draft",
+    "createDialog": {
+      "title": "New curriculum",
+      "description": "Fill in the basic details. After creation the plan will be in status 'Draft' — submission for approval is available later on the plan page.",
+      "labels": {
+        "title": "Title",
+        "code": "Code",
+        "specialty": "Specialty",
+        "year": "Start year",
+        "description": "Description"
+      },
+      "validation": {
+        "yearRange": "Year must be between {min}–{max}"
+      },
+      "create": "Create",
+      "creating": "Creating…",
+      "cancel": "Cancel",
+      "successToast": "Curriculum created",
+      "errors": {
+        "codeExists": "A curriculum with this code already exists",
+        "invalidInput": "Please check the fields: year out of range or description too long",
+        "forbidden": "Insufficient permissions to create a curriculum",
+        "generic": "Failed to create curriculum"
+      }
+    },
     "editDialog": {
       "title": "Edit curriculum",
       "description": "Edit the curriculum and save. Save will submit the changes to the server.",

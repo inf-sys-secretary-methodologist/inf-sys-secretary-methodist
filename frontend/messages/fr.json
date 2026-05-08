@@ -2431,6 +2431,31 @@
         "archived": "Le programme est archivé. Modification verrouillée."
       }
     },
+    "createButton": "Créer un brouillon",
+    "createDialog": {
+      "title": "Nouveau plan d'études",
+      "description": "Renseignez les informations de base. Après création, le plan sera au statut « Brouillon » — la soumission pour approbation sera disponible plus tard sur la page du plan.",
+      "labels": {
+        "title": "Titre",
+        "code": "Code",
+        "specialty": "Spécialité",
+        "year": "Année de début",
+        "description": "Description"
+      },
+      "validation": {
+        "yearRange": "L'année doit être comprise entre {min} et {max}"
+      },
+      "create": "Créer",
+      "creating": "Création…",
+      "cancel": "Annuler",
+      "successToast": "Plan d'études créé",
+      "errors": {
+        "codeExists": "Un plan d'études avec ce code existe déjà",
+        "invalidInput": "Vérifiez les champs : année hors limites ou description trop longue",
+        "forbidden": "Droits insuffisants pour créer un plan d'études",
+        "generic": "Échec de la création du plan d'études"
+      }
+    },
     "editDialog": {
       "title": "Modifier le programme",
       "description": "Modifiez le programme et enregistrez. L'enregistrement enverra les modifications au serveur.",
