@@ -15,6 +15,29 @@
 
 ---
 
+## [0.123.0] — 2026-05-08
+
+### Added — Curriculum polish bundle (4 reviewer-driven items)
+
+Closes follow-ups from v0.122.0 reviewer + adds two user-facing polish features. Bundled в один minor поскольку четыре изменения тесно связаны (все вокруг curriculum module UX).
+
+- **`refactor(curriculum)`**: `CREATE_ROLES` set из `app/curriculum/page.tsx` поднят к typed `UserRole` enum в `frontend/src/lib/auth/permissions.ts` как `CURRICULUM_WRITE_ROLES: UserRole[]` + `canWriteCurriculum(role)` helper. Mirrors `EDIT_ROLES` / `canEdit` shape, но diverges по составу (только methodist + system_admin — academic_secretary + teacher имеют read-only access на curriculum per PermissionMatrix). Page теперь импортирует helper вместо локального `new Set([...string])`. v0.122.0 reviewer follow-up.
+- **`test(curriculum): backfill`**: regression test для `CreateCurriculumDialog` reset useEffect. Закрепляет behavior "type → close → reopen → empty form" чтобы будущий refactor не сломал draft-leak protection. Honest label `test:backfill` (не TDD RED→GREEN — useEffect already shipped в v0.122.0).
+- **`feat(curriculum): pagination UI`** на `/curriculum` list page. Prev/Next buttons inline с count label; offset state на page (limit=20 default). Prev disabled at offset=0; Next disabled when offset+limit ≥ total. Filter changes (status / year / specialty) reset offset back to 0 via useEffect — без этого narrowing the filter while on page 3+ would leave the user on out-of-range page. Pagination block lives внутри `items.length > 0` branch (empty state covers no-results path).
+- **`feat(curriculum): pending-count badge`** на `/admin/curriculum/approve` header. Amber count chip next to page title when total > 0; hidden on empty state. Pulls `total` from existing `useCurricula` return value — no extra request. Renders inline в page header (not в nav itself) — touching NavItem infrastructure (3 consumers + tests) was disproportionate для single-page indicator. Defence value: admin сразу видит queue size без counting list rows.
+- **i18n × 4** parity: `curriculum.pagination.{prev, next}` + `curriculum.adminApprove.pendingCountLabel` (с `{count}` interpolation). Verified flat-key sort identical across ru/en/fr/ar.
+- **Тесты**: 1 backfill + 2 RED→GREEN pairs strict TDD (pagination 5 + badge 2). 8 new tests:
+  - 1 reset-useEffect regression test (CreateCurriculumDialog suite)
+  - 5 pagination page tests (default offset/limit / Next enabled when total > limit / Next disabled on last page / Prev disabled on first / advances offset by limit on Next click)
+  - 2 admin approve page badge tests (renders with total when items > 0 / hidden when total === 0)
+- **Frontend total**: 185 suites / 2657 tests passing (was 184/2649 baseline post-v0.122.0; +8 tests). Lint clean.
+- Sync: 8 files version bump + CHANGELOG + roles-and-flows banner.
+
+### Out of scope (deferred)
+
+- Full nav-badge integration (NavItem.badge field + 3 consumers + tests) — replaced by inline page-header badge для текущего release; full nav integration → v0.123.x or later если понадобится
+- URL search-params persistence для pagination (router.push?offset=20) — current state is component-level; navigation away losses offset. Backlog item.
+
 ## [0.122.0] — 2026-05-08
 
 ### Added — Curriculum Create dialog (new draft) + Create button на /curriculum page
