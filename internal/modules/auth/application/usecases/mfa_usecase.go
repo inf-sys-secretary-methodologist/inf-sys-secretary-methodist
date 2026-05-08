@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
@@ -186,9 +187,9 @@ const (
 
 // buildOTPAuthURI returns the standard otpauth:// URI consumed by Google
 // Authenticator, Authy, 1Password, etc. Fixed parameters: SHA1, 6 digits,
-// 30-second period (RFC 4226 + RFC 6238 defaults). Both label segments are
-// URL-escaped so issuer/email containing ':', '/', spaces, or non-ASCII
-// characters do not corrupt the URI.
+// 30-second period (RFC 4226 + RFC 6238 defaults). Both label segments
+// are passed through escapeOTPLabel so issuer/email containing ':', '/',
+// spaces, or non-ASCII characters do not corrupt the label parser.
 func buildOTPAuthURI(issuer, email, secret string) string {
 	q := url.Values{}
 	q.Set("secret", secret)
@@ -197,8 +198,17 @@ func buildOTPAuthURI(issuer, email, secret string) string {
 	q.Set("digits", "6")
 	q.Set("period", "30")
 	return fmt.Sprintf("otpauth://totp/%s:%s?%s",
-		url.PathEscape(issuer),
-		url.PathEscape(email),
+		escapeOTPLabel(issuer),
+		escapeOTPLabel(email),
 		q.Encode(),
 	)
+}
+
+// escapeOTPLabel escapes a single label segment of an otpauth URI. The
+// label format is "<issuer>:<email>", and ':' is reserved as the segment
+// separator — but url.PathEscape preserves it because it's a valid pchar
+// per RFC 3986. Authenticator apps split on the first ':', so we percent-
+// encode every ':' inside the segment to keep the parse unambiguous.
+func escapeOTPLabel(s string) string {
+	return strings.ReplaceAll(url.PathEscape(s), ":", "%3A")
 }
