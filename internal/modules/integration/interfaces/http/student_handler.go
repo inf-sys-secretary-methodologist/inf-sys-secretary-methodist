@@ -64,7 +64,7 @@ func (h *StudentHandler) List(c *gin.Context) {
 
 	result, err := h.studentUseCase.List(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -75,18 +75,18 @@ func (h *StudentHandler) List(c *gin.Context) {
 func (h *StudentHandler) GetByID(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid student ID"})
 		return
 	}
 
 	result, err := h.studentUseCase.GetByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	if result == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Student not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "Student not found"})
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h *StudentHandler) GetUnlinked(c *gin.Context) {
 
 	result, err := h.studentUseCase.GetUnlinked(c.Request.Context(), limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -111,7 +111,7 @@ func (h *StudentHandler) GetUnlinked(c *gin.Context) {
 func (h *StudentHandler) GetGroups(c *gin.Context) {
 	result, err := h.studentUseCase.GetGroups(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -122,7 +122,7 @@ func (h *StudentHandler) GetGroups(c *gin.Context) {
 func (h *StudentHandler) GetFaculties(c *gin.Context) {
 	result, err := h.studentUseCase.GetFaculties(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -133,18 +133,18 @@ func (h *StudentHandler) GetFaculties(c *gin.Context) {
 func (h *StudentHandler) Link(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid student ID"})
 		return
 	}
 
 	var req dto.LinkStudentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid request body"})
 		return
 	}
 
 	if err := h.studentUseCase.LinkToLocalUser(c.Request.Context(), id, req.LocalUserID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -155,12 +155,12 @@ func (h *StudentHandler) Link(c *gin.Context) {
 func (h *StudentHandler) Unlink(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid student ID"})
 		return
 	}
 
 	if err := h.studentUseCase.Unlink(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -171,12 +171,12 @@ func (h *StudentHandler) Unlink(c *gin.Context) {
 func (h *StudentHandler) Delete(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid student ID"})
 		return
 	}
 
 	if err := h.studentUseCase.Delete(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 

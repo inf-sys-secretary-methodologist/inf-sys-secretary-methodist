@@ -160,6 +160,10 @@ import (
 // and the rest of the version-carrying files.
 const versionString = "0.121.1"
 
+// errorKey is the field name used in gin.H and logger context maps for
+// error payloads. Extracted to satisfy goconst.
+const errorKey = "error"
+
 // handleVersionFlag prints the version banner when --version is passed and reports whether main should exit.
 func handleVersionFlag() bool {
 	if len(os.Args) > 1 && os.Args[1] == "--version" {
@@ -224,7 +228,7 @@ func main() {
 		tracer, err = tracing.InitTracer(context.Background(), tracerCfg)
 		if err != nil {
 			logger.Warn("Failed to initialize tracing, running without distributed tracing", map[string]interface{}{
-				"error": err.Error(),
+				errorKey: err.Error(),
 			})
 		} else {
 			logger.Info("Distributed tracing initialized", map[string]interface{}{
@@ -246,7 +250,7 @@ func main() {
 	defer func() {
 		if err := db.Close(); err != nil {
 			logger.Error("Failed to close database connection", map[string]interface{}{
-				"error": err.Error(),
+				errorKey: err.Error(),
 			})
 		}
 	}()
@@ -271,14 +275,14 @@ func main() {
 	redisCache, err := initRedisCache(cfg, logger)
 	if err != nil {
 		logger.Warn("Redis cache not available, running without cache", map[string]interface{}{
-			"error": err.Error(),
+			errorKey: err.Error(),
 		})
 	}
 	if redisCache != nil {
 		defer func() {
 			if err := redisCache.Close(); err != nil {
 				logger.Error("Failed to close Redis connection", map[string]interface{}{
-					"error": err.Error(),
+					errorKey: err.Error(),
 				})
 			}
 		}()
@@ -291,13 +295,13 @@ func main() {
 		s3Client, err = storage.NewS3Client(cfg.S3)
 		if err != nil {
 			logger.Warn("S3 storage not available, document uploads disabled", map[string]interface{}{
-				"error": err.Error(),
+				errorKey: err.Error(),
 			})
 		} else {
 			// Ensure bucket exists
 			if err := s3Client.EnsureBucket(context.Background()); err != nil {
 				logger.Warn("Failed to ensure S3 bucket exists", map[string]interface{}{
-					"error": err.Error(),
+					errorKey: err.Error(),
 				})
 			} else {
 				logger.Info("S3 storage connected successfully", map[string]interface{}{
@@ -501,12 +505,12 @@ func main() {
 	)
 	if err != nil {
 		logger.Error("Failed to initialize reminder scheduler", map[string]interface{}{
-			"error": err.Error(),
+			errorKey: err.Error(),
 		})
 	} else {
 		if err := reminderScheduler.Start(); err != nil {
 			logger.Error("Failed to start reminder scheduler", map[string]interface{}{
-				"error": err.Error(),
+				errorKey: err.Error(),
 			})
 		} else {
 			logger.Info("Reminder scheduler started", nil)
@@ -586,7 +590,7 @@ func main() {
 	}
 	riskScheduler, err := analyticsScheduler.NewRiskRecalcScheduler(analyticsRepo, logger, riskAlertFunc)
 	if err != nil {
-		logger.Warn("Failed to initialize risk recalculation scheduler", map[string]any{"error": err.Error()})
+		logger.Warn("Failed to initialize risk recalculation scheduler", map[string]any{errorKey: err.Error()})
 	} else {
 		riskScheduler.Start()
 		defer func() { _ = riskScheduler.Stop() }()
@@ -735,7 +739,7 @@ func main() {
 	integrationModule, err = integration.NewModule(db, &cfg.Integration, logger)
 	if err != nil {
 		logger.Error("Failed to initialize integration module", map[string]interface{}{
-			"error": err.Error(),
+			errorKey: err.Error(),
 		})
 	} else if integrationModule.IsEnabled() {
 		// Register routes under protected API group with admin guard.
@@ -748,7 +752,7 @@ func main() {
 		// Start scheduler for periodic sync
 		if err := integrationModule.StartScheduler(context.Background()); err != nil {
 			logger.Error("Failed to start integration scheduler", map[string]interface{}{
-				"error": err.Error(),
+				errorKey: err.Error(),
 			})
 		}
 		logger.Info("Integration module initialized", nil)
@@ -944,7 +948,7 @@ func main() {
 		// Seed fun facts if table is empty
 		funFactSeeder := aiAdapters.NewFunFactSeeder(funFactRepo, slog.Default())
 		if err := funFactSeeder.SeedIfEmpty(context.Background()); err != nil {
-			logger.Warn("Failed to seed fun facts", map[string]interface{}{"error": err.Error()})
+			logger.Warn("Failed to seed fun facts", map[string]interface{}{errorKey: err.Error()})
 		}
 
 		// Set personality on notification use case
@@ -969,10 +973,10 @@ func main() {
 				slog.Default(),
 			)
 			if err != nil {
-				logger.Warn("Failed to create fact scheduler", map[string]interface{}{"error": err.Error()})
+				logger.Warn("Failed to create fact scheduler", map[string]interface{}{errorKey: err.Error()})
 			} else {
 				if err := factScheduler.Start(); err != nil {
-					logger.Warn("Failed to start fact scheduler", map[string]interface{}{"error": err.Error()})
+					logger.Warn("Failed to start fact scheduler", map[string]interface{}{errorKey: err.Error()})
 				} else {
 					logger.Info("Fact scheduler started", nil)
 				}
@@ -986,10 +990,10 @@ func main() {
 			slog.Default(),
 		)
 		if err != nil {
-			logger.Warn("Failed to create indexing scheduler", map[string]interface{}{"error": err.Error()})
+			logger.Warn("Failed to create indexing scheduler", map[string]interface{}{errorKey: err.Error()})
 		} else {
 			if err := indexingScheduler.Start(); err != nil {
-				logger.Warn("Failed to start indexing scheduler", map[string]interface{}{"error": err.Error()})
+				logger.Warn("Failed to start indexing scheduler", map[string]interface{}{errorKey: err.Error()})
 			} else {
 				logger.Info("Indexing scheduler started", nil)
 			}
@@ -1028,7 +1032,7 @@ func main() {
 		})
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("Server failed to start", map[string]interface{}{
-				"error": err.Error(),
+				errorKey: err.Error(),
 			})
 			os.Exit(1)
 		}
@@ -1051,7 +1055,7 @@ func main() {
 	if reminderScheduler != nil {
 		if err := reminderScheduler.Stop(); err != nil {
 			logger.Error("Failed to stop reminder scheduler", map[string]interface{}{
-				"error": err.Error(),
+				errorKey: err.Error(),
 			})
 		} else {
 			logger.Info("Reminder scheduler stopped", nil)
@@ -1062,7 +1066,7 @@ func main() {
 	if integrationModule != nil && integrationModule.IsEnabled() {
 		if err := integrationModule.StopScheduler(); err != nil {
 			logger.Error("Failed to stop integration scheduler", map[string]interface{}{
-				"error": err.Error(),
+				errorKey: err.Error(),
 			})
 		} else {
 			logger.Info("Integration scheduler stopped", nil)
@@ -1074,14 +1078,14 @@ func main() {
 
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Error("Server forced to shutdown", map[string]interface{}{
-			"error": err.Error(),
+			errorKey: err.Error(),
 		})
 	}
 
 	if tracer != nil {
 		if err := tracer.Shutdown(context.Background()); err != nil {
 			logger.Error("Failed to shutdown tracer", map[string]interface{}{
-				"error": err.Error(),
+				errorKey: err.Error(),
 			})
 		}
 	}
@@ -1283,7 +1287,7 @@ func setupRoutes(
 			c.Status(http.StatusNoContent)
 			return
 		}
-		c.JSON(http.StatusNotFound, gin.H{"error": "route not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "route not found"})
 	})
 
 	// Health check endpoints for Kubernetes probes
@@ -1405,7 +1409,7 @@ func setupRoutes(
 			telegramPollingService = telegram.NewPollingService(cfg.Telegram.BotToken, slog.Default())
 			telegramPollingService.SetHandler(webhookHandler.ProcessUpdate)
 			if err := telegramPollingService.Start(context.Background()); err != nil {
-				logger.Warn("Failed to start Telegram polling", map[string]interface{}{"error": err.Error()})
+				logger.Warn("Failed to start Telegram polling", map[string]interface{}{errorKey: err.Error()})
 			} else {
 				logger.Info("Telegram polling mode started (no webhook URL configured)", nil)
 			}
@@ -1422,14 +1426,14 @@ func setupRoutes(
 		protectedGroup.GET("/me", func(c *gin.Context) {
 			userID, exists := c.Get("user_id")
 			if !exists {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+				c.JSON(http.StatusUnauthorized, gin.H{errorKey: "user not authenticated"})
 				return
 			}
 
 			// Get full user data with profile from database
 			user, err := userProfileRepo.GetProfileByID(c.Request.Context(), userID.(int64))
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user data"})
+				c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to get user data"})
 				return
 			}
 
@@ -1442,7 +1446,7 @@ func setupRoutes(
 					logger.Warn("Failed to generate presigned URL for avatar", map[string]interface{}{
 						"user_id": user.ID,
 						"avatar":  user.Avatar,
-						"error":   err.Error(),
+						errorKey:  err.Error(),
 					})
 				} else {
 					logger.Info("Generated avatar URL", map[string]interface{}{
@@ -2503,7 +2507,7 @@ func readinessHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFunc 
 			ready = false
 			checks["database"] = map[string]any{
 				"status": "DOWN",
-				"error":  err.Error(),
+				errorKey: err.Error(),
 			}
 		} else {
 			checks["database"] = map[string]any{
@@ -2517,7 +2521,7 @@ func readinessHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFunc 
 				// Redis is optional, so we don't set ready=false
 				checks["redis"] = map[string]any{
 					"status": "DOWN",
-					"error":  err.Error(),
+					errorKey: err.Error(),
 				}
 			} else {
 				checks["redis"] = map[string]any{
@@ -2557,7 +2561,7 @@ func healthCheckHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFun
 			status = healthStatusDegraded
 			checks["database"] = map[string]interface{}{
 				"status": "DOWN",
-				"error":  err.Error(),
+				errorKey: err.Error(),
 			}
 		} else {
 			checks["database"] = map[string]interface{}{
@@ -2571,7 +2575,7 @@ func healthCheckHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFun
 				status = healthStatusDegraded
 				checks["redis"] = map[string]interface{}{
 					"status": "DOWN",
-					"error":  err.Error(),
+					errorKey: err.Error(),
 				}
 			} else {
 				checks["redis"] = map[string]interface{}{

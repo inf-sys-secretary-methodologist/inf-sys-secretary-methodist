@@ -41,7 +41,7 @@ func NewWebPushHandler(
 // @Router /api/notifications/push/vapid-key [get]
 func (h *WebPushHandler) GetVAPIDKey(c *gin.Context) {
 	if !h.webpushService.IsConfigured() {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "web push is not configured"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{errorKey: "web push is not configured"})
 		return
 	}
 
@@ -65,24 +65,24 @@ func (h *WebPushHandler) GetVAPIDKey(c *gin.Context) {
 func (h *WebPushHandler) Subscribe(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	if !h.webpushService.IsConfigured() {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "web push is not configured"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{errorKey: "web push is not configured"})
 		return
 	}
 
 	var input dto.WebPushSubscribeInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid request body"})
 		return
 	}
 
 	// Validate required fields
 	if input.Endpoint == "" || input.P256dhKey == "" || input.AuthKey == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "endpoint, p256dh, and auth are required"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "endpoint, p256dh, and auth are required"})
 		return
 	}
 
@@ -91,7 +91,7 @@ func (h *WebPushHandler) Subscribe(c *gin.Context) {
 
 	// Create or update subscription
 	if err := h.webpushRepo.Create(c.Request.Context(), sub); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save subscription"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to save subscription"})
 		return
 	}
 
@@ -112,24 +112,24 @@ func (h *WebPushHandler) Subscribe(c *gin.Context) {
 func (h *WebPushHandler) Unsubscribe(c *gin.Context) {
 	_, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	var input dto.WebPushUnsubscribeInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid request body"})
 		return
 	}
 
 	if input.Endpoint == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "endpoint is required"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "endpoint is required"})
 		return
 	}
 
 	// Delete subscription by endpoint
 	if err := h.webpushRepo.DeleteByEndpoint(c.Request.Context(), input.Endpoint); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove subscription"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to remove subscription"})
 		return
 	}
 
@@ -149,14 +149,14 @@ func (h *WebPushHandler) Unsubscribe(c *gin.Context) {
 func (h *WebPushHandler) GetStatus(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	// Get all subscriptions for user
 	subscriptions, err := h.webpushRepo.GetByUserID(c.Request.Context(), userID.(int64))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get subscriptions"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to get subscriptions"})
 		return
 	}
 
@@ -191,37 +191,37 @@ func (h *WebPushHandler) GetStatus(c *gin.Context) {
 func (h *WebPushHandler) DeleteSubscription(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	subscriptionID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid subscription ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid subscription ID"})
 		return
 	}
 
 	// Get subscription to verify ownership
 	sub, err := h.webpushRepo.GetByID(c.Request.Context(), subscriptionID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get subscription"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to get subscription"})
 		return
 	}
 
 	if sub == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "subscription not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "subscription not found"})
 		return
 	}
 
 	// Verify ownership
 	if sub.UserID != userID.(int64) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "access denied"})
 		return
 	}
 
 	// Delete subscription
 	if err := h.webpushRepo.Delete(c.Request.Context(), subscriptionID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete subscription"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to delete subscription"})
 		return
 	}
 
@@ -243,18 +243,18 @@ func (h *WebPushHandler) DeleteSubscription(c *gin.Context) {
 func (h *WebPushHandler) TestPush(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	if !h.webpushService.IsConfigured() {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "web push is not configured"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{errorKey: "web push is not configured"})
 		return
 	}
 
 	var input dto.WebPushTestInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid request body"})
 		return
 	}
 
@@ -271,7 +271,7 @@ func (h *WebPushHandler) TestPush(c *gin.Context) {
 
 	// Send to user
 	if err := h.webpushService.SendToUser(c.Request.Context(), userID.(int64), payload); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send test notification"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to send test notification"})
 		return
 	}
 

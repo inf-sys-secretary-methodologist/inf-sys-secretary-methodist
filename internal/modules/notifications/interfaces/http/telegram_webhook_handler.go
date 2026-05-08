@@ -65,7 +65,7 @@ func (h *TelegramWebhookHandler) HandleWebhook(c *gin.Context) {
 			h.logger.Warn("invalid webhook secret",
 				"remote_addr", c.ClientIP(),
 			)
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid secret"})
+			c.JSON(http.StatusUnauthorized, gin.H{errorKey: "invalid secret"})
 			return
 		}
 	}
@@ -74,7 +74,7 @@ func (h *TelegramWebhookHandler) HandleWebhook(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		h.logger.Error("failed to read request body", "error", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "failed to read body"})
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *TelegramWebhookHandler) HandleWebhook(c *gin.Context) {
 	var update telegram.Update
 	if err := json.Unmarshal(body, &update); err != nil {
 		h.logger.Error("failed to parse update", "error", err, "body", string(body))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid update"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid update"})
 		return
 	}
 

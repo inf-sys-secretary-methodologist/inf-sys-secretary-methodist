@@ -41,7 +41,7 @@ func (h *SyncHandler) RegisterRoutes(router *gin.RouterGroup) {
 func (h *SyncHandler) StartSync(c *gin.Context) {
 	var req dto.StartSyncRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid request body"})
 		return
 	}
 
@@ -50,7 +50,7 @@ func (h *SyncHandler) StartSync(c *gin.Context) {
 	case entities.SyncEntityEmployee, entities.SyncEntityStudent:
 		// Valid
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid entity type. Supported: employee, student"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid entity type. Supported: employee, student"})
 		return
 	}
 
@@ -59,13 +59,13 @@ func (h *SyncHandler) StartSync(c *gin.Context) {
 	case entities.SyncDirectionImport, entities.SyncDirectionExport, entities.SyncDirectionBoth:
 		// Valid
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid direction. Supported: import, export, both"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid direction. Supported: import, export, both"})
 		return
 	}
 
 	result, err := h.syncUseCase.StartSync(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -94,7 +94,7 @@ func (h *SyncHandler) ListSyncLogs(c *gin.Context) {
 
 	result, err := h.syncUseCase.GetSyncLogs(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -105,18 +105,18 @@ func (h *SyncHandler) ListSyncLogs(c *gin.Context) {
 func (h *SyncHandler) GetSyncLog(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid sync log ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid sync log ID"})
 		return
 	}
 
 	result, err := h.syncUseCase.GetSyncLog(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	if result == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Sync log not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "Sync log not found"})
 		return
 	}
 
@@ -127,12 +127,12 @@ func (h *SyncHandler) GetSyncLog(c *gin.Context) {
 func (h *SyncHandler) CancelSync(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid sync log ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid sync log ID"})
 		return
 	}
 
 	if err := h.syncUseCase.CancelSync(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -149,7 +149,7 @@ func (h *SyncHandler) GetSyncStats(c *gin.Context) {
 
 	result, err := h.syncUseCase.GetSyncStats(c.Request.Context(), entityType)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -159,7 +159,7 @@ func (h *SyncHandler) GetSyncStats(c *gin.Context) {
 // Ping checks 1C connection
 func (h *SyncHandler) Ping(c *gin.Context) {
 	if err := h.syncUseCase.Ping(c.Request.Context()); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "1C server is not reachable: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "1C server is not reachable: " + err.Error()})
 		return
 	}
 

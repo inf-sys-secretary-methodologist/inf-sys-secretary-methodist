@@ -57,7 +57,7 @@ func (h *EmployeeHandler) List(c *gin.Context) {
 
 	result, err := h.employeeUseCase.List(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -68,18 +68,18 @@ func (h *EmployeeHandler) List(c *gin.Context) {
 func (h *EmployeeHandler) GetByID(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid employee ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid employee ID"})
 		return
 	}
 
 	result, err := h.employeeUseCase.GetByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	if result == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Employee not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "Employee not found"})
 		return
 	}
 
@@ -93,7 +93,7 @@ func (h *EmployeeHandler) GetUnlinked(c *gin.Context) {
 
 	result, err := h.employeeUseCase.GetUnlinked(c.Request.Context(), limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -104,18 +104,18 @@ func (h *EmployeeHandler) GetUnlinked(c *gin.Context) {
 func (h *EmployeeHandler) Link(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid employee ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid employee ID"})
 		return
 	}
 
 	var req dto.LinkEmployeeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid request body"})
 		return
 	}
 
 	if err := h.employeeUseCase.LinkToLocalUser(c.Request.Context(), id, req.LocalUserID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -126,12 +126,12 @@ func (h *EmployeeHandler) Link(c *gin.Context) {
 func (h *EmployeeHandler) Unlink(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid employee ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid employee ID"})
 		return
 	}
 
 	if err := h.employeeUseCase.Unlink(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -142,12 +142,12 @@ func (h *EmployeeHandler) Unlink(c *gin.Context) {
 func (h *EmployeeHandler) Delete(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid employee ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid employee ID"})
 		return
 	}
 
 	if err := h.employeeUseCase.Delete(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 

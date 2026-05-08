@@ -42,13 +42,13 @@ type GenerateVerificationCodeResponse struct {
 func (h *TelegramHandler) GenerateVerificationCode(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	result, err := h.verificationService.GenerateVerificationCode(c.Request.Context(), userID.(int64))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate verification code"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to generate verification code"})
 		return
 	}
 
@@ -81,13 +81,13 @@ type TelegramConnectionResponse struct {
 func (h *TelegramHandler) GetConnectionStatus(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	conn, err := h.verificationService.GetConnection(c.Request.Context(), userID.(int64))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get connection status"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to get connection status"})
 		return
 	}
 
@@ -121,17 +121,17 @@ func (h *TelegramHandler) GetConnectionStatus(c *gin.Context) {
 func (h *TelegramHandler) DisconnectTelegram(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	err := h.verificationService.DisconnectTelegram(c.Request.Context(), userID.(int64))
 	if err != nil {
 		if err.Error() == "connection not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "telegram not connected"})
+			c.JSON(http.StatusNotFound, gin.H{errorKey: "telegram not connected"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to disconnect telegram"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to disconnect telegram"})
 		return
 	}
 

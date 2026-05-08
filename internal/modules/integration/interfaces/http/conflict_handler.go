@@ -11,6 +11,9 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
 )
 
+// errorKey is the gin.H field name for error payloads in this package. Extracted to satisfy goconst (53+ occurrences across handlers).
+const errorKey = "error"
+
 // ConflictHandler handles sync conflict HTTP requests
 type ConflictHandler struct {
 	conflictUseCase *usecases.ConflictUseCase
@@ -59,7 +62,7 @@ func (h *ConflictHandler) List(c *gin.Context) {
 
 	result, err := h.conflictUseCase.List(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -70,18 +73,18 @@ func (h *ConflictHandler) List(c *gin.Context) {
 func (h *ConflictHandler) GetByID(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid conflict ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid conflict ID"})
 		return
 	}
 
 	result, err := h.conflictUseCase.GetByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	if result == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Conflict not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "Conflict not found"})
 		return
 	}
 
@@ -95,7 +98,7 @@ func (h *ConflictHandler) GetPending(c *gin.Context) {
 
 	result, err := h.conflictUseCase.GetPending(c.Request.Context(), limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -106,7 +109,7 @@ func (h *ConflictHandler) GetPending(c *gin.Context) {
 func (h *ConflictHandler) GetStats(c *gin.Context) {
 	result, err := h.conflictUseCase.GetStats(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -117,13 +120,13 @@ func (h *ConflictHandler) GetStats(c *gin.Context) {
 func (h *ConflictHandler) Resolve(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid conflict ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid conflict ID"})
 		return
 	}
 
 	var req dto.ResolveConflictRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid request body"})
 		return
 	}
 
@@ -133,7 +136,7 @@ func (h *ConflictHandler) Resolve(c *gin.Context) {
 		entities.ConflictResolutionMerge, entities.ConflictResolutionSkip:
 		// Valid
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid resolution. Supported: use_local, use_external, merge, skip"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid resolution. Supported: use_local, use_external, merge, skip"})
 		return
 	}
 
@@ -145,7 +148,7 @@ func (h *ConflictHandler) Resolve(c *gin.Context) {
 	}
 
 	if err := h.conflictUseCase.Resolve(c.Request.Context(), id, resolvedByUserID, &req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -156,12 +159,12 @@ func (h *ConflictHandler) Resolve(c *gin.Context) {
 func (h *ConflictHandler) BulkResolve(c *gin.Context) {
 	var req dto.BulkResolveRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid request body"})
 		return
 	}
 
 	if len(req.IDs) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No conflict IDs provided"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "No conflict IDs provided"})
 		return
 	}
 
@@ -173,7 +176,7 @@ func (h *ConflictHandler) BulkResolve(c *gin.Context) {
 	}
 
 	if err := h.conflictUseCase.BulkResolve(c.Request.Context(), resolvedByUserID, &req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -187,12 +190,12 @@ func (h *ConflictHandler) BulkResolve(c *gin.Context) {
 func (h *ConflictHandler) Delete(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid conflict ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid conflict ID"})
 		return
 	}
 
 	if err := h.conflictUseCase.Delete(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 

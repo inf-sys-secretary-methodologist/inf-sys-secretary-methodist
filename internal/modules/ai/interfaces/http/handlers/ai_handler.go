@@ -15,6 +15,9 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
+// errorKey is the gin.H field name for error payloads. Extracted to satisfy goconst (35+ occurrences).
+const errorKey = "error"
+
 // AIHandler handles AI-related HTTP requests
 type AIHandler struct {
 	chatUseCase      *usecases.ChatUseCase
@@ -83,20 +86,20 @@ func (h *AIHandler) RegisterRoutes(rg *gin.RouterGroup) {
 func (h *AIHandler) Chat(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	var req dto.SendMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid request body"})
 		return
 	}
 
 	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.Chat(c.Request.Context(), uid, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -118,13 +121,13 @@ func (h *AIHandler) Chat(c *gin.Context) {
 func (h *AIHandler) ChatStream(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	content := c.Query("content")
 	if content == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "content is required"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "content is required"})
 		return
 	}
 
@@ -180,7 +183,7 @@ func (h *AIHandler) ChatStream(c *gin.Context) {
 	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.ChatStream(c.Request.Context(), uid, req, onChunk)
 	if err != nil {
-		_ = sendEvent(map[string]any{"type": "error", "error": err.Error()})
+		_ = sendEvent(map[string]any{"type": "error", errorKey: err.Error()})
 		return
 	}
 
@@ -220,7 +223,7 @@ func (h *AIHandler) ChatStream(c *gin.Context) {
 func (h *AIHandler) ListConversations(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
@@ -231,7 +234,7 @@ func (h *AIHandler) ListConversations(c *gin.Context) {
 	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.GetConversations(c.Request.Context(), uid, search, limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -250,7 +253,7 @@ func (h *AIHandler) ListConversations(c *gin.Context) {
 func (h *AIHandler) CreateConversation(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
@@ -264,7 +267,7 @@ func (h *AIHandler) CreateConversation(c *gin.Context) {
 	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.GetConversations(c.Request.Context(), uid, "", 1, 0)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -288,20 +291,20 @@ func (h *AIHandler) CreateConversation(c *gin.Context) {
 func (h *AIHandler) GetConversation(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	conversationID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid conversation ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid conversation ID"})
 		return
 	}
 
 	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.GetConversation(c.Request.Context(), uid, conversationID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -321,26 +324,26 @@ func (h *AIHandler) GetConversation(c *gin.Context) {
 func (h *AIHandler) UpdateConversation(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	conversationID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid conversation ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid conversation ID"})
 		return
 	}
 
 	var req dto.UpdateConversationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid request body"})
 		return
 	}
 
 	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.UpdateConversation(c.Request.Context(), uid, conversationID, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -357,18 +360,18 @@ func (h *AIHandler) UpdateConversation(c *gin.Context) {
 func (h *AIHandler) DeleteConversation(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	conversationID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid conversation ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid conversation ID"})
 		return
 	}
 
 	if err := h.chatUseCase.DeleteConversation(c.Request.Context(), userID.(int64), conversationID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -388,13 +391,13 @@ func (h *AIHandler) DeleteConversation(c *gin.Context) {
 func (h *AIHandler) GetMessages(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	conversationID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid conversation ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid conversation ID"})
 		return
 	}
 
@@ -409,7 +412,7 @@ func (h *AIHandler) GetMessages(c *gin.Context) {
 
 	response, err := h.chatUseCase.GetMessages(c.Request.Context(), userID.(int64), conversationID, limit, beforeID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -428,13 +431,13 @@ func (h *AIHandler) GetMessages(c *gin.Context) {
 func (h *AIHandler) Search(c *gin.Context) {
 	var req dto.SearchRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid request body"})
 		return
 	}
 
 	response, err := h.embeddingUseCase.Search(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -454,7 +457,7 @@ func (h *AIHandler) Search(c *gin.Context) {
 func (h *AIHandler) IndexDocument(c *gin.Context) {
 	documentID, err := strconv.ParseInt(c.Param("documentId"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid document ID"})
 		return
 	}
 
@@ -464,7 +467,7 @@ func (h *AIHandler) IndexDocument(c *gin.Context) {
 
 	response, err := h.embeddingUseCase.IndexDocument(c.Request.Context(), documentID, req.ForceReindex)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -487,7 +490,7 @@ func (h *AIHandler) IndexDocumentsBatch(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid request body"})
 		return
 	}
 
@@ -518,7 +521,7 @@ func (h *AIHandler) IndexDocumentsBatch(c *gin.Context) {
 func (h *AIHandler) GetIndexingStatus(c *gin.Context) {
 	response, err := h.embeddingUseCase.GetIndexingStatus(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -534,13 +537,13 @@ func (h *AIHandler) GetIndexingStatus(c *gin.Context) {
 // @Router /api/ai/mood [get]
 func (h *AIHandler) GetMood(c *gin.Context) {
 	if h.moodUseCase == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "mood service not available"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{errorKey: "mood service not available"})
 		return
 	}
 
 	response, err := h.moodUseCase.GetCurrentMood(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -556,13 +559,13 @@ func (h *AIHandler) GetMood(c *gin.Context) {
 // @Router /api/ai/fact [get]
 func (h *AIHandler) GetFact(c *gin.Context) {
 	if h.funFactUseCase == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "fun facts not available"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{errorKey: "fun facts not available"})
 		return
 	}
 
 	response, err := h.funFactUseCase.GetRandomFact(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 

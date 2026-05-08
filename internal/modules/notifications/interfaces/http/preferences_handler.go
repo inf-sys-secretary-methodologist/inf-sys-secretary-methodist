@@ -38,13 +38,13 @@ func NewPreferencesHandler(preferencesUseCase *usecases.PreferencesUseCase) *Pre
 func (h *PreferencesHandler) Get(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	result, err := h.preferencesUseCase.Get(c.Request.Context(), userID.(int64))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -66,24 +66,24 @@ func (h *PreferencesHandler) Get(c *gin.Context) {
 func (h *PreferencesHandler) Update(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	var input dto.PreferencesInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	if err := h.validate.Struct(input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	result, err := h.preferencesUseCase.Update(c.Request.Context(), userID.(int64), &input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -105,24 +105,24 @@ func (h *PreferencesHandler) Update(c *gin.Context) {
 func (h *PreferencesHandler) ToggleChannel(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	var input dto.ChannelToggleInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	if err := h.validate.Struct(input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	result, err := h.preferencesUseCase.ToggleChannel(c.Request.Context(), userID.(int64), &input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -144,24 +144,24 @@ func (h *PreferencesHandler) ToggleChannel(c *gin.Context) {
 func (h *PreferencesHandler) UpdateQuietHours(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	var input dto.QuietHoursInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	if err := h.validate.Struct(input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	result, err := h.preferencesUseCase.UpdateQuietHours(c.Request.Context(), userID.(int64), &input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -181,13 +181,13 @@ func (h *PreferencesHandler) UpdateQuietHours(c *gin.Context) {
 func (h *PreferencesHandler) Reset(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	result, err := h.preferencesUseCase.Reset(c.Request.Context(), userID.(int64))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
