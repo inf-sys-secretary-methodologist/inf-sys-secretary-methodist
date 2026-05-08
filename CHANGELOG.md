@@ -15,6 +15,32 @@
 
 ---
 
+## [0.122.0] — 2026-05-08
+
+### Added — Curriculum Create dialog (new draft) + Create button на /curriculum page
+
+Первый из планируемой curriculum polish серии (v0.122.x). Closes the "create new draft" gap в curriculum module — до v0.122.0 учебные планы появлялись только через DB seed или backend API curl. После v0.122.0 methodist + system_admin создают draft через UI на `/curriculum` page.
+
+- **`CreateCurriculumDialog`** — Radix modal с 5-field form (title / code / specialty / year / description), mirror к `EditCurriculumDialog` shape (Radix dialog + client validation matches domain invariants verbatim — trim non-empty / year ∈ [2000, 2100] / description ≤ 4096; error mapping by HTTP status keeps the dialog open). Diverges от Edit: starts empty (no curriculum prop), labels namespaced под `createDialog.*`, 422 maps to `invalidInput` (not `notEditable` — нет concept "editable" для still-creating row). useEffect сбрасывает все 5 inputs на каждом open=true чтобы canceled draft не leak'ал в next session.
+- **`createCurriculum(body)` POST helper** — `apiClient.post` ↦ `/api/curriculum` empty-body wrapper, returns unwrapped `Curriculum` со status='draft'. Backend stamps `created_by` from JWT subject — client не передаёт actor field. Axios errors propagate so caller (`CreateCurriculumDialog`) maps 409 → CODE_EXISTS / 422 → INVALID_INPUT / 403 → forbidden by HTTP status.
+- **`CreateCurriculumRequest` type** mirrors handler `CreateCurriculumRequest` shape (5 string/number fields). Re-uses `UpdateCurriculumRequest` shape verbatim — backend accepts identical body для обоих POST `/api/curriculum` и PUT `/api/curriculum/:id`.
+- **Create button на `/curriculum` page** — visible только для `methodist` + `system_admin` (mirrors backend `RequireNonStudent` + handler write-whitelist v0.116.0). Other non-student roles (`academic_secretary`, `teacher`) keep read-only list view; student уже redirected к `/forbidden`. Client-side `CREATE_ROLES = new Set(['methodist', 'system_admin'])` constant pinned via table-driven tests across all 4 non-student roles. Dialog мутирует SWR cache via `mutate()` on success так что новый curriculum появляется в list без hard reload.
+- **i18n × 4** parity — 16 leaf keys в `curriculum.createDialog` block (cancel / create / creating / description / title / successToast / errors.{4} / labels.{5} / validation.yearRange) + top-level `curriculum.createButton` для button label. Verified flat-key sort identical across ru/en/fr/ar.
+- **Тесты**: 3 RED→GREEN pairs strict TDD (helper / dialog / page wiring). 13 new tests:
+  - 2 hook tests (createCurriculum success POST + axios error propagation, mirror approveCurriculum/rejectCurriculum suites verbatim)
+  - 8 dialog tests (open=false hides / starts empty / Create button gate validation / year out-of-range × 3 / description >4096 / success path / error mapping × 4 status codes / double-click prevention)
+  - 5 page tests (Create button visibility table-driven × 4 roles + opens dialog on click)
+- **Frontend total**: 185 suites / 2649 tests passing (was 184/2631 baseline post-v0.121.3; +1 suite +18 tests). Lint clean (0 ESLint errors), prettier auto-formatted.
+- **Reviewer (`superpowers:code-reviewer`)**: SHIP single-pass mean **9.67/10** (TDD 10 / Clean Architecture 9 / Test coverage 9 / i18n parity 10 / Behavior preservation 10 / Commit hygiene 10). Each axis ≥9. Two follow-up notes recorded в backlog (not blockers): (a) ad-hoc `CREATE_ROLES` set обходит typed UserRole enum из `permissions.ts` — рекомендуется вынести в `CURRICULUM_WRITE_ROLES: UserRole[]` per-resource policy при next patch; (b) reset-useEffect в Create dialog не покрыт explicit regression-test для cycle "type → close → reopen → empty".
+- Sync: 8 files version bump + CHANGELOG + roles-and-flows banner.
+
+### Out of scope (deferred to v0.122.x patches)
+
+- Pagination UI на `/curriculum` list page — limit/offset Already в hook contract, требуется только controls + URL state. → v0.122.1 либо v0.122.x
+- Status pill в navigation badge для admin "3 pending" — counter `pending_approval` + badge на `/admin/curriculum/approve` nav entry → v0.122.x
+- CREATE_ROLES typed enum refactor → v0.122.x backlog
+- Reset-useEffect regression test → v0.122.x backlog
+
 ## [0.121.3] — 2026-05-08
 
 ### Fixed — Backend CI fully green после reviewer fix-cycle на v0.121.2
