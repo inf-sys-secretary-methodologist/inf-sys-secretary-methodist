@@ -15,6 +15,23 @@
 
 ---
 
+## [0.124.1] — 2026-05-08
+
+### Fixed — CI lint cleanup на v0.124.0 push (misspell + prettier)
+
+Два gap'а попали на main с релизом v0.124.0 которые local pre-commit не отловил:
+
+- **`cmd/server/main.go:1379`** — комментарий MFA wiring содержал `defence` (BrE) → `defense` (AmE). golangci-lint v2.12.2 в CI с включённым `misspell` linter (en_US dictionary) флагает; локальный прогон без misspell scope не флагнул.
+- **`internal/modules/auth/infrastructure/persistence/user_repository.go:118`** — docstring для `scanUserByQuery` использовал `centralised` (BrE) → `centralized` (AmE). Тот же linter, та же причина.
+- **`messages/{ar,en,fr,ru}.json`** — все четыре locale файла отформатированы не по проектному prettier-конфигу после v0.124.0 i18n keys (`adminSettings.security.mfa.*`). `prettier --write` нормализовал все четыре. Поведение не изменилось — только whitespace/keys order.
+
+После патча: backend `golangci-lint run --config=.github/golangci.yml` 0 issues; `prettier --check messages/*.json` clean. Тесты не затронуты — pure style cleanup, поведение не менялось.
+
+**Lesson** (записан в chronicles): перед каждым release commit запускать на ВСЕХ touched файлах:
+1. `npx prettier --check "messages/*.json"` если правил i18n,
+2. `golangci-lint run --config=.github/golangci.yml` (с misspell scope) если правил Go комментарии.
+Mirror к v0.123.1 lesson «run full-repo lint before release commit, not just affected files».
+
 ## [0.124.0] — 2026-05-08
 
 ### Added — MFA TOTP enrollment for system_admin (RFC 6238 self-implemented)

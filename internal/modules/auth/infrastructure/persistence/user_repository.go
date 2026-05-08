@@ -115,7 +115,7 @@ func (r *UserRepositoryPG) GetByIDForAuth(ctx context.Context, id int64) (*entit
 }
 
 // scanUserByQuery executes a single-row SELECT and decodes the MFA secret
-// into the typed VO; centralised so all read paths share the same parsing.
+// into the typed VO; centralized so all read paths share the same parsing.
 func (r *UserRepositoryPG) scanUserByQuery(ctx context.Context, query string, arg any) (*entities.User, error) {
 	user := &entities.User{}
 	var mfaSecret sql.NullString

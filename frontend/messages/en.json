@@ -270,47 +270,27 @@
       "admin": {
         "title": "Administrator",
         "description": "Full system control",
-        "features": [
-          "User management",
-          "System configuration",
-          "All operations"
-        ]
+        "features": ["User management", "System configuration", "All operations"]
       },
       "methodist": {
         "title": "Methodist",
         "description": "Working with documents and templates",
-        "features": [
-          "Document creation",
-          "Template management",
-          "Report generation"
-        ]
+        "features": ["Document creation", "Template management", "Report generation"]
       },
       "secretary": {
         "title": "Secretary",
         "description": "Educational process organization",
-        "features": [
-          "Class scheduling",
-          "Attendance tracking",
-          "Student work"
-        ]
+        "features": ["Class scheduling", "Attendance tracking", "Student work"]
       },
       "teacher": {
         "title": "Teacher",
         "description": "Access to educational materials",
-        "features": [
-          "Schedule viewing",
-          "Student lists",
-          "Event calendar"
-        ]
+        "features": ["Schedule viewing", "Student lists", "Event calendar"]
       },
       "student": {
         "title": "Student",
         "description": "Information viewing",
-        "features": [
-          "Personal schedule",
-          "Documents",
-          "Announcements"
-        ]
+        "features": ["Personal schedule", "Documents", "Announcements"]
       }
     },
     "faq": {
