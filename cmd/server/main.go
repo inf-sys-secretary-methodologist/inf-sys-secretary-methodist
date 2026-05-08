@@ -1261,6 +1261,9 @@ func setupRoutes(
 	if redisCache != nil {
 		revokedTokenRepo = persistence.NewRedisRevokedTokenRepository(redisCache.Client())
 		logoutUseCase = usecases.NewLogoutUseCase(revokedTokenRepo, jwtSecret)
+		// MFA verify-login replay guard piggybacks on the same revoked-token
+		// store. ±1 step (~30 s) drift mirrors MFAUseCase enrollment verify.
+		authUseCase.WithMFAVerification(revokedTokenRepo, 1, time.Now)
 	}
 
 	// Global middleware stack (order matters!)
@@ -1345,6 +1348,12 @@ func setupRoutes(
 		authGroup.POST("/register", authHandlerInstance.Register)
 		authGroup.POST("/login", authHandlerInstance.Login)
 		authGroup.POST("/refresh", authHandlerInstance.RefreshToken)
+		// MFA verify-login: completes the second factor of an MFA-gated
+		// login. The intermediate token IS the authorisation, so this
+		// route stays under the same public-rate-limit group as /login —
+		// no JWT middleware, no role gate.
+		authGroup.POST("/mfa/verify-login", authHandlerInstance.VerifyMFALogin)
+		authGroup.OPTIONS("/mfa/verify-login", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 
 		// Register OPTIONS handlers for CORS preflight
 		authGroup.OPTIONS("/register", func(c *gin.Context) { c.Status(http.StatusNoContent) })

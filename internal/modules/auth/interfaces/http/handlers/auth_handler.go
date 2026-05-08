@@ -13,6 +13,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
+	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/messages"
 	emailServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
@@ -139,6 +140,85 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return
+	}
+
+	// MFA gate: when result.MFARequired the user must finish login by
+	// posting the issued intermediate_token + 6-digit code to
+	// /api/auth/mfa/verify-login. Withhold access/refresh until then.
+	if result.MFARequired {
+		resp := response.Success(gin.H{
+			"mfa_required":       true,
+			"intermediate_token": result.IntermediateToken,
+			"user": gin.H{
+				"id":          result.User.ID,
+				"email":       result.User.Email,
+				"name":        result.User.Name,
+				"role":        result.User.Role,
+				"mfa_enabled": result.User.MFAEnabled,
+				"created_at":  result.User.CreatedAt,
+				"updated_at":  result.User.UpdatedAt,
+			},
+		})
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+
+	resp := response.Success(gin.H{
+		"token":        result.AccessToken,
+		"refreshToken": result.RefreshToken,
+		"user": gin.H{
+			"id":          result.User.ID,
+			"email":       result.User.Email,
+			"name":        result.User.Name,
+			"role":        result.User.Role,
+			"mfa_enabled": result.User.MFAEnabled,
+			"created_at":  result.User.CreatedAt,
+			"updated_at":  result.User.UpdatedAt,
+		},
+	})
+	c.JSON(http.StatusOK, resp)
+}
+
+// VerifyMFALogin completes the MFA-gated login flow. Accepts the
+// intermediate_token issued by Login when MFA is enabled plus the 6-digit
+// TOTP code, and on success returns the full access+refresh pair. Status
+// mapping (driven by sentinel errors from VerifyLoginMFA):
+//   - 200: success
+//   - 400: malformed body / non-numeric or non-6-digit code
+//   - 401: invalid / expired / replayed intermediate
+//   - 422: TOTP code mismatch
+//   - 500: unexpected
+func (h *AuthHandler) VerifyMFALogin(c *gin.Context) {
+	var input struct {
+		IntermediateToken string `json:"intermediate_token" binding:"required"`
+		Code              string `json:"code" binding:"required,len=6,numeric"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		resp := response.BadRequest("Неверный формат запроса")
+		c.JSON(http.StatusBadRequest, resp)
+		return
+	}
+
+	ctx := c.Request.Context()
+	result, err := h.usecase.VerifyLoginMFA(ctx, input.IntermediateToken, input.Code)
+	if err != nil {
+		switch {
+		case errors.Is(err, usecases.ErrIntermediateInvalid),
+			errors.Is(err, usecases.ErrIntermediateExpired),
+			errors.Is(err, usecases.ErrIntermediateUsed):
+			resp := response.Unauthorized("Сессия MFA недействительна или истекла")
+			c.JSON(http.StatusUnauthorized, resp)
+			return
+		case errors.Is(err, authEntities.ErrInvalidMFACode),
+			errors.Is(err, authEntities.ErrMFANotEnabled):
+			resp := response.ErrorResponse("INVALID_MFA_CODE", "Неверный код подтверждения")
+			c.JSON(http.StatusUnprocessableEntity, resp)
+			return
+		default:
+			httpErr := response.MapDomainError(err)
+			c.JSON(httpErr.Status, httpErr.Response)
+			return
+		}
 	}
 
 	resp := response.Success(gin.H{
