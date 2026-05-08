@@ -38,7 +38,7 @@ describe('MFASettingsCard', () => {
     expect(screen.queryByRole('button', { name: 'mfa.enable' })).not.toBeInTheDocument()
   })
 
-  it('clicking Enable calls beginEnrollment and shows secret + verify input', async () => {
+  it('clicking Enable calls beginEnrollment and shows secret + URI + verify input', async () => {
     mockBegin.mockResolvedValueOnce({
       otpauth_uri: 'otpauth://totp/test:admin?secret=ABC',
       secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
@@ -47,6 +47,7 @@ describe('MFASettingsCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'mfa.enable' }))
     await waitFor(() => expect(mockBegin).toHaveBeenCalled())
     expect(screen.getByText(/JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP/)).toBeInTheDocument()
+    expect(screen.getByText(/^otpauth:\/\//)).toBeInTheDocument()
     expect(screen.getByLabelText('mfa.codeLabel')).toBeInTheDocument()
   })
 
