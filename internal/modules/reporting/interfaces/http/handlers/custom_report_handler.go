@@ -13,6 +13,9 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
+// errorKey is the gin.H field name for error payloads in this package. Extracted to satisfy goconst.
+const errorKey = "error"
+
 // CustomReportHandler handles HTTP requests for custom reports
 type CustomReportHandler struct {
 	usecase   *usecases.CustomReportUseCase
@@ -56,15 +59,15 @@ func (h *CustomReportHandler) getIDParam(c *gin.Context) (uuid.UUID, error) {
 func (h *CustomReportHandler) handleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, usecases.ErrCustomReportNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "Custom report not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "Custom report not found"})
 	case errors.Is(err, usecases.ErrUnauthorizedAccess):
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "Access denied"})
 	case errors.Is(err, usecases.ErrInvalidDataSource):
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data source"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid data source"})
 	case errors.Is(err, usecases.ErrInvalidFields):
-		c.JSON(http.StatusBadRequest, gin.H{"error": "At least one field is required"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "At least one field is required"})
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "Internal server error"})
 	}
 }
 
@@ -84,18 +87,18 @@ func (h *CustomReportHandler) handleError(c *gin.Context, err error) {
 func (h *CustomReportHandler) Create(c *gin.Context) {
 	userID, ok := h.getUserID(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "Unauthorized"})
 		return
 	}
 
 	var input dto.CreateCustomReportInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	if err := h.validator.Validate(input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -124,13 +127,13 @@ func (h *CustomReportHandler) Create(c *gin.Context) {
 func (h *CustomReportHandler) GetByID(c *gin.Context) {
 	userID, ok := h.getUserID(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "Unauthorized"})
 		return
 	}
 
 	id, err := h.getIDParam(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid report ID"})
 		return
 	}
 
@@ -161,24 +164,24 @@ func (h *CustomReportHandler) GetByID(c *gin.Context) {
 func (h *CustomReportHandler) Update(c *gin.Context) {
 	userID, ok := h.getUserID(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "Unauthorized"})
 		return
 	}
 
 	id, err := h.getIDParam(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid report ID"})
 		return
 	}
 
 	var input dto.UpdateCustomReportInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	if err := h.validator.Validate(input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -206,13 +209,13 @@ func (h *CustomReportHandler) Update(c *gin.Context) {
 func (h *CustomReportHandler) Delete(c *gin.Context) {
 	userID, ok := h.getUserID(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "Unauthorized"})
 		return
 	}
 
 	id, err := h.getIDParam(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid report ID"})
 		return
 	}
 
@@ -241,13 +244,13 @@ func (h *CustomReportHandler) Delete(c *gin.Context) {
 func (h *CustomReportHandler) List(c *gin.Context) {
 	userID, ok := h.getUserID(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "Unauthorized"})
 		return
 	}
 
 	var filter dto.CustomReportFilterInput
 	if err := c.ShouldBindQuery(&filter); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -286,13 +289,13 @@ func (h *CustomReportHandler) List(c *gin.Context) {
 func (h *CustomReportHandler) Execute(c *gin.Context) {
 	userID, ok := h.getUserID(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "Unauthorized"})
 		return
 	}
 
 	id, err := h.getIDParam(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid report ID"})
 		return
 	}
 
@@ -344,19 +347,19 @@ func (h *CustomReportHandler) Execute(c *gin.Context) {
 func (h *CustomReportHandler) Export(c *gin.Context) {
 	userID, ok := h.getUserID(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "Unauthorized"})
 		return
 	}
 
 	id, err := h.getIDParam(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "Invalid report ID"})
 		return
 	}
 
 	var input dto.ExportReportInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -366,7 +369,7 @@ func (h *CustomReportHandler) Export(c *gin.Context) {
 	}
 
 	if err := h.validator.Validate(input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -409,7 +412,7 @@ func (h *CustomReportHandler) Export(c *gin.Context) {
 func (h *CustomReportHandler) GetMyReports(c *gin.Context) {
 	userID, ok := h.getUserID(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "Unauthorized"})
 		return
 	}
 

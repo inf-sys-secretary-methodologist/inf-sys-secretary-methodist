@@ -42,7 +42,7 @@ type GenerateVerificationCodeResponse struct {
 func (h *TelegramHandler) GenerateVerificationCode(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -81,7 +81,7 @@ type TelegramConnectionResponse struct {
 func (h *TelegramHandler) GetConnectionStatus(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -121,7 +121,7 @@ func (h *TelegramHandler) GetConnectionStatus(c *gin.Context) {
 func (h *TelegramHandler) DisconnectTelegram(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 

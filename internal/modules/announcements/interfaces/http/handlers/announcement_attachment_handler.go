@@ -26,7 +26,7 @@ func (h *AnnouncementHandler) UploadAttachment(c *gin.Context) {
 
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "file field is required"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "file field is required"})
 		return
 	}
 	defer func() { _ = file.Close() }()
@@ -88,9 +88,9 @@ func (h *AnnouncementHandler) DeleteAttachment(c *gin.Context) {
 func (h *AnnouncementHandler) handleAttachmentError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, usecases.ErrAttachmentNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "attachment not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "attachment not found"})
 	case errors.Is(err, usecases.ErrStorageNotConfigured):
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "attachment storage is not configured"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{errorKey: "attachment storage is not configured"})
 	default:
 		h.handleError(c, err)
 	}

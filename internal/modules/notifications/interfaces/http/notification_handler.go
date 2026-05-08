@@ -16,6 +16,9 @@ import (
 // errorKey is the gin.H field name for error payloads in this package. Extracted to satisfy goconst (71+ occurrences across handlers).
 const errorKey = "error"
 
+// unauthorizedMsg is the response body for failed user_id context lookups across this package's handlers.
+const unauthorizedMsg = "unauthorized"
+
 // NotificationHandler handles notification HTTP requests
 type NotificationHandler struct {
 	notificationUseCase *usecases.NotificationUseCase
@@ -48,7 +51,7 @@ func NewNotificationHandler(notificationUseCase *usecases.NotificationUseCase) *
 func (h *NotificationHandler) List(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -163,7 +166,7 @@ func (h *NotificationHandler) MarkAsRead(c *gin.Context) {
 func (h *NotificationHandler) MarkAllAsRead(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -216,7 +219,7 @@ func (h *NotificationHandler) Delete(c *gin.Context) {
 func (h *NotificationHandler) DeleteAll(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -242,7 +245,7 @@ func (h *NotificationHandler) DeleteAll(c *gin.Context) {
 func (h *NotificationHandler) GetUnreadCount(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -268,7 +271,7 @@ func (h *NotificationHandler) GetUnreadCount(c *gin.Context) {
 func (h *NotificationHandler) GetStats(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 

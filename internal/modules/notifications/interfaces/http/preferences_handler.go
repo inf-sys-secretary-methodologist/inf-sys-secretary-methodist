@@ -38,7 +38,7 @@ func NewPreferencesHandler(preferencesUseCase *usecases.PreferencesUseCase) *Pre
 func (h *PreferencesHandler) Get(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -66,7 +66,7 @@ func (h *PreferencesHandler) Get(c *gin.Context) {
 func (h *PreferencesHandler) Update(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -105,7 +105,7 @@ func (h *PreferencesHandler) Update(c *gin.Context) {
 func (h *PreferencesHandler) ToggleChannel(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -144,7 +144,7 @@ func (h *PreferencesHandler) ToggleChannel(c *gin.Context) {
 func (h *PreferencesHandler) UpdateQuietHours(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -181,7 +181,7 @@ func (h *PreferencesHandler) UpdateQuietHours(c *gin.Context) {
 func (h *PreferencesHandler) Reset(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 

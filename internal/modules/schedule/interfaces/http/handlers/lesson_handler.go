@@ -15,6 +15,9 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
+// errorKey is the gin.H field name for error payloads in this package. Extracted to satisfy goconst.
+const errorKey = "error"
+
 // LessonHandler handles HTTP requests for lesson endpoints.
 type LessonHandler struct {
 	lessonUseCase *usecases.LessonUseCase
@@ -29,7 +32,7 @@ func NewLessonHandler(lessonUseCase *usecases.LessonUseCase) *LessonHandler {
 func (h *LessonHandler) getUserID(c *gin.Context) (int64, bool) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "user not authenticated"})
 		return 0, false
 	}
 	return userID.(int64), true
@@ -40,7 +43,7 @@ func (h *LessonHandler) getIDParam(c *gin.Context, param string) (int64, bool) {
 	idStr := c.Param(param)
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + param})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid " + param})
 		return 0, false
 	}
 	return id, true
@@ -63,7 +66,7 @@ func (h *LessonHandler) canModifySchedule(c *gin.Context) bool {
 // requireScheduleWrite checks permission and returns 403 if denied.
 func (h *LessonHandler) requireScheduleWrite(c *gin.Context) bool {
 	if !h.canModifySchedule(c) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden: insufficient permissions for schedule modification"})
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "forbidden: insufficient permissions for schedule modification"})
 		return false
 	}
 	return true
@@ -73,13 +76,13 @@ func (h *LessonHandler) requireScheduleWrite(c *gin.Context) bool {
 func (h *LessonHandler) handleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, usecases.ErrLessonNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "lesson not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "lesson not found"})
 	case errors.Is(err, usecases.ErrForbidden):
-		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "forbidden"})
 	case errors.Is(err, usecases.ErrInvalidInput):
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "internal server error"})
 	}
 }
 
@@ -95,18 +98,18 @@ func (h *LessonHandler) Create(c *gin.Context) {
 
 	var input dto.CreateLessonInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	dateStart, err := time.Parse("2006-01-02", input.DateStart)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date_start format, expected YYYY-MM-DD"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid date_start format, expected YYYY-MM-DD"})
 		return
 	}
 	dateEnd, err := time.Parse("2006-01-02", input.DateEnd)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date_end format, expected YYYY-MM-DD"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid date_end format, expected YYYY-MM-DD"})
 		return
 	}
 
@@ -139,7 +142,7 @@ func (h *LessonHandler) Create(c *gin.Context) {
 func (h *LessonHandler) List(c *gin.Context) {
 	var input dto.LessonFilterInput
 	if err := c.ShouldBindQuery(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -178,7 +181,7 @@ func (h *LessonHandler) List(c *gin.Context) {
 func (h *LessonHandler) GetTimetable(c *gin.Context) {
 	var input dto.LessonFilterInput
 	if err := c.ShouldBindQuery(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -231,7 +234,7 @@ func (h *LessonHandler) Update(c *gin.Context) {
 
 	var input dto.UpdateLessonInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -304,7 +307,7 @@ func (h *LessonHandler) CreateChange(c *gin.Context) {
 
 	var input dto.CreateChangeInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -331,13 +334,13 @@ func (h *LessonHandler) CreateChange(c *gin.Context) {
 func (h *LessonHandler) ListChanges(c *gin.Context) {
 	lessonIDStr := c.Query("lesson_id")
 	if lessonIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "lesson_id is required"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "lesson_id is required"})
 		return
 	}
 
 	lessonID, err := strconv.ParseInt(lessonIDStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid lesson_id"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid lesson_id"})
 		return
 	}
 

@@ -25,12 +25,12 @@ func NewProjectHandler(projectUseCase *usecases.ProjectUseCase) *ProjectHandler 
 func (h *ProjectHandler) getUserID(c *gin.Context) (int64, bool) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "user not authenticated"})
 		return 0, false
 	}
 	uid, ok := userID.(int64)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user ID type"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "invalid user ID type"})
 		return 0, false
 	}
 	return uid, true
@@ -41,7 +41,7 @@ func (h *ProjectHandler) getIDParam(c *gin.Context, param string) (int64, bool) 
 	idStr := c.Param(param)
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + param})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid " + param})
 		return 0, false
 	}
 	return id, true
@@ -51,15 +51,15 @@ func (h *ProjectHandler) getIDParam(c *gin.Context, param string) (int64, bool) 
 func (h *ProjectHandler) handleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, usecases.ErrProjectNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "project not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "project not found"})
 	case errors.Is(err, usecases.ErrUnauthorized):
-		c.JSON(http.StatusForbidden, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "unauthorized"})
 	case errors.Is(err, usecases.ErrCannotModifyProject):
-		c.JSON(http.StatusConflict, gin.H{"error": "cannot modify project"})
+		c.JSON(http.StatusConflict, gin.H{errorKey: "cannot modify project"})
 	case errors.Is(err, usecases.ErrInvalidInput):
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "internal server error"})
 	}
 }
 
@@ -72,7 +72,7 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 
 	var input dto.CreateProjectInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -115,7 +115,7 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 
 	var input dto.UpdateProjectInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -152,7 +152,7 @@ func (h *ProjectHandler) Delete(c *gin.Context) {
 func (h *ProjectHandler) List(c *gin.Context) {
 	var input dto.ProjectFilterInput
 	if err := c.ShouldBindQuery(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 

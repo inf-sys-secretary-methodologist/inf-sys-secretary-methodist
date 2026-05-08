@@ -12,6 +12,9 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
 )
 
+// errorKey is the gin.H field name for error payloads in this package. Extracted to satisfy goconst.
+const errorKey = "error"
+
 // TaskHandler handles HTTP requests for tasks.
 type TaskHandler struct {
 	taskUseCase *usecases.TaskUseCase
@@ -26,7 +29,7 @@ func NewTaskHandler(taskUseCase *usecases.TaskUseCase) *TaskHandler {
 func (h *TaskHandler) getUserID(c *gin.Context) (int64, bool) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "user not authenticated"})
 		return 0, false
 	}
 	return userID.(int64), true
@@ -37,7 +40,7 @@ func (h *TaskHandler) getIDParam(c *gin.Context, param string) (int64, bool) {
 	idStr := c.Param(param)
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + param})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid " + param})
 		return 0, false
 	}
 	return id, true
@@ -47,19 +50,19 @@ func (h *TaskHandler) getIDParam(c *gin.Context, param string) (int64, bool) {
 func (h *TaskHandler) handleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, usecases.ErrTaskNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "task not found"})
 	case errors.Is(err, usecases.ErrUnauthorized):
-		c.JSON(http.StatusForbidden, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "unauthorized"})
 	case errors.Is(err, usecases.ErrCannotModifyTask):
-		c.JSON(http.StatusConflict, gin.H{"error": "cannot modify task"})
+		c.JSON(http.StatusConflict, gin.H{errorKey: "cannot modify task"})
 	case errors.Is(err, usecases.ErrInvalidInput):
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 	case errors.Is(err, usecases.ErrCommentNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "comment not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "comment not found"})
 	case errors.Is(err, usecases.ErrChecklistNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "checklist not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "checklist not found"})
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "internal server error"})
 	}
 }
 
@@ -72,7 +75,7 @@ func (h *TaskHandler) Create(c *gin.Context) {
 
 	var input dto.CreateTaskInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -115,7 +118,7 @@ func (h *TaskHandler) Update(c *gin.Context) {
 
 	var input dto.UpdateTaskInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -152,7 +155,7 @@ func (h *TaskHandler) Delete(c *gin.Context) {
 func (h *TaskHandler) List(c *gin.Context) {
 	var input dto.TaskFilterInput
 	if err := c.ShouldBindQuery(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -183,7 +186,7 @@ func (h *TaskHandler) Assign(c *gin.Context) {
 
 	var input dto.AssignTaskInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -338,7 +341,7 @@ func (h *TaskHandler) AddWatcher(c *gin.Context) {
 		UserID int64 `json:"user_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -416,7 +419,7 @@ func (h *TaskHandler) AddComment(c *gin.Context) {
 
 	var input dto.AddCommentInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -443,7 +446,7 @@ func (h *TaskHandler) UpdateComment(c *gin.Context) {
 
 	var input dto.UpdateCommentInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -511,7 +514,7 @@ func (h *TaskHandler) AddChecklist(c *gin.Context) {
 
 	var input dto.AddChecklistInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -579,7 +582,7 @@ func (h *TaskHandler) AddChecklistItem(c *gin.Context) {
 
 	var input dto.AddChecklistItemInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 

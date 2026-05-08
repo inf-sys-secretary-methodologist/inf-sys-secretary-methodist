@@ -14,6 +14,9 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
 )
 
+// errorKey is the gin.H field name for error payloads in this package. Extracted to satisfy goconst.
+const errorKey = "error"
+
 // AnnouncementHandler handles HTTP requests for announcements.
 type AnnouncementHandler struct {
 	useCase *usecases.AnnouncementUseCase
@@ -28,12 +31,12 @@ func NewAnnouncementHandler(useCase *usecases.AnnouncementUseCase) *Announcement
 func (h *AnnouncementHandler) getUserID(c *gin.Context) (int64, bool) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "user not authenticated"})
 		return 0, false
 	}
 	id, ok := userID.(int64)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user ID type"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "invalid user ID type"})
 		return 0, false
 	}
 	return id, true
@@ -57,7 +60,7 @@ func (h *AnnouncementHandler) getIDParam(c *gin.Context, param string) (int64, b
 	idStr := c.Param(param)
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + param})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid " + param})
 		return 0, false
 	}
 	return id, true
@@ -67,19 +70,19 @@ func (h *AnnouncementHandler) getIDParam(c *gin.Context, param string) (int64, b
 func (h *AnnouncementHandler) handleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, usecases.ErrAnnouncementNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "announcement not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "announcement not found"})
 	case errors.Is(err, usecases.ErrUnauthorized):
-		c.JSON(http.StatusForbidden, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "unauthorized"})
 	case errors.Is(err, usecases.ErrInvalidInput):
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid input"})
 	case errors.Is(err, entities.ErrAnnouncementAlreadyPublished):
-		c.JSON(http.StatusConflict, gin.H{"error": "announcement is already published"})
+		c.JSON(http.StatusConflict, gin.H{errorKey: "announcement is already published"})
 	case errors.Is(err, entities.ErrAnnouncementArchived):
-		c.JSON(http.StatusConflict, gin.H{"error": "announcement is archived"})
+		c.JSON(http.StatusConflict, gin.H{errorKey: "announcement is archived"})
 	case errors.Is(err, entities.ErrAnnouncementNotPublished):
-		c.JSON(http.StatusConflict, gin.H{"error": "announcement is not published"})
+		c.JSON(http.StatusConflict, gin.H{errorKey: "announcement is not published"})
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "internal server error"})
 	}
 }
 
@@ -92,7 +95,7 @@ func (h *AnnouncementHandler) Create(c *gin.Context) {
 
 	var req dto.CreateAnnouncementRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -137,7 +140,7 @@ func (h *AnnouncementHandler) Update(c *gin.Context) {
 
 	var req dto.UpdateAnnouncementRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 

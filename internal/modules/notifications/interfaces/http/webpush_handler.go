@@ -65,7 +65,7 @@ func (h *WebPushHandler) GetVAPIDKey(c *gin.Context) {
 func (h *WebPushHandler) Subscribe(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -112,7 +112,7 @@ func (h *WebPushHandler) Subscribe(c *gin.Context) {
 func (h *WebPushHandler) Unsubscribe(c *gin.Context) {
 	_, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -149,7 +149,7 @@ func (h *WebPushHandler) Unsubscribe(c *gin.Context) {
 func (h *WebPushHandler) GetStatus(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -191,7 +191,7 @@ func (h *WebPushHandler) GetStatus(c *gin.Context) {
 func (h *WebPushHandler) DeleteSubscription(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 
@@ -243,7 +243,7 @@ func (h *WebPushHandler) DeleteSubscription(c *gin.Context) {
 func (h *WebPushHandler) TestPush(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: unauthorizedMsg})
 		return
 	}
 

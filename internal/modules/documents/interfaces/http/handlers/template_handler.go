@@ -12,6 +12,9 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
+// errorKey is the gin.H field name for error payloads in this package. Extracted to satisfy goconst.
+const errorKey = "error"
+
 // TemplateHandler handles HTTP requests for document templates
 type TemplateHandler struct {
 	templateUseCase *usecases.TemplateUseCase
@@ -39,7 +42,7 @@ func NewTemplateHandler(templateUseCase *usecases.TemplateUseCase, validator *va
 func (h *TemplateHandler) GetTemplates(c *gin.Context) {
 	templates, err := h.templateUseCase.GetAllTemplates(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -63,13 +66,13 @@ func (h *TemplateHandler) GetTemplate(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid template ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid template ID"})
 		return
 	}
 
 	template, err := h.templateUseCase.GetTemplate(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -94,24 +97,24 @@ func (h *TemplateHandler) PreviewTemplate(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid template ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid template ID"})
 		return
 	}
 
 	var req dto.PreviewTemplateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid request body"})
 		return
 	}
 
 	if err := h.validator.Validate(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	preview, err := h.templateUseCase.PreviewTemplate(c.Request.Context(), id, req.Variables)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -137,31 +140,31 @@ func (h *TemplateHandler) CreateDocumentFromTemplate(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid template ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid template ID"})
 		return
 	}
 
 	var req dto.CreateFromTemplateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid request body"})
 		return
 	}
 
 	if err := h.validator.Validate(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: err.Error()})
 		return
 	}
 
 	// Get current user ID from context
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "user not authenticated"})
 		return
 	}
 
 	doc, err := h.templateUseCase.CreateDocumentFromTemplate(c.Request.Context(), id, &req, userID.(int64))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
@@ -187,26 +190,26 @@ func (h *TemplateHandler) UpdateTemplate(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid template ID"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid template ID"})
 		return
 	}
 
 	// Check admin role
 	role, exists := c.Get("user_role")
 	if !exists || (role != "admin" && role != "secretary") {
-		c.JSON(http.StatusForbidden, gin.H{"error": "only admin or secretary can update templates"})
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "only admin or secretary can update templates"})
 		return
 	}
 
 	var req dto.UpdateTemplateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid request body"})
 		return
 	}
 
 	err = h.templateUseCase.UpdateTemplate(c.Request.Context(), id, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
 
