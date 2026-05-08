@@ -25,6 +25,14 @@ var ErrMFAAlreadyEnabled = errors.New("MFA is already enabled")
 // does not have MFA enabled.
 var ErrMFANotEnabled = errors.New("MFA is not enabled")
 
+// ErrMFANotPending is returned when ConfirmEnrollment is called without a
+// preceding BeginEnrollment (no pending secret on file).
+var ErrMFANotPending = errors.New("MFA enrollment was not started")
+
+// ErrInvalidMFACode is returned when a user-supplied TOTP code does not
+// match the stored secret within the drift window.
+var ErrInvalidMFACode = errors.New("invalid MFA code")
+
 // MFASecretLength is the canonical Base32 length of a 160-bit TOTP secret.
 const MFASecretLength = 32
 
