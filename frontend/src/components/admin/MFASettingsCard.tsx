@@ -31,6 +31,7 @@ export function MFASettingsCard({ mfaEnabled, onChange }: MFASettingsCardProps) 
   const [enabled, setEnabled] = useState(mfaEnabled)
   const [step, setStep] = useState<Step>('idle')
   const [secret, setSecret] = useState('')
+  const [otpAuthURI, setOtpAuthURI] = useState('')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -41,6 +42,7 @@ export function MFASettingsCard({ mfaEnabled, onChange }: MFASettingsCardProps) 
     try {
       const resp = await beginEnrollment()
       setSecret(resp.secret)
+      setOtpAuthURI(resp.otpauth_uri)
       setStep('enrolling')
       setCode('')
     } catch {
@@ -58,6 +60,7 @@ export function MFASettingsCard({ mfaEnabled, onChange }: MFASettingsCardProps) 
       setEnabled(true)
       setStep('idle')
       setSecret('')
+      setOtpAuthURI('')
       setCode('')
       onChange?.(true)
       toast.success(t('mfa.successEnable'))
@@ -121,8 +124,21 @@ export function MFASettingsCard({ mfaEnabled, onChange }: MFASettingsCardProps) 
         {step === 'enrolling' && (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{t('mfa.scanInstruction')}</p>
-            <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm break-all">
-              {secret}
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                {t('mfa.secretLabel')}
+              </Label>
+              <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm break-all">
+                {secret}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                {t('mfa.otpauthLabel')}
+              </Label>
+              <div className="rounded-md border bg-muted px-3 py-2 font-mono text-xs break-all">
+                {otpAuthURI}
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="mfa-confirm-code">{t('mfa.codeLabel')}</Label>

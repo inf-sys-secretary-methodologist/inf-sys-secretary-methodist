@@ -2306,7 +2306,9 @@
         "successDisable": "Authentification à deux facteurs désactivée",
         "errorBegin": "Impossible de démarrer la configuration MFA",
         "errorConfirm": "Code invalide ou MFA déjà activé",
-        "errorDisable": "Code invalide"
+        "errorDisable": "Code invalide",
+        "secretLabel": "Secret (saisie manuelle)",
+        "otpauthLabel": "URI OTP-Auth (import URL)"
       }
     }
   },

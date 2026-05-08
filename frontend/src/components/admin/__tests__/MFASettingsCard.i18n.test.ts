@@ -28,6 +28,8 @@ const REQUIRED_KEYS = [
   'mfa.errorBegin',
   'mfa.errorConfirm',
   'mfa.errorDisable',
+  'mfa.secretLabel',
+  'mfa.otpauthLabel',
 ] as const
 
 // Page-level keys consumed under 'adminSettings.security' namespace.

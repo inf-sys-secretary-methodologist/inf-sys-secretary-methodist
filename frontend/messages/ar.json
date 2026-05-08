@@ -2306,7 +2306,9 @@
         "successDisable": "تم إلغاء تفعيل المصادقة الثنائية",
         "errorBegin": "تعذر بدء إعداد MFA",
         "errorConfirm": "رمز غير صالح أو MFA مفعّل بالفعل",
-        "errorDisable": "رمز غير صالح"
+        "errorDisable": "رمز غير صالح",
+        "secretLabel": "السر (للإدخال اليدوي)",
+        "otpauthLabel": "رابط OTP-Auth (للاستيراد)"
       }
     }
   },

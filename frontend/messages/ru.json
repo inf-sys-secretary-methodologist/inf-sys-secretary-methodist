@@ -2306,7 +2306,9 @@
         "successDisable": "Двухфакторная аутентификация отключена",
         "errorBegin": "Не удалось начать настройку MFA",
         "errorConfirm": "Неверный код или MFA уже активирован",
-        "errorDisable": "Неверный код"
+        "errorDisable": "Неверный код",
+        "secretLabel": "Секрет (для ручного ввода)",
+        "otpauthLabel": "OTP-Auth URI (для импорта URL)"
       }
     }
   },

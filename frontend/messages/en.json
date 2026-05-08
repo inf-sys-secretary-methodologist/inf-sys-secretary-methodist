@@ -2306,7 +2306,9 @@
         "successDisable": "Multi-factor authentication disabled",
         "errorBegin": "Failed to start MFA setup",
         "errorConfirm": "Invalid code or MFA already enabled",
-        "errorDisable": "Invalid code"
+        "errorDisable": "Invalid code",
+        "secretLabel": "Secret (for manual entry)",
+        "otpauthLabel": "OTP-Auth URI (for URL import)"
       }
     }
   },
