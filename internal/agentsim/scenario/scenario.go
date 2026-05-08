@@ -9,10 +9,16 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/agentsim/content"
 )
 
+// Fixture agent names used across simulation scenarios.
+const (
+	AgentMethodist         = "Марина Петровна Соколова"
+	AgentAcademicSecretary = "Алексей Николаевич Козлов" // #nosec G101 -- fixture human name, not a credential
+)
+
 // Step is a single step in a scenario.
 type Step struct {
 	Name   string        // Step name for logs
-	Agent  string        // Agent name or role (e.g. "Марина Петровна Соколова" or "academic_secretary")
+	Agent  string        // Agent name or role (e.g. AgentMethodist or "academic_secretary")
 	Delay  time.Duration // Delay before executing this step
 	Action func(ctx context.Context, a *agent.Agent, api *api.Client, state *SharedState, gen content.Generator) error
 }

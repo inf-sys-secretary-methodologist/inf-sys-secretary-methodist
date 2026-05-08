@@ -22,7 +22,7 @@ func MeetingScenario() *Scenario {
 		Steps: []Step{
 			{
 				Name:  "Секретарь находит участников совещания",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 5 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					users, err := c.ListUsers(ctx, a)
@@ -46,7 +46,7 @@ func MeetingScenario() *Scenario {
 			},
 			{
 				Name:  "Секретарь создаёт событие-совещание",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 30 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					title := gen.EventTitle("meeting")
@@ -80,7 +80,7 @@ func MeetingScenario() *Scenario {
 			},
 			{
 				Name:  "Методист принимает приглашение",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 60 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					eventID, ok := state.GetEvent("meeting")
@@ -116,7 +116,7 @@ func MeetingScenario() *Scenario {
 			},
 			{
 				Name:  "Секретарь создаёт протокол совещания",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 90 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					types, _ := c.GetDocumentTypes(ctx, a)
@@ -144,7 +144,7 @@ func MeetingScenario() *Scenario {
 			},
 			{
 				Name:  "Секретарь рассылает ссылку на протокол",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 45 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					methodistID := findAgentByRole(state, "methodist")

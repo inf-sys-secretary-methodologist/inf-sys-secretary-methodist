@@ -22,7 +22,7 @@ func MorningScenario() *Scenario {
 		Steps: []Step{
 			{
 				Name:  "Секретарь проверяет уведомления",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 2 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					count, err := c.GetUnreadNotificationCount(ctx, a)
@@ -35,7 +35,7 @@ func MorningScenario() *Scenario {
 			},
 			{
 				Name:  "Секретарь читает сообщения",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 30 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					convs, err := c.ListConversations(ctx, a)
@@ -60,7 +60,7 @@ func MorningScenario() *Scenario {
 			},
 			{
 				Name:  "Методист логинится и смотрит документы",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 45 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					docs, err := c.ListDocuments(ctx, a, "page_size=10")
@@ -112,7 +112,7 @@ func MorningScenario() *Scenario {
 			},
 			{
 				Name:  "Секретарь пишет методисту",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 45 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					methodist := findAgentByRole(state, "methodist")
@@ -146,7 +146,7 @@ func MorningScenario() *Scenario {
 			},
 			{
 				Name:  "Методист отвечает секретарю",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 60 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					convID, ok := state.GetConversation("secretary_methodist")

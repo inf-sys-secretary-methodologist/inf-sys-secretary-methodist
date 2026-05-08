@@ -42,13 +42,15 @@ linters:
 
     goconst:
       min-len: 3
-      # Default 3 produced 50+ noise hits on natural log/json/gin keys
-      # ("error", "name", "status", "email") in v2.12+. Production
-      # idioms like `gin.H{"error": "..."}` legitimately repeat these
-      # 50-71 times per package. Bumping to 30 still catches truly
-      # egregious cross-file duplication while filtering routine keys.
-      # Test fixtures excluded entirely below.
-      min-occurrences: 30
+      # Default 3 produced noise on natural log/json/gin keys
+      # ("error", "name", "status", "email") in v2.12+. After errorKey
+      # extracts in 9 handler packages, unauthorizedMsg in notifications,
+      # and AgentMethodist/AgentAcademicSecretary in agentsim, threshold
+      # at 25 leaves only mid-range log-field-name duplication
+      # ("document_id" / "user_id" / "name" / "month") in document/dashboard
+      # usecases as backlog — extracting those is a multi-file refactor
+      # outside lint-cleanup scope. Test fixtures excluded entirely below.
+      min-occurrences: 25
 
     mnd:
       ignored-functions:

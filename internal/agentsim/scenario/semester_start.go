@@ -22,7 +22,7 @@ func SemesterStartScenario() *Scenario {
 		Steps: []Step{
 			{
 				Name:  "Методист создаёт события расписания (пн-пт)",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 5 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					now := time.Now()
@@ -66,7 +66,7 @@ func SemesterStartScenario() *Scenario {
 			},
 			{
 				Name:  "Секретарь создаёт служебные записки",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 60 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					docTypeID := int64(1)
@@ -205,7 +205,7 @@ func SemesterStartScenario() *Scenario {
 			},
 			{
 				Name:  "Секретарь создаёт протокол совещания",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 60 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					docTypeID := int64(1)

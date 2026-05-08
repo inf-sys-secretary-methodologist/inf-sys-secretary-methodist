@@ -24,7 +24,7 @@ func DocumentFlowScenario() *Scenario {
 		Steps: []Step{
 			{
 				Name:  "Секретарь получает типы документов",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 2 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					types, err := c.GetDocumentTypes(ctx, a)
@@ -40,7 +40,7 @@ func DocumentFlowScenario() *Scenario {
 			},
 			{
 				Name:  "Секретарь создаёт приказ",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 30 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					docTypeID := int64(1)
@@ -70,7 +70,7 @@ func DocumentFlowScenario() *Scenario {
 			},
 			{
 				Name:  "Секретарь создаёт служебную записку",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 45 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					docTypeID := int64(1)
@@ -100,7 +100,7 @@ func DocumentFlowScenario() *Scenario {
 			},
 			{
 				Name:  "Секретарь делится приказом с методистом",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 30 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					docID, ok := state.GetDoc("order_1")
@@ -133,7 +133,7 @@ func DocumentFlowScenario() *Scenario {
 			},
 			{
 				Name:  "Методист просматривает документ",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 60 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					docID, ok := state.GetDoc("order_1")
@@ -151,7 +151,7 @@ func DocumentFlowScenario() *Scenario {
 			},
 			{
 				Name:  "Методист проверяет список документов",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 30 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					docs, err := c.ListDocuments(ctx, a, "page_size=10")
@@ -182,7 +182,7 @@ func DocumentFlowScenario() *Scenario {
 			},
 			{
 				Name:  "Секретарь уведомляет в чате об утверждении",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 30 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					// Get or create a conversation

@@ -22,7 +22,7 @@ func ReportingPeriodScenario() *Scenario {
 		Steps: []Step{
 			{
 				Name:  "Методист получает типы отчётов",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 5 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					types, err := c.GetReportTypes(ctx, a)
@@ -37,7 +37,7 @@ func ReportingPeriodScenario() *Scenario {
 			},
 			{
 				Name:  "Методист создаёт отчёт",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 30 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					reportTypeID := int64(1)
@@ -70,7 +70,7 @@ func ReportingPeriodScenario() *Scenario {
 			},
 			{
 				Name:  "Методист генерирует данные отчёта",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 45 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					reportID, ok := state.GetReport("monthly_report")
@@ -82,7 +82,7 @@ func ReportingPeriodScenario() *Scenario {
 			},
 			{
 				Name:  "Методист отправляет на рецензию",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 30 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					reportID, ok := state.GetReport("monthly_report")
@@ -108,7 +108,7 @@ func ReportingPeriodScenario() *Scenario {
 			},
 			{
 				Name:  "Методист публикует отчёт",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 30 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					reportID, ok := state.GetReport("monthly_report")
@@ -120,7 +120,7 @@ func ReportingPeriodScenario() *Scenario {
 			},
 			{
 				Name:  "Методист уведомляет в чате",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 30 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					secretaryID := findAgentByRole(state, "academic_secretary")

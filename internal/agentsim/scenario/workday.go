@@ -24,7 +24,7 @@ func WorkdayScenario() *Scenario {
 			// Morning check-ins
 			{
 				Name:  "Секретарь: утренняя проверка",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 5 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					_, _ = c.GetUnreadNotificationCount(ctx, a)
@@ -34,7 +34,7 @@ func WorkdayScenario() *Scenario {
 			},
 			{
 				Name:  "Методист: утренняя проверка",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 30 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					_, _ = c.ListDocuments(ctx, a, "page_size=5")
@@ -45,7 +45,7 @@ func WorkdayScenario() *Scenario {
 			// Document work
 			{
 				Name:  "Секретарь создаёт документ",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 60 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					docTypes := []string{"memo", "order", "protocol"}
@@ -98,7 +98,7 @@ func WorkdayScenario() *Scenario {
 			// Messaging between colleagues
 			{
 				Name:  "Секретарь пишет админу",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 60 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					adminID := findAgentByRole(state, "system_admin")
@@ -164,7 +164,7 @@ func WorkdayScenario() *Scenario {
 			// Methodist reviews documents
 			{
 				Name:  "Методист просматривает документы",
-				Agent: "Алексей Николаевич Козлов",
+				Agent: AgentAcademicSecretary,
 				Delay: 90 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					docs, err := c.ListDocuments(ctx, a, "page_size=5")
@@ -208,7 +208,7 @@ func WorkdayScenario() *Scenario {
 			// End of day notifications check
 			{
 				Name:  "Секретарь: вечерняя проверка уведомлений",
-				Agent: "Марина Петровна Соколова",
+				Agent: AgentMethodist,
 				Delay: 60 * time.Second,
 				Action: func(ctx context.Context, a *agent.Agent, c *api.Client, state *SharedState, gen content.Generator) error {
 					notifications, err := c.ListNotifications(ctx, a, 20)
