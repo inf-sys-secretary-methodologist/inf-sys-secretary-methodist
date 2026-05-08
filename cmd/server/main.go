@@ -1375,6 +1375,30 @@ func setupRoutes(
 			authGroup.OPTIONS("/password-reset/verify/:token", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			authGroup.OPTIONS("/password-reset/confirm", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 		}
+
+		// MFA enrollment (v0.124.0). system_admin only — visible defence
+		// hardening that demonstrates the auth surface during the diploma
+		// review. Login flow MFA gating is deferred to a follow-up release.
+		mfaUseCase := usecases.NewMFAUseCase(userRepo, auditLogger, "inf-sys-secretary-methodist")
+		mfaHandlerInstance := authHandler.NewMFAHandler(mfaUseCase)
+		authGroup.POST("/mfa/begin",
+			authMiddleware.JWTMiddleware(authUseCase),
+			authMiddleware.RequireRole("system_admin"),
+			mfaHandlerInstance.Begin,
+		)
+		authGroup.POST("/mfa/confirm",
+			authMiddleware.JWTMiddleware(authUseCase),
+			authMiddleware.RequireRole("system_admin"),
+			mfaHandlerInstance.Confirm,
+		)
+		authGroup.POST("/mfa/disable",
+			authMiddleware.JWTMiddleware(authUseCase),
+			authMiddleware.RequireRole("system_admin"),
+			mfaHandlerInstance.Disable,
+		)
+		authGroup.OPTIONS("/mfa/begin", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+		authGroup.OPTIONS("/mfa/confirm", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+		authGroup.OPTIONS("/mfa/disable", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 	}
 
 	// Public document access routes (no authentication required)
