@@ -122,6 +122,22 @@ export const EDIT_ROLES: UserRole[] = [
 
 export const VIEW_ONLY_ROLES: UserRole[] = [UserRole.STUDENT]
 
+// CURRICULUM_WRITE_ROLES — roles permitted to create/update/submit a
+// curriculum через UI. Mirrors the backend write-whitelist enforced by
+// the POST /api/curriculum + PUT /api/curriculum/:id handlers (v0.116.0:
+// methodist + system_admin only). Diverges from EDIT_ROLES (which
+// includes academic_secretary + teacher) — those roles read-only on
+// curriculum per PermissionMatrix.
+export const CURRICULUM_WRITE_ROLES: UserRole[] = [
+  UserRole.SYSTEM_ADMIN,
+  UserRole.METHODIST,
+]
+
+export function canWriteCurriculum(userRole?: UserRole | string): boolean {
+  if (!userRole) return false
+  return CURRICULUM_WRITE_ROLES.includes(userRole as UserRole)
+}
+
 /** @deprecated Use can(role, resource, action) instead */
 export function canEdit(userRole?: UserRole | string): boolean {
   if (!userRole) return false

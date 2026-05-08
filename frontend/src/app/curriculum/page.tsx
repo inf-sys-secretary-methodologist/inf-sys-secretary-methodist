@@ -13,17 +13,12 @@ import { CurriculumCard } from '@/components/curriculum/CurriculumCard'
 import { CreateCurriculumDialog } from '@/components/curriculum/CreateCurriculumDialog'
 import { useCurricula } from '@/hooks/useCurricula'
 import { useAuthCheck } from '@/hooks/useAuth'
+import { canWriteCurriculum } from '@/lib/auth/permissions'
 import {
   CURRICULUM_STATUSES,
   type CurriculumListFilter,
   type CurriculumStatus,
 } from '@/types/curriculum'
-
-// Roles permitted to create a curriculum mirror the backend
-// write-whitelist enforced by the POST /api/curriculum handler v0.116.0
-// (methodist + system_admin). Other non-student roles see the list
-// read-only.
-const CREATE_ROLES = new Set(['methodist', 'system_admin'])
 
 // CurriculumPage — read-only list of curricula visible to non-student
 // roles (methodist / system_admin / academic_secretary / teacher).
@@ -57,7 +52,7 @@ export default function CurriculumPage() {
   // fetch in flight (would 401 for student / fire pre-redirect).
   const enabled = !isLoading && isAuthenticated && user?.role !== 'student'
   const { items, total, isLoading: listLoading, error, mutate } = useCurricula(filter, { enabled })
-  const canCreate = !!user && CREATE_ROLES.has(user.role)
+  const canCreate = canWriteCurriculum(user?.role)
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user?.role === 'student') {
