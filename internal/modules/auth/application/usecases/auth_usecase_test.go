@@ -520,7 +520,10 @@ func TestVerifyLoginMFA(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: NewMFASecret: %v", err)
 	}
-	frozen := time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)
+	// Use a "now" close to wall-clock so jwt.Parse's exp validation
+	// (which compares against time.Now()) accepts canonical claims with
+	// exp = frozen + 5min as a non-expired token.
+	frozen := time.Now().UTC()
 
 	buildUC := func(now func() time.Time) (*usecases.AuthUseCase, *stubRevokedTokenRepo, *mockUserRepository) {
 		repo := newMockUserRepository()
