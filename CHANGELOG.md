@@ -15,6 +15,30 @@
 
 ---
 
+## [0.125.0] — 2026-05-08
+
+### Added — Login-flow MFA gating (backend)
+
+Closes the deferred scope from v0.124.0. The backend now refuses to issue access+refresh tokens to a user whose `mfa_enabled = true` until they prove the second factor through a new endpoint. Frontend integration ships as a follow-up patch (v0.125.1).
+
+- **`refactor(auth)`** `LoginWithUser` returns `*LoginResult` (struct) instead of `(accessToken, refreshToken, *User, err)`. Cleaner shape для evolution; 11 production+test call sites mechanically migrated. Legacy `Login` (no-user, agentsim path) stays on the simpler tuple — agentsim has no MFA fixtures.
+- **`refactor(auth)`** Third signing key wired through `AuthUseCase` + config: `mfaIntermediateSecret []byte` constructor positional after `refreshSecret`. New env var `JWT_MFA_INTERMEDIATE_SECRET` (production validation rejects placeholder, mirror к existing AccessSecret/RefreshSecret guards). 30 NewAuthUseCase test sites mechanically extended.
+- **`feat(auth)`** `LoginWithUser` MFA branch: when `user.MFAEnabled = true`, the use case generates a 5-minute intermediate JWT signed with `mfaIntermediateSecret` and returns `LoginResult{IntermediateToken, MFARequired: true, User}` — `AccessToken` and `RefreshToken` empty. Audit event `login_mfa_required` recorded; security log records "login awaiting mfa". Non-MFA users path unchanged. Intermediate-token claims: `user_id, exp=+5min, iat, nbf, jti (uuid one-shot guard), iss=inf-sys-auth-mfa-intermediate (distinct from access-token iss so leaked intermediate cannot satisfy JWTMiddleware), purpose=mfa_verify`.
+- **`feat(auth)`** New method `(*AuthUseCase).VerifyLoginMFA(ctx, intermediateToken, code)` exchanges the intermediate + 6-digit TOTP code for full access+refresh tokens. Sentinel-error API:
+  - `ErrIntermediateInvalid` — signature / issuer / purpose / claims-shape failure → 401
+  - `ErrIntermediateExpired` — exp in past → 401
+  - `ErrIntermediateUsed` — jti already in revoked set (replay) → 401
+  - `entities.ErrInvalidMFACode` — TOTP mismatch → 422
+  - `entities.ErrMFANotEnabled` — defence in depth: account state changed mid-flow → 422
+  
+  On success, jti is added to the existing `RevokedTokenRepository` (mirror к Logout pattern) so the intermediate cannot be replayed. TTL = remaining intermediate lifetime. Then `generateTokens` issues access+refresh; audit event `login_mfa_verified`.
+- **`feat(auth)`** Setter `(*AuthUseCase).WithMFAVerification(revokedRepo, driftWindow, now)` wires the verify path's deps (revoked-token repo + ±drift window + clock). Allows test isolation without polluting the constructor with optional deps. main.go calls it when Redis is up.
+- **`feat(auth)`** `AuthHandler.Login` branches on `result.MFARequired` — returns `{mfa_required: true, intermediate_token, user}` with token+refreshToken withheld. Existing non-MFA path unchanged (still returns `{token, refreshToken, user}`).
+- **`feat(auth)`** New endpoint `POST /api/auth/mfa/verify-login` за authGroup public-rate-limit (NO JWT middleware — intermediate IS the auth, NO role gate). Status mapping driven by sentinel-error switch: 200 success / 400 malformed body / 401 invalid|expired|used intermediate / 422 invalid code / 500 fallthrough. CORS OPTIONS preflight handler added.
+- **TDD strict**: 4 RED→GREEN pairs (10 commits including 2 refactor + 2 fix-ups). Backend tests: 103 packages green, golangci-lint 0 issues, gosec 0 issues.
+- **Out of scope (deferred to v0.125.1)**: frontend Login MFA step component + i18n × 4. Currently MFA-enrolled admins must complete the second factor via direct API call (curl-testable). Local-only project; non-blocker для diploma defence.
+- **Risk mitigation pinned via tests**: 4 non-MFA roles (teacher / methodist / academic_secretary / student) login flow unchanged — `LoginResult.MFARequired = false` for them; existing 30+ test sites pin this without modification (no fixture sets MFAEnabled = true).
+
 ## [0.124.1] — 2026-05-08
 
 ### Fixed — CI lint cleanup на v0.124.0 push (misspell + prettier)
