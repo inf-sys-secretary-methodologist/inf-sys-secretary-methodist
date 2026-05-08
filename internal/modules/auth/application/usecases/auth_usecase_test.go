@@ -364,6 +364,98 @@ func TestLoginWithUser(t *testing.T) {
 	})
 }
 
+// TestLoginWithUser_MFAEnabled_ReturnsIntermediateToken pins the v0.125.0
+// login-flow MFA gate: when the user has MFA enabled, LoginWithUser must
+// withhold the access+refresh pair and instead issue a short-lived
+// intermediate token signed with mfaIntermediateSecret. Carrier of the gate
+// is the LoginResult shape — MFARequired=true, IntermediateToken set,
+// AccessToken/RefreshToken empty.
+func TestLoginWithUser_MFAEnabled_ReturnsIntermediateToken(t *testing.T) {
+	repo := newMockUserRepository()
+	mfaIntermediateSecret := []byte("mfa-intermediate-secret-fixture")
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), mfaIntermediateSecret, nil, nil, nil)
+
+	const enrolledSecret = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
+	mfaSecret, err := entities.NewMFASecret(enrolledSecret)
+	if err != nil {
+		t.Fatalf("setup: NewMFASecret: %v", err)
+	}
+	user := &entities.User{
+		ID:         42,
+		Email:      "test@example.com",
+		Password:   "$2a$14$dlaPdzfteiUkTlRwHMp/DuuMyviurDbsQnBwQ1MPSuUM4VnpyQJBK",
+		Role:       domain.RoleSystemAdmin,
+		Status:     entities.UserStatusActive,
+		MFASecret:  &mfaSecret,
+		MFAEnabled: true,
+	}
+	repo.users["test@example.com"] = user
+
+	input := dto.LoginInput{
+		Email:    "test@example.com",
+		Password: "Admin123456!",
+	}
+
+	result, err := useCase.LoginWithUser(context.Background(), input)
+	if err != nil {
+		t.Fatalf("LoginWithUser returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("LoginWithUser returned nil result")
+	}
+
+	assert.True(t, result.MFARequired, "MFARequired must be true for MFA-enabled user")
+	assert.Empty(t, result.AccessToken, "AccessToken must be empty until second factor is verified")
+	assert.Empty(t, result.RefreshToken, "RefreshToken must be empty until second factor is verified")
+	assert.NotEmpty(t, result.IntermediateToken, "IntermediateToken must be issued")
+	assert.NotNil(t, result.User)
+	assert.True(t, result.User.MFAEnabled)
+
+	// Intermediate token must validate against mfaIntermediateSecret (NOT
+	// jwtSecret) and carry user_id, jti, purpose=mfa_verify, and an issuer
+	// distinct from regular access tokens so the access-token middleware
+	// would reject it on its own.
+	parsed, err := jwt.Parse(result.IntermediateToken, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return mfaIntermediateSecret, nil
+	})
+	if err != nil {
+		t.Fatalf("intermediate token parse failed: %v", err)
+	}
+	if !parsed.Valid {
+		t.Fatal("intermediate token reported invalid")
+	}
+
+	claims, ok := parsed.Claims.(jwt.MapClaims)
+	if !ok {
+		t.Fatalf("unexpected claims type: %T", parsed.Claims)
+	}
+
+	userIDFloat, ok := claims["user_id"].(float64)
+	if !ok {
+		t.Fatalf("user_id claim missing or wrong type: %v", claims["user_id"])
+	}
+	assert.Equal(t, float64(user.ID), userIDFloat)
+
+	assert.Equal(t, "mfa_verify", claims["purpose"], "purpose claim pins token to MFA-verify endpoint")
+	assert.Equal(t, "inf-sys-auth-mfa-intermediate", claims["iss"], "issuer must differ from regular access-token iss")
+
+	jti, ok := claims["jti"].(string)
+	if !ok || jti == "" {
+		t.Fatal("jti claim missing or empty (needed for one-shot replay protection)")
+	}
+
+	expFloat, ok := claims["exp"].(float64)
+	if !ok {
+		t.Fatal("exp claim missing")
+	}
+	delta := time.Until(time.Unix(int64(expFloat), 0))
+	assert.Greater(t, delta, 4*time.Minute, "intermediate token should expire ~5 minutes from now")
+	assert.Less(t, delta, 6*time.Minute, "intermediate token should expire ~5 minutes from now")
+}
+
 func TestLogin_InvalidPassword(t *testing.T) {
 	repo := newMockUserRepository()
 	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
