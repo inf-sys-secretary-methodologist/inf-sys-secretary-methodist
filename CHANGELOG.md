@@ -15,6 +15,18 @@
 
 ---
 
+## [0.125.1] — 2026-05-08
+
+### Fixed — `.env.example` sync с `JWT_MFA_INTERMEDIATE_SECRET`
+
+Documentation CI на v0.125.0 push flagged `JWT_MFA_INTERMEDIATE_SECRET` (новая env var из v0.125.0) как missing в `.env.example`. CI script `verify-env-config-sync` проверяет что все `getEnv("VAR_NAME", ...)` calls в `internal/shared/infrastructure/config/config.go` имеют соответствующую запись в `.env.example`.
+
+- Added: `JWT_MFA_INTERMEDIATE_SECRET=dev-jwt-mfa-intermediate-secret-change-in-production` after `JWT_REFRESH_SECRET` (mirror к `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` placeholder pattern).
+
+После патча Documentation CI ✅. Pure docs sync, без behaviour change. Mirror к v0.123.1 / v0.124.1 single-commit cleanup precedent.
+
+**Lesson**: при добавлении нового `getEnv(...)` в `config.go` — обновлять `.env.example` в той же commit chain (или в release commit). CI catch-all должен бы быть в `pre-commit` hook, но pattern overlooked в pre-defence sprint.
+
 ## [0.125.0] — 2026-05-08
 
 ### Added — Login-flow MFA gating (backend)
