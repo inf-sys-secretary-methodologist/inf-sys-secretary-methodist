@@ -77,5 +77,17 @@ export interface RejectCurriculumRequest {
   reason: string
 }
 
-// CreateCurriculumRequest lands alongside its consumer (v0.121.0
-// polish create dialog) — not pre-defined here.
+// CreateCurriculumRequest matches handler CreateCurriculumRequest at
+// internal/modules/curriculum/interfaces/http/handlers/curriculum_handler.go.
+// Consumed by CreateCurriculumDialog (v0.122.0). Backend invariants
+// match UpdateCurriculumRequest verbatim: title / code / specialty
+// trim non-empty, year ∈ [2000, 2100], description ≤ 4096 chars after
+// trim. Backend creates the row in status='draft' and stamps
+// created_by from the JWT subject — no client-side actor field.
+export interface CreateCurriculumRequest {
+  title: string
+  code: string
+  specialty: string
+  year: number
+  description: string
+}

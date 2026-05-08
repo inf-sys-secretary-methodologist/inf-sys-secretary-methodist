@@ -7,6 +7,7 @@ import type {
   Curriculum,
   CurriculumListResponse,
   CurriculumListFilter,
+  CreateCurriculumRequest,
   UpdateCurriculumRequest,
   RejectCurriculumRequest,
 } from '@/types/curriculum'
@@ -85,6 +86,20 @@ export function useCurriculum(id: number | null, opts?: FetchOpts) {
     dedupingInterval: SWR_DEDUPING.SHORT,
   })
   return { curriculum: data, isLoading, error, mutate }
+}
+
+// createCurriculum POSTs a new draft curriculum to POST /api/curriculum
+// and returns the unwrapped Curriculum (status='draft', created_by
+// stamped from JWT subject). Backend RequireNonStudent + handler
+// methodist+admin write-whitelist v0.116.0; client-side enforcement
+// of the methodist+admin gate lives in CreateCurriculumDialog's
+// caller (page-level role check). Axios errors propagate so the
+// caller can branch on 409 (CODE_EXISTS) / 422 (INVALID_INPUT) /
+// 403 (forbidden) by HTTP status — mirrors updateCurriculum's
+// error contract.
+export async function createCurriculum(body: CreateCurriculumRequest): Promise<Curriculum> {
+  const response = await apiClient.post<ApiResponse<Curriculum>>(CURRICULUM_URL, body)
+  return response.data
 }
 
 // updateCurriculum PUTs the edit payload to PUT /api/curriculum/:id
