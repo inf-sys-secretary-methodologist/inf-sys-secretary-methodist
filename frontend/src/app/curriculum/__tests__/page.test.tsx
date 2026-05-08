@@ -176,6 +176,35 @@ describe('CurriculumPage', () => {
     expect(screen.queryByText('countLabel')).not.toBeInTheDocument()
   })
 
+  it.each([
+    ['methodist', true],
+    ['system_admin', true],
+    ['academic_secretary', false],
+    ['teacher', false],
+  ])('Create button visibility for role %s = %s', (role, visible) => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 5, role: role as 'methodist' | 'system_admin' | 'academic_secretary' | 'teacher' },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<CurriculumPage />)
+    const btn = screen.queryByRole('button', { name: 'createButton' })
+    if (visible) {
+      expect(btn).toBeInTheDocument()
+    } else {
+      expect(btn).not.toBeInTheDocument()
+    }
+  })
+
+  it('opens CreateCurriculumDialog when Create button is clicked (methodist)', () => {
+    render(<CurriculumPage />)
+    // The dialog is closed initially — title not rendered.
+    expect(screen.queryByText('createDialog.title')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'createButton' }))
+    // Once open, the dialog title appears.
+    expect(screen.getByText('createDialog.title')).toBeInTheDocument()
+  })
+
   it('shows countLabel when items list is non-empty', () => {
     mockUseCurricula.mockReturnValue({
       items: [sample({ id: 11 })],
