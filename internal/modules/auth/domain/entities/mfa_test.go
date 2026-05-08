@@ -86,6 +86,27 @@ func TestUser_BeginMFAEnrollment(t *testing.T) {
 			t.Errorf("BeginMFAEnrollment: want ErrMFAAlreadyEnabled, got %v", err)
 		}
 	})
+
+	t.Run("re-call replaces previously pending secret", func(t *testing.T) {
+		const otherEncoded = "MFRGGZDFMZTWQ2LKMFRGGZDFMZTWQ2LK" // 32-char Base32
+		other, err := entities.NewMFASecret(otherEncoded)
+		if err != nil {
+			t.Fatalf("setup: NewMFASecret(other): %v", err)
+		}
+		u := entities.NewUser("a@b.c", "hash", "Alice", domain.RoleType("system_admin"))
+		if err := u.BeginMFAEnrollment(secret); err != nil {
+			t.Fatalf("first BeginMFAEnrollment: %v", err)
+		}
+		if err := u.BeginMFAEnrollment(other); err != nil {
+			t.Fatalf("second BeginMFAEnrollment: %v", err)
+		}
+		if u.MFASecret == nil || u.MFASecret.String() != otherEncoded {
+			t.Errorf("re-call must overwrite pending secret; got %v", u.MFASecret)
+		}
+		if u.MFAEnabled {
+			t.Errorf("MFAEnabled must remain false after re-call")
+		}
+	})
 }
 
 func TestUser_EnableMFA(t *testing.T) {
