@@ -56,7 +56,7 @@ type AuthUseCase struct {
 // the short-lived token issued after password verification when the user
 // has MFA enabled; production callers MUST pass a non-empty secret distinct
 // from jwtSecret/refreshSecret so an intermediate token cannot be replayed
-// against the access-token middleware. Tests that never enrol an MFA user
+// against the access-token middleware. Tests that never enroll an MFA user
 // may pass any non-nil value (or nil — the MFA branch is never reached).
 func NewAuthUseCase(
 	userRepo repositories.UserRepository,
@@ -206,6 +206,32 @@ func (u *AuthUseCase) LoginWithUser(ctx context.Context, input dto.LoginInput) (
 		u.logLoginAttempt(ctx, input.Email, false, reason)
 
 		return nil, fmt.Errorf("cannot login: %w", err)
+	}
+
+	// MFA gate: password verified, but if the user has MFA enabled we issue
+	// a short-lived intermediate token instead of full access/refresh tokens.
+	// The caller (frontend) collects a 6-digit code and exchanges the
+	// intermediate via /api/auth/mfa/verify-login for the real tokens.
+	if user.MFAEnabled {
+		intermediate, err := u.generateIntermediateToken(user)
+		if err != nil {
+			u.logLoginAttempt(ctx, input.Email, false, "intermediate token generation failed")
+			return nil, fmt.Errorf("failed to generate intermediate token: %w", err)
+		}
+
+		u.logLoginAttempt(ctx, input.Email, true, "login awaiting mfa")
+		u.logAudit(ctx, "login_mfa_required", "auth", map[string]interface{}{
+			"user_id":     user.ID,
+			"email":       user.Email,
+			"role":        user.Role,
+			"duration_ms": time.Since(startTime).Milliseconds(),
+		})
+
+		return &LoginResult{
+			IntermediateToken: intermediate,
+			MFARequired:       true,
+			User:              user,
+		}, nil
 	}
 
 	// Generate tokens
@@ -407,6 +433,39 @@ func (u *AuthUseCase) generateTokens(_ context.Context, user *entities.User) (st
 	}
 
 	return accessToken, refreshToken, nil
+}
+
+// MFA intermediate-token claim values are exported as package-level
+// constants so the verify-login use case can compare them without string
+// duplication. The issuer is intentionally distinct from the access-token
+// issuer so a leaked intermediate token cannot satisfy the access-token
+// middleware on its own (defense in depth).
+const (
+	mfaIntermediateIssuer  = "inf-sys-auth-mfa-intermediate"
+	mfaIntermediatePurpose = "mfa_verify"
+)
+
+// generateIntermediateToken issues a short-lived JWT signed with
+// mfaIntermediateSecret. The token carries user_id, jti (one-shot replay
+// guard), purpose=mfa_verify, and iss=inf-sys-auth-mfa-intermediate. It is
+// useful only for the /api/auth/mfa/verify-login endpoint.
+func (u *AuthUseCase) generateIntermediateToken(user *entities.User) (string, error) {
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"user_id": user.ID,
+		"exp":     now.Add(u.mfaIntermediateExpiry).Unix(),
+		"iat":     now.Unix(),
+		"nbf":     now.Unix(),
+		"jti":     uuid.New().String(),
+		"iss":     mfaIntermediateIssuer,
+		"purpose": mfaIntermediatePurpose,
+	}
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := t.SignedString(u.mfaIntermediateSecret)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign intermediate token: %w", err)
+	}
+	return signed, nil
 }
 
 // Safe logging wrapper methods with nil checks
