@@ -4,6 +4,7 @@ import React from 'react'
 import {
   useCurricula,
   useCurriculum,
+  createCurriculum,
   updateCurriculum,
   submitCurriculum,
   approveCurriculum,
@@ -13,6 +14,7 @@ import { apiClient } from '@/lib/api'
 import type {
   Curriculum,
   CurriculumListResponse,
+  CreateCurriculumRequest,
   UpdateCurriculumRequest,
   RejectCurriculumRequest,
 } from '@/types/curriculum'
@@ -145,6 +147,39 @@ describe('useCurriculum', () => {
     renderHook(() => useCurriculum(11, { enabled: false }), { wrapper })
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(mockedApiClient.get).not.toHaveBeenCalled()
+  })
+})
+
+describe('createCurriculum', () => {
+  const body: CreateCurriculumRequest = {
+    title: 'ИВТ-2027 / 4 года',
+    code: '09.03.04-2027',
+    specialty: 'Информатика и вычислительная техника',
+    year: 2027,
+    description: 'Новый учебный план',
+  }
+
+  it('POSTs to /api/curriculum and returns the unwrapped Curriculum со status=draft', async () => {
+    const created: Curriculum = {
+      ...sampleCurriculum,
+      ...body,
+      id: 12,
+      status: 'draft',
+      created_at: '2026-05-08T08:00:00Z',
+      updated_at: '2026-05-08T08:00:00Z',
+    }
+    mockedApiClient.post.mockResolvedValueOnce(apiOk(created))
+
+    const out = await createCurriculum(body)
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/api/curriculum', body)
+    expect(out).toEqual(created)
+    expect(out.status).toBe('draft')
+  })
+
+  it('propagates axios errors so callers can branch on status code', async () => {
+    mockedApiClient.post.mockRejectedValueOnce(new Error('409 code exists'))
+    await expect(createCurriculum(body)).rejects.toThrow('409 code exists')
   })
 })
 
