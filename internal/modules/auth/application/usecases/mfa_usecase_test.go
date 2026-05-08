@@ -293,6 +293,91 @@ func TestMFAUseCase_Disable(t *testing.T) {
 	})
 }
 
+// --- Audit log emission ------------------------------------------------------
+
+type recordedAuditEvent struct {
+	action string
+	userID int64
+}
+
+type fakeAuditEmitter struct {
+	mu     sync.Mutex
+	events []recordedAuditEvent
+}
+
+func (f *fakeAuditEmitter) LogAuditEvent(_ context.Context, action, _ string, fields map[string]any) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	id, _ := fields["user_id"].(int64)
+	f.events = append(f.events, recordedAuditEvent{action: action, userID: id})
+}
+
+func TestMFAUseCase_AuditLog(t *testing.T) {
+	const enrolled = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
+
+	t.Run("BeginEnrollment success emits mfa_enrollment_begin", func(t *testing.T) {
+		audit := &fakeAuditEmitter{}
+		repo := &stubUserRepo{
+			getByIDForAuth: func(_ context.Context, _ int64) (*entities.User, error) {
+				return freshAdminUser(), nil
+			},
+		}
+		uc := usecases.NewMFAUseCaseWithClock(repo, audit, testIssuer, func() time.Time { return frozenTime })
+		if _, _, err := uc.BeginEnrollment(context.Background(), 42); err != nil {
+			t.Fatalf("BeginEnrollment: %v", err)
+		}
+		if len(audit.events) != 1 || audit.events[0].action != usecases.AuditActionMFAEnrollmentBegin || audit.events[0].userID != 42 {
+			t.Errorf("audit events: want [{begin, 42}], got %+v", audit.events)
+		}
+	})
+
+	t.Run("ConfirmEnrollment success emits mfa_enrollment_confirm", func(t *testing.T) {
+		audit := &fakeAuditEmitter{}
+		repo := &stubUserRepo{
+			getByIDForAuth: func(_ context.Context, _ int64) (*entities.User, error) {
+				return adminWithPendingSecret(t, enrolled), nil
+			},
+		}
+		uc := usecases.NewMFAUseCaseWithClock(repo, audit, testIssuer, func() time.Time { return frozenTime })
+		if err := uc.ConfirmEnrollment(context.Background(), 42, codeAt(t, enrolled, frozenTime)); err != nil {
+			t.Fatalf("ConfirmEnrollment: %v", err)
+		}
+		if len(audit.events) != 1 || audit.events[0].action != usecases.AuditActionMFAEnrollmentConfirm {
+			t.Errorf("audit events: want [{confirm, ...}], got %+v", audit.events)
+		}
+	})
+
+	t.Run("Disable success emits mfa_disabled", func(t *testing.T) {
+		audit := &fakeAuditEmitter{}
+		repo := &stubUserRepo{
+			getByIDForAuth: func(_ context.Context, _ int64) (*entities.User, error) {
+				return adminEnrolled(t, enrolled), nil
+			},
+		}
+		uc := usecases.NewMFAUseCaseWithClock(repo, audit, testIssuer, func() time.Time { return frozenTime })
+		if err := uc.Disable(context.Background(), 42, codeAt(t, enrolled, frozenTime)); err != nil {
+			t.Fatalf("Disable: %v", err)
+		}
+		if len(audit.events) != 1 || audit.events[0].action != usecases.AuditActionMFADisabled {
+			t.Errorf("audit events: want [{disabled, ...}], got %+v", audit.events)
+		}
+	})
+
+	t.Run("BeginEnrollment failure emits no audit event", func(t *testing.T) {
+		audit := &fakeAuditEmitter{}
+		repo := &stubUserRepo{
+			getByIDForAuth: func(_ context.Context, _ int64) (*entities.User, error) {
+				return adminEnrolled(t, enrolled), nil // already enrolled → fails
+			},
+		}
+		uc := usecases.NewMFAUseCaseWithClock(repo, audit, testIssuer, func() time.Time { return frozenTime })
+		_, _, _ = uc.BeginEnrollment(context.Background(), 42)
+		if len(audit.events) != 0 {
+			t.Errorf("audit events: want none on failure, got %+v", audit.events)
+		}
+	})
+}
+
 // --- Constructor guards ------------------------------------------------------
 
 func TestNewMFAUseCase_NilRepoPanics(t *testing.T) {

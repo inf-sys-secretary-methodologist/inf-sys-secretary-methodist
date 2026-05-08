@@ -17,10 +17,17 @@ import (
 // without widening the brute-force surface meaningfully.
 const totpDriftWindow = 1
 
+// AuditEmitter is the slice of *logging.AuditLogger MFAUseCase actually uses.
+// Defined here so tests can substitute a recorder without spinning up a full
+// Logger; *logging.AuditLogger satisfies it implicitly.
+type AuditEmitter interface {
+	LogAuditEvent(ctx context.Context, action, resource string, fields map[string]any)
+}
+
 // MFAUseCase orchestrates TOTP enrollment, confirmation, and disable flows.
 type MFAUseCase struct {
 	userRepo    repositories.UserRepository
-	auditLogger *logging.AuditLogger
+	auditLogger AuditEmitter
 	issuer      string
 	now         func() time.Time
 }
@@ -28,13 +35,20 @@ type MFAUseCase struct {
 // NewMFAUseCase builds the use case. issuer is embedded in the otpauth URI
 // so the user's authenticator app shows a recognizable label.
 func NewMFAUseCase(userRepo repositories.UserRepository, auditLogger *logging.AuditLogger, issuer string) *MFAUseCase {
-	return NewMFAUseCaseWithClock(userRepo, auditLogger, issuer, time.Now)
+	// nil concrete pointer becomes nil interface only when the type is
+	// known at construction; cast through AuditEmitter explicitly so a nil
+	// auditLogger argument stays nil for the (audit == nil) check.
+	var emitter AuditEmitter
+	if auditLogger != nil {
+		emitter = auditLogger
+	}
+	return NewMFAUseCaseWithClock(userRepo, emitter, issuer, time.Now)
 }
 
 // NewMFAUseCaseWithClock is the same as NewMFAUseCase but accepts an
 // injectable clock so tests can pin TOTP verification to a deterministic
-// timestamp.
-func NewMFAUseCaseWithClock(userRepo repositories.UserRepository, auditLogger *logging.AuditLogger, issuer string, now func() time.Time) *MFAUseCase {
+// timestamp, plus an AuditEmitter for spy-based audit assertions.
+func NewMFAUseCaseWithClock(userRepo repositories.UserRepository, auditLogger AuditEmitter, issuer string, now func() time.Time) *MFAUseCase {
 	if userRepo == nil {
 		panic("mfa usecase: userRepo is nil")
 	}
@@ -80,7 +94,7 @@ func (uc *MFAUseCase) BeginEnrollment(ctx context.Context, userID int64) (string
 		return "", "", fmt.Errorf("mfa: save pending secret: %w", err)
 	}
 
-	uc.logAudit(ctx, "mfa_enrollment_begin", user.ID)
+	uc.logAudit(ctx, AuditActionMFAEnrollmentBegin, user.ID)
 	return buildOTPAuthURI(uc.issuer, user.Email, encoded), encoded, nil
 }
 
@@ -111,7 +125,7 @@ func (uc *MFAUseCase) ConfirmEnrollment(ctx context.Context, userID int64, code 
 		return fmt.Errorf("mfa: persist enabled state: %w", err)
 	}
 
-	uc.logAudit(ctx, "mfa_enrollment_confirm", user.ID)
+	uc.logAudit(ctx, AuditActionMFAEnrollmentConfirm, user.ID)
 	return nil
 }
 
@@ -139,7 +153,7 @@ func (uc *MFAUseCase) Disable(ctx context.Context, userID int64, code string) er
 		return fmt.Errorf("mfa: persist disabled state: %w", err)
 	}
 
-	uc.logAudit(ctx, "mfa_disabled", user.ID)
+	uc.logAudit(ctx, AuditActionMFADisabled, user.ID)
 	return nil
 }
 
@@ -162,6 +176,13 @@ func (uc *MFAUseCase) logAudit(ctx context.Context, action string, userID int64)
 		"user_id": userID,
 	})
 }
+
+// MFA audit action keys — exported so handler/tests can match exact strings.
+const (
+	AuditActionMFAEnrollmentBegin   = "mfa_enrollment_begin"
+	AuditActionMFAEnrollmentConfirm = "mfa_enrollment_confirm"
+	AuditActionMFADisabled          = "mfa_disabled"
+)
 
 // buildOTPAuthURI returns the standard otpauth:// URI consumed by Google
 // Authenticator, Authy, 1Password, etc. Fixed parameters: SHA1, 6 digits,
