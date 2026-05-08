@@ -15,6 +15,20 @@
 
 ---
 
+## [0.121.2] — 2026-05-08
+
+### Fixed — Backend CI red после v0.121.1 (golangci-lint version drift)
+
+Backend CI flipped red на v0.121.1 push несмотря на 0 issues локально. Причина — `GOLANGCI_LINT_VERSION: 'latest'` в `backend-ci.yml`: CI потащил v2.12.2, локальный был v2.11.4. В v2.12+ goconst scans more contexts и produced **50+ issues** которые локальный v2.11 build не видел: 14 в test files (natural fixture repetition), 11 production hits на `gin.H{"error": ...}` идиоме, остальные на natural JSON/log field reuse ("name", "status", "email").
+
+Three fixes:
+
+- **`ci(backend)`**: pin `GOLANGCI_LINT_VERSION: 'v2.12.2'` (заменили `'latest'`) — `latest` делает CI non-deterministic; новые minor releases occasionally tighten lint rules и silently turn green builds red. Pinned version означает future `latest` rolls не сломают CI без явного opt-in.
+- **`fix(lint)`** в `.github/golangci.yml`: добавлен `goconst` в `_test.go` exclusion (test fixtures legitimately repeat literals like "email"/"Test"/"Hello world" — extraction adds noise > value). Bumped goconst `min-occurrences: 3 → 30` (default 3 hit natural log/json field reuse — "name"/"status"/"email"; 30 still catches truly egregious cross-file duplication типа credentials в fixtures).
+- **`refactor(http)`**: extract `const errorKey = "error"` per gin handler package — closes 11 production goconst hits на `gin.H{"error": ...}` идиоме (cmd/server 30 occurrences / ai/handlers 35 / integration/http 53×4 files / notifications/http 71×5 files). Per-package const + literal-to-const replace в gin.H map literals.
+- **Verify**: `golangci-lint run --config=.github/golangci.yml --max-issues-per-linter=0` → **0 issues** под v2.12.2 локально + CI; `go test ./...` → 103 packages ok, 0 FAIL; `gosec ./...` → 0 issues / 48 nosec.
+- Sync: 8 files version bump + CHANGELOG + roles-and-flows banner.
+
 ## [0.121.1] — 2026-05-08
 
 ### Fixed — `--version` banner синхронизирован с VERSION файлом
