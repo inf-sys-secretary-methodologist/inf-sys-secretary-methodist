@@ -71,7 +71,12 @@ func generateAtStep(secret []byte, step int64) (string, error) {
 	}
 
 	var counter [8]byte
-	binary.BigEndian.PutUint64(counter[:], uint64(step))
+	// step is t.Unix() / 30; Unix epoch is non-negative for any post-1970
+	// time and we never call this with a negative drift offset that could
+	// push step below zero in practice (window is bounded). RFC 6238
+	// requires the counter to be encoded as an unsigned 64-bit big-endian
+	// integer regardless.
+	binary.BigEndian.PutUint64(counter[:], uint64(step)) // #nosec G115 -- counter encodes a non-negative Unix-time step per RFC 6238 §4.2
 
 	mac := hmac.New(sha1.New, secret)
 	mac.Write(counter[:])
