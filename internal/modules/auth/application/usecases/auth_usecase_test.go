@@ -17,6 +17,7 @@ import (
 	notifEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
 	notifRepos "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/security/totp"
 )
 
 // Ensure notifRepos is used (compile check)
@@ -454,6 +455,201 @@ func TestLoginWithUser_MFAEnabled_ReturnsIntermediateToken(t *testing.T) {
 	delta := time.Until(time.Unix(int64(expFloat), 0))
 	assert.Greater(t, delta, 4*time.Minute, "intermediate token should expire ~5 minutes from now")
 	assert.Less(t, delta, 6*time.Minute, "intermediate token should expire ~5 minutes from now")
+}
+
+// stubRevokedTokenRepo — minimal in-memory RevokedTokenRepository for
+// VerifyLoginMFA tests. Tracks JTIs that the use case marks revoked so
+// the replay-guard branch can be exercised.
+type stubRevokedTokenRepo struct {
+	revoked map[string]bool
+}
+
+func newStubRevokedTokenRepo() *stubRevokedTokenRepo {
+	return &stubRevokedTokenRepo{revoked: make(map[string]bool)}
+}
+
+func (s *stubRevokedTokenRepo) Revoke(_ context.Context, jti string, _ time.Duration) error {
+	s.revoked[jti] = true
+	return nil
+}
+
+func (s *stubRevokedTokenRepo) IsRevoked(_ context.Context, jti string) (bool, error) {
+	return s.revoked[jti], nil
+}
+
+// signMFAIntermediateToken builds a JWT with the given claims signed by the
+// given secret. Used to script intermediate tokens for VerifyLoginMFA cases
+// — happy path uses the canonical claim shape, edge cases tweak one
+// dimension to exercise a specific failure branch.
+func signMFAIntermediateToken(t *testing.T, secret []byte, claims jwt.MapClaims) string {
+	t.Helper()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString(secret)
+	if err != nil {
+		t.Fatalf("setup: sign intermediate: %v", err)
+	}
+	return signed
+}
+
+// computeTOTPAt returns the 6-digit TOTP code for an enrolled secret at a
+// given moment so the deterministic verify path is testable.
+func computeTOTPAt(t *testing.T, encoded string, at time.Time) string {
+	t.Helper()
+	secret, err := entities.NewMFASecret(encoded)
+	if err != nil {
+		t.Fatalf("setup: NewMFASecret: %v", err)
+	}
+	raw, err := secret.Decode()
+	if err != nil {
+		t.Fatalf("setup: Decode: %v", err)
+	}
+	code, err := totp.Generate(raw, at)
+	if err != nil {
+		t.Fatalf("setup: totp.Generate: %v", err)
+	}
+	return code
+}
+
+// TestVerifyLoginMFA exercises the v0.125.0 second-factor exchange. The use
+// case takes (intermediate, code) and either returns full access+refresh
+// tokens (happy path) or one of the sentinel errors that the handler maps
+// to 401 / 422.
+func TestVerifyLoginMFA(t *testing.T) {
+	const enrolledSecret = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
+	mfaSecret, err := entities.NewMFASecret(enrolledSecret)
+	if err != nil {
+		t.Fatalf("setup: NewMFASecret: %v", err)
+	}
+	frozen := time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)
+
+	buildUC := func(now func() time.Time) (*usecases.AuthUseCase, *stubRevokedTokenRepo, *mockUserRepository) {
+		repo := newMockUserRepository()
+		repo.users["test@example.com"] = &entities.User{
+			ID:         42,
+			Email:      "test@example.com",
+			Password:   "$2a$14$dlaPdzfteiUkTlRwHMp/DuuMyviurDbsQnBwQ1MPSuUM4VnpyQJBK",
+			Role:       domain.RoleSystemAdmin,
+			Status:     entities.UserStatusActive,
+			MFASecret:  &mfaSecret,
+			MFAEnabled: true,
+		}
+		revoked := newStubRevokedTokenRepo()
+		uc := usecases.
+			NewAuthUseCase(repo, []byte("jwt-secret"), []byte("refresh-secret"), []byte("mfa-intermediate"), nil, nil, nil).
+			WithMFAVerification(revoked, 1, now)
+		return uc, revoked, repo
+	}
+
+	canonicalClaims := func(jti string, expOffset time.Duration) jwt.MapClaims {
+		now := frozen
+		return jwt.MapClaims{
+			"user_id": int64(42),
+			"exp":     now.Add(expOffset).Unix(),
+			"iat":     now.Unix(),
+			"nbf":     now.Unix(),
+			"jti":     jti,
+			"iss":     "inf-sys-auth-mfa-intermediate",
+			"purpose": "mfa_verify",
+		}
+	}
+
+	t.Run("happy path returns access+refresh tokens", func(t *testing.T) {
+		uc, _, _ := buildUC(func() time.Time { return frozen })
+		intermediate := signMFAIntermediateToken(t, []byte("mfa-intermediate"), canonicalClaims("jti-happy", 5*time.Minute))
+		code := computeTOTPAt(t, enrolledSecret, frozen)
+
+		result, err := uc.VerifyLoginMFA(context.Background(), intermediate, code)
+		if err != nil {
+			t.Fatalf("expected success, got: %v", err)
+		}
+		assert.False(t, result.MFARequired)
+		assert.NotEmpty(t, result.AccessToken)
+		assert.NotEmpty(t, result.RefreshToken)
+		assert.Empty(t, result.IntermediateToken)
+		assert.NotNil(t, result.User)
+	})
+
+	t.Run("wrong signing secret returns ErrIntermediateInvalid", func(t *testing.T) {
+		uc, _, _ := buildUC(func() time.Time { return frozen })
+		intermediate := signMFAIntermediateToken(t, []byte("WRONG-SECRET"), canonicalClaims("jti-wrong-sig", 5*time.Minute))
+		code := computeTOTPAt(t, enrolledSecret, frozen)
+
+		_, err := uc.VerifyLoginMFA(context.Background(), intermediate, code)
+		if !errors.Is(err, usecases.ErrIntermediateInvalid) {
+			t.Fatalf("expected ErrIntermediateInvalid, got: %v", err)
+		}
+	})
+
+	t.Run("wrong issuer returns ErrIntermediateInvalid", func(t *testing.T) {
+		uc, _, _ := buildUC(func() time.Time { return frozen })
+		claims := canonicalClaims("jti-wrong-iss", 5*time.Minute)
+		claims["iss"] = "inf-sys-auth"
+		intermediate := signMFAIntermediateToken(t, []byte("mfa-intermediate"), claims)
+		code := computeTOTPAt(t, enrolledSecret, frozen)
+
+		_, err := uc.VerifyLoginMFA(context.Background(), intermediate, code)
+		if !errors.Is(err, usecases.ErrIntermediateInvalid) {
+			t.Fatalf("expected ErrIntermediateInvalid, got: %v", err)
+		}
+	})
+
+	t.Run("wrong purpose returns ErrIntermediateInvalid", func(t *testing.T) {
+		uc, _, _ := buildUC(func() time.Time { return frozen })
+		claims := canonicalClaims("jti-wrong-purpose", 5*time.Minute)
+		claims["purpose"] = "access"
+		intermediate := signMFAIntermediateToken(t, []byte("mfa-intermediate"), claims)
+		code := computeTOTPAt(t, enrolledSecret, frozen)
+
+		_, err := uc.VerifyLoginMFA(context.Background(), intermediate, code)
+		if !errors.Is(err, usecases.ErrIntermediateInvalid) {
+			t.Fatalf("expected ErrIntermediateInvalid, got: %v", err)
+		}
+	})
+
+	t.Run("expired intermediate returns ErrIntermediateExpired", func(t *testing.T) {
+		uc, _, _ := buildUC(func() time.Time { return frozen })
+		intermediate := signMFAIntermediateToken(t, []byte("mfa-intermediate"), canonicalClaims("jti-expired", -1*time.Minute))
+		code := computeTOTPAt(t, enrolledSecret, frozen)
+
+		_, err := uc.VerifyLoginMFA(context.Background(), intermediate, code)
+		if !errors.Is(err, usecases.ErrIntermediateExpired) {
+			t.Fatalf("expected ErrIntermediateExpired, got: %v", err)
+		}
+	})
+
+	t.Run("revoked jti returns ErrIntermediateUsed", func(t *testing.T) {
+		uc, revoked, _ := buildUC(func() time.Time { return frozen })
+		revoked.revoked["jti-already-used"] = true
+		intermediate := signMFAIntermediateToken(t, []byte("mfa-intermediate"), canonicalClaims("jti-already-used", 5*time.Minute))
+		code := computeTOTPAt(t, enrolledSecret, frozen)
+
+		_, err := uc.VerifyLoginMFA(context.Background(), intermediate, code)
+		if !errors.Is(err, usecases.ErrIntermediateUsed) {
+			t.Fatalf("expected ErrIntermediateUsed, got: %v", err)
+		}
+	})
+
+	t.Run("invalid TOTP code returns ErrInvalidMFACode", func(t *testing.T) {
+		uc, _, _ := buildUC(func() time.Time { return frozen })
+		intermediate := signMFAIntermediateToken(t, []byte("mfa-intermediate"), canonicalClaims("jti-bad-code", 5*time.Minute))
+
+		_, err := uc.VerifyLoginMFA(context.Background(), intermediate, "000000")
+		if !errors.Is(err, entities.ErrInvalidMFACode) {
+			t.Fatalf("expected ErrInvalidMFACode, got: %v", err)
+		}
+	})
+
+	t.Run("happy path revokes jti for replay protection", func(t *testing.T) {
+		uc, revoked, _ := buildUC(func() time.Time { return frozen })
+		intermediate := signMFAIntermediateToken(t, []byte("mfa-intermediate"), canonicalClaims("jti-revoke-after", 5*time.Minute))
+		code := computeTOTPAt(t, enrolledSecret, frozen)
+
+		_, err := uc.VerifyLoginMFA(context.Background(), intermediate, code)
+		if err != nil {
+			t.Fatalf("expected success, got: %v", err)
+		}
+		assert.True(t, revoked.revoked["jti-revoke-after"], "jti must be revoked after successful verify")
+	})
 }
 
 func TestLogin_InvalidPassword(t *testing.T) {

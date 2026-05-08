@@ -36,6 +36,20 @@ var (
 	ErrUserBlocked = errors.New("user account is blocked")
 	// ErrInvalidToken is returned when token is invalid or expired.
 	ErrInvalidToken = errors.New("invalid token")
+	// ErrIntermediateInvalid is returned when the MFA intermediate token
+	// fails parse / signature / issuer / purpose / claims-shape validation.
+	ErrIntermediateInvalid = errors.New("invalid mfa intermediate token")
+	// ErrIntermediateExpired is returned when the MFA intermediate token's
+	// exp claim is in the past.
+	ErrIntermediateExpired = errors.New("mfa intermediate token expired")
+	// ErrIntermediateUsed is returned when the intermediate's jti is already
+	// in the revoked-token set — replay attempt.
+	ErrIntermediateUsed = errors.New("mfa intermediate token already used")
+	// ErrMFAVerificationNotConfigured is returned when VerifyLoginMFA is
+	// called without the revoked-token repo / clock set via
+	// WithMFAVerification. Deployment misconfiguration; main.go must wire
+	// this in production.
+	ErrMFAVerificationNotConfigured = errors.New("mfa verification dependencies not configured")
 )
 
 // AuthUseCase handles authentication business logic.
@@ -50,6 +64,14 @@ type AuthUseCase struct {
 	securityLog           *logging.SecurityLogger
 	auditLog              *logging.AuditLogger
 	notificationUseCase   *notifUsecases.NotificationUseCase
+
+	// VerifyLoginMFA dependencies (configured separately via
+	// WithMFAVerification — see method below). nil-safe: when unset, the
+	// MFA branch in LoginWithUser still issues an intermediate token, but
+	// VerifyLoginMFA returns ErrMFAVerificationNotConfigured.
+	revokedTokenRepo repositories.RevokedTokenRepository
+	totpDriftWindow  int
+	now              func() time.Time
 }
 
 // NewAuthUseCase creates a new auth use case. mfaIntermediateSecret signs
@@ -444,6 +466,26 @@ const (
 	mfaIntermediateIssuer  = "inf-sys-auth-mfa-intermediate"
 	mfaIntermediatePurpose = "mfa_verify"
 )
+
+// WithMFAVerification wires the dependencies needed by VerifyLoginMFA:
+// the revoked-token repository for one-shot intermediate-token replay
+// guarding, the TOTP drift window (typically 1 step = ±30 s), and an
+// injectable clock so unit tests stay deterministic. Returns the receiver
+// so callers can chain after NewAuthUseCase. Test cases that never enroll
+// an MFA user may skip this call — the LoginWithUser MFA branch still
+// generates intermediate tokens, but VerifyLoginMFA refuses to run.
+func (u *AuthUseCase) WithMFAVerification(
+	revokedRepo repositories.RevokedTokenRepository,
+	driftWindow int,
+	now func() time.Time,
+) *AuthUseCase {
+	u.revokedTokenRepo = revokedRepo
+	u.totpDriftWindow = driftWindow
+	if now != nil {
+		u.now = now
+	}
+	return u
+}
 
 // generateIntermediateToken issues a short-lived JWT signed with
 // mfaIntermediateSecret. The token carries user_id, jti (one-shot replay
