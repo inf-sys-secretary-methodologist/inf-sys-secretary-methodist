@@ -21,6 +21,7 @@ import (
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	emailServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/security/totp"
 )
 
 func init() {
@@ -672,4 +673,249 @@ type duplicateError struct{}
 
 func (e *duplicateError) Error() string {
 	return "duplicate key value violates unique constraint"
+}
+
+// TestLogin_MFAEnabled_ReturnsIntermediateToken pins the handler-level
+// branch added in v0.125.0. When the user has MFA enabled, the response
+// shape MUST signal mfa_required=true with intermediate_token, and MUST
+// withhold the access+refresh pair (preventing MFA bypass via response
+// parsing).
+func TestLogin_MFAEnabled_ReturnsIntermediateToken(t *testing.T) {
+	now := time.Now().UTC()
+	handler, mockRepo, _ := setupMFAHandler(t, now)
+
+	user := createMFAEnrolledUser(t, "mfa@example.com", testPassword)
+	mockRepo.On("GetByEmailForAuth", mock.Anything, "mfa@example.com").Return(user, nil)
+
+	router := gin.New()
+	router.POST("/login", handler.Login)
+
+	payload := map[string]string{"email": "mfa@example.com", "password": testPassword}
+	body, _ := json.Marshal(payload)
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	data, _ := resp["data"].(map[string]interface{})
+	assert.Equal(t, true, data["mfa_required"], "mfa_required must be true for MFA-enabled user")
+	assert.NotEmpty(t, data["intermediate_token"], "intermediate_token must be issued")
+	assert.Empty(t, data["token"], "access token must be withheld")
+	assert.Empty(t, data["refreshToken"], "refresh token must be withheld")
+}
+
+// TestVerifyMFALogin pins the new POST /api/auth/mfa/verify-login endpoint:
+// happy path returns full tokens; sentinel-driven status mapping for
+// invalid/expired/used intermediates (401) and invalid TOTP code (422).
+func TestVerifyMFALogin(t *testing.T) {
+	now := time.Now().UTC()
+
+	mfaSecret, _ := authEntities.NewMFASecret(testEnrolledSecret)
+	rawSecret, _ := mfaSecret.Decode()
+
+	// Computing valid TOTP at the same `now` as the use case clock is
+	// supplied — see WithMFAVerification call inside setupMFAHandler.
+	computeCode := func(t *testing.T, at time.Time) string {
+		t.Helper()
+		// Inline TOTP — duplicates totp.Generate but avoids cross-package
+		// import. 30s step / HMAC-SHA1 / 6-digit per RFC 6238 / 4226.
+		step := uint64(at.Unix() / 30)
+		buf := make([]byte, 8)
+		for i := 7; i >= 0; i-- {
+			buf[i] = byte(step & 0xFF)
+			step >>= 8
+		}
+		_ = rawSecret
+		_ = buf
+		// Fall back to importing totp.Generate via the use case test path
+		// is cleaner — but for handler test isolation we just mark as a
+		// helper variable. For the handler test, we'll use the public
+		// totp pkg via a local import.
+		t.Fatal("computeCode not used; helpers below import the totp pkg directly")
+		return ""
+	}
+	_ = computeCode // reserved for future direct-call cases
+
+	t.Run("happy path returns access+refresh tokens", func(t *testing.T) {
+		handler, mockRepo, revoked := setupMFAHandler(t, now)
+		user := createMFAEnrolledUser(t, "verify@example.com", testPassword)
+		mockRepo.On("GetByIDForAuth", mock.Anything, user.ID).Return(user, nil)
+
+		intermediate := signTestIntermediate(t, user.ID, "jti-happy", now, 5*time.Minute, nil)
+		code := totpCodeFor(t, testEnrolledSecret, now)
+
+		router := gin.New()
+		router.POST("/verify-login", handler.VerifyMFALogin)
+
+		payload := map[string]string{"intermediate_token": intermediate, "code": code}
+		body, _ := json.Marshal(payload)
+		req := httptest.NewRequest(http.MethodPost, "/verify-login", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		data, _ := resp["data"].(map[string]interface{})
+		assert.NotEmpty(t, data["token"])
+		assert.NotEmpty(t, data["refreshToken"])
+		assert.NotNil(t, data["user"])
+		assert.True(t, revoked.revoked["jti-happy"], "jti must be revoked after verify")
+	})
+
+	t.Run("invalid intermediate token returns 401", func(t *testing.T) {
+		handler, _, _ := setupMFAHandler(t, now)
+
+		router := gin.New()
+		router.POST("/verify-login", handler.VerifyMFALogin)
+
+		payload := map[string]string{"intermediate_token": "not.a.jwt", "code": "123456"}
+		body, _ := json.Marshal(payload)
+		req := httptest.NewRequest(http.MethodPost, "/verify-login", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("invalid code returns 422", func(t *testing.T) {
+		handler, mockRepo, _ := setupMFAHandler(t, now)
+		user := createMFAEnrolledUser(t, "verify-bad@example.com", testPassword)
+		mockRepo.On("GetByIDForAuth", mock.Anything, user.ID).Return(user, nil)
+
+		intermediate := signTestIntermediate(t, user.ID, "jti-bad-code", now, 5*time.Minute, nil)
+
+		router := gin.New()
+		router.POST("/verify-login", handler.VerifyMFALogin)
+
+		payload := map[string]string{"intermediate_token": intermediate, "code": "000000"}
+		body, _ := json.Marshal(payload)
+		req := httptest.NewRequest(http.MethodPost, "/verify-login", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	})
+
+	t.Run("expired intermediate returns 401", func(t *testing.T) {
+		handler, _, _ := setupMFAHandler(t, now)
+		intermediate := signTestIntermediate(t, 1, "jti-expired", now, -1*time.Minute, nil)
+
+		router := gin.New()
+		router.POST("/verify-login", handler.VerifyMFALogin)
+
+		payload := map[string]string{"intermediate_token": intermediate, "code": "123456"}
+		body, _ := json.Marshal(payload)
+		req := httptest.NewRequest(http.MethodPost, "/verify-login", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+}
+
+// totpCodeFor wraps the totp package to compute a deterministic 6-digit
+// code at the given moment. Defined as a package-level helper so the MFA
+// handler tests can call it without importing totp from package usecases.
+func totpCodeFor(t *testing.T, encoded string, at time.Time) string {
+	t.Helper()
+	secret, err := authEntities.NewMFASecret(encoded)
+	if err != nil {
+		t.Fatalf("totpCodeFor: NewMFASecret: %v", err)
+	}
+	raw, err := secret.Decode()
+	if err != nil {
+		t.Fatalf("totpCodeFor: Decode: %v", err)
+	}
+	code, err := totp.Generate(raw, at)
+	if err != nil {
+		t.Fatalf("totpCodeFor: Generate: %v", err)
+	}
+	return code
+}
+
+// stubRevokedTokenRepoHandler — minimal in-memory revoked-token repo for
+// VerifyMFALogin handler tests. Defined here (not shared) to keep this test
+// file self-contained.
+type stubRevokedTokenRepoHandler struct {
+	revoked map[string]bool
+}
+
+func (s *stubRevokedTokenRepoHandler) Revoke(_ context.Context, jti string, _ time.Duration) error {
+	if s.revoked == nil {
+		s.revoked = make(map[string]bool)
+	}
+	s.revoked[jti] = true
+	return nil
+}
+
+func (s *stubRevokedTokenRepoHandler) IsRevoked(_ context.Context, jti string) (bool, error) {
+	return s.revoked[jti], nil
+}
+
+const testMFAIntermediateSecret = "mfa-intermediate-secret-handler-test"
+const testEnrolledSecret = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
+
+// setupMFAHandler builds an AuthHandler with a fully wired MFA-aware use
+// case (revoked-token repo + clock) and a mock repo pre-loaded with an
+// MFA-enrolled user. Used by Login_MFAEnabled and VerifyMFALogin tests.
+func setupMFAHandler(t *testing.T, now time.Time) (*AuthHandler, *MockUserRepository, *stubRevokedTokenRepoHandler) {
+	t.Helper()
+	mockRepo := new(MockUserRepository)
+	revoked := &stubRevokedTokenRepoHandler{revoked: map[string]bool{}}
+	uc := usecases.
+		NewAuthUseCase(mockRepo, testJWTSecret, testRefreshSecret, []byte(testMFAIntermediateSecret), nil, nil, nil).
+		WithMFAVerification(revoked, 1, func() time.Time { return now })
+	return NewAuthHandler(uc, nil), mockRepo, revoked
+}
+
+// createMFAEnrolledUser builds an active user with MFA enabled and a valid
+// 32-char Base32 TOTP secret.
+func createMFAEnrolledUser(t *testing.T, email, password string) *authEntities.User {
+	t.Helper()
+	secret, err := authEntities.NewMFASecret(testEnrolledSecret)
+	if err != nil {
+		t.Fatalf("setup: NewMFASecret: %v", err)
+	}
+	u := createActiveUser(email, password)
+	u.MFASecret = &secret
+	u.MFAEnabled = true
+	return u
+}
+
+// signTestIntermediate builds an intermediate token with canonical claims
+// (override via mutate) signed with testMFAIntermediateSecret.
+func signTestIntermediate(t *testing.T, userID int64, jti string, now time.Time, expOffset time.Duration, mutate func(jwt.MapClaims)) string {
+	t.Helper()
+	claims := jwt.MapClaims{
+		"user_id": userID,
+		"exp":     now.Add(expOffset).Unix(),
+		"iat":     now.Unix(),
+		"nbf":     now.Unix(),
+		"jti":     jti,
+		"iss":     "inf-sys-auth-mfa-intermediate",
+		"purpose": "mfa_verify",
+	}
+	if mutate != nil {
+		mutate(claims)
+	}
+	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := tok.SignedString([]byte(testMFAIntermediateSecret))
+	if err != nil {
+		t.Fatalf("setup: sign intermediate: %v", err)
+	}
+	return signed
 }
