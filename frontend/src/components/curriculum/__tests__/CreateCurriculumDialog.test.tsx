@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@/test-utils'
+import { useState } from 'react'
 import { CreateCurriculumDialog } from '../CreateCurriculumDialog'
 
 const mockCreateCurriculum = jest.fn()
@@ -165,6 +166,45 @@ describe('CreateCurriculumDialog', () => {
     expect(mockToastError.mock.calls[0][0]).toBe(expectedKey)
     expect(onClose).not.toHaveBeenCalled()
     expect(onCreated).not.toHaveBeenCalled()
+  })
+
+  it('clears form state when dialog is closed and reopened', () => {
+    // Pin the useEffect reset on open=true: typing in a draft, closing,
+    // and reopening must show empty inputs (no stale draft leaking from
+    // the previous session). Without this regression test, a future
+    // refactor could drop the reset and the user would see their
+    // canceled draft come back на next open.
+    function Harness() {
+      const [open, setOpen] = useState(true)
+      return (
+        <>
+          <CreateCurriculumDialog open={open} onClose={() => setOpen(false)} />
+          <button type="button" onClick={() => setOpen(false)}>
+            close-host
+          </button>
+          <button type="button" onClick={() => setOpen(true)}>
+            reopen-host
+          </button>
+        </>
+      )
+    }
+
+    render(<Harness />)
+    fireEvent.change(screen.getByLabelText('createDialog.labels.title'), {
+      target: { value: 'Draft scratch' },
+    })
+    fireEvent.change(screen.getByLabelText('createDialog.labels.code'), {
+      target: { value: 'SCRATCH-1' },
+    })
+    expect(screen.getByDisplayValue('Draft scratch')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('close-host'))
+    fireEvent.click(screen.getByText('reopen-host'))
+
+    expect(screen.getByLabelText('createDialog.labels.title')).toHaveValue('')
+    expect(screen.getByLabelText('createDialog.labels.code')).toHaveValue('')
+    expect(screen.queryByDisplayValue('Draft scratch')).not.toBeInTheDocument()
+    expect(screen.queryByDisplayValue('SCRATCH-1')).not.toBeInTheDocument()
   })
 
   it('does not double-fire createCurriculum on rapid double-click', async () => {
