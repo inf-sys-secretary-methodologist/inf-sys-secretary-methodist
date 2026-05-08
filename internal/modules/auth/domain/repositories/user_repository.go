@@ -15,6 +15,9 @@ type UserRepository interface {
 	// GetByEmailForAuth retrieves user by email for authentication purposes
 	// Always fetches from database (bypasses cache) to ensure password field is populated
 	GetByEmailForAuth(ctx context.Context, email string) (*entities.User, error)
+	// GetByIDForAuth retrieves user by ID bypassing cache so the MFA secret
+	// (excluded from cache via json:"-") is available for TOTP verification.
+	GetByIDForAuth(ctx context.Context, id int64) (*entities.User, error)
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, limit, offset int) ([]*entities.User, error)
 }

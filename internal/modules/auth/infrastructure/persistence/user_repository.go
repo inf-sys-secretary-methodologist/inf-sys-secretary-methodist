@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
@@ -42,19 +43,26 @@ func (r *UserRepositoryPG) Create(ctx context.Context, user *entities.User) erro
 	return nil
 }
 
-// Save updates an existing user
+// Save updates an existing user, including MFA enrollment fields.
 func (r *UserRepositoryPG) Save(ctx context.Context, user *entities.User) error {
 	query := `
 		UPDATE users
-		SET email = $1, password = $2, name = $3, role = $4, status = $5, updated_at = $6
-		WHERE id = $7
+		SET email = $1, password = $2, name = $3, role = $4, status = $5,
+		    mfa_secret = $6, mfa_enabled = $7, updated_at = $8
+		WHERE id = $9
 	`
+	var mfaSecret sql.NullString
+	if user.MFASecret != nil {
+		mfaSecret = sql.NullString{String: user.MFASecret.String(), Valid: true}
+	}
 	result, err := r.db.ExecContext(ctx, query,
 		user.Email,
 		user.Password,
 		user.Name,
 		user.Role,
 		user.Status,
+		mfaSecret,
+		user.MFAEnabled,
 		user.UpdatedAt,
 		user.ID,
 	)
@@ -76,60 +84,64 @@ func (r *UserRepositoryPG) Save(ctx context.Context, user *entities.User) error 
 
 // GetByID retrieves a user by ID
 func (r *UserRepositoryPG) GetByID(ctx context.Context, userID int64) (*entities.User, error) {
-	user := &entities.User{}
-	query := `
-		SELECT id, email, password, name, role, status, created_at, updated_at
+	return r.scanUserByQuery(ctx, `
+		SELECT id, email, password, name, role, status,
+		       mfa_secret, mfa_enabled, created_at, updated_at
 		FROM users
 		WHERE id = $1
-	`
-	err := r.db.QueryRowContext(ctx, query, userID).Scan(
-		&user.ID,
-		&user.Email,
-		&user.Password,
-		&user.Name,
-		&user.Role,
-		&user.Status,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
-
-	if err != nil {
-		return nil, database.MapPostgresError(err)
-	}
-
-	return user, nil
+	`, userID)
 }
 
 // GetByEmail retrieves a user by email
 func (r *UserRepositoryPG) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
-	user := &entities.User{}
-	query := `
-		SELECT id, email, password, name, role, status, created_at, updated_at
+	return r.scanUserByQuery(ctx, `
+		SELECT id, email, password, name, role, status,
+		       mfa_secret, mfa_enabled, created_at, updated_at
 		FROM users
 		WHERE email = $1
-	`
-	err := r.db.QueryRowContext(ctx, query, email).Scan(
-		&user.ID,
-		&user.Email,
-		&user.Password,
-		&user.Name,
-		&user.Role,
-		&user.Status,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
-
-	if err != nil {
-		return nil, database.MapPostgresError(err)
-	}
-
-	return user, nil
+	`, email)
 }
 
 // GetByEmailForAuth retrieves a user by email for authentication
 // In PG implementation, this is the same as GetByEmail (no caching at this level)
 func (r *UserRepositoryPG) GetByEmailForAuth(ctx context.Context, email string) (*entities.User, error) {
 	return r.GetByEmail(ctx, email)
+}
+
+// GetByIDForAuth retrieves a user by ID bypassing cache; PG layer is already
+// cache-free, so this delegates to GetByID.
+func (r *UserRepositoryPG) GetByIDForAuth(ctx context.Context, id int64) (*entities.User, error) {
+	return r.GetByID(ctx, id)
+}
+
+// scanUserByQuery executes a single-row SELECT and decodes the MFA secret
+// into the typed VO; centralised so all read paths share the same parsing.
+func (r *UserRepositoryPG) scanUserByQuery(ctx context.Context, query string, arg any) (*entities.User, error) {
+	user := &entities.User{}
+	var mfaSecret sql.NullString
+	err := r.db.QueryRowContext(ctx, query, arg).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Password,
+		&user.Name,
+		&user.Role,
+		&user.Status,
+		&mfaSecret,
+		&user.MFAEnabled,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		return nil, database.MapPostgresError(err)
+	}
+	if mfaSecret.Valid && mfaSecret.String != "" {
+		secret, err := entities.NewMFASecret(mfaSecret.String)
+		if err != nil {
+			return nil, fmt.Errorf("repository: invalid persisted MFA secret for user %d: %w", user.ID, err)
+		}
+		user.MFASecret = &secret
+	}
+	return user, nil
 }
 
 // Delete removes a user by ID
@@ -165,7 +177,8 @@ func (r *UserRepositoryPG) List(ctx context.Context, limit, offset int) ([]*enti
 	}
 
 	query := `
-		SELECT id, email, password, name, role, status, created_at, updated_at
+		SELECT id, email, password, name, role, status,
+		       mfa_secret, mfa_enabled, created_at, updated_at
 		FROM users
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
@@ -184,6 +197,7 @@ func (r *UserRepositoryPG) List(ctx context.Context, limit, offset int) ([]*enti
 	users := []*entities.User{}
 	for rows.Next() {
 		user := &entities.User{}
+		var mfaSecret sql.NullString
 		if err := rows.Scan(
 			&user.ID,
 			&user.Email,
@@ -191,10 +205,19 @@ func (r *UserRepositoryPG) List(ctx context.Context, limit, offset int) ([]*enti
 			&user.Name,
 			&user.Role,
 			&user.Status,
+			&mfaSecret,
+			&user.MFAEnabled,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		); err != nil {
 			return nil, database.MapPostgresError(err)
+		}
+		if mfaSecret.Valid && mfaSecret.String != "" {
+			secret, err := entities.NewMFASecret(mfaSecret.String)
+			if err != nil {
+				return nil, fmt.Errorf("repository: invalid persisted MFA secret for user %d: %w", user.ID, err)
+			}
+			user.MFASecret = &secret
 		}
 		users = append(users, user)
 	}

@@ -133,6 +133,22 @@ func (r *CachedUserRepository) GetByEmailForAuth(ctx context.Context, email stri
 	return dbUser, nil
 }
 
+// GetByIDForAuth bypasses cache so MFASecret (json:"-") and Password remain
+// available — used by MFA enrollment / verify flows that operate on user_id
+// from the access token instead of an email lookup.
+func (r *CachedUserRepository) GetByIDForAuth(ctx context.Context, id int64) (*entities.User, error) {
+	start := time.Now()
+	dbUser, err := r.repo.GetByID(ctx, id)
+	duration := time.Since(start)
+
+	r.perfLog.LogDatabaseQuery(ctx, "SELECT user BY ID FOR AUTH", duration, 1)
+
+	if err != nil {
+		return nil, err
+	}
+	return dbUser, nil
+}
+
 // Delete deletes a user and invalidates cache
 func (r *CachedUserRepository) Delete(ctx context.Context, id int64) error {
 	if err := r.repo.Delete(ctx, id); err != nil {

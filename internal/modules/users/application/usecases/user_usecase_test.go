@@ -67,6 +67,10 @@ func (m *MockUserRepository) GetByEmailForAuth(_ context.Context, email string) 
 	return m.GetByEmail(context.Background(), email)
 }
 
+func (m *MockUserRepository) GetByIDForAuth(_ context.Context, id int64) (*authEntities.User, error) {
+	return m.GetByID(context.Background(), id)
+}
+
 func (m *MockUserRepository) Delete(_ context.Context, id int64) error {
 	if m.deleteErr != nil {
 		return m.deleteErr

@@ -65,6 +65,14 @@ func (m *mockAuthUserRepo) GetByEmailForAuth(ctx context.Context, email string) 
 	return args.Get(0).(*authEntities.User), args.Error(1)
 }
 
+func (m *mockAuthUserRepo) GetByIDForAuth(ctx context.Context, id int64) (*authEntities.User, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*authEntities.User), args.Error(1)
+}
+
 func (m *mockAuthUserRepo) Delete(ctx context.Context, id int64) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)

@@ -24,6 +24,7 @@ type mockUserRepo struct {
 	getByIDFn         func(ctx context.Context, id int64) (*entities.User, error)
 	getByEmailFn      func(ctx context.Context, email string) (*entities.User, error)
 	getByEmailForAuth func(ctx context.Context, email string) (*entities.User, error)
+	getByIDForAuth    func(ctx context.Context, id int64) (*entities.User, error)
 	deleteFn          func(ctx context.Context, id int64) error
 	listFn            func(ctx context.Context, limit, offset int) ([]*entities.User, error)
 }
@@ -57,6 +58,12 @@ func (m *mockUserRepo) GetByEmailForAuth(ctx context.Context, email string) (*en
 		return m.getByEmailForAuth(ctx, email)
 	}
 	return &entities.User{Email: email}, nil
+}
+func (m *mockUserRepo) GetByIDForAuth(ctx context.Context, id int64) (*entities.User, error) {
+	if m.getByIDForAuth != nil {
+		return m.getByIDForAuth(ctx, id)
+	}
+	return &entities.User{ID: id}, nil
 }
 func (m *mockUserRepo) Delete(ctx context.Context, id int64) error {
 	if m.deleteFn != nil {

@@ -65,6 +65,19 @@ func (m *MockUserRepository) GetByEmailForAuth(ctx context.Context, email string
 	return user, args.Error(1)
 }
 
+// GetByIDForAuth mocks the GetByIDForAuth method
+func (m *MockUserRepository) GetByIDForAuth(ctx context.Context, id int64) (*entities.User, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	user, ok := args.Get(0).(*entities.User)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return user, args.Error(1)
+}
+
 // Delete mocks the Delete method
 func (m *MockUserRepository) Delete(ctx context.Context, id int64) error {
 	args := m.Called(ctx, id)
