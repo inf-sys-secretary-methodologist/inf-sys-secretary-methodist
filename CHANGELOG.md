@@ -15,6 +15,32 @@
 
 ---
 
+## [0.124.0] — 2026-05-08
+
+### Added — MFA TOTP enrollment for system_admin (RFC 6238 self-implemented)
+
+Visible defence-hardening minor. Backend issues a TOTP secret, persists it pending until the admin confirms the first 6-digit code, and exposes Disable behind a code re-verification step. Login-flow MFA gating is **deferred** to a follow-up release so this change cannot break authentication for the four other roles before the diploma defence.
+
+- **`feat(security)`** RFC 6238 TOTP self-implementation in `internal/shared/security/totp/` — HMAC-SHA1, 30-second step, 6-digit truncation per RFC 4226 §5.3, Base32 secret encoding, `hmac.Equal` constant-time comparison, `±windowSize` drift tolerance. Zero third-party dependencies (supply-chain neutral). All RFC 6238 Appendix B test vectors pass.
+- **`feat(auth)`** `MFASecret` value object enforcing 32-char Base32 alphabet (160-bit secret per RFC 6238 §5.1) with constructor-side validation. Domain methods on `User`: `BeginMFAEnrollment(secret)` (set pending secret, keep `MFAEnabled=false`), `EnableMFA`, `DisableMFA` — all idempotent and guarded by `var ErrMFAAlreadyEnabled / ErrMFANotEnabled / ErrMFANotPending / ErrInvalidMFACode` so callers can `errors.Is` them.
+- **Migration 032** `users.mfa_secret VARCHAR(64)` + `users.mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE` + partial index on enrolled rows. `UserRepositoryPG` round-trips both columns through every read path (`GetByID`, `GetByEmail`, `List`) via a centralised `scanUserByQuery` helper that decodes the Base32 secret back into the typed VO.
+- **`GetByIDForAuth`** added to `UserRepository` interface — bypass-cache mirror of existing `GetByEmailForAuth`. The cache wrapper delegates to the underlying repo so MFA verification flows always read the live secret (`MFASecret` is `json:"-"` so the secret is never serialised into Redis).
+- **`MFAUseCase`** in `internal/modules/auth/application/usecases/mfa_usecase.go` orchestrates `BeginEnrollment` (generate secret → persist pending → return `otpauth://` URI + raw Base32), `ConfirmEnrollment` (verify code with ±1-step drift → flip enabled), `Disable` (verify code → clear). Audit events `mfa_enrollment_begin`, `mfa_enrollment_confirm`, `mfa_disabled` emitted at every successful transition through a small `AuditEmitter` interface so tests can spy without spinning up the full Logger plumbing. Time injectable via `NewMFAUseCaseWithClock` so TOTP verification is deterministic in unit tests.
+- **`MFAHandler`** exposes `POST /api/auth/mfa/{begin,confirm,disable}` guarded by `JWTMiddleware + RequireRole("system_admin")`. Status mapping: 200 success, 400 malformed body, 401 missing user_id, 409 state conflict, 422 invalid code, 500 opaque. Code format (6 digits, numeric) validated at the boundary.
+- **`escapeOTPLabel`** percent-encodes `:` inside otpauth label segments — `url.PathEscape` preserves `:` because it's a valid pchar per RFC 3986, but authenticator apps split on the first `:`, so an issuer or email containing `:` would break parsing without this fix. Table test covers issuer-with-colon, slash, non-ASCII, email-with-colon, plain-ASCII.
+- **Frontend**: `/admin/settings/security` page with new fourth tab in `AdminSettingsTabs`, `MFASettingsCard` state machine (idle ↔ enrolling ↔ disabling) showing the Base32 secret + the full otpauth URI as labelled code blocks (QR rendering deferred — supply-chain rule blocks adding a QR library without 7-day age review; manual entry and URI import are both supported by all major authenticators). `useMFA` hook wraps the three endpoints. `User.mfa_enabled` extends the type and is populated from the Login/Register response so the page reads the real state from `useAuth()` instead of a hardcoded `false`.
+- **i18n × 4** parity: 17 keys under `adminSettings.security.{title,subtitle,mfa.*}` for ru/en/fr/ar. JSON-key parity test loads the real locale files and asserts every key resolves to a non-empty string + cross-locale equality (catches the namespace bug class that the `useTranslations` mock would otherwise hide).
+- **Tests**: 187 frontend suites / 2668 tests passing (was 186/2663 post-v0.123.1; +1 suite +5 tests). Backend lint 0 / gosec 0 / 103 packages green. Strict TDD RED→GREEN pairs for every behavioural change (TOTP, MFASecret VO, BeginMFAEnrollment domain method, MFAUseCase enrollment matrix, OTP label escape, MFA handler status mapping, MFASettingsCard state machine).
+- **Reviewer**: SHIP @ mean 9.1/10 / min 8.5/10 after two fix-cycle rounds:
+  - Round 1 verdict 6.0/10 → closed 8 items: i18n namespace bug, hardcoded `mfaEnabled={false}`, DDD invariant leak (usecase mutating `user.MFASecret` directly), stale RED-stub comment, missing audit-log test coverage, clock double-set, URL-escape gap, QR rendering pivot.
+  - Round 2 verdict 8.4/10 → closed 4 items: `:` not escaped by `url.PathEscape`, missing otpauth URI render assertion, untested re-call-replaces-pending claim, untested `GetByIDForAuth` cache-bypass property.
+
+### Out of scope (deferred)
+
+- **Login-flow MFA gating** — admins can enrol MFA but Login still issues tokens without checking the second factor. Deferred to v0.125.x to avoid a same-week regression risk for the 4 non-admin roles before the diploma defence. The audit log already records all enrollment transitions.
+- **QR code rendering** — supply-chain rule (no new packages younger than 7 days) blocks adding a QR library. Authenticators support otpauth URI import or manual Base32 entry, both of which the card surfaces.
+- **Recovery codes** — would require a second migration + new use case. Intentionally not in scope for the diploma defence release.
+
 ## [0.123.1] — 2026-05-08
 
 ### Fixed — CI/CD Pipeline frontend-test prettier violations missed locally
