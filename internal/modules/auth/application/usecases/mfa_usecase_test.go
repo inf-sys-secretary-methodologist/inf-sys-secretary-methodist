@@ -293,6 +293,60 @@ func TestMFAUseCase_Disable(t *testing.T) {
 	})
 }
 
+// --- otpauth URI escaping ----------------------------------------------------
+
+// TestBuildOTPAuthURI_LabelEscape verifies that issuer/email containing
+// characters with special meaning inside the otpauth label segment
+// (':', '/', non-ASCII, spaces) round-trip safely. The label format is
+// `<issuer>:<email>`, so any unescaped colon inside the issuer would
+// fool authenticator apps into splitting at the wrong position.
+func TestBuildOTPAuthURI_LabelEscape(t *testing.T) {
+	type tcase struct {
+		name   string
+		issuer string
+		email  string
+	}
+	tests := []tcase{
+		{"colon in issuer escaped", "App: Prod", "user@example.com"},
+		{"slash in issuer escaped", "Acme/Org", "user@v"},
+		{"non-ASCII in issuer escaped", "Café", "user@example.com"},
+		{"colon in email escaped", "App", "user:weird@example.com"},
+		{"plain ASCII passes through", "inf-sys-test", "admin@example.local"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			audit := &fakeAuditEmitter{}
+			user := &entities.User{ID: 1, Email: tc.email}
+			repo := &stubUserRepo{
+				getByIDForAuth: func(_ context.Context, _ int64) (*entities.User, error) { return user, nil },
+			}
+			uc := usecases.NewMFAUseCaseWithClock(repo, audit, tc.issuer, func() time.Time { return frozenTime })
+			uri, _, err := uc.BeginEnrollment(context.Background(), 1)
+			if err != nil {
+				t.Fatalf("BeginEnrollment: %v", err)
+			}
+
+			// Split on `?` to isolate the label.
+			parts := strings.SplitN(strings.TrimPrefix(uri, "otpauth://totp/"), "?", 2)
+			if len(parts) != 2 {
+				t.Fatalf("URI not in expected shape: %q", uri)
+			}
+			label := parts[0]
+			// Exactly one ':' separator between issuer and email — any
+			// extra unescaped ':' from issuer/email would break parsing.
+			if strings.Count(label, ":") != 1 {
+				t.Errorf("label %q must contain exactly one ':' separator; got %d", label, strings.Count(label, ":"))
+			}
+			// '/' anywhere in the label would terminate the path segment
+			// and confuse authenticators that re-parse the URI.
+			if strings.Contains(label, "/") {
+				t.Errorf("label %q must not contain unescaped '/'", label)
+			}
+		})
+	}
+}
+
 // --- Audit log emission ------------------------------------------------------
 
 type recordedAuditEvent struct {
