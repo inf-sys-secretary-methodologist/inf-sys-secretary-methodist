@@ -42,7 +42,13 @@ linters:
 
     goconst:
       min-len: 3
-      min-occurrences: 3
+      # Default 3 produced 50+ noise hits on natural log/json/gin keys
+      # ("error", "name", "status", "email") in v2.12+. Production
+      # idioms like `gin.H{"error": "..."}` legitimately repeat these
+      # 50-71 times per package. Bumping to 30 still catches truly
+      # egregious cross-file duplication while filtering routine keys.
+      # Test fixtures excluded entirely below.
+      min-occurrences: 30
 
     mnd:
       ignored-functions:
@@ -79,6 +85,11 @@ linters:
           - errcheck
           - gosec
           - mnd
+          # Test fixtures naturally repeat literals (e.g. "email", "Test",
+          # "Hello world"); extracting each one into a const inflates the
+          # test files without any maintainability win. Production code
+          # stays under goconst's eye.
+          - goconst
 
       # Exclude shadowing check for err variable
       - text: 'shadow: declaration of "err"'
