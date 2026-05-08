@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { BookMarked, Loader2 } from 'lucide-react'
+import { BookMarked, Loader2, Plus } from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CurriculumCard } from '@/components/curriculum/CurriculumCard'
+import { CreateCurriculumDialog } from '@/components/curriculum/CreateCurriculumDialog'
 import { useCurricula } from '@/hooks/useCurricula'
 import { useAuthCheck } from '@/hooks/useAuth'
 import {
@@ -16,6 +18,12 @@ import {
   type CurriculumListFilter,
   type CurriculumStatus,
 } from '@/types/curriculum'
+
+// Roles permitted to create a curriculum mirror the backend
+// write-whitelist enforced by the POST /api/curriculum handler v0.116.0
+// (methodist + system_admin). Other non-student roles see the list
+// read-only.
+const CREATE_ROLES = new Set(['methodist', 'system_admin'])
 
 // CurriculumPage — read-only list of curricula visible to non-student
 // roles (methodist / system_admin / academic_secretary / teacher).
@@ -32,6 +40,7 @@ export default function CurriculumPage() {
   const [statusFilter, setStatusFilter] = useState<CurriculumStatus | ''>('')
   const [yearFilter, setYearFilter] = useState('')
   const [specialty, setSpecialty] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
 
   const filter = useMemo<CurriculumListFilter>(() => {
     const parsedYear = yearFilter.trim() ? Number(yearFilter.trim()) : undefined
@@ -47,7 +56,8 @@ export default function CurriculumPage() {
   // sees the redirect; pre-auth sees the spinner — neither needs a
   // fetch in flight (would 401 for student / fire pre-redirect).
   const enabled = !isLoading && isAuthenticated && user?.role !== 'student'
-  const { items, total, isLoading: listLoading, error } = useCurricula(filter, { enabled })
+  const { items, total, isLoading: listLoading, error, mutate } = useCurricula(filter, { enabled })
+  const canCreate = !!user && CREATE_ROLES.has(user.role)
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user?.role === 'student') {
@@ -68,9 +78,17 @@ export default function CurriculumPage() {
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-6">
-        <header>
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <p className="text-muted-foreground">{t('description')}</p>
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground">{t('description')}</p>
+          </div>
+          {canCreate && (
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t('createButton')}
+            </Button>
+          )}
         </header>
 
         <section className="grid gap-3 sm:grid-cols-3">
@@ -143,6 +161,14 @@ export default function CurriculumPage() {
           </p>
         )}
       </div>
+
+      {canCreate && (
+        <CreateCurriculumDialog
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          onCreated={() => mutate()}
+        />
+      )}
     </AppLayout>
   )
 }

@@ -38,11 +38,7 @@ interface CreateCurriculumDialogProps {
 // invalidInput (not notEditable). Backend write-whitelist methodist+
 // admin v0.116.0 is enforced server-side; the page-level role check
 // gates the button that opens this dialog.
-export function CreateCurriculumDialog({
-  open,
-  onClose,
-  onCreated,
-}: CreateCurriculumDialogProps) {
+export function CreateCurriculumDialog({ open, onClose, onCreated }: CreateCurriculumDialogProps) {
   const t = useTranslations('curriculum')
   const [title, setTitle] = useState('')
   const [code, setCode] = useState('')
