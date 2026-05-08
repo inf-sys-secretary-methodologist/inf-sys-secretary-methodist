@@ -120,7 +120,7 @@ func TestJWTMiddleware(t *testing.T) {
 	jwtSecret := []byte("test-jwt-secret-key")
 	refreshSecret := []byte("test-refresh-secret-key")
 	mockRepo := new(MockUserRepository)
-	authUseCase := usecases.NewAuthUseCase(mockRepo, jwtSecret, refreshSecret, nil, nil, nil)
+	authUseCase := usecases.NewAuthUseCase(mockRepo, jwtSecret, refreshSecret, []byte("mfa-intermediate"), nil, nil, nil)
 
 	t.Run("valid bearer token in Authorization header", func(t *testing.T) {
 		router := gin.New()

@@ -141,13 +141,13 @@ func createActiveUser(email, password string) *authEntities.User {
 
 // setupHandler creates a handler with mock dependencies
 func setupHandler(mockRepo *MockUserRepository) *AuthHandler {
-	uc := usecases.NewAuthUseCase(mockRepo, testJWTSecret, testRefreshSecret, nil, nil, nil)
+	uc := usecases.NewAuthUseCase(mockRepo, testJWTSecret, testRefreshSecret, []byte("mfa-intermediate"), nil, nil, nil)
 	return NewAuthHandler(uc, nil)
 }
 
 // setupHandlerWithEmail creates a handler with mock email service
 func setupHandlerWithEmail(mockRepo *MockUserRepository, emailService *MockEmailService) *AuthHandler {
-	uc := usecases.NewAuthUseCase(mockRepo, testJWTSecret, testRefreshSecret, nil, nil, nil)
+	uc := usecases.NewAuthUseCase(mockRepo, testJWTSecret, testRefreshSecret, []byte("mfa-intermediate"), nil, nil, nil)
 	return NewAuthHandler(uc, emailService)
 }
 

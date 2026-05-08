@@ -40,33 +40,42 @@ var (
 
 // AuthUseCase handles authentication business logic.
 type AuthUseCase struct {
-	userRepo            repositories.UserRepository
-	jwtSecret           []byte
-	refreshSecret       []byte
-	accessExpiry        time.Duration
-	refreshExpiry       time.Duration
-	securityLog         *logging.SecurityLogger
-	auditLog            *logging.AuditLogger
-	notificationUseCase *notifUsecases.NotificationUseCase
+	userRepo              repositories.UserRepository
+	jwtSecret             []byte
+	refreshSecret         []byte
+	mfaIntermediateSecret []byte
+	accessExpiry          time.Duration
+	refreshExpiry         time.Duration
+	mfaIntermediateExpiry time.Duration
+	securityLog           *logging.SecurityLogger
+	auditLog              *logging.AuditLogger
+	notificationUseCase   *notifUsecases.NotificationUseCase
 }
 
-// NewAuthUseCase creates a new auth use case
+// NewAuthUseCase creates a new auth use case. mfaIntermediateSecret signs
+// the short-lived token issued after password verification when the user
+// has MFA enabled; production callers MUST pass a non-empty secret distinct
+// from jwtSecret/refreshSecret so an intermediate token cannot be replayed
+// against the access-token middleware. Tests that never enrol an MFA user
+// may pass any non-nil value (or nil — the MFA branch is never reached).
 func NewAuthUseCase(
 	userRepo repositories.UserRepository,
-	jwtSecret, refreshSecret []byte,
+	jwtSecret, refreshSecret, mfaIntermediateSecret []byte,
 	securityLog *logging.SecurityLogger,
 	auditLog *logging.AuditLogger,
 	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *AuthUseCase {
 	return &AuthUseCase{
-		userRepo:            userRepo,
-		jwtSecret:           jwtSecret,
-		refreshSecret:       refreshSecret,
-		accessExpiry:        time.Minute * 15,
-		refreshExpiry:       time.Hour * 24 * 7,
-		securityLog:         securityLog,
-		auditLog:            auditLog,
-		notificationUseCase: notificationUseCase,
+		userRepo:              userRepo,
+		jwtSecret:             jwtSecret,
+		refreshSecret:         refreshSecret,
+		mfaIntermediateSecret: mfaIntermediateSecret,
+		accessExpiry:          time.Minute * 15,
+		refreshExpiry:         time.Hour * 24 * 7,
+		mfaIntermediateExpiry: time.Minute * 5,
+		securityLog:           securityLog,
+		auditLog:              auditLog,
+		notificationUseCase:   notificationUseCase,
 	}
 }
 

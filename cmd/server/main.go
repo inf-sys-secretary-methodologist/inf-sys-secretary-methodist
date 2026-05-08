@@ -1161,6 +1161,7 @@ func initAuthModule(
 	// JWT secrets from config
 	jwtSecret := []byte(cfg.JWT.AccessSecret)
 	refreshSecret := []byte(cfg.JWT.RefreshSecret)
+	mfaIntermediateSecret := []byte(cfg.JWT.MFAIntermediateSecret)
 
 	// Initialize base user repository
 	baseUserRepo := persistence.NewUserRepositoryPG(db)
@@ -1180,6 +1181,7 @@ func initAuthModule(
 		userRepo.(repositories.UserRepository),
 		jwtSecret,
 		refreshSecret,
+		mfaIntermediateSecret,
 		securityLog,
 		auditLog,
 		notificationUseCase,

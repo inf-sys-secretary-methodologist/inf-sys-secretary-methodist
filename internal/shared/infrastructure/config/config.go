@@ -71,10 +71,11 @@ type CORSConfig struct {
 
 // JWTConfig holds JWT configuration
 type JWTConfig struct {
-	AccessSecret  string
-	RefreshSecret string
-	AccessTTL     time.Duration
-	RefreshTTL    time.Duration
+	AccessSecret          string
+	RefreshSecret         string
+	MFAIntermediateSecret string
+	AccessTTL             time.Duration
+	RefreshTTL            time.Duration
 }
 
 // ComposioConfig holds Composio integration configuration
@@ -224,10 +225,11 @@ func Load() (*Config, error) {
 			AllowedHeaders: getEnvAsSlice("CORS_ALLOWED_HEADERS", []string{"Content-Type", "Authorization"}),
 		},
 		JWT: JWTConfig{
-			AccessSecret:  getEnv("JWT_ACCESS_SECRET", "change-this-secret-in-production"),
-			RefreshSecret: getEnv("JWT_REFRESH_SECRET", "change-this-refresh-secret-in-production"),
-			AccessTTL:     getEnvAsDuration("JWT_ACCESS_TTL", 15*time.Minute),
-			RefreshTTL:    getEnvAsDuration("JWT_REFRESH_TTL", 7*24*time.Hour), // 7 days
+			AccessSecret:          getEnv("JWT_ACCESS_SECRET", "change-this-secret-in-production"),
+			RefreshSecret:         getEnv("JWT_REFRESH_SECRET", "change-this-refresh-secret-in-production"),
+			MFAIntermediateSecret: getEnv("JWT_MFA_INTERMEDIATE_SECRET", "change-this-mfa-intermediate-secret-in-production"),
+			AccessTTL:             getEnvAsDuration("JWT_ACCESS_TTL", 15*time.Minute),
+			RefreshTTL:            getEnvAsDuration("JWT_REFRESH_TTL", 7*24*time.Hour), // 7 days
 		},
 		Composio: ComposioConfig{
 			APIKey:      getEnv("COMPOSIO_API_KEY", ""),
@@ -322,7 +324,8 @@ func Load() (*Config, error) {
 	// Validate JWT secrets in production
 	if config.Environment == "production" {
 		if config.JWT.AccessSecret == "change-this-secret-in-production" ||
-			config.JWT.RefreshSecret == "change-this-refresh-secret-in-production" {
+			config.JWT.RefreshSecret == "change-this-refresh-secret-in-production" ||
+			config.JWT.MFAIntermediateSecret == "change-this-mfa-intermediate-secret-in-production" {
 			return nil, fmt.Errorf("JWT secrets must be set in production environment")
 		}
 	}

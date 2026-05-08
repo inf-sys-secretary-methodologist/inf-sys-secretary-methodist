@@ -47,7 +47,7 @@ func signValidToken(t *testing.T, secret []byte, jti string) string {
 // Repositories and notification dependencies are nil — ValidateAccessToken
 // only touches jwtSecret.
 func buildAuthUC(secret []byte) *usecases.AuthUseCase {
-	return usecases.NewAuthUseCase(nil, secret, secret, nil, nil, nil)
+	return usecases.NewAuthUseCase(nil, secret, secret, []byte("mfa-intermediate"), nil, nil, nil)
 }
 
 // TestJWTMiddlewareWithRevocation_RejectsRevokedToken — revoked JTI must

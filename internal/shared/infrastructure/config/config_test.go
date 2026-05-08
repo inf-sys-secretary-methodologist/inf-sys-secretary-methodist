@@ -170,6 +170,7 @@ func TestLoad_ProductionValidation(t *testing.T) {
 	os.Setenv("ENVIRONMENT", "production")
 	os.Unsetenv("JWT_ACCESS_SECRET")
 	os.Unsetenv("JWT_REFRESH_SECRET")
+	os.Unsetenv("JWT_MFA_INTERMEDIATE_SECRET")
 
 	cfg, err := Load()
 	assert.Nil(t, cfg)
@@ -178,6 +179,7 @@ func TestLoad_ProductionValidation(t *testing.T) {
 
 	os.Setenv("JWT_ACCESS_SECRET", "prod-access-secret")
 	os.Setenv("JWT_REFRESH_SECRET", "prod-refresh-secret")
+	os.Setenv("JWT_MFA_INTERMEDIATE_SECRET", "prod-mfa-intermediate-secret")
 	cfg, err = Load()
 	require.NoError(t, err)
 	assert.Equal(t, "production", cfg.Environment)

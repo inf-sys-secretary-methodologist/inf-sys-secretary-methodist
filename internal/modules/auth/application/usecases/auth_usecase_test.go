@@ -146,7 +146,7 @@ func (m *mockUserRepository) List(_ context.Context, _, _ int) ([]*entities.User
 
 func TestRegister(t *testing.T) {
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	input := dto.RegisterInput{
 		Email:    "newuser@example.com",
@@ -175,7 +175,7 @@ func TestRegister_RejectsPrivilegedRoles(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newMockUserRepository()
-			useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+			useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 			input := dto.RegisterInput{
 				Name:     "Test User",
@@ -196,7 +196,7 @@ func TestRegister_RejectsPrivilegedRoles(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	input := dto.LoginInput{
 		Email:    "test@example.com",
@@ -215,7 +215,7 @@ func TestLogin(t *testing.T) {
 
 func TestValidateAccessToken(t *testing.T) {
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	// First login to get a token
 	input := dto.LoginInput{
@@ -269,7 +269,7 @@ func TestValidateAccessToken(t *testing.T) {
 
 func TestLoginWithUser(t *testing.T) {
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	t.Run("successful login returns user", func(t *testing.T) {
 		input := dto.LoginInput{
@@ -303,7 +303,7 @@ func TestLoginWithUser(t *testing.T) {
 	t.Run("user not found returns error", func(t *testing.T) {
 		repo := newMockUserRepository()
 		repo.shouldError = true
-		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 		input := dto.LoginInput{
 			Email:    "notfound@example.com",
@@ -326,7 +326,7 @@ func TestLoginWithUser(t *testing.T) {
 			Role:     domain.RoleSystemAdmin,
 			Status:   entities.UserStatusBlocked,
 		}
-		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 		input := dto.LoginInput{
 			Email:    "blocked@example.com",
@@ -349,7 +349,7 @@ func TestLoginWithUser(t *testing.T) {
 			Role:     domain.RoleSystemAdmin,
 			Status:   entities.UserStatusInactive,
 		}
-		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 		input := dto.LoginInput{
 			Email:    "inactive@example.com",
@@ -366,7 +366,7 @@ func TestLoginWithUser(t *testing.T) {
 
 func TestLogin_InvalidPassword(t *testing.T) {
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	input := dto.LoginInput{
 		Email:    "test@example.com",
@@ -384,7 +384,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 func TestLogin_UserNotFound(t *testing.T) {
 	repo := newMockUserRepository()
 	repo.shouldError = true
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	input := dto.LoginInput{
 		Email:    "notfound@example.com",
@@ -408,7 +408,7 @@ func TestLogin_BlockedUser(t *testing.T) {
 		Role:     domain.RoleSystemAdmin,
 		Status:   entities.UserStatusBlocked,
 	}
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	input := dto.LoginInput{
 		Email:    "blocked@example.com",
@@ -425,7 +425,7 @@ func TestLogin_BlockedUser(t *testing.T) {
 
 func TestRefreshToken(t *testing.T) {
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	t.Run("successful token refresh", func(t *testing.T) {
 		// First login to get a refresh token
@@ -466,7 +466,7 @@ func TestRefreshToken(t *testing.T) {
 
 	t.Run("user not found during refresh", func(t *testing.T) {
 		repo := newMockUserRepository()
-		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 		// First login to get a valid refresh token
 		input := dto.LoginInput{
@@ -496,7 +496,7 @@ func TestRefreshToken(t *testing.T) {
 			Role:     domain.RoleSystemAdmin,
 			Status:   entities.UserStatusActive,
 		}
-		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 		// First login with active user
 		input := dto.LoginInput{
@@ -521,7 +521,7 @@ func TestRefreshToken(t *testing.T) {
 
 func TestValidateAccessToken_Invalid(t *testing.T) {
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	t.Run("invalid token format", func(t *testing.T) {
 		claims, err := useCase.ValidateAccessToken(context.Background(), "invalid-token")
@@ -533,7 +533,7 @@ func TestValidateAccessToken_Invalid(t *testing.T) {
 
 	t.Run("token with wrong secret", func(t *testing.T) {
 		// Create a token with different secret
-		otherUseCase := usecases.NewAuthUseCase(repo, []byte("other-secret"), []byte("refresh"), nil, nil, nil)
+		otherUseCase := usecases.NewAuthUseCase(repo, []byte("other-secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 		input := dto.LoginInput{
 			Email:    "test@example.com",
@@ -569,7 +569,7 @@ func TestRegister_Errors(t *testing.T) {
 	t.Run("database error on create", func(t *testing.T) {
 		repo := newMockUserRepository()
 		repo.createError = true
-		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+		useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 		input := dto.RegisterInput{
 			Email:    "newuser@example.com",
@@ -586,7 +586,7 @@ func TestRegister_Errors(t *testing.T) {
 
 func TestRegister_WithName(t *testing.T) {
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	input := dto.RegisterInput{
 		Email:    "named@example.com",
@@ -613,7 +613,7 @@ func TestLogin_InactiveUser(t *testing.T) {
 		Role:     domain.RoleSystemAdmin,
 		Status:   entities.UserStatusInactive,
 	}
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	input := dto.LoginInput{
 		Email:    "inactive@example.com",
@@ -630,7 +630,7 @@ func TestLogin_InactiveUser(t *testing.T) {
 
 func TestValidateAccessToken_EmptyString(t *testing.T) {
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	claims, err := useCase.ValidateAccessToken(context.Background(), "")
 	assert.Error(t, err)
@@ -640,7 +640,7 @@ func TestValidateAccessToken_EmptyString(t *testing.T) {
 func TestRefreshToken_WithAccessToken(t *testing.T) {
 	// Access token should not work as refresh token (different secret)
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("access-secret"), []byte("refresh-secret"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("access-secret"), []byte("refresh-secret"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	input := dto.LoginInput{
 		Email:    "test@example.com",
@@ -656,7 +656,7 @@ func TestRefreshToken_WithAccessToken(t *testing.T) {
 
 func TestNewAuthUseCase(t *testing.T) {
 	repo := newMockUserRepository()
-	uc := usecases.NewAuthUseCase(repo, []byte("jwt"), []byte("refresh"), nil, nil, nil)
+	uc := usecases.NewAuthUseCase(repo, []byte("jwt"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 	assert.NotNil(t, uc)
 }
 
@@ -665,7 +665,7 @@ func TestLogin_WithLoggers(t *testing.T) {
 	logger := logging.NewLogger("debug")
 	secLog := logging.NewSecurityLogger(logger)
 	auditLog := logging.NewAuditLogger(logger)
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, auditLog, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, auditLog, nil)
 
 	t.Run("successful login with loggers", func(t *testing.T) {
 		input := dto.LoginInput{
@@ -690,7 +690,7 @@ func TestLogin_WithLoggers(t *testing.T) {
 	t.Run("failed login with loggers - user not found", func(t *testing.T) {
 		repo := newMockUserRepository()
 		repo.shouldError = true
-		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, auditLog, nil)
+		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, auditLog, nil)
 		input := dto.LoginInput{
 			Email:    "notfound@example.com",
 			Password: "Admin123456!",
@@ -708,7 +708,7 @@ func TestLogin_WithLoggers(t *testing.T) {
 			Role:     domain.RoleSystemAdmin,
 			Status:   entities.UserStatusBlocked,
 		}
-		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, auditLog, nil)
+		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, auditLog, nil)
 		input := dto.LoginInput{
 			Email:    "blocked@test.com",
 			Password: "Admin123456!",
@@ -723,7 +723,7 @@ func TestLoginWithUser_WithLoggers(t *testing.T) {
 	logger := logging.NewLogger("debug")
 	secLog := logging.NewSecurityLogger(logger)
 	auditLog := logging.NewAuditLogger(logger)
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, auditLog, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, auditLog, nil)
 
 	t.Run("successful login with user and loggers", func(t *testing.T) {
 		input := dto.LoginInput{
@@ -750,7 +750,7 @@ func TestLoginWithUser_WithLoggers(t *testing.T) {
 	t.Run("failed login with user - not found with loggers", func(t *testing.T) {
 		repo := newMockUserRepository()
 		repo.shouldError = true
-		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, auditLog, nil)
+		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, auditLog, nil)
 		input := dto.LoginInput{
 			Email:    "notfound@test.com",
 			Password: "Admin123456!",
@@ -768,7 +768,7 @@ func TestLoginWithUser_WithLoggers(t *testing.T) {
 			Role:     domain.RoleSystemAdmin,
 			Status:   entities.UserStatusBlocked,
 		}
-		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, auditLog, nil)
+		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, auditLog, nil)
 		input := dto.LoginInput{
 			Email:    "blocked2@test.com",
 			Password: "Admin123456!",
@@ -786,7 +786,7 @@ func TestLoginWithUser_WithLoggers(t *testing.T) {
 			Role:     domain.RoleSystemAdmin,
 			Status:   entities.UserStatusInactive,
 		}
-		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, auditLog, nil)
+		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, auditLog, nil)
 		input := dto.LoginInput{
 			Email:    "inactive2@test.com",
 			Password: "Admin123456!",
@@ -801,7 +801,7 @@ func TestRegister_WithLoggers(t *testing.T) {
 	logger := logging.NewLogger("debug")
 	secLog := logging.NewSecurityLogger(logger)
 	auditLog := logging.NewAuditLogger(logger)
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, auditLog, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, auditLog, nil)
 
 	t.Run("successful register with loggers", func(t *testing.T) {
 		input := dto.RegisterInput{
@@ -816,7 +816,7 @@ func TestRegister_WithLoggers(t *testing.T) {
 	t.Run("failed register with loggers", func(t *testing.T) {
 		repo := newMockUserRepository()
 		repo.createError = true
-		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, auditLog, nil)
+		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, auditLog, nil)
 		input := dto.RegisterInput{
 			Email:    "fail@example.com",
 			Password: "SecurePass123!",
@@ -832,7 +832,7 @@ func TestRefreshToken_WithLoggers(t *testing.T) {
 	logger := logging.NewLogger("debug")
 	secLog := logging.NewSecurityLogger(logger)
 	auditLog := logging.NewAuditLogger(logger)
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, auditLog, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, auditLog, nil)
 
 	t.Run("successful refresh with loggers", func(t *testing.T) {
 		input := dto.LoginInput{
@@ -877,7 +877,7 @@ func TestRefreshToken_InactiveUser(t *testing.T) {
 		Role:     domain.RoleSystemAdmin,
 		Status:   entities.UserStatusActive,
 	}
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	input := dto.LoginInput{
 		Email:    "deactivated@example.com",
@@ -905,7 +905,7 @@ func TestRefreshToken_MissingUserID(t *testing.T) {
 	assert.NoError(t, err)
 
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("access-secret"), secret, nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("access-secret"), secret, []byte("mfa-intermediate"), nil, nil, nil)
 
 	_, _, err = useCase.RefreshToken(context.Background(), tokenString)
 	assert.Error(t, err)
@@ -921,7 +921,7 @@ func TestRefreshToken_WrongSigningMethod(t *testing.T) {
 	tokenString, _ := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
 
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
 
 	_, _, err := useCase.RefreshToken(context.Background(), tokenString)
 	assert.Error(t, err)
@@ -931,7 +931,7 @@ func TestRegister_PasswordTooLong(t *testing.T) {
 	repo := newMockUserRepository()
 	logger := logging.NewLogger("debug")
 	secLog := logging.NewSecurityLogger(logger)
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, nil, nil)
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, nil, nil)
 
 	// bcrypt returns ErrPasswordTooLong for passwords > 72 bytes
 	input := dto.RegisterInput{
@@ -947,7 +947,7 @@ func TestRegister_PasswordTooLong(t *testing.T) {
 
 func TestRegister_WithNotification(t *testing.T) {
 	repo := newMockUserRepository()
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), nil, nil, newTestNotifUC())
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, newTestNotifUC())
 
 	input := dto.RegisterInput{
 		Email:    "withnotif@example.com",
@@ -967,7 +967,7 @@ func TestRegister_WithAllLoggers_AndNotification(t *testing.T) {
 	logger := logging.NewLogger("debug")
 	secLog := logging.NewSecurityLogger(logger)
 	auditLog := logging.NewAuditLogger(logger)
-	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), secLog, auditLog, newTestNotifUC())
+	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), secLog, auditLog, newTestNotifUC())
 
 	input := dto.RegisterInput{
 		Email:    "fulltest@example.com",
