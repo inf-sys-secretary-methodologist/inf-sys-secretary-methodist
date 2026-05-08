@@ -194,6 +194,35 @@ func TestCachedRepo_GetByEmailForAuth(t *testing.T) {
 	assert.Equal(t, "test@test.com", user.Email)
 }
 
+// TestCachedRepo_GetByIDForAuth_BypassesCache pins the contract that the
+// MFA flow relies on: GetByIDForAuth must read straight from the
+// underlying repo even if the cache holds a fresh entry, so MFASecret
+// (excluded from cache via json:"-") stays available.
+func TestCachedRepo_GetByIDForAuth_BypassesCache(t *testing.T) {
+	getByIDCalls := 0
+	getByIDForAuthCalls := 0
+	mockRepo := &mockUserRepo{
+		getByIDFn: func(_ context.Context, id int64) (*entities.User, error) {
+			getByIDCalls++
+			return &entities.User{ID: id, Email: "cached@test.com"}, nil
+		},
+		getByIDForAuth: func(_ context.Context, id int64) (*entities.User, error) {
+			getByIDForAuthCalls++
+			return &entities.User{ID: id, Email: "fresh@test.com"}, nil
+		},
+	}
+	cached := newTestCachedRepo(t, mockRepo)
+
+	// Prime the cache via a non-bypass path.
+	_, _ = cached.GetByID(context.Background(), 7)
+
+	// Bypass path must hit underlying repo even if the cache is hot.
+	user, err := cached.GetByIDForAuth(context.Background(), 7)
+	require.NoError(t, err)
+	assert.Equal(t, "fresh@test.com", user.Email, "GetByIDForAuth must return repo value, not cached email")
+	assert.Equal(t, 1, getByIDForAuthCalls, "GetByIDForAuth must invoke underlying repo")
+}
+
 func TestCachedRepo_Delete_Success(t *testing.T) {
 	mockRepo := &mockUserRepo{}
 	cached := newTestCachedRepo(t, mockRepo)
