@@ -270,27 +270,47 @@
       "admin": {
         "title": "Administrator",
         "description": "Full system control",
-        "features": ["User management", "System configuration", "All operations"]
+        "features": [
+          "User management",
+          "System configuration",
+          "All operations"
+        ]
       },
       "methodist": {
         "title": "Methodist",
         "description": "Working with documents and templates",
-        "features": ["Document creation", "Template management", "Report generation"]
+        "features": [
+          "Document creation",
+          "Template management",
+          "Report generation"
+        ]
       },
       "secretary": {
         "title": "Secretary",
         "description": "Educational process organization",
-        "features": ["Class scheduling", "Attendance tracking", "Student work"]
+        "features": [
+          "Class scheduling",
+          "Attendance tracking",
+          "Student work"
+        ]
       },
       "teacher": {
         "title": "Teacher",
         "description": "Access to educational materials",
-        "features": ["Schedule viewing", "Student lists", "Event calendar"]
+        "features": [
+          "Schedule viewing",
+          "Student lists",
+          "Event calendar"
+        ]
       },
       "student": {
         "title": "Student",
         "description": "Information viewing",
-        "features": ["Personal schedule", "Documents", "Announcements"]
+        "features": [
+          "Personal schedule",
+          "Documents",
+          "Announcements"
+        ]
       }
     },
     "faq": {
@@ -2267,6 +2287,27 @@
       "subtitle": "Manage n8n workflows and automated processes",
       "workflowsTitle": "Workflows",
       "workflowsDescription": "3 automated workflows: document notifications, absence alerts, deadline reminders"
+    },
+    "security": {
+      "title": "Security",
+      "subtitle": "Multi-factor authentication and account security settings for the administrator",
+      "mfa": {
+        "title": "Multi-factor authentication (TOTP)",
+        "descriptionDisabled": "Enable for an extra layer of protection on the administrator account",
+        "descriptionEnabled": "Multi-factor authentication is active",
+        "enable": "Enable",
+        "disable": "Disable",
+        "scanInstruction": "Scan the QR code or enter the secret manually into your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code",
+        "codeLabel": "6-digit code",
+        "confirm": "Confirm",
+        "confirmDisable": "Disable MFA",
+        "disableInstruction": "Enter the current 6-digit code from your authenticator to disable MFA",
+        "successEnable": "Multi-factor authentication enabled",
+        "successDisable": "Multi-factor authentication disabled",
+        "errorBegin": "Failed to start MFA setup",
+        "errorConfirm": "Invalid code or MFA already enabled",
+        "errorDisable": "Invalid code"
+      }
     }
   },
   "forgotPasswordPage": {

@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Palette, Bell, Workflow } from 'lucide-react'
+import { Palette, Bell, Workflow, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const tabs = [
   { href: '/admin/settings/appearance', labelKey: 'appearance.title' as const, icon: Palette },
   { href: '/admin/settings/notifications', labelKey: 'notifications.title' as const, icon: Bell },
   { href: '/admin/settings/automation', labelKey: 'automation.title' as const, icon: Workflow },
+  { href: '/admin/settings/security', labelKey: 'security.title' as const, icon: ShieldCheck },
 ]
 
 export function AdminSettingsTabs() {

@@ -270,27 +270,47 @@
       "admin": {
         "title": "Administrateur",
         "description": "Contrôle total du système",
-        "features": ["Gestion des utilisateurs", "Configuration système", "Toutes les opérations"]
+        "features": [
+          "Gestion des utilisateurs",
+          "Configuration système",
+          "Toutes les opérations"
+        ]
       },
       "methodist": {
         "title": "Méthodiste",
         "description": "Travail avec documents et modèles",
-        "features": ["Création de documents", "Gestion des modèles", "Génération de rapports"]
+        "features": [
+          "Création de documents",
+          "Gestion des modèles",
+          "Génération de rapports"
+        ]
       },
       "secretary": {
         "title": "Secrétaire",
         "description": "Organisation du processus éducatif",
-        "features": ["Planification des cours", "Suivi des présences", "Travail avec étudiants"]
+        "features": [
+          "Planification des cours",
+          "Suivi des présences",
+          "Travail avec étudiants"
+        ]
       },
       "teacher": {
         "title": "Enseignant",
         "description": "Accès aux matériels pédagogiques",
-        "features": ["Consultation emploi du temps", "Listes d'étudiants", "Calendrier événements"]
+        "features": [
+          "Consultation emploi du temps",
+          "Listes d'étudiants",
+          "Calendrier événements"
+        ]
       },
       "student": {
         "title": "Étudiant",
         "description": "Consultation d'informations",
-        "features": ["Emploi du temps personnel", "Documents", "Annonces"]
+        "features": [
+          "Emploi du temps personnel",
+          "Documents",
+          "Annonces"
+        ]
       }
     },
     "faq": {
@@ -2267,6 +2287,27 @@
       "subtitle": "Gestion des workflows n8n et des processus automatisés",
       "workflowsTitle": "Workflows",
       "workflowsDescription": "3 workflows automatisés : notifications de documents, alertes d'absences, rappels de délais"
+    },
+    "security": {
+      "title": "Sécurité",
+      "subtitle": "Authentification à deux facteurs et paramètres de sécurité du compte administrateur",
+      "mfa": {
+        "title": "Authentification à deux facteurs (TOTP)",
+        "descriptionDisabled": "Activez pour renforcer la protection du compte administrateur",
+        "descriptionEnabled": "L'authentification à deux facteurs est active",
+        "enable": "Activer",
+        "disable": "Désactiver",
+        "scanInstruction": "Scannez le QR code ou saisissez le secret manuellement dans votre application d'authentification (Google Authenticator, Authy, etc.), puis entrez le code à 6 chiffres",
+        "codeLabel": "Code à 6 chiffres",
+        "confirm": "Confirmer",
+        "confirmDisable": "Désactiver MFA",
+        "disableInstruction": "Saisissez le code actuel à 6 chiffres de votre authentificateur pour désactiver MFA",
+        "successEnable": "Authentification à deux facteurs activée",
+        "successDisable": "Authentification à deux facteurs désactivée",
+        "errorBegin": "Impossible de démarrer la configuration MFA",
+        "errorConfirm": "Code invalide ou MFA déjà activé",
+        "errorDisable": "Code invalide"
+      }
     }
   },
   "forgotPasswordPage": {
