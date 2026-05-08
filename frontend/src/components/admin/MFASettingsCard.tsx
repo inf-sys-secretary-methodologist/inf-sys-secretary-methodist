@@ -21,7 +21,11 @@ type Step = 'idle' | 'enrolling' | 'disabling'
 const CODE_PATTERN = /^\d{6}$/
 
 export function MFASettingsCard({ mfaEnabled, onChange }: MFASettingsCardProps) {
-  const t = useTranslations('adminSettings')
+  // Namespace mirrors the JSON tree: messages/{locale}.json :
+  //   adminSettings.security.mfa.{enable, disable, codeLabel, ...}
+  // so each `t('mfa.x')` resolves to that path. Keep this in sync with
+  // the JSON-key parity test in __tests__/MFASettingsCard.i18n.test.ts.
+  const t = useTranslations('adminSettings.security')
   const { beginEnrollment, confirmEnrollment, disable } = useMFA()
 
   const [enabled, setEnabled] = useState(mfaEnabled)
