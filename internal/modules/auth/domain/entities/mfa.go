@@ -4,7 +4,6 @@ import (
 	"encoding/base32"
 	"errors"
 	"fmt"
-	"time"
 )
 
 // MFASecret is a 160-bit TOTP shared secret encoded as 32-character Base32
@@ -63,26 +62,42 @@ func (s MFASecret) Decode() ([]byte, error) {
 	return raw, nil
 }
 
-// EnableMFA enrolls the user with the provided secret. Returns
-// ErrMFAAlreadyEnabled if the account already has MFA active.
+// BeginMFAEnrollment stores a pending TOTP secret on the account but keeps
+// MFAEnabled=false until the first code is confirmed. Returns
+// ErrMFAAlreadyEnabled if the account already has MFA active. Re-calling
+// while a previous secret is pending intentionally overwrites it so the
+// user can restart enrollment.
+//
+// Timestamp updates are intentionally left to the caller (use case) — the
+// domain method enforces invariants only; clock injection is a use-case
+// concern, so we don't double-set UpdatedAt here.
+func (u *User) BeginMFAEnrollment(secret MFASecret) error {
+	if u.MFAEnabled {
+		return ErrMFAAlreadyEnabled
+	}
+	u.MFASecret = &secret
+	u.MFAEnabled = false
+	return nil
+}
+
+// EnableMFA flips the account to fully enrolled. Returns ErrMFAAlreadyEnabled
+// if MFA is already on. Caller is responsible for bumping UpdatedAt.
 func (u *User) EnableMFA(secret MFASecret) error {
 	if u.MFAEnabled {
 		return ErrMFAAlreadyEnabled
 	}
 	u.MFASecret = &secret
 	u.MFAEnabled = true
-	u.UpdatedAt = time.Now()
 	return nil
 }
 
 // DisableMFA clears MFA state. Returns ErrMFANotEnabled when the account is
-// not enrolled.
+// not enrolled. Caller is responsible for bumping UpdatedAt.
 func (u *User) DisableMFA() error {
 	if !u.MFAEnabled {
 		return ErrMFANotEnabled
 	}
 	u.MFASecret = nil
 	u.MFAEnabled = false
-	u.UpdatedAt = time.Now()
 	return nil
 }

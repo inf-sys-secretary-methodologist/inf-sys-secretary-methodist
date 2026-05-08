@@ -71,8 +71,9 @@ func (uc *MFAUseCase) BeginEnrollment(ctx context.Context, userID int64) (string
 		return "", "", fmt.Errorf("mfa: validate generated secret: %w", err)
 	}
 
-	user.MFASecret = &secret
-	user.MFAEnabled = false
+	if err := user.BeginMFAEnrollment(secret); err != nil {
+		return "", "", fmt.Errorf("mfa: begin enrollment: %w", err)
+	}
 	user.UpdatedAt = uc.now()
 
 	if err := uc.userRepo.Save(ctx, user); err != nil {
