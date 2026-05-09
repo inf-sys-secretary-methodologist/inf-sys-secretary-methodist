@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# Pre-commit hook for inf-sys-secretary-methodist (mixed Go + TS repo).
+# Activated via `bash _tools/install-hooks.sh` (sets git core.hooksPath
+# to .husky/). Bypass for WIP commits with `git commit --no-verify`.
+#
+# Closes the cumulative cleanup-patch class:
+# - misspell BrE → AmE in Go comments (v0.124.1, v0.126.2 carry-over)
+# - prettier formatting drift in TS / JSON locales (v0.124.1, v0.126.3)
+# - golangci-lint regressions on touched Go files (v0.121.3)
+#
+# Per-file scope only — staged files, not the whole repo (fast feedback).
+
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Resolve staged files (Added / Copied / Modified) — skip Deleted so
+# linters don't see paths that no longer exist.
+mapfile -t STAGED < <(git diff --cached --name-only --diff-filter=ACM)
+[[ ${#STAGED[@]} -eq 0 ]] && exit 0
+
+STAGED_GO=()
+STAGED_FE=()
+for f in "${STAGED[@]}"; do
+    case "$f" in
+        *.go) STAGED_GO+=("$f") ;;
+        frontend/src/*.ts|frontend/src/*.tsx|frontend/messages/*.json|frontend/src/**/*.ts|frontend/src/**/*.tsx)
+            STAGED_FE+=("$f") ;;
+    esac
+done
+
+FAIL=0
+
+# --- Go: AmE/BrE grep on staged files ---
+# Linter config (.github/golangci.yml) uses misspell with en_US dictionary.
+# Local lint partition is non-deterministic (parallel analyser dedup) and
+# misses occurrences caught by CI. Manual grep is the deterministic floor.
+if [[ ${#STAGED_GO[@]} -gt 0 ]]; then
+    BRE_HITS=$(grep -nE 'behaviour|defence|centralised|colour|realise|optimise' "${STAGED_GO[@]}" 2>/dev/null || true)
+    if [[ -n "$BRE_HITS" ]]; then
+        echo "❌ Pre-commit: BrE forms detected in staged Go files. Use AmE forms:" >&2
+        echo "   behaviour → behavior, defence → defense, centralised → centralized," >&2
+        echo "   colour → color, realise → realize, optimise → optimize" >&2
+        echo "" >&2
+        echo "$BRE_HITS" >&2
+        FAIL=1
+    fi
+fi
+
+# --- Go: golangci-lint on the packages owning staged files ---
+# Per-package scan, not whole repo — fast and matches CI expectations.
+if [[ ${#STAGED_GO[@]} -gt 0 ]]; then
+    declare -A SEEN_PKGS=()
+    GO_PKG_DIRS=()
+    for f in "${STAGED_GO[@]}"; do
+        d=$(dirname "$f")
+        if [[ -z "${SEEN_PKGS[$d]:-}" ]]; then
+            SEEN_PKGS[$d]=1
+            GO_PKG_DIRS+=("./$d/...")
+        fi
+    done
+    if command -v golangci-lint >/dev/null 2>&1; then
+        if ! golangci-lint run --config=.github/golangci.yml --timeout=2m "${GO_PKG_DIRS[@]}" >&2; then
+            echo "❌ Pre-commit: golangci-lint failed on staged Go packages." >&2
+            FAIL=1
+        fi
+    else
+        echo "⚠ Pre-commit: golangci-lint not on PATH — skipping Go lint" >&2
+    fi
+fi
+
+# --- Frontend: prettier --check + eslint on staged files ---
+if [[ ${#STAGED_FE[@]} -gt 0 ]]; then
+    # Drop the leading "frontend/" so paths resolve from frontend/ cwd.
+    FE_PATHS=()
+    for f in "${STAGED_FE[@]}"; do
+        FE_PATHS+=("${f#frontend/}")
+    done
+
+    pushd frontend >/dev/null
+    if ! npx --no-install prettier --check "${FE_PATHS[@]}" >&2; then
+        echo "❌ Pre-commit: prettier --check failed on staged frontend files." >&2
+        echo "   Auto-fix: cd frontend && npx prettier --write <files>" >&2
+        FAIL=1
+    fi
+    # ESLint — only TS/TSX (skip JSON which has no rules of its own).
+    ES_PATHS=()
+    for p in "${FE_PATHS[@]}"; do
+        case "$p" in *.ts|*.tsx) ES_PATHS+=("$p") ;; esac
+    done
+    if [[ ${#ES_PATHS[@]} -gt 0 ]]; then
+        if ! npx --no-install eslint "${ES_PATHS[@]}" >&2; then
+            echo "❌ Pre-commit: eslint failed on staged frontend files." >&2
+            FAIL=1
+        fi
+    fi
+    popd >/dev/null
+fi
+
+if [[ $FAIL -ne 0 ]]; then
+    echo "" >&2
+    echo "🛑 Commit aborted by pre-commit hook." >&2
+    echo "   Bypass with --no-verify if you must commit WIP." >&2
+    exit 1
+fi
+exit 0

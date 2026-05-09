@@ -177,6 +177,24 @@ docker-compose up -d
 1. Прочитайте [Руководство по разработке](docs/development/development-guide.md)
 2. Ознакомьтесь с [Руководством по управлению спринтами](docs/development/sprint-management.md)
 3. Следуйте [Процессу Pull Request](docs/development/pull-request-guide.md)
+4. Активируйте pre-commit hook (см. ниже).
+
+### Pre-commit hook
+
+После клонирования репозитория один раз выполните:
+
+```bash
+bash .husky/install.sh
+```
+
+Хук (`.husky/pre-commit`) проверяет на staged файлах:
+
+- **Go**: AmE/BrE grep (`behaviour|defence|centralised|colour|realise|optimise` → `behavior|defense|...`) + `golangci-lint` на пакетах со staged файлами.
+- **Frontend** (`frontend/src/**/*.{ts,tsx}`, `frontend/messages/*.json`): `prettier --check` + `eslint`.
+
+Закрывает класс CI cleanup-патчей (v0.121.3 / v0.124.1 / v0.125.1 / v0.126.2). Bypass для WIP — `git commit --no-verify`.
+
+Smoke-тест хука: `bash .husky/test.sh` (создаёт временные файлы с violation, проверяет что хук reject'ит).
 
 ## 📄 Лицензия
 
