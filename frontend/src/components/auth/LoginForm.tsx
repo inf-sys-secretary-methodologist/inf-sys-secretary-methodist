@@ -10,7 +10,7 @@ import { toast } from '@/components/providers/toaster-provider'
 import { FloatingInput } from '@/components/ui/floating-input'
 import { Button } from '@/components/ui/button'
 import { useLogin } from '@/hooks/useAuth'
-import { useAuthStore } from '@/stores/authStore'
+import { isMFAChallengeActive, useAuthStore } from '@/stores/authStore'
 import { createLoginSchema, type LoginFormData } from '@/lib/validations/auth'
 import { cn } from '@/lib/utils'
 import { MFAVerifyLoginStep } from './MFAVerifyLoginStep'
@@ -53,7 +53,7 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
       // will re-render into <MFAVerifyLoginStep />; firing the
       // success toast or onSuccess() here would mislead the user
       // and any parent listening for sign-in completion.
-      if (useAuthStore.getState().mfaIntermediateToken) {
+      if (isMFAChallengeActive()) {
         return
       }
 

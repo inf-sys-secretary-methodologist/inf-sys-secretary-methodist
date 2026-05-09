@@ -415,3 +415,12 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 )
+
+// Imperative read of "is the user mid-MFA-verify?" used by callers
+// that need a sync answer right after `await login()` (the post-await
+// guards in LoginForm.onSubmit and useLogin.handleLogin). Subscriptions
+// to mfaIntermediateToken are frozen at render-time and miss the value
+// the store action wrote in the same microtask, so the helper goes
+// through getState() rather than a hook.
+export const isMFAChallengeActive = (): boolean =>
+  useAuthStore.getState().mfaIntermediateToken !== null

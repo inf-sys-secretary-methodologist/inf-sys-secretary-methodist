@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuthStore } from '@/stores/authStore'
+import { isMFAChallengeActive, useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import type { LoginRequest, RegisterRequest } from '@/types/auth'
@@ -50,7 +50,7 @@ export function useLogin() {
       // — the LoginForm swap to MFAVerifyLoginStep is handled by
       // store-driven re-render, and pushing redirectTo here would
       // bounce the user through middleware before the second factor.
-      if (useAuthStore.getState().mfaIntermediateToken) {
+      if (isMFAChallengeActive()) {
         return
       }
       // Small delay to ensure cookie is written before redirect
