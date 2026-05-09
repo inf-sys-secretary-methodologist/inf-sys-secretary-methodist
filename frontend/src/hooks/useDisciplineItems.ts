@@ -1,10 +1,17 @@
 'use client'
 
+import axios from 'axios'
 import useSWR from 'swr'
 import { apiClient } from '@/lib/api'
 import { SWR_DEDUPING } from '@/config/swr'
 import type { DisciplineItem, DisciplineItemListResponse } from '@/types/disciplineItem'
-import type { BulkEditRequest, BulkEditResult } from '@/types/bulkEdit'
+import type {
+  BulkEditConflict,
+  BulkEditConflictResponse,
+  BulkEditRequest,
+  BulkEditResult,
+  BulkEditSuccessResponse,
+} from '@/types/bulkEdit'
 
 interface ApiResponse<T> {
   success: boolean
@@ -64,12 +71,24 @@ export async function fetchDisciplineItem(id: number): Promise<DisciplineItem> {
 // Other axios errors (404 SECTION_NOT_FOUND, 422 EMPTY_BULK_INPUT /
 // CROSS_SECTION / NOT_EDITABLE / INVALID_INPUT, 403, 500) propagate
 // to caller для mapping via pickErrorKey (Pair 4 utility).
-// Pair 3 RED stub throws — GREEN replaces с real impl.
 export async function bulkEditDisciplineItems(
-  _sectionID: number,
-  _body: BulkEditRequest
+  sectionID: number,
+  body: BulkEditRequest
 ): Promise<BulkEditResult> {
-  void _sectionID
-  void _body
-  throw new Error('bulkEditDisciplineItems not implemented (Pair 3 RED)')
+  try {
+    const response = await apiClient.post<ApiResponse<BulkEditSuccessResponse>>(
+      `/api/sections/${sectionID}/items/bulk`,
+      body
+    )
+    return { kind: 'success', data: response.data }
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.status === 409) {
+      const conflictBody = err.response.data as Partial<BulkEditConflictResponse> | undefined
+      const conflicts: BulkEditConflict[] = Array.isArray(conflictBody?.conflicts)
+        ? conflictBody.conflicts
+        : []
+      return { kind: 'conflict', conflicts }
+    }
+    throw err
+  }
 }
