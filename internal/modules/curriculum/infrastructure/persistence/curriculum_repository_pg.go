@@ -16,12 +16,17 @@ import (
 )
 
 // CurriculumRepositoryPG is the SQL implementation of CurriculumRepository.
+//
+// Accepts DBTX (not *sql.DB) so the same struct can run against single-
+// connection mode или a `*sql.Tx` inside BulkDisciplineItemsUnitOfWork
+// (v0.128.3 ADR-10).
 type CurriculumRepositoryPG struct {
-	db *sql.DB
+	db DBTX
 }
 
-// NewCurriculumRepositoryPG constructs the repository.
-func NewCurriculumRepositoryPG(db *sql.DB) *CurriculumRepositoryPG {
+// NewCurriculumRepositoryPG constructs the repository. db can be
+// `*sql.DB` (default DI) или `*sql.Tx` (bulk-edit transactional path).
+func NewCurriculumRepositoryPG(db DBTX) *CurriculumRepositoryPG {
 	return &CurriculumRepositoryPG{db: db}
 }
 

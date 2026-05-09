@@ -16,12 +16,17 @@ import (
 // Optimistic locking per ADR-3 — Update uses WHERE id = ? AND version = ?
 // + atomic version increment + disambiguates RowsAffected == 0 via
 // follow-up existence SELECT.
+//
+// Accepts DBTX (not *sql.DB) so the same struct can run against single-
+// connection mode или a `*sql.Tx` inside BulkDisciplineItemsUnitOfWork
+// (v0.128.3 ADR-10).
 type DisciplineItemRepositoryPG struct {
-	db *sql.DB
+	db DBTX
 }
 
-// NewDisciplineItemRepositoryPG constructs the repository.
-func NewDisciplineItemRepositoryPG(db *sql.DB) *DisciplineItemRepositoryPG {
+// NewDisciplineItemRepositoryPG constructs the repository. db can be
+// `*sql.DB` (default DI) или `*sql.Tx` (bulk-edit transactional path).
+func NewDisciplineItemRepositoryPG(db DBTX) *DisciplineItemRepositoryPG {
 	return &DisciplineItemRepositoryPG{db: db}
 }
 
