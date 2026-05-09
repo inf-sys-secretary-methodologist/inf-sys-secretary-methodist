@@ -3,7 +3,6 @@ package persistence
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/repositories"
 )
@@ -27,11 +26,73 @@ func NewBulkDisciplineItemsUnitOfWorkPG(db *sql.DB) *BulkDisciplineItemsUnitOfWo
 	return &BulkDisciplineItemsUnitOfWorkPG{db: db}
 }
 
-// Begin opens a fresh transaction. Pair 1b RED stub — returns an error
-// signaling not-yet-implemented. Pair 1c GREEN replaces with proper
-// BeginTx + bulkTxPG construction.
+// Begin opens a fresh transaction with the supplied isolation options
+// (pass nil for PostgreSQL default Read Committed; use
+// `&sql.TxOptions{Isolation: sql.LevelRepeatableRead}` for bulk-edit
+// per ADR-12 phantom-prevention).
+//
+// Returned BulkDisciplineItemsTx exposes tx-bound repository ports
+// constructed from the same `*sql.Tx` (DBTX-based reuse per Pair 1a
+// refactor — no SQL duplication между tx и non-tx paths).
 func (u *BulkDisciplineItemsUnitOfWorkPG) Begin(ctx context.Context, opts *sql.TxOptions) (repositories.BulkDisciplineItemsTx, error) {
-	_ = ctx
-	_ = opts
-	return nil, errors.New("bulk_uow: not implemented (Pair 1b RED stub)")
+	tx, err := u.db.BeginTx(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &bulkTxPG{
+		tx:        tx,
+		items:     NewDisciplineItemRepositoryPG(tx),
+		sections:  NewSectionRepositoryPG(tx),
+		curricula: NewCurriculumRepositoryPG(tx),
+	}, nil
+}
+
+// bulkTxPG is the tx-bound view returned by Begin. Holds the underlying
+// `*sql.Tx` для Commit/Rollback semantics + tx-bound repo instances.
+//
+// `finished` flag enables idempotent close-once — defer-Rollback after
+// Commit returns ErrBulkTxFinished without firing a real Rollback (which
+// would error на the underlying *sql.Tx anyway).
+type bulkTxPG struct {
+	tx        *sql.Tx
+	items     *DisciplineItemRepositoryPG
+	sections  *SectionRepositoryPG
+	curricula *CurriculumRepositoryPG
+	finished  bool
+}
+
+// Items returns the tx-bound DisciplineItem repository.
+func (t *bulkTxPG) Items() repositories.DisciplineItemRepository {
+	return t.items
+}
+
+// Sections returns the tx-bound Section repository.
+func (t *bulkTxPG) Sections() repositories.SectionRepository {
+	return t.sections
+}
+
+// Curricula returns the tx-bound Curriculum repository.
+func (t *bulkTxPG) Curricula() repositories.CurriculumRepository {
+	return t.curricula
+}
+
+// Commit finalizes the transaction. Subsequent Commit/Rollback calls
+// return ErrBulkTxFinished без firing on the underlying *sql.Tx.
+func (t *bulkTxPG) Commit() error {
+	if t.finished {
+		return repositories.ErrBulkTxFinished
+	}
+	t.finished = true
+	return t.tx.Commit()
+}
+
+// Rollback aborts the transaction. Safe to defer immediately after
+// Begin — second call (after Commit или another Rollback) returns
+// ErrBulkTxFinished idempotent.
+func (t *bulkTxPG) Rollback() error {
+	if t.finished {
+		return repositories.ErrBulkTxFinished
+	}
+	t.finished = true
+	return t.tx.Rollback()
 }
