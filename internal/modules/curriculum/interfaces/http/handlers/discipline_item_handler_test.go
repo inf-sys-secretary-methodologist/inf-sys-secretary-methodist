@@ -249,3 +249,21 @@ func TestDisciplineItemHandler_List_EmptyResult(t *testing.T) {
 	assert.NotNil(t, resp.Data.Items)
 	assert.Len(t, resp.Data.Items, 0)
 }
+
+// TestDisciplineItemHandler_List_SectionNotFound pins the handler-level
+// 404 surface for the cross-aggregate guard added in v0.128.2 — usecase
+// propagates ErrSectionNotFound; mapDisciplineItemError маппит к 404.
+// Bulk-edit endpoint в v0.128.3 inherit the same 404 contract — this
+// test pins it explicitly чтобы catch regression если route binding
+// или error mapping drifts.
+func TestDisciplineItemHandler_List_SectionNotFound(t *testing.T) {
+	create, get, list, update, del := itemStubs()
+	list.err = repositories.ErrSectionNotFound
+	r := setupItemRouter(t, create, get, list, update, del, 42, "methodist")
+	req := httptest.NewRequest(http.MethodGet, "/api/sections/999/items", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusNotFound, rec.Code,
+		"List must return 404 when usecase signals section gone; body=%s",
+		rec.Body.String())
+}
