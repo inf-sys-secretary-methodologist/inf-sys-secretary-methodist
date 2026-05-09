@@ -22,13 +22,14 @@ interface FetchOpts {
 
 // useSections returns the read-only list of sections for the given
 // curriculum. Backend GET /api/curricula/:curriculumID/sections — gated
-// by RequireNonStudent. Pair 1 RED: stub key always null so apiClient
-// is never invoked — tests asserting "called with correct URL" fail.
-// Pair 1 GREEN replaces the stub key with real URL building.
+// by RequireNonStudent. Passing null curriculumID short-circuits the
+// SWR key, mirroring the useCurriculum / useMyAssignments hook
+// convention so callers can keep the hook at the top of a component
+// without firing requests until the id is known. opts.enabled=false
+// achieves the same suppression for the role-guard redirect path.
 export function useSections(curriculumID: number | null, opts?: FetchOpts) {
-  void curriculumID
-  void opts
-  const key = null
+  const enabled = opts?.enabled ?? true
+  const key = !enabled || curriculumID == null ? null : `/api/curricula/${curriculumID}/sections`
   const { data, error, isLoading, mutate } = useSWR<SectionListResponse>(key, fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: SWR_DEDUPING.SHORT,
