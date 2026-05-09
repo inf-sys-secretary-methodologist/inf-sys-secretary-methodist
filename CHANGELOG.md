@@ -15,6 +15,70 @@
 
 ---
 
+## [0.128.0] — 2026-05-09
+
+### Added — Section aggregate (раздел учебного плана) — B1a foundation
+
+Backend foundation для bulk-edit РПД (B1b, Phase 4 row #59 в ROADMAP). Двухуровневая иерархия `Curriculum → Sections → DisciplineItems`; v0.128.0 ships только Layer 1 (Section CRUD); DisciplineItem (v0.128.1), bulk-edit endpoint (v0.128.2), frontend (v0.128.3) — отдельные thin slices per ADR-7.
+
+Plan: `docs/plans/2026-05-09-v0128-section-aggregate.md` (8 ADRs documented).
+
+**Domain layer (TDD Pair 1+2)**:
+
+- `Section` aggregate root в `internal/modules/curriculum/domain/entities/section.go` — независимый AR per ADR-1 Beta (small-aggregates rule). Carries только `curriculumID int64` FK, no navigable Curriculum reference. Lifecycle inheritance per ADR-2 — no own status, editability inherits curriculum.status.
+- 4 invariants (mirroring migration 034 CHECKs): `curriculum_id > 0`, `title trimmed-non-empty ≤ 255 runes`, `description ≤ 4096 runes` (blank OK), `order_index ≥ 0`.
+- 3 domain sentinels: `ErrInvalidSection` (422), `ErrSectionScopeForbidden` (403), `ErrCannotEditSection` (422).
+- `AuthorizeSectionEdit(actorID, isAdmin, curStatus, curCreatedBy)` — free function. Method delegate `(s *Section).AuthorizeEdit(...)` для ergonomic call sites в Update/Delete usecases.
+- 24 sub-tests (HappyPath / Trims / BlankDescription accepted / 7-case invariant table / Reconstitute roundtrip / UpdateBasics atomic-on-failure / 5-case mutation invariant table / status-frozen-before-ownership / admin override / non-author denied / zero-actor defense).
+
+**Persistence layer (TDD Pair 3)**:
+
+- `SectionRepository` broad interface в `domain/repositories/section_repository.go` (5 methods + `ErrSectionNotFound` + `ErrSectionVersionConflict`). Each usecase declares own narrow port — interface segregation per project pattern (mirrored из curriculum module).
+- `SectionRepositoryPG` в `infrastructure/persistence/section_repository_pg.go`. Optimistic locking per ADR-3: UPDATE использует `WHERE id = ? AND version = ?` + atomic `version = version + 1`. RowsAffected == 0 disambiguated via follow-up `SELECT 1` — distinguishes stale-version race (→ ErrSectionVersionConflict, 409) от deleted-row (→ ErrSectionNotFound, 404). TOCTOU window documented в `disambiguateAbsentUpdate` doc comment (acceptable for admin CRUD; B1b bulk-edit will close gap via tx serialization).
+- 14 sub-tests (sqlmock-based, table-driven Update branch coverage — HappyPath + VersionConflict + NotFound + TransportError; all 3 RowsAffected outcomes pin `WithArgs` for mutation-resistance).
+
+**Migration 034** (`migrations/034_create_curriculum_sections.up.sql`):
+
+- `CREATE TABLE curriculum_sections` с 4 CHECK constraints mirroring domain invariants (defense-in-depth).
+- FK `ON DELETE CASCADE` на `curricula(id)` — propagates child cleanup.
+- Index `idx_curriculum_sections_curriculum_id` для `ListByCurriculumID`.
+- No UNIQUE on `(curriculum_id, order_index)` per ADR-4 — bulk reorder без deferred-constraint dance, stable ORDER BY гарантирует deterministic display.
+- Reuses shared `update_attendance_updated_at` trigger function (migration 021, single source of truth для NOW() semantics).
+
+**Application layer (TDD Pair 4 — 5 CRUD usecases)**:
+
+- `CreateSectionUseCase`, `GetSectionUseCase`, `ListSectionsByCurriculumUseCase`, `UpdateSectionUseCase`, `DeleteSectionUseCase` — каждый panic-on-nil, narrow ports interface segregation, optional clock injection.
+- Cross-aggregate authorization: write usecases (Create/Update/Delete) load curriculum через `curriculumLookup` port для `AuthorizeSectionEdit` primitives (ADR-1 Beta).
+- Audit emitter shape: `auditSectionResource = "curriculum_section"` — distinct stream от curriculum events; `sectionDenialFields(actorID, sectionID, curriculumID, reason)` canonical denial shape.
+- 24 sub-tests covering nil-panic, happy paths (author + admin), denial reasons (`forbidden`/`not_editable`/`not_found`/`invalid`/`curriculum_not_found`/`version_conflict`), transport errors propagate без audit (operational, не policy).
+
+**HTTP layer (Pair 5 — handler + integration tests + DI wiring)**:
+
+- `SectionHandler` в `interfaces/http/handlers/section_handler.go` — 5 endpoints + per-port narrow interfaces + failure-closed nil-panic constructor.
+- 6 routes:
+  - `POST /api/curricula/:curriculumID/sections`
+  - `GET /api/curricula/:curriculumID/sections`
+  - `GET /api/sections/:id`
+  - `PUT /api/sections/:id`
+  - `DELETE /api/sections/:id` (204 No Content on success)
+- `mapSectionError`: 6 sentinels → HTTP statuses (404 / 409 / 403 / 422 / 500 fallback).
+- 29 sub-tests с `withSectionAuth` helper writing production middleware keys (`user_id` + `role`) — pinned `TestSectionHandler_RoleKeyContract` против v0.126.0 wrong-key bug class re-emergence.
+- Backfill commit shape (handler + tests together) per CLAUDE.md `test: backfill coverage` gate — mechanical routing layer, RED→GREEN ceremony low-value.
+- DI wiring `cmd/server/main.go`: 5 usecases + handler + 6 routes; section usecases threaded через `setupRoutes` signature.
+
+**Reviewer triangulation**:
+
+- Round-1: mean **8.86 / min 8** (FIX-CYCLE — single MUST: sqlmock `WithArgs` missing на 2 of 3 Update test branches per CLAUDE.md `feedback_sqlmock_withargs_for_mutation_resistance.md`). All other axes 9-10.
+- Round-2 (после fix-cycle): mean **9.0 / min 9** (SHIP — Tests 8→9 после WithArgs pin all 3 branches; mutation-resistance restored). Single round closure.
+
+**Out-of-scope, deferred to v0.128.1+**:
+
+- DisciplineItem entity + migration 035 (Layer 2 — hours, credits, control_form) — v0.128.1.
+- Bulk-edit endpoint + transactional commit-or-rollback — v0.128.2.
+- Frontend table view UI — v0.128.3.
+
+---
+
 ## [0.127.0] — 2026-05-09
 
 ### Added — Pre-commit hook (closes cumulative cleanup-patch class)
