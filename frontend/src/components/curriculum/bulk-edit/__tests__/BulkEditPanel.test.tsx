@@ -154,6 +154,82 @@ describe('BulkEditPanel / Submit 409 conflict', () => {
       expect(screen.getByRole('button', { name: 'disciplineItems.bulkEdit.submit' })).toBeDisabled()
     )
   })
+
+  // === Race-fix backfill tests (v0.128.7 — closes round-1 reviewer N1) ===
+  // v0.128.4 fix-cycle introduced SUBMIT_CONFLICT_REFRESHED action +
+  // Cancel button submitting-guard to prevent submit re-click and
+  // DISCARD_ALL during in-flight refetch loop. Reducer-level coverage
+  // exists; these tests pin the panel-level integration so the wiring
+  // doesn't silently break in future refactors.
+  it('Submit stays DISABLED during 409 refetch loop (race fix)', async () => {
+    const conflictResult: BulkEditResult = {
+      kind: 'conflict',
+      conflicts: [{ id: 202, expected_version: 5, current_version: 0 }],
+    }
+    mockBulkEditDisciplineItems.mockResolvedValueOnce(conflictResult)
+    // Manual promise — we control когда refetch resolves.
+    let resolveRefetch: (item: DisciplineItem) => void = () => {}
+    mockFetchDisciplineItem.mockImplementationOnce(
+      () =>
+        new Promise<DisciplineItem>((resolve) => {
+          resolveRefetch = resolve
+        })
+    )
+
+    render(<BulkEditPanel sectionID={101} curriculumStatus="draft" />)
+    fireEvent.click(screen.getByTestId('bulk-edit-row-202-delete-toggle'))
+    fireEvent.click(screen.getByRole('button', { name: 'disciplineItems.bulkEdit.submit' }))
+
+    // Conflict banner appears (SUBMIT_CONFLICT dispatched), но refetch
+    // still in flight — Submit MUST stay disabled (would re-fire с
+    // stale expected_version otherwise — guaranteed 409 cycle).
+    await waitFor(() =>
+      expect(screen.getByTestId('bulk-edit-conflict-banner-202')).toBeInTheDocument()
+    )
+    expect(screen.getByRole('button', { name: 'disciplineItems.bulkEdit.submit' })).toBeDisabled()
+
+    // Resolve refetch → SUBMIT_CONFLICT_REFRESHED dispatched → submitting=false.
+    resolveRefetch({ ...sampleItem, version: 7 })
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'disciplineItems.bulkEdit.submit' })).toBeEnabled()
+    )
+  })
+
+  it('Cancel button is DISABLED during 409 refetch loop (race fix)', async () => {
+    const conflictResult: BulkEditResult = {
+      kind: 'conflict',
+      conflicts: [{ id: 202, expected_version: 5, current_version: 0 }],
+    }
+    mockBulkEditDisciplineItems.mockResolvedValueOnce(conflictResult)
+    let resolveRefetch: (item: DisciplineItem) => void = () => {}
+    mockFetchDisciplineItem.mockImplementationOnce(
+      () =>
+        new Promise<DisciplineItem>((resolve) => {
+          resolveRefetch = resolve
+        })
+    )
+
+    render(<BulkEditPanel sectionID={101} curriculumStatus="draft" />)
+    fireEvent.click(screen.getByTestId('bulk-edit-row-202-delete-toggle'))
+    fireEvent.click(screen.getByRole('button', { name: 'disciplineItems.bulkEdit.submit' }))
+
+    await waitFor(() =>
+      expect(screen.getByTestId('bulk-edit-conflict-banner-202')).toBeInTheDocument()
+    )
+    // Cancel button must be disabled while refetch in flight — DISCARD_ALL
+    // mid-refetch would dispatch ghost SET_REFRESHED writes (also guarded
+    // в reducer, but UI gate keeps affordance honest).
+    const cancelBtn = screen.getByRole('button', {
+      name: 'disciplineItems.bulkEdit.cancel',
+    })
+    expect(cancelBtn).toBeDisabled()
+
+    resolveRefetch({ ...sampleItem, version: 7 })
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'disciplineItems.bulkEdit.cancel' })).toBeEnabled()
+    )
+  })
 })
 
 describe('BulkEditPanel / Submit error mapping', () => {
