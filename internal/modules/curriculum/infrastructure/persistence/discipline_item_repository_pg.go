@@ -4,8 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/repositories"
 )
 
 // DisciplineItemRepositoryPG is the SQL implementation of
@@ -22,32 +25,195 @@ func NewDisciplineItemRepositoryPG(db *sql.DB) *DisciplineItemRepositoryPG {
 	return &DisciplineItemRepositoryPG{db: db}
 }
 
-// Save — implementation lands в GREEN commit (Pair 3).
+const disciplineItemSelectColumns = `id, section_id, title, hours_lectures, hours_practice, hours_lab, hours_self, control_form, credits, semester, order_index, version, created_at, updated_at`
+
+// Save inserts a new DisciplineItem row and writes the generated id
+// back onto the entity.
 func (r *DisciplineItemRepositoryPG) Save(ctx context.Context, d *entities.DisciplineItem) error {
-	_, _ = ctx, d
-	return errors.New("discipline_item: Save not implemented yet")
+	const query = `
+		INSERT INTO curriculum_section_items (
+			section_id, title,
+			hours_lectures, hours_practice, hours_lab, hours_self,
+			control_form, credits, semester, order_index,
+			created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		RETURNING id`
+
+	var newID int64
+	err := r.db.QueryRowContext(ctx, query,
+		d.SectionID(), d.Title(),
+		d.HoursLectures(), d.HoursPractice(), d.HoursLab(), d.HoursSelf(),
+		string(d.ControlForm()), d.Credits(), d.Semester(), d.OrderIndex(),
+		d.CreatedAt(), d.UpdatedAt(),
+	).Scan(&newID)
+	if err != nil {
+		return fmt.Errorf("discipline_item: save: %w", err)
+	}
+	d.ID = newID
+	return nil
 }
 
-// GetByID — implementation lands в GREEN commit (Pair 3).
+// GetByID returns the DisciplineItem with the given id or
+// ErrDisciplineItemNotFound when the row is missing.
 func (r *DisciplineItemRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.DisciplineItem, error) {
-	_, _ = ctx, id
-	return nil, errors.New("discipline_item: GetByID not implemented yet")
+	const query = `SELECT ` + disciplineItemSelectColumns + ` FROM curriculum_section_items WHERE id = $1`
+	var (
+		idv, sectionID                                    int64
+		title, controlForm                                string
+		hoursLectures, hoursPractice, hoursLab, hoursSelf int
+		credits, semester, orderIndex, version            int
+		createdAt, updatedAt                              time.Time
+	)
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
+		&idv, &sectionID, &title,
+		&hoursLectures, &hoursPractice, &hoursLab, &hoursSelf,
+		&controlForm, &credits, &semester, &orderIndex, &version,
+		&createdAt, &updatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, repositories.ErrDisciplineItemNotFound
+		}
+		return nil, fmt.Errorf("discipline_item: get by id: %w", err)
+	}
+	return entities.ReconstituteDisciplineItem(
+		idv, sectionID, title,
+		hoursLectures, hoursPractice, hoursLab, hoursSelf,
+		entities.ControlForm(controlForm), credits, semester, orderIndex, version,
+		createdAt, updatedAt,
+	), nil
 }
 
-// ListBySectionID — implementation lands в GREEN commit (Pair 3).
+// ListBySectionID returns every DisciplineItem attached to the given
+// section, ordered by (order_index ASC, created_at ASC, id ASC).
 func (r *DisciplineItemRepositoryPG) ListBySectionID(ctx context.Context, sectionID int64) ([]*entities.DisciplineItem, error) {
-	_, _ = ctx, sectionID
-	return nil, errors.New("discipline_item: ListBySectionID not implemented yet")
+	const query = `SELECT ` + disciplineItemSelectColumns + `
+		FROM curriculum_section_items
+		WHERE section_id = $1
+		ORDER BY order_index ASC, created_at ASC, id ASC`
+
+	rows, err := r.db.QueryContext(ctx, query, sectionID)
+	if err != nil {
+		return nil, fmt.Errorf("discipline_item: list by section id: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var items []*entities.DisciplineItem
+	for rows.Next() {
+		var (
+			idv, secID                                        int64
+			title, controlForm                                string
+			hoursLectures, hoursPractice, hoursLab, hoursSelf int
+			credits, semester, orderIndex, version            int
+			createdAt, updatedAt                              time.Time
+		)
+		if err := rows.Scan(&idv, &secID, &title,
+			&hoursLectures, &hoursPractice, &hoursLab, &hoursSelf,
+			&controlForm, &credits, &semester, &orderIndex, &version,
+			&createdAt, &updatedAt); err != nil {
+			return nil, fmt.Errorf("discipline_item: list scan: %w", err)
+		}
+		items = append(items, entities.ReconstituteDisciplineItem(
+			idv, secID, title,
+			hoursLectures, hoursPractice, hoursLab, hoursSelf,
+			entities.ControlForm(controlForm), credits, semester, orderIndex, version,
+			createdAt, updatedAt,
+		))
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("discipline_item: list iter: %w", err)
+	}
+	return items, nil
 }
 
-// Update — implementation lands в GREEN commit (Pair 3).
+// Update writes the (already-mutated) entity back, enforcing optimistic
+// locking. Same semantics as Section.Update — see disambiguateAbsentDisciplineItemUpdate.
 func (r *DisciplineItemRepositoryPG) Update(ctx context.Context, d *entities.DisciplineItem) error {
-	_, _ = ctx, d
-	return errors.New("discipline_item: Update not implemented yet")
+	const query = `
+		UPDATE curriculum_section_items SET
+			title          = $1,
+			hours_lectures = $2,
+			hours_practice = $3,
+			hours_lab      = $4,
+			hours_self     = $5,
+			control_form   = $6,
+			credits        = $7,
+			semester       = $8,
+			order_index    = $9,
+			version        = version + 1,
+			updated_at     = $10
+		WHERE id = $11 AND version = $12`
+
+	res, err := r.db.ExecContext(ctx, query,
+		d.Title(),
+		d.HoursLectures(), d.HoursPractice(), d.HoursLab(), d.HoursSelf(),
+		string(d.ControlForm()), d.Credits(), d.Semester(), d.OrderIndex(),
+		d.UpdatedAt(),
+		d.ID, d.Version(),
+	)
+	if err != nil {
+		return fmt.Errorf("discipline_item: update: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("discipline_item: update: rows affected: %w", err)
+	}
+	if rows == 0 {
+		return r.disambiguateAbsentDisciplineItemUpdate(ctx, d.ID)
+	}
+	bumpDisciplineItemVersion(d)
+	return nil
 }
 
-// Delete — implementation lands в GREEN commit (Pair 3).
+// disambiguateAbsentDisciplineItemUpdate runs follow-up existence query
+// when Update's RowsAffected was 0 — distinguishes stale-version race
+// from row-deleted-entirely.
+//
+// TOCTOU note: window между failed UPDATE и this SELECT during which
+// parallel transaction could DELETE — version conflict race may be
+// reported here as ErrDisciplineItemNotFound. Same caveat as Section
+// disambiguateAbsentUpdate; B1b bulk-edit (v0.128.2) must serialize
+// reads inside transaction to close window.
+func (r *DisciplineItemRepositoryPG) disambiguateAbsentDisciplineItemUpdate(ctx context.Context, id int64) error {
+	const probe = `SELECT 1 FROM curriculum_section_items WHERE id = $1`
+	var found int
+	err := r.db.QueryRowContext(ctx, probe, id).Scan(&found)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return repositories.ErrDisciplineItemNotFound
+		}
+		return fmt.Errorf("discipline_item: update: disambiguate: %w", err)
+	}
+	return repositories.ErrDisciplineItemVersionConflict
+}
+
+// Delete removes the row by id. Returns ErrDisciplineItemNotFound if
+// no row was deleted.
 func (r *DisciplineItemRepositoryPG) Delete(ctx context.Context, id int64) error {
-	_, _ = ctx, id
-	return errors.New("discipline_item: Delete not implemented yet")
+	const query = `DELETE FROM curriculum_section_items WHERE id = $1`
+	res, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("discipline_item: delete: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("discipline_item: delete: rows affected: %w", err)
+	}
+	if rows == 0 {
+		return repositories.ErrDisciplineItemNotFound
+	}
+	return nil
+}
+
+// bumpDisciplineItemVersion increments the version on the entity to
+// reflect the SQL UPDATE's `version = version + 1`. Same encapsulation
+// pattern as bumpSectionVersion (Reconstitute-based re-build).
+func bumpDisciplineItemVersion(d *entities.DisciplineItem) {
+	*d = *entities.ReconstituteDisciplineItem(
+		d.ID, d.SectionID(), d.Title(),
+		d.HoursLectures(), d.HoursPractice(), d.HoursLab(), d.HoursSelf(),
+		d.ControlForm(), d.Credits(), d.Semester(), d.OrderIndex(),
+		d.Version()+1,
+		d.CreatedAt(), d.UpdatedAt(),
+	)
 }
