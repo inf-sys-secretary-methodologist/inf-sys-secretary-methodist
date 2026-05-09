@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 )
@@ -118,8 +119,13 @@ func (r *DocumentTypeRepositoryPG) GetByCode(ctx context.Context, code string) (
 	return t, nil
 }
 
-// UpdateTemplate updates a document type's template content and variables
-func (r *DocumentTypeRepositoryPG) UpdateTemplate(ctx context.Context, id int64, content *string, variables []entities.TemplateVariable) error {
+// UpdateTemplate updates a document type's template content / variables
+// and optionally the methodist_only visibility flag (v0.126.3).
+//
+// methodistOnly is a pointer so callers can express "leave column as-is"
+// (nil) vs "set true/false" (&v). The SET list is built dynamically so
+// content / variables / methodist_only can each be touched independently.
+func (r *DocumentTypeRepositoryPG) UpdateTemplate(ctx context.Context, id int64, content *string, variables []entities.TemplateVariable, methodistOnly *bool) error {
 	var variablesJSON []byte
 	var err error
 	if variables != nil {
@@ -129,12 +135,20 @@ func (r *DocumentTypeRepositoryPG) UpdateTemplate(ctx context.Context, id int64,
 		}
 	}
 
-	query := `
-		UPDATE document_types
-		SET template_content = $1, template_variables = $2, updated_at = NOW()
-		WHERE id = $3`
+	setClauses := []string{"template_content = $1", "template_variables = $2", "updated_at = NOW()"}
+	args := []interface{}{content, variablesJSON}
+	if methodistOnly != nil {
+		args = append(args, *methodistOnly)
+		setClauses = append(setClauses, fmt.Sprintf("methodist_only = $%d", len(args)))
+	}
+	args = append(args, id)
+	// #nosec G201 — setClauses entries are static literals controlled by
+	// this function; no user input is interpolated into the SQL text.
+	// Values bind via $N parameters in args.
+	query := fmt.Sprintf("UPDATE document_types SET %s WHERE id = $%d",
+		strings.Join(setClauses, ", "), len(args))
 
-	result, err := r.db.ExecContext(ctx, query, content, variablesJSON, id)
+	result, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update template: %w", err)
 	}
@@ -178,8 +192,8 @@ func (a *TemplateRepositoryAdapter) GetByID(ctx context.Context, id int64) (*ent
 }
 
 // UpdateTemplate updates a document type's template
-func (a *TemplateRepositoryAdapter) UpdateTemplate(ctx context.Context, id int64, content *string, variables []entities.TemplateVariable) error {
-	return a.repo.UpdateTemplate(ctx, id, content, variables)
+func (a *TemplateRepositoryAdapter) UpdateTemplate(ctx context.Context, id int64, content *string, variables []entities.TemplateVariable, methodistOnly *bool) error {
+	return a.repo.UpdateTemplate(ctx, id, content, variables, methodistOnly)
 }
 
 // GetAllWithTemplates retrieves all document types that have templates

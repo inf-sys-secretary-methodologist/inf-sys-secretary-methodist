@@ -38,10 +38,15 @@ type PreviewTemplateResponse struct {
 	Content string `json:"content"`
 }
 
-// UpdateTemplateRequest represents a request to update a document type's template
+// UpdateTemplateRequest represents a request to update a document type's template.
+//
+// MethodistOnly is a pointer so callers can distinguish "leave as-is"
+// (nil) from "set to false" (&false). UI typically only sends it when
+// the toggle is touched; otherwise the existing value is preserved.
 type UpdateTemplateRequest struct {
 	TemplateContent   *string                     `json:"template_content,omitempty"`
 	TemplateVariables []entities.TemplateVariable `json:"template_variables,omitempty"`
+	MethodistOnly     *bool                       `json:"methodist_only,omitempty"`
 }
 
 // ToTemplateResponse converts a DocumentType entity to TemplateResponse DTO

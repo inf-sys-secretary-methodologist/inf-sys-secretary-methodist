@@ -14,11 +14,16 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
-// TemplateRepository defines the interface for template operations
+// TemplateRepository defines the interface for template operations.
+//
+// UpdateTemplate's methodistOnly is a pointer so callers can express
+// "leave the column as-is" (nil) versus "set true/false" (&v). The
+// implementation builds the SQL UPDATE list dynamically based on
+// which pointers are non-nil.
 type TemplateRepository interface {
 	GetAll(ctx context.Context) ([]entities.DocumentType, error)
 	GetByID(ctx context.Context, id int64) (*entities.DocumentType, error)
-	UpdateTemplate(ctx context.Context, id int64, content *string, variables []entities.TemplateVariable) error
+	UpdateTemplate(ctx context.Context, id int64, content *string, variables []entities.TemplateVariable, methodistOnly *bool) error
 }
 
 // TemplateUseCase handles template-related business logic
@@ -167,7 +172,7 @@ func (uc *TemplateUseCase) UpdateTemplate(
 	typeID int64,
 	req *dto.UpdateTemplateRequest,
 ) error {
-	err := uc.templateRepo.UpdateTemplate(ctx, typeID, req.TemplateContent, req.TemplateVariables)
+	err := uc.templateRepo.UpdateTemplate(ctx, typeID, req.TemplateContent, req.TemplateVariables, req.MethodistOnly)
 	if err != nil {
 		return fmt.Errorf("failed to update template: %w", err)
 	}

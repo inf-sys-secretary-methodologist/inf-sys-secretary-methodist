@@ -338,7 +338,7 @@ func TestTemplateHandler_UpdateTemplate(t *testing.T) {
 		h := newTemplateHandler(tmplRepo, docRepo)
 
 		tmplRepo.On("GetByID", mock.Anything, int64(1)).Return(&entities.DocumentType{ID: 1, Name: "T"}, nil)
-		tmplRepo.On("UpdateTemplate", mock.Anything, int64(1), mock.Anything, mock.Anything).Return(nil)
+		tmplRepo.On("UpdateTemplate", mock.Anything, int64(1), mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		router := setupRouter()
 		router.PUT("/templates/:id", withAuth(1, "system_admin"), h.UpdateTemplate)

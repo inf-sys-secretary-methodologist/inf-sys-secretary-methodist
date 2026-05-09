@@ -112,14 +112,14 @@ func TestTypeRepo_UpdateTemplate_Success(t *testing.T) {
 	repo, mock := newTypeRepoMock(t)
 	content := "template content"
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE document_types")).WillReturnResult(sqlmock.NewResult(0, 1))
-	require.NoError(t, repo.UpdateTemplate(context.Background(), 1, &content, nil))
+	require.NoError(t, repo.UpdateTemplate(context.Background(), 1, &content, nil, nil))
 }
 
 func TestTypeRepo_UpdateTemplate_NotFound(t *testing.T) {
 	repo, mock := newTypeRepoMock(t)
 	content := testContentStr
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE document_types")).WillReturnResult(sqlmock.NewResult(0, 0))
-	assert.Contains(t, repo.UpdateTemplate(context.Background(), 999, &content, nil).Error(), "document type not found")
+	assert.Contains(t, repo.UpdateTemplate(context.Background(), 999, &content, nil, nil).Error(), "document type not found")
 }
 
 func TestTypeRepo_UpdateTemplate_WithVariables(t *testing.T) {
@@ -127,7 +127,16 @@ func TestTypeRepo_UpdateTemplate_WithVariables(t *testing.T) {
 	content := testContentStr
 	vars := []entities.TemplateVariable{{Name: "var1", Label: "Var 1", Type: "string"}}
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE document_types")).WillReturnResult(sqlmock.NewResult(0, 1))
-	require.NoError(t, repo.UpdateTemplate(context.Background(), 1, &content, vars))
+	require.NoError(t, repo.UpdateTemplate(context.Background(), 1, &content, vars, nil))
+}
+
+// v0.126.3 — repository extends UPDATE SET list when methodistOnly is non-nil.
+func TestTypeRepo_UpdateTemplate_WithMethodistOnly(t *testing.T) {
+	repo, mock := newTypeRepoMock(t)
+	content := testContentStr
+	flag := true
+	mock.ExpectExec(regexp.QuoteMeta("methodist_only =")).WillReturnResult(sqlmock.NewResult(0, 1))
+	require.NoError(t, repo.UpdateTemplate(context.Background(), 1, &content, nil, &flag))
 }
 
 // v0.126.0 Pair 2: pin that the repository SELECTs the methodist_only
@@ -210,7 +219,7 @@ func TestTemplateRepositoryAdapter_UpdateTemplate(t *testing.T) {
 	adapter := NewTemplateRepositoryAdapter(repo)
 	content := testContentStr
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE document_types")).WillReturnResult(sqlmock.NewResult(0, 1))
-	require.NoError(t, adapter.UpdateTemplate(context.Background(), 1, &content, nil))
+	require.NoError(t, adapter.UpdateTemplate(context.Background(), 1, &content, nil, nil))
 }
 
 // DocumentCategoryRepositoryPG tests
@@ -432,5 +441,5 @@ func TestTypeRepo_GetByCode_Error(t *testing.T) {
 func TestTypeRepo_UpdateTemplate_Error(t *testing.T) {
 	repo, mock := newTypeRepoMock(t)
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE document_types SET")).WillReturnError(fmt.Errorf("db"))
-	assert.Error(t, repo.UpdateTemplate(context.Background(), 1, nil, nil))
+	assert.Error(t, repo.UpdateTemplate(context.Background(), 1, nil, nil, nil))
 }

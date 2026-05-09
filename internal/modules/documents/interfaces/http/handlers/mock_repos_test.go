@@ -564,7 +564,7 @@ func (m *MockTemplateRepository) GetByID(ctx context.Context, id int64) (*entiti
 	return args.Get(0).(*entities.DocumentType), args.Error(1)
 }
 
-func (m *MockTemplateRepository) UpdateTemplate(ctx context.Context, id int64, content *string, variables []entities.TemplateVariable) error {
-	args := m.Called(ctx, id, content, variables)
+func (m *MockTemplateRepository) UpdateTemplate(ctx context.Context, id int64, content *string, variables []entities.TemplateVariable, methodistOnly *bool) error {
+	args := m.Called(ctx, id, content, variables, methodistOnly)
 	return args.Error(0)
 }
