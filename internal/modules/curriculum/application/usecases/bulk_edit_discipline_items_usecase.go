@@ -266,7 +266,25 @@ func (uc *BulkEditDisciplineItemsUseCase) Execute(ctx context.Context, actorID i
 		result.Updated = append(result.Updated, d)
 	}
 
-	// Pair 4 (deletes) extends here.
+	for _, deleteID := range in.Deletes {
+		d, err := tx.Items().GetByID(ctx, deleteID)
+		if err != nil {
+			if errors.Is(err, repositories.ErrDisciplineItemNotFound) {
+				emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.bulk_edit_denied",
+					bulkEditDenialFields(actorID, in.SectionID, section.CurriculumID(), "not_found"))
+			}
+			return nil, err
+		}
+		if d.SectionID() != in.SectionID {
+			emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.bulk_edit_denied",
+				bulkEditDenialFields(actorID, in.SectionID, section.CurriculumID(), "cross_section"))
+			return nil, ErrCrossSectionBulkEdit
+		}
+		if err := tx.Items().Delete(ctx, deleteID); err != nil {
+			return nil, err
+		}
+		result.Deleted = append(result.Deleted, deleteID)
+	}
 
 	if len(result.Conflicts) > 0 {
 		emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.bulk_edit_denied",
