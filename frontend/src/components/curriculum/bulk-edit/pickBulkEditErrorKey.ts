@@ -24,10 +24,21 @@ export function pickBulkEditErrorKey(
   status: number | undefined,
   errorCode: string | undefined
 ): BulkEditErrorKey {
-  // Pair 4 RED stub — always returns errorGeneric. Tests asserting
-  // specific keys для 422 sub-cases / 404 / 403 fail. GREEN replaces с
-  // real switch.
-  void status
-  void errorCode
+  if (status === 404) return 'errorNotFound'
+  if (status === 403) return 'errorForbidden'
+  if (status === 422) {
+    switch (errorCode) {
+      case 'EMPTY_BULK_INPUT':
+        return 'errorEmptyBulk'
+      case 'CROSS_SECTION_BULK_EDIT':
+        return 'errorCrossSection'
+      case 'NOT_EDITABLE':
+        return 'errorNotEditable'
+      case 'INVALID_INPUT':
+        return 'errorInvalidInput'
+      default:
+        return 'errorGeneric'
+    }
+  }
   return 'errorGeneric'
 }
