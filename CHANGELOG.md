@@ -15,6 +15,75 @@
 
 ---
 
+## [0.126.0] — 2026-05-09
+
+### Added — Templates filter teacher-own (Slot D row #11)
+
+Закрывает Slot D backlog item из MAXIMALIST PHASE PLAN. До v0.126.0 endpoint `GET /api/templates` возвращал все document templates всем не-студентам — методические templates (внутренние документы для методиста) leak'ались teacher'у в `/documents/templates` UI. После v0.126.0: teacher и student скрыты от methodist-only templates через role-aware backend filter. Frontend изменений не требуется — backend filtered list уже adapts UI без code change.
+
+**Domain (`internal/modules/documents/domain/entities/document_type.go`)**:
+
+- Новое поле `MethodistOnly bool json:"methodist_only"` на `DocumentType` aggregate. Default `false` (open template, visible всем). Set'ится через DB seed или admin / methodist UpdateTemplate (UI control deferred к v0.126.x).
+- Новый метод `(*DocumentType) CanAccessByRole(role string) bool` с failure-closed semantics:
+    * Open template (`MethodistOnly == false`) → доступен любой роли.
+    * Methodist-only template → доступен `system_admin / methodist / academic_secretary` (paperwork orchestrators); `teacher`, `student`, unknown role, empty role — denied.
+- 14 sub-tests table-driven pin'ят весь access matrix (5 ролей × 2 modes + unknown × 2 + empty × 2).
+
+**Migration 033 (`migrations/033_add_methodist_only_to_document_types.{up,down}.sql`)**:
+
+- `ALTER TABLE document_types ADD COLUMN IF NOT EXISTS methodist_only BOOLEAN NOT NULL DEFAULT FALSE`. Backwards-compatible: existing rows получают `false` → visible to all (matches pre-v0.126.0 behaviour).
+- `COMMENT ON COLUMN` documents intent. Down migration: clean `DROP COLUMN IF EXISTS`.
+
+**Repository (`internal/modules/documents/infrastructure/persistence/document_type_repository_pg.go`)**:
+
+- `GetAll`, `GetByID`, `GetByCode`, `GetAllWithTemplates` SELECT lists и Scan() targets обновлены для `methodist_only`. `TemplateRepositoryAdapter` (тонкая обёртка) подхватывает поле автоматически.
+- 2 sqlmock тестa pin'ят round-trip column (false и true).
+
+**Use case (`internal/modules/documents/application/usecases/template_usecase.go`)**:
+
+- `GetAllTemplates(ctx)` → `GetAllTemplates(ctx, role string)`. После repo round-trip `for _, dt := range types: if dt.CanAccessByRole(role) { allowed = append(allowed, dt) }` filter applies before DTO conversion. Empty role string → failure-closed (open templates only).
+- 7 table-driven sub-tests pin'ят все 5 ролей + unknown + empty role.
+
+**Handler (`internal/modules/documents/interfaces/http/handlers/template_handler.go`)**:
+
+- `GetTemplates` reads `c.Get("role")` (production JWTMiddleware contract — `auth_middleware.go:59`) и forwards в use case. Missing / non-string → empty role → failure-closed.
+- 3 handler integration sub-tests через production-shaped `withAuth(userID, role)` middleware pin'ят filter end-to-end (system_admin sees both, teacher sees open only, no auth context falls through failure-closed).
+
+**Bonus fix — pre-existing UpdateTemplate bug (parallel)**:
+
+- Reviewer round-1 flagged что `UpdateTemplate` handler читал тот же неверный context key `"user_role"` (плюс stale role values `'admin' / 'secretary'` вместо `'system_admin' / 'academic_secretary' / 'methodist'`) — production endpoint `PUT /api/templates/{id}` возвращал 403 всем legitimate caller'ам.
+- Fixed в same release: `c.Get("role")` + role values whitelist соответствует `auth/domain/role.go` `RoleType` constants.
+- 4 existing UpdateTemplate test sub-tests migrated с `withUserRole(1, "admin")` (broken helper — set'ил wrong key) на `withAuth(1, "system_admin")` (production-shaped). Dead helper `withUserRole` removed чтобы не re-introduce bug class.
+
+**DTO + Frontend type**:
+
+- `dto.TemplateResponse.MethodistOnly bool json:"methodist_only"` exposed; `ToTemplateResponse` mapper copies field.
+- `frontend/src/lib/api/templates.ts` type `TemplateInfo` + `methodist_only?: boolean` (informational; backend already filters list).
+
+**TDD strict (3 RED→GREEN pairs + 1 small data-shape commit + 1 fix-cycle pair)**:
+
+1. RED+GREEN: `DocumentType.CanAccessByRole` (entity + table-driven test).
+2. RED+GREEN: migration 033 + repo Scan/SELECT updates.
+3. RED+GREEN: `GetAllTemplates(ctx, role)` signature + filter logic + handler reads role.
+4. Small: DTO + frontend type expose `methodist_only`.
+5. Fix-cycle RED+GREEN: handler integration tests catching wrong-key bug + GREEN fix (`role` key + UpdateTemplate value whitelist + dead helper cleanup).
+
+**Verify**:
+
+- `go build ./...` clean.
+- `go test ./...` 151 packages green.
+- `golangci-lint run ./internal/modules/documents/...` 0 issues.
+- Reviewer round-1 mean 8.67 / min 6 → round-2 SHIP **mean 9.33 / min 9** (TDD 9 / DDD 9 / CA 9 / Migration 10 / Frontend 9 / Tests 10).
+
+### Pattern (chronicles)
+
+- **Production-shaped test middleware vs ad-hoc helpers**: использование `withAuth(userID, role)` (writes `role` — same key as JWTMiddleware) обязательно для handler integration tests. Avoid invented helpers like `withUserRole` (writes `"user_role"` — drifts from middleware contract). Drift hides handler-side context-key bugs that pass usecase mock tests but fail в production.
+- **Reviewer triangulation продолжает работать**: round-1 8.67/10 (CRITICAL bug missed by 100% green tests because handler-level integration coverage отсутствовало) → round-2 SHIP after closing C1+I1+I2. Pattern repeats c v0.124.0 (3 rounds), v0.125.2 (2 rounds), v0.126.0 (2 rounds). **Trust reviewer skepticism, не self-certify; handler integration tests catch what unit-mock tests cannot**.
+
+### Out-of-scope finding (separate ticket)
+
+Reviewer round-2 flagged что the C1 bug-class (`c.Get("user_role")` while middleware writes `"role"`) exists в **4 other production handlers** — `schedule/lesson_handler.go:55`, `announcements/announcement_handler.go:47`, `users/avatar_handler.go:75, 200`. Same shape, NOT v0.126.0 regression (pre-existing pre-round-1), NOT SHIP blocker для templates filter narrowly. Backlog candidate для отдельного release / fix-cycle. Filed как known issue.
+
 ## [0.125.3] — 2026-05-09
 
 ### Polished — закрытие optional follow-ups из reviewer round-2 v0.125.2
