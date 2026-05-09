@@ -10,6 +10,7 @@ jest.mock('@/lib/api/auth', () => ({
     register: jest.fn(),
     refreshToken: jest.fn(),
     getCurrentUser: jest.fn(),
+    verifyLoginMFA: jest.fn(),
   },
 }))
 
@@ -293,6 +294,112 @@ describe('authStore', () => {
       const state = useAuthStore.getState() as unknown as MFAFields
       expect(state.mfaIntermediateToken).toBeNull()
       expect(state.mfaPendingUser).toBeNull()
+    })
+
+    it('verifyLoginMFA exchanges code+intermediate for full tokens and clears mfa state', async () => {
+      const mockUser = {
+        id: 7,
+        name: 'Admin',
+        email: 'admin@test.com',
+        role: 'system_admin' as const,
+        mfa_enabled: true,
+      }
+      // Seed: user has cleared the password gate, holds an intermediate
+      useAuthStore.setState({
+        mfaIntermediateToken: 'intermediate-jwt-abc',
+        mfaPendingUser: mockUser,
+      } as never)
+
+      const mockedVerify = mockedAuthApi as unknown as {
+        verifyLoginMFA: jest.Mock
+      }
+      mockedVerify.verifyLoginMFA.mockResolvedValue({
+        data: {
+          user: mockUser,
+          token: 'access-token-after-mfa',
+          refreshToken: 'refresh-token-after-mfa',
+        },
+      } as never)
+
+      await act(async () => {
+        await (
+          useAuthStore.getState() as unknown as { verifyLoginMFA: (code: string) => Promise<void> }
+        ).verifyLoginMFA('123456')
+      })
+
+      // Action must call backend with the held intermediate + the user's code
+      expect(mockedVerify.verifyLoginMFA).toHaveBeenCalledWith('intermediate-jwt-abc', '123456')
+
+      const state = useAuthStore.getState() as unknown as MFAFields
+      expect(state.token).toBe('access-token-after-mfa')
+      expect(state.refreshToken).toBe('refresh-token-after-mfa')
+      expect(state.isAuthenticated).toBe(true)
+      // mfa challenge cleared on success
+      expect(state.mfaIntermediateToken).toBeNull()
+      expect(state.mfaPendingUser).toBeNull()
+      expect(state.error).toBeNull()
+    })
+
+    it('verifyLoginMFA throws and sets error when backend rejects code, preserving challenge', async () => {
+      const seededUser = {
+        id: 7,
+        name: 'Admin',
+        email: 'admin@test.com',
+        role: 'system_admin',
+      }
+      useAuthStore.setState({
+        mfaIntermediateToken: 'intermediate-jwt-abc',
+        mfaPendingUser: seededUser,
+      } as never)
+
+      const mockedVerify = mockedAuthApi as unknown as {
+        verifyLoginMFA: jest.Mock
+      }
+      mockedVerify.verifyLoginMFA.mockRejectedValue({
+        response: {
+          status: 422,
+          data: { error: { code: 'INVALID_MFA_CODE', message: 'Неверный код подтверждения' } },
+        },
+      })
+
+      await expect(
+        act(async () => {
+          await (
+            useAuthStore.getState() as unknown as {
+              verifyLoginMFA: (code: string) => Promise<void>
+            }
+          ).verifyLoginMFA('000000')
+        })
+      ).rejects.toBeDefined()
+
+      const state = useAuthStore.getState() as unknown as MFAFields
+      // not authenticated
+      expect(state.isAuthenticated).toBe(false)
+      expect(state.token).toBeNull()
+      // challenge preserved so user can retry the code
+      expect(state.mfaIntermediateToken).toBe('intermediate-jwt-abc')
+      expect(state.mfaPendingUser).toEqual(seededUser)
+      expect(state.error).toBe('Неверный код подтверждения')
+    })
+
+    it('verifyLoginMFA throws when no intermediate token is held', async () => {
+      // No seed — store has no mfa challenge
+      const mockedVerify = mockedAuthApi as unknown as {
+        verifyLoginMFA: jest.Mock
+      }
+
+      await expect(
+        act(async () => {
+          await (
+            useAuthStore.getState() as unknown as {
+              verifyLoginMFA: (code: string) => Promise<void>
+            }
+          ).verifyLoginMFA('123456')
+        })
+      ).rejects.toThrow()
+
+      // Must not have hit the API without an intermediate to send
+      expect(mockedVerify.verifyLoginMFA).not.toHaveBeenCalled()
     })
   })
 
