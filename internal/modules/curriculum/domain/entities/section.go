@@ -13,6 +13,21 @@ import (
 // sentinel to HTTP 422.
 var ErrInvalidSection = errors.New("section: invalid section")
 
+// ErrSectionScopeForbidden indicates that a user is not authorized to
+// operate on a particular Section — typically because the user is a
+// methodist who did not author the parent Curriculum. Admins
+// (system_admin / academic_secretary) override this check via the
+// isAdmin flag in AuthorizeEdit. Handlers map this sentinel to HTTP 403.
+var ErrSectionScopeForbidden = errors.New("section: caller cannot operate on this section")
+
+// ErrCannotEditSection indicates that the parent Curriculum is in a
+// status that does not permit content edits to its sections (anything
+// other than draft per ADR-2 lifecycle inheritance). Status transitions
+// are Curriculum-aggregate concerns; sections inherit the gate.
+// Handlers map this sentinel to HTTP 422 (the request is well-formed
+// but conflicts with the curriculum's lifecycle).
+var ErrCannotEditSection = errors.New("section: cannot edit, curriculum is not in editable status")
+
 // Section is the aggregate root for раздел учебного плана — a top-level
 // container within a Curriculum that groups DisciplineItem entities
 // (v0.128.1+). Per ADR-1 (Beta aggregate boundary, plan
@@ -147,3 +162,15 @@ func (s *Section) CreatedAt() time.Time { return s.createdAt }
 
 // UpdatedAt returns the last-mutation timestamp.
 func (s *Section) UpdatedAt() time.Time { return s.updatedAt }
+
+// UpdateBasics — implementation lands в GREEN commit (Pair 2).
+func (s *Section) UpdateBasics(title, description string, orderIndex int, now time.Time) error {
+	_, _, _, _ = title, description, orderIndex, now
+	return errors.New("section: UpdateBasics not implemented yet")
+}
+
+// AuthorizeEdit — implementation lands в GREEN commit (Pair 2).
+func (s *Section) AuthorizeEdit(actorID int64, isAdmin bool, curStatus CurriculumStatus, curCreatedBy int64) error {
+	_, _, _, _ = actorID, isAdmin, curStatus, curCreatedBy
+	return errors.New("section: AuthorizeEdit not implemented yet")
+}
