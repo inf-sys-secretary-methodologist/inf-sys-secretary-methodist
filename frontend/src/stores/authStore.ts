@@ -86,6 +86,7 @@ interface AuthState {
   clearError: () => void
   setLoading: (loading: boolean) => void
   clearMFAChallenge: () => void
+  verifyLoginMFA: (code: string) => Promise<void>
 }
 
 /* c8 ignore start - Broken cookie cleanup */
@@ -342,6 +343,56 @@ export const useAuthStore = create<AuthState>()(
       // cancels the second-factor step or after a successful exchange.
       clearMFAChallenge: () => {
         set({ mfaIntermediateToken: null, mfaPendingUser: null })
+      },
+
+      // Exchange the in-memory intermediate token + the 6-digit TOTP
+      // code the user typed for the real access+refresh pair.
+      // - On success: populates auth state and drops the challenge.
+      // - On failure: writes the backend message to state.error and
+      //   re-throws so the UI can branch on status. The challenge is
+      //   intentionally preserved so the user can retry the code (the
+      //   UI is responsible for clearing on a 401, where the
+      //   intermediate is dead).
+      verifyLoginMFA: async (code: string) => {
+        const intermediate = get().mfaIntermediateToken
+        if (!intermediate) {
+          throw new Error('No MFA challenge in progress')
+        }
+
+        set({ isLoading: true, error: null })
+        try {
+          const response = await authApi.verifyLoginMFA(intermediate, code)
+
+          /* c8 ignore start - response wrapper variants */
+          const authData =
+            (response as { data?: { user: User; token: string; refreshToken: string } }).data ||
+            (response as { user: User; token: string; refreshToken: string })
+          /* c8 ignore stop */
+
+          apiClient.setAuthToken(authData.token)
+
+          set({
+            user: authData.user,
+            token: authData.token,
+            refreshToken: authData.refreshToken,
+            isAuthenticated: true,
+            mfaIntermediateToken: null,
+            mfaPendingUser: null,
+            isLoading: false,
+            error: null,
+          })
+        } catch (error: unknown) {
+          const errorMessage =
+            (error as { response?: { data?: { error?: { message?: string }; message?: string } } })
+              .response?.data?.error?.message ||
+            (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+            'MFA_VERIFY_ERROR'
+          set({
+            isLoading: false,
+            error: errorMessage,
+          })
+          throw error
+        }
       },
     }),
     {

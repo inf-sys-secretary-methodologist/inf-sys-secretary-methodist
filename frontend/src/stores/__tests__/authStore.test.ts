@@ -51,7 +51,9 @@ describe('authStore', () => {
     testTime += 2000 // Advance 2 seconds between tests
     jest.spyOn(Date, 'now').mockReturnValue(testTime)
 
-    // Reset store state
+    // Reset store state (including v0.125.2 ephemeral MFA fields, so
+    // a seeded intermediate token from one test does not leak into the
+    // next).
     useAuthStore.setState({
       user: null,
       token: null,
@@ -59,10 +61,13 @@ describe('authStore', () => {
       isAuthenticated: false,
       isLoading: false,
       error: null,
-    })
+      mfaIntermediateToken: null,
+      mfaPendingUser: null,
+    } as never)
 
-    // Clear mocks
-    jest.clearAllMocks()
+    // Reset mocks (clears call history AND implementations — needed so
+    // a mockResolvedValue in one MFA test doesn't carry over).
+    jest.resetAllMocks()
 
     // Clear mock cookies
     Object.keys(mockCookies).forEach((key) => delete mockCookies[key])

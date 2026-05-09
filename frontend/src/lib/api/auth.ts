@@ -40,6 +40,25 @@ export const authApi = {
     return apiClient.post<RefreshTokenResponse>('/api/auth/refresh', request)
   },
 
+  // --- MFA gating (v0.125.x) ---
+
+  /**
+   * Exchange the 5-min intermediate token issued by /api/auth/login
+   * (when mfa_required=true) plus the user's 6-digit TOTP code for
+   * the full access+refresh token pair. Backend status mapping:
+   *   200 success → wrapped {token, refreshToken, user}
+   *   401 → intermediate invalid / expired / replayed
+   *   422 → INVALID_MFA_CODE / MFA not enabled
+   * The caller is expected to forward errors so the UI can branch on
+   * 401 (force re-login) vs 422 (allow retry).
+   */
+  verifyLoginMFA: async (intermediateToken: string, code: string): Promise<AuthResponse> => {
+    return apiClient.post<AuthResponse>('/api/auth/mfa/verify-login', {
+      intermediate_token: intermediateToken,
+      code,
+    })
+  },
+
   /**
    * Get current user profile
    */
