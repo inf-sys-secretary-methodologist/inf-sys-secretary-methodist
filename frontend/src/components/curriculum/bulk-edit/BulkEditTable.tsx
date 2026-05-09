@@ -58,17 +58,6 @@ function asInt(value: string): number {
   return Number.isFinite(n) ? n : 0
 }
 
-// Helper retained for potential isolated testing.
-export function displayedField<K extends keyof DisciplineItem>(
-  item: DisciplineItem,
-  pending: PendingCreate | undefined,
-  state: BulkEditState,
-  field: K
-): DisciplineItem[K] {
-  void pending
-  return effectiveRow(item, state)[field]
-}
-
 const DEFAULT_PENDING_CREATE: Omit<BulkEditCreateInput, 'order_index'> = {
   title: '',
   hours_lectures: 0,

@@ -40,5 +40,9 @@ export function pickBulkEditErrorKey(
         return 'errorGeneric'
     }
   }
+  // 400 BadRequest from handler is unreachable in normal flow — sectionID
+  // comes from a typed prop and the body is built by buildBulkEditRequest.
+  // Treat as errorGeneric (default-deny) so a contract violation surfaces
+  // a recovery prompt rather than a silent no-op.
   return 'errorGeneric'
 }

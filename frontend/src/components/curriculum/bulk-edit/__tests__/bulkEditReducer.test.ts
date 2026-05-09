@@ -214,7 +214,7 @@ describe('bulkEditReducer / SUBMIT_SUCCESS', () => {
 })
 
 describe('bulkEditReducer / SUBMIT_CONFLICT', () => {
-  it('stores conflicts and lifts submitting flag (preserves pending state for retry)', () => {
+  it('stores conflicts but KEEPS submitting=true (refetch loop pending; race fix)', () => {
     const seeded: BulkEditState = {
       ...initialBulkEditState,
       pendingUpdates: [sampleUpdate],
@@ -223,8 +223,21 @@ describe('bulkEditReducer / SUBMIT_CONFLICT', () => {
     const conflicts = [{ id: 202, expected_version: 5, current_version: 0 }]
     const next = bulkEditReducer(seeded, { type: 'SUBMIT_CONFLICT', payload: { conflicts } })
     expect(next.conflicts).toEqual(conflicts)
-    expect(next.submitting).toBe(false)
+    expect(next.submitting).toBe(true)
     expect(next.pendingUpdates).toEqual([sampleUpdate])
+  })
+})
+
+describe('bulkEditReducer / SUBMIT_CONFLICT_REFRESHED', () => {
+  it('lifts submitting flag once refetch loop has resolved', () => {
+    const seeded: BulkEditState = {
+      ...initialBulkEditState,
+      conflicts: [{ id: 202, expected_version: 5, current_version: 0 }],
+      submitting: true,
+    }
+    const next = bulkEditReducer(seeded, { type: 'SUBMIT_CONFLICT_REFRESHED' })
+    expect(next.submitting).toBe(false)
+    expect(next.conflicts).toHaveLength(1)
   })
 })
 
@@ -246,12 +259,26 @@ describe('bulkEditReducer / SUBMIT_ERROR', () => {
 })
 
 describe('bulkEditReducer / SET_REFRESHED_CONFLICT_ITEM', () => {
-  it('stores the refetched item under its id', () => {
-    const next = bulkEditReducer(initialBulkEditState, {
+  it('stores the refetched item when a matching conflict is tracked', () => {
+    const seeded: BulkEditState = {
+      ...initialBulkEditState,
+      conflicts: [{ id: 202, expected_version: 5, current_version: 0 }],
+    }
+    const next = bulkEditReducer(seeded, {
       type: 'SET_REFRESHED_CONFLICT_ITEM',
       payload: sampleItem,
     })
     expect(next.refreshedConflictItems[202]).toEqual(sampleItem)
+  })
+
+  it('drops the write when no conflict for this id (ghost guard after DISCARD_ALL)', () => {
+    // Refetch resolved AFTER user clicked Cancel (DISCARD_ALL) →
+    // conflicts cleared → reducer must not re-introduce stale snapshot.
+    const next = bulkEditReducer(initialBulkEditState, {
+      type: 'SET_REFRESHED_CONFLICT_ITEM',
+      payload: sampleItem,
+    })
+    expect(next).toEqual(initialBulkEditState)
   })
 })
 

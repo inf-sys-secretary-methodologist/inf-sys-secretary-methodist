@@ -49,12 +49,24 @@ export type BulkEditAction =
   | { type: 'ADD_CREATE'; payload: PendingCreate }
   | { type: 'EDIT_CREATE'; payload: { localKey: string; patch: Partial<BulkEditCreateInput> } }
   | { type: 'REMOVE_CREATE'; payload: { localKey: string } }
+  // EDIT_ITEM payload MUST be a complete BulkEditUpdateInput. Call sites
+  // build the full snapshot via effectiveRow ⊕ patch + toUpdateInput
+  // (BulkEditTable.tsx). Reducer upserts by id and writes payload
+  // verbatim — partial payloads silently drop other fields. No PATCH_ITEM
+  // variant exists yet because all current call sites have access to the
+  // pre-edit snapshot.
   | { type: 'EDIT_ITEM'; payload: BulkEditUpdateInput }
   | { type: 'REVERT_ITEM'; payload: { id: number } }
   | { type: 'TOGGLE_DELETE'; payload: { id: number } }
   | { type: 'SUBMIT_START' }
   | { type: 'SUBMIT_SUCCESS' }
+  // SUBMIT_CONFLICT keeps submitting=true so the Submit button stays
+  // disabled while the refetch loop runs. SUBMIT_CONFLICT_REFRESHED
+  // lifts submitting after Promise.all of fetchDisciplineItem resolves
+  // (race fix — без этого user мог re-click submit с stale
+  // expected_version пока refetch in flight).
   | { type: 'SUBMIT_CONFLICT'; payload: { conflicts: BulkEditConflict[] } }
+  | { type: 'SUBMIT_CONFLICT_REFRESHED' }
   | { type: 'SUBMIT_ERROR'; payload: { errorKey: BulkEditErrorKey } }
   | { type: 'SET_REFRESHED_CONFLICT_ITEM'; payload: DisciplineItem }
   | { type: 'CLEAR_CONFLICTS' }
@@ -106,10 +118,20 @@ export function bulkEditReducer(state: BulkEditState, action: BulkEditAction): B
     case 'SUBMIT_SUCCESS':
       return initialBulkEditState
     case 'SUBMIT_CONFLICT':
-      return { ...state, submitting: false, conflicts: action.payload.conflicts }
+      // Keep submitting=true. Submit button stays disabled while
+      // refetch loop runs; SUBMIT_CONFLICT_REFRESHED lifts the flag.
+      return { ...state, conflicts: action.payload.conflicts }
+    case 'SUBMIT_CONFLICT_REFRESHED':
+      return { ...state, submitting: false }
     case 'SUBMIT_ERROR':
       return { ...state, submitting: false, lastErrorKey: action.payload.errorKey }
     case 'SET_REFRESHED_CONFLICT_ITEM':
+      // Drop ghost writes — if the conflict for this id is no longer
+      // tracked (DISCARD_ALL / CLEAR_CONFLICTS happened mid-refetch),
+      // do not re-introduce a stale snapshot.
+      if (!state.conflicts.some((c) => c.id === action.payload.id)) {
+        return state
+      }
       return {
         ...state,
         refreshedConflictItems: {

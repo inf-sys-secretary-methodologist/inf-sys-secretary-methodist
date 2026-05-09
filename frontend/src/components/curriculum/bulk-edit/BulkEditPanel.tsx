@@ -63,22 +63,28 @@ export function BulkEditPanel({ sectionID, curriculumStatus }: BulkEditPanelProp
         mutate()
         return
       }
-      // 409 conflict — store conflicts, then refetch each id outside
-      // the failed tx per plan ADR-12 (CurrentVersion=0 hint, real
-      // value lives on a fresh GET /api/items/:id snapshot).
+      // 409 conflict — store conflicts (Submit stays disabled because
+      // SUBMIT_CONFLICT keeps submitting=true), then refetch each id
+      // outside the failed tx per plan ADR-12 (CurrentVersion=0 hint,
+      // real value lives on a fresh GET /api/items/:id snapshot).
       dispatch({ type: 'SUBMIT_CONFLICT', payload: { conflicts: result.conflicts } })
       await Promise.all(
         result.conflicts.map(async (c) => {
           try {
             const refreshed = await fetchDisciplineItem(c.id)
             dispatch({ type: 'SET_REFRESHED_CONFLICT_ITEM', payload: refreshed })
-          } catch {
-            // Refetch failure is non-fatal — banner still shows the id
-            // + expected_version hint and the user can retry the whole
-            // bulk submit.
+          } catch (refetchErr) {
+            // Refetch failure is non-fatal — banner still shows the
+            // expected_version hint и user can retry. Log so оператор
+            // увидит при triage; no toast чтобы не дублировать main
+            // 409 visual signal.
+            console.error('bulk-edit conflict refetch failed for id', c.id, refetchErr)
           }
         })
       )
+      // Re-enable Submit only after refetch loop has resolved — без
+      // этого user мог re-click submit с stale expected_version.
+      dispatch({ type: 'SUBMIT_CONFLICT_REFRESHED' })
     } catch (err) {
       const status = axios.isAxiosError(err) ? err.response?.status : undefined
       const code =
@@ -95,7 +101,12 @@ export function BulkEditPanel({ sectionID, curriculumStatus }: BulkEditPanelProp
   }
 
   const handleCancelClick = () => {
-    if (dirty) setConfirmCancelOpen(true)
+    // Guard against the in-flight submit / refetch race — cancelling
+    // mid-refetch would dispatch DISCARD_ALL while async
+    // SET_REFRESHED_CONFLICT_ITEM dispatches are queued. The reducer
+    // also guards via the ghost-write check, but blocking here keeps
+    // the UI affordance honest.
+    if (dirty && !state.submitting) setConfirmCancelOpen(true)
   }
 
   const handleConfirmCancel = () => {
@@ -160,7 +171,12 @@ export function BulkEditPanel({ sectionID, curriculumStatus }: BulkEditPanelProp
       {canEdit && (
         <div className="flex items-center justify-end gap-2">
           {dirty && (
-            <Button type="button" variant="outline" onClick={handleCancelClick}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancelClick}
+              disabled={state.submitting}
+            >
               {t('disciplineItems.bulkEdit.cancel')}
             </Button>
           )}
