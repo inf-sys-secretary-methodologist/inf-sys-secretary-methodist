@@ -18,8 +18,28 @@ type DocumentType struct {
 	RequiresRegistration bool               `json:"requires_registration"`
 	NumberingPattern     *string            `json:"numbering_pattern,omitempty"`
 	RetentionPeriod      *int               `json:"retention_period,omitempty"` // months
+	MethodistOnly        bool               `json:"methodist_only"`             // v0.126.0: hides template from teacher / student when true
 	CreatedAt            time.Time          `json:"created_at"`
 	UpdatedAt            time.Time          `json:"updated_at"`
+}
+
+// CanAccessByRole reports whether a user with the given role is allowed
+// to see this document type in the templates list. Open templates
+// (MethodistOnly == false) are visible to every role. Methodist-only
+// templates are visible to the staff who orchestrate paperwork
+// (system_admin, methodist, academic_secretary) and hidden from the
+// end-users (teacher, student). Failure-closed: an unknown role is
+// denied access to methodist-only templates.
+func (dt *DocumentType) CanAccessByRole(role string) bool {
+	if !dt.MethodistOnly {
+		return true
+	}
+	switch role {
+	case "system_admin", "methodist", "academic_secretary":
+		return true
+	default:
+		return false
+	}
 }
 
 // TemplateVariable defines a variable used in document templates
