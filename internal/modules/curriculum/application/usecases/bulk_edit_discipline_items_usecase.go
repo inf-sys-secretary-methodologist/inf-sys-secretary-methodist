@@ -221,7 +221,58 @@ func (uc *BulkEditDisciplineItemsUseCase) Execute(ctx context.Context, actorID i
 		result.Created = append(result.Created, d)
 	}
 
-	// Pair 3 (updates) + Pair 4 (deletes) extend here.
+	for _, u := range in.Updates {
+		d, err := tx.Items().GetByID(ctx, u.ID)
+		if err != nil {
+			if errors.Is(err, repositories.ErrDisciplineItemNotFound) {
+				emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.bulk_edit_denied",
+					bulkEditDenialFields(actorID, in.SectionID, section.CurriculumID(), "not_found"))
+			}
+			return nil, err
+		}
+		if d.SectionID() != in.SectionID {
+			emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.bulk_edit_denied",
+				bulkEditDenialFields(actorID, in.SectionID, section.CurriculumID(), "cross_section"))
+			return nil, ErrCrossSectionBulkEdit
+		}
+		expectedVersion := d.Version()
+		if err := d.UpdateBasics(u.Title,
+			u.HoursLectures, u.HoursPractice, u.HoursLab, u.HoursSelf,
+			u.ControlForm, u.Credits, u.Semester, u.OrderIndex,
+			uc.clock()); err != nil {
+			if errors.Is(err, entities.ErrInvalidDisciplineItem) {
+				emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.bulk_edit_denied",
+					bulkEditDenialFields(actorID, in.SectionID, section.CurriculumID(), "invalid"))
+			}
+			return nil, err
+		}
+		if err := tx.Items().Update(ctx, d); err != nil {
+			if errors.Is(err, repositories.ErrDisciplineItemVersionConflict) {
+				// Re-fetch для current version (UI feedback per ADR-12).
+				// Best-effort — if re-fetch fails, currentVersion stays 0.
+				currentVersion := 0
+				if cur, fetchErr := tx.Items().GetByID(ctx, u.ID); fetchErr == nil && cur != nil {
+					currentVersion = cur.Version()
+				}
+				result.Conflicts = append(result.Conflicts, BulkEditConflict{
+					ID:              u.ID,
+					ExpectedVersion: expectedVersion,
+					CurrentVersion:  currentVersion,
+				})
+				continue // collect-all per ADR-12, не short-circuit
+			}
+			return nil, err
+		}
+		result.Updated = append(result.Updated, d)
+	}
+
+	// Pair 4 (deletes) extends here.
+
+	if len(result.Conflicts) > 0 {
+		emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.bulk_edit_denied",
+			bulkEditDenialFields(actorID, in.SectionID, section.CurriculumID(), "version_conflict"))
+		return result, ErrBulkVersionConflict
+	}
 
 	if err := tx.Commit(); err != nil {
 		return nil, err
