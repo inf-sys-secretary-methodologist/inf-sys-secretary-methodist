@@ -6,10 +6,16 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  # Validate PR title and branch name
+  # Validate PR title and branch name.
+  # Dependabot is exempt — its branch names follow `dependabot/{ecosystem}/{path}/{dep}-{ver}`
+  # convention which cannot be reshaped к `<type>/issue-<N>-<desc>` без forking
+  # the bot. Dependabot PR titles already follow conventional-commits format
+  # (`chore(deps):` or `chore(ci)(deps):`), but the double-scope confuses
+  # amannn/action-semantic-pull-request@v6 — also skipped here.
   pr-metadata:
     name: Validate PR Metadata
     runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
 
     steps:
     - name: Check PR title format
@@ -65,10 +71,13 @@ jobs:
         fi
         echo "✅ Branch name is valid"
 
-  # Check PR description
+  # Check PR description. Dependabot exempt — auto-generated PR bodies
+  # are mechanical changelogs (release notes + commit log copy) and never
+  # link к a manually-tracked issue.
   pr-description:
     name: Validate PR Description
     runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
 
     steps:
     - name: Check PR has description
