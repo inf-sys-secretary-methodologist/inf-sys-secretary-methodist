@@ -26,7 +26,7 @@ func (r *DocumentTypeRepositoryPG) GetAll(ctx context.Context) ([]*entities.Docu
 	query := `
 		SELECT id, name, code, description, template_path, template_content, template_variables,
 			requires_approval, requires_registration, numbering_pattern, retention_period,
-			created_at, updated_at
+			created_at, updated_at, methodist_only
 		FROM document_types ORDER BY name`
 
 	rows, err := r.db.QueryContext(ctx, query)
@@ -43,7 +43,7 @@ func (r *DocumentTypeRepositoryPG) GetAll(ctx context.Context) ([]*entities.Docu
 			&t.ID, &t.Name, &t.Code, &t.Description, &t.TemplatePath,
 			&t.TemplateContent, &templateVariablesJSON,
 			&t.RequiresApproval, &t.RequiresRegistration, &t.NumberingPattern,
-			&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt,
+			&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt, &t.MethodistOnly,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan document type: %w", err)
@@ -63,7 +63,7 @@ func (r *DocumentTypeRepositoryPG) GetByID(ctx context.Context, id int64) (*enti
 	query := `
 		SELECT id, name, code, description, template_path, template_content, template_variables,
 			requires_approval, requires_registration, numbering_pattern, retention_period,
-			created_at, updated_at
+			created_at, updated_at, methodist_only
 		FROM document_types WHERE id = $1`
 
 	t := &entities.DocumentType{}
@@ -72,7 +72,7 @@ func (r *DocumentTypeRepositoryPG) GetByID(ctx context.Context, id int64) (*enti
 		&t.ID, &t.Name, &t.Code, &t.Description, &t.TemplatePath,
 		&t.TemplateContent, &templateVariablesJSON,
 		&t.RequiresApproval, &t.RequiresRegistration, &t.NumberingPattern,
-		&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt,
+		&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt, &t.MethodistOnly,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("document type not found")
@@ -93,7 +93,7 @@ func (r *DocumentTypeRepositoryPG) GetByCode(ctx context.Context, code string) (
 	query := `
 		SELECT id, name, code, description, template_path, template_content, template_variables,
 			requires_approval, requires_registration, numbering_pattern, retention_period,
-			created_at, updated_at
+			created_at, updated_at, methodist_only
 		FROM document_types WHERE code = $1`
 
 	t := &entities.DocumentType{}
@@ -102,7 +102,7 @@ func (r *DocumentTypeRepositoryPG) GetByCode(ctx context.Context, code string) (
 		&t.ID, &t.Name, &t.Code, &t.Description, &t.TemplatePath,
 		&t.TemplateContent, &templateVariablesJSON,
 		&t.RequiresApproval, &t.RequiresRegistration, &t.NumberingPattern,
-		&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt,
+		&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt, &t.MethodistOnly,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("document type not found")
@@ -187,7 +187,7 @@ func (r *DocumentTypeRepositoryPG) GetAllWithTemplates(ctx context.Context) ([]e
 	query := `
 		SELECT id, name, code, description, template_path, template_content, template_variables,
 			requires_approval, requires_registration, numbering_pattern, retention_period,
-			created_at, updated_at
+			created_at, updated_at, methodist_only
 		FROM document_types
 		WHERE template_content IS NOT NULL AND template_content != ''
 		ORDER BY name`
@@ -206,7 +206,7 @@ func (r *DocumentTypeRepositoryPG) GetAllWithTemplates(ctx context.Context) ([]e
 			&t.ID, &t.Name, &t.Code, &t.Description, &t.TemplatePath,
 			&t.TemplateContent, &templateVariablesJSON,
 			&t.RequiresApproval, &t.RequiresRegistration, &t.NumberingPattern,
-			&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt,
+			&t.RetentionPeriod, &t.CreatedAt, &t.UpdatedAt, &t.MethodistOnly,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan document type: %w", err)

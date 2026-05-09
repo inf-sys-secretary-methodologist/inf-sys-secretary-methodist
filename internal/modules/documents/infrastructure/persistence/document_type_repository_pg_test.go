@@ -28,12 +28,15 @@ func newTypeRepoMock(t *testing.T) (*DocumentTypeRepositoryPG, sqlmock.Sqlmock) 
 var typeCols = []string{
 	"id", "name", "code", "description", "template_path", "template_content", "template_variables",
 	"requires_approval", "requires_registration", "numbering_pattern", "retention_period",
-	"created_at", "updated_at",
+	"created_at", "updated_at", "methodist_only",
 }
 
 func addTypeRow(rows *sqlmock.Rows, id int64, name, code string, tvJSON []byte) *sqlmock.Rows {
 	now := time.Now()
-	return rows.AddRow(id, name, code, nil, nil, nil, tvJSON, false, false, nil, nil, now, now)
+	// methodist_only defaults to false in this helper to preserve the
+	// pre-v0.126.0 row shape; tests that need methodist_only=true
+	// build their own sqlmock.Rows directly.
+	return rows.AddRow(id, name, code, nil, nil, nil, tvJSON, false, false, nil, nil, now, now, false)
 }
 
 func TestNewDocumentTypeRepositoryPG(t *testing.T) {
@@ -128,17 +131,14 @@ func TestTypeRepo_UpdateTemplate_WithVariables(t *testing.T) {
 }
 
 // v0.126.0 Pair 2: pin that the repository SELECTs the methodist_only
-// column and surfaces it on the returned entity. Migration 033 will
-// add the column with default FALSE, so existing rows scan to false;
+// column and surfaces it on the returned entity. Migration 033 adds
+// the column with default FALSE, so existing rows scan to false;
 // rows explicitly set to true must round-trip on read.
 func TestTypeRepo_GetByID_MethodistOnly(t *testing.T) {
 	repo, mock := newTypeRepoMock(t)
 
-	cols := append([]string{}, typeCols...)
-	cols = append(cols, "methodist_only")
 	now := time.Now()
-
-	rows := sqlmock.NewRows(cols).
+	rows := sqlmock.NewRows(typeCols).
 		AddRow(1, "Type1", "T1", nil, nil, nil, nil, false, false, nil, nil, now, now, true)
 	mock.ExpectQuery(regexp.QuoteMeta("FROM document_types WHERE id")).
 		WithArgs(int64(1)).
@@ -152,11 +152,8 @@ func TestTypeRepo_GetByID_MethodistOnly(t *testing.T) {
 func TestTypeRepo_GetAll_MethodistOnly(t *testing.T) {
 	repo, mock := newTypeRepoMock(t)
 
-	cols := append([]string{}, typeCols...)
-	cols = append(cols, "methodist_only")
 	now := time.Now()
-
-	rows := sqlmock.NewRows(cols).
+	rows := sqlmock.NewRows(typeCols).
 		AddRow(1, "Open", "T1", nil, nil, nil, nil, false, false, nil, nil, now, now, false).
 		AddRow(2, "Methodist", "T2", nil, nil, nil, nil, false, false, nil, nil, now, now, true)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name, code")).WillReturnRows(rows)
