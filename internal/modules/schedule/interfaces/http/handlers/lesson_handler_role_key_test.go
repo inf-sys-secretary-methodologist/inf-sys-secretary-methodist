@@ -28,6 +28,10 @@ func withAuth(handler gin.HandlerFunc, userID int64, role string) gin.HandlerFun
 // handler read c.Get("user_role") while the production middleware writes
 // c.Set("role", ...) — every schedule write op silently 403'd in prod
 // even though unit tests passed with a mirroring helper.
+//
+// Each subcase sends an input that short-circuits between the role gate
+// and the use case (invalid JSON for body endpoints, invalid id for
+// Delete) so that the assertion isolates the gate decision (403 vs not).
 func TestLessonHandler_RoleKey_FromProductionMiddleware(t *testing.T) {
 	handler := NewLessonHandler(nil)
 
@@ -43,31 +47,34 @@ func TestLessonHandler_RoleKey_FromProductionMiddleware(t *testing.T) {
 		return r
 	}
 
+	post := func(method, path, body string) *http.Request {
+		req := httptest.NewRequest(method, path, strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		return req
+	}
+
 	for _, role := range allowed {
 		t.Run("allowed_create_"+role, func(t *testing.T) {
 			r := mount(role)
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodPost, "/schedule/lessons",
-				strings.NewReader(`{}`))
-			req.Header.Set("Content-Type", "application/json")
-			r.ServeHTTP(w, req)
+			// `{}` parses but empty date_start fails time.Parse → 400 (post-gate).
+			r.ServeHTTP(w, post(http.MethodPost, "/schedule/lessons", `{}`))
 			assert.NotEqual(t, http.StatusForbidden, w.Code,
 				"role %q must pass canModifySchedule when middleware writes 'role' key", role)
 		})
 		t.Run("allowed_update_"+role, func(t *testing.T) {
 			r := mount(role)
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodPut, "/schedule/lessons/1",
-				strings.NewReader(`{}`))
-			req.Header.Set("Content-Type", "application/json")
-			r.ServeHTTP(w, req)
+			// Invalid JSON forces ShouldBindJSON to 400 — short-circuits before nil usecase.
+			r.ServeHTTP(w, post(http.MethodPut, "/schedule/lessons/1", `{bad`))
 			assert.NotEqual(t, http.StatusForbidden, w.Code,
 				"role %q must pass canModifySchedule on Update", role)
 		})
 		t.Run("allowed_delete_"+role, func(t *testing.T) {
 			r := mount(role)
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodDelete, "/schedule/lessons/1", nil)
+			// Invalid id "xyz" short-circuits at getIDParam (post-gate) → 400.
+			req := httptest.NewRequest(http.MethodDelete, "/schedule/lessons/xyz", nil)
 			r.ServeHTTP(w, req)
 			assert.NotEqual(t, http.StatusForbidden, w.Code,
 				"role %q must pass canModifySchedule on Delete", role)
@@ -75,10 +82,7 @@ func TestLessonHandler_RoleKey_FromProductionMiddleware(t *testing.T) {
 		t.Run("allowed_create_change_"+role, func(t *testing.T) {
 			r := mount(role)
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodPost, "/schedule/changes",
-				strings.NewReader(`{}`))
-			req.Header.Set("Content-Type", "application/json")
-			r.ServeHTTP(w, req)
+			r.ServeHTTP(w, post(http.MethodPost, "/schedule/changes", `{bad`))
 			assert.NotEqual(t, http.StatusForbidden, w.Code,
 				"role %q must pass canModifySchedule on CreateChange", role)
 		})
@@ -88,10 +92,7 @@ func TestLessonHandler_RoleKey_FromProductionMiddleware(t *testing.T) {
 		t.Run("denied_create_"+role, func(t *testing.T) {
 			r := mount(role)
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodPost, "/schedule/lessons",
-				strings.NewReader(`{}`))
-			req.Header.Set("Content-Type", "application/json")
-			r.ServeHTTP(w, req)
+			r.ServeHTTP(w, post(http.MethodPost, "/schedule/lessons", `{}`))
 			assert.Equal(t, http.StatusForbidden, w.Code,
 				"role %q must be denied by canModifySchedule", role)
 		})

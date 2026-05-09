@@ -51,8 +51,13 @@ func (h *LessonHandler) getIDParam(c *gin.Context, param string) (int64, bool) {
 
 // canModifySchedule checks if user has permission to create/update/delete lessons.
 // Only system_admin and academic_secretary have full schedule access.
+//
+// Reads "role" from gin.Context — the key the production JWTMiddleware
+// writes (auth_middleware.go:59). Earlier the handler read "user_role"
+// which the middleware never sets; the gate silently 403'd every schedule
+// write op in production despite green unit tests.
 func (h *LessonHandler) canModifySchedule(c *gin.Context) bool {
-	role, exists := c.Get("user_role")
+	role, exists := c.Get("role")
 	if !exists {
 		return false
 	}

@@ -10,10 +10,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// withLessonAuth simulates the production JWTMiddleware: it writes the
+// role into the "role" key (the same key the middleware writes). Tests
+// that exercise role-gated handler logic must use this helper — any
+// helper writing "user_role" would mask the wrong-key bug class fixed
+// in v0.126.0 / v0.126.1.
 func withLessonAuth(handler gin.HandlerFunc, userID int64, role string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set("user_id", userID)
-		c.Set("user_role", role)
+		c.Set("role", role)
 		handler(c)
 	}
 }
