@@ -2464,6 +2464,10 @@
         "pending": "The curriculum is awaiting approval. Editing is locked until the administrator decides.",
         "approved": "The curriculum is approved. Changes require an administrator to return it first.",
         "archived": "The curriculum is archived. Editing is locked."
+      },
+      "sections": {
+        "heading": "Sections and items",
+        "empty": "This curriculum has no sections yet. Sections are created by an administrator."
       }
     },
     "createButton": "Create draft",
@@ -2583,6 +2587,52 @@
         "invalidReason": "Reason is required and must not exceed 4096 characters",
         "forbidden": "You do not have permission to reject",
         "generic": "Failed to reject the curriculum"
+      }
+    },
+    "disciplineItems": {
+      "controlForm": {
+        "zachet": "Pass/fail",
+        "exam": "Exam",
+        "course_project": "Course project",
+        "differential_zachet": "Graded pass/fail"
+      },
+      "bulkEdit": {
+        "loading": "Loading items…",
+        "empty": "This section has no items yet. Click \"Add row\" to add the first one.",
+        "addRow": "+ Add row",
+        "removeRow": "Remove row",
+        "submit": "Save changes",
+        "cancel": "Cancel",
+        "successToast": "Section changes saved",
+        "errorEmptyBulk": "No changes to save",
+        "errorCrossSection": "One of the items belongs to a different section. Refresh the page.",
+        "errorNotEditable": "This curriculum is no longer editable. Refresh the page.",
+        "errorInvalidInput": "Check the entered values. Hours and credits must be non-negative.",
+        "errorNotFound": "Section or item not found. Refresh the page.",
+        "errorForbidden": "You do not have permission to edit this section.",
+        "errorGeneric": "Could not save changes. Please try again.",
+        "columns": {
+          "title": "Title",
+          "hoursLectures": "Lectures",
+          "hoursPractice": "Practice",
+          "hoursLab": "Lab",
+          "hoursSelf": "Self-study",
+          "controlForm": "Control",
+          "credits": "Credits",
+          "semester": "Semester",
+          "order": "Order"
+        },
+        "cancelDialog": {
+          "title": "Discard changes?",
+          "description": "All unsaved edits will be discarded. This action cannot be undone.",
+          "confirm": "Discard changes",
+          "keepEditing": "Keep editing"
+        },
+        "conflictBanner": {
+          "heading": "Version conflict: one or more items were edited by another methodist.",
+          "message": "Server version differs from yours (you edited v{expected}). Apply the server version or retry.",
+          "applyServer": "Apply server version"
+        }
       }
     }
   },

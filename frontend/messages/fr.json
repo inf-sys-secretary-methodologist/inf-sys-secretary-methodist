@@ -2464,6 +2464,10 @@
         "pending": "Le programme est en attente d'approbation. Modification verrouillée jusqu'à la décision de l'administrateur.",
         "approved": "Le programme est approuvé. Les modifications nécessitent un retour par l'administrateur.",
         "archived": "Le programme est archivé. Modification verrouillée."
+      },
+      "sections": {
+        "heading": "Sections et disciplines",
+        "empty": "Ce plan d'études n'a pas encore de sections. Les sections sont créées par un administrateur."
       }
     },
     "createButton": "Créer un brouillon",
@@ -2583,6 +2587,52 @@
         "invalidReason": "La raison est requise et ne doit pas dépasser 4096 caractères",
         "forbidden": "Vous n'avez pas la permission de rejeter",
         "generic": "Échec du rejet du programme"
+      }
+    },
+    "disciplineItems": {
+      "controlForm": {
+        "zachet": "Validation",
+        "exam": "Examen",
+        "course_project": "Projet de cours",
+        "differential_zachet": "Validation notée"
+      },
+      "bulkEdit": {
+        "loading": "Chargement des disciplines…",
+        "empty": "Cette section n'a pas encore de disciplines. Cliquez sur « Ajouter une ligne » pour ajouter la première.",
+        "addRow": "+ Ajouter une ligne",
+        "removeRow": "Supprimer la ligne",
+        "submit": "Enregistrer les modifications",
+        "cancel": "Annuler",
+        "successToast": "Modifications de la section enregistrées",
+        "errorEmptyBulk": "Aucune modification à enregistrer",
+        "errorCrossSection": "L'une des disciplines appartient à une autre section. Actualisez la page.",
+        "errorNotEditable": "Ce plan d'études n'est plus modifiable. Actualisez la page.",
+        "errorInvalidInput": "Vérifiez les valeurs saisies. Les heures et les crédits doivent être non négatifs.",
+        "errorNotFound": "Section ou discipline introuvable. Actualisez la page.",
+        "errorForbidden": "Vous n'avez pas l'autorisation de modifier cette section.",
+        "errorGeneric": "Impossible d'enregistrer les modifications. Réessayez.",
+        "columns": {
+          "title": "Titre",
+          "hoursLectures": "Cours",
+          "hoursPractice": "TD",
+          "hoursLab": "TP",
+          "hoursSelf": "Travail personnel",
+          "controlForm": "Contrôle",
+          "credits": "Crédits",
+          "semester": "Semestre",
+          "order": "Ordre"
+        },
+        "cancelDialog": {
+          "title": "Annuler les modifications ?",
+          "description": "Toutes les modifications non enregistrées seront supprimées. Cette action est irréversible.",
+          "confirm": "Annuler les modifications",
+          "keepEditing": "Continuer l'édition"
+        },
+        "conflictBanner": {
+          "heading": "Conflit de version : une ou plusieurs disciplines ont été modifiées par un autre méthodiste.",
+          "message": "La version du serveur diffère de la vôtre (vous avez modifié v{expected}). Appliquez la version du serveur ou réessayez.",
+          "applyServer": "Appliquer la version du serveur"
+        }
       }
     }
   },
