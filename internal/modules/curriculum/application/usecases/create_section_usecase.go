@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/repositories"
 )
 
 // CreateSectionInput is the public DTO for CreateSection. CurriculumID
@@ -64,13 +65,68 @@ func NewCreateSectionUseCase(
 	return &CreateSectionUseCase{repo: repo, curriculumRepo: curriculumRepo, audit: audit, clock: clock}
 }
 
-// Execute — implementation lands в GREEN commit (Pair 4). The stub
-// emits a no-op audit denial so the audit helpers stay live in the
-// dependency graph — keeps golangci-lint's unused-symbol check happy
-// across the RED commit boundary.
+// Execute runs the use case end-to-end:
+//
+//  1. Load parent curriculum; ErrCurriculumNotFound → 'curriculum_not_found'
+//     denial (operator reads in.CurriculumID from request log).
+//  2. AuthorizeSectionEdit(actor, admin, curStatus, curCreatedBy) →
+//     'forbidden' or 'not_editable' denial depending on which sentinel
+//     surfaces.
+//  3. Build entity through NewSection (invariant gate); ErrInvalidSection
+//     → 'invalid' denial.
+//  4. Persist via repo.Save.
+//
+// Transport errors propagate WITHOUT producing any audit event so
+// the log doesn't conflate infrastructure outages with policy
+// decisions (operators read transport failures from logger stack
+// traces).
 func (uc *CreateSectionUseCase) Execute(ctx context.Context, actorID int64, isAdmin bool, in CreateSectionInput) (*entities.Section, error) {
-	_ = isAdmin
-	emitSectionAudit(uc.audit, ctx, "section.unimplemented",
-		sectionDenialFields(actorID, 0, in.CurriculumID, "stub"))
-	return nil, errors.New("section: CreateSectionUseCase.Execute not implemented yet")
+	cur, err := uc.curriculumRepo.GetByID(ctx, in.CurriculumID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrCurriculumNotFound) {
+			emitSectionAudit(uc.audit, ctx, "section.create_denied",
+				sectionDenialFields(actorID, 0, in.CurriculumID, "curriculum_not_found"))
+		}
+		return nil, err
+	}
+
+	if err := entities.AuthorizeSectionEdit(actorID, isAdmin, cur.Status(), cur.CreatedBy()); err != nil {
+		switch {
+		case errors.Is(err, entities.ErrCannotEditSection):
+			emitSectionAudit(uc.audit, ctx, "section.create_denied",
+				sectionDenialFields(actorID, 0, in.CurriculumID, "not_editable"))
+		case errors.Is(err, entities.ErrSectionScopeForbidden):
+			emitSectionAudit(uc.audit, ctx, "section.create_denied",
+				sectionDenialFields(actorID, 0, in.CurriculumID, "forbidden"))
+		}
+		return nil, err
+	}
+
+	s, err := entities.NewSection(entities.NewSectionParams{
+		CurriculumID: in.CurriculumID,
+		Title:        in.Title,
+		Description:  in.Description,
+		OrderIndex:   in.OrderIndex,
+		Now:          uc.clock(),
+	})
+	if err != nil {
+		if errors.Is(err, entities.ErrInvalidSection) {
+			emitSectionAudit(uc.audit, ctx, "section.create_denied",
+				sectionDenialFields(actorID, 0, in.CurriculumID, "invalid"))
+		}
+		return nil, err
+	}
+
+	if err := uc.repo.Save(ctx, s); err != nil {
+		return nil, err
+	}
+
+	emitSectionAudit(uc.audit, ctx, "section.created", map[string]any{
+		"actor_user_id": actorID,
+		"section_id":    s.ID,
+		"curriculum_id": s.CurriculumID(),
+		"title":         s.Title(),
+		"order_index":   s.OrderIndex(),
+	})
+	return s, nil
 }

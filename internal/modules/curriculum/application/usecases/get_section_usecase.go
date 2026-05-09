@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
 )
@@ -28,8 +27,9 @@ func NewGetSectionUseCase(repo getSectionRepo) *GetSectionUseCase {
 	return &GetSectionUseCase{repo: repo}
 }
 
-// Execute — implementation lands в GREEN commit (Pair 4).
+// Execute returns the section or whatever sentinel the repo surfaces
+// (ErrSectionNotFound on missing rows, transport errors otherwise).
+// No audit on reads — too noisy.
 func (uc *GetSectionUseCase) Execute(ctx context.Context, id int64) (*entities.Section, error) {
-	_, _ = ctx, id
-	return nil, errors.New("section: GetSectionUseCase.Execute not implemented yet")
+	return uc.repo.GetByID(ctx, id)
 }

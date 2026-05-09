@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/repositories"
 )
 
 // UpdateSectionInput is the public DTO for the section edit use case.
@@ -23,9 +24,7 @@ type UpdateSectionInput struct {
 	OrderIndex  int
 }
 
-// updateSectionRepo is the narrow port for persistence: section
-// fetch (so we can authorize against the row's curriculum) and
-// section write (the optimistic-lock UPDATE).
+// updateSectionRepo is the narrow port for persistence.
 type updateSectionRepo interface {
 	GetByID(ctx context.Context, id int64) (*entities.Section, error)
 	Update(ctx context.Context, s *entities.Section) error
@@ -67,10 +66,73 @@ func NewUpdateSectionUseCase(
 	return &UpdateSectionUseCase{repo: repo, curriculumRepo: curriculumRepo, audit: audit, clock: clock}
 }
 
-// Execute — implementation lands в GREEN commit (Pair 4).
+// Execute performs the edit:
+//
+//  1. Load section by id; ErrSectionNotFound → 'not_found' denial.
+//  2. Load parent curriculum (via section.CurriculumID());
+//     ErrCurriculumNotFound propagates without audit (defense-in-depth
+//     against orphaned section row, no productive policy event).
+//  3. AuthorizeEdit; sentinels mapped to 'forbidden' / 'not_editable'.
+//  4. UpdateBasics; ErrInvalidSection → 'invalid' denial.
+//  5. Persist via repo.Update; ErrSectionVersionConflict →
+//     'version_conflict' denial (audited as policy event since clients
+//     act on the conflict — reload + retry).
+//
+// Transport errors propagate WITHOUT audit events (logger captures
+// stack traces — operational, not policy).
 func (uc *UpdateSectionUseCase) Execute(ctx context.Context, actorID int64, isAdmin bool, in UpdateSectionInput) (*entities.Section, error) {
-	_ = isAdmin
-	emitSectionAudit(uc.audit, ctx, "section.unimplemented",
-		sectionDenialFields(actorID, in.ID, 0, "stub"))
-	return nil, errors.New("section: UpdateSectionUseCase.Execute not implemented yet")
+	s, err := uc.repo.GetByID(ctx, in.ID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrSectionNotFound) {
+			emitSectionAudit(uc.audit, ctx, "section.update_denied",
+				sectionDenialFields(actorID, in.ID, 0, "not_found"))
+		}
+		return nil, err
+	}
+
+	cur, err := uc.curriculumRepo.GetByID(ctx, s.CurriculumID())
+	if err != nil {
+		// Orphaned section: parent curriculum gone. FK CASCADE in
+		// migration 034 normally prevents this; this path is
+		// defense-in-depth only. No audit — operational anomaly,
+		// not a policy event.
+		return nil, err
+	}
+
+	if err := s.AuthorizeEdit(actorID, isAdmin, cur.Status(), cur.CreatedBy()); err != nil {
+		switch {
+		case errors.Is(err, entities.ErrCannotEditSection):
+			emitSectionAudit(uc.audit, ctx, "section.update_denied",
+				sectionDenialFields(actorID, s.ID, s.CurriculumID(), "not_editable"))
+		case errors.Is(err, entities.ErrSectionScopeForbidden):
+			emitSectionAudit(uc.audit, ctx, "section.update_denied",
+				sectionDenialFields(actorID, s.ID, s.CurriculumID(), "forbidden"))
+		}
+		return nil, err
+	}
+
+	if err := s.UpdateBasics(in.Title, in.Description, in.OrderIndex, uc.clock()); err != nil {
+		if errors.Is(err, entities.ErrInvalidSection) {
+			emitSectionAudit(uc.audit, ctx, "section.update_denied",
+				sectionDenialFields(actorID, s.ID, s.CurriculumID(), "invalid"))
+		}
+		return nil, err
+	}
+
+	if err := uc.repo.Update(ctx, s); err != nil {
+		if errors.Is(err, repositories.ErrSectionVersionConflict) {
+			emitSectionAudit(uc.audit, ctx, "section.update_denied",
+				sectionDenialFields(actorID, s.ID, s.CurriculumID(), "version_conflict"))
+		}
+		return nil, err
+	}
+
+	emitSectionAudit(uc.audit, ctx, "section.updated", map[string]any{
+		"actor_user_id": actorID,
+		"section_id":    s.ID,
+		"curriculum_id": s.CurriculumID(),
+		"title":         s.Title(),
+		"order_index":   s.OrderIndex(),
+	})
+	return s, nil
 }

@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
 )
@@ -28,8 +27,8 @@ func NewListSectionsByCurriculumUseCase(repo listSectionsRepo) *ListSectionsByCu
 	return &ListSectionsByCurriculumUseCase{repo: repo}
 }
 
-// Execute — implementation lands в GREEN commit (Pair 4).
+// Execute returns the section list (possibly empty) or a wrapped
+// transport error. No audit — reads stay quiet.
 func (uc *ListSectionsByCurriculumUseCase) Execute(ctx context.Context, curriculumID int64) ([]*entities.Section, error) {
-	_, _ = ctx, curriculumID
-	return nil, errors.New("section: ListSectionsByCurriculumUseCase.Execute not implemented yet")
+	return uc.repo.ListByCurriculumID(ctx, curriculumID)
 }
