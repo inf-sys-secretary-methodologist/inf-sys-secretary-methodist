@@ -497,6 +497,12 @@ func main() {
 	listDisciplineItemsUseCase := curUsecases.NewListDisciplineItemsBySectionUseCase(disciplineItemRepo, sectionRepo)
 	updateDisciplineItemUseCase := curUsecases.NewUpdateDisciplineItemUseCase(disciplineItemRepo, sectionRepo, curriculumRepo, auditLogger, nil)
 	deleteDisciplineItemUseCase := curUsecases.NewDeleteDisciplineItemUseCase(disciplineItemRepo, sectionRepo, curriculumRepo, auditLogger)
+	// v0.128.3 Bulk-edit transactional endpoint (B1a Layer 3) per ADR-10:
+	// dedicated UoW wraps *sql.DB и produces tx-bound repos via DBTX
+	// reuse, supporting commit-or-rollback semantic для combined
+	// creates+updates+deletes operations.
+	bulkDisciplineItemsUoW := curPersistence.NewBulkDisciplineItemsUnitOfWorkPG(db)
+	bulkEditDisciplineItemsUseCase := curUsecases.NewBulkEditDisciplineItemsUseCase(bulkDisciplineItemsUoW, auditLogger, nil)
 	logger.Info("Curriculum module initialized", nil)
 
 	// Initialize schedule module
@@ -731,6 +737,7 @@ func main() {
 		listDisciplineItemsUseCase,
 		updateDisciplineItemUseCase,
 		deleteDisciplineItemUseCase,
+		bulkEditDisciplineItemsUseCase,
 		eventUseCase,
 		lessonUseCase,
 		announcementUseCase,
@@ -1258,6 +1265,7 @@ func setupRoutes(
 	listDisciplineItemsUseCase *curUsecases.ListDisciplineItemsBySectionUseCase,
 	updateDisciplineItemUseCase *curUsecases.UpdateDisciplineItemUseCase,
 	deleteDisciplineItemUseCase *curUsecases.DeleteDisciplineItemUseCase,
+	bulkEditDisciplineItemsUseCase *curUsecases.BulkEditDisciplineItemsUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
@@ -2130,6 +2138,21 @@ func setupRoutes(
 				disciplineItemGroup.OPTIONS("/items/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 			logger.Info("DisciplineItem module routes registered", nil)
+		}
+
+		// v0.128.3 Bulk-edit transactional endpoint (B1a Layer 3) per ADRs
+		// 10-13. Separate handler + route from per-item DisciplineItem
+		// endpoints; commit-or-rollback semantic atomically applies
+		// combined creates+updates+deletes batch.
+		if bulkEditDisciplineItemsUseCase != nil {
+			bulkDisciplineItemsHandler := curHandler.NewBulkDisciplineItemsHandler(bulkEditDisciplineItemsUseCase)
+			bulkDisciplineItemsGroup := protectedGroup.Group("")
+			bulkDisciplineItemsGroup.Use(authMiddleware.RequireNonStudent())
+			{
+				bulkDisciplineItemsGroup.POST("/sections/:sectionID/items/bulk", bulkDisciplineItemsHandler.BulkEdit)
+				bulkDisciplineItemsGroup.OPTIONS("/sections/:sectionID/items/bulk", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+			logger.Info("Bulk DisciplineItem route registered", nil)
 		}
 
 		// Schedule/Events module routes
