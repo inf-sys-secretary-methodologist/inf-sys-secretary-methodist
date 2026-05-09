@@ -127,6 +127,47 @@ func TestTypeRepo_UpdateTemplate_WithVariables(t *testing.T) {
 	require.NoError(t, repo.UpdateTemplate(context.Background(), 1, &content, vars))
 }
 
+// v0.126.0 Pair 2: pin that the repository SELECTs the methodist_only
+// column and surfaces it on the returned entity. Migration 033 will
+// add the column with default FALSE, so existing rows scan to false;
+// rows explicitly set to true must round-trip on read.
+func TestTypeRepo_GetByID_MethodistOnly(t *testing.T) {
+	repo, mock := newTypeRepoMock(t)
+
+	cols := append([]string{}, typeCols...)
+	cols = append(cols, "methodist_only")
+	now := time.Now()
+
+	rows := sqlmock.NewRows(cols).
+		AddRow(1, "Type1", "T1", nil, nil, nil, nil, false, false, nil, nil, now, now, true)
+	mock.ExpectQuery(regexp.QuoteMeta("FROM document_types WHERE id")).
+		WithArgs(int64(1)).
+		WillReturnRows(rows)
+
+	dt, err := repo.GetByID(context.Background(), 1)
+	require.NoError(t, err)
+	assert.True(t, dt.MethodistOnly, "methodist_only must round-trip from DB")
+}
+
+func TestTypeRepo_GetAll_MethodistOnly(t *testing.T) {
+	repo, mock := newTypeRepoMock(t)
+
+	cols := append([]string{}, typeCols...)
+	cols = append(cols, "methodist_only")
+	now := time.Now()
+
+	rows := sqlmock.NewRows(cols).
+		AddRow(1, "Open", "T1", nil, nil, nil, nil, false, false, nil, nil, now, now, false).
+		AddRow(2, "Methodist", "T2", nil, nil, nil, nil, false, false, nil, nil, now, now, true)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name, code")).WillReturnRows(rows)
+
+	types, err := repo.GetAll(context.Background())
+	require.NoError(t, err)
+	require.Len(t, types, 2)
+	assert.False(t, types[0].MethodistOnly, "first row methodist_only must be false")
+	assert.True(t, types[1].MethodistOnly, "second row methodist_only must be true")
+}
+
 func TestTypeRepo_GetAllWithTemplates(t *testing.T) {
 	repo, mock := newTypeRepoMock(t)
 	rows := sqlmock.NewRows(typeCols)
