@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,20 @@ interface MFAVerifyLoginStepProps {
 // stays disabled until the input is presentable.
 const CODE_PATTERN = /^\d{6}$/
 
+// Local error keys (subset of loginForm.mfaPrompt.*) — selected by
+// HTTP status so users see a localized message rather than the raw
+// backend Russian string regardless of their locale.
+type LocalErrorKey = 'errorInvalidCode' | 'errorIntermediateInvalid'
+
+function pickErrorKey(status: number | undefined): LocalErrorKey {
+  // 401: intermediate JWT invalid / expired / replayed → dead.
+  // 422: backend returned INVALID_MFA_CODE / ErrMFANotEnabled → retry.
+  // Any other status (including unknown / network) treated as
+  // intermediate-dead so the user is forced back to the password
+  // gate rather than stuck on an unrecoverable step.
+  return status === 422 ? 'errorInvalidCode' : 'errorIntermediateInvalid'
+}
+
 export function MFAVerifyLoginStep({ redirectTo = '/' }: MFAVerifyLoginStepProps) {
   const t = useTranslations('loginForm')
   const router = useRouter()
@@ -26,10 +41,10 @@ export function MFAVerifyLoginStep({ redirectTo = '/' }: MFAVerifyLoginStepProps
   const intermediateToken = useAuthStore((s) => s.mfaIntermediateToken)
   const verifyLoginMFA = useAuthStore((s) => s.verifyLoginMFA)
   const clearMFAChallenge = useAuthStore((s) => s.clearMFAChallenge)
-  const authError = useAuthStore((s) => s.error)
 
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
+  const [errorKey, setErrorKey] = useState<LocalErrorKey | null>(null)
 
   // Defence-in-depth: the parent (LoginForm) only mounts this step
   // when an intermediate is held, but if state changes underneath
@@ -42,15 +57,27 @@ export function MFAVerifyLoginStep({ redirectTo = '/' }: MFAVerifyLoginStepProps
   const handleSubmit = async () => {
     if (!codeValid || busy) return
     setBusy(true)
+    setErrorKey(null)
     try {
       await verifyLoginMFA(code)
       // Match the LoginForm cookie-write delay so downstream guards
       // see the new auth cookie before the route change.
       await new Promise((resolve) => setTimeout(resolve, 100))
       router.push(redirectTo)
-    } catch {
-      // The store has already written the backend message to
-      // state.error. Stay on the step so the user can retry.
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      const key = pickErrorKey(status)
+      if (key === 'errorInvalidCode') {
+        // Wrong code — keep the challenge so the user can retry.
+        setErrorKey(key)
+      } else {
+        // Dead intermediate (401 or unknown). Drop the challenge so
+        // LoginForm flips back to the credentials view and surface
+        // the localized message via toast (the inline error region
+        // unmounts with the component).
+        toast.error(t(`mfaPrompt.${key}`), { duration: 6000 })
+        clearMFAChallenge()
+      }
     } finally {
       setBusy(false)
     }
@@ -68,9 +95,9 @@ export function MFAVerifyLoginStep({ redirectTo = '/' }: MFAVerifyLoginStepProps
         <p className="text-sm text-muted-foreground">{t('mfaPrompt.subtitle')}</p>
       </div>
 
-      {authError && (
+      {errorKey && (
         <div className="p-4 text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
-          <p>{authError}</p>
+          <p>{t(`mfaPrompt.${errorKey}`)}</p>
         </div>
       )}
 

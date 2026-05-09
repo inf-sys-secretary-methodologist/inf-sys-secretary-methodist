@@ -128,7 +128,6 @@
       "codeLabel": "Verification code",
       "submit": "Verify and sign in",
       "errorInvalidCode": "Invalid verification code. Please try again.",
-      "errorExpired": "MFA session expired. Please sign in again.",
       "errorIntermediateInvalid": "MFA session is no longer valid. Please sign in again.",
       "resendNote": "Open your authenticator app — codes refresh every 30 seconds.",
       "loginAgain": "Sign in again"

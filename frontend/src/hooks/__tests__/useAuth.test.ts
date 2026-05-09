@@ -37,6 +37,13 @@ describe('useAuth', () => {
       checkAuth: mockCheckAuth,
       clearError: mockClearError,
     } as any)
+    // useLogin.handleLogin reads useAuthStore.getState().mfaIntermediateToken
+    // after await login() to skip the redirect when the store flipped
+    // into the MFA-pending branch (v0.125.2). The auto-mock does not
+    // expose getState, so we attach a stub returning the no-MFA shape.
+    ;(mockUseAuthStore as any).getState = () => ({
+      mfaIntermediateToken: null,
+    })
   })
 
   afterEach(() => {

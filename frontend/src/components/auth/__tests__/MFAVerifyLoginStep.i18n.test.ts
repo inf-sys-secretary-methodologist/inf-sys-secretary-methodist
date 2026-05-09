@@ -20,7 +20,6 @@ const REQUIRED_KEYS = [
   'mfaPrompt.codeLabel',
   'mfaPrompt.submit',
   'mfaPrompt.errorInvalidCode',
-  'mfaPrompt.errorExpired',
   'mfaPrompt.errorIntermediateInvalid',
   'mfaPrompt.resendNote',
   'mfaPrompt.loginAgain',
