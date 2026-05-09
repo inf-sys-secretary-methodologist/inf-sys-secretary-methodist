@@ -280,3 +280,138 @@ Mean ≥ 9 / min ≥ 8 across 7 axes (TDD / DDD / CA / Tests / Cohesion / Hygien
 - Cross-aggregate validation для credits sum (curriculum.total_credits == sum(items.credits)) — read-model query, не invariant. Decide where to surface: API field on Curriculum.Get или separate `/api/curricula/:id/validation` endpoint. Defer until product owner asks.
 - Bulk operations API shape — `POST /api/sections/:id/items/bulk` with array body vs `PATCH` with diff payload. Decide в v0.128.2 plan.
 - Frontend column ordering (sections × items 2D table) — UX call в v0.128.3 brainstorm session.
+
+---
+
+## v0.128.3 Pre-flight ADRs (was v0.128.2 в original plan, moved per ADR-9)
+
+Architectural decisions для bulk-edit transactional endpoint. Locked перед TDD pairs start.
+
+### ADR-10: Curriculum-bounded BulkUnitOfWork (NOT shared `database.PostgresUnitOfWork`)
+
+Discovered: `internal/shared/infrastructure/database/transaction.go` имеет `PostgresUnitOfWork` (zero production callers, only tests). Design flaws: `Begin()` без context, leaks raw `*sql.Tx` через `GetTx()`, single-instance state machine не concurrency-safe, `fmt.Errorf("...")` для errors (no sentinels), no isolation level control. Это `// TODO`-style scaffolding violating CLAUDE.md "никаких 'на будущее'" gate.
+
+**Decision**: write curriculum-bounded `BulkDisciplineItemsUnitOfWork` в `internal/modules/curriculum/infrastructure/persistence/bulk_unit_of_work.go`. Properties:
+
+- Context-aware: `Begin(ctx context.Context, opts *sql.TxOptions) (BulkTx, error)` — supports deadline, cancellation, isolation level (Repeatable Read recommended для phantom-prevention).
+- Tx-bound repo methods on returned `BulkTx`: narrow interface what bulk-edit usecase needs (GetSection / GetItem / GetCurriculum / SaveItem / UpdateItem / DeleteItem / Commit / Rollback). NO leak of raw `*sql.Tx`.
+- Sentinel errors: `var ErrBulkTxAlreadyStarted = errors.New(...)` etc — `errors.Is`-able.
+- Concurrency-safe: each Begin returns fresh `BulkTx` instance (state per-call, not per-UoW).
+
+**Existing dead `PostgresUnitOfWork`**: leave-and-flag. Don't touch в v0.128.3 (out of scope, risk-additive). Backlog candidate для shared infra refactor release if 2nd module needs UoW.
+
+**Reasoning**: cross-module shared UoW currently has zero working callers; redesigning shared infra speculatively is anti-pattern. Curriculum-bounded UoW respects bounded context per DDD. If pattern repeats в other modules, refactor shared в that release with clear consumer.
+
+### ADR-11: Bulk endpoint scope — single-section, combined operations, no empty
+
+`POST /api/sections/:sectionID/items/bulk` body:
+
+```json
+{
+  "creates": [{"title": "...", "hours_lectures": 36, ...}],
+  "updates": [{"id": 202, "version": 5, "title": "...", ...}],
+  "deletes": [203, 204]
+}
+```
+
+**Single section per request** (sectionID from path, NOT body). Creates inherit `:sectionID`. Updates+deletes filtered server-side: target item.section_id MUST equal `:sectionID` else 422 `ErrCrossSectionBulkEdit`. Cross-section bulk = separate future endpoint if/when needed.
+
+**Combined operations** in single tx (creates + updates + deletes). Single curriculum-status check (load curriculum once at usecase entry via section.CurriculumID; pass status + createdBy primitives к each item authorize). N items = 2 cross-aggregate queries (vs naive N×3).
+
+**Empty bulk → 422 `ErrEmptyBulkInput`**. `{creates:[], updates:[], deletes:[]}` returns 422 — not a no-op success. Reasoning: empty operations clutter audit log + confuse client retry semantics.
+
+**Rejected**: split endpoints (`/bulk-create`, `/bulk-update`, `/bulk-delete`) — multi-tx orchestration, can't combine atomically across operations. Combined single-tx commit-or-rollback is the value prop.
+
+### ADR-12: Conflict response shape — collect-all, FK CASCADE → SECTION_DELETED
+
+**Optimistic-lock conflicts (409)** — collect ALL conflicts, не short-circuit on first:
+
+```json
+{
+  "error": "VERSION_CONFLICT",
+  "conflicts": [
+    {"id": 202, "expected_version": 5, "current_version": 7},
+    {"id": 204, "expected_version": 3, "current_version": 4}
+  ]
+}
+```
+
+Reasoning: UI shows all stale items in one render, user can merge fresh edits all at once (better UX). Cost: usecase iterates all updates even after first conflict — N queries for N updates regardless of failure rate. Acceptable for admin-internal CRUD (low QPS).
+
+**FK CASCADE delete of parent section (concurrent delete race) → 409 `SECTION_DELETED`**:
+
+```json
+{
+  "error": "SECTION_DELETED",
+  "section_id": 11
+}
+```
+
+No per-item conflicts — section gone means whole bulk meaningless. Single tx rollback. Reasoning: cleaner UI message ("Раздел был удалён") vs trying to reconstruct per-item conflicts after parent gone.
+
+**Tx isolation**: Repeatable Read recommended (prevents phantom reads in long bulk). PostgreSQL default Read Committed allows item created mid-bulk to be missed by subsequent reads.
+
+### ADR-13: Audit shape — bulk_edited (success) / bulk_edit_denied (failure)
+
+**Success**:
+```
+audit.events.action = "discipline_item.bulk_edited"
+audit.events.fields = {
+  actor_user_id, section_id, curriculum_id,
+  created_count, updated_count, deleted_count
+}
+```
+
+**Failure (any of)**:
+```
+audit.events.action = "discipline_item.bulk_edit_denied"
+audit.events.fields = {
+  actor_user_id, section_id, curriculum_id, reason
+}
+```
+
+`reason` ∈ {`section_not_found`, `forbidden`, `not_editable`, `version_conflict`, `cross_section`, `empty_input`, `invalid` (single-item invariant fail propagates as bulk failure), `section_deleted` (FK CASCADE race)}.
+
+Single audit event per bulk operation (success или denied), не per-item — bulk = single transaction = single audit unit. Per-item failures aggregated в `conflicts` field of denied event. Mirror к Curriculum approve/reject pattern (single audit event, not per-section).
+
+### ADR-14: Pre-flight Tier 2 absorption — Pair 0 before bulk-edit pairs
+
+Tier 2 findings из v0.128.2 reviewer round-1 absorbed как **Pair 0** of v0.128.3, BEFORE bulk-edit pairs:
+
+- **Pair 0a (refactor)**: split `discipline_item_usecases_test.go` (595 LoC, growing) per usecase action — `create_discipline_item_usecases_test.go` / `update_…` / `delete_…` / `list_…` / `get_…` + shared `discipline_item_test_helpers_test.go`. Pure refactor, no behavior change. Done before bulk-edit tests land чтобы избежать file-size explosion.
+- **Pair 0b (test)**: add `TestDisciplineItemHandler_List_SectionNotFound` integration test — pin handler-level 404 surface inheritance claim from v0.128.2.
+
+These don't add new features — закрывают reviewer Tier 2 hardening before new feature work expands surface area.
+
+### v0.128.3 TDD pairs roadmap
+
+Estimated 6 pairs (after Pair 0):
+
+1. **Pair 1** — `BulkDisciplineItemsUnitOfWork` port + impl. Sentinel errors (`ErrBulkTxAlreadyStarted`, etc). Context-aware Begin/Commit/Rollback. Tests: nil-panic constructor, Begin success, Begin error, Commit/Rollback semantics, isolation level passing.
+2. **Pair 2** — `BulkEditDisciplineItemsUseCase` happy-creates path. Authorize once, apply N creates within tx, emit success audit.
+3. **Pair 3** — Updates branch с optimistic-lock conflict accumulation. Iterate all updates, collect conflicts, rollback if any conflict → return BulkEditResult с Conflicts populated.
+4. **Pair 4** — Deletes branch + FK CASCADE detection. Surface как `ErrSectionDeleted` если section disappears mid-tx.
+5. **Pair 5** — HTTP handler + integration tests. mapBulkEditError для all reasons. Combined create+update+delete request body validation.
+6. **Pair 6** — DI wiring + audit shape verification + dead-`PostgresUnitOfWork` doc note (don't touch, just flag).
+
+~3-4h scope (was 2-3h, pre-flight cleanup adds ~1h).
+
+### Migration policy v0.128.3
+
+**No new SQL migration**. Existing `curriculum_section_items` (035) carries needed schema:
+- `version INT NOT NULL DEFAULT 0` для optimistic-lock per-item.
+- 10 CHECK constraints для invariants (re-enforced by domain).
+- FK CASCADE на curriculum_sections (CASCADE chain triggers `SECTION_DELETED` race).
+
+Migration 036 free slot for v0.128.4+ if needed.
+
+### Risk register
+
+| Risk | Severity | Mitigation |
+|---|---|---|
+| Bulk-edit UoW boilerplate (tx-bound repo methods duplicate single-row methods) | Medium | Accept duplication for v0.128.3; refactor к shared DBTX-based repo if pattern recurs |
+| Reviewer round-1 catches authorize-once-per-bulk vs per-item authorize concern | Low | Document in code comment + plan ADR; trust fix-cycle if reviewer requests |
+| Conflict-collect iteration N queries — perf concern | Low | Acceptable for admin-internal CRUD low QPS; profile if hot path emerges |
+| FK CASCADE race detection — sql error code parsing fragile | Medium | Use lib/pq error code constants (23503 foreign_key_violation); pin via integration test |
+| Cross-section update detection — usecase loops к verify item.section_id = :sectionID | Low | Single SQL `WHERE id = ANY($1) AND section_id = $2` returns mismatched IDs → 422 |
+| Repeatable Read isolation may not be available in test container | Low | Check pg version; fallback to Read Committed с documented limitation if RR не available |
