@@ -43,7 +43,13 @@ func NewListDisciplineItemsBySectionUseCase(
 	return &ListDisciplineItemsBySectionUseCase{repo: repo, sectionRepo: sectionRepo}
 }
 
-// Execute returns slice (possibly empty) или wrapped transport error.
+// Execute confirms the parent section exists, then returns its items
+// (possibly empty). Returns repositories.ErrSectionNotFound when the
+// section is absent — caller maps to 404. Other section-lookup errors
+// propagate as-is (transport class).
 func (uc *ListDisciplineItemsBySectionUseCase) Execute(ctx context.Context, sectionID int64) ([]*entities.DisciplineItem, error) {
+	if _, err := uc.sectionRepo.GetByID(ctx, sectionID); err != nil {
+		return nil, err
+	}
 	return uc.repo.ListBySectionID(ctx, sectionID)
 }
