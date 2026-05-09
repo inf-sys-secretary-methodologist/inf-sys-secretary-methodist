@@ -43,10 +43,11 @@ func NewTemplateHandler(templateUseCase *usecases.TemplateUseCase, validator *va
 // @Router /api/templates [get]
 // @Security BearerAuth
 func (h *TemplateHandler) GetTemplates(c *gin.Context) {
-	// JWTMiddleware writes user_role into the gin context. A missing
-	// or non-string value is treated as the empty role, which fails
-	// CanAccessByRole closed for any methodist-only template.
-	role, _ := c.Get("user_role")
+	// JWTMiddleware writes the role under the 'role' key (see
+	// internal/modules/auth/interfaces/http/middleware/auth_middleware.go).
+	// A missing or non-string value is treated as the empty role,
+	// which fails CanAccessByRole closed for any methodist-only template.
+	role, _ := c.Get("role")
 	roleStr, _ := role.(string)
 
 	templates, err := h.templateUseCase.GetAllTemplates(c.Request.Context(), roleStr)
@@ -203,10 +204,16 @@ func (h *TemplateHandler) UpdateTemplate(c *gin.Context) {
 		return
 	}
 
-	// Check admin role
-	role, exists := c.Get("user_role")
-	if !exists || (role != "admin" && role != "secretary") {
-		c.JSON(http.StatusForbidden, gin.H{errorKey: "only admin or secretary can update templates"})
+	// Restrict to paperwork orchestrators. JWTMiddleware writes the
+	// role under 'role'; values are 'system_admin' / 'methodist' /
+	// 'academic_secretary' / 'teacher' / 'student' (see
+	// auth/domain/role.go). The pre-v0.126.0 check used the wrong
+	// key and stale value names ('admin' / 'secretary'), which
+	// returned 403 to every legitimate caller in production.
+	role, exists := c.Get("role")
+	roleStr, _ := role.(string)
+	if !exists || (roleStr != "system_admin" && roleStr != "academic_secretary" && roleStr != "methodist") {
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "only system_admin / methodist / academic_secretary can update templates"})
 		return
 	}
 

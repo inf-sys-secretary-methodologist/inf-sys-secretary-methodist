@@ -18,20 +18,16 @@ func setupRouter() *gin.Engine {
 	return gin.New()
 }
 
-// withAuth returns middleware that sets user_id and role in context.
+// withAuth returns middleware that sets user_id and role in context,
+// matching the production JWTMiddleware contract (see
+// internal/modules/auth/interfaces/http/middleware/auth_middleware.go).
+// Tests must use this helper rather than ad-hoc c.Set('user_role', ...) —
+// reading 'user_role' silently misses the role and degrades to
+// failure-closed behaviour, hiding genuine handler-side bugs.
 func withAuth(userID int64, role string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set("user_id", userID)
 		c.Set("role", role)
-		c.Next()
-	}
-}
-
-// withUserRole returns middleware that sets user_id and user_role in context.
-func withUserRole(userID int64, userRole string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Set("user_id", userID)
-		c.Set("user_role", userRole)
 		c.Next()
 	}
 }
