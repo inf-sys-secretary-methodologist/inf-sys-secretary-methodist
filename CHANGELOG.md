@@ -15,6 +15,94 @@
 
 ---
 
+## [0.128.3] — 2026-05-09
+
+### Added — Bulk-edit transactional endpoint (B1a Layer 3 of 5)
+
+`POST /api/sections/:sectionID/items/bulk` — atomic commit-or-rollback semantic для combined creates+updates+deletes operations. Closes B1a Phase 4 row #59 «Bulk-edit РПД» backend slice. Frontend table view UI shipping в v0.128.4 finalizes the initiative.
+
+Plan: `docs/plans/2026-05-09-v0128-section-aggregate.md` ADRs 10-14 (locked в pre-flight). Mirror к Vaughn Vernon "Aggregate transactional consistency boundary" pattern, expanded to span 3 ARs (DisciplineItem + Section + Curriculum) within single tx — bulk-edit-РПД is one editorial action в the methodist's mental model.
+
+**UnitOfWork infrastructure (Pair 1)**:
+
+- `dbtx.go` — new narrow `DBTX` interface (`ExecContext` / `QueryContext` / `QueryRowContext`). Three PG repos (`DisciplineItemRepositoryPG` / `SectionRepositoryPG` / `CurriculumRepositoryPG`) refactored to accept `DBTX` instead of `*sql.DB` — both `*sql.DB` (single-connection mode) и `*sql.Tx` (tx-bound mode) satisfy the interface. Single source of truth для repo SQL; no duplication между tx и non-tx paths. Mirror sqlc-generated pattern.
+- `domain/repositories/bulk_unit_of_work.go` — new broad interfaces `BulkDisciplineItemsUnitOfWork` (Begin only) + `BulkDisciplineItemsTx` (Items / Sections / Curricula / Commit / Rollback) + sentinel `ErrBulkTxFinished` (idempotent close-once).
+- `infrastructure/persistence/bulk_unit_of_work_pg.go` — `BulkDisciplineItemsUnitOfWorkPG` wraps `*sql.DB`, returns `bulkTxPG` per Begin call. `bulkTxPG` holds `*sql.Tx` + tx-bound repo instances + `finished` flag для close-once. Concurrency-safe (state per-call, не per-UoW).
+- 9 sqlmock tests pin Begin success / DB error / isolation level (Repeatable Read recommended per ADR-12) / tx Items/Sections/Curricula returns / Commit + Rollback happy / DoubleCommit + RollbackAfterCommit idempotent.
+
+**Bulk-edit usecase (Pairs 2-4)**:
+
+- `BulkEditDisciplineItemsUseCase` в `application/usecases/bulk_edit_discipline_items_usecase.go`. Public DTOs: `BulkCreateItem`, `BulkUpdateItem`, `BulkEditConflict { ID, ExpectedVersion, CurrentVersion }`, `BulkEditDisciplineItemsResult { Created, Updated, Deleted, Conflicts }`.
+- 4 sentinels: `ErrEmptyBulkInput` (422 — empty creates+updates+deletes), `ErrCrossSectionBulkEdit` (422 — target item.section_id ≠ path :sectionID), `ErrBulkVersionConflict` (409 — collect-all conflicts).
+- Execute pipeline:
+  1. Empty validation pre-tx → `ErrEmptyBulkInput` + audit `bulk_edit_denied (empty_input)`. No Begin called.
+  2. Begin tx с `&sql.TxOptions{Isolation: sql.LevelRepeatableRead}` per ADR-12 (phantom-prevention).
+  3. `defer tx.Rollback()` — idempotent close-once via `bulkTxPG.finished` flag.
+  4. `tx.Sections().GetByID(in.SectionID)` — `ErrSectionNotFound` → audit `bulk_edit_denied (section_not_found)` + propagate.
+  5. `tx.Curricula().GetByID(section.CurriculumID())` — orphaned-section path propagates без audit (operational anomaly, не policy event).
+  6. `entities.AuthorizeDisciplineItemEdit(actorID, isAdmin, cur.Status(), cur.CreatedBy())` — audit `bulk_edit_denied (forbidden|not_editable)` + propagate. Single curriculum-status check для whole bulk (load curriculum once, pass status+createdBy primitives) — N items = 2 cross-aggregate queries (vs naive N×3).
+  7. Per-create: `entities.NewDisciplineItem(...)` invariant gate → audit `bulk_edit_denied (invalid)` + propagate; `tx.Items().Save()` persists.
+  8. Per-update: `tx.Items().GetByID()` (item_not_found denial) → cross-section guard (cross_section denial) → `UpdateBasics` invariant gate (invalid denial) → `tx.Items().Update()` — on `ErrDisciplineItemVersionConflict` collect `BulkEditConflict {ID, ExpectedVersion, CurrentVersion=0}` and `continue` (collect-all per ADR-12, не short-circuit).
+  9. Per-delete: `tx.Items().GetByID()` (not_found) → cross-section guard → `tx.Items().Delete()`.
+  10. If `len(Conflicts) > 0` → audit `bulk_edit_denied (version_conflict)` + return `(result, ErrBulkVersionConflict)` без Commit.
+  11. `tx.Commit()` + emit success audit `discipline_item.bulk_edited` с per-op counts (created_count / updated_count / deleted_count). Single audit per bulk operation per ADR-13, не per-item.
+
+- **CurrentVersion semantics**: under Repeatable Read isolation, a re-fetch within the failed tx returns the SAME snapshot the initial GetByID saw — concurrently-committed version invisible from inside tx. `CurrentVersion=0` is "unknown — caller refetches outside tx" hint. Frontend conflict UI (v0.128.4) issues fresh `GET /api/items/:id` per conflict для accurate merge state. Field preserved в schema для future Read Committed deployments.
+
+**HTTP handler + integration (Pair 5)**:
+
+- `BulkDisciplineItemsHandler` в `interfaces/http/handlers/bulk_discipline_items_handler.go` — separate handler от `DisciplineItemHandler` (different request/response shapes).
+- Request: `BulkEditRequest { Creates, Updates, Deletes }` с per-item `BulkCreateItemRequest` / `BulkUpdateItemRequest` (Version intentionally NOT в DTO — repo loads server-side fresh entity, optimistic-lock SQL guards race).
+- Response 200: `BulkEditSuccessResponse { Created[], Updated[], Deleted[] }` — `Created` / `Updated` projected through `mapDisciplineItem` shared с DisciplineItemHandler.
+- Response 409 VERSION_CONFLICT: `BulkEditConflictResponse { Error: "VERSION_CONFLICT", Conflicts: [{ID, ExpectedVersion, CurrentVersion}] }` per ADR-12 collect-all.
+- `mapBulkEditError` — sentinel mapping (EMPTY_BULK_INPUT 422 / CROSS_SECTION_BULK_EDIT 422 / NOT_EDITABLE 422 / INVALID_INPUT 422 / 404 section + item / 403 forbidden / defensive 409 fallback ErrBulkVersionConflict без conflict details для unreachable contract-violation path).
+- 12 integration tests covering constructor nil-panic / auth gates (401 missing, 403 student) / path validation (400 bad section ID + bad JSON) / happy path all ops / version conflict 409 shape pin / sentinel mapping × 6.
+
+**DI wiring (Pair 6)**: `cmd/server/main.go` extended — UoW + bulk usecase constructed at line 502; `setupRoutes` signature extended with bulkEditDisciplineItemsUseCase; route POST /api/sections/:sectionID/items/bulk + OPTIONS под protectedGroup с RequireNonStudent middleware.
+
+### Internal — Pre-flight Tier 2 absorption (Pair 0)
+
+Per ADR-14 — Tier 2 findings из v0.128.2 reviewer round-1 absorbed как Pair 0 BEFORE bulk-edit pairs:
+
+- **Pair 0a**: `discipline_item_usecases_test.go` (595 LoC) split per usecase action в 6 files (helpers + create+get+list+update+delete) — pure refactor, no behavior change. Mirrors existing per-usecase split pattern в curriculum module.
+- **Pair 0b**: `TestDisciplineItemHandler_List_SectionNotFound` integration test added pinning handler-level 404 surface inheritance claim from v0.128.2.
+
+### Reviewer triangulation — round-2 SHIP
+
+Round-1 mean 8.14 / min 7 — FIX-CYCLE: 2 Tier 1 (errcheck × 8 в bulk_unit_of_work_pg_test.go + dead `ErrBulkSectionDeleted` sentinel) + 2 Tier 2 (re-fetch under RR meaningless + handler defensive guard).
+
+Round-2 mean 8.86 / min 8 — SHIP. All 4 round-1 findings CLOSED:
+
+- TDD 8/10 — fix-cycle bundled review-driven changes в single commit (acceptable convention для review-bug fix-up; не behavior change requiring RED→GREEN split).
+- DDD 9/10 — dead-code violation closed.
+- CA 9/10 — layer boundaries clean.
+- Tests 9/10 — `TestBulkEdit_UpdateVersionConflict_Single` now explicitly asserts CurrentVersion=0 — closes self-confirming green class.
+- Cohesion 9/10.
+- Hygiene 9/10 — 8 errcheck violations closed; 0 lint issues.
+- Security 9/10 — defensive 409 fallback prevents 500 leak on contract-violation path.
+
+### Out of scope (deferred к v0.128.4+)
+
+- **v0.128.4 — Frontend bulk-edit UI** + i18n × 4: table view, multi-row select, conflict 409 UI mapping (must refetch outside tx для accurate CurrentVersion).
+- **FK CASCADE detection** (concurrent section delete during bulk-edit) — admin-internal CRUD low race rate, future v0.128.x optimization if profiling shows pattern. Currently surfaces as generic 500 если concurrent section delete races bulk operation.
+- **Reviewer Tier 3 nits**: `bulkEditUnitOfWork` narrow port duplicates broad interface (single method); test naming consistency (`Frozen` → `PendingApproval`); error message client exposure (auth-gated handler — trusted audience). Defer to v0.128.4 polish.
+
+### Migration
+
+No SQL migration. Migration 035 (curriculum_section_items) carries needed schema (version column + CHECK constraints + FK CASCADE). 036 next free slot.
+
+### Verify
+
+- Backend: 153 packages green; `go test ./internal/modules/curriculum/...` all sub-packages pass; 32 new tests на bulk-edit (9 BulkUoW + 11 BulkEdit usecase + 12 handler integration).
+- `golangci-lint run --max-same-issues=0 ./internal/modules/curriculum/...` — 0 issues.
+- 8 version files atomically synced 0.128.2 → 0.128.3.
+
+### Internal — TDD/refactor commit train
+
+15 commits (Pair 0 × 3 + Pair 1 × 3 + Pairs 2-4 RED→GREEN × 6 + Pair 5 backfill + Pair 6 DI) + 1 fix-cycle commit closing reviewer round-1 findings.
+
+---
+
 ## [0.128.2] — 2026-05-09
 
 ### Fixed — v0.128.1 retroactive review Tier 1 findings closed
