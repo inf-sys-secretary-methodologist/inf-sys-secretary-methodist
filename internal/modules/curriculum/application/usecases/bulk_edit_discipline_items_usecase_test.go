@@ -671,6 +671,158 @@ func TestBulkEdit_CombinedCreatesUpdates_AtomicRollbackOnConflict(t *testing.T) 
 	assert.GreaterOrEqual(t, tx.rollbackCalls, 1)
 }
 
+// ===== Deletes =====
+
+func TestBulkEdit_HappyDelete_Single(t *testing.T) {
+	tx := builtBulkTx()
+	tx.sections.getByIDFn = func(_ context.Context, _ int64) (*entities.Section, error) {
+		return builtSectionForItemTests(t), nil
+	}
+	tx.curricula.getByIDFn = func(_ context.Context, _ int64) (*entities.Curriculum, error) {
+		return draftCurriculumForItem(t, 42), nil
+	}
+	tx.items.getByIDFn = func(_ context.Context, id int64) (*entities.DisciplineItem, error) {
+		return builtItemForBulk(t, id, 1), nil
+	}
+	uow := &fakeBulkUoW{tx: tx}
+	audit := &recordingAuditSink{}
+	uc := NewBulkEditDisciplineItemsUseCase(uow, audit, time.Now)
+
+	res, err := uc.Execute(context.Background(), 42, false, BulkEditDisciplineItemsInput{
+		SectionID: 11,
+		Deletes:   []int64{202},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	require.Len(t, res.Deleted, 1)
+	assert.Equal(t, int64(202), res.Deleted[0])
+	assert.Len(t, tx.items.deleteCalls, 1)
+	assert.Equal(t, 1, tx.commitCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "discipline_item.bulk_edited", audit.events[0].Action)
+	assert.Equal(t, 1, audit.events[0].Fields["deleted_count"])
+}
+
+func TestBulkEdit_HappyDelete_Multiple(t *testing.T) {
+	tx := builtBulkTx()
+	tx.sections.getByIDFn = func(_ context.Context, _ int64) (*entities.Section, error) {
+		return builtSectionForItemTests(t), nil
+	}
+	tx.curricula.getByIDFn = func(_ context.Context, _ int64) (*entities.Curriculum, error) {
+		return draftCurriculumForItem(t, 42), nil
+	}
+	tx.items.getByIDFn = func(_ context.Context, id int64) (*entities.DisciplineItem, error) {
+		return builtItemForBulk(t, id, 1), nil
+	}
+	uow := &fakeBulkUoW{tx: tx}
+	audit := &recordingAuditSink{}
+	uc := NewBulkEditDisciplineItemsUseCase(uow, audit, time.Now)
+
+	res, err := uc.Execute(context.Background(), 42, false, BulkEditDisciplineItemsInput{
+		SectionID: 11,
+		Deletes:   []int64{201, 202, 203},
+	})
+	require.NoError(t, err)
+	require.Len(t, res.Deleted, 3)
+	assert.Len(t, tx.items.deleteCalls, 3)
+	assert.Equal(t, 1, tx.commitCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, 3, audit.events[0].Fields["deleted_count"])
+}
+
+func TestBulkEdit_DeleteItemNotFound_RollsBack(t *testing.T) {
+	tx := builtBulkTx()
+	tx.sections.getByIDFn = func(_ context.Context, _ int64) (*entities.Section, error) {
+		return builtSectionForItemTests(t), nil
+	}
+	tx.curricula.getByIDFn = func(_ context.Context, _ int64) (*entities.Curriculum, error) {
+		return draftCurriculumForItem(t, 42), nil
+	}
+	tx.items.getByIDFn = func(_ context.Context, _ int64) (*entities.DisciplineItem, error) {
+		return nil, repositories.ErrDisciplineItemNotFound
+	}
+	uow := &fakeBulkUoW{tx: tx}
+	audit := &recordingAuditSink{}
+	uc := NewBulkEditDisciplineItemsUseCase(uow, audit, time.Now)
+
+	_, err := uc.Execute(context.Background(), 42, false, BulkEditDisciplineItemsInput{
+		SectionID: 11,
+		Deletes:   []int64{999},
+	})
+	assert.True(t, errors.Is(err, repositories.ErrDisciplineItemNotFound))
+	assert.Equal(t, 0, tx.commitCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "not_found", audit.events[0].Fields["reason"])
+}
+
+func TestBulkEdit_DeleteCrossSection_RollsBack(t *testing.T) {
+	tx := builtBulkTx()
+	tx.sections.getByIDFn = func(_ context.Context, _ int64) (*entities.Section, error) {
+		return builtSectionForItemTests(t), nil
+	}
+	tx.curricula.getByIDFn = func(_ context.Context, _ int64) (*entities.Curriculum, error) {
+		return draftCurriculumForItem(t, 42), nil
+	}
+	// Item belongs to section 99, request targets section 11.
+	tx.items.getByIDFn = func(_ context.Context, id int64) (*entities.DisciplineItem, error) {
+		now := time.Now()
+		return entities.ReconstituteDisciplineItem(id, 99, "X", 18, 18, 0, 36,
+			entities.ControlFormZachet, 2, 1, 0, 1, now, now), nil
+	}
+	uow := &fakeBulkUoW{tx: tx}
+	audit := &recordingAuditSink{}
+	uc := NewBulkEditDisciplineItemsUseCase(uow, audit, time.Now)
+
+	_, err := uc.Execute(context.Background(), 42, false, BulkEditDisciplineItemsInput{
+		SectionID: 11,
+		Deletes:   []int64{202},
+	})
+	assert.True(t, errors.Is(err, ErrCrossSectionBulkEdit))
+	assert.Empty(t, tx.items.deleteCalls,
+		"cross-section delete rejects before any tx.Items().Delete issued")
+	assert.Equal(t, 0, tx.commitCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "cross_section", audit.events[0].Fields["reason"])
+}
+
+// TestBulkEdit_CombinedAllOps pins the v0.128.3 happy path где client
+// sends creates + updates + deletes в один request — single tx commits
+// все three batches atomically.
+func TestBulkEdit_CombinedAllOps(t *testing.T) {
+	tx := builtBulkTx()
+	tx.sections.getByIDFn = func(_ context.Context, _ int64) (*entities.Section, error) {
+		return builtSectionForItemTests(t), nil
+	}
+	tx.curricula.getByIDFn = func(_ context.Context, _ int64) (*entities.Curriculum, error) {
+		return draftCurriculumForItem(t, 42), nil
+	}
+	tx.items.getByIDFn = func(_ context.Context, id int64) (*entities.DisciplineItem, error) {
+		return builtItemForBulk(t, id, 5), nil
+	}
+	tx.items.idAssigner = func() int64 { return 250 }
+	uow := &fakeBulkUoW{tx: tx}
+	audit := &recordingAuditSink{}
+	uc := NewBulkEditDisciplineItemsUseCase(uow, audit, time.Now)
+
+	res, err := uc.Execute(context.Background(), 42, false, BulkEditDisciplineItemsInput{
+		SectionID: 11,
+		Creates:   []BulkCreateItem{validBulkCreateItem()},
+		Updates:   []BulkUpdateItem{validBulkUpdateItem(202)},
+		Deletes:   []int64{203},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	assert.Len(t, res.Created, 1)
+	assert.Len(t, res.Updated, 1)
+	assert.Len(t, res.Deleted, 1)
+	assert.Equal(t, 1, tx.commitCalls, "single commit для combined ops")
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "discipline_item.bulk_edited", audit.events[0].Action)
+	assert.Equal(t, 1, audit.events[0].Fields["created_count"])
+	assert.Equal(t, 1, audit.events[0].Fields["updated_count"])
+	assert.Equal(t, 1, audit.events[0].Fields["deleted_count"])
+}
+
 // ===== Isolation level =====
 
 func TestBulkEdit_BeginsTxWithRepeatableRead(t *testing.T) {
