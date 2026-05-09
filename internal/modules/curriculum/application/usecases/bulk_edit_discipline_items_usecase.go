@@ -87,6 +87,13 @@ var ErrCrossSectionBulkEdit = errors.New("bulk_edit: target item belongs to diff
 // между tx open and operation. 409 SECTION_DELETED.
 var ErrBulkSectionDeleted = errors.New("bulk_edit: section was deleted concurrently")
 
+// ErrBulkVersionConflict signals optimistic-lock conflict on one or
+// more update targets. The full conflict set is reported via
+// BulkEditDisciplineItemsResult.Conflicts (collect-all per ADR-12 —
+// UI shows entire stale set in one render для merge). Whole tx is
+// rolled back; nothing applied. Handler maps к 409 VERSION_CONFLICT.
+var ErrBulkVersionConflict = errors.New("bulk_edit: one or more updates have stale version")
+
 // ===== Narrow ports =====
 
 // bulkEditUnitOfWork is the narrow port на UoW Begin (full UoW interface
