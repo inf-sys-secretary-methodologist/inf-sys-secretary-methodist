@@ -28,6 +28,10 @@ type LocalErrorKey = 'errorInvalidCode' | 'errorIntermediateInvalid'
 function pickErrorKey(status: number | undefined): LocalErrorKey {
   // 401: intermediate JWT invalid / expired / replayed → dead.
   // 422: backend returned INVALID_MFA_CODE / ErrMFANotEnabled → retry.
+  // 400: binding-layer rejection (intermediate_token missing or code
+  //   not numeric/6-digit) — the CODE_PATTERN guard prevents this in
+  //   normal use, so a 400 means the intermediate is unusable. Treat
+  //   as dead.
   // Any other status (including unknown / network) treated as
   // intermediate-dead so the user is forced back to the password
   // gate rather than stuck on an unrecoverable step.
