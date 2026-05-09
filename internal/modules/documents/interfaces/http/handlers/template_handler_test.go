@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
@@ -52,6 +53,84 @@ func TestTemplateHandler_GetTemplates(t *testing.T) {
 
 		w := performRequest(router, http.MethodGet, "/templates", nil)
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+
+	// v0.126.0 reviewer round-1 fix: pin that GetTemplates reads the
+	// JWT role from the same context key that auth middleware writes.
+	// The middleware uses 'role'; the handler used to read 'user_role'
+	// — that mismatch silently dropped methodist-only filtering in
+	// production for every role.
+	t.Run("methodist-only filter — system_admin sees both", func(t *testing.T) {
+		tmplRepo := new(MockTemplateRepository)
+		docRepo := new(MockDocumentRepository)
+		h := newTemplateHandler(tmplRepo, docRepo)
+
+		open := "<p>Open</p>"
+		methodist := "<p>Methodist</p>"
+		types := []entities.DocumentType{
+			{ID: 1, Name: "Open", Code: "open", TemplateContent: &open, MethodistOnly: false, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: 2, Name: "Methodist", Code: "metonly", TemplateContent: &methodist, MethodistOnly: true, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		}
+		tmplRepo.On("GetAll", mock.Anything).Return(types, nil)
+
+		router := setupRouter()
+		router.GET("/templates", withAuth(1, "system_admin"), h.GetTemplates)
+
+		w := performRequest(router, http.MethodGet, "/templates", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+		body := parseResponseBody(w)
+		templates, _ := body["templates"].([]interface{})
+		assert.Len(t, templates, 2, "system_admin must see both open and methodist-only templates")
+	})
+
+	t.Run("methodist-only filter — teacher sees open only", func(t *testing.T) {
+		tmplRepo := new(MockTemplateRepository)
+		docRepo := new(MockDocumentRepository)
+		h := newTemplateHandler(tmplRepo, docRepo)
+
+		open := "<p>Open</p>"
+		methodist := "<p>Methodist</p>"
+		types := []entities.DocumentType{
+			{ID: 1, Name: "Open", Code: "open", TemplateContent: &open, MethodistOnly: false, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: 2, Name: "Methodist", Code: "metonly", TemplateContent: &methodist, MethodistOnly: true, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		}
+		tmplRepo.On("GetAll", mock.Anything).Return(types, nil)
+
+		router := setupRouter()
+		router.GET("/templates", withAuth(1, "teacher"), h.GetTemplates)
+
+		w := performRequest(router, http.MethodGet, "/templates", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+		body := parseResponseBody(w)
+		templates, _ := body["templates"].([]interface{})
+		require.Len(t, templates, 1, "teacher must see only open templates")
+		first, _ := templates[0].(map[string]interface{})
+		assert.Equal(t, "Open", first["name"], "teacher must not see methodist-only template")
+	})
+
+	t.Run("methodist-only filter — no auth context falls back to failure-closed", func(t *testing.T) {
+		tmplRepo := new(MockTemplateRepository)
+		docRepo := new(MockDocumentRepository)
+		h := newTemplateHandler(tmplRepo, docRepo)
+
+		open := "<p>Open</p>"
+		methodist := "<p>Methodist</p>"
+		types := []entities.DocumentType{
+			{ID: 1, Name: "Open", Code: "open", TemplateContent: &open, MethodistOnly: false, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: 2, Name: "Methodist", Code: "metonly", TemplateContent: &methodist, MethodistOnly: true, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		}
+		tmplRepo.On("GetAll", mock.Anything).Return(types, nil)
+
+		router := setupRouter()
+		// No middleware — context has no 'role' key; handler must not panic
+		// and must default to the failure-closed path (open-only result).
+		router.GET("/templates", h.GetTemplates)
+
+		w := performRequest(router, http.MethodGet, "/templates", nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+		body := parseResponseBody(w)
+		templates, _ := body["templates"].([]interface{})
+		assert.Len(t, templates, 1, "missing role context must fall through to open-only (failure-closed)")
 	})
 }
 
@@ -205,7 +284,7 @@ func TestTemplateHandler_UpdateTemplate(t *testing.T) {
 		h := newTemplateHandler(tmplRepo, docRepo)
 
 		router := setupRouter()
-		router.PUT("/templates/:id", withUserRole(1, "admin"), h.UpdateTemplate)
+		router.PUT("/templates/:id", withAuth(1, "system_admin"), h.UpdateTemplate)
 
 		w := performRequest(router, http.MethodPut, "/templates/abc", map[string]interface{}{
 			"content": "<p>new</p>",
@@ -233,7 +312,7 @@ func TestTemplateHandler_UpdateTemplate(t *testing.T) {
 		h := newTemplateHandler(tmplRepo, docRepo)
 
 		router := setupRouter()
-		router.PUT("/templates/:id", withUserRole(1, "student"), h.UpdateTemplate)
+		router.PUT("/templates/:id", withAuth(1, "student"), h.UpdateTemplate)
 
 		w := performRequest(router, http.MethodPut, "/templates/1", map[string]interface{}{
 			"content": "<p>new</p>",
@@ -247,7 +326,7 @@ func TestTemplateHandler_UpdateTemplate(t *testing.T) {
 		h := newTemplateHandler(tmplRepo, docRepo)
 
 		router := setupRouter()
-		router.PUT("/templates/:id", withUserRole(1, "admin"), h.UpdateTemplate)
+		router.PUT("/templates/:id", withAuth(1, "system_admin"), h.UpdateTemplate)
 
 		w := performRequest(router, http.MethodPut, "/templates/1", nil)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -262,7 +341,7 @@ func TestTemplateHandler_UpdateTemplate(t *testing.T) {
 		tmplRepo.On("UpdateTemplate", mock.Anything, int64(1), mock.Anything, mock.Anything).Return(nil)
 
 		router := setupRouter()
-		router.PUT("/templates/:id", withUserRole(1, "admin"), h.UpdateTemplate)
+		router.PUT("/templates/:id", withAuth(1, "system_admin"), h.UpdateTemplate)
 
 		w := performRequest(router, http.MethodPut, "/templates/1", map[string]interface{}{
 			"content": "<p>updated</p>",
