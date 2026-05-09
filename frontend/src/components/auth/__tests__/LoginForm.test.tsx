@@ -287,6 +287,57 @@ describe('LoginForm', () => {
       // Reset for next test
       useAuthStore.setState({ mfaIntermediateToken: null, mfaPendingUser: null })
     })
+
+    // FLOW pin (reviewer must-fix #1): when login() resolves but the
+    // store now holds a fresh mfaIntermediateToken, LoginForm.onSubmit
+    // must NOT show the loginSuccess toast and must NOT call the
+    // onSuccess callback. The user is not yet authenticated; the green
+    // "logged in" signal is wrong and lets a ghost-success leak through
+    // before the second factor.
+    it('does not show loginSuccess toast or call onSuccess when mfa_required completes login()', async () => {
+      const { useAuthStore } = jest.requireActual('@/stores/authStore') as {
+        useAuthStore: { setState: (s: Record<string, unknown>) => void }
+      }
+
+      // login() simulates the v0.125.0 backend response: stash the
+      // intermediate token in the store and return without throwing.
+      mockLogin.mockImplementation(async () => {
+        useAuthStore.setState({
+          mfaIntermediateToken: 'intermediate-jwt-abc',
+          mfaPendingUser: {
+            id: 7,
+            name: 'Admin',
+            email: 'admin@test.com',
+            role: 'system_admin',
+            mfa_enabled: true,
+          },
+        })
+      })
+
+      const onSuccess = jest.fn()
+      const user = userEvent.setup()
+      render(<LoginForm onSuccess={onSuccess} />)
+
+      const emailInput = screen.getByLabelText('email')
+      const passwordInput = screen.getByLabelText('password')
+      const submitButton = screen.getByRole('button', { name: 'login' })
+
+      await user.type(emailInput, 'admin@test.com')
+      await user.type(passwordInput, 'Password1!')
+      await user.click(submitButton)
+
+      await waitFor(() => expect(mockLogin).toHaveBeenCalled())
+
+      // The success toast must NOT have fired — the user is mid-2FA.
+      const toastModule = jest.requireMock('@/components/providers/toaster-provider') as {
+        toast: { success: jest.Mock; error: jest.Mock }
+      }
+      expect(toastModule.toast.success).not.toHaveBeenCalled()
+      expect(onSuccess).not.toHaveBeenCalled()
+
+      // Reset for next test
+      useAuthStore.setState({ mfaIntermediateToken: null, mfaPendingUser: null })
+    })
   })
 
   it('disables inputs during form submission', async () => {
