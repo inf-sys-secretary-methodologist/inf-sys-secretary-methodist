@@ -67,10 +67,7 @@ describe('TemplateEditorDialog — methodist_only toggle (v0.126.3)', () => {
     fireEvent.click(screen.getByRole('button', { name: /save/i }))
 
     await waitFor(() => {
-      expect(updateMock).toHaveBeenCalledWith(
-        42,
-        expect.objectContaining({ methodist_only: true })
-      )
+      expect(updateMock).toHaveBeenCalledWith(42, expect.objectContaining({ methodist_only: true }))
     })
   })
 

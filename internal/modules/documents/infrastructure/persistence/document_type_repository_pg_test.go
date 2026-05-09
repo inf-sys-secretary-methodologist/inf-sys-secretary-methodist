@@ -130,14 +130,40 @@ func TestTypeRepo_UpdateTemplate_WithVariables(t *testing.T) {
 	require.NoError(t, repo.UpdateTemplate(context.Background(), 1, &content, vars, nil))
 }
 
-// v0.126.3 — repository extends UPDATE SET list when methodistOnly is non-nil.
-func TestTypeRepo_UpdateTemplate_WithMethodistOnly(t *testing.T) {
-	repo, mock := newTypeRepoMock(t)
-	content := testContentStr
-	flag := true
-	mock.ExpectExec(regexp.QuoteMeta("methodist_only =")).WillReturnResult(sqlmock.NewResult(0, 1))
-	require.NoError(t, repo.UpdateTemplate(context.Background(), 1, &content, nil, &flag))
+// v0.126.3 — repository extends UPDATE SET list when methodistOnly is non-nil
+// and forwards the boolean value, not just the column reference.
+// Table-driven covers true / false / nil branches per CLAUDE.md gate
+// (≥3 variants of one check).
+func TestTypeRepo_UpdateTemplate_MethodistOnlyBranches(t *testing.T) {
+	tests := []struct {
+		name           string
+		methodistOnly  *bool
+		expectInSQL    bool
+		expectedArgVal bool
+	}{
+		{"nil leaves methodist_only out of SET", nil, false, false},
+		{"true sets methodist_only to true", boolPtr(true), true, true},
+		{"false sets methodist_only to false", boolPtr(false), true, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo, mock := newTypeRepoMock(t)
+			content := testContentStr
+			expect := mock.ExpectExec(regexp.QuoteMeta("UPDATE document_types"))
+			if tt.expectInSQL {
+				// content, marshaled-vars (nil → []byte=nil), methodist_only, id
+				expect.WithArgs(&content, []byte(nil), tt.expectedArgVal, int64(1))
+			} else {
+				expect.WithArgs(&content, []byte(nil), int64(1))
+			}
+			expect.WillReturnResult(sqlmock.NewResult(0, 1))
+			require.NoError(t, repo.UpdateTemplate(context.Background(), 1, &content, nil, tt.methodistOnly))
+		})
+	}
 }
+
+func boolPtr(v bool) *bool { return &v }
 
 // v0.126.0 Pair 2: pin that the repository SELECTs the methodist_only
 // column and surfaces it on the returned entity. Migration 033 adds
