@@ -1,263 +1,96 @@
 name: CI/CD Pipeline
 
+# Single-developer monolith — этот workflow реально содержит:
+#   1. security-scan (Trivy CRITICAL+HIGH filesystem scan)
+#   2. frontend-image-build (Docker build verification — no push)
+#
+# Backend Go tests live в Backend CI workflow (backend-ci.yml).
+# Frontend lint / type / unit / E2E tests live в Frontend CI workflow
+# (frontend-ci.yml). Database migration tests — Database CI. Security
+# tooling extended scope — Security & Quality. Documentation parity —
+# Documentation CI.
+#
+# Cleanup history (v0.128.5):
+# - Dropped phantom microservices matrix (10 entries: services/auth,
+#   services/user, ..., services/integration) — directories never
+#   existed; project shipped as monolith. Each matrix entry was a no-op
+#   (skipped via `[ -d services/X ]` check), wasting CI minutes + 10
+#   useless badge entries per push.
+# - Dropped frontend-test job — fully duplicates Frontend CI (lint,
+#   type-check, unit tests + E2E через Playwright).
+# - Dropped deploy-staging / deploy-production stub jobs — pure `echo`
+#   placeholders, no actual deployment logic; develop branch не used,
+#   production deploy mechanism лежит outside GitHub Actions для
+#   single-developer diploma project.
+# - Removed `push: true` from frontend Docker build — org-level GitHub
+#   App permission "Create organization package" not granted (chronic
+#   `denied: installation not allowed to Create organization package`
+#   error from build-and-push job historically). Image build serves as
+#   verification (Dockerfile compiles, layers resolve); publish disabled
+#   until org admin enables Actions to write GHCR packages.
+
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main]
     paths:
-      - 'services/**'
       - 'frontend/**'
       - '.github/workflows/ci.yml'
       - 'docker-compose.yml'
       - 'Dockerfile*'
   pull_request:
-    branches: [ main, develop ]
+    branches: [main]
     paths:
-      - 'services/**'
       - 'frontend/**'
       - '.github/workflows/ci.yml'
       - 'docker-compose.yml'
       - 'Dockerfile*'
 
-env:
-  GO_VERSION: 1.21
-  NODE_VERSION: 24
-  DOCKER_BUILDX_VERSION: latest
-
 jobs:
-  # Backend Testing
-  backend-test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [auth, user, document, workflow, schedule, reporting, task, notification, file, integration]
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Check if service exists
-      id: check_service
-      run: |
-        if [ -d "services/${{ matrix.service }}" ]; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-          echo "Service ${{ matrix.service }} directory does not exist yet"
-        fi
-
-    - name: Set up Go
-      if: steps.check_service.outputs.exists == 'true'
-      uses: actions/setup-go@v6
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Cache Go modules
-      if: steps.check_service.outputs.exists == 'true'
-      uses: actions/cache@v5
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('services/${{ matrix.service }}/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Install dependencies
-      if: steps.check_service.outputs.exists == 'true'
-      run: |
-        cd services/${{ matrix.service }}
-        go mod download
-
-    - name: Run tests
-      if: steps.check_service.outputs.exists == 'true'
-      run: |
-        cd services/${{ matrix.service }}
-        go test -v -race -coverprofile=coverage.out ./...
-
-    - name: Upload coverage
-      if: steps.check_service.outputs.exists == 'true'
-      uses: codecov/codecov-action@v5
-      with:
-        file: services/${{ matrix.service }}/coverage.out
-        flags: ${{ matrix.service }}
-
-  # Frontend Testing
-  frontend-test:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Check if frontend exists
-      id: check_frontend
-      run: |
-        if [ -d "frontend" ]; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-          echo "Frontend directory does not exist yet"
-        fi
-
-    - name: Set up Node.js
-      if: steps.check_frontend.outputs.exists == 'true'
-      uses: actions/setup-node@v6
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
-
-    - name: Install dependencies
-      if: steps.check_frontend.outputs.exists == 'true'
-      run: |
-        cd frontend
-        npm ci
-
-    - name: Run linting
-      if: steps.check_frontend.outputs.exists == 'true'
-      run: |
-        cd frontend
-        npm run lint
-
-    - name: Run type checking
-      if: steps.check_frontend.outputs.exists == 'true'
-      run: |
-        cd frontend
-        npm run type-check
-
-    - name: Run unit tests
-      if: steps.check_frontend.outputs.exists == 'true'
-      run: |
-        cd frontend
-        npm run test:unit
-
-    - name: Install Playwright browsers
-      if: steps.check_frontend.outputs.exists == 'true'
-      run: |
-        cd frontend
-        npx playwright install --with-deps chromium
-
-    - name: Run E2E tests
-      if: steps.check_frontend.outputs.exists == 'true'
-      run: |
-        cd frontend
-        npm run test:e2e
-
-  # Security Scanning
+  # Filesystem vulnerability scan — Trivy CRITICAL+HIGH severity.
+  # Wider package vulnerability tracking (45 dependabot vulns) lives in
+  # Security & Quality workflow. This job catches new high-severity
+  # introductions before merge.
   security-scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
-    - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-    - name: Check if code exists for scanning
-      id: check_code
-      run: |
-        if [ -d "services" ] || [ -d "frontend" ]; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-          echo "No code directories found for security scanning"
-        fi
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0' # report-only; security-quality workflow gates fail
 
-    - name: Run Trivy vulnerability scanner
-      if: steps.check_code.outputs.exists == 'true'
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'table'
-        severity: 'CRITICAL,HIGH'
-        exit-code: '0'
-
-  # Build and Push Docker Images
-  build-and-push:
+  # Docker image build verification — confirms frontend Dockerfile
+  # compiles, dependencies resolve, multi-stage layers produce a usable
+  # artifact. NO push to GHCR (see top-of-file note); image discarded
+  # после build. Re-enable push when org admin grants packages-write +
+  # "Create organization package" installation permission.
+  frontend-image-build:
     runs-on: ubuntu-latest
-    needs: [backend-test, frontend-test]
+    needs: [security-scan]
     if: github.ref == 'refs/heads/main'
-
-    strategy:
-      matrix:
-        component: [auth, user, document, workflow, schedule, reporting, task, notification, file, integration, frontend]
+    permissions:
+      contents: read
 
     steps:
-    - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-    - name: Check if component exists
-      id: check_component
-      run: |
-        if [ "${{ matrix.component }}" = "frontend" ]; then
-          if [ -d "frontend" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Frontend directory does not exist yet"
-          fi
-        else
-          if [ -d "services/${{ matrix.component }}" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Service ${{ matrix.component }} directory does not exist yet"
-          fi
-        fi
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Set up Docker Buildx
-      if: steps.check_component.outputs.exists == 'true'
-      uses: docker/setup-buildx-action@v3
-
-    - name: Login to Container Registry
-      if: steps.check_component.outputs.exists == 'true'
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Extract metadata
-      if: steps.check_component.outputs.exists == 'true'
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ghcr.io/${{ github.repository }}/${{ matrix.component }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha
-
-    - name: Build and push
-      if: steps.check_component.outputs.exists == 'true'
-      uses: docker/build-push-action@v6
-      with:
-        context: ${{ matrix.component == 'frontend' && './frontend' || format('./services/{0}', matrix.component) }}
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-  # Deploy to Staging
-  deploy-staging:
-    runs-on: ubuntu-latest
-    needs: [build-and-push]
-    if: github.ref == 'refs/heads/develop'
-    environment: staging
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Deploy to staging
-      run: |
-        echo "Deploy to staging environment"
-        # Add deployment commands here
-
-  # Deploy to Production
-  deploy-production:
-    runs-on: ubuntu-latest
-    needs: [build-and-push]
-    if: github.ref == 'refs/heads/main'
-    environment: production
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Deploy to production
-      run: |
-        echo "Deploy to production environment"
-        # Add deployment commands here
+      - name: Build frontend image (verification only — no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          load: true
+          tags: inf-sys-frontend:ci-verify
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

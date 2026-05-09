@@ -15,6 +15,48 @@
 
 ---
 
+## [0.128.5] — 2026-05-10
+
+### Internal — CI/CD Pipeline cleanup (chronic red GHCR + scaffolding debt)
+
+`.github/workflows/ci.yml` rewritten — 262 LoC → 96 LoC (-63%). Закрывает chronic-red CI/CD Pipeline status (since project inception) + удаляет scaffolding debt из исходного microservices design.
+
+**Diagnosis** (build-and-push job log, run 25608028216):
+- Error: `denied: installation not allowed to Create organization package`
+- Org-level GitHub App permission "Create organization package" не granted к Actions installation на `inf-sys-secretary-methodologist` org. Workflow-level `permissions: packages: write` necessary но не sufficient — admin must enable Actions to create packages OR pre-create packages с manual access grants.
+
+**Cleanup** — single-developer monolith reality reflected:
+- **Dropped phantom microservices matrix** (10 entries: services/auth, services/user, ..., services/integration). Directories never existed; project shipped as monolith. Each matrix entry was a no-op (skipped via `[ -d services/X ]` check), wasting CI minutes + 10 useless badge entries per push.
+- **Dropped `frontend-test` job** — fully duplicates Frontend CI workflow (lint + format + type-check + unit tests + E2E через Playwright). Single source of truth restored.
+- **Dropped `backend-test` job** — same phantom microservices issue. Real backend tests live в Backend CI workflow.
+- **Dropped `deploy-staging` / `deploy-production` stub jobs** — pure `echo` placeholders, no actual deployment logic; develop branch never used; production deploy mechanism лежит outside GitHub Actions для single-developer diploma project.
+- **Reshaped `build-and-push` → `frontend-image-build`**: dropped matrix (только frontend exists), set `push: false` + `load: true`. Job verifies Dockerfile compiles + dependencies resolve + multi-stage layers produce usable artifact, image discarded post-build. Re-enable push когда org admin grants packages-write + "Create organization package" installation permission.
+
+**New ci.yml structure** (2 jobs):
+- `security-scan` — Trivy CRITICAL+HIGH filesystem scan (report-only, gates fail в Security & Quality workflow).
+- `frontend-image-build` — Docker build verification on main branch only (depends on security-scan).
+
+**Cross-workflow division of labor (after cleanup)**:
+- Backend CI (`backend-ci.yml`) — golangci-lint + go test + race detector.
+- Frontend CI (`frontend-ci.yml`) — eslint + prettier + tsc + jest + playwright.
+- Database CI (`database-ci.yml`) — migration tests.
+- Documentation CI (`docs.yml`) — i18n parity, env config sync, etc.
+- Security & Quality (`security.yml`) — extended security tooling.
+- CI/CD Pipeline (this file) — Trivy filesystem scan + Docker build verification.
+
+### Verify
+
+- YAML parses (Ruby `YAML.load_file`); jobs: security-scan + frontend-image-build; name preserved (CI/CD Pipeline) для status badge stability.
+- 8 version files atomically synced 0.128.4 → 0.128.5.
+- No code/test changes (CI config only). Frontend / Backend / Documentation / Security & Quality CI workflows untouched.
+
+### Out of scope (future patches)
+
+- Re-enable GHCR push если org admin grants "Create organization package" installation permission. Document required org settings в README.
+- Remove `if: github.ref == 'refs/heads/main'` guard если PR-time image build verification желательно (currently main-only to avoid burning CI minutes on PR drafts).
+
+---
+
 ## [0.128.4] — 2026-05-10
 
 ### Added — Frontend bulk-edit table view UI (B1a Layer 4 of 5)
