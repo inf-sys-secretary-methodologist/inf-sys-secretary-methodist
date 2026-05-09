@@ -15,6 +15,25 @@
 
 ---
 
+## [0.125.3] — 2026-05-09
+
+### Polished — закрытие optional follow-ups из reviewer round-2 v0.125.2
+
+Patch с 3 commits закрывает все optional follow-ups, обозначенные reviewer'ом v0.125.2 round-2 (mean 9.0 / min 8 Cohesion). Поведение не меняется; verify пара прошла на checked-out worktree.
+
+- **`refactor(auth): extract isMFAChallengeActive helper`** (`a31a371c`). Inline `useAuthStore.getState().mfaIntermediateToken !== null` появлялся verbatim в двух callsites (`LoginForm.onSubmit` + `useLogin.handleLogin`); вынес в module-level helper `isMFAChallengeActive(): boolean` рядом с `useAuthStore` exported. Helper читает store через `getState()` (не subscription), потому что вызов императивный после `await action()` — subscription value заморожен на render-time. Render-time gate в `LoginForm.tsx:100` (subscription `mfaIntermediateToken`) сохранён как есть — это re-render trigger, не post-await sync read. Closes Cohesion 8 → 9.
+
+- **`test(auth): wrap LoginForm.test setState cleanups in act()`** (`087b0df2`). MFA gating integration tests вызывали `useAuthStore.setState({...})` outside `act()` блока — компонент subscribed на store и mounted, незавёрнутый state update тригерил React warning `"updates were not wrapped in act(...)"`. Завёрнул 3 callsite (initial render seed, mock-login implementation внутри submit flow, post-test cleanup) в `act(() => {...})`. `act` re-exported из `@/test-utils` через `export * from '@testing-library/react'`. Closes Tests 9 → 10.
+
+- **`docs(auth): document 400 case in pickErrorKey comment`** (`5894a8fc`). Расширил inline comment на `pickErrorKey` чтобы явно покрыть 400 case: backend `auth_handler.go:196-200` возвращает 400 если `intermediate_token` отсутствует или `code` не numeric/6-digit. Frontend `CODE_PATTERN` guard prevents в normal use, но tampered intermediate → 400 → component treats как `errorIntermediateInvalid` (correct default-deny). Closes Hygiene polish.
+
+**Verify**:
+- Frontend: 189 suites / 2688 tests green (unchanged — pure refactor + test hygiene + comment).
+- ESLint touched-files clean. Prettier clean. tsc clean.
+- Reviewer single-pass SHIP @ **mean 9.3 / min 9** (TDD 10 / DDD 9 / Clean Architecture 9 / Tests 10 / Cohesion 9 / Hygiene 9). Каждая ось ≥9.
+
+Mirror к precedent'ам v0.121.1 (single-commit cleanup) / v0.123.1 / v0.124.1 / v0.125.1 — пятый cumulative cleanup patch в pattern «после minor — closure debt'а».
+
 ## [0.125.2] — 2026-05-09
 
 ### Added — Login-flow MFA frontend integration (closes deferred scope из v0.125.0)
