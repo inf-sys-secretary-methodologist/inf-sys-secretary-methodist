@@ -203,26 +203,28 @@ func (s *Section) UpdateBasics(title, description string, orderIndex int, now ti
 	return nil
 }
 
-// AuthorizeEdit returns nil if the caller may modify this Section's
-// content via UpdateBasics, or one of the two domain sentinels otherwise.
+// AuthorizeSectionEdit decides whether a caller may operate on a
+// section inside the given curriculum (read by primitives — section
+// stays free of Curriculum knowledge per ADR-1 Beta). It is a free
+// function rather than a method because the rule depends entirely on
+// the parent curriculum's state and the actor; no Section field is
+// consulted. CreateSection (which has no Section instance yet) calls
+// this directly; UpdateSection / DeleteSection call this via the
+// (*Section).AuthorizeEdit method below — both paths pass through the
+// same logic, eliminating drift risk.
 //
-// curStatus + curCreatedBy are primitive projections of the parent
-// Curriculum's state (status + author). They are passed in rather than
-// fetched through a navigable reference because Section is an
-// independent aggregate root (ADR-1 Beta) — the use case retrieves the
-// curriculum, then hands its primitives to the section.
+// Gate ordering (matches Curriculum.AuthorizeEdit's contract):
 //
-// The status gate fires BEFORE the ownership / admin checks: any
-// non-editable curriculum status freezes its sections for everyone,
-// including admins. This mirrors Curriculum.AuthorizeEdit's gate
-// ordering. When isAdmin is true the ownership check is skipped —
-// admins (system_admin, academic_secretary) may edit any section
-// inside an editable curriculum.
+//  1. curStatus.CanEdit() — non-editable lifecycle freezes sections
+//     for everyone, including admins. ErrCannotEditSection.
+//  2. isAdmin — system_admin / academic_secretary override ownership.
+//  3. actorID > 0 && actorID == curCreatedBy — author methodist.
+//  4. Otherwise → ErrSectionScopeForbidden.
 //
 // The actorID > 0 guard is defense-in-depth against a JWT subject
 // lost upstream: a zero actor must never satisfy the
-// actor==curCreatedBy comparison even when curCreatedBy is also 0.
-func (s *Section) AuthorizeEdit(actorID int64, isAdmin bool, curStatus CurriculumStatus, curCreatedBy int64) error {
+// actor == curCreatedBy comparison even when curCreatedBy is also 0.
+func AuthorizeSectionEdit(actorID int64, isAdmin bool, curStatus CurriculumStatus, curCreatedBy int64) error {
 	if !curStatus.CanEdit() {
 		return fmt.Errorf("%w: curriculum status %q is not editable",
 			ErrCannotEditSection, string(curStatus))
@@ -235,4 +237,14 @@ func (s *Section) AuthorizeEdit(actorID int64, isAdmin bool, curStatus Curriculu
 	}
 	return fmt.Errorf("%w: actor %d is not the curriculum author (%d)",
 		ErrSectionScopeForbidden, actorID, curCreatedBy)
+}
+
+// AuthorizeEdit is the method-form alias of AuthorizeSectionEdit
+// kept for the read-mutate-save use cases (Update / Delete) where a
+// loaded Section is in scope and the call site reads more naturally
+// as `s.AuthorizeEdit(...)`. CreateSection (no instance yet) calls
+// the free function directly. Both forms share the same logic.
+func (s *Section) AuthorizeEdit(actorID int64, isAdmin bool, curStatus CurriculumStatus, curCreatedBy int64) error {
+	_ = s
+	return AuthorizeSectionEdit(actorID, isAdmin, curStatus, curCreatedBy)
 }
