@@ -15,6 +15,15 @@ jest.mock('next/navigation', () => {
 const mockVerifyLoginMFA = jest.fn()
 const mockClearMFAChallenge = jest.fn()
 
+const mockToastError = jest.fn()
+const mockToastSuccess = jest.fn()
+jest.mock('sonner', () => ({
+  toast: {
+    error: (...args: unknown[]) => mockToastError(...args),
+    success: (...args: unknown[]) => mockToastSuccess(...args),
+  },
+}))
+
 beforeEach(() => {
   jest.clearAllMocks()
   ;(useRouter as jest.Mock).mockReturnValue({
@@ -98,10 +107,16 @@ describe('MFAVerifyLoginStep', () => {
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/'))
   })
 
-  it('on verify failure, shows error and does not redirect, preserving the step', async () => {
-    mockVerifyLoginMFA.mockRejectedValueOnce(new Error('invalid'))
-    // Simulate the store writing the backend error message
-    useAuthStore.setState({ error: 'Неверный код подтверждения' } as never)
+  it('on 422 INVALID_MFA_CODE, keeps challenge and shows inline errorInvalidCode i18n key', async () => {
+    // Reviewer must-fix #2/#3 (v0.125.2 fix-cycle): the component
+    // must map the wrong-code rejection to the localized i18n key
+    // rather than relying on the raw backend message.
+    mockVerifyLoginMFA.mockRejectedValueOnce({
+      response: {
+        status: 422,
+        data: { error: { code: 'INVALID_MFA_CODE', message: 'Неверный код подтверждения' } },
+      },
+    })
 
     render(<MFAVerifyLoginStep />)
     fireEvent.change(screen.getByLabelText('mfaPrompt.codeLabel'), { target: { value: '000000' } })
@@ -109,10 +124,37 @@ describe('MFAVerifyLoginStep', () => {
 
     await waitFor(() => expect(mockVerifyLoginMFA).toHaveBeenCalledWith('000000'))
     expect(mockPush).not.toHaveBeenCalled()
-    // Code input still rendered → user can retry
+    // Challenge preserved — user can retry
+    expect(mockClearMFAChallenge).not.toHaveBeenCalled()
+    // Code input still rendered
     expect(screen.getByLabelText('mfaPrompt.codeLabel')).toBeInTheDocument()
-    // Error is surfaced
-    expect(screen.getByText(/Неверный код подтверждения/)).toBeInTheDocument()
+    // Inline error uses i18n key (test mock returns key verbatim)
+    expect(screen.getByText('mfaPrompt.errorInvalidCode')).toBeInTheDocument()
+  })
+
+  it('on 401 dead intermediate, clears challenge and shows toast with errorIntermediateInvalid key', async () => {
+    // Reviewer must-fix #2 (v0.125.2 fix-cycle): the component must
+    // recognise a 401 response (intermediate invalid / expired /
+    // replayed), drop the dead challenge so LoginForm flips back to
+    // the credentials view, and surface the localized message via a
+    // toast (the inline error region is unmounted by the clear).
+    mockVerifyLoginMFA.mockRejectedValueOnce({
+      response: { status: 401, data: { error: { message: 'Сессия MFA недействительна' } } },
+    })
+
+    render(<MFAVerifyLoginStep />)
+    fireEvent.change(screen.getByLabelText('mfaPrompt.codeLabel'), { target: { value: '123456' } })
+    fireEvent.click(screen.getByRole('button', { name: 'mfaPrompt.submit' }))
+
+    await waitFor(() => expect(mockVerifyLoginMFA).toHaveBeenCalledWith('123456'))
+    expect(mockPush).not.toHaveBeenCalled()
+    // Challenge cleared → LoginForm reverts to credentials
+    await waitFor(() => expect(mockClearMFAChallenge).toHaveBeenCalled())
+    // Toast surfaced the localized message
+    expect(mockToastError).toHaveBeenCalledWith(
+      expect.stringMatching(/errorIntermediateInvalid/),
+      expect.any(Object)
+    )
   })
 
   it('"login again" link calls clearMFAChallenge', () => {
