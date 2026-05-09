@@ -82,6 +82,54 @@ func TestTemplateUseCase_GetAllTemplates(t *testing.T) {
 	})
 }
 
+// v0.126.0 Pair 3: pin that GetAllTemplates(ctx, role) hides
+// methodist-only document_types from teacher / student / unknown
+// roles and surfaces them to system_admin / methodist /
+// academic_secretary.
+func TestTemplateUseCase_GetAllTemplates_MethodistOnlyFilter(t *testing.T) {
+	ctx := context.Background()
+	content := testTemplateContent
+
+	// Two templates in the repo: one open, one methodist-only.
+	repoFixture := []entities.DocumentType{
+		{ID: 1, Name: "Open", Code: "open", TemplateContent: &content, MethodistOnly: false},
+		{ID: 2, Name: "MethodistOnly", Code: "metonly", TemplateContent: &content, MethodistOnly: true},
+	}
+
+	tests := []struct {
+		role          string
+		expectedNames []string
+	}{
+		{"system_admin", []string{"Open", "MethodistOnly"}},
+		{"methodist", []string{"Open", "MethodistOnly"}},
+		{"academic_secretary", []string{"Open", "MethodistOnly"}},
+		{"teacher", []string{"Open"}},
+		{"student", []string{"Open"}},
+		{"unknown_role", []string{"Open"}},
+		{"", []string{"Open"}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.role, func(t *testing.T) {
+			mockTemplateRepo := new(MockTemplateRepository)
+			mockDocRepo := new(MockDocumentRepository)
+			usecase := NewTemplateUseCase(mockTemplateRepo, mockDocRepo, nil)
+			mockTemplateRepo.On("GetAll", ctx).Return(repoFixture, nil)
+
+			result, err := usecase.GetAllTemplates(ctx, tc.role)
+			assert.NoError(t, err)
+			assert.NotNil(t, result)
+
+			gotNames := make([]string, 0, len(result.Templates))
+			for _, tpl := range result.Templates {
+				gotNames = append(gotNames, tpl.Name)
+			}
+			assert.Equal(t, tc.expectedNames, gotNames,
+				"role %q must see exactly %v", tc.role, tc.expectedNames)
+		})
+	}
+}
+
 func TestTemplateUseCase_GetTemplate(t *testing.T) {
 	ctx := context.Background()
 
