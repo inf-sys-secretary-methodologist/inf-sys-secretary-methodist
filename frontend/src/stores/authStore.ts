@@ -69,6 +69,14 @@ interface AuthState {
   isLoading: boolean
   error: string | null
 
+  // Ephemeral MFA challenge state (v0.125.2). When the backend Login
+  // response signals data.mfa_required=true the user has cleared the
+  // password gate but still owes the second factor. We hold the
+  // 5-min intermediate token + pending user in memory and explicitly
+  // exclude them from `partialize` so they never reach cookie / disk.
+  mfaIntermediateToken: string | null
+  mfaPendingUser: User | null
+
   // Actions
   login: (credentials: LoginRequest) => Promise<void>
   register: (data: RegisterRequest) => Promise<void>
@@ -77,6 +85,7 @@ interface AuthState {
   checkAuth: () => Promise<void>
   clearError: () => void
   setLoading: (loading: boolean) => void
+  clearMFAChallenge: () => void
 }
 
 /* c8 ignore start - Broken cookie cleanup */
@@ -107,6 +116,8 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: true, // Start with true, will be set to false after hydration
       error: null,
+      mfaIntermediateToken: null,
+      mfaPendingUser: null,
 
       // Login action
       login: async (credentials) => {
@@ -116,17 +127,53 @@ export const useAuthStore = create<AuthState>()(
 
           // Extract data from response wrapper
           const authData =
-            (response as { data?: { user: User; token: string; refreshToken: string } }).data ||
-            (response as { user: User; token: string; refreshToken: string })
+            (
+              response as {
+                data?: {
+                  user: User
+                  token?: string
+                  refreshToken?: string
+                  mfa_required?: boolean
+                  intermediate_token?: string
+                }
+              }
+            ).data ||
+            (response as {
+              user: User
+              token?: string
+              refreshToken?: string
+              mfa_required?: boolean
+              intermediate_token?: string
+            })
+
+          // MFA gate: backend withheld access/refresh because the user has
+          // mfa_enabled=true. Stash the 5-min intermediate token + pending
+          // user in ephemeral state — the UI will collect the 6-digit code
+          // and call verifyLoginMFA() to finish the handshake.
+          if (authData.mfa_required && authData.intermediate_token) {
+            set({
+              user: null,
+              token: null,
+              refreshToken: null,
+              isAuthenticated: false,
+              mfaIntermediateToken: authData.intermediate_token,
+              mfaPendingUser: authData.user,
+              isLoading: false,
+              error: null,
+            })
+            return
+          }
 
           // Set token in API client
-          apiClient.setAuthToken(authData.token)
+          apiClient.setAuthToken(authData.token as string)
 
           set({
             user: authData.user,
-            token: authData.token,
-            refreshToken: authData.refreshToken,
+            token: authData.token as string,
+            refreshToken: authData.refreshToken as string,
             isAuthenticated: true,
+            mfaIntermediateToken: null,
+            mfaPendingUser: null,
             isLoading: false,
             error: null,
           })
@@ -199,6 +246,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           isLoading: false,
           error: null,
+          mfaIntermediateToken: null,
+          mfaPendingUser: null,
         })
       },
 
@@ -287,6 +336,12 @@ export const useAuthStore = create<AuthState>()(
       // Set loading
       setLoading: (loading: boolean) => {
         set({ isLoading: loading })
+      },
+
+      // Reset ephemeral MFA challenge state — used when the user
+      // cancels the second-factor step or after a successful exchange.
+      clearMFAChallenge: () => {
+        set({ mfaIntermediateToken: null, mfaPendingUser: null })
       },
     }),
     {
