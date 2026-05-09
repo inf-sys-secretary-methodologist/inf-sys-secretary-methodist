@@ -226,3 +226,38 @@ func (d *DisciplineItem) CreatedAt() time.Time { return d.createdAt }
 
 // UpdatedAt returns the last-mutation timestamp.
 func (d *DisciplineItem) UpdatedAt() time.Time { return d.updatedAt }
+
+// UpdateBasics — implementation lands в GREEN commit (Pair 2).
+func (d *DisciplineItem) UpdateBasics(
+	title string,
+	hoursLectures, hoursPractice, hoursLab, hoursSelf int,
+	controlForm ControlForm,
+	credits, semester, orderIndex int,
+	now time.Time,
+) error {
+	_ = title
+	_, _, _, _ = hoursLectures, hoursPractice, hoursLab, hoursSelf
+	_ = controlForm
+	_, _, _ = credits, semester, orderIndex
+	_ = now
+	return errors.New("discipline_item: UpdateBasics not implemented yet")
+}
+
+// AuthorizeDisciplineItemEdit — free function form. Implementation
+// lands в GREEN commit (Pair 2). Per chronicles lesson, free function
+// declared from первого draft (avoid Pair 2 → Pair 4 refactor leak
+// experienced в Section).
+func AuthorizeDisciplineItemEdit(actorID int64, isAdmin bool, curStatus CurriculumStatus, curCreatedBy int64) error {
+	_, _, _, _ = actorID, isAdmin, curStatus, curCreatedBy
+	return errors.New("discipline_item: AuthorizeDisciplineItemEdit not implemented yet")
+}
+
+// AuthorizeEdit is the method-form alias of AuthorizeDisciplineItemEdit
+// kept for the read-mutate-save use cases (Update / Delete) where a
+// loaded DisciplineItem is in scope. Create uses the free function
+// directly (no instance yet). Both forms share the same logic via
+// delegation — eliminating drift risk.
+func (d *DisciplineItem) AuthorizeEdit(actorID int64, isAdmin bool, curStatus CurriculumStatus, curCreatedBy int64) error {
+	_ = d
+	return AuthorizeDisciplineItemEdit(actorID, isAdmin, curStatus, curCreatedBy)
+}
