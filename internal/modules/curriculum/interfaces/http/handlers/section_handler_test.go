@@ -107,27 +107,6 @@ func builtSection(t *testing.T, id, curriculumID int64) *entities.Section {
 		"desc", 0, 0, now, now)
 }
 
-// withSectionAuth installs production-shaped middleware on the engine
-// — c.Set("user_id", uid) + c.Set("role", role). Pinning к the same
-// keys the production middleware writes prevents the v0.126.0 wrong-key
-// bug class from re-emerging here (handler reads c.Get("role"); if a
-// test helper wrote "user_role" instead, the integration would silently
-// 401 in production while tests pretended to pass).
-//
-// Pass role="" to omit the role key (simulating an upstream gap so the
-// handler's authContext returns ok=false).
-func withSectionAuth(uid int64, role string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if uid != 0 {
-			c.Set("user_id", uid)
-		}
-		if role != "" {
-			c.Set("role", role)
-		}
-		c.Next()
-	}
-}
-
 // setupSectionRouter wires a handler with the supplied ports + auth
 // middleware and returns the engine ready for ServeHTTP. Routes mounted
 // at the canonical paths — same shape main.go DI wiring will use.
@@ -145,7 +124,7 @@ func setupSectionRouter(
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	if uid != 0 || role != "" {
-		r.Use(withSectionAuth(uid, role))
+		r.Use(withAuth(uid, role))
 	}
 	h := handlers.NewSectionHandler(create, get, list, update, del)
 	r.POST("/api/curricula/:curriculumID/sections", h.Create)

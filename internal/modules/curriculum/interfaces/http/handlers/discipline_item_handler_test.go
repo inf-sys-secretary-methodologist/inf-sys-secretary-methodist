@@ -112,15 +112,7 @@ func setupItemRouter(
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	if uid != 0 || role != "" {
-		r.Use(func(c *gin.Context) {
-			if uid != 0 {
-				c.Set("user_id", uid)
-			}
-			if role != "" {
-				c.Set("role", role)
-			}
-			c.Next()
-		})
+		r.Use(withAuth(uid, role))
 	}
 	h := handlers.NewDisciplineItemHandler(create, get, list, update, del)
 	r.POST("/api/sections/:sectionID/items", h.Create)
