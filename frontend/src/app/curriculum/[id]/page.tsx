@@ -9,9 +9,11 @@ import { ArrowLeft, BookMarked, Loader2, PenLine, Send } from 'lucide-react'
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { useCurriculum } from '@/hooks/useCurricula'
+import { useSections } from '@/hooks/useSections'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { EditCurriculumDialog } from '@/components/curriculum/EditCurriculumDialog'
 import { SubmitCurriculumDialog } from '@/components/curriculum/SubmitCurriculumDialog'
+import { BulkEditPanel } from '@/components/curriculum/bulk-edit/BulkEditPanel'
 import { STATUS_STYLES, statusKey } from '@/components/curriculum/status'
 import type { CurriculumStatus } from '@/types/curriculum'
 import { cn } from '@/lib/utils'
@@ -44,6 +46,7 @@ export default function CurriculumDetailPage() {
   } = useCurriculum(id, {
     enabled,
   })
+  const { items: sections } = useSections(id, { enabled })
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && user?.role === 'student') {
@@ -132,6 +135,32 @@ export default function CurriculumDetailPage() {
                 {t(`detail.statusHint.${statusKey(curriculum.status)}`)}
               </section>
             )}
+
+            <section className="space-y-6">
+              <h2 className="text-lg font-semibold">{t('detail.sections.heading')}</h2>
+              {sections.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('detail.sections.empty')}</p>
+              ) : (
+                <div className="space-y-6">
+                  {sections.map((section) => (
+                    <div
+                      key={section.id}
+                      className="space-y-3 rounded-xl border border-border bg-card p-4"
+                    >
+                      <header className="space-y-1">
+                        <h3 className="text-base font-medium">{section.title}</h3>
+                        {section.description && (
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                            {section.description}
+                          </p>
+                        )}
+                      </header>
+                      <BulkEditPanel sectionID={section.id} curriculumStatus={curriculum.status} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
 
             <EditCurriculumDialog
               curriculum={curriculum}
