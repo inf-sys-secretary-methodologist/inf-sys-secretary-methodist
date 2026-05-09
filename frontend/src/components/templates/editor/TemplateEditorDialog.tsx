@@ -139,11 +139,15 @@ export function TemplateEditorDialog({
     [contentVariables, declaredNames]
   )
 
+  // Single source of truth for the server-side methodist_only value.
+  // Used both by hasChanges (compare to detect dirty) and by the toggle
+  // JSX (fall-back when local state is undefined / "not touched").
+  const originalMethodistOnly = useMemo(() => template?.methodist_only ?? false, [template])
+
   const hasChanges = useMemo(() => {
     if (!template) return false
     const originalContent = template.template_content || ''
     const originalVariables = template.template_variables || []
-    const originalMethodistOnly = template.methodist_only ?? false
     const methodistOnlyChanged =
       methodistOnly !== undefined && methodistOnly !== originalMethodistOnly
     return (
@@ -151,7 +155,7 @@ export function TemplateEditorDialog({
       JSON.stringify(variables) !== JSON.stringify(originalVariables) ||
       methodistOnlyChanged
     )
-  }, [template, content, variables, methodistOnly])
+  }, [template, content, variables, methodistOnly, originalMethodistOnly])
 
   const handleSave = async () => {
     if (!template) return
@@ -394,7 +398,7 @@ export function TemplateEditorDialog({
               type="checkbox"
               aria-label={t('methodistOnlyLabel')}
               className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-              checked={methodistOnly ?? template.methodist_only ?? false}
+              checked={methodistOnly ?? originalMethodistOnly}
               onChange={(e) => setMethodistOnly(e.target.checked)}
             />
             <div className="flex-1">
