@@ -22,12 +22,12 @@ interface FetchOpts {
 
 // useDisciplineItems returns the read-only list of items for the given
 // section. Backend GET /api/sections/:sectionID/items — gated by
-// RequireNonStudent. Pair 2 RED: stub key=null → no fetch fires; tests
-// asserting URL fail. Pair 2 GREEN replaces stub с real URL builder.
+// RequireNonStudent. Passing null short-circuits the SWR key, mirroring
+// useSections. opts.enabled=false suppresses the fetch для role-guard
+// redirect path symmetry с useCurricula.
 export function useDisciplineItems(sectionID: number | null, opts?: FetchOpts) {
-  void sectionID
-  void opts
-  const key = null
+  const enabled = opts?.enabled ?? true
+  const key = !enabled || sectionID == null ? null : `/api/sections/${sectionID}/items`
   const { data, error, isLoading, mutate } = useSWR<DisciplineItemListResponse>(key, fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: SWR_DEDUPING.SHORT,
@@ -46,8 +46,8 @@ export function useDisciplineItems(sectionID: number | null, opts?: FetchOpts) {
 // MUST refetch outside the failed tx via GET /api/items/:id для
 // accurate current state перед showing merge UI per row. Imperative
 // (not a hook) since the call is triggered by post-await state machine
-// transitions, не render-time subscriptions. Pair 2 RED stub throws.
-export async function fetchDisciplineItem(_id: number): Promise<DisciplineItem> {
-  void _id
-  throw new Error('fetchDisciplineItem not implemented (Pair 2 RED)')
+// transitions, не render-time subscriptions.
+export async function fetchDisciplineItem(id: number): Promise<DisciplineItem> {
+  const response = await apiClient.get<ApiResponse<DisciplineItem>>(`/api/items/${id}`)
+  return response.data
 }
