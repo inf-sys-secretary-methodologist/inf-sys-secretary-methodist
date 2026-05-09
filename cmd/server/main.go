@@ -475,6 +475,18 @@ func main() {
 	submitCurriculumUseCase := curUsecases.NewSubmitForApprovalUseCase(curriculumRepo, auditLogger, nil)
 	approveCurriculumUseCase := curUsecases.NewApproveCurriculumUseCase(curriculumRepo, auditLogger, nil)
 	rejectCurriculumUseCase := curUsecases.NewRejectCurriculumUseCase(curriculumRepo, auditLogger, nil)
+	// v0.128.0 Section aggregate (раздел учебного плана) — child of
+	// Curriculum per ADR-1 Beta (independent AR with FK). 5 CRUD usecases
+	// all share the curriculumRepo as cross-aggregate lookup port. The
+	// concrete *CurriculumRepositoryPG satisfies each narrow port
+	// structurally (each usecase declares its own GetByID-shaped
+	// interface for testability).
+	sectionRepo := curPersistence.NewSectionRepositoryPG(db)
+	createSectionUseCase := curUsecases.NewCreateSectionUseCase(sectionRepo, curriculumRepo, auditLogger, nil)
+	getSectionUseCase := curUsecases.NewGetSectionUseCase(sectionRepo)
+	listSectionsUseCase := curUsecases.NewListSectionsByCurriculumUseCase(sectionRepo)
+	updateSectionUseCase := curUsecases.NewUpdateSectionUseCase(sectionRepo, curriculumRepo, auditLogger, nil)
+	deleteSectionUseCase := curUsecases.NewDeleteSectionUseCase(sectionRepo, curriculumRepo, auditLogger)
 	logger.Info("Curriculum module initialized", nil)
 
 	// Initialize schedule module
@@ -699,6 +711,11 @@ func main() {
 		submitCurriculumUseCase,
 		approveCurriculumUseCase,
 		rejectCurriculumUseCase,
+		createSectionUseCase,
+		getSectionUseCase,
+		listSectionsUseCase,
+		updateSectionUseCase,
+		deleteSectionUseCase,
 		eventUseCase,
 		lessonUseCase,
 		announcementUseCase,
@@ -1216,6 +1233,11 @@ func setupRoutes(
 	submitCurriculumUseCase *curUsecases.SubmitForApprovalUseCase,
 	approveCurriculumUseCase *curUsecases.ApproveCurriculumUseCase,
 	rejectCurriculumUseCase *curUsecases.RejectCurriculumUseCase,
+	createSectionUseCase *curUsecases.CreateSectionUseCase,
+	getSectionUseCase *curUsecases.GetSectionUseCase,
+	listSectionsUseCase *curUsecases.ListSectionsByCurriculumUseCase,
+	updateSectionUseCase *curUsecases.UpdateSectionUseCase,
+	deleteSectionUseCase *curUsecases.DeleteSectionUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
@@ -2030,6 +2052,36 @@ func setupRoutes(
 			}
 
 			logger.Info("Curriculum module routes registered", nil)
+		}
+
+		// Section module routes (v0.128.0). RequireNonStudent — same scope
+		// gate as parent Curriculum routes. Authorization (author methodist
+		// vs admin override) is enforced at the use-case layer via
+		// AuthorizeSectionEdit; handler does only role-class whitelisting
+		// for write methods (canWrite — methodist + system_admin).
+		//
+		// Routes intentionally split between curriculum-scoped (Create /
+		// List, where the curriculum id is a path component) and
+		// section-scoped (Get / Update / Delete, addressed by section id
+		// directly). This mirrors the standard REST sub-resource +
+		// individual-resource convention.
+		if createSectionUseCase != nil {
+			sectionHandler := curHandler.NewSectionHandler(
+				createSectionUseCase, getSectionUseCase, listSectionsUseCase,
+				updateSectionUseCase, deleteSectionUseCase,
+			)
+			sectionGroup := protectedGroup.Group("")
+			sectionGroup.Use(authMiddleware.RequireNonStudent())
+			{
+				sectionGroup.POST("/curricula/:curriculumID/sections", sectionHandler.Create)
+				sectionGroup.OPTIONS("/curricula/:curriculumID/sections", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				sectionGroup.GET("/curricula/:curriculumID/sections", sectionHandler.List)
+				sectionGroup.GET("/sections/:id", sectionHandler.Get)
+				sectionGroup.PUT("/sections/:id", sectionHandler.Update)
+				sectionGroup.DELETE("/sections/:id", sectionHandler.Delete)
+				sectionGroup.OPTIONS("/sections/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+			logger.Info("Section module routes registered", nil)
 		}
 
 		// Schedule/Events module routes
