@@ -121,7 +121,18 @@
     "redirecting": "Redirecting...",
     "loginError": "Login error",
     "invalidCredentials": "Invalid email or password",
-    "loggingIn": "Logging in..."
+    "loggingIn": "Logging in...",
+    "mfaPrompt": {
+      "title": "Two-factor authentication",
+      "subtitle": "Enter the 6-digit code from your authenticator app to finish signing in.",
+      "codeLabel": "Verification code",
+      "submit": "Verify and sign in",
+      "errorInvalidCode": "Invalid verification code. Please try again.",
+      "errorExpired": "MFA session expired. Please sign in again.",
+      "errorIntermediateInvalid": "MFA session is no longer valid. Please sign in again.",
+      "resendNote": "Open your authenticator app — codes refresh every 30 seconds.",
+      "loginAgain": "Sign in again"
+    }
   },
   "registerForm": {
     "registerSuccess": "Registration successful!",

@@ -121,7 +121,18 @@
     "redirecting": "Redirection...",
     "loginError": "Erreur de connexion",
     "invalidCredentials": "E-mail ou mot de passe invalide",
-    "loggingIn": "Connexion en cours..."
+    "loggingIn": "Connexion en cours...",
+    "mfaPrompt": {
+      "title": "Authentification à deux facteurs",
+      "subtitle": "Saisissez le code à 6 chiffres de votre application d'authentification pour terminer la connexion.",
+      "codeLabel": "Code de vérification",
+      "submit": "Vérifier et se connecter",
+      "errorInvalidCode": "Code de vérification invalide. Veuillez réessayer.",
+      "errorExpired": "La session MFA a expiré. Veuillez vous reconnecter.",
+      "errorIntermediateInvalid": "La session MFA n'est plus valide. Veuillez vous reconnecter.",
+      "resendNote": "Ouvrez votre application d'authentification — les codes sont renouvelés toutes les 30 secondes.",
+      "loginAgain": "Se reconnecter"
+    }
   },
   "registerForm": {
     "registerSuccess": "Inscription réussie !",

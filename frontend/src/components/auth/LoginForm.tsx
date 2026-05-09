@@ -10,8 +10,10 @@ import { toast } from '@/components/providers/toaster-provider'
 import { FloatingInput } from '@/components/ui/floating-input'
 import { Button } from '@/components/ui/button'
 import { useLogin } from '@/hooks/useAuth'
+import { useAuthStore } from '@/stores/authStore'
 import { createLoginSchema, type LoginFormData } from '@/lib/validations/auth'
 import { cn } from '@/lib/utils'
+import { MFAVerifyLoginStep } from './MFAVerifyLoginStep'
 
 interface LoginFormProps {
   redirectTo?: string
@@ -23,6 +25,7 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const { login, error: authError, clearError } = useLogin()
+  const mfaIntermediateToken = useAuthStore((s) => s.mfaIntermediateToken)
   const t = useTranslations('loginForm')
   const tAuth = useTranslations('auth')
   const tValidation = useTranslations('validation')
@@ -76,6 +79,16 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
         duration: 10000, // 10 seconds
       })
     }
+  }
+
+  // When the password gate has been cleared but the user still owes
+  // the second factor, the auth store holds an intermediate token.
+  // Swap the credentials form for the MFA verify step until it is
+  // exchanged (or the user clicks "login again" to abandon it). The
+  // early return must follow every hook above so React sees the same
+  // hook order on every render.
+  if (mfaIntermediateToken) {
+    return <MFAVerifyLoginStep redirectTo={redirectTo} />
   }
 
   return (
