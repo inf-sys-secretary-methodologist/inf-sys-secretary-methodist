@@ -227,7 +227,19 @@ func (d *DisciplineItem) CreatedAt() time.Time { return d.createdAt }
 // UpdatedAt returns the last-mutation timestamp.
 func (d *DisciplineItem) UpdatedAt() time.Time { return d.updatedAt }
 
-// UpdateBasics — implementation lands в GREEN commit (Pair 2).
+// UpdateBasics applies a content edit (all 9 mutable fields) to the
+// discipline item. The method is atomic: if any invariant fails, the
+// entity is left untouched and the wrapped ErrInvalidDisciplineItem
+// is returned.
+//
+// The status gate (curriculum lifecycle inheritance per ADR-2) is NOT
+// enforced here — DisciplineItem keeps no Curriculum/Section reference.
+// Callers must invoke AuthorizeDisciplineItemEdit (free function) or
+// AuthorizeEdit (method) first and only then UpdateBasics. The
+// two-step shape keeps DisciplineItem pure of cross-aggregate knowledge.
+//
+// Version is repo-managed (ADR-3); UpdateBasics does not touch it
+// (mirror к Section behavior).
 func (d *DisciplineItem) UpdateBasics(
 	title string,
 	hoursLectures, hoursPractice, hoursLab, hoursSelf int,
@@ -235,28 +247,97 @@ func (d *DisciplineItem) UpdateBasics(
 	credits, semester, orderIndex int,
 	now time.Time,
 ) error {
-	_ = title
-	_, _, _, _ = hoursLectures, hoursPractice, hoursLab, hoursSelf
-	_ = controlForm
-	_, _, _ = credits, semester, orderIndex
-	_ = now
-	return errors.New("discipline_item: UpdateBasics not implemented yet")
+	trimmedTitle := strings.TrimSpace(title)
+	if trimmedTitle == "" {
+		return fmt.Errorf("%w: title must not be empty", ErrInvalidDisciplineItem)
+	}
+	if len([]rune(trimmedTitle)) > maxDisciplineItemTitleLen {
+		return fmt.Errorf("%w: title length %d exceeds max %d",
+			ErrInvalidDisciplineItem, len([]rune(trimmedTitle)), maxDisciplineItemTitleLen)
+	}
+	if hoursLectures < 0 {
+		return fmt.Errorf("%w: hours_lectures must be non-negative, got %d",
+			ErrInvalidDisciplineItem, hoursLectures)
+	}
+	if hoursPractice < 0 {
+		return fmt.Errorf("%w: hours_practice must be non-negative, got %d",
+			ErrInvalidDisciplineItem, hoursPractice)
+	}
+	if hoursLab < 0 {
+		return fmt.Errorf("%w: hours_lab must be non-negative, got %d",
+			ErrInvalidDisciplineItem, hoursLab)
+	}
+	if hoursSelf < 0 {
+		return fmt.Errorf("%w: hours_self must be non-negative, got %d",
+			ErrInvalidDisciplineItem, hoursSelf)
+	}
+	if err := controlForm.Validate(); err != nil {
+		return fmt.Errorf("%w: control_form %s", ErrInvalidDisciplineItem, err.Error())
+	}
+	if credits < 0 {
+		return fmt.Errorf("%w: credits must be non-negative, got %d",
+			ErrInvalidDisciplineItem, credits)
+	}
+	if semester < minSemester || semester > maxSemester {
+		return fmt.Errorf("%w: semester %d outside [%d, %d]",
+			ErrInvalidDisciplineItem, semester, minSemester, maxSemester)
+	}
+	if orderIndex < 0 {
+		return fmt.Errorf("%w: order_index must be non-negative, got %d",
+			ErrInvalidDisciplineItem, orderIndex)
+	}
+	// All validation passed — apply mutations atomically.
+	d.title = trimmedTitle
+	d.hoursLectures = hoursLectures
+	d.hoursPractice = hoursPractice
+	d.hoursLab = hoursLab
+	d.hoursSelf = hoursSelf
+	d.controlForm = controlForm
+	d.credits = credits
+	d.semester = semester
+	d.orderIndex = orderIndex
+	d.updatedAt = now
+	return nil
 }
 
-// AuthorizeDisciplineItemEdit — free function form. Implementation
-// lands в GREEN commit (Pair 2). Per chronicles lesson, free function
-// declared from первого draft (avoid Pair 2 → Pair 4 refactor leak
-// experienced в Section).
+// AuthorizeDisciplineItemEdit decides whether a caller may operate on
+// a discipline item inside the given curriculum. Free function — rule
+// depends entirely on actor + curriculum primitives, no entity state
+// consulted (mirror к AuthorizeSectionEdit pattern from v0.128.0;
+// declared free from первого draft to avoid Pair 2 → Pair 4 refactor
+// leak experienced в Section).
+//
+// Gate ordering (matches Section.AuthorizeEdit contract):
+//
+//  1. curStatus.CanEdit() — non-editable lifecycle freezes items для
+//     всех (включая admins). ErrCannotEditDisciplineItem.
+//  2. isAdmin — system_admin / academic_secretary override ownership.
+//  3. actorID > 0 && actorID == curCreatedBy — author methodist.
+//  4. Otherwise → ErrDisciplineItemScopeForbidden.
+//
+// The actorID > 0 guard is defense-in-depth against a JWT subject
+// lost upstream.
 func AuthorizeDisciplineItemEdit(actorID int64, isAdmin bool, curStatus CurriculumStatus, curCreatedBy int64) error {
-	_, _, _, _ = actorID, isAdmin, curStatus, curCreatedBy
-	return errors.New("discipline_item: AuthorizeDisciplineItemEdit not implemented yet")
+	if !curStatus.CanEdit() {
+		return fmt.Errorf("%w: curriculum status %q is not editable",
+			ErrCannotEditDisciplineItem, string(curStatus))
+	}
+	if isAdmin {
+		return nil
+	}
+	if actorID > 0 && actorID == curCreatedBy {
+		return nil
+	}
+	return fmt.Errorf("%w: actor %d is not the curriculum author (%d)",
+		ErrDisciplineItemScopeForbidden, actorID, curCreatedBy)
 }
 
 // AuthorizeEdit is the method-form alias of AuthorizeDisciplineItemEdit
 // kept for the read-mutate-save use cases (Update / Delete) where a
 // loaded DisciplineItem is in scope. Create uses the free function
 // directly (no instance yet). Both forms share the same logic via
-// delegation — eliminating drift risk.
+// delegation — eliminating drift risk (pinned by
+// TestDisciplineItem_AuthorizeEdit_MethodDelegatesToFreeFunction).
 func (d *DisciplineItem) AuthorizeEdit(actorID int64, isAdmin bool, curStatus CurriculumStatus, curCreatedBy int64) error {
 	_ = d
 	return AuthorizeDisciplineItemEdit(actorID, isAdmin, curStatus, curCreatedBy)
