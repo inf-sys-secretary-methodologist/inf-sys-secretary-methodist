@@ -256,6 +256,39 @@ describe('LoginForm', () => {
     expect(passwordInput).toHaveAttribute('type', 'password')
   })
 
+  describe('MFA gating integration (v0.125.2)', () => {
+    // When the password gate has been cleared but MFA is required,
+    // the store holds mfaIntermediateToken; LoginForm must swap the
+    // email/password form for the MFA verify step.
+    it('renders MFAVerifyLoginStep instead of credentials form when mfaIntermediateToken is set', () => {
+      const { useAuthStore } = jest.requireActual('@/stores/authStore') as {
+        useAuthStore: { setState: (s: Record<string, unknown>) => void }
+      }
+      useAuthStore.setState({
+        mfaIntermediateToken: 'intermediate-jwt-abc',
+        mfaPendingUser: {
+          id: 7,
+          name: 'Admin',
+          email: 'admin@test.com',
+          role: 'system_admin',
+          mfa_enabled: true,
+        },
+      })
+
+      render(<LoginForm />)
+
+      // MFA step rendered
+      expect(screen.getByText('mfaPrompt.title')).toBeInTheDocument()
+      expect(screen.getByLabelText('mfaPrompt.codeLabel')).toBeInTheDocument()
+      // Credentials form NOT rendered
+      expect(screen.queryByLabelText('email')).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('password')).not.toBeInTheDocument()
+
+      // Reset for next test
+      useAuthStore.setState({ mfaIntermediateToken: null, mfaPendingUser: null })
+    })
+  })
+
   it('disables inputs during form submission', async () => {
     const user = userEvent.setup()
     // Make login hang to keep isSubmitting true
