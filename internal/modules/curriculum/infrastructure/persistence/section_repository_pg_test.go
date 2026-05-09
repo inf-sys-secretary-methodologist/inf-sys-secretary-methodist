@@ -229,10 +229,20 @@ func TestSectionRepoPG_Update_HappyPath(t *testing.T) {
 func TestSectionRepoPG_Update_VersionConflict(t *testing.T) {
 	// RowsAffected==0 + follow-up SELECT finds the row → version stale.
 	// Distinct from NotFound (row deleted entirely).
+	//
+	// WithArgs pins all 6 UPDATE bind vars (mutation-resistance per
+	// CLAUDE.md feedback_sqlmock_withargs_for_mutation_resistance.md):
+	// the ≥3-variant gate (HappyPath / VersionConflict / NotFound)
+	// requires per-branch arg pinning, not just substring match,
+	// otherwise an impl that hardcodes column values would slip past
+	// VersionConflict + NotFound while HappyPath alone caught it.
 	repo, mock := newSectionRepoMock(t)
-	s := entities.ReconstituteSection(101, 7, "T", "d", 0, 3, time.Now(), time.Now())
+	now := time.Date(2026, 5, 9, 14, 0, 0, 0, time.UTC)
+	s := entities.ReconstituteSection(101, 7, "T", "d", 0, 3, now, now)
 
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE curriculum_sections SET")).
+		WithArgs("T", sql.NullString{String: "d", Valid: true},
+			0, s.UpdatedAt(), int64(101), 3).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM curriculum_sections WHERE id = $1")).
@@ -243,14 +253,19 @@ func TestSectionRepoPG_Update_VersionConflict(t *testing.T) {
 	assert.True(t, errors.Is(err, repositories.ErrSectionVersionConflict),
 		"err must wrap ErrSectionVersionConflict, got %v", err)
 	assert.Equal(t, 3, s.Version(), "Update must NOT bump version on conflict")
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSectionRepoPG_Update_NotFound(t *testing.T) {
 	// RowsAffected==0 + follow-up SELECT finds no row → entity gone.
+	// WithArgs same mutation-resistance rationale as VersionConflict.
 	repo, mock := newSectionRepoMock(t)
-	s := entities.ReconstituteSection(999, 7, "T", "d", 0, 0, time.Now(), time.Now())
+	now := time.Date(2026, 5, 9, 14, 0, 0, 0, time.UTC)
+	s := entities.ReconstituteSection(999, 7, "T", "d", 0, 5, now, now)
 
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE curriculum_sections SET")).
+		WithArgs("T", sql.NullString{String: "d", Valid: true},
+			0, s.UpdatedAt(), int64(999), 5).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM curriculum_sections WHERE id = $1")).
@@ -260,6 +275,7 @@ func TestSectionRepoPG_Update_NotFound(t *testing.T) {
 	err := repo.Update(context.Background(), s)
 	assert.True(t, errors.Is(err, repositories.ErrSectionNotFound),
 		"err must wrap ErrSectionNotFound, got %v", err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSectionRepoPG_Update_TransportError(t *testing.T) {

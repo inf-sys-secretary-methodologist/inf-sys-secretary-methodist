@@ -167,6 +167,13 @@ func (r *SectionRepositoryPG) Update(ctx context.Context, s *entities.Section) e
 // Update's RowsAffected was 0 — distinguishes a stale-version race
 // from a section that vanished entirely. Sets a clear caller-facing
 // sentinel either way.
+//
+// TOCTOU note: there is a window between the failed UPDATE and this
+// SELECT during which a parallel transaction could DELETE the row.
+// In that case a "version conflict" race is reported here as
+// ErrSectionNotFound. Acceptable for admin-internal CRUD (UI shows
+// "section was deleted, refresh"); future bulk-edit (B1b, v0.128.2)
+// must serialize reads inside the transaction to close the window.
 func (r *SectionRepositoryPG) disambiguateAbsentUpdate(ctx context.Context, id int64) error {
 	const probe = `SELECT 1 FROM curriculum_sections WHERE id = $1`
 	var found int
