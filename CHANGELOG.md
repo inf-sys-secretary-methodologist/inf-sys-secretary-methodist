@@ -15,6 +15,72 @@
 
 ---
 
+## [0.128.2] — 2026-05-09
+
+### Fixed — v0.128.1 retroactive review Tier 1 findings closed
+
+Patch release closing 3 Tier 1 findings из retroactive `superpowers:code-reviewer` round против v0.128.1 commits (mean 8.71 / min 8 — strict gate FIX-CYCLE по mean < 9). Reviewer triangulation в момент v0.128.1 ship'а был skipped per pragmatic time decision с honest disclaimer; v0.128.2 retroactively closes that disclaimer и закрывает unhardened release surface ДО v0.128.3 bulk-edit shipping. **B1a 4-release initiative re-shaped к 5-release** (v0.128.0 Section + v0.128.1 DisciplineItem + **v0.128.2 review hardening** + v0.128.3 bulk-edit + v0.128.4 frontend) per ADR-9 amendment в plan doc.
+
+**Tier 1 #1 — `ListBySection` 404 guard (Pair 0a — RED→GREEN TDD)**:
+
+- До v0.128.2 `GET /api/sections/:id/items` возвращал `200 []` независимо от того, существует section или нет. Клиенты не могли отличить «section существует, нет items» от «section gone». Bulk-edit endpoint v0.128.3 inherit guarantee — без guard transactional commit-or-rollback semantics не могли надёжно distinguish empty target от deleted target.
+- `ListDisciplineItemsBySectionUseCase` constructor extended: новый narrow port `listDisciplineItemsBySectionLookup` (cross-aggregate guard, mirror к create/update/delete patterns). Constructor получил nil-panic guards для обоих deps. `Execute` теперь loads section first; `repositories.ErrSectionNotFound` propagates как-is — handler `mapDisciplineItemError` уже маппит к 404. DI wired в `cmd/server/main.go:497` (existing `sectionRepo` в scope).
+- 4 RED tests (HappyPath / EmptyResult обновлены к новому signature; 2 NEW failing — `SectionNotFound` + `PropagatesOpaqueSectionLookupError`); GREEN — 4-line guard в Execute.
+
+**Tier 1 #2 — Audit reason assertion backfill (test: backfill, не TDD)**:
+
+- 5 existing denial-path tests asserted error sentinel но НЕ `audit.events[0].Fields["reason"]` — drift между audit emission в usecase коде и test coverage. Honest `test:` label per CLAUDE.md gate (поведение существовало, missing pin'ы coverage'а).
+- Backfilled assertions: Create Frozen → `not_editable`, Create InvalidInput → `invalid`, Update ItemNotFound → `not_found`, Delete NonAuthorMethodist → `forbidden`, Delete ItemNotFound → `not_found`.
+- 4 NEW denial tests добавлены чтобы close "add update-path equivalents" recommendation: Update Frozen → `not_editable`, Update NonAuthorMethodist → `forbidden`, Update InvalidInput → `invalid`, Delete Frozen → `not_editable`.
+- 19 → 23 DisciplineItem usecase tests. All 12 audit-emitting denial paths теперь pin canonical `disciplineItemDenialFields` wiring (5 Create + 5 Update + 3 Delete reasons matrix complete).
+
+**Tier 1 #3 — Shared `withAuth` test helper (refactor)**:
+
+- Section имел named `withSectionAuth(uid, role)` helper (middleware mirroring production keys); DisciplineItem inlined the same pattern anonymously в `setupItemRouter`. DRY violation — каждый inline копия hides production-middleware-key contract pin (chronicle lesson `feedback_handler_context_key_must_match_middleware`).
+- Created new file `internal/modules/curriculum/interfaces/http/handlers/handlers_test_helpers_test.go` с shared `withAuth(uid, role)`. Russian/English bilingual godoc объясняет v0.126.0 wrong-key bug class и omission semantics для `uid=0` / `role=""`.
+- Refactored `section_handler_test.go` (removed `withSectionAuth`, использует shared) и `discipline_item_handler_test.go` (replaced inline middleware с shared call).
+- **Scope decision**: minimal — только Section + DisciplineItem migrated per reviewer recommendation. Other 7 `curriculum_*_handler_test.go` files inline same pattern (pre-existing across module); их refactor deferred к follow-up cleanup release если pattern recurs в v0.128.3+ work. Documented в helper godoc.
+
+### Reviewer triangulation
+
+Mandatory round (closes honest disclaimer cleanly):
+
+- **Round 1** SHIP — mean 9.14 / min 9 (gate ≥9 mean / ≥8 min):
+  - TDD 10/10 — RED commit verified runtime-failing (signature change в RED commit defensible as test infrastructure; behavior change deferred к GREEN). 4 commits, 3 distinct intent labels (`test:` RED + `feat:` GREEN + `test:` backfill + `refactor:`).
+  - DDD 9/10 — narrow port `listDisciplineItemsBySectionLookup` mirrors create/update/delete cross-aggregate ports. Sentinel propagation chain unchanged. Минор: `*entities.Section` returned but only existence-check needed; narrower `Exists(ctx, id) (bool, error)` would be более honest, defer.
+  - CA 9/10 — handler unchanged (`mapDisciplineItemError` маппит `ErrSectionNotFound → 404`). DI propagation correct (single caller). Test helper в `package handlers_test` — co-located.
+  - Tests 9/10 — 23 usecase tests covering all 12 denial paths + 4 list-related variants (HappyPath / EmptyResult / SectionNotFound / OpaqueLookupError). Минор: handler-level `TestDisciplineItemHandler_List_SectionNotFound` integration test missing — defer к v0.128.3 pre-flight.
+  - Cohesion 9/10 — helper file 34 LoC focused. Use case 56 LoC focused. Concern: `discipline_item_usecases_test.go` 595 LoC growing — split threshold approached, defer к v0.128.3.
+  - Hygiene 9/10 — `golangci-lint run ./internal/modules/curriculum/...` 0 issues; `go build ./...` clean. Bilingual comments consistent.
+  - Security 9/10 — cross-aggregate guard closes information disclosure ambiguity (previously `GET /api/sections/999/items` returned 200 [] regardless of existence). Defense-in-depth поверх existing `canRead(role)` gate.
+
+Tier 2 deferred к v0.128.3 pre-flight: handler-level List 404 integration test, usecase test file split, narrower `Exists` port. Tier 3 nits: bilingual godoc consistency, opaque error wrap chain, refactor scope migration finishing.
+
+### Internal — TDD/refactor commit train
+
+- `76c2403f` `test(curriculum): add failing tests for ListBySection 404 guard (v0.128.2 Pair 0a RED)` — RED, 2 new failing tests + nil-panic table-driven.
+- `4251657b` `feat(curriculum): ListBySection guards section existence (v0.128.2 Pair 0a GREEN)` — GREEN, 4-line Execute guard.
+- `84748ba2` `test(curriculum): backfill audit reason assertions for DisciplineItem denial paths (v0.128.2 0b)` — backfill, 5 existing + 4 new denial-path tests.
+- `0d1a82c6` `refactor(curriculum): extract shared withAuth helper для handler tests (v0.128.2 0c)` — refactor, shared helper in handlers_test package.
+
+### Out of scope (deferred)
+
+- **v0.128.3 — Bulk-edit transactional endpoint** (was v0.128.2): `POST /api/sections/:sectionID/items/bulk` с UnitOfWork pattern (sql.Tx propagation через ports), commit-or-rollback semantic, optimistic-lock per-item Update, 409 conflict response с per-item conflict details. Reviewer mandatory.
+- **v0.128.4 — Frontend bulk-edit UI + i18n × 4** (was v0.128.3): table view, multi-row select, conflict 409 UI mapping.
+- **Tier 2/3 deferred from this reviewer**: handler-level `List → 404` integration test (v0.128.3 pre-flight); `discipline_item_usecases_test.go` split (v0.128.3 pre-flight); narrower `Exists` port consideration; remaining 7 `curriculum_*_handler_test.go` migration к shared `withAuth`.
+
+### Migration
+
+No SQL migrations. Migration 035 last applied; 036 next free slot.
+
+### Verify
+
+- Backend: 153 packages green; `go test ./internal/modules/curriculum/...` — все curriculum sub-packages pass; 23 DisciplineItem usecase tests; constructor signature change correctly propagated к single production caller.
+- `golangci-lint run ./internal/modules/curriculum/...` — 0 issues. (Pre-existing 17 errcheck warnings в `internal/shared/infrastructure/config/config_test.go` — не v0.128.2 scope, не блокер.)
+- 8 version files atomically synced 0.128.1 → 0.128.2 (`_tools/bump_version.sh`).
+
+---
+
 ## [0.128.1] — 2026-05-09
 
 ### Added — DisciplineItem aggregate (B1a Layer 2)

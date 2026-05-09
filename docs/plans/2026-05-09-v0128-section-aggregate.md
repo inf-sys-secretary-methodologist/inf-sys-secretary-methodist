@@ -119,6 +119,18 @@ Handler reads `c.Get("role")` (production middleware contract — pre-commit hoo
 
 Каждый release shippable, defendable перед научруком, reviewable per ось.
 
+> **ADR-9 amendment (2026-05-09, post-v0.128.1)** — Re-shape к 5-release initiative. v0.128.1 reviewer был skipped с honest disclaimer; retroactive `superpowers:code-reviewer` round дал mean 8.71 / min 8 (strict gate FIX-CYCLE по mean<9) с 3 Tier 1 findings. Senior decision: spin separate **v0.128.2 = Review Hardening** release (closes Tier 1 findings + retroactive reviewer pass + honest disclaimer closure) перед бульк-edit. Initiative shifts:
+>
+> | Release | Scope | Status |
+> |---|---|---|
+> | v0.128.0 | Section foundation | shipped 2026-05-09 (reviewer SHIP 9.0/9 round-2) |
+> | v0.128.1 | DisciplineItem Layer 2 | shipped 2026-05-09 (reviewer skipped → retroactive 8.71/8) |
+> | **v0.128.2** | **Review hardening** (3 Tier 1 fixes: ListBySection 404, audit reason backfill, shared withAuth) | **shipped 2026-05-09 (reviewer SHIP 9.14/9 round-1)** |
+> | v0.128.3 | Bulk-edit transactional endpoint (was v0.128.2) | pending |
+> | v0.128.4 | Frontend bulk-edit UI + i18n × 4 (was v0.128.3) | pending |
+>
+> **Pattern**: strict reviewer gate (mean ≥9) trumps absorb-in-next-release pragmatism для drift-risk releases. Spin focused review-hardening release когда reviewer mean<9 strict — closes honest disclaimer чисто, keeps next feature release scope-coherent (single concern). Reviewer-endorsed absorb pattern OK для same-release commits, не для cross-release fixes из retroactive rounds.
+
 ## ADR-8: Repository interface placement (mirror curriculum)
 
 Project pattern (curriculum module): broad interface в `domain/repositories/<x>_repository.go` (canonical port + sentinel errors); each usecase declares **narrow port inline** для interface segregation + testability.
