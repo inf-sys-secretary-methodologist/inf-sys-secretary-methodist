@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/repositories"
 )
 
 // CreateDisciplineItemInput is the public DTO for CreateDisciplineItem.
@@ -77,10 +78,79 @@ func NewCreateDisciplineItemUseCase(
 	return &CreateDisciplineItemUseCase{repo: repo, sectionRepo: sectionRepo, curriculumRepo: curriculumRepo, audit: audit, clock: clock}
 }
 
-// Execute — implementation lands в GREEN commit (Pair 4).
+// Execute runs the use case end-to-end:
+//
+//  1. Load parent section by SectionID; ErrSectionNotFound → 'section_not_found'
+//     denial.
+//  2. Load curriculum (через section.CurriculumID()); errors propagate
+//     без audit (orphaned section is operational anomaly).
+//  3. AuthorizeDisciplineItemEdit free function (no instance yet —
+//     ADR-1 Beta primitives) → 'forbidden' / 'not_editable' denial.
+//  4. NewDisciplineItem invariant gate → 'invalid' denial.
+//  5. repo.Save persists; success emits 'discipline_item.created'.
+//
+// Transport errors propagate WITHOUT audit (logger captures stack
+// traces — operational, не policy).
 func (uc *CreateDisciplineItemUseCase) Execute(ctx context.Context, actorID int64, isAdmin bool, in CreateDisciplineItemInput) (*entities.DisciplineItem, error) {
-	_ = isAdmin
-	emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.unimplemented",
-		disciplineItemDenialFields(actorID, 0, in.SectionID, 0, "stub"))
-	return nil, errors.New("discipline_item: CreateDisciplineItemUseCase.Execute not implemented yet")
+	section, err := uc.sectionRepo.GetByID(ctx, in.SectionID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrSectionNotFound) {
+			emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.create_denied",
+				disciplineItemDenialFields(actorID, 0, in.SectionID, 0, "section_not_found"))
+		}
+		return nil, err
+	}
+
+	cur, err := uc.curriculumRepo.GetByID(ctx, section.CurriculumID())
+	if err != nil {
+		// Orphaned section path; FK CASCADE normally prevents но defense-in-depth.
+		return nil, err
+	}
+
+	if err := entities.AuthorizeDisciplineItemEdit(actorID, isAdmin, cur.Status(), cur.CreatedBy()); err != nil {
+		switch {
+		case errors.Is(err, entities.ErrCannotEditDisciplineItem):
+			emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.create_denied",
+				disciplineItemDenialFields(actorID, 0, in.SectionID, section.CurriculumID(), "not_editable"))
+		case errors.Is(err, entities.ErrDisciplineItemScopeForbidden):
+			emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.create_denied",
+				disciplineItemDenialFields(actorID, 0, in.SectionID, section.CurriculumID(), "forbidden"))
+		}
+		return nil, err
+	}
+
+	d, err := entities.NewDisciplineItem(entities.NewDisciplineItemParams{
+		SectionID:     in.SectionID,
+		Title:         in.Title,
+		HoursLectures: in.HoursLectures,
+		HoursPractice: in.HoursPractice,
+		HoursLab:      in.HoursLab,
+		HoursSelf:     in.HoursSelf,
+		ControlForm:   in.ControlForm,
+		Credits:       in.Credits,
+		Semester:      in.Semester,
+		OrderIndex:    in.OrderIndex,
+		Now:           uc.clock(),
+	})
+	if err != nil {
+		if errors.Is(err, entities.ErrInvalidDisciplineItem) {
+			emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.create_denied",
+				disciplineItemDenialFields(actorID, 0, in.SectionID, section.CurriculumID(), "invalid"))
+		}
+		return nil, err
+	}
+
+	if err := uc.repo.Save(ctx, d); err != nil {
+		return nil, err
+	}
+
+	emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.created", map[string]any{
+		"actor_user_id": actorID,
+		"item_id":       d.ID,
+		"section_id":    d.SectionID(),
+		"curriculum_id": section.CurriculumID(),
+		"title":         d.Title(),
+		"control_form":  string(d.ControlForm()),
+	})
+	return d, nil
 }

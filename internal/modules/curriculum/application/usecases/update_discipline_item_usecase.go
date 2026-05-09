@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/repositories"
 )
 
 // UpdateDisciplineItemInput is the public DTO для item edit use case.
@@ -77,10 +78,73 @@ func NewUpdateDisciplineItemUseCase(
 	return &UpdateDisciplineItemUseCase{repo: repo, sectionRepo: sectionRepo, curriculumRepo: curriculumRepo, audit: audit, clock: clock}
 }
 
-// Execute — implementation lands в GREEN commit (Pair 4).
+// Execute performs the edit:
+//
+//  1. Load item by id; ErrDisciplineItemNotFound → 'not_found' denial.
+//  2. Load section (через item.SectionID()); ErrSectionNotFound propagates
+//     без audit (orphaned-row defense).
+//  3. Load curriculum (через section.CurriculumID()); errors propagate без audit.
+//  4. AuthorizeEdit (cross-aggregate primitives) → 'forbidden' / 'not_editable'.
+//  5. UpdateBasics → 'invalid' denial если invariant fail.
+//  6. repo.Update; ErrDisciplineItemVersionConflict → 'version_conflict' denial
+//     (audited as policy event — clients act on conflict via reload+retry).
 func (uc *UpdateDisciplineItemUseCase) Execute(ctx context.Context, actorID int64, isAdmin bool, in UpdateDisciplineItemInput) (*entities.DisciplineItem, error) {
-	_ = isAdmin
-	emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.unimplemented",
-		disciplineItemDenialFields(actorID, in.ID, 0, 0, "stub"))
-	return nil, errors.New("discipline_item: UpdateDisciplineItemUseCase.Execute not implemented yet")
+	d, err := uc.repo.GetByID(ctx, in.ID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrDisciplineItemNotFound) {
+			emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.update_denied",
+				disciplineItemDenialFields(actorID, in.ID, 0, 0, "not_found"))
+		}
+		return nil, err
+	}
+
+	section, err := uc.sectionRepo.GetByID(ctx, d.SectionID())
+	if err != nil {
+		return nil, err
+	}
+
+	cur, err := uc.curriculumRepo.GetByID(ctx, section.CurriculumID())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := d.AuthorizeEdit(actorID, isAdmin, cur.Status(), cur.CreatedBy()); err != nil {
+		switch {
+		case errors.Is(err, entities.ErrCannotEditDisciplineItem):
+			emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.update_denied",
+				disciplineItemDenialFields(actorID, d.ID, d.SectionID(), section.CurriculumID(), "not_editable"))
+		case errors.Is(err, entities.ErrDisciplineItemScopeForbidden):
+			emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.update_denied",
+				disciplineItemDenialFields(actorID, d.ID, d.SectionID(), section.CurriculumID(), "forbidden"))
+		}
+		return nil, err
+	}
+
+	if err := d.UpdateBasics(in.Title,
+		in.HoursLectures, in.HoursPractice, in.HoursLab, in.HoursSelf,
+		in.ControlForm, in.Credits, in.Semester, in.OrderIndex,
+		uc.clock()); err != nil {
+		if errors.Is(err, entities.ErrInvalidDisciplineItem) {
+			emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.update_denied",
+				disciplineItemDenialFields(actorID, d.ID, d.SectionID(), section.CurriculumID(), "invalid"))
+		}
+		return nil, err
+	}
+
+	if err := uc.repo.Update(ctx, d); err != nil {
+		if errors.Is(err, repositories.ErrDisciplineItemVersionConflict) {
+			emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.update_denied",
+				disciplineItemDenialFields(actorID, d.ID, d.SectionID(), section.CurriculumID(), "version_conflict"))
+		}
+		return nil, err
+	}
+
+	emitDisciplineItemAudit(uc.audit, ctx, "discipline_item.updated", map[string]any{
+		"actor_user_id": actorID,
+		"item_id":       d.ID,
+		"section_id":    d.SectionID(),
+		"curriculum_id": section.CurriculumID(),
+		"title":         d.Title(),
+	})
+	return d, nil
 }
