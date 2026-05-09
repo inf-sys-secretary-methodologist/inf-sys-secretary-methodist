@@ -29,9 +29,12 @@ func NewTemplateHandler(templateUseCase *usecases.TemplateUseCase, validator *va
 	}
 }
 
-// GetTemplates returns all available document templates
+// GetTemplates returns the document templates the authenticated user
+// is allowed to see. Methodist-only templates (v0.126.0) are filtered
+// out for roles that fail DocumentType.CanAccessByRole (teacher,
+// student); admin / methodist / academic_secretary see everything.
 // @Summary Get all document templates
-// @Description Returns a list of document types that have templates
+// @Description Returns a list of document types that have templates, scoped to the caller's role.
 // @Tags templates
 // @Accept json
 // @Produce json
@@ -40,7 +43,13 @@ func NewTemplateHandler(templateUseCase *usecases.TemplateUseCase, validator *va
 // @Router /api/templates [get]
 // @Security BearerAuth
 func (h *TemplateHandler) GetTemplates(c *gin.Context) {
-	templates, err := h.templateUseCase.GetAllTemplates(c.Request.Context())
+	// JWTMiddleware writes user_role into the gin context. A missing
+	// or non-string value is treated as the empty role, which fails
+	// CanAccessByRole closed for any methodist-only template.
+	role, _ := c.Get("user_role")
+	roleStr, _ := role.(string)
+
+	templates, err := h.templateUseCase.GetAllTemplates(c.Request.Context(), roleStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return

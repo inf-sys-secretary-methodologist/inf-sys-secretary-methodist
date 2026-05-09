@@ -41,14 +41,26 @@ func NewTemplateUseCase(
 	}
 }
 
-// GetAllTemplates returns all document types with templates
-func (uc *TemplateUseCase) GetAllTemplates(ctx context.Context) (*dto.TemplateListResponse, error) {
+// GetAllTemplates returns the document types whose templates are
+// visible to the given role. Methodist-only templates are dropped
+// from the result for roles that fail
+// DocumentType.CanAccessByRole (currently teacher / student /
+// unknown). Pass an empty role string to keep the failure-closed
+// behaviour and surface only open templates.
+func (uc *TemplateUseCase) GetAllTemplates(ctx context.Context, role string) (*dto.TemplateListResponse, error) {
 	types, err := uc.templateRepo.GetAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get templates: %w", err)
 	}
 
-	return dto.ToTemplateListResponse(types), nil
+	allowed := make([]entities.DocumentType, 0, len(types))
+	for _, dt := range types {
+		if dt.CanAccessByRole(role) {
+			allowed = append(allowed, dt)
+		}
+	}
+
+	return dto.ToTemplateListResponse(allowed), nil
 }
 
 // GetTemplate returns a specific template by document type ID

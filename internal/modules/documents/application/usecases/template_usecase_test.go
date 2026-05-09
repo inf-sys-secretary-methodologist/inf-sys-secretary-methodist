@@ -56,7 +56,9 @@ func TestTemplateUseCase_GetAllTemplates(t *testing.T) {
 
 		mockTemplateRepo.On("GetAll", ctx).Return(types, nil)
 
-		result, err := usecase.GetAllTemplates(ctx)
+		// Pass system_admin so the existing fixture (no methodist_only flag)
+		// behaves identically to pre-v0.126.0 callers.
+		result, err := usecase.GetAllTemplates(ctx, "system_admin")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -73,7 +75,7 @@ func TestTemplateUseCase_GetAllTemplates(t *testing.T) {
 
 		mockTemplateRepo.On("GetAll", ctx).Return(nil, errors.New("database error"))
 
-		result, err := usecase.GetAllTemplates(ctx)
+		result, err := usecase.GetAllTemplates(ctx, "system_admin")
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
