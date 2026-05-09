@@ -15,6 +15,82 @@
 
 ---
 
+## [0.128.4] — 2026-05-10
+
+### Added — Frontend bulk-edit table view UI (B1a Layer 4 of 5)
+
+Замыкает B1a initiative: `Curriculum → Sections → DisciplineItems`. Frontend single-page bulk-edit UI consumes `POST /api/sections/:sectionID/items/bulk` (shipped в v0.128.3) с inline cell editing, multi-row delete, 409 conflict resolution flow. Methodist редактирует все дисциплины раздела одной транзакцией.
+
+Path B chosen (single bulk-edit-as-only-editing-surface). Sections seeded externally — Section CRUD UI deferred. Plan: `docs/plans/2026-05-09-v0128-section-aggregate.md` ADRs 1-14 (locked) + session-locked decisions:
+- ADR-15 (i18n): namespace `curriculum.disciplineItems.bulkEdit.*` под существующий `curriculum.*` (parallel structure к `curriculum.editDialog.*`).
+- ADR-16: no `version` field в request body (backend repo loads server-side fresh entity, optimistic-lock SQL guards race per handler comment).
+- ADR-17: `ControlForm` typed enum literal с 4 i18n labels (zachet / exam / course_project / differential_zachet).
+- ADR-18: frozen-state hide buttons (не disable+tooltip) when curriculum.status ∈ {pending_approval / approved / archived}.
+- Q1 brainstorm — `useReducer` локально (не Zustand): single-page lifecycle, action-based, isolated testability.
+- Q2 — SWR `mutate()` reload (не optimistic): admin power-user flow, divergence risk > responsiveness.
+- Q3 — inline per-row 409 conflict banner (не modal): table уже на экране.
+- Q4 — Radix Dialog discard-all confirm (не per-row revert): scope discipline.
+- Q5 — Submit gated by `hasPendingChanges` selector: prevents accidental empty 422.
+
+**Foundation hooks (Pair 1-3)**:
+
+- `frontend/src/types/section.ts` — `Section` + `SectionListResponse` mirror к backend `SectionDTO` / `SectionsListResponse`. v0.128.4 reads sections only.
+- `frontend/src/types/disciplineItem.ts` — `DisciplineItem` + `ControlForm` typed string union (4 РФ форм per backend domain VO `entities/control_form.go`) + `CONTROL_FORMS` const + `DisciplineItemListResponse`.
+- `frontend/src/types/bulkEdit.ts` — `BulkEditCreateInput` / `BulkEditUpdateInput` (no version per ADR-16) / `BulkEditRequest` / `BulkEditSuccessResponse` / `BulkEditConflict` / `BulkEditConflictResponse` / `BulkEditResult` discriminated union (`kind: 'success' | 'conflict'`) — 409 modeled as expected business outcome, не axios exception.
+- `frontend/src/hooks/useSections.ts` — `useSections(curriculumID)` SWR list hook, short-circuits на null id / opts.enabled=false (mirror useCurricula pattern).
+- `frontend/src/hooks/useDisciplineItems.ts` — `useDisciplineItems(sectionID)` SWR list + `fetchDisciplineItem(id)` imperative single-fetch (post-409 outside-tx refetch per plan ADR-12) + `bulkEditDisciplineItems(sectionID, body)` mutation with try/catch splitting 409 conflict (returns `kind: 'conflict'`) от propagated axios errors (404 / 422 / 403 / 500 throw для caller mapping via `pickBulkEditErrorKey`).
+
+**Pure utilities (Pair 4-5)**:
+
+- `frontend/src/components/curriculum/bulk-edit/pickBulkEditErrorKey.ts` — pure (HTTP status, error code) → `BulkEditErrorKey` resolver. 422 splits on backend error_code (EMPTY_BULK_INPUT / CROSS_SECTION_BULK_EDIT / NOT_EDITABLE / INVALID_INPUT); 404 → errorNotFound; 403 → errorForbidden; default-deny → errorGeneric. Table-driven test 11 cases per `feedback_status_aware_error_mapping.md` pattern.
+- `frontend/src/components/curriculum/bulk-edit/bulkEditReducer.ts` — pure state machine, no React/axios imports. State: `pendingCreates[]` (с localKey for stable React key) + `pendingUpdates[]` (id-keyed upsert) + `pendingDeletes[]` + `conflicts[]` + `refreshedConflictItems` (Record<id, DisciplineItem>) + `submitting` + `lastErrorKey`. 14 actions covering pending lifecycle (ADD/EDIT/REMOVE_CREATE / EDIT_ITEM / REVERT_ITEM / TOGGLE_DELETE с auto-drop pending update on same id) + submit lifecycle (SUBMIT_START / SUCCESS / CONFLICT / CONFLICT_REFRESHED / ERROR / SET_REFRESHED_CONFLICT_ITEM с ghost-guard / CLEAR_CONFLICTS / DISCARD_ALL). 3 selectors: `hasPendingChanges` / `buildBulkEditRequest` (strips localKey) / `getConflictForItem`. 28+ table-driven tests.
+
+**Components (Pair 6-7)**:
+
+- `frontend/src/components/curriculum/bulk-edit/BulkEditTable.tsx` — presentational table. Header (9 column labels via i18n) + body rows для server items (effectiveRow merges pending update over server snapshot — pendingUpdate values display as live) + body rows для pendingCreates (visually distinct emerald-tint, append after server items) + empty placeholder + Add row button. Cell editing dispatches EDIT_ITEM / EDIT_CREATE; numeric inputs via asInt parser (NaN/empty → 0; backend re-validates ranges); ControlForm `<select>` с 4 options. Frozen-state gating (canEdit=false): Add button hidden + delete column hidden + inputs receive readOnly + selects disabled.
+- `frontend/src/components/curriculum/bulk-edit/BulkEditPanel.tsx` — container. Owns `useReducer`, derives `canEdit = curriculum.status === 'draft'` per ADR-2 lifecycle inheritance. Submit handler: SUBMIT_START → `bulkEditDisciplineItems` → success → SUBMIT_SUCCESS + `mutate()` SWR + toast / conflict → SUBMIT_CONFLICT (submitting stays true) + Promise.all of `fetchDisciplineItem` per conflict → SUBMIT_CONFLICT_REFRESHED lifts flag / error → axios.isAxiosError + status + code → `pickBulkEditErrorKey` → SUBMIT_ERROR + toast (pending preserved для retry). Cancel: gated by `dirty && !state.submitting`, opens Radix Dialog confirm; Confirm dispatches DISCARD_ALL. Per-row conflict banner (Q3): renders above table, amber tint, shows refreshed item title (or `#${id}` fallback), expected_version hint, "Apply server" button (REVERT_ITEM).
+
+**Page mount + i18n (Pair 8-9)**:
+
+- `frontend/src/app/curriculum/[id]/page.tsx` extended — new `<section>` block ниже existing actions: heading + sections list. Empty placeholder OR one card per section (title + optional description) с nested `BulkEditPanel({sectionID, curriculumStatus})`. `useSections` fed same `enabled` flag as `useCurriculum` — short-circuits to no-fetch when guard not satisfied.
+- i18n × 4 — extended `curriculum` namespace в ru/en/fr/ar JSONs. Added `curriculum.detail.sections.{heading, empty}` + `curriculum.disciplineItems.controlForm.*` (4 keys × 4 locales) + `curriculum.disciplineItems.bulkEdit.*` (32 keys × 4 locales: loading / empty / addRow / removeRow / submit / cancel / successToast / 7 errorXxx / 9 column headers / 4 cancelDialog / 3 conflictBanner с `{expected}` interpolation).
+- JSON-load parity test `bulkEdit.i18n.test.ts` — 6 tests (per-locale non-empty assertion + key-set equality across 4 locales for bulkEdit subtree + controlForm subtree). Closes class of feedback `i18n_json_load_parity_test`.
+
+### Reviewer triangulation — round-2 SHIP
+
+Round-1 mean 8.29 / min 7 — FIX-CYCLE на Drift axis. 3 critical race conditions (Submit re-clickable до refetch finishes / Cancel не gated by submitting / SET_REFRESHED unconditional write после DISCARD_ALL = ghost data) + 3 Tier 2 quick wins (dead displayedField / silent refetch catch / 400 doc / EDIT_ITEM full-snapshot doc).
+
+Round-2 mean 8.86 / min 8 — SHIP. All 7 round-1 findings CLOSED:
+
+- TDD 8/10 — fix-cycle single commit per project convention (review-bug bundle, не behavior change requiring RED→GREEN split).
+- DDD 9/10.
+- CA 9/10.
+- Cohesion 9/10 — doc-comments anchor previously implicit contracts (EDIT_ITEM full-snapshot, 400 unreachability, SUBMIT_CONFLICT keep-flag rationale).
+- Tests 9/10 — reducer fix-cycle tests cover SUBMIT_CONFLICT_REFRESHED transition + ghost-guard precisely. Capped at 9 для panel-level race integration test deferral (logged к v0.128.5+ backlog).
+- Drift 9/10 (was 7) — все три race fixes материально закрыты на reducer + UI guard layers; ghost-write guard defence-in-depth; refetch-failure logging restored.
+- i18n 9/10.
+
+Per project convention (v0.128.0 round-2 9.0/9, v0.128.3 round-2 8.86/8), one-decimal rounding accepts mean 8.86 → 9 как SHIP threshold.
+
+### Verify
+
+Suite: 198 / 2799 frontend tests green (+77 от v0.128.4 bulk-edit additions: 5 useSections + 16 useDisciplineItems + 11 pickBulkEditErrorKey + 28 bulkEditReducer + 16 BulkEditTable + 14 BulkEditPanel + 6 i18n parity + 3 page mount).
+
+`npx tsc --noEmit` strict pass; `npx eslint src/**/*.{ts,tsx}` 0 errors; `npx prettier --check` clean. Pre-commit hook live на каждом commit. Backend `golangci-lint --max-same-issues=0` 0 issues (no backend changes).
+
+### Out of scope (deferred)
+
+- ARIA labels на cell inputs / selects (Tier 3 accessibility hardening).
+- AR translation accuracy для academia terms (нужен domain expert).
+- `min={0}` на number inputs (browser-validation enhancement).
+- Empty-state table ARIA (skip table render when empty).
+- BulkEditTable.tsx `sectionID` prop в data-testid (для query stability).
+- Section CRUD UI (Path B locked: sections seeded externally).
+- Component-level race-fix test (panel-level integration; reducer + panel wiring individually pinned).
+- В v0.128.5+ frontend hardening sprint при необходимости.
+
+---
+
 ## [0.128.3] — 2026-05-09
 
 ### Added — Bulk-edit transactional endpoint (B1a Layer 3 of 5)
