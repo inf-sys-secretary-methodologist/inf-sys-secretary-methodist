@@ -42,9 +42,18 @@ func (h *AnnouncementHandler) getUserID(c *gin.Context) (int64, bool) {
 	return id, true
 }
 
-// isAdmin checks if the user is an admin.
+// isAdmin checks if the user has the system-admin override on
+// announcements (used to act on others' announcements: edit, delete,
+// publish, unpublish, archive).
+//
+// Reads "role" from gin.Context — the key the production JWTMiddleware
+// writes (auth_middleware.go:59). The legitimate elevated role string
+// is "system_admin" (auth/domain.RoleSystemAdmin). Earlier the handler
+// read "user_role" and compared against "admin"; both were wrong, so
+// in production isAdmin always returned false and admin overrides
+// silently degraded to author-self only.
 func (h *AnnouncementHandler) isAdmin(c *gin.Context) bool {
-	role, exists := c.Get("user_role")
+	role, exists := c.Get("role")
 	if !exists {
 		return false
 	}
@@ -52,7 +61,7 @@ func (h *AnnouncementHandler) isAdmin(c *gin.Context) bool {
 	if !ok {
 		return false
 	}
-	return roleStr == "admin"
+	return roleStr == "system_admin"
 }
 
 // getIDParam extracts ID parameter from URL.

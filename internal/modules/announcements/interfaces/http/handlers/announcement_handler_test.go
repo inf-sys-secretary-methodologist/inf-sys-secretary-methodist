@@ -193,7 +193,7 @@ func TestAnnouncementHandler_IsAdmin(t *testing.T) {
 		exists   bool
 		expected bool
 	}{
-		{"admin role", "admin", true, true},
+		{"system_admin role", "system_admin", true, true},
 		{"non-admin role", "user", true, false},
 		{"no role", nil, false, false},
 		{"invalid type", 123, true, false},
@@ -204,7 +204,9 @@ func TestAnnouncementHandler_IsAdmin(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 			if tt.exists {
-				c.Set("user_role", tt.role)
+				// Write to "role" key — same key the production
+				// JWTMiddleware writes (auth_middleware.go:59).
+				c.Set("role", tt.role)
 			}
 			assert.Equal(t, tt.expected, handler.isAdmin(c))
 		})
