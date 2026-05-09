@@ -60,33 +60,91 @@ export type BulkEditAction =
   | { type: 'CLEAR_CONFLICTS' }
   | { type: 'DISCARD_ALL' }
 
-// Pair 5 RED stub — identity reducer ignores actions. Tests asserting
-// post-action state fail. GREEN replaces с full switch.
 export function bulkEditReducer(state: BulkEditState, action: BulkEditAction): BulkEditState {
-  void action
-  return state
+  switch (action.type) {
+    case 'ADD_CREATE':
+      return { ...state, pendingCreates: [...state.pendingCreates, action.payload] }
+    case 'EDIT_CREATE':
+      return {
+        ...state,
+        pendingCreates: state.pendingCreates.map((c) =>
+          c.localKey === action.payload.localKey ? { ...c, ...action.payload.patch } : c
+        ),
+      }
+    case 'REMOVE_CREATE':
+      return {
+        ...state,
+        pendingCreates: state.pendingCreates.filter((c) => c.localKey !== action.payload.localKey),
+      }
+    case 'EDIT_ITEM': {
+      const exists = state.pendingUpdates.some((u) => u.id === action.payload.id)
+      const nextUpdates = exists
+        ? state.pendingUpdates.map((u) => (u.id === action.payload.id ? action.payload : u))
+        : [...state.pendingUpdates, action.payload]
+      return { ...state, pendingUpdates: nextUpdates }
+    }
+    case 'REVERT_ITEM':
+      return {
+        ...state,
+        pendingUpdates: state.pendingUpdates.filter((u) => u.id !== action.payload.id),
+        pendingDeletes: state.pendingDeletes.filter((d) => d !== action.payload.id),
+      }
+    case 'TOGGLE_DELETE': {
+      const id = action.payload.id
+      const alreadyMarked = state.pendingDeletes.includes(id)
+      if (alreadyMarked) {
+        return { ...state, pendingDeletes: state.pendingDeletes.filter((d) => d !== id) }
+      }
+      return {
+        ...state,
+        pendingDeletes: [...state.pendingDeletes, id],
+        pendingUpdates: state.pendingUpdates.filter((u) => u.id !== id),
+      }
+    }
+    case 'SUBMIT_START':
+      return { ...state, submitting: true, lastErrorKey: null }
+    case 'SUBMIT_SUCCESS':
+      return initialBulkEditState
+    case 'SUBMIT_CONFLICT':
+      return { ...state, submitting: false, conflicts: action.payload.conflicts }
+    case 'SUBMIT_ERROR':
+      return { ...state, submitting: false, lastErrorKey: action.payload.errorKey }
+    case 'SET_REFRESHED_CONFLICT_ITEM':
+      return {
+        ...state,
+        refreshedConflictItems: {
+          ...state.refreshedConflictItems,
+          [action.payload.id]: action.payload,
+        },
+      }
+    case 'CLEAR_CONFLICTS':
+      return { ...state, conflicts: [], refreshedConflictItems: {} }
+    case 'DISCARD_ALL':
+      return initialBulkEditState
+  }
 }
 
 // ===== Selectors =====
 
 export function hasPendingChanges(state: BulkEditState): boolean {
-  // RED stub — always false. GREEN returns OR of three lengths.
-  void state
-  return false
+  return (
+    state.pendingCreates.length > 0 ||
+    state.pendingUpdates.length > 0 ||
+    state.pendingDeletes.length > 0
+  )
 }
 
 export function buildBulkEditRequest(state: BulkEditState): BulkEditRequest {
-  // RED stub — always empty body. GREEN composes from pending state.
-  void state
-  return { creates: [], updates: [], deletes: [] }
+  return {
+    creates: state.pendingCreates.map(({ localKey: _key, ...rest }) => rest),
+    updates: state.pendingUpdates,
+    deletes: state.pendingDeletes,
+  }
 }
 
 export function getConflictForItem(
   state: BulkEditState,
   itemID: number
 ): BulkEditConflict | undefined {
-  // RED stub — always undefined. GREEN finds in conflicts array.
-  void state
-  void itemID
-  return undefined
+  return state.conflicts.find((c) => c.id === itemID)
 }
