@@ -15,6 +15,24 @@
 
 ---
 
+## [0.126.2] — 2026-05-09
+
+### Fixed — CI lint cleanup (misspell `behaviour` → `behavior` × 5 files)
+
+Backend CI на v0.126.0 и v0.126.1 push'ах flagged `misspell` linter (en_US dictionary) на BrE форму `behaviour` в Go комментариях. Fix `behaviour` → `behavior` в 5 файлах:
+
+- `internal/modules/documents/application/usecases/template_usecase.go:49` (pre-existing v0.126.0 carry-over).
+- `internal/modules/documents/interfaces/http/handlers/handlers_test_helpers_test.go:26` (pre-existing v0.126.0).
+- `internal/modules/schedule/interfaces/http/handlers/lesson_handler_role_key_test.go:15` (v0.126.1 — added в той же сессии).
+- `internal/modules/announcements/interfaces/http/handlers/announcement_handler_role_key_test.go:14, :63` (v0.126.1 — added в той же сессии, 2 occurrences).
+- `internal/modules/users/interfaces/http/handlers/avatar_handler_role_key_test.go:14` (v0.126.1).
+
+Pure docs/comments — без behaviour change. Pattern v0.124.1 (defence/centralised) и v0.121.3 (lint cleanup) — 6-й cumulative cleanup patch.
+
+**Lesson reinforcement** (memory `feedback_misspell_be_to_ae.md`): linter config use en_US dictionary; **Russian project context, English Go comments — must use AmE forms** (behavior / defense / center / color). Pre-commit hook backlog item для catching до push.
+
+---
+
 ## [0.126.1] — 2026-05-09
 
 ### Fixed — Wrong-key bug class в 4 production handlers (pre-defence security sweep)

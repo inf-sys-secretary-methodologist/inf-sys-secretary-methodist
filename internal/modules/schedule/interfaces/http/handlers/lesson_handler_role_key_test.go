@@ -12,7 +12,7 @@ import (
 
 // withAuth mirrors the production JWTMiddleware contract:
 // it writes the role into the "role" context key (not "user_role").
-// Tests that assert role-gated handler behaviour MUST use this helper —
+// Tests that assert role-gated handler behavior MUST use this helper —
 // any helper writing "user_role" would mask the wrong-key bug class
 // fixed in v0.126.0 (templates filter) and v0.126.1.
 func withAuth(handler gin.HandlerFunc, userID int64, role string) gin.HandlerFunc {

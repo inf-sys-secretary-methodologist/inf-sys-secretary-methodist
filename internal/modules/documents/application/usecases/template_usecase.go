@@ -46,7 +46,7 @@ func NewTemplateUseCase(
 // from the result for roles that fail
 // DocumentType.CanAccessByRole (currently teacher / student /
 // unknown). Pass an empty role string to keep the failure-closed
-// behaviour and surface only open templates.
+// behavior and surface only open templates.
 func (uc *TemplateUseCase) GetAllTemplates(ctx context.Context, role string) (*dto.TemplateListResponse, error) {
 	types, err := uc.templateRepo.GetAll(ctx)
 	if err != nil {

@@ -23,7 +23,7 @@ func setupRouter() *gin.Engine {
 // internal/modules/auth/interfaces/http/middleware/auth_middleware.go).
 // Tests must use this helper rather than ad-hoc c.Set('user_role', ...) —
 // reading 'user_role' silently misses the role and degrades to
-// failure-closed behaviour, hiding genuine handler-side bugs.
+// failure-closed behavior, hiding genuine handler-side bugs.
 func withAuth(userID int64, role string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set("user_id", userID)
