@@ -37,6 +37,11 @@ export interface TemplateInfo {
   template_content?: string
   template_variables?: TemplateVariable[]
   has_template: boolean
+  // v0.126.0: backend hides methodist-only templates from teacher /
+  // student before they reach this list, so the field is informational
+  // for staff (admin, methodist, secretary) — useful for a future
+  // visual badge or edit toggle. Defaults to false.
+  methodist_only?: boolean
 }
 
 export interface TemplateListResponse {

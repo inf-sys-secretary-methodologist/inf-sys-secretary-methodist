@@ -18,6 +18,7 @@ type TemplateResponse struct {
 	TemplateContent   *string                     `json:"template_content,omitempty"`
 	TemplateVariables []entities.TemplateVariable `json:"template_variables,omitempty"`
 	HasTemplate       bool                        `json:"has_template"`
+	MethodistOnly     bool                        `json:"methodist_only"` // v0.126.0: hidden from teacher / student
 }
 
 // CreateFromTemplateRequest represents a request to create a document from a template
@@ -53,6 +54,7 @@ func ToTemplateResponse(dt *entities.DocumentType) *TemplateResponse {
 		TemplateContent:   dt.TemplateContent,
 		TemplateVariables: dt.TemplateVariables,
 		HasTemplate:       dt.TemplateContent != nil && *dt.TemplateContent != "",
+		MethodistOnly:     dt.MethodistOnly,
 	}
 }
 
