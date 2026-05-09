@@ -202,8 +202,14 @@ describe('BulkEditTable / Add row', () => {
     render(<Host items={[]} />)
     const addBtn = screen.getByText('disciplineItems.bulkEdit.addRow')
     fireEvent.click(addBtn)
-    // After click, exactly one pending create row appears.
-    expect(screen.getAllByTestId(/bulk-edit-row-create-/)).toHaveLength(1)
+    // After click, exactly one pending create row appears. Filter by
+    // <tr> tag because the row's testid prefix is shared by its children
+    // (remove button + title input both have testids starting with
+    // bulk-edit-row-create-{key}-…).
+    const pendingRows = screen
+      .getAllByRole('row')
+      .filter((r) => r.getAttribute('data-testid')?.startsWith('bulk-edit-row-create-'))
+    expect(pendingRows).toHaveLength(1)
   })
 })
 
