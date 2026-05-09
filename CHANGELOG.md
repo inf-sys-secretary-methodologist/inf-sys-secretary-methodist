@@ -15,6 +15,62 @@
 
 ---
 
+## [0.125.2] — 2026-05-09
+
+### Added — Login-flow MFA frontend integration (closes deferred scope из v0.125.0)
+
+После v0.125.0 backend начал возвращать intermediate JWT для `mfa_enabled=true` пользователей (вместо access+refresh) и принимать exchange через `POST /api/auth/mfa/verify-login`. UI этого не знал — admin'у с включённой MFA приходилось выполнять второй фактор вручную через `curl`. v0.125.2 закрывает frontend half: после ввода пароля при MFA-required ответе LoginForm автоматически переключается на `MFAVerifyLoginStep` с 6-значным кодом.
+
+**authStore (`frontend/src/stores/authStore.ts`)**:
+
+- Новые ephemeral поля `mfaIntermediateToken: string | null` + `mfaPendingUser: User | null`. Оба исключены из `partialize` — они живут только в памяти, страница reload теряет challenge (5-минутный backend-window всё равно мал; UX trade-off в пользу security).
+- `login()` action ветвится на `data.mfa_required === true`: вместо populate'a auth-state'a он stash'ит `intermediate_token` + pending user в ephemeral-fields, не выставляет `isAuthenticated=true`, не записывает `apiClient.setAuthToken`.
+- Новый action `verifyLoginMFA(code)`: считывает intermediate из state, POST'ит `{intermediate_token, code}` на `/api/auth/mfa/verify-login`, on success populate'ит full auth + clear'ит challenge атомарно. Sync-guard: throws до сетевого вызова если intermediate отсутствует.
+- Новый action `clearMFAChallenge()`: reset-cleanup ephemeral полей; вызывается компонентом на «Войти заново» и автоматически на 401 (мёртвый intermediate).
+- `logout()` теперь тоже clear'ит mfa-fields (cross-cleanup).
+- Error handling в `verifyLoginMFA`: 422 (invalid TOTP) preserves challenge для retry; 401/иное — UI вызывает `clearMFAChallenge()` через component-level mapping (см. ниже).
+
+**API wrapper (`frontend/src/lib/api/auth.ts`)**:
+
+- Новый метод `authApi.verifyLoginMFA(intermediateToken, code)` — POST на `/api/auth/mfa/verify-login` с snake_case body `{intermediate_token, code}` (соответствует `auth_handler.go` binding).
+
+**Component (`frontend/src/components/auth/MFAVerifyLoginStep.tsx`)**:
+
+- Новый компонент с layout, mirror'ящим `MFASettingsCard` verify input pattern: title + subtitle + 6-digit input + submit + «Войти заново» link button.
+- Submit disabled до `/^\d{6}$/`. Server-side binding gate тот же.
+- Status-aware error mapping (`pickErrorKey(status)`):
+    * **422 INVALID_MFA_CODE** → `setErrorKey('errorInvalidCode')` → inline localized error rendered через `t('mfaPrompt.errorInvalidCode')`. Challenge preserved, user retries.
+    * **401 invalid/expired/used intermediate, или unknown** → `toast.error(t('mfaPrompt.errorIntermediateInvalid'))` + `clearMFAChallenge()`. Challenge сбрасывается → LoginForm возвращается к credentials. Default-deny: незнакомый статус treated как dead intermediate, чтобы не оставлять пользователя на unrecoverable step.
+- Defence-in-depth `if (!intermediateToken) return null` — guard на случай race с `clearMFAChallenge()` из соседнего таба.
+- Локализация: 8 keys под `loginForm.mfaPrompt.{title, subtitle, codeLabel, submit, errorInvalidCode, errorIntermediateInvalid, resendNote, loginAgain}` × 4 локалей (ru/en/fr/ar). Раздельный JSON-load parity test (`MFAVerifyLoginStep.i18n.test.ts`) — pattern v0.124.0 — ловит drift между локалями который mock'ат useTranslations'a иначе hide'ит.
+
+**Conditional rendering (`frontend/src/components/auth/LoginForm.tsx`)**:
+
+- LoginForm читает `mfaIntermediateToken` через store-selector. Если set → renders `<MFAVerifyLoginStep redirectTo={redirectTo} />` ВМЕСТО credentials-form. Conditional return placed после всех hooks (Rules of Hooks: same hook order each render).
+- `onSubmit` после `await login()` читает `useAuthStore.getState().mfaIntermediateToken`; если set → returns early до `toast.success(loginSuccess)` + `onSuccess()` callback. Закрывает «ghost-success» bug — login() resolves даже на mfa_required, но UI не отображает «вход успешен» пока второй фактор не пройден.
+- `useLogin.handleLogin` (`frontend/src/hooks/useAuth.ts`) симметрично: после `await login()` тот же check; если mfa-pending — skip `setTimeout(100) + router.push(redirectTo)`. Без этого user bounce'ил бы через middleware на `/login` перед тем как LoginForm успел перерендериться в MFA step.
+
+**TDD strict (3 RED→GREEN pairs + 1 backfill + 2 fix-cycle pairs = 9 commits)**:
+
+1. RED+GREEN: authStore login MFA branch (`stores intermediate_token without authenticating`).
+2. RED+GREEN: authStore.verifyLoginMFA action (sync-guard + success population + error-throw preserving challenge).
+3. RED+GREEN: MFAVerifyLoginStep + LoginForm conditional render.
+4. Backfill: `MFAVerifyLoginStep.i18n.test.ts` (4-locale parity).
+5. Fix-cycle round-1 RED+GREEN: ghost-success + router-bounce закрытие (reviewer must-fix #1).
+6. Fix-cycle round-1 RED+GREEN: 401/422 status-aware error mapping + dead i18n key removal (reviewer must-fix #2 + #3).
+
+**Verify**:
+
+- Frontend: `npx jest` 189 suites / 2688 tests green (+1 suite +20 tests vs v0.125.1 baseline 188/2668). ESLint touched-files clean. Prettier × 4 locale JSON clean.
+- Backend: не trogан в этом релизе. `golangci-lint` 0 issues / `gosec` 0 issues / 103 packages green остаются от v0.125.0.
+- Reviewer triangulation: round-1 7.7/10 mean (FIX-CYCLE), round-2 **9.0/10 mean / 8/10 min** (SHIP). Все 3 round-1 MUST-FIX закрыты с независимой verification на checked-out RED commits.
+
+### Pattern (chronicles)
+
+- **Status-aware error mapping в frontend**: `pickErrorKey(status: number | undefined): I18nKey` — central функция, принимающая HTTP status и возвращающая локализованный key. Default-deny на unknown статус (предполагаем «dead» resource → recover-by-restart). Pattern reusable для других stateful flows, где разные HTTP статусы означают разные UI ветки.
+- **Ephemeral state в Zustand**: `mfaIntermediateToken` НЕ в `partialize` → не leak'ит в cookie/localStorage/disk. Pattern для коротко-живущих credentials, которые не должны переживать reload.
+- **Post-`await` getState() guard**: в hooks/handler читать `useAuthStore.getState().X` сразу после `await action()` — для sync-чтения свежезаписанного state'a (subscription value заморожен на render-time, не отражает изменения в том же microtask'е).
+
 ## [0.125.1] — 2026-05-08
 
 ### Fixed — `.env.example` sync с `JWT_MFA_INTERMEDIATE_SECRET`
