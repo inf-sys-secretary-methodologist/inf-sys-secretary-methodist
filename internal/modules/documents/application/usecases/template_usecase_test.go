@@ -546,7 +546,7 @@ func TestTemplateUseCase_UpdateTemplate(t *testing.T) {
 		newContent := "Updated {{content}}"
 		variables := []entities.TemplateVariable{{Name: "content", Label: "Content", Required: true}}
 
-		mockTemplateRepo.On("UpdateTemplate", ctx, int64(1), &newContent, variables).Return(nil)
+		mockTemplateRepo.On("UpdateTemplate", ctx, int64(1), &newContent, variables, (*bool)(nil)).Return(nil)
 
 		req := &dto.UpdateTemplateRequest{TemplateContent: &newContent, TemplateVariables: variables}
 
@@ -561,7 +561,7 @@ func TestTemplateUseCase_UpdateTemplate(t *testing.T) {
 		mockDocRepo := new(MockDocumentRepository)
 		usecase := NewTemplateUseCase(mockTemplateRepo, mockDocRepo, nil)
 
-		mockTemplateRepo.On("UpdateTemplate", ctx, int64(1), mock.Anything, mock.Anything).Return(errors.New("db error"))
+		mockTemplateRepo.On("UpdateTemplate", ctx, int64(1), mock.Anything, mock.Anything, mock.Anything).Return(errors.New("db error"))
 
 		req := &dto.UpdateTemplateRequest{}
 
@@ -569,6 +569,40 @@ func TestTemplateUseCase_UpdateTemplate(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to update template")
+		mockTemplateRepo.AssertExpectations(t)
+	})
+
+	// v0.126.3 RED — UpdateTemplate must forward the MethodistOnly
+	// pointer from the DTO to the repository so admin / methodist UI
+	// can toggle the visibility flag exposed by v0.126.0. nil pointer
+	// means "do not change methodist_only" (preserve existing value).
+	t.Run("update template forwards MethodistOnly pointer", func(t *testing.T) {
+		mockTemplateRepo := new(MockTemplateRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTemplateUseCase(mockTemplateRepo, mockDocRepo, nil)
+
+		methodistOnly := true
+		newContent := "x"
+		mockTemplateRepo.On("UpdateTemplate", ctx, int64(7), &newContent, []entities.TemplateVariable(nil), &methodistOnly).Return(nil)
+
+		req := &dto.UpdateTemplateRequest{TemplateContent: &newContent, MethodistOnly: &methodistOnly}
+		err := usecase.UpdateTemplate(ctx, 7, req)
+
+		assert.NoError(t, err)
+		mockTemplateRepo.AssertExpectations(t)
+	})
+
+	t.Run("update template nil MethodistOnly preserves field", func(t *testing.T) {
+		mockTemplateRepo := new(MockTemplateRepository)
+		mockDocRepo := new(MockDocumentRepository)
+		usecase := NewTemplateUseCase(mockTemplateRepo, mockDocRepo, nil)
+
+		mockTemplateRepo.On("UpdateTemplate", ctx, int64(8), mock.Anything, mock.Anything, (*bool)(nil)).Return(nil)
+
+		req := &dto.UpdateTemplateRequest{}
+		err := usecase.UpdateTemplate(ctx, 8, req)
+
+		assert.NoError(t, err)
 		mockTemplateRepo.AssertExpectations(t)
 	})
 }
