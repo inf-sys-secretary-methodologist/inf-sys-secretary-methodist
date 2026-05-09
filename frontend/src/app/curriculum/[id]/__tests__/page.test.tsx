@@ -70,6 +70,30 @@ jest.mock('@/components/curriculum/SubmitCurriculumDialog', () => ({
   ),
 }))
 
+const mockUseSections = jest.fn()
+jest.mock('@/hooks/useSections', () => ({
+  useSections: (curriculumID: number | null, opts?: { enabled?: boolean }) =>
+    mockUseSections(curriculumID, opts),
+}))
+
+// BulkEditPanel stubbed — page tests assert the page mounts it per
+// section с correct props. Panel's submit/cancel/conflict logic lives
+// in its own dedicated test suite.
+jest.mock('@/components/curriculum/bulk-edit/BulkEditPanel', () => ({
+  BulkEditPanel: ({
+    sectionID,
+    curriculumStatus,
+  }: {
+    sectionID: number
+    curriculumStatus: string
+  }) => (
+    <div
+      data-testid={`bulk-edit-panel-stub-${sectionID}`}
+      data-curriculum-status={curriculumStatus}
+    />
+  ),
+}))
+
 import CurriculumDetailPage from '../page'
 import type { Curriculum, CurriculumStatus } from '@/types/curriculum'
 
@@ -99,6 +123,12 @@ beforeEach(() => {
   mockUseParams.mockReturnValue({ id: '11' })
   mockUseCurriculum.mockReturnValue({
     curriculum: sample(),
+    isLoading: false,
+    error: undefined,
+    mutate: jest.fn(),
+  })
+  mockUseSections.mockReturnValue({
+    items: [],
     isLoading: false,
     error: undefined,
     mutate: jest.fn(),
@@ -279,5 +309,74 @@ describe('CurriculumDetailPage', () => {
     render(<CurriculumDetailPage />)
     const link = screen.getByText('detail.backToList').closest('a')
     expect(link).toHaveAttribute('href', '/curriculum')
+  })
+
+  it('renders empty placeholder when curriculum has no sections', () => {
+    render(<CurriculumDetailPage />)
+    expect(screen.getByText('detail.sections.empty')).toBeInTheDocument()
+  })
+
+  it('renders one section block + BulkEditPanel per section', () => {
+    mockUseSections.mockReturnValue({
+      items: [
+        {
+          id: 101,
+          curriculum_id: 11,
+          title: 'Базовая часть',
+          description: 'Обязательные дисциплины',
+          order_index: 0,
+          version: 0,
+          created_at: '2026-05-09T08:00:00Z',
+          updated_at: '2026-05-09T08:00:00Z',
+        },
+        {
+          id: 102,
+          curriculum_id: 11,
+          title: 'Вариативная часть',
+          description: '',
+          order_index: 1,
+          version: 0,
+          created_at: '2026-05-09T08:00:00Z',
+          updated_at: '2026-05-09T08:00:00Z',
+        },
+      ],
+      isLoading: false,
+      error: undefined,
+      mutate: jest.fn(),
+    })
+    render(<CurriculumDetailPage />)
+    expect(screen.getByText('Базовая часть')).toBeInTheDocument()
+    expect(screen.getByText('Вариативная часть')).toBeInTheDocument()
+    expect(screen.getByTestId('bulk-edit-panel-stub-101')).toBeInTheDocument()
+    expect(screen.getByTestId('bulk-edit-panel-stub-102')).toBeInTheDocument()
+  })
+
+  it('forwards curriculum.status к BulkEditPanel for canEdit gating', () => {
+    mockUseCurriculum.mockReturnValue({
+      curriculum: sample({ status: 'approved' as CurriculumStatus }),
+      isLoading: false,
+      error: undefined,
+      mutate: jest.fn(),
+    })
+    mockUseSections.mockReturnValue({
+      items: [
+        {
+          id: 101,
+          curriculum_id: 11,
+          title: 'Базовая часть',
+          description: '',
+          order_index: 0,
+          version: 0,
+          created_at: '2026-05-09T08:00:00Z',
+          updated_at: '2026-05-09T08:00:00Z',
+        },
+      ],
+      isLoading: false,
+      error: undefined,
+      mutate: jest.fn(),
+    })
+    render(<CurriculumDetailPage />)
+    const panel = screen.getByTestId('bulk-edit-panel-stub-101')
+    expect(panel).toHaveAttribute('data-curriculum-status', 'approved')
   })
 })
