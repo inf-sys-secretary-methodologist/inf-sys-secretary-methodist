@@ -68,11 +68,14 @@ func (h *AvatarHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	// For now, users can only update their own avatar
-	// Admin check can be added later
+	// For now, users can only update their own avatar; system_admin
+	// has the override on others' avatars. Reads "role" — the key the
+	// production JWTMiddleware writes (auth_middleware.go:59). Earlier
+	// the handler read "user_role" which the middleware never sets,
+	// so the override silently 403'd in production for system_admin.
 	currentUID, _ := currentUserID.(int64)
 	if currentUID != userID {
-		userRole, _ := c.Get("user_role")
+		userRole, _ := c.Get("role")
 		if userRole != "system_admin" {
 			resp := response.Forbidden("Нет прав для изменения аватара другого пользователя")
 			c.JSON(http.StatusForbidden, resp)
@@ -197,7 +200,9 @@ func (h *AvatarHandler) Delete(c *gin.Context) {
 	}
 
 	if currentUserID.(int64) != userID {
-		userRole, _ := c.Get("user_role")
+		// Reads "role" — same key as JWTMiddleware writes; see Upload
+		// for the wrong-key-bug history.
+		userRole, _ := c.Get("role")
 		if userRole != "system_admin" {
 			resp := response.Forbidden("Нет прав для удаления аватара другого пользователя")
 			c.JSON(http.StatusForbidden, resp)

@@ -69,7 +69,7 @@ func TestAvatarHandler_Upload_ForbiddenOtherUser(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodPost, "/users/2/avatar", nil)
 	c.Params = gin.Params{{Key: "id", Value: "2"}}
 	c.Set("user_id", int64(1))
-	c.Set("user_role", "methodist")
+	c.Set("role", "methodist")
 
 	h.Upload(c)
 	assert.Equal(t, http.StatusForbidden, w.Code)
@@ -120,7 +120,7 @@ func TestAvatarHandler_Delete_ForbiddenOtherUser(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodDelete, "/users/2/avatar", nil)
 	c.Params = gin.Params{{Key: "id", Value: "2"}}
 	c.Set("user_id", int64(1))
-	c.Set("user_role", "methodist")
+	c.Set("role", "methodist")
 
 	h.Delete(c)
 	assert.Equal(t, http.StatusForbidden, w.Code)
@@ -212,7 +212,7 @@ func TestAvatarHandler_Upload_AdminCanUploadOther(t *testing.T) {
 	c.Request = req
 	c.Params = gin.Params{{Key: "id", Value: "2"}}
 	c.Set("user_id", int64(1))
-	c.Set("user_role", "system_admin")
+	c.Set("role", "system_admin")
 
 	h.Upload(c)
 	// Passes auth check, reaches content type check - text/plain from part
@@ -227,7 +227,7 @@ func TestAvatarHandler_Delete_AdminCanDeleteOther(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodDelete, "/users/2/avatar", nil)
 	c.Params = gin.Params{{Key: "id", Value: "2"}}
 	c.Set("user_id", int64(1))
-	c.Set("user_role", "system_admin")
+	c.Set("role", "system_admin")
 
 	// Panics because userUseCase is nil
 	assert.Panics(t, func() { h.Delete(c) })
