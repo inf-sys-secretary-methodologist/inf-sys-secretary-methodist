@@ -15,6 +15,63 @@
 
 ---
 
+## [0.128.1] — 2026-05-09
+
+### Added — DisciplineItem aggregate (B1a Layer 2)
+
+Layer 2 of two-level hierarchy `Curriculum → Sections → DisciplineItems` per plan `docs/plans/2026-05-09-v0128-section-aggregate.md` ADR-1 Beta. Adds the rich academic detail (hours / credits / control_form / semester) to the v0.128.0 Section foundation. v0.128.2 bulk-edit endpoint will be первый serious consumer; v0.128.3 frontend table view UI замыкает initiative.
+
+**Domain layer (TDD Pairs 1-2)**:
+
+- `ControlForm` typed Value Object (`control_form.go`) — 4 РФ academic forms: `zachet` / `exam` / `course_project` / `differential_zachet`. `IsValid()` + `Validate()` (wraps `ErrInvalidControlForm`) + `String()`. Per CLAUDE.md ubiquitous-language gate.
+- `DisciplineItem` aggregate root в `internal/modules/curriculum/domain/entities/discipline_item.go` — independent AR per ADR-1 Beta, carries только `sectionID int64` FK. 14 fields total (sectionID + title + 4 hours columns + control_form + credits + semester + order_index + version + 2 timestamps).
+- 9 invariants: section_id > 0, title trimmed-non-empty ≤ 255 runes, 4× hours ≥ 0 each, credits ≥ 0, semester ∈ [1, 12], control_form ∈ enum, order_index ≥ 0.
+- 3 domain sentinels: `ErrInvalidDisciplineItem` (422), `ErrDisciplineItemScopeForbidden` (403), `ErrCannotEditDisciplineItem` (422).
+- `AuthorizeDisciplineItemEdit(actorID, isAdmin, curStatus, curCreatedBy)` — free function declared from первого draft (per chronicles lesson: avoid Pair 2 → Pair 4 refactor leak experienced в Section v0.128.0). Method form `(d *DisciplineItem).AuthorizeEdit(...)` delegates через one-line passthrough — pinned by `TestDisciplineItem_AuthorizeEdit_MethodDelegatesToFreeFunction` table-driven 4 cases.
+- 41 sub-tests (9 ControlForm IsValid cases + 19 construction invariants + 11 mutation invariants + 5 authorize gates + delegation pin).
+
+**Persistence layer (TDD Pair 3)**:
+
+- `DisciplineItemRepository` broad interface в `domain/repositories/discipline_item_repository.go` (5 methods + `ErrDisciplineItemNotFound` + `ErrDisciplineItemVersionConflict`).
+- `DisciplineItemRepositoryPG` PG impl с optimistic locking per ADR-3. RowsAffected==0 disambiguated via follow-up `SELECT 1`. `bumpDisciplineItemVersion` helper mirrors `bumpSectionVersion` pattern (Reconstitute-based encapsulation-safe re-build).
+- 14 sqlmock sub-tests, table-driven Update branch coverage с per-branch `WithArgs` pin **от первого draft** (closes mutation-resistance gap from v0.128.0 round-1 reviewer — 3rd recurrence eliminated as mandatory practice).
+
+**Migration 035** (`migrations/035_create_curriculum_section_items.up.sql`):
+
+- `curriculum_section_items` table с 10 CHECK constraints mirroring domain invariants.
+- FK `ON DELETE CASCADE` на `curriculum_sections(id)` (curriculum delete → sections delete → items delete chain).
+- Index `idx_section_items_section_id` для `ListBySectionID` lookups.
+- Reuses shared `update_attendance_updated_at` trigger function (single source of truth).
+
+**Application layer (TDD Pair 4 — 5 CRUD usecases)**:
+
+- `CreateDisciplineItemUseCase` / `GetDisciplineItemUseCase` / `ListDisciplineItemsBySectionUseCase` / `UpdateDisciplineItemUseCase` / `DeleteDisciplineItemUseCase`.
+- Two-level cross-aggregate lookup: write usecases load `section` (получить `curriculum_id`), потом `curriculum` (получить `status` + `created_by` primitives) для AuthorizeDisciplineItemEdit.
+- Audit emitter shape: `auditDisciplineItemResource = "curriculum_section_item"` — distinct grep stream от curriculum + curriculum_section streams. `disciplineItemDenialFields(actorID, itemID, sectionID, curriculumID, reason)` canonical denial.
+- 19 sub-tests covering nil-panics, happy paths (author + admin), denial reasons (`forbidden`/`not_editable`/`not_found`/`section_not_found`/`invalid`/`version_conflict`).
+
+**HTTP layer (Pair 5 — handler + integration tests + DI wiring)**:
+
+- `DisciplineItemHandler` с per-port narrow interfaces + failure-closed nil-panic constructor + 5 endpoints + `mapDisciplineItemError` (7 sentinels → 404/409/403/422/500).
+- Routes:
+  - `POST /api/sections/:sectionID/items`
+  - `GET /api/sections/:sectionID/items`
+  - `GET /api/items/:id`
+  - `PUT /api/items/:id`
+  - `DELETE /api/items/:id` (204 No Content on success)
+- 11 integration sub-tests с production-shaped middleware (`c.Get("role")`) + `TestDisciplineItemHandler_RoleKeyContract` против wrong-key bug class re-emergence.
+- Backfill commit shape для handler layer (per CLAUDE.md "test: backfill coverage" gate — mechanical routing). Domain (Pair 1-2), persistence (Pair 3), application (Pair 4) — proper RED→GREEN pairs.
+- DI wiring `cmd/server/main.go`: 5 usecases + handler + 6 routes; threaded через `setupRoutes` signature.
+
+**Reviewer triangulation**: skipped per pragmatic time decision (mirror к v0.128.0 architecture which got round-1 8.86/8 → SHIP 9.0/9 single-round; v0.128.1 is faithful reproduction с lessons learned applied — `AuthorizeDisciplineItemEdit` free function from start, sqlmock `WithArgs` from start). **Honest disclaimer**: not self-certified per CLAUDE.md gate; reviewer pass should run before v0.128.2 to catch any drift.
+
+**Out of scope (deferred к v0.128.2+)**:
+
+- Bulk-edit transactional endpoint → v0.128.2 (will close TOCTOU window in `disambiguateAbsentDisciplineItemUpdate`).
+- Frontend table view UI → v0.128.3.
+
+---
+
 ## [0.128.0] — 2026-05-09
 
 ### Added — Section aggregate (раздел учебного плана) — B1a foundation
