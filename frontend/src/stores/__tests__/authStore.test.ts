@@ -233,6 +233,69 @@ describe('authStore', () => {
     })
   })
 
+  describe('login MFA gating (v0.125.2)', () => {
+    type MFAFields = {
+      mfaIntermediateToken: string | null
+      mfaPendingUser: { id: number; email: string; name: string; role: string } | null
+      isAuthenticated: boolean
+      token: string | null
+      refreshToken: string | null
+      isLoading: boolean
+      error: string | null
+    }
+
+    it('stores intermediate_token + pending user without authenticating when mfa_required=true', async () => {
+      const mockUser = {
+        id: 7,
+        name: 'Admin',
+        email: 'admin@test.com',
+        role: 'system_admin' as const,
+        mfa_enabled: true,
+      }
+
+      mockedAuthApi.login.mockResolvedValue({
+        data: {
+          mfa_required: true,
+          intermediate_token: 'intermediate-jwt-abc',
+          user: mockUser,
+        },
+      } as never)
+
+      await act(async () => {
+        await useAuthStore.getState().login({ email: 'admin@test.com', password: 'pw' })
+      })
+
+      const state = useAuthStore.getState() as unknown as MFAFields
+
+      expect(state.mfaIntermediateToken).toBe('intermediate-jwt-abc')
+      expect(state.mfaPendingUser).toEqual(mockUser)
+      // critical: do NOT mark authenticated until verify-login completes
+      expect(state.isAuthenticated).toBe(false)
+      expect(state.token).toBeNull()
+      expect(state.refreshToken).toBeNull()
+      expect(state.isLoading).toBe(false)
+      expect(state.error).toBeNull()
+    })
+
+    it('clearMFAChallenge() resets ephemeral mfa fields', async () => {
+      // Seed state so we can prove the reset
+      useAuthStore.setState({
+        mfaIntermediateToken: 'some-jwt',
+        mfaPendingUser: { id: 1, email: 'a@b.c', name: 'A', role: 'system_admin' },
+      } as never)
+
+      act(() => {
+        ;(
+          useAuthStore.getState() as unknown as { clearMFAChallenge: () => void }
+        ).clearMFAChallenge()
+      })
+
+      const state = useAuthStore.getState() as unknown as MFAFields
+      expect(state.mfaIntermediateToken).toBeNull()
+      expect(state.mfaPendingUser).toBeNull()
+    })
+  })
+
   describe('register', () => {
     it('sets authenticated state on successful register', async () => {
       const mockUser = {
