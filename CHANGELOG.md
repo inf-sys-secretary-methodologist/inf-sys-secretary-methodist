@@ -15,6 +15,49 @@
 
 ---
 
+## [0.126.3] — 2026-05-09
+
+### Added — `methodist_only` toggle в TemplateEditorDialog (closes v0.126.0 deferred UI)
+
+v0.126.0 shipped backend storage и read-side filter для methodist-only templates (skipping teacher / student в `GET /api/templates`), но UI control для **flipping** the flag отсутствовал — admin'у / methodist'у нужно было SQL-руками выставлять `methodist_only=true`. v0.126.3 closes loop: toggle прямо в editor.
+
+**Backend pipeline (TDD pair 1)**:
+
+- `UpdateTemplateRequest` DTO gains `MethodistOnly *bool` field (`internal/modules/documents/application/dto/template_dto.go:46`). Pointer semantics: `nil` = "leave column as-is" (UI sends ничего unless toggle touched); `&true`/`&false` = explicit set. JSON-omit-empty preserves backward compat.
+- `TemplateRepository` interface (usecase-package, DIP per CLAUDE.md gate) extends signature: `UpdateTemplate(ctx, id, content, variables, methodistOnly *bool)` (`internal/modules/documents/application/usecases/template_usecase.go:23-27`).
+- `TemplateUseCase.UpdateTemplate` forwards `req.MethodistOnly` через repo layer.
+- `DocumentTypeRepositoryPG.UpdateTemplate` builds SET clause **dynamically** so content / variables / methodist_only can each be touched independently (`internal/modules/documents/infrastructure/persistence/document_type_repository_pg.go:122-160`). SQL string использует `// #nosec G201` comment — `setClauses` entries — static literals, values bind via `$N` parameters.
+- `TemplateRepositoryAdapter` pass-through update.
+- All existing UpdateTemplate tests (mock repo signatures, sqlmock calls в 4 sites) updated с trailing `nil` bool arg.
+
+**Frontend pipeline (TDD pair 2)**:
+
+- `TemplateEditorDialog` gains `methodistOnly: boolean | undefined` state mirroring backend pointer pattern (`undefined` = "не отправлять", `true`/`false` = "set value"). Reset to `undefined` on dialog open так что Save omits field unless user actually flipped toggle.
+- Checkbox UI rendered под `templates.editor.methodistOnlyLabel` с description ниже. `hasChanges` memo flips when toggle diverges от original `template.methodist_only`.
+- `handleSave` conditionally appends `methodist_only` к PUT payload только если `methodistOnly !== undefined`.
+- `UpdateTemplateRequest` TS type gains `methodist_only?: boolean`.
+
+**i18n × 4** (ru/en/fr/ar):
+
+- 2 new keys `templates.editor.methodistOnlyLabel` + `methodistOnlyDescription` added to all 4 locales.
+- New `TemplateEditorDialog.i18n.test.ts` JSON-load parity test pins (a) обязательные ключи non-empty в каждом locale, (b) `templates.editor` namespace key set одинаков across 4 locales (mirror к v0.124.0 `MFAVerifyLoginStep.i18n` pattern per memory `feedback_i18n_json_load_parity_test.md`).
+
+**Tests added**:
+
+- Backend usecase `template_usecase_test.go`: 2 new cases (forward MethodistOnly pointer + nil preserves field).
+- Backend sqlmock `document_type_repository_pg_test.go`: table-driven `TestTypeRepo_UpdateTemplate_MethodistOnlyBranches` covering nil / true / false с `WithArgs` pinning actual boolean value (mutation-resistant — нельзя пройти на hardcoded `true`).
+- Frontend `TemplateEditorDialog.test.tsx`: 5 cases (initial true / initial false / dirty-on-flip / save-with-flip-sends-field / save-without-flip-omits-field).
+- Frontend i18n parity test (см. выше).
+
+**Reviewer triangulation**:
+
+- Round-1: mean **8.75 / min 6** (Hygiene blocker — prettier --check fail на test file). FIX-CYCLE с 1 must (prettier --write) + 1 nice-to-have (table-driven sqlmock).
+- Round-2 (после fix-cycle): mean **9.0 / min 8** (Tests 9→10 после table-driven с WithArgs pin; Hygiene 6→9). SHIP.
+
+**Cumulative session shipped (4 releases)**: v0.126.1 (wrong-key bug class) + v0.126.2 (misspell patch) + v0.126.3 (methodist_only UI). Defence-ready минимум 100% closed; templates filter полностью end-to-end (backend filter + frontend toggle).
+
+---
+
 ## [0.126.2] — 2026-05-09
 
 ### Fixed — CI lint cleanup (misspell `behaviour` → `behavior` × 5 files)
