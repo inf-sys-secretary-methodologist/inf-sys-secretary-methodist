@@ -82,9 +82,6 @@ func TestAnnouncementHandler_IsAdmin_NonStringRoleType(t *testing.T) {
 		"non-string role value must default to non-admin")
 }
 
-// silence the unused-warning for withAuth in case future tests adopt it.
-var _ = withAuth
-
 // pinHTTPStatus is a tiny smoke check that admin override path is
 // observable through the public HTTP surface. Sends Update with
 // invalid JSON so the binding fails after the gate; ensures handler
