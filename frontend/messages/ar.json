@@ -1829,7 +1829,9 @@
       "moveDown": "نقل لأسفل",
       "saveError": "فشل في حفظ القالب. حاول مرة أخرى.",
       "saveSuccess": "تم حفظ القالب بنجاح!",
-      "unsavedChanges": "لديك تغييرات غير محفوظة"
+      "unsavedChanges": "لديك تغييرات غير محفوظة",
+      "methodistOnlyLabel": "للميثوديين فقط",
+      "methodistOnlyDescription": "سيُخفى القالب عن المعلمين والطلاب؛ مرئي فقط لـ system_admin وmethodist وacademic_secretary."
     }
   },
   "analytics": {

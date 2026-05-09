@@ -1829,7 +1829,9 @@
       "moveDown": "Move down",
       "saveError": "Failed to save template. Please try again.",
       "saveSuccess": "Template saved successfully!",
-      "unsavedChanges": "You have unsaved changes"
+      "unsavedChanges": "You have unsaved changes",
+      "methodistOnlyLabel": "Methodist staff only",
+      "methodistOnlyDescription": "The template will be hidden from teachers and students; visible only to system_admin, methodist and academic_secretary."
     }
   },
   "analytics": {

@@ -1789,7 +1789,9 @@
       "moveDown": "Переместить вниз",
       "saveError": "Не удалось сохранить шаблон. Попробуйте ещё раз.",
       "saveSuccess": "Шаблон успешно сохранён!",
-      "unsavedChanges": "Есть несохранённые изменения"
+      "unsavedChanges": "Есть несохранённые изменения",
+      "methodistOnlyLabel": "Только для методистов",
+      "methodistOnlyDescription": "Шаблон будет скрыт от преподавателей и студентов; видим только для system_admin, methodist и academic_secretary."
     },
     "allCategories": "Все категории",
     "noTemplatesHint": "Созданные шаблоны будут отображаться здесь",

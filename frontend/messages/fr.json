@@ -1829,7 +1829,9 @@
       "moveDown": "Descendre",
       "saveError": "Échec de l'enregistrement du modèle. Veuillez réessayer.",
       "saveSuccess": "Modèle enregistré avec succès!",
-      "unsavedChanges": "Vous avez des modifications non enregistrées"
+      "unsavedChanges": "Vous avez des modifications non enregistrées",
+      "methodistOnlyLabel": "Réservé au personnel méthodologique",
+      "methodistOnlyDescription": "Le modèle sera masqué pour les enseignants et les étudiants ; visible uniquement pour system_admin, methodist et academic_secretary."
     }
   },
   "analytics": {

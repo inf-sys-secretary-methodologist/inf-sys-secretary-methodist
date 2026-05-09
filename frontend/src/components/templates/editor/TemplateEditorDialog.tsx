@@ -97,6 +97,10 @@ export function TemplateEditorDialog({
   const tCommon = useTranslations('common')
   const [content, setContent] = useState('')
   const [variables, setVariables] = useState<TemplateVariable[]>([])
+  // Pointer-like semantics for methodist_only: undefined means
+  // "leave server value as-is", true/false means "send to backend".
+  // Only flipped to a concrete bool by the Switch onChange.
+  const [methodistOnly, setMethodistOnly] = useState<boolean | undefined>(undefined)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -113,6 +117,9 @@ export function TemplateEditorDialog({
     if (open && template) {
       setContent(template.template_content || '')
       setVariables(template.template_variables || [])
+      // Reset to undefined so Save omits methodist_only unless the
+      // user actually flips the toggle (preserves server value).
+      setMethodistOnly(undefined)
       setError(null)
       setSuccess(false)
     }
@@ -136,10 +143,15 @@ export function TemplateEditorDialog({
     if (!template) return false
     const originalContent = template.template_content || ''
     const originalVariables = template.template_variables || []
+    const originalMethodistOnly = template.methodist_only ?? false
+    const methodistOnlyChanged =
+      methodistOnly !== undefined && methodistOnly !== originalMethodistOnly
     return (
-      content !== originalContent || JSON.stringify(variables) !== JSON.stringify(originalVariables)
+      content !== originalContent ||
+      JSON.stringify(variables) !== JSON.stringify(originalVariables) ||
+      methodistOnlyChanged
     )
-  }, [template, content, variables])
+  }, [template, content, variables, methodistOnly])
 
   const handleSave = async () => {
     if (!template) return
@@ -147,10 +159,18 @@ export function TemplateEditorDialog({
     try {
       setIsSaving(true)
       setError(null)
-      await templatesApi.update(template.id, {
+      const payload: {
+        template_content: string
+        template_variables: TemplateVariable[]
+        methodist_only?: boolean
+      } = {
         template_content: content,
         template_variables: variables,
-      })
+      }
+      if (methodistOnly !== undefined) {
+        payload.methodist_only = methodistOnly
+      }
+      await templatesApi.update(template.id, payload)
       setSuccess(true)
       setTimeout(() => {
         onSave?.()
@@ -366,6 +386,24 @@ export function TemplateEditorDialog({
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}
+
+          {/* Visibility toggle: methodist_only (v0.126.3) */}
+          <div className="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3 mt-2">
+            <input
+              id="template-methodist-only"
+              type="checkbox"
+              aria-label={t('methodistOnlyLabel')}
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              checked={methodistOnly ?? template.methodist_only ?? false}
+              onChange={(e) => setMethodistOnly(e.target.checked)}
+            />
+            <div className="flex-1">
+              <Label htmlFor="template-methodist-only" className="font-medium">
+                {t('methodistOnlyLabel')}
+              </Label>
+              <p className="text-xs text-gray-500 mt-1">{t('methodistOnlyDescription')}</p>
+            </div>
+          </div>
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-4 border-t">

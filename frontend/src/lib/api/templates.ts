@@ -66,6 +66,10 @@ export interface CreateFromTemplateRequest {
 export interface UpdateTemplateRequest {
   template_content?: string
   template_variables?: TemplateVariable[]
+  // v0.126.3: optional toggle for the methodist_only visibility flag.
+  // Omit the field to leave the server value unchanged; send true/false
+  // to flip it. UI only sets it when the toggle is touched.
+  methodist_only?: boolean
 }
 
 export const templatesApi = {
