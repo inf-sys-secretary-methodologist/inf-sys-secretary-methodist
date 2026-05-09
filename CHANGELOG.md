@@ -15,6 +15,42 @@
 
 ---
 
+## [0.127.0] — 2026-05-09
+
+### Added — Pre-commit hook (closes cumulative cleanup-patch class)
+
+Активируется один раз `bash .husky/install.sh` (sets `git config core.hooksPath .husky`). Bypass для WIP — `git commit --no-verify`.
+
+**Закрывает класс**: 4 cumulative cleanup patches за месяц каждый ловил different lint regression после CI feedback:
+- v0.121.3 errcheck/goconst sweep.
+- v0.124.1 misspell `defence`/`centralised` + prettier × 4 locales.
+- v0.125.1 `.env.example` sync.
+- v0.126.2 misspell `behaviour` × 5 файлов.
+
+**Hook checks (per-file scope только staged set, fast feedback)**:
+
+- **Go**: AmE/BrE word-boundary grep (`behaviour|defence|centralised|colour|realise|optimise` → AmE forms `behavior`/`defense`/`centralized`/`color`/`realize`/`organize`) + `golangci-lint --config=.github/golangci.yml` per-package на packages owning staged files.
+- **Frontend** (`frontend/src/**/*.{ts,tsx}` flat AND nested + `frontend/messages/**/*.json`): `prettier --check` + `eslint` (TS/TSX only — JSON has no rules).
+
+**Артефакты**:
+- `.husky/pre-commit` (115 lines) — main hook script. Word-boundary grep `-w`, dirname=. guard, worktree-aware bootstrap, `shopt -s globstar nullglob`.
+- `.husky/install.sh` — idempotent activation (sets core.hooksPath + chmod +x).
+- `.husky/test.sh` — smoke test creates throwaway files с each violation class, stages, runs hook directly, asserts non-zero exit + recognisable substring. EXIT/INT/TERM trap cleans leftovers. 3/3 PASS verified.
+- `README.md` — section "Pre-commit hook" под "Участие в разработке" с install + bypass + requirements (bash ≥ 4, golangci-lint в PATH, frontend/node_modules).
+- `frontend/package.json` — drop `"prepare": "husky"` script (would have init'ed `frontend/.husky/` conflict с root `.husky/`). husky/lint-staged devDeps left in place (cost nothing if unused, preserves option to layer lint-staged later).
+
+**Decision: raw shell + `core.hooksPath` over husky framework** — для mixed Go + TS repo проще shell hook чем split husky setup в `frontend/`. Less moving parts, no prepare-script conflict, single source of truth at repo root. Husky's value (auto-install via `prepare`, cross-platform shell wrapper) replaced одной командой `bash .husky/install.sh` после clone.
+
+**Decision: `_tools/` gitignored project-wide → scripts inside `.husky/`** — install + test scripts placed next to the hook itself (single tooling artifact directory).
+
+**Reviewer triangulation**:
+- Round-1: mean **8.43 / min 7** (FIX-CYCLE — frontend pattern flat-file gap, dirname=. edge, BrE word-boundary, trap cleanup, README requirements).
+- Round-2 (после fix-cycle): mean **8.8 / min 8** (SHIP — все 5 findings closure verified independently на checked-out commit; smoke 3/3 PASS regression-free).
+
+**Cumulative session shipped**: 4 releases (v0.126.1 + v0.126.2 + v0.126.3 + v0.127.0). v0.127.0 — exception к 3/3 limit per user decision (high ROI: eliminates lint cleanup-patch class).
+
+---
+
 ## [0.126.3] — 2026-05-09
 
 ### Added — `methodist_only` toggle в TemplateEditorDialog (closes v0.126.0 deferred UI)
