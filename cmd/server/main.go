@@ -487,6 +487,16 @@ func main() {
 	listSectionsUseCase := curUsecases.NewListSectionsByCurriculumUseCase(sectionRepo)
 	updateSectionUseCase := curUsecases.NewUpdateSectionUseCase(sectionRepo, curriculumRepo, auditLogger, nil)
 	deleteSectionUseCase := curUsecases.NewDeleteSectionUseCase(sectionRepo, curriculumRepo, auditLogger)
+	// v0.128.1 DisciplineItem aggregate (Layer 2 of B1a hierarchy) —
+	// child of Section per ADR-1 Beta. 5 CRUD usecases share two-level
+	// cross-aggregate lookup (sectionRepo + curriculumRepo) для
+	// AuthorizeDisciplineItemEdit primitives.
+	disciplineItemRepo := curPersistence.NewDisciplineItemRepositoryPG(db)
+	createDisciplineItemUseCase := curUsecases.NewCreateDisciplineItemUseCase(disciplineItemRepo, sectionRepo, curriculumRepo, auditLogger, nil)
+	getDisciplineItemUseCase := curUsecases.NewGetDisciplineItemUseCase(disciplineItemRepo)
+	listDisciplineItemsUseCase := curUsecases.NewListDisciplineItemsBySectionUseCase(disciplineItemRepo)
+	updateDisciplineItemUseCase := curUsecases.NewUpdateDisciplineItemUseCase(disciplineItemRepo, sectionRepo, curriculumRepo, auditLogger, nil)
+	deleteDisciplineItemUseCase := curUsecases.NewDeleteDisciplineItemUseCase(disciplineItemRepo, sectionRepo, curriculumRepo, auditLogger)
 	logger.Info("Curriculum module initialized", nil)
 
 	// Initialize schedule module
@@ -716,6 +726,11 @@ func main() {
 		listSectionsUseCase,
 		updateSectionUseCase,
 		deleteSectionUseCase,
+		createDisciplineItemUseCase,
+		getDisciplineItemUseCase,
+		listDisciplineItemsUseCase,
+		updateDisciplineItemUseCase,
+		deleteDisciplineItemUseCase,
 		eventUseCase,
 		lessonUseCase,
 		announcementUseCase,
@@ -1238,6 +1253,11 @@ func setupRoutes(
 	listSectionsUseCase *curUsecases.ListSectionsByCurriculumUseCase,
 	updateSectionUseCase *curUsecases.UpdateSectionUseCase,
 	deleteSectionUseCase *curUsecases.DeleteSectionUseCase,
+	createDisciplineItemUseCase *curUsecases.CreateDisciplineItemUseCase,
+	getDisciplineItemUseCase *curUsecases.GetDisciplineItemUseCase,
+	listDisciplineItemsUseCase *curUsecases.ListDisciplineItemsBySectionUseCase,
+	updateDisciplineItemUseCase *curUsecases.UpdateDisciplineItemUseCase,
+	deleteDisciplineItemUseCase *curUsecases.DeleteDisciplineItemUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
@@ -2082,6 +2102,34 @@ func setupRoutes(
 				sectionGroup.OPTIONS("/sections/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 			logger.Info("Section module routes registered", nil)
+		}
+
+		// DisciplineItem module routes (v0.128.1). RequireNonStudent — same
+		// scope gate as Section. Authorization (author methodist vs admin
+		// override) enforced в use-case layer via AuthorizeDisciplineItemEdit;
+		// handler does only role-class whitelisting (canWrite for write
+		// methods, canRead for read methods).
+		//
+		// Routes split: section-scoped (Create / List, where section id is
+		// path component) и item-scoped (Get / Update / Delete, addressed
+		// by item id directly). Mirror к Section routing convention.
+		if createDisciplineItemUseCase != nil {
+			disciplineItemHandler := curHandler.NewDisciplineItemHandler(
+				createDisciplineItemUseCase, getDisciplineItemUseCase, listDisciplineItemsUseCase,
+				updateDisciplineItemUseCase, deleteDisciplineItemUseCase,
+			)
+			disciplineItemGroup := protectedGroup.Group("")
+			disciplineItemGroup.Use(authMiddleware.RequireNonStudent())
+			{
+				disciplineItemGroup.POST("/sections/:sectionID/items", disciplineItemHandler.Create)
+				disciplineItemGroup.OPTIONS("/sections/:sectionID/items", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				disciplineItemGroup.GET("/sections/:sectionID/items", disciplineItemHandler.List)
+				disciplineItemGroup.GET("/items/:id", disciplineItemHandler.Get)
+				disciplineItemGroup.PUT("/items/:id", disciplineItemHandler.Update)
+				disciplineItemGroup.DELETE("/items/:id", disciplineItemHandler.Delete)
+				disciplineItemGroup.OPTIONS("/items/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+			logger.Info("DisciplineItem module routes registered", nil)
 		}
 
 		// Schedule/Events module routes
