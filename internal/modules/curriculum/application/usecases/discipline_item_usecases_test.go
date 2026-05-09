@@ -263,6 +263,9 @@ func TestCreateDisciplineItem_FrozenStatusDenied(t *testing.T) {
 	_, err := uc.Execute(context.Background(), 42, false, validCreateInput())
 	assert.True(t, errors.Is(err, entities.ErrCannotEditDisciplineItem))
 	assert.Equal(t, 0, repo.saveCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "discipline_item.create_denied", audit.events[0].Action)
+	assert.Equal(t, "not_editable", audit.events[0].Fields["reason"])
 }
 
 func TestCreateDisciplineItem_AdminOverride(t *testing.T) {
@@ -302,6 +305,9 @@ func TestCreateDisciplineItem_InvalidInput(t *testing.T) {
 	_, err := uc.Execute(context.Background(), 42, false, in)
 	assert.True(t, errors.Is(err, entities.ErrInvalidDisciplineItem))
 	assert.Equal(t, 0, repo.saveCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "discipline_item.create_denied", audit.events[0].Action)
+	assert.Equal(t, "invalid", audit.events[0].Fields["reason"])
 }
 
 // ===== Get =====
@@ -439,6 +445,82 @@ func TestUpdateDisciplineItem_ItemNotFound(t *testing.T) {
 	_, err := uc.Execute(context.Background(), 42, false, UpdateDisciplineItemInput{ID: 999, Title: "T"})
 	assert.True(t, errors.Is(err, repositories.ErrDisciplineItemNotFound))
 	assert.Equal(t, 0, repo.updateCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "discipline_item.update_denied", audit.events[0].Action)
+	assert.Equal(t, "not_found", audit.events[0].Fields["reason"])
+}
+
+// TestUpdateDisciplineItem_FrozenStatusDenied pins the not_editable
+// audit reason on the Update denial path.
+func TestUpdateDisciplineItem_FrozenStatusDenied(t *testing.T) {
+	now := time.Now()
+	d := entities.ReconstituteDisciplineItem(202, 11, "T", 18, 18, 0, 36,
+		entities.ControlFormZachet, 2, 1, 0, 0, now, now)
+	repo := &fakeDisciplineItemUpdateRepo{got: d}
+	section := &fakeSectionLookup{got: builtSectionForItemTests(t)}
+	curriculum := &fakeCurriculumLookup{got: frozenCurriculumForItem(t, entities.StatusPendingApproval, 42)}
+	audit := &recordingAuditSink{}
+
+	uc := NewUpdateDisciplineItemUseCase(repo, section, curriculum, audit, time.Now)
+	_, err := uc.Execute(context.Background(), 42, false, UpdateDisciplineItemInput{
+		ID: 202, Title: "T",
+		HoursLectures: 18, HoursPractice: 18, HoursSelf: 36,
+		ControlForm: entities.ControlFormZachet, Credits: 2, Semester: 1,
+	})
+	assert.True(t, errors.Is(err, entities.ErrCannotEditDisciplineItem))
+	assert.Equal(t, 0, repo.updateCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "discipline_item.update_denied", audit.events[0].Action)
+	assert.Equal(t, "not_editable", audit.events[0].Fields["reason"])
+}
+
+// TestUpdateDisciplineItem_NonAuthorMethodistDenied pins the forbidden
+// audit reason on the Update denial path (non-author methodist trying
+// to edit someone else's curriculum's items).
+func TestUpdateDisciplineItem_NonAuthorMethodistDenied(t *testing.T) {
+	now := time.Now()
+	d := entities.ReconstituteDisciplineItem(202, 11, "T", 18, 18, 0, 36,
+		entities.ControlFormZachet, 2, 1, 0, 0, now, now)
+	repo := &fakeDisciplineItemUpdateRepo{got: d}
+	section := &fakeSectionLookup{got: builtSectionForItemTests(t)}
+	curriculum := &fakeCurriculumLookup{got: draftCurriculumForItem(t, 42)} // owned by 42
+	audit := &recordingAuditSink{}
+
+	uc := NewUpdateDisciplineItemUseCase(repo, section, curriculum, audit, time.Now)
+	_, err := uc.Execute(context.Background(), 99, false, UpdateDisciplineItemInput{ // actor 99 ≠ owner 42
+		ID: 202, Title: "T",
+		HoursLectures: 18, HoursPractice: 18, HoursSelf: 36,
+		ControlForm: entities.ControlFormZachet, Credits: 2, Semester: 1,
+	})
+	assert.True(t, errors.Is(err, entities.ErrDisciplineItemScopeForbidden))
+	assert.Equal(t, 0, repo.updateCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "discipline_item.update_denied", audit.events[0].Action)
+	assert.Equal(t, "forbidden", audit.events[0].Fields["reason"])
+}
+
+// TestUpdateDisciplineItem_InvalidInput pins the invalid audit reason
+// on the Update denial path (UpdateBasics invariant fail).
+func TestUpdateDisciplineItem_InvalidInput(t *testing.T) {
+	now := time.Now()
+	d := entities.ReconstituteDisciplineItem(202, 11, "T", 18, 18, 0, 36,
+		entities.ControlFormZachet, 2, 1, 0, 0, now, now)
+	repo := &fakeDisciplineItemUpdateRepo{got: d}
+	section := &fakeSectionLookup{got: builtSectionForItemTests(t)}
+	curriculum := &fakeCurriculumLookup{got: draftCurriculumForItem(t, 42)}
+	audit := &recordingAuditSink{}
+
+	uc := NewUpdateDisciplineItemUseCase(repo, section, curriculum, audit, time.Now)
+	_, err := uc.Execute(context.Background(), 42, false, UpdateDisciplineItemInput{
+		ID: 202, Title: "", // invariant fail
+		HoursLectures: 18, HoursPractice: 18, HoursSelf: 36,
+		ControlForm: entities.ControlFormZachet, Credits: 2, Semester: 1,
+	})
+	assert.True(t, errors.Is(err, entities.ErrInvalidDisciplineItem))
+	assert.Equal(t, 0, repo.updateCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "discipline_item.update_denied", audit.events[0].Action)
+	assert.Equal(t, "invalid", audit.events[0].Fields["reason"])
 }
 
 // ===== Delete =====
@@ -473,6 +555,29 @@ func TestDeleteDisciplineItem_NonAuthorMethodistDenied(t *testing.T) {
 	err := uc.Execute(context.Background(), 99, false, 202)
 	assert.True(t, errors.Is(err, entities.ErrDisciplineItemScopeForbidden))
 	assert.Equal(t, 0, repo.deleteCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "discipline_item.delete_denied", audit.events[0].Action)
+	assert.Equal(t, "forbidden", audit.events[0].Fields["reason"])
+}
+
+// TestDeleteDisciplineItem_FrozenStatusDenied pins the not_editable
+// audit reason on the Delete denial path.
+func TestDeleteDisciplineItem_FrozenStatusDenied(t *testing.T) {
+	now := time.Now()
+	d := entities.ReconstituteDisciplineItem(202, 11, "T", 18, 18, 0, 36,
+		entities.ControlFormZachet, 2, 1, 0, 0, now, now)
+	repo := &fakeDisciplineItemDeleteRepo{got: d}
+	section := &fakeSectionLookup{got: builtSectionForItemTests(t)}
+	curriculum := &fakeCurriculumLookup{got: frozenCurriculumForItem(t, entities.StatusPendingApproval, 42)}
+	audit := &recordingAuditSink{}
+
+	uc := NewDeleteDisciplineItemUseCase(repo, section, curriculum, audit)
+	err := uc.Execute(context.Background(), 42, false, 202)
+	assert.True(t, errors.Is(err, entities.ErrCannotEditDisciplineItem))
+	assert.Equal(t, 0, repo.deleteCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "discipline_item.delete_denied", audit.events[0].Action)
+	assert.Equal(t, "not_editable", audit.events[0].Fields["reason"])
 }
 
 func TestDeleteDisciplineItem_ItemNotFound(t *testing.T) {
@@ -484,4 +589,7 @@ func TestDeleteDisciplineItem_ItemNotFound(t *testing.T) {
 	uc := NewDeleteDisciplineItemUseCase(repo, section, curriculum, audit)
 	err := uc.Execute(context.Background(), 42, false, 999)
 	assert.True(t, errors.Is(err, repositories.ErrDisciplineItemNotFound))
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "discipline_item.delete_denied", audit.events[0].Action)
+	assert.Equal(t, "not_found", audit.events[0].Fields["reason"])
 }
