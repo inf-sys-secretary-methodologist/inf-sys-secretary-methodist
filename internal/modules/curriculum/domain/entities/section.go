@@ -163,14 +163,76 @@ func (s *Section) CreatedAt() time.Time { return s.createdAt }
 // UpdatedAt returns the last-mutation timestamp.
 func (s *Section) UpdatedAt() time.Time { return s.updatedAt }
 
-// UpdateBasics — implementation lands в GREEN commit (Pair 2).
+// UpdateBasics applies a content edit (title / description /
+// order_index) to the section. The method is atomic: if any invariant
+// fails, the entity is left untouched and the wrapped ErrInvalidSection
+// is returned.
+//
+// The status gate (curriculum lifecycle inheritance per ADR-2) is NOT
+// enforced here — Section keeps no Curriculum reference. Callers must
+// invoke AuthorizeEdit first (which takes curriculum.status as a
+// primitive parameter) and only then UpdateBasics. The two-step shape
+// keeps Section pure of cross-aggregate knowledge.
+//
+// Version is repo-managed (ADR-3 — DB increments on UPDATE with WHERE
+// version=? optimistic check). UpdateBasics does not touch version
+// here; the repository bumps it after a successful RowsAffected==1.
 func (s *Section) UpdateBasics(title, description string, orderIndex int, now time.Time) error {
-	_, _, _, _ = title, description, orderIndex, now
-	return errors.New("section: UpdateBasics not implemented yet")
+	trimmedTitle := strings.TrimSpace(title)
+	if trimmedTitle == "" {
+		return fmt.Errorf("%w: title must not be empty", ErrInvalidSection)
+	}
+	if len([]rune(trimmedTitle)) > maxSectionTitleLen {
+		return fmt.Errorf("%w: title length %d exceeds max %d",
+			ErrInvalidSection, len([]rune(trimmedTitle)), maxSectionTitleLen)
+	}
+	trimmedDescription := strings.TrimSpace(description)
+	if len([]rune(trimmedDescription)) > maxSectionDescriptionLen {
+		return fmt.Errorf("%w: description length %d exceeds max %d",
+			ErrInvalidSection, len([]rune(trimmedDescription)), maxSectionDescriptionLen)
+	}
+	if orderIndex < 0 {
+		return fmt.Errorf("%w: order_index must be non-negative, got %d",
+			ErrInvalidSection, orderIndex)
+	}
+	// All validation passed — apply mutations atomically.
+	s.title = trimmedTitle
+	s.description = trimmedDescription
+	s.orderIndex = orderIndex
+	s.updatedAt = now
+	return nil
 }
 
-// AuthorizeEdit — implementation lands в GREEN commit (Pair 2).
+// AuthorizeEdit returns nil if the caller may modify this Section's
+// content via UpdateBasics, or one of the two domain sentinels otherwise.
+//
+// curStatus + curCreatedBy are primitive projections of the parent
+// Curriculum's state (status + author). They are passed in rather than
+// fetched through a navigable reference because Section is an
+// independent aggregate root (ADR-1 Beta) — the use case retrieves the
+// curriculum, then hands its primitives to the section.
+//
+// The status gate fires BEFORE the ownership / admin checks: any
+// non-editable curriculum status freezes its sections for everyone,
+// including admins. This mirrors Curriculum.AuthorizeEdit's gate
+// ordering. When isAdmin is true the ownership check is skipped —
+// admins (system_admin, academic_secretary) may edit any section
+// inside an editable curriculum.
+//
+// The actorID > 0 guard is defense-in-depth against a JWT subject
+// lost upstream: a zero actor must never satisfy the
+// actor==curCreatedBy comparison even when curCreatedBy is also 0.
 func (s *Section) AuthorizeEdit(actorID int64, isAdmin bool, curStatus CurriculumStatus, curCreatedBy int64) error {
-	_, _, _, _ = actorID, isAdmin, curStatus, curCreatedBy
-	return errors.New("section: AuthorizeEdit not implemented yet")
+	if !curStatus.CanEdit() {
+		return fmt.Errorf("%w: curriculum status %q is not editable",
+			ErrCannotEditSection, string(curStatus))
+	}
+	if isAdmin {
+		return nil
+	}
+	if actorID > 0 && actorID == curCreatedBy {
+		return nil
+	}
+	return fmt.Errorf("%w: actor %d is not the curriculum author (%d)",
+		ErrSectionScopeForbidden, actorID, curCreatedBy)
 }
