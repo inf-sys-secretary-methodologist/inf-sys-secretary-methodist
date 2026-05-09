@@ -190,13 +190,28 @@ func TestNewGetDisciplineItemUseCase_PanicsOnNilRepo(t *testing.T) {
 	NewGetDisciplineItemUseCase(nil)
 }
 
-func TestNewListDisciplineItemsBySectionUseCase_PanicsOnNilRepo(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("did not panic on nil repo")
-		}
-	}()
-	NewListDisciplineItemsBySectionUseCase(nil)
+func TestNewListDisciplineItemsBySectionUseCase_PanicsOnNilDeps(t *testing.T) {
+	cases := []struct {
+		name string
+		fn   func()
+	}{
+		{"nil repo", func() {
+			NewListDisciplineItemsBySectionUseCase(nil, &fakeSectionLookup{})
+		}},
+		{"nil sectionRepo", func() {
+			NewListDisciplineItemsBySectionUseCase(&fakeDisciplineItemListRepo{}, nil)
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Fatalf("constructor accepted nil dep (%s)", tc.name)
+				}
+			}()
+			tc.fn()
+		})
+	}
 }
 
 // ===== Create =====
@@ -321,7 +336,8 @@ func TestListDisciplineItemsBySection_HappyPath(t *testing.T) {
 			entities.ControlFormExam, 4, 1, 1, 0, now, now),
 	}
 	repo := &fakeDisciplineItemListRepo{got: items}
-	uc := NewListDisciplineItemsBySectionUseCase(repo)
+	section := &fakeSectionLookup{got: builtSectionForItemTests(t)}
+	uc := NewListDisciplineItemsBySectionUseCase(repo, section)
 	got, err := uc.Execute(context.Background(), 11)
 	require.NoError(t, err)
 	require.Len(t, got, 2)
@@ -330,10 +346,41 @@ func TestListDisciplineItemsBySection_HappyPath(t *testing.T) {
 
 func TestListDisciplineItemsBySection_EmptyResult(t *testing.T) {
 	repo := &fakeDisciplineItemListRepo{got: nil}
-	uc := NewListDisciplineItemsBySectionUseCase(repo)
-	got, err := uc.Execute(context.Background(), 99)
+	section := &fakeSectionLookup{got: builtSectionForItemTests(t)}
+	uc := NewListDisciplineItemsBySectionUseCase(repo, section)
+	got, err := uc.Execute(context.Background(), 11)
 	require.NoError(t, err)
 	assert.Len(t, got, 0)
+}
+
+// TestListDisciplineItemsBySection_SectionNotFound pins the cross-aggregate
+// guard added in v0.128.2 — clients distinguish "no items" from "section
+// gone" instead of seeing identical empty 200 responses (closes v0.128.1
+// retroactive review Tier 1 #1).
+func TestListDisciplineItemsBySection_SectionNotFound(t *testing.T) {
+	repo := &fakeDisciplineItemListRepo{}
+	section := &fakeSectionLookup{getErr: repositories.ErrSectionNotFound}
+	uc := NewListDisciplineItemsBySectionUseCase(repo, section)
+	got, err := uc.Execute(context.Background(), 99)
+	assert.Nil(t, got)
+	assert.True(t, errors.Is(err, repositories.ErrSectionNotFound),
+		"List must propagate ErrSectionNotFound — caller maps to 404")
+	assert.Equal(t, int64(0), repo.gotID,
+		"must NOT call ListBySectionID when section absent (extra DB load)")
+}
+
+// TestListDisciplineItemsBySection_PropagatesOpaqueSectionLookupError pins
+// transport-error path (DB connection issues, context cancellation) ahead
+// of the items query.
+func TestListDisciplineItemsBySection_PropagatesOpaqueSectionLookupError(t *testing.T) {
+	opaque := errors.New("db down")
+	repo := &fakeDisciplineItemListRepo{}
+	section := &fakeSectionLookup{getErr: opaque}
+	uc := NewListDisciplineItemsBySectionUseCase(repo, section)
+	got, err := uc.Execute(context.Background(), 99)
+	assert.Nil(t, got)
+	assert.True(t, errors.Is(err, opaque))
+	assert.Equal(t, int64(0), repo.gotID)
 }
 
 // ===== Update =====

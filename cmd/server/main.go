@@ -494,7 +494,7 @@ func main() {
 	disciplineItemRepo := curPersistence.NewDisciplineItemRepositoryPG(db)
 	createDisciplineItemUseCase := curUsecases.NewCreateDisciplineItemUseCase(disciplineItemRepo, sectionRepo, curriculumRepo, auditLogger, nil)
 	getDisciplineItemUseCase := curUsecases.NewGetDisciplineItemUseCase(disciplineItemRepo)
-	listDisciplineItemsUseCase := curUsecases.NewListDisciplineItemsBySectionUseCase(disciplineItemRepo)
+	listDisciplineItemsUseCase := curUsecases.NewListDisciplineItemsBySectionUseCase(disciplineItemRepo, sectionRepo)
 	updateDisciplineItemUseCase := curUsecases.NewUpdateDisciplineItemUseCase(disciplineItemRepo, sectionRepo, curriculumRepo, auditLogger, nil)
 	deleteDisciplineItemUseCase := curUsecases.NewDeleteDisciplineItemUseCase(disciplineItemRepo, sectionRepo, curriculumRepo, auditLogger)
 	logger.Info("Curriculum module initialized", nil)
