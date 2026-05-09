@@ -15,6 +15,48 @@
 
 ---
 
+## [0.126.1] — 2026-05-09
+
+### Fixed — Wrong-key bug class в 4 production handlers (pre-defence security sweep)
+
+Закрывает out-of-scope finding из v0.126.0 round-2 review: same wrong-key bug class что был CRITICAL в `UpdateTemplate` handler — `c.Get("user_role")` vs production middleware `c.Set("role", ...)` (`internal/modules/auth/interfaces/http/middleware/auth_middleware.go:59`). Pre-defence sweep — научник может trip на любом из 4 затронутых endpoints.
+
+**Identified sites (4)**:
+
+1. `internal/modules/schedule/interfaces/http/handlers/lesson_handler.go:55` — `canModifySchedule()`. Effect в production: ВСЕ schedule write ops (Create / Update / Delete / CreateChange) silently 403'd для system_admin и academic_secretary. Самое big silent breakage из 4.
+2. `internal/modules/announcements/interfaces/http/handlers/announcement_handler.go:47-55` — `isAdmin()`. Двойной баг: wrong key **И** wrong value (`"admin"` — несуществующая роль; legitimate `"system_admin"` per `auth/domain.RoleSystemAdmin` и v0.121.3 sweep). Effect: admin override на чужих announcements (Update / Delete / Publish / Unpublish / Archive) silently degraded к author-self only.
+3. `internal/modules/users/interfaces/http/handlers/avatar_handler.go:75` — `Upload` admin override. Effect: system_admin не мог upload avatar другого пользователя.
+4. `internal/modules/users/interfaces/http/handlers/avatar_handler.go:200` — `Delete` admin override. Same effect для delete.
+
+**Test discipline (3 RED→GREEN TDD pairs + 1 hygiene polish)**:
+
+- Каждая пара = новый `*_role_key_test.go` файл с production-shaped helper `withAuth(userID, role)` (writes `c.Set("role", ...)` — same key middleware пишет) + GREEN handler fix + cleanup существующих legacy tests которые писали `c.Set("user_role", ...)` (mirrored bug).
+- Schedule: 11 sub-tests (8 allowed permutations system_admin/secretary × 4 actions + 3 denied roles). Inputs short-circuit между gate и nil usecase (invalid JSON, invalid id) для clean assertion isolation.
+- Announcements: 7 sub-tests table-driven (5 roles × 2 cases + 2 edge: missing key, non-string type). Plus HTTP-surface smoke test.
+- Avatar: 12 sub-tests (Upload allowed/denied × 6 roles + Delete allowed-panics/denied × 6 roles).
+- Hygiene polish: drop `var _ = withAuth` dead suppressor в announcements RED file (variable used by HTTPSurface smoke test).
+
+**Reviewer triangulation**:
+
+- Single-pass **SHIP**: mean 9.43 / min 9 (TDD 10 / DDD 9 / CA 9 / Tests 10 / Cohesion 9 / Hygiene 9 / Security 10). First single-pass SHIP since v0.122.0. Empirical TDD verification confirmed: RED commits fail clean (no panics) on pre-fix code; bodies were already shaped to short-circuit cleanly post-gate.
+
+**Behaviour change**: yes — admin override на others' announcements / avatars и schedule write ops для system_admin / academic_secretary теперь functions where it silently 403'd before. Restoration of intended behaviour, not new privilege grants.
+
+**Backlog (для v0.126.2 candidate)**:
+- `internal/modules/reporting/interfaces/http/handlers/custom_report_handler.go:482` — stale role enum `[]string{"admin","methodist","secretary","teacher","student"}` (consistent с v0.121.3 sweep canon: `system_admin`/`academic_secretary`).
+- `internal/modules/users/interfaces/http/handlers/avatar_handler.go:202` — pre-existing unchecked `currentUserID.(int64)` type assertion (Delete handler) inconsistent с safer Upload pattern at line 76.
+
+### Verification
+
+```
+golangci-lint run ./internal/modules/schedule/... ./internal/modules/announcements/... ./internal/modules/users/...
+0 issues.
+```
+
+`grep 'c.Get("user_role")'` на `internal/` returns zero production hits после fix. All 16 `c.Get("role")` sites consistent с middleware contract.
+
+---
+
 ## [0.126.0] — 2026-05-09
 
 ### Added — Templates filter teacher-own (Slot D row #11)
