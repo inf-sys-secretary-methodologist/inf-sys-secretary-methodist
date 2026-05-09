@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@/test-utils'
+import { act, render, screen, waitFor } from '@/test-utils'
 import userEvent from '@testing-library/user-event'
 import { LoginForm } from '../LoginForm'
 import { useLogin } from '@/hooks/useAuth'
@@ -264,15 +264,17 @@ describe('LoginForm', () => {
       const { useAuthStore } = jest.requireActual('@/stores/authStore') as {
         useAuthStore: { setState: (s: Record<string, unknown>) => void }
       }
-      useAuthStore.setState({
-        mfaIntermediateToken: 'intermediate-jwt-abc',
-        mfaPendingUser: {
-          id: 7,
-          name: 'Admin',
-          email: 'admin@test.com',
-          role: 'system_admin',
-          mfa_enabled: true,
-        },
+      act(() => {
+        useAuthStore.setState({
+          mfaIntermediateToken: 'intermediate-jwt-abc',
+          mfaPendingUser: {
+            id: 7,
+            name: 'Admin',
+            email: 'admin@test.com',
+            role: 'system_admin',
+            mfa_enabled: true,
+          },
+        })
       })
 
       render(<LoginForm />)
@@ -285,7 +287,9 @@ describe('LoginForm', () => {
       expect(screen.queryByLabelText('password')).not.toBeInTheDocument()
 
       // Reset for next test
-      useAuthStore.setState({ mfaIntermediateToken: null, mfaPendingUser: null })
+      act(() => {
+        useAuthStore.setState({ mfaIntermediateToken: null, mfaPendingUser: null })
+      })
     })
 
     // FLOW pin (reviewer must-fix #1): when login() resolves but the
@@ -301,16 +305,20 @@ describe('LoginForm', () => {
 
       // login() simulates the v0.125.0 backend response: stash the
       // intermediate token in the store and return without throwing.
+      // The setState is wrapped in act() so the React state-update
+      // warning the surrounding render triggers is suppressed.
       mockLogin.mockImplementation(async () => {
-        useAuthStore.setState({
-          mfaIntermediateToken: 'intermediate-jwt-abc',
-          mfaPendingUser: {
-            id: 7,
-            name: 'Admin',
-            email: 'admin@test.com',
-            role: 'system_admin',
-            mfa_enabled: true,
-          },
+        act(() => {
+          useAuthStore.setState({
+            mfaIntermediateToken: 'intermediate-jwt-abc',
+            mfaPendingUser: {
+              id: 7,
+              name: 'Admin',
+              email: 'admin@test.com',
+              role: 'system_admin',
+              mfa_enabled: true,
+            },
+          })
         })
       })
 
@@ -336,7 +344,9 @@ describe('LoginForm', () => {
       expect(onSuccess).not.toHaveBeenCalled()
 
       // Reset for next test
-      useAuthStore.setState({ mfaIntermediateToken: null, mfaPendingUser: null })
+      act(() => {
+        useAuthStore.setState({ mfaIntermediateToken: null, mfaPendingUser: null })
+      })
     })
   })
 
