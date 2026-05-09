@@ -4,6 +4,7 @@ import useSWR from 'swr'
 import { apiClient } from '@/lib/api'
 import { SWR_DEDUPING } from '@/config/swr'
 import type { DisciplineItem, DisciplineItemListResponse } from '@/types/disciplineItem'
+import type { BulkEditRequest, BulkEditResult } from '@/types/bulkEdit'
 
 interface ApiResponse<T> {
   success: boolean
@@ -50,4 +51,25 @@ export function useDisciplineItems(sectionID: number | null, opts?: FetchOpts) {
 export async function fetchDisciplineItem(id: number): Promise<DisciplineItem> {
   const response = await apiClient.get<ApiResponse<DisciplineItem>>(`/api/items/${id}`)
   return response.data
+}
+
+// bulkEditDisciplineItems POSTs a combined creates+updates+deletes
+// request к /api/sections/:sectionID/items/bulk. Backend applies all
+// operations within one tx under Repeatable Read isolation (plan
+// ADR-12). Returns a discriminated union:
+//   - kind='success' — 200 OK с created/updated/deleted lists
+//   - kind='conflict' — 409 VERSION_CONFLICT с per-item conflict
+//     entries (collect-all per ADR-12). Caller refetches each via
+//     fetchDisciplineItem для accurate current_version display.
+// Other axios errors (404 SECTION_NOT_FOUND, 422 EMPTY_BULK_INPUT /
+// CROSS_SECTION / NOT_EDITABLE / INVALID_INPUT, 403, 500) propagate
+// to caller для mapping via pickErrorKey (Pair 4 utility).
+// Pair 3 RED stub throws — GREEN replaces с real impl.
+export async function bulkEditDisciplineItems(
+  _sectionID: number,
+  _body: BulkEditRequest
+): Promise<BulkEditResult> {
+  void _sectionID
+  void _body
+  throw new Error('bulkEditDisciplineItems not implemented (Pair 3 RED)')
 }
