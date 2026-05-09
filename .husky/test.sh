@@ -26,6 +26,10 @@ cleanup() {
     rm -f "$@" 2>/dev/null || true
 }
 
+# Make Ctrl-C / unexpected exit clean up any leftover throwaway files
+# so the index doesn't keep stale staged paths.
+trap 'cleanup _tmp_pre_commit_test_*.go frontend/src/_tmp_pre_commit_test*.ts 2>/dev/null' EXIT INT TERM
+
 run_case() {
     local name="$1"
     local expect_substr="$2"

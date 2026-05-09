@@ -196,6 +196,11 @@ bash .husky/install.sh
 
 Smoke-тест хука: `bash .husky/test.sh` (создаёт временные файлы с violation, проверяет что хук reject'ит).
 
+**Требования**:
+- bash ≥ 4 (используется `declare -A`, `globstar`). На macOS установить через `brew install bash` — system bash 3.2 не поддерживает.
+- `golangci-lint` в PATH для backend-проверок. Без него — graceful warning, BrE grep всё равно работает.
+- `frontend/node_modules/` собран (`cd frontend && npm install`) — для `npx prettier` / `eslint`.
+
 ## 📄 Лицензия
 
 Этот проект лицензирован под MIT License - см. файл [LICENSE](LICENSE) для деталей.

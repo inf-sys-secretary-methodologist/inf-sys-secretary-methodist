@@ -11,8 +11,13 @@
 # Per-file scope only — staged files, not the whole repo (fast feedback).
 
 set -uo pipefail
+shopt -s globstar nullglob 2>/dev/null || true
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [[ -z "$REPO_ROOT" || ! -d "$REPO_ROOT/.git" && ! -f "$REPO_ROOT/.git" ]]; then
+    echo "❌ Pre-commit: cannot resolve repo root (git rev-parse failed)" >&2
+    exit 1
+fi
 cd "$REPO_ROOT"
 
 # Resolve staged files (Added / Copied / Modified) — skip Deleted so
@@ -23,11 +28,16 @@ mapfile -t STAGED < <(git diff --cached --name-only --diff-filter=ACM)
 STAGED_GO=()
 STAGED_FE=()
 for f in "${STAGED[@]}"; do
-    case "$f" in
-        *.go) STAGED_GO+=("$f") ;;
-        frontend/src/*.ts|frontend/src/*.tsx|frontend/messages/*.json|frontend/src/**/*.ts|frontend/src/**/*.tsx)
-            STAGED_FE+=("$f") ;;
-    esac
+    if [[ "$f" == *.go ]]; then
+        STAGED_GO+=("$f")
+    elif [[ "$f" == frontend/src/* && ("$f" == *.ts || "$f" == *.tsx) ]]; then
+        # Both flat (frontend/src/foo.ts) and nested
+        # (frontend/src/components/X/Y.tsx) covered by the prefix
+        # check + extension check.
+        STAGED_FE+=("$f")
+    elif [[ "$f" == frontend/messages/* && "$f" == *.json ]]; then
+        STAGED_FE+=("$f")
+    fi
 done
 
 FAIL=0
@@ -37,7 +47,9 @@ FAIL=0
 # Local lint partition is non-deterministic (parallel analyser dedup) and
 # misses occurrences caught by CI. Manual grep is the deterministic floor.
 if [[ ${#STAGED_GO[@]} -gt 0 ]]; then
-    BRE_HITS=$(grep -nE 'behaviour|defence|centralised|colour|realise|optimise' "${STAGED_GO[@]}" 2>/dev/null || true)
+    # Word-boundary regex to avoid matching identifiers from third-party
+    # APIs that happen to contain a BrE substring (e.g. unrelated Foo).
+    BRE_HITS=$(grep -nEw 'behaviour|defence|centralised|colour|realise|optimise' "${STAGED_GO[@]}" 2>/dev/null || true)
     if [[ -n "$BRE_HITS" ]]; then
         echo "❌ Pre-commit: BrE forms detected in staged Go files. Use AmE forms:" >&2
         echo "   behaviour → behavior, defence → defense, centralised → centralized," >&2
@@ -55,9 +67,15 @@ if [[ ${#STAGED_GO[@]} -gt 0 ]]; then
     GO_PKG_DIRS=()
     for f in "${STAGED_GO[@]}"; do
         d=$(dirname "$f")
-        if [[ -z "${SEEN_PKGS[$d]:-}" ]]; then
-            SEEN_PKGS[$d]=1
-            GO_PKG_DIRS+=("./$d/...")
+        # Repo-root .go files (currently none, but guard the edge):
+        # dirname returns "." → "./..." would still resolve, but be
+        # explicit with "./..." anchored at root.
+        [[ "$d" == "." ]] && d=""
+        pkg=${d:+./$d/...}
+        pkg=${pkg:-./...}
+        if [[ -z "${SEEN_PKGS[$pkg]:-}" ]]; then
+            SEEN_PKGS[$pkg]=1
+            GO_PKG_DIRS+=("$pkg")
         fi
     done
     if command -v golangci-lint >/dev/null 2>&1; then
