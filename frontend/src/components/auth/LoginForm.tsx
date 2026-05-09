@@ -47,6 +47,16 @@ export function LoginForm({ redirectTo = '/', onSuccess, className }: LoginFormP
       setLocalError(null)
       await login(data, redirectTo)
 
+      // Skip the "logged in" UX when the backend asked for a second
+      // factor — login() resolved without throwing but the store now
+      // holds an intermediate token, not real auth. The component
+      // will re-render into <MFAVerifyLoginStep />; firing the
+      // success toast or onSuccess() here would mislead the user
+      // and any parent listening for sign-in completion.
+      if (useAuthStore.getState().mfaIntermediateToken) {
+        return
+      }
+
       toast.success(t('loginSuccess'), {
         description: t('redirecting'),
       })

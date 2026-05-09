@@ -44,6 +44,15 @@ export function useLogin() {
   const handleLogin = async (credentials: LoginRequest, redirectTo: string = '/') => {
     try {
       await login(credentials)
+      // login() resolves both for normal sign-in AND for the
+      // mfa_required branch (the store holds an intermediate token
+      // instead of real auth). Skip the redirect in the second case
+      // — the LoginForm swap to MFAVerifyLoginStep is handled by
+      // store-driven re-render, and pushing redirectTo here would
+      // bounce the user through middleware before the second factor.
+      if (useAuthStore.getState().mfaIntermediateToken) {
+        return
+      }
       // Small delay to ensure cookie is written before redirect
       await new Promise((resolve) => setTimeout(resolve, 100))
       router.push(redirectTo)
