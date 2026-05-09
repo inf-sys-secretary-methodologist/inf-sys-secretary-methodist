@@ -30,7 +30,7 @@ func TestNewBulkDisciplineItemsUnitOfWorkPG_PanicsOnNilDB(t *testing.T) {
 func TestBulkUoW_Begin_HappyPath(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin()
 
@@ -48,7 +48,7 @@ func TestBulkUoW_Begin_HappyPath(t *testing.T) {
 func TestBulkUoW_Begin_DBError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	wantErr := errors.New("db unavailable")
 	mock.ExpectBegin().WillReturnError(wantErr)
@@ -64,7 +64,7 @@ func TestBulkUoW_Begin_DBError(t *testing.T) {
 func TestBulkUoW_Begin_PassesIsolationLevel(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// sqlmock captures opts via ExpectBeginTx (not bare ExpectBegin) для
 	// proper isolation-level pin. The real impl must call db.BeginTx с
@@ -87,7 +87,7 @@ func TestBulkUoW_Begin_PassesIsolationLevel(t *testing.T) {
 func TestBulkUoW_Tx_ReturnsNonNilRepos(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin()
 
@@ -110,7 +110,7 @@ func TestBulkUoW_Tx_ReturnsNonNilRepos(t *testing.T) {
 func TestBulkUoW_Tx_Commit_HappyPath(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin()
 	mock.ExpectCommit()
@@ -126,7 +126,7 @@ func TestBulkUoW_Tx_Commit_HappyPath(t *testing.T) {
 func TestBulkUoW_Tx_Rollback_HappyPath(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin()
 	mock.ExpectRollback()
@@ -142,7 +142,7 @@ func TestBulkUoW_Tx_Rollback_HappyPath(t *testing.T) {
 func TestBulkUoW_Tx_DoubleCommit_ReturnsFinished(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin()
 	mock.ExpectCommit()
@@ -160,7 +160,7 @@ func TestBulkUoW_Tx_DoubleCommit_ReturnsFinished(t *testing.T) {
 func TestBulkUoW_Tx_RollbackAfterCommit_ReturnsFinished(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin()
 	mock.ExpectCommit()

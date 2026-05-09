@@ -218,8 +218,12 @@ func mapBulkEditError(c *gin.Context, err error) {
 		c.JSON(http.StatusUnprocessableEntity,
 			response.ErrorResponse("CROSS_SECTION_BULK_EDIT", "bulk edit target item belongs to a different section"))
 		return
-	case errors.Is(err, curUsecases.ErrBulkSectionDeleted):
-		c.JSON(http.StatusConflict, BulkEditConflictResponse{Error: "SECTION_DELETED"})
+	case errors.Is(err, curUsecases.ErrBulkVersionConflict):
+		// Defensive fallback: usecase returns this paired with non-nil
+		// result; BulkEdit handler renders 409 с conflict details inline.
+		// This case fires only on contract violation (nil result) — emit
+		// 409 без details rather than 500 для consistent client semantics.
+		c.JSON(http.StatusConflict, BulkEditConflictResponse{Error: "VERSION_CONFLICT"})
 		return
 	case errors.Is(err, repositories.ErrSectionNotFound):
 		c.JSON(http.StatusNotFound, response.NotFound("section"))

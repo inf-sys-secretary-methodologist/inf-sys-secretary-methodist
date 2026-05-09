@@ -580,13 +580,9 @@ func TestBulkEdit_UpdateVersionConflict_Single(t *testing.T) {
 	tx.curricula.getByIDFn = func(_ context.Context, _ int64) (*entities.Curriculum, error) {
 		return draftCurriculumForItem(t, 42), nil
 	}
-	currentVersion := 7
 	tx.items.getByIDFn = func(_ context.Context, id int64) (*entities.DisciplineItem, error) {
-		// First load returns expected version 5 (caller's snapshot).
-		// Second load (after conflict) returns "current" version 7.
-		// Implementation re-fetches via GetByID after conflict to read
-		// current version для UI feedback.
-		return builtItemForBulk(t, id, currentVersion), nil
+		// Initial load returns the caller's snapshot version (5).
+		return builtItemForBulk(t, id, 5), nil
 	}
 	tx.items.updateErr = repositories.ErrDisciplineItemVersionConflict
 	uow := &fakeBulkUoW{tx: tx}
@@ -601,6 +597,10 @@ func TestBulkEdit_UpdateVersionConflict_Single(t *testing.T) {
 	require.NotNil(t, res, "result should be returned alongside conflict err for handler 409 mapping")
 	require.Len(t, res.Conflicts, 1)
 	assert.Equal(t, int64(202), res.Conflicts[0].ID)
+	assert.Equal(t, 5, res.Conflicts[0].ExpectedVersion,
+		"ExpectedVersion = caller's snapshot version (read inside tx)")
+	assert.Equal(t, 0, res.Conflicts[0].CurrentVersion,
+		"CurrentVersion=0 under RR — caller refetches outside tx for accurate value")
 	assert.Equal(t, 0, tx.commitCalls, "no commit when conflicts present")
 	require.Len(t, audit.events, 1)
 	assert.Equal(t, "version_conflict", audit.events[0].Fields["reason"])

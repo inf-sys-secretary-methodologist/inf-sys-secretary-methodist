@@ -56,10 +56,21 @@ type BulkUpdateItem struct {
 // BulkEditConflict describes an optimistic-lock race на a single
 // update target. Bulk usecase collects ALL conflicts (not short-
 // circuit) — UI shows entire stale set in one render для merge.
+//
+// CurrentVersion semantics: under Repeatable Read isolation (ADR-12),
+// a re-fetch within the failed tx returns the SAME snapshot the
+// initial GetByID saw — so a tx-bound query cannot reveal the
+// concurrently-committed version. CurrentVersion is set to 0 как
+// "unknown — caller must refetch outside tx" hint. Frontend conflict
+// UI (v0.128.4) issues fresh `GET /api/items/:id` per conflict to
+// render accurate merge state.
 type BulkEditConflict struct {
 	ID              int64
 	ExpectedVersion int
-	CurrentVersion  int
+	// CurrentVersion is always 0 under RR isolation; preserved as a
+	// schema field для future Read Committed deployments where re-fetch
+	// would yield accurate values.
+	CurrentVersion int
 }
 
 // BulkEditDisciplineItemsResult bundles per-operation outcomes.
@@ -82,10 +93,6 @@ var ErrEmptyBulkInput = errors.New("bulk_edit: empty input — must contain crea
 // section_id does not match the request path's :sectionID. Single-
 // section invariant (ADR-11). 422.
 var ErrCrossSectionBulkEdit = errors.New("bulk_edit: target item belongs to different section")
-
-// ErrBulkSectionDeleted signals FK CASCADE race — section disappeared
-// между tx open and operation. 409 SECTION_DELETED.
-var ErrBulkSectionDeleted = errors.New("bulk_edit: section was deleted concurrently")
 
 // ErrBulkVersionConflict signals optimistic-lock conflict on one or
 // more update targets. The full conflict set is reported via
@@ -248,16 +255,15 @@ func (uc *BulkEditDisciplineItemsUseCase) Execute(ctx context.Context, actorID i
 		}
 		if err := tx.Items().Update(ctx, d); err != nil {
 			if errors.Is(err, repositories.ErrDisciplineItemVersionConflict) {
-				// Re-fetch для current version (UI feedback per ADR-12).
-				// Best-effort — if re-fetch fails, currentVersion stays 0.
-				currentVersion := 0
-				if cur, fetchErr := tx.Items().GetByID(ctx, u.ID); fetchErr == nil && cur != nil {
-					currentVersion = cur.Version()
-				}
+				// CurrentVersion stays 0 — under RR isolation a re-fetch
+				// within this tx would return the same snapshot we already
+				// read (initial GetByID). The concurrently-committed version
+				// is invisible from inside our tx. Frontend refetches
+				// outside tx через `GET /api/items/:id` per ADR-12 note.
 				result.Conflicts = append(result.Conflicts, BulkEditConflict{
 					ID:              u.ID,
 					ExpectedVersion: expectedVersion,
-					CurrentVersion:  currentVersion,
+					CurrentVersion:  0,
 				})
 				continue // collect-all per ADR-12, не short-circuit
 			}
