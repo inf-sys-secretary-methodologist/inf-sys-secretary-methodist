@@ -2,6 +2,8 @@ package entities
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -79,17 +81,87 @@ const (
 	maxSemester               = 12
 )
 
-// NewDisciplineItem — implementation lands в GREEN commit (Pair 1).
-// Stub returns sentinel for RED tests + keeps pre-commit hook clean.
-// Constants referenced as no-op so unused-symbol checker stays quiet
-// across the RED→GREEN boundary.
+// NewDisciplineItem validates invariants and returns a fresh
+// DisciplineItem at version 0 (optimistic-locking baseline).
+//
+// Invariants (mirroring SQL CHECKs in migration 035):
+//   - section_id > 0
+//   - title trimmed-non-empty, ≤ 255 runes
+//   - hours_lectures / hours_practice / hours_lab / hours_self ≥ 0 each
+//   - credits ≥ 0
+//   - semester ∈ [1, 12] (covers bachelor 8 + master 4)
+//   - control_form ∈ {zachet, exam, course_project, differential_zachet}
+//   - order_index ≥ 0
+//
+// Each violation wraps ErrInvalidDisciplineItem with the offending
+// field so errors.Is resolves the sentinel for the 422 mapping in
+// handlers, and the message identifies which field for the operator.
 func NewDisciplineItem(p NewDisciplineItemParams) (*DisciplineItem, error) {
-	_ = p
-	_, _, _ = maxDisciplineItemTitleLen, minSemester, maxSemester
-	return nil, errors.New("discipline_item: NewDisciplineItem not implemented yet")
+	if p.SectionID <= 0 {
+		return nil, fmt.Errorf("%w: section_id must be positive, got %d",
+			ErrInvalidDisciplineItem, p.SectionID)
+	}
+	title := strings.TrimSpace(p.Title)
+	if title == "" {
+		return nil, fmt.Errorf("%w: title must not be empty", ErrInvalidDisciplineItem)
+	}
+	if len([]rune(title)) > maxDisciplineItemTitleLen {
+		return nil, fmt.Errorf("%w: title length %d exceeds max %d",
+			ErrInvalidDisciplineItem, len([]rune(title)), maxDisciplineItemTitleLen)
+	}
+	if p.HoursLectures < 0 {
+		return nil, fmt.Errorf("%w: hours_lectures must be non-negative, got %d",
+			ErrInvalidDisciplineItem, p.HoursLectures)
+	}
+	if p.HoursPractice < 0 {
+		return nil, fmt.Errorf("%w: hours_practice must be non-negative, got %d",
+			ErrInvalidDisciplineItem, p.HoursPractice)
+	}
+	if p.HoursLab < 0 {
+		return nil, fmt.Errorf("%w: hours_lab must be non-negative, got %d",
+			ErrInvalidDisciplineItem, p.HoursLab)
+	}
+	if p.HoursSelf < 0 {
+		return nil, fmt.Errorf("%w: hours_self must be non-negative, got %d",
+			ErrInvalidDisciplineItem, p.HoursSelf)
+	}
+	if p.Credits < 0 {
+		return nil, fmt.Errorf("%w: credits must be non-negative, got %d",
+			ErrInvalidDisciplineItem, p.Credits)
+	}
+	if p.Semester < minSemester || p.Semester > maxSemester {
+		return nil, fmt.Errorf("%w: semester %d outside [%d, %d]",
+			ErrInvalidDisciplineItem, p.Semester, minSemester, maxSemester)
+	}
+	if err := p.ControlForm.Validate(); err != nil {
+		return nil, fmt.Errorf("%w: control_form %s", ErrInvalidDisciplineItem, err.Error())
+	}
+	if p.OrderIndex < 0 {
+		return nil, fmt.Errorf("%w: order_index must be non-negative, got %d",
+			ErrInvalidDisciplineItem, p.OrderIndex)
+	}
+	return &DisciplineItem{
+		sectionID:     p.SectionID,
+		title:         title,
+		hoursLectures: p.HoursLectures,
+		hoursPractice: p.HoursPractice,
+		hoursLab:      p.HoursLab,
+		hoursSelf:     p.HoursSelf,
+		controlForm:   p.ControlForm,
+		credits:       p.Credits,
+		semester:      p.Semester,
+		orderIndex:    p.OrderIndex,
+		version:       0,
+		createdAt:     p.Now,
+		updatedAt:     p.Now,
+	}, nil
 }
 
-// ReconstituteDisciplineItem — implementation lands в GREEN commit (Pair 1).
+// ReconstituteDisciplineItem rebuilds a DisciplineItem from
+// authoritative storage. It bypasses NewDisciplineItem's invariant
+// checks because the values are already canonical (the DB enforces
+// the same CHECKs at write time). Used exclusively by repository
+// implementations.
 func ReconstituteDisciplineItem(
 	id, sectionID int64,
 	title string,
@@ -98,10 +170,22 @@ func ReconstituteDisciplineItem(
 	credits, semester, orderIndex, version int,
 	createdAt, updatedAt time.Time,
 ) *DisciplineItem {
-	_, _, _, _, _ = id, sectionID, title, hoursLectures, hoursPractice
-	_, _, _, _, _ = hoursLab, hoursSelf, controlForm, credits, semester
-	_, _, _, _ = orderIndex, version, createdAt, updatedAt
-	return nil
+	return &DisciplineItem{
+		ID:            id,
+		sectionID:     sectionID,
+		title:         title,
+		hoursLectures: hoursLectures,
+		hoursPractice: hoursPractice,
+		hoursLab:      hoursLab,
+		hoursSelf:     hoursSelf,
+		controlForm:   controlForm,
+		credits:       credits,
+		semester:      semester,
+		orderIndex:    orderIndex,
+		version:       version,
+		createdAt:     createdAt,
+		updatedAt:     updatedAt,
+	}
 }
 
 // SectionID returns the FK to curriculum_sections.id.
