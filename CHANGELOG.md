@@ -15,6 +15,45 @@
 
 ---
 
+## [0.128.8] — 2026-05-10
+
+### Security + Polish — gRPC-Go Critical CVE + axios HIGH/MEDIUM cluster + T2-1 a11y closure
+
+Closes 1 Critical + 4 High + 6 Moderate dependabot alerts (11 total) + closes pre-existing v0.128.4 a11y debt T2-1 (caught reviewer round v0.128.7).
+
+### Security bumps
+
+**`google.golang.org/grpc` 1.78.0 → 1.81.0** (CRITICAL CVE — authorization bypass via missing leading slash в `:path`)
+
+Direct dependency. gRPC-Go silently passed authorization checks когда `:path` lacked leading slash, leading к bypass for path-based authz rules. v1.81.0 enforces canonical path format. Transitive bumps include `google.golang.org/genproto/googleapis/{rpc,api}` Feb 2026 snapshots. Backend test suite (103 packages) green post-bump.
+
+**`axios` 1.13.5 → 1.16.0** (closes ~10 npm dependabot alerts — 4 HIGH + 6 MEDIUM severity)
+
+Direct dependency. CVE chain включает: Prototype Pollution Gadgets (Response Tampering / Data Exfiltration / Credential Exfiltration), Header Injection via Prototype Pollution, NO_PROXY Hostname Normalization Bypass leading к SSRF, CRLF Injection в multipart/form-data body via unsanitized `blob.type`, Authentication Bypass via Prototype Pollution Gadget в `validateStatus`, Invisible JSON Response Tampering, XSRF Token Cross-Origin Leakage, unbounded recursion DoS в `toFormData`, streamed uploads bypass maxBodyLength когда `maxRedirects: 0`, streamed responses bypass maxContentLength. axios 1.16.0 published 2026-05-02 (8 days old, passes 7-day supply chain rule). Frontend tests: 198 suites / 2817 tests green post-bump.
+
+### Polish — T2-1 a11y closure (1 TDD pair)
+
+Pre-existing v0.128.4 debt: `BulkEditTable.tsx:115` had `<th aria-label="select" />` hardcoded English string. Survived v0.128.7 P4 sweep — caught by reviewer round-2 как Tier 2 finding deferred к follow-up patch.
+
+- **RED** `0b82bae9` — test asserts `<th>` для delete-checkbox column has aria-label resolving к `disciplineItems.bulkEdit.aria.deleteColumnHeader`; i18n parity REQUIRED_KEYS extended.
+- **GREEN** `5dd20d51` — split self-closing `<th>` к multi-line с `aria-label={t(...)}`; added `deleteColumnHeader` × 4 locales (ru: "Колонка удаления", en: "Delete column", fr: "Colonne de suppression", ar: "عمود الحذف"). Screen readers anonsируют localized header вместо English literal "select".
+
+### Verify
+
+- 5 bulk-edit test suites / 95 tests green.
+- 198 frontend suites / 2817 tests green (post-axios bump).
+- 103 Go packages green (post-gRPC bump).
+- prettier + eslint + tsc + golangci clean via pre-commit hook.
+- 8 version files atomically synced 0.128.7 → 0.128.8.
+
+### Out of scope (future patches)
+
+- **12 High npm alerts остаются**: Next.js (4 — DoS / image cache exhaustion / HTTP request smuggling / CSRF), minimatch (4 ReDoS), picomatch (2 ReDoS — direct devDep + transitive), fast-uri (2), flatted (1), serialize-javascript (1), rollup (1). Most via tooling deps (jest / eslint plugins). Root upgrades (Next.js 15.x → 16.x) planned для v0.128.9 — major work с regression testing.
+- **17 Moderate** + **4 Low** alerts — most cascade after Next.js / minimatch / picomatch root upgrades.
+- **Backend/Frontend/Documentation CI path filter expansion** для dependabot PRs (deferred from v0.128.6).
+
+---
+
 ## [0.128.7] — 2026-05-10
 
 ### Improved — Frontend bulk-edit accessibility + DOM hardening
