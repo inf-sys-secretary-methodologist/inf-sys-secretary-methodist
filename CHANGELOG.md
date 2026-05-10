@@ -15,6 +15,44 @@
 
 ---
 
+## [0.128.7] — 2026-05-10
+
+### Improved — Frontend bulk-edit accessibility + DOM hardening
+
+Закрывает out-of-scope hardening backlog из v0.128.4 reviewer round-2 (BulkEditTable.tsx). 4 TDD pairs (RED→GREEN) на main, reviewer single-pass SHIP **mean 9.33 / min 8**.
+
+**Pair 1 — `min={0}` на 14 number inputs**: defence-in-depth UX guard против negative entries. Backend domain VOs (`hours_lectures ≥ 0` etc.) re-validate server-side, frontend `min` attribute prevents invalid commits via native browser stepper / number input affordance.
+
+**Pair 2 — `sectionID` prop wired в data-testid**: replaces v0.128.4 placeholder `void sectionID` (line 73) с `data-testid={\`bulk-edit-table-${sectionID}\`}` на wrapper div. Enables stable query selectors в multi-section page tests (curriculum/[id]/page.tsx renders one BulkEditPanel per section — без sectionID-scoped testid all panels collide on shared 'bulk-edit-row-N' testids когда same item.id appears across sections в test fixtures).
+
+**Pair 3 — Empty-state скрывает `<table>`**: conditional render `{!isEmpty && (<table>...)}`. Cleaner DOM tree + accessibility win — empty `<tbody>` was being announced as "table, 0 rows" by screen readers; теперь placeholder paragraph reads naturally. Pre-existing 'renders column headers via i18n keys' test seeded sampleItem чтобы keep table rendered (header cells only meaningful когда table mounted).
+
+**Pair 4 — ARIA labels на 9 cell controls × 2 contexts (existing rows + pending creates) + delete-toggle**: 10 i18n keys под `disciplineItems.bulkEdit.aria.*` × 4 locales. 19 `aria-label={t(...)}` call-sites — screen readers anonsируют meaningful field semantics ("Часы лекций" / "Lecture hours" / "Heures de cours magistraux" / "ساعات المحاضرات") вместо bare `<input>` role.
+
+### Verify
+
+- 5 bulk-edit test suites / 94 tests green.
+- 11 curriculum suites / 160 tests green (broader scope, no regressions).
+- prettier + eslint + tsc clean via pre-commit hook.
+- i18n × 4 parity verified — `bulkEdit.i18n.test.ts` extended REQUIRED_KEYS с 10 aria.* keys.
+- 8 version files atomically synced 0.128.6 → 0.128.7 через `_tools/bump_version.sh 0.128.7`.
+
+### TDD discipline
+
+8 commits = 4 RED→GREEN pairs:
+- `0e9cfc05` test P1 RED → `641f1f61` feat P1 GREEN
+- `bfc046be` test P2 RED → `7d92dbd2` feat P2 GREEN
+- `67a3f4c6` test P3 RED → `1228e4a7` feat P3 GREEN
+- `13a60ecb` test P4 RED → `5b045aaf` feat P4 GREEN
+
+### Out of scope (future patches)
+
+- **T2-1 (v0.128.8 follow-up patch)**: `BulkEditTable.tsx:115` — `<th aria-label="select" />` hardcoded English string survived P4 sweep (pre-existing v0.128.4 debt, not v0.128.7 regression). Single TDD pair будет close — extract to `disciplineItems.bulkEdit.aria.deleteColumnHeader` × 4 locales.
+- **T2-2 (nit)**: `container.querySelectorAll('input[type="number"]')` в P1 test could use semantic `queryAllByRole('spinbutton')` per RTL philosophy. Не блокер; current assertion is correct.
+- **AR translation accuracy для academia terms**: domain expert review backlog — current AR translations reasonable approximations matching existing ar.json style.
+
+---
+
 ## [0.128.6] — 2026-05-10
 
 ### Internal — Dependabot dependency sweep + CI unblock + race-fix backfill
