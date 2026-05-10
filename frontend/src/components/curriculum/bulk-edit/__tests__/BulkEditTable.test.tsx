@@ -249,6 +249,48 @@ describe('BulkEditTable / canEdit gating (frozen state)', () => {
   })
 })
 
+describe('BulkEditTable / hardening — ARIA labels on cell controls', () => {
+  const seededWithCreate: BulkEditState = {
+    ...initialBulkEditState,
+    pendingCreates: [
+      {
+        localKey: 'tmp-aria',
+        title: '',
+        hours_lectures: 0,
+        hours_practice: 0,
+        hours_lab: 0,
+        hours_self: 0,
+        control_form: 'zachet',
+        credits: 1,
+        semester: 1,
+        order_index: 0,
+      },
+    ],
+  }
+
+  // Each entry: ARIA key suffix + expected occurrences (existing row + pending create).
+  const ariaTable: Array<readonly [string, number]> = [
+    ['titleInput', 2],
+    ['hoursLecturesInput', 2],
+    ['hoursPracticeInput', 2],
+    ['hoursLabInput', 2],
+    ['hoursSelfInput', 2],
+    ['controlFormSelect', 2],
+    ['creditsInput', 2],
+    ['semesterInput', 2],
+    ['orderIndexInput', 2],
+    // Delete toggle exists only on server item rows; pendingCreate has remove-button instead.
+    ['deleteToggle', 1],
+  ]
+
+  it.each(ariaTable)('%s has aria-label resolving к expected i18n key', (suffix, expectedCount) => {
+    render(<Host items={[sampleItem]} initialState={seededWithCreate} />)
+    const expected = `disciplineItems.bulkEdit.aria.${suffix}`
+    const elements = screen.queryAllByLabelText(expected)
+    expect(elements.length).toBe(expectedCount)
+  })
+})
+
 describe('BulkEditTable / hardening — empty state hides <table>', () => {
   it('does not render <table> when items=[] and no pending creates', () => {
     const { container } = render(<Host items={[]} />)

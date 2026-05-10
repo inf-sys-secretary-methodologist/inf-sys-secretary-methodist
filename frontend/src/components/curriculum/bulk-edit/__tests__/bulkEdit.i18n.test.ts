@@ -52,6 +52,17 @@ const REQUIRED_KEYS = [
   'disciplineItems.bulkEdit.conflictBanner.heading',
   'disciplineItems.bulkEdit.conflictBanner.message',
   'disciplineItems.bulkEdit.conflictBanner.applyServer',
+  // v0.128.7 P4 — ARIA labels на cell inputs / selects / delete toggle.
+  'disciplineItems.bulkEdit.aria.titleInput',
+  'disciplineItems.bulkEdit.aria.hoursLecturesInput',
+  'disciplineItems.bulkEdit.aria.hoursPracticeInput',
+  'disciplineItems.bulkEdit.aria.hoursLabInput',
+  'disciplineItems.bulkEdit.aria.hoursSelfInput',
+  'disciplineItems.bulkEdit.aria.controlFormSelect',
+  'disciplineItems.bulkEdit.aria.creditsInput',
+  'disciplineItems.bulkEdit.aria.semesterInput',
+  'disciplineItems.bulkEdit.aria.orderIndexInput',
+  'disciplineItems.bulkEdit.aria.deleteToggle',
 ] as const
 
 function loadLocale(locale: string): Record<string, unknown> {
