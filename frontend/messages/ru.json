@@ -2632,7 +2632,8 @@
           "creditsInput": "Зачётные единицы",
           "semesterInput": "Семестр",
           "orderIndexInput": "Порядок",
-          "deleteToggle": "Отметить дисциплину к удалению"
+          "deleteToggle": "Отметить дисциплину к удалению",
+          "deleteColumnHeader": "Колонка удаления"
         },
         "cancelDialog": {
           "title": "Отменить изменения?",

@@ -2632,7 +2632,8 @@
           "creditsInput": "Credits",
           "semesterInput": "Semester",
           "orderIndexInput": "Order index",
-          "deleteToggle": "Mark discipline for deletion"
+          "deleteToggle": "Mark discipline for deletion",
+          "deleteColumnHeader": "Delete column"
         },
         "cancelDialog": {
           "title": "Discard changes?",

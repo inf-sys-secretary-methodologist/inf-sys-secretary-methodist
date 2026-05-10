@@ -112,7 +112,12 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-muted/30 text-left">
-              {canEdit && <th className="p-2" aria-label="select" />}
+              {canEdit && (
+                <th
+                  className="p-2"
+                  aria-label={t('disciplineItems.bulkEdit.aria.deleteColumnHeader')}
+                />
+              )}
               <th className="p-2">{t('disciplineItems.bulkEdit.columns.title')}</th>
               <th className="p-2">{t('disciplineItems.bulkEdit.columns.hoursLectures')}</th>
               <th className="p-2">{t('disciplineItems.bulkEdit.columns.hoursPractice')}</th>

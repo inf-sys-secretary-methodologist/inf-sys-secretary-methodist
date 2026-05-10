@@ -2632,7 +2632,8 @@
           "creditsInput": "الوحدات",
           "semesterInput": "الفصل الدراسي",
           "orderIndexInput": "ترتيب",
-          "deleteToggle": "وضع علامة على التخصص للحذف"
+          "deleteToggle": "وضع علامة على التخصص للحذف",
+          "deleteColumnHeader": "عمود الحذف"
         },
         "cancelDialog": {
           "title": "تجاهل التغييرات؟",
