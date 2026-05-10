@@ -15,6 +15,58 @@
 
 ---
 
+## [0.128.9] — 2026-05-10
+
+### Security — Next.js + next-intl bumps + npm audit fix transitive cleanup
+
+Closes ~18 dependabot alerts (combined HIGH + Moderate + Low across direct + transitive deps). Aggregates 3 chore(deps) commits под single release tag.
+
+### Direct dep bumps
+
+**`next` 16.1.6 → 16.2.4** (`97c2ca2e`) — closes 6 alerts:
+- GHSA-q4gf-8mx6-v5v3 — Denial of Service with Server Components (**HIGH**)
+- GHSA-3x4c-7xq6-9pq8 — Unbounded next/image disk cache exhaustion (Moderate)
+- GHSA-ggv3-7p47-pfv8 — HTTP request smuggling в rewrites (Moderate)
+- GHSA-h27x-g6w4-24gq — Unbounded postponed resume buffering DoS (Moderate)
+- GHSA-mq59-m269-xvcx — null origin bypasses Server Actions CSRF (Moderate)
+- GHSA-jcc7-9wpm-mj36 — null origin bypasses dev HMR websocket CSRF (Low)
+
+next 16.2.4 published 2026-04-15 (25 days old, passes 7-day supply chain rule). Skipping 16.2.5/.6 (3-4 days old, fail rule).
+
+**`next-intl` 4.6.1 → 4.11.0** (`3ed63043`) — closes 2 Moderate alerts:
+- next-intl prototype pollution с `experimental.messages.precompile` via attacker
+- next-intl open redirect vulnerability
+
+next-intl 4.11.0 published 2026-04-28 (12 days old).
+
+### Transitive cleanup via `npm audit fix`
+
+**`npm audit fix` lockfile-only sweep** (`562c342c`) — closes ~10 transitive alerts. No package.json changes, just deeper resolution в package-lock.json:
+
+- `rollup` — Arbitrary File Write via Path Traversal (**HIGH**)
+- `serialize-javascript` — RCE via RegExp.flags + Date.prototype.toISOString + DoS via crafted array-like (**HIGH** + Moderate)
+- `fast-uri` × 2 — host confusion + path traversal (**HIGH** × 2)
+- `flatted` — Prototype Pollution via parse() (**HIGH**)
+- `minimatch` × 4 — ReDoS variants (**HIGH** × 4)
+- `picomatch` × 4 — ReDoS + Method Injection в POSIX Character Classes (**HIGH** × 2 + Moderate × 2)
+- `brace-expansion` — Zero-step sequence process hang (Moderate)
+- `ajv` — ReDoS when using $data option (Moderate)
+
+### Verify
+
+- 198 frontend suites / 2817 tests green post-bumps + post-audit-fix
+- tsc clean post-bumps (no type-level breakage от Next.js minor + next-intl minor)
+- prettier + eslint clean via pre-commit hook
+- 8 version files atomically synced 0.128.8 → 0.128.9
+
+### Out of scope (deferred)
+
+- **6 alerts остаются** (4 Low + 2 Moderate): postcss vulnerable transitive в `next/node_modules` — would require Next.js major **downgrade** к fix per `npm audit fix --force` (breaking). Defer until Next.js 17.x ships clean postcss bundling, или accept residual risk per dev-tooling-only impact.
+- **T2-2 nit** (v0.128.7 reviewer): `container.querySelectorAll('input[type="number"]')` → `queryAllByRole('spinbutton')` test refactor. Defer.
+- **Backend/Frontend/Documentation CI path filter expansion** для dependabot PRs (deferred from v0.128.6).
+
+---
+
 ## [0.128.8] — 2026-05-10
 
 ### Security + Polish — gRPC-Go Critical CVE + axios HIGH/MEDIUM cluster + T2-1 a11y closure
