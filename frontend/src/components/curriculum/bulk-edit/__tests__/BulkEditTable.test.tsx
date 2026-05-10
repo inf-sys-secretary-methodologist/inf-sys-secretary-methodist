@@ -249,6 +249,42 @@ describe('BulkEditTable / canEdit gating (frozen state)', () => {
   })
 })
 
+describe('BulkEditTable / hardening — empty state hides <table>', () => {
+  it('does not render <table> when items=[] and no pending creates', () => {
+    const { container } = render(<Host items={[]} />)
+    expect(container.querySelector('table')).toBeNull()
+    // empty placeholder still visible
+    expect(screen.getByText('disciplineItems.bulkEdit.empty')).toBeInTheDocument()
+  })
+
+  it('renders <table> when items have entries', () => {
+    const { container } = render(<Host items={[sampleItem]} />)
+    expect(container.querySelector('table')).not.toBeNull()
+  })
+
+  it('renders <table> when only pending creates exist (zero server items but creating new)', () => {
+    const seeded: BulkEditState = {
+      ...initialBulkEditState,
+      pendingCreates: [
+        {
+          localKey: 'tmp-empty-but-creating',
+          title: '',
+          hours_lectures: 0,
+          hours_practice: 0,
+          hours_lab: 0,
+          hours_self: 0,
+          control_form: 'zachet',
+          credits: 1,
+          semester: 1,
+          order_index: 0,
+        },
+      ],
+    }
+    const { container } = render(<Host items={[]} initialState={seeded} />)
+    expect(container.querySelector('table')).not.toBeNull()
+  })
+})
+
 describe('BulkEditTable / hardening — sectionID data-testid', () => {
   it('wraps table block в div с data-testid="bulk-edit-table-{sectionID}" — query stability under multi-section page', () => {
     render(<Host items={[sampleItem]} />)
