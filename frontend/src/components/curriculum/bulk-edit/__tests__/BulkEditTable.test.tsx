@@ -249,6 +249,13 @@ describe('BulkEditTable / canEdit gating (frozen state)', () => {
   })
 })
 
+describe('BulkEditTable / hardening — sectionID data-testid', () => {
+  it('wraps table block в div с data-testid="bulk-edit-table-{sectionID}" — query stability under multi-section page', () => {
+    render(<Host items={[sampleItem]} />)
+    expect(screen.getByTestId('bulk-edit-table-101')).toBeInTheDocument()
+  })
+})
+
 describe('BulkEditTable / hardening — number input min={0}', () => {
   it('every number input has min="0" — guard against negative entries even before backend rejects 422', () => {
     const seeded: BulkEditState = {
