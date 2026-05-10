@@ -2622,6 +2622,18 @@
           "semester": "Семестр",
           "order": "Порядок"
         },
+        "aria": {
+          "titleInput": "Название дисциплины",
+          "hoursLecturesInput": "Часы лекций",
+          "hoursPracticeInput": "Часы практики",
+          "hoursLabInput": "Часы лабораторных",
+          "hoursSelfInput": "Часы СРС",
+          "controlFormSelect": "Форма контроля",
+          "creditsInput": "Зачётные единицы",
+          "semesterInput": "Семестр",
+          "orderIndexInput": "Порядок",
+          "deleteToggle": "Отметить дисциплину к удалению"
+        },
         "cancelDialog": {
           "title": "Отменить изменения?",
           "description": "Все несохранённые правки будут отброшены. Это действие нельзя отменить.",

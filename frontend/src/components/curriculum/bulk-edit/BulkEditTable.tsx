@@ -140,6 +140,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                       <input
                         type="checkbox"
                         data-testid={`bulk-edit-row-${item.id}-delete-toggle`}
+                        aria-label={t('disciplineItems.bulkEdit.aria.deleteToggle')}
                         checked={isPendingDelete}
                         onChange={() =>
                           dispatch({ type: 'TOGGLE_DELETE', payload: { id: item.id } })
@@ -150,6 +151,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                   <td className="p-2">
                     <input
                       type="text"
+                      aria-label={t('disciplineItems.bulkEdit.aria.titleInput')}
                       value={row.title}
                       readOnly={!canEdit}
                       onChange={(e) => editExistingField(item, 'title', e.target.value)}
@@ -160,6 +162,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                     <input
                       type="number"
                       min={0}
+                      aria-label={t('disciplineItems.bulkEdit.aria.hoursLecturesInput')}
                       value={row.hours_lectures}
                       readOnly={!canEdit}
                       onChange={(e) =>
@@ -172,6 +175,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                     <input
                       type="number"
                       min={0}
+                      aria-label={t('disciplineItems.bulkEdit.aria.hoursPracticeInput')}
                       value={row.hours_practice}
                       readOnly={!canEdit}
                       onChange={(e) =>
@@ -184,6 +188,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                     <input
                       type="number"
                       min={0}
+                      aria-label={t('disciplineItems.bulkEdit.aria.hoursLabInput')}
                       value={row.hours_lab}
                       readOnly={!canEdit}
                       onChange={(e) => editExistingField(item, 'hours_lab', asInt(e.target.value))}
@@ -194,6 +199,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                     <input
                       type="number"
                       min={0}
+                      aria-label={t('disciplineItems.bulkEdit.aria.hoursSelfInput')}
                       value={row.hours_self}
                       readOnly={!canEdit}
                       onChange={(e) => editExistingField(item, 'hours_self', asInt(e.target.value))}
@@ -203,6 +209,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                   <td className="p-2">
                     <select
                       data-testid={`bulk-edit-row-${item.id}-control-form-select`}
+                      aria-label={t('disciplineItems.bulkEdit.aria.controlFormSelect')}
                       value={row.control_form}
                       disabled={!canEdit}
                       onChange={(e) =>
@@ -221,6 +228,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                     <input
                       type="number"
                       min={0}
+                      aria-label={t('disciplineItems.bulkEdit.aria.creditsInput')}
                       value={row.credits}
                       readOnly={!canEdit}
                       onChange={(e) => editExistingField(item, 'credits', asInt(e.target.value))}
@@ -231,6 +239,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                     <input
                       type="number"
                       min={0}
+                      aria-label={t('disciplineItems.bulkEdit.aria.semesterInput')}
                       value={row.semester}
                       readOnly={!canEdit}
                       onChange={(e) => editExistingField(item, 'semester', asInt(e.target.value))}
@@ -241,6 +250,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                     <input
                       type="number"
                       min={0}
+                      aria-label={t('disciplineItems.bulkEdit.aria.orderIndexInput')}
                       value={row.order_index}
                       readOnly={!canEdit}
                       onChange={(e) =>
@@ -280,6 +290,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                   <input
                     type="text"
                     data-testid={`bulk-edit-row-create-${pending.localKey}-title-input`}
+                    aria-label={t('disciplineItems.bulkEdit.aria.titleInput')}
                     value={pending.title}
                     readOnly={!canEdit}
                     onChange={(e) => editPendingCreateField(pending, 'title', e.target.value)}
@@ -290,6 +301,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                   <input
                     type="number"
                     min={0}
+                    aria-label={t('disciplineItems.bulkEdit.aria.hoursLecturesInput')}
                     value={pending.hours_lectures}
                     readOnly={!canEdit}
                     onChange={(e) =>
@@ -302,6 +314,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                   <input
                     type="number"
                     min={0}
+                    aria-label={t('disciplineItems.bulkEdit.aria.hoursPracticeInput')}
                     value={pending.hours_practice}
                     readOnly={!canEdit}
                     onChange={(e) =>
@@ -314,6 +327,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                   <input
                     type="number"
                     min={0}
+                    aria-label={t('disciplineItems.bulkEdit.aria.hoursLabInput')}
                     value={pending.hours_lab}
                     readOnly={!canEdit}
                     onChange={(e) =>
@@ -326,6 +340,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                   <input
                     type="number"
                     min={0}
+                    aria-label={t('disciplineItems.bulkEdit.aria.hoursSelfInput')}
                     value={pending.hours_self}
                     readOnly={!canEdit}
                     onChange={(e) =>
@@ -336,6 +351,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                 </td>
                 <td className="p-2">
                   <select
+                    aria-label={t('disciplineItems.bulkEdit.aria.controlFormSelect')}
                     value={pending.control_form}
                     disabled={!canEdit}
                     onChange={(e) =>
@@ -354,6 +370,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                   <input
                     type="number"
                     min={0}
+                    aria-label={t('disciplineItems.bulkEdit.aria.creditsInput')}
                     value={pending.credits}
                     readOnly={!canEdit}
                     onChange={(e) =>
@@ -366,6 +383,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                   <input
                     type="number"
                     min={0}
+                    aria-label={t('disciplineItems.bulkEdit.aria.semesterInput')}
                     value={pending.semester}
                     readOnly={!canEdit}
                     onChange={(e) =>
@@ -378,6 +396,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                   <input
                     type="number"
                     min={0}
+                    aria-label={t('disciplineItems.bulkEdit.aria.orderIndexInput')}
                     value={pending.order_index}
                     readOnly={!canEdit}
                     onChange={(e) =>

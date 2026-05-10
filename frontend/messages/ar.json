@@ -2622,6 +2622,18 @@
           "semester": "الفصل",
           "order": "الترتيب"
         },
+        "aria": {
+          "titleInput": "عنوان التخصص",
+          "hoursLecturesInput": "ساعات المحاضرات",
+          "hoursPracticeInput": "ساعات التمارين",
+          "hoursLabInput": "ساعات المختبر",
+          "hoursSelfInput": "ساعات الدراسة الذاتية",
+          "controlFormSelect": "شكل التحكم",
+          "creditsInput": "الوحدات",
+          "semesterInput": "الفصل الدراسي",
+          "orderIndexInput": "ترتيب",
+          "deleteToggle": "وضع علامة على التخصص للحذف"
+        },
         "cancelDialog": {
           "title": "تجاهل التغييرات؟",
           "description": "سيتم تجاهل جميع التعديلات غير المحفوظة. لا يمكن التراجع عن هذا الإجراء.",

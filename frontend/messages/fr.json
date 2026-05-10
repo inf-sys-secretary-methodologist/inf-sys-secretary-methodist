@@ -2622,6 +2622,18 @@
           "semester": "Semestre",
           "order": "Ordre"
         },
+        "aria": {
+          "titleInput": "Titre de la discipline",
+          "hoursLecturesInput": "Heures de cours magistraux",
+          "hoursPracticeInput": "Heures de travaux pratiques",
+          "hoursLabInput": "Heures de laboratoire",
+          "hoursSelfInput": "Heures d'étude autonome",
+          "controlFormSelect": "Forme de contrôle",
+          "creditsInput": "Crédits",
+          "semesterInput": "Semestre",
+          "orderIndexInput": "Index d'ordre",
+          "deleteToggle": "Marquer la discipline pour suppression"
+        },
         "cancelDialog": {
           "title": "Annuler les modifications ?",
           "description": "Toutes les modifications non enregistrées seront supprimées. Cette action est irréversible.",

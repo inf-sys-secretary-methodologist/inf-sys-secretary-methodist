@@ -2622,6 +2622,18 @@
           "semester": "Semester",
           "order": "Order"
         },
+        "aria": {
+          "titleInput": "Discipline title",
+          "hoursLecturesInput": "Lecture hours",
+          "hoursPracticeInput": "Practice hours",
+          "hoursLabInput": "Lab hours",
+          "hoursSelfInput": "Self-study hours",
+          "controlFormSelect": "Control form",
+          "creditsInput": "Credits",
+          "semesterInput": "Semester",
+          "orderIndexInput": "Order index",
+          "deleteToggle": "Mark discipline for deletion"
+        },
         "cancelDialog": {
           "title": "Discard changes?",
           "description": "All unsaved edits will be discarded. This action cannot be undone.",
