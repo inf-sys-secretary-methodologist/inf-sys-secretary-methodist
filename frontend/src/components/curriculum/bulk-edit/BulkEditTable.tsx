@@ -70,7 +70,6 @@ const DEFAULT_PENDING_CREATE: Omit<BulkEditCreateInput, 'order_index'> = {
 }
 
 export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: BulkEditTableProps) {
-  void sectionID
   const t = useTranslations('curriculum')
 
   const isEmpty = items.length === 0 && state.pendingCreates.length === 0
@@ -108,7 +107,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid={`bulk-edit-table-${sectionID}`}>
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-muted/30 text-left">
