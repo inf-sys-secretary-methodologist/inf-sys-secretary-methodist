@@ -248,3 +248,33 @@ describe('BulkEditTable / canEdit gating (frozen state)', () => {
     expect(titleInput).toHaveAttribute('readonly')
   })
 })
+
+describe('BulkEditTable / hardening — number input min={0}', () => {
+  it('every number input has min="0" — guard against negative entries even before backend rejects 422', () => {
+    const seeded: BulkEditState = {
+      ...initialBulkEditState,
+      pendingCreates: [
+        {
+          localKey: 'tmp-min',
+          title: '',
+          hours_lectures: 0,
+          hours_practice: 0,
+          hours_lab: 0,
+          hours_self: 0,
+          control_form: 'zachet',
+          credits: 1,
+          semester: 1,
+          order_index: 0,
+        },
+      ],
+    }
+    const { container } = render(<Host items={[sampleItem]} initialState={seeded} />)
+    const numericInputs = container.querySelectorAll('input[type="number"]')
+    // sanity — 7 numeric cells per row (4 hours + credits + semester + order_index;
+    // title is text, control_form is select); 1 server item + 1 pending create = 14.
+    expect(numericInputs.length).toBe(14)
+    numericInputs.forEach((input) => {
+      expect(input).toHaveAttribute('min', '0')
+    })
+  })
+})
