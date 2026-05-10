@@ -52,7 +52,7 @@ function Host({ items, canEdit = true, initialState }: HostProps) {
 
 describe('BulkEditTable / header', () => {
   it('renders column headers via i18n keys', () => {
-    render(<Host items={[]} />)
+    render(<Host items={[sampleItem]} />)
     expect(screen.getByText('disciplineItems.bulkEdit.columns.title')).toBeInTheDocument()
     expect(screen.getByText('disciplineItems.bulkEdit.columns.hoursLectures')).toBeInTheDocument()
     expect(screen.getByText('disciplineItems.bulkEdit.columns.controlForm')).toBeInTheDocument()
