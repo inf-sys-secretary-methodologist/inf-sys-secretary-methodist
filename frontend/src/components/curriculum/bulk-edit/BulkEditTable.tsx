@@ -157,6 +157,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                 <td className="p-2">
                   <input
                     type="number"
+                    min={0}
                     value={row.hours_lectures}
                     readOnly={!canEdit}
                     onChange={(e) =>
@@ -168,6 +169,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                 <td className="p-2">
                   <input
                     type="number"
+                    min={0}
                     value={row.hours_practice}
                     readOnly={!canEdit}
                     onChange={(e) =>
@@ -179,6 +181,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                 <td className="p-2">
                   <input
                     type="number"
+                    min={0}
                     value={row.hours_lab}
                     readOnly={!canEdit}
                     onChange={(e) => editExistingField(item, 'hours_lab', asInt(e.target.value))}
@@ -188,6 +191,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                 <td className="p-2">
                   <input
                     type="number"
+                    min={0}
                     value={row.hours_self}
                     readOnly={!canEdit}
                     onChange={(e) => editExistingField(item, 'hours_self', asInt(e.target.value))}
@@ -214,6 +218,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                 <td className="p-2">
                   <input
                     type="number"
+                    min={0}
                     value={row.credits}
                     readOnly={!canEdit}
                     onChange={(e) => editExistingField(item, 'credits', asInt(e.target.value))}
@@ -223,6 +228,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                 <td className="p-2">
                   <input
                     type="number"
+                    min={0}
                     value={row.semester}
                     readOnly={!canEdit}
                     onChange={(e) => editExistingField(item, 'semester', asInt(e.target.value))}
@@ -232,6 +238,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                 <td className="p-2">
                   <input
                     type="number"
+                    min={0}
                     value={row.order_index}
                     readOnly={!canEdit}
                     onChange={(e) => editExistingField(item, 'order_index', asInt(e.target.value))}
@@ -278,6 +285,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
               <td className="p-2">
                 <input
                   type="number"
+                  min={0}
                   value={pending.hours_lectures}
                   readOnly={!canEdit}
                   onChange={(e) =>
@@ -289,6 +297,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
               <td className="p-2">
                 <input
                   type="number"
+                  min={0}
                   value={pending.hours_practice}
                   readOnly={!canEdit}
                   onChange={(e) =>
@@ -300,6 +309,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
               <td className="p-2">
                 <input
                   type="number"
+                  min={0}
                   value={pending.hours_lab}
                   readOnly={!canEdit}
                   onChange={(e) =>
@@ -311,6 +321,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
               <td className="p-2">
                 <input
                   type="number"
+                  min={0}
                   value={pending.hours_self}
                   readOnly={!canEdit}
                   onChange={(e) =>
@@ -338,6 +349,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
               <td className="p-2">
                 <input
                   type="number"
+                  min={0}
                   value={pending.credits}
                   readOnly={!canEdit}
                   onChange={(e) =>
@@ -349,6 +361,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
               <td className="p-2">
                 <input
                   type="number"
+                  min={0}
                   value={pending.semester}
                   readOnly={!canEdit}
                   onChange={(e) =>
@@ -360,6 +373,7 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
               <td className="p-2">
                 <input
                   type="number"
+                  min={0}
                   value={pending.order_index}
                   readOnly={!canEdit}
                   onChange={(e) =>
