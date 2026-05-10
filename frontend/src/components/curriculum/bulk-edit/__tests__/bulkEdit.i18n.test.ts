@@ -63,6 +63,8 @@ const REQUIRED_KEYS = [
   'disciplineItems.bulkEdit.aria.semesterInput',
   'disciplineItems.bulkEdit.aria.orderIndexInput',
   'disciplineItems.bulkEdit.aria.deleteToggle',
+  // v0.128.8 T2-1 — column header (was hardcoded English "select" в v0.128.4).
+  'disciplineItems.bulkEdit.aria.deleteColumnHeader',
 ] as const
 
 function loadLocale(locale: string): Record<string, unknown> {

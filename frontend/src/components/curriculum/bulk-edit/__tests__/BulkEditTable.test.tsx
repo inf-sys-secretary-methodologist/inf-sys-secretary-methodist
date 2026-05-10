@@ -249,6 +249,18 @@ describe('BulkEditTable / canEdit gating (frozen state)', () => {
   })
 })
 
+describe('BulkEditTable / hardening — ARIA label на колоночном <th> для delete checkbox', () => {
+  it('column header <th> for delete-checkbox uses i18n aria-label (closes v0.128.4 hardcoded "select" debt)', () => {
+    const { container } = render(<Host items={[sampleItem]} />)
+    // Column header <th> sits в thead и ранее имел aria-label="select" (English literal)
+    const headers = container.querySelectorAll('thead th[aria-label]')
+    const deleteHeader = Array.from(headers).find(
+      (h) => h.getAttribute('aria-label') === 'disciplineItems.bulkEdit.aria.deleteColumnHeader'
+    )
+    expect(deleteHeader).toBeDefined()
+  })
+})
+
 describe('BulkEditTable / hardening — ARIA labels on cell controls', () => {
   const seededWithCreate: BulkEditState = {
     ...initialBulkEditState,
