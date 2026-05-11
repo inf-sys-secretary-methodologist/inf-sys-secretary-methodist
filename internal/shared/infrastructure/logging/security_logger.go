@@ -174,14 +174,34 @@ func (sl *SecurityLogger) LogPermissionDenied(ctx context.Context, resource stri
 	})
 }
 
-// AuditLogger provides detailed audit trail for compliance
+// AuditLogger provides detailed audit trail for compliance.
+//
+// The structured stdout emit is the original v0.99 surface. v0.130.0
+// adds an optional AuditLogWriter (set via WithRepository) for
+// persisting every event to audit_logs (ADR-2 sync write on an
+// independent connection; ADR-3 failure is logged and not propagated).
+// When writer is nil the logger behaves exactly as before — backwards
+// compatible with every existing call site (ADR-7).
 type AuditLogger struct {
 	logger *Logger
+	writer AuditLogWriter // optional; nil → log-only behavior
 }
 
-// NewAuditLogger creates a new audit logger
+// NewAuditLogger creates a new audit logger emitting to structured log
+// only. Use WithRepository to add audit_logs persistence.
 func NewAuditLogger(logger *Logger) *AuditLogger {
 	return &AuditLogger{logger: logger}
+}
+
+// WithRepository attaches an AuditLogWriter so every subsequent
+// LogAuditEvent persists to audit_logs in addition to the structured
+// stdout emit. Returns the receiver so callers can chain
+// NewAuditLogger(l).WithRepository(repo) at DI time.
+//
+// Stub: persistence call wired in Pair 2 GREEN.
+func (al *AuditLogger) WithRepository(writer AuditLogWriter) *AuditLogger {
+	al.writer = writer
+	return al
 }
 
 // LogAuditEvent logs an audit event
