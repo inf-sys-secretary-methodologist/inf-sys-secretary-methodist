@@ -88,7 +88,7 @@ jobs:
 
     steps:
     - name: Check PR has description
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       with:
         script: |
           const pr = context.payload.pull_request;
@@ -97,7 +97,7 @@ jobs:
           }
 
     - name: Check PR is linked to an issue
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       with:
         script: |
           const pr = context.payload.pull_request;
@@ -150,7 +150,7 @@ jobs:
 
     steps:
     - name: Check for labels
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       with:
         script: |
           const pr = context.payload.pull_request;
@@ -169,7 +169,7 @@ jobs:
 
     steps:
     - name: Check for merge conflicts
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       with:
         script: |
           const pr = context.payload.pull_request;
@@ -190,7 +190,7 @@ jobs:
 
     steps:
     - name: Check all validations passed
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       with:
         script: |
           const jobs = ${{ toJSON(needs) }};
