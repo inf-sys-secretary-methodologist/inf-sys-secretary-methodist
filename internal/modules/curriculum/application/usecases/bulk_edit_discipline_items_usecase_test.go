@@ -107,6 +107,9 @@ func (f *fakeBulkCurriculaRepo) Save(_ context.Context, _ *entities.Curriculum) 
 func (f *fakeBulkCurriculaRepo) Update(_ context.Context, _ *entities.Curriculum) error {
 	return errors.New("fake: Update not used by bulk-edit")
 }
+func (f *fakeBulkCurriculaRepo) AggregateByYearSpecialty(_ context.Context, _ int) ([]repositories.CurriculumYearSpecialtyAgg, error) {
+	return nil, errors.New("fake: AggregateByYearSpecialty not used by bulk-edit")
+}
 
 // fakeBulkTx implements repositories.BulkDisciplineItemsTx. Tracks
 // commit/rollback calls so tests can assert tx lifecycle.

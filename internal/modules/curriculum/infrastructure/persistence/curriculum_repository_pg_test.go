@@ -294,3 +294,68 @@ func TestCurriculumRepositoryPG_Update(t *testing.T) {
 		assert.Contains(t, err.Error(), "update")
 	})
 }
+
+func TestCurriculumRepositoryPG_AggregateByYearSpecialty(t *testing.T) {
+	cases := []struct {
+		name string
+		year int
+		rows *sqlmock.Rows
+		want []repositories.CurriculumYearSpecialtyAgg
+	}{
+		{
+			name: "no matching rows returns empty slice",
+			year: 2026,
+			rows: sqlmock.NewRows([]string{"specialty", "status", "count"}),
+			want: nil,
+		},
+		{
+			name: "rows grouped by specialty and status",
+			year: 2026,
+			rows: sqlmock.NewRows([]string{"specialty", "status", "count"}).
+				AddRow("Информатика и вычислительная техника", "approved", 3).
+				AddRow("Информатика и вычислительная техника", "pending_approval", 1).
+				AddRow("Прикладная информатика", "approved", 2),
+			want: []repositories.CurriculumYearSpecialtyAgg{
+				{Specialty: "Информатика и вычислительная техника", Status: entities.StatusApproved, Count: 3},
+				{Specialty: "Информатика и вычислительная техника", Status: entities.StatusPendingApproval, Count: 1},
+				{Specialty: "Прикладная информатика", Status: entities.StatusApproved, Count: 2},
+			},
+		},
+		{
+			name: "single specialty single status",
+			year: 2025,
+			rows: sqlmock.NewRows([]string{"specialty", "status", "count"}).
+				AddRow("Информационные системы", "draft", 1),
+			want: []repositories.CurriculumYearSpecialtyAgg{
+				{Specialty: "Информационные системы", Status: entities.StatusDraft, Count: 1},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, mock := newCurriculumRepoMock(t)
+
+			mock.ExpectQuery(`SELECT specialty, status, COUNT\(\*\) FROM curricula\s+WHERE year = \$1\s+GROUP BY specialty, status`).
+				WithArgs(tc.year).
+				WillReturnRows(tc.rows)
+
+			got, err := repo.AggregateByYearSpecialty(context.Background(), tc.year)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("query error propagates wrapped", func(t *testing.T) {
+		repo, mock := newCurriculumRepoMock(t)
+
+		mock.ExpectQuery(`SELECT specialty, status, COUNT\(\*\) FROM curricula`).
+			WithArgs(2026).
+			WillReturnError(fmt.Errorf("conn refused"))
+
+		got, err := repo.AggregateByYearSpecialty(context.Background(), 2026)
+		require.Error(t, err)
+		require.Nil(t, got)
+	})
+}

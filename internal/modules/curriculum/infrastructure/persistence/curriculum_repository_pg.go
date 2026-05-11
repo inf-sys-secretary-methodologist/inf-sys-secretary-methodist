@@ -252,6 +252,13 @@ func (r *CurriculumRepositoryPG) Update(ctx context.Context, c *entities.Curricu
 	return nil
 }
 
+// AggregateByYearSpecialty returns one row per (specialty, status)
+// combination for curricula with curricula.year = year, with a count
+// of matching rows. Implementation deferred to GREEN.
+func (r *CurriculumRepositoryPG) AggregateByYearSpecialty(_ context.Context, _ int) ([]repositories.CurriculumYearSpecialtyAgg, error) {
+	return nil, errors.New("curriculum: aggregate by year+specialty not implemented")
+}
+
 // nullableDescription maps an empty Go string to a SQL NULL so the
 // description column stays NULL when absent (the migration leaves
 // description nullable; storing ” would create a needless distinction

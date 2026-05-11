@@ -54,6 +54,16 @@ type CurriculumListResult struct {
 	Total int
 }
 
+// CurriculumYearSpecialtyAgg is a read-model row produced by
+// AggregateByYearSpecialty: count of curricula grouped by (specialty,
+// status) for a given academic year. Consumed by the annual report
+// pipeline (internal/modules/reports/annual). Not an entity — DTO only.
+type CurriculumYearSpecialtyAgg struct {
+	Specialty string
+	Status    entities.CurriculumStatus
+	Count     int
+}
+
 // CurriculumRepository is the persistence port for Curriculum
 // aggregates. Implementations must satisfy the documented sentinel
 // contract: ErrCurriculumNotFound on missing rows, ErrCurriculumCodeExists
@@ -78,4 +88,10 @@ type CurriculumRepository interface {
 	// ErrCurriculumCodeExists if the rename collides with an
 	// existing code.
 	Update(ctx context.Context, c *entities.Curriculum) error
+
+	// AggregateByYearSpecialty returns one row per (specialty, status)
+	// combination for curricula with the given year, counting matching
+	// rows. Empty result is not an error. Used by the annual report
+	// pipeline to render the curricula summary section.
+	AggregateByYearSpecialty(ctx context.Context, year int) ([]CurriculumYearSpecialtyAgg, error)
 }
