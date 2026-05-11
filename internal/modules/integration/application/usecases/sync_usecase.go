@@ -106,17 +106,17 @@ func (uc *SyncUseCase) StartSync(ctx context.Context, req *dto.StartSyncRequest)
 		err = fmt.Errorf("unsupported entity type: %s", req.EntityType)
 	}
 
-	// Update sync log with final status
+	// Update sync log with final status. The persist step runs BEFORE
+	// the audit emission so the two tables never disagree: if the
+	// sync_logs UPDATE fails the audit row also never lands, and a
+	// post-mortem auditor sees a consistent "stuck in running" state
+	// rather than an "audit says completed but row says running"
+	// cross-table mismatch (reviewer Tier 2 #2, v0.131.1).
 	if err != nil {
 		syncLog.Fail(err.Error())
 		uc.logger.Error("Sync failed",
 			slog.Int64("sync_log_id", syncLog.ID),
 			slog.String("error", err.Error()))
-		emitIntegrationAudit(uc.auditSink, ctx, 0, "integration.sync_failed", "integration_sync", map[string]any{
-			"sync_log_id": syncLog.ID,
-			"entity_type": string(req.EntityType),
-			"error":       err.Error(),
-		})
 	} else {
 		syncLog.Complete()
 		uc.logger.Info("Sync completed",
@@ -125,6 +125,19 @@ func (uc *SyncUseCase) StartSync(ctx context.Context, req *dto.StartSyncRequest)
 			slog.Int("success", syncLog.SuccessCount),
 			slog.Int("errors", syncLog.ErrorCount),
 			slog.Int("conflicts", syncLog.ConflictCount))
+	}
+
+	if updateErr := uc.syncLogRepo.Update(ctx, syncLog); updateErr != nil {
+		uc.logger.Error("Failed to update sync log", slog.String("error", updateErr.Error()))
+	}
+
+	if err != nil {
+		emitIntegrationAudit(uc.auditSink, ctx, 0, "integration.sync_failed", "integration_sync", map[string]any{
+			"sync_log_id": syncLog.ID,
+			"entity_type": string(req.EntityType),
+			"error":       err.Error(),
+		})
+	} else {
 		emitIntegrationAudit(uc.auditSink, ctx, 0, "integration.sync_completed", "integration_sync", map[string]any{
 			"sync_log_id":    syncLog.ID,
 			"entity_type":    string(req.EntityType),
@@ -133,10 +146,6 @@ func (uc *SyncUseCase) StartSync(ctx context.Context, req *dto.StartSyncRequest)
 			"error_count":    syncLog.ErrorCount,
 			"conflict_count": syncLog.ConflictCount,
 		})
-	}
-
-	if updateErr := uc.syncLogRepo.Update(ctx, syncLog); updateErr != nil {
-		uc.logger.Error("Failed to update sync log", slog.String("error", updateErr.Error()))
 	}
 
 	if err != nil {

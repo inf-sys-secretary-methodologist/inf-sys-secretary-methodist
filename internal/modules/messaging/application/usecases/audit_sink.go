@@ -29,11 +29,19 @@ type AuditSink interface {
 // Nil sink is treated as a successful no-op so existing test setups
 // that omit the dependency (and the v0.131.1 backwards-compat
 // constructor path) do not need nil checks at every call site.
+//
+// actorID == 0 (the absent-actor sentinel) skips the actor_user_id
+// enrichment so a misconfigured call site never injects a false-zero
+// actor into the JSONB payload — same shape as the integration
+// helper for defense-in-depth (reviewer Tier 2 #1, v0.131.1).
 func emitMessagingAudit(sink AuditSink, ctx context.Context, actorID int64, action, resource string, fields map[string]any) {
 	if sink == nil {
 		return
 	}
-	enriched := map[string]any{"actor_user_id": actorID}
+	enriched := map[string]any{}
+	if actorID != 0 {
+		enriched["actor_user_id"] = actorID
+	}
 	maps.Copy(enriched, fields)
 	sink.LogAuditEvent(ctx, action, resource, enriched)
 }

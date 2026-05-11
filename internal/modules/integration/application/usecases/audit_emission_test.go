@@ -50,7 +50,7 @@ func TestSyncUseCase_AuditEmission_StartSync_AlreadyRunning_NoEmission(t *testin
 	require.Empty(t, sink.events, "already-running rejection must not emit any audit event")
 }
 
-func TestSyncUseCase_AuditEmission_UnsupportedEntityType_FailsButEmitsLifecyclePair(t *testing.T) {
+func TestSyncUseCase_AuditEmission_FailureEmitsStartedThenFailedPair(t *testing.T) {
 	server, client := newTestODataServer(t, nil, nil)
 	defer server.Close()
 	uc, _, _, _, _ := newSyncUCWithOData(t, client)
