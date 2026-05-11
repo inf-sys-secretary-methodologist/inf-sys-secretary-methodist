@@ -88,7 +88,7 @@ describe('AdminAuditLogsPage — role guard', () => {
 describe('AdminAuditLogsPage — render states', () => {
   it('renders header with title', () => {
     render(<AdminAuditLogsPage />)
-    expect(screen.getByText('adminAuditLogs.title')).toBeInTheDocument()
+    expect(screen.getByText('title')).toBeInTheDocument()
   })
 
   it('renders empty state when no logs', () => {
@@ -143,7 +143,7 @@ describe('AdminAuditLogsPage — filters', () => {
     const user = userEvent.setup()
     render(<AdminAuditLogsPage />)
 
-    const input = screen.getByLabelText('adminAuditLogs.filters.action')
+    const input = screen.getByLabelText('filters.action')
     await user.type(input, 'auth.login')
 
     await waitFor(() => {
@@ -156,10 +156,10 @@ describe('AdminAuditLogsPage — filters', () => {
     const user = userEvent.setup()
     render(<AdminAuditLogsPage />)
 
-    const input = screen.getByLabelText('adminAuditLogs.filters.action')
+    const input = screen.getByLabelText('filters.action')
     await user.type(input, 'auth.login')
 
-    const reset = screen.getByRole('button', { name: 'adminAuditLogs.filters.reset' })
+    const reset = screen.getByRole('button', { name: 'filters.reset' })
     await user.click(reset)
 
     await waitFor(() => {
@@ -180,7 +180,7 @@ describe('AdminAuditLogsPage — pagination', () => {
       mutate: jest.fn(),
     })
     render(<AdminAuditLogsPage />)
-    const prev = screen.getByRole('button', { name: 'adminAuditLogs.pagination.prev' })
+    const prev = screen.getByRole('button', { name: 'pagination.prev' })
     expect(prev).toBeDisabled()
   })
 
@@ -196,7 +196,7 @@ describe('AdminAuditLogsPage — pagination', () => {
     const user = userEvent.setup()
     render(<AdminAuditLogsPage />)
 
-    const next = screen.getByRole('button', { name: 'adminAuditLogs.pagination.next' })
+    const next = screen.getByRole('button', { name: 'pagination.next' })
     await user.click(next)
 
     await waitFor(() => {

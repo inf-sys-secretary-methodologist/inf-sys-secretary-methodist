@@ -196,7 +196,8 @@
     "myAssignments": "My assignments",
     "curriculum": "Curricula",
     "curriculumApprove": "Curriculum approval",
-    "annualReport": "Annual report"
+    "annualReport": "Annual report",
+    "auditLogs": "Audit logs"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -2706,6 +2707,43 @@
         "forbidden": "You can only resubmit your own work",
         "generic": "Could not resubmit. Please try again."
       }
+    }
+  },
+  "adminAuditLogs": {
+    "title": "Audit logs",
+    "description": "Forensic timeline of administrative and business actions across the system",
+    "loadFailed": "Failed to load audit logs",
+    "empty": {
+      "title": "No audit events match the current filter",
+      "description": "Loosen the filters or remove the date range to see more events"
+    },
+    "filters": {
+      "action": "Action",
+      "resource": "Resource",
+      "userId": "Actor user ID",
+      "from": "From",
+      "to": "To",
+      "limit": "Page size",
+      "apply": "Apply",
+      "reset": "Reset filters"
+    },
+    "columns": {
+      "created_at": "Timestamp",
+      "action": "Action",
+      "resource": "Resource",
+      "actor": "Actor",
+      "ip": "IP",
+      "correlation_id": "Correlation ID",
+      "fields": "Details"
+    },
+    "pagination": {
+      "prev": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {totalPages}"
+    },
+    "fields": {
+      "showJson": "Show JSON",
+      "hide": "Hide"
     }
   }
 }

@@ -196,7 +196,8 @@
     "myAssignments": "واجباتي",
     "curriculum": "المناهج الدراسية",
     "curriculumApprove": "اعتماد المناهج",
-    "annualReport": "التقرير السنوي"
+    "annualReport": "التقرير السنوي",
+    "auditLogs": "سجل التدقيق"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -2706,6 +2707,43 @@
         "forbidden": "يمكنك إعادة إرسال أعمالك فقط",
         "generic": "تعذّرت إعادة الإرسال. يرجى المحاولة مرة أخرى."
       }
+    }
+  },
+  "adminAuditLogs": {
+    "title": "سجل التدقيق",
+    "description": "الجدول الزمني الجنائي للإجراءات الإدارية وإجراءات الأعمال في النظام",
+    "loadFailed": "فشل تحميل سجل التدقيق",
+    "empty": {
+      "title": "لا توجد أحداث تطابق المرشح الحالي",
+      "description": "خفّف المرشحات أو أزل نطاق التاريخ لعرض المزيد من الأحداث"
+    },
+    "filters": {
+      "action": "الإجراء",
+      "resource": "المورد",
+      "userId": "معرّف المستخدم",
+      "from": "من",
+      "to": "إلى",
+      "limit": "حجم الصفحة",
+      "apply": "تطبيق",
+      "reset": "إعادة الضبط"
+    },
+    "columns": {
+      "created_at": "الوقت",
+      "action": "الإجراء",
+      "resource": "المورد",
+      "actor": "المُنفِّذ",
+      "ip": "IP",
+      "correlation_id": "معرّف الارتباط",
+      "fields": "التفاصيل"
+    },
+    "pagination": {
+      "prev": "السابق",
+      "next": "التالي",
+      "pageOf": "الصفحة {page} من {totalPages}"
+    },
+    "fields": {
+      "showJson": "عرض JSON",
+      "hide": "إخفاء"
     }
   }
 }

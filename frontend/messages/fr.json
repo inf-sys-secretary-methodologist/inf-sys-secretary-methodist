@@ -196,7 +196,8 @@
     "myAssignments": "Mes devoirs",
     "curriculum": "Programmes",
     "curriculumApprove": "Approbation des programmes",
-    "annualReport": "Rapport annuel"
+    "annualReport": "Rapport annuel",
+    "auditLogs": "Journal d'audit"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -2706,6 +2707,43 @@
         "forbidden": "Vous ne pouvez renvoyer que vos propres travaux",
         "generic": "Impossible d'envoyer. Réessayez."
       }
+    }
+  },
+  "adminAuditLogs": {
+    "title": "Journal d'audit",
+    "description": "Chronologie médico-légale des actions administratives et métier dans le système",
+    "loadFailed": "Échec du chargement du journal d'audit",
+    "empty": {
+      "title": "Aucun événement ne correspond au filtre actuel",
+      "description": "Assouplissez les filtres ou supprimez la plage de dates pour voir plus d'événements"
+    },
+    "filters": {
+      "action": "Action",
+      "resource": "Ressource",
+      "userId": "ID de l'utilisateur",
+      "from": "Du",
+      "to": "Au",
+      "limit": "Taille de la page",
+      "apply": "Appliquer",
+      "reset": "Réinitialiser"
+    },
+    "columns": {
+      "created_at": "Horodatage",
+      "action": "Action",
+      "resource": "Ressource",
+      "actor": "Auteur",
+      "ip": "IP",
+      "correlation_id": "ID de corrélation",
+      "fields": "Détails"
+    },
+    "pagination": {
+      "prev": "Précédent",
+      "next": "Suivant",
+      "pageOf": "Page {page} sur {totalPages}"
+    },
+    "fields": {
+      "showJson": "Afficher le JSON",
+      "hide": "Masquer"
     }
   }
 }

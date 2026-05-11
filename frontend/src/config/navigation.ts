@@ -300,6 +300,16 @@ export const navigationConfig: NavEntry[] = [
         roles: [UserRole.SYSTEM_ADMIN],
       },
       {
+        // Admin audit-log timeline (v0.131.0). Backend GET /api/admin/
+        // audit-logs gated by RequireRole(system_admin); navigation
+        // mirror single-role allowlist so non-admins never see a
+        // dead-link entry.
+        nameKey: 'auditLogs',
+        url: '/admin/audit-logs',
+        icon: FileText,
+        roles: [UserRole.SYSTEM_ADMIN],
+      },
+      {
         nameKey: 'settingsPage',
         url: '/settings/appearance',
         icon: Settings,
