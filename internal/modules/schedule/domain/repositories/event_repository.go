@@ -3,10 +3,16 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 )
+
+// ErrInvalidOrderBy is returned when EventFilter.OrderBy does not match
+// the whitelist of safe ORDER BY clauses recognized by the repository.
+// Guards SQL injection through the ORDER BY interpolation surface.
+var ErrInvalidOrderBy = errors.New("invalid order_by clause")
 
 // EventRepository defines the interface for event persistence
 type EventRepository interface {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"testing"
@@ -442,6 +443,32 @@ func TestEventList_ScanError(t *testing.T) {
 
 	_, _, err := repo.List(context.Background(), repositories.EventFilter{})
 	assert.Error(t, err)
+}
+
+func TestEventList_RejectsInjectionInOrderBy(t *testing.T) {
+	cases := []struct {
+		name    string
+		orderBy string
+	}{
+		{"semicolon_drop", "1; DROP TABLE events"},
+		{"case_blind_subselect", "(CASE WHEN 1=1 THEN id ELSE 1 END)"},
+		{"raw_ddl", "DROP TABLE events"},
+		{"comment_terminator", "id--"},
+		{"unknown_column", "password ASC"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, _ := newEventRepoMock(t)
+
+			_, _, err := repo.List(context.Background(), repositories.EventFilter{
+				OrderBy: tc.orderBy,
+			})
+			require.Error(t, err)
+			require.True(t, errors.Is(err, repositories.ErrInvalidOrderBy),
+				"expected ErrInvalidOrderBy, got: %v", err)
+		})
+	}
 }
 
 func TestEventGetByDateRange_Success(t *testing.T) {
