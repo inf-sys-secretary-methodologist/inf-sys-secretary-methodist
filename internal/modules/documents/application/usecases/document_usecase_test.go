@@ -164,6 +164,14 @@ func (m *MockDocumentRepository) GetVersionDiff(ctx context.Context, documentID 
 	return args.Get(0).(*entities.DocumentVersionDiff), args.Error(1)
 }
 
+func (m *MockDocumentRepository) AggregateActivityByType(ctx context.Context, from, to time.Time) ([]repositories.DocumentActivityByTypeAgg, error) {
+	args := m.Called(ctx, from, to)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]repositories.DocumentActivityByTypeAgg), args.Error(1)
+}
+
 // MockDocumentTypeRepository is a mock implementation of DocumentTypeRepository
 type MockDocumentTypeRepository struct {
 	mock.Mock

@@ -4,6 +4,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 )
@@ -46,6 +47,22 @@ type DocumentRepository interface {
 	// History operations
 	AddHistory(ctx context.Context, history *entities.DocumentHistory) error
 	GetHistory(ctx context.Context, documentID int64) ([]*entities.DocumentHistory, error)
+
+	// AggregateActivityByType counts documents grouped by
+	// (document_type.name, document.status) for documents whose
+	// created_at lies in the half-open [from, to) range. Empty result
+	// is not an error. Used by the annual report pipeline.
+	AggregateActivityByType(ctx context.Context, from, to time.Time) ([]DocumentActivityByTypeAgg, error)
+}
+
+// DocumentActivityByTypeAgg is a read-model row produced by
+// AggregateActivityByType: one row per (type name, document status)
+// combination for documents created within a half-open time window.
+// Consumed by the annual report pipeline. DTO only.
+type DocumentActivityByTypeAgg struct {
+	TypeName string
+	Status   entities.DocumentStatus
+	Count    int
 }
 
 // DocumentFilter contains filter options for listing documents

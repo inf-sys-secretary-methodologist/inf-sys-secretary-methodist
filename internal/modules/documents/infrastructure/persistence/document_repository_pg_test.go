@@ -815,3 +815,67 @@ func TestDocumentRepositoryPG_GetLatestVersion_NotFound(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, v)
 }
+
+func TestDocumentRepositoryPG_AggregateActivityByType(t *testing.T) {
+	from := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	to := time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	cases := []struct {
+		name string
+		rows *sqlmock.Rows
+		want []repositories.DocumentActivityByTypeAgg
+	}{
+		{
+			name: "no matching rows returns empty slice",
+			rows: sqlmock.NewRows([]string{"name", "status", "count"}),
+			want: nil,
+		},
+		{
+			name: "rows grouped by type and status",
+			rows: sqlmock.NewRows([]string{"name", "status", "count"}).
+				AddRow("Приказ", "approved", 5).
+				AddRow("Приказ", "draft", 2).
+				AddRow("Письмо", "approved", 7),
+			want: []repositories.DocumentActivityByTypeAgg{
+				{TypeName: "Приказ", Status: entities.DocumentStatusApproved, Count: 5},
+				{TypeName: "Приказ", Status: entities.DocumentStatusDraft, Count: 2},
+				{TypeName: "Письмо", Status: entities.DocumentStatusApproved, Count: 7},
+			},
+		},
+		{
+			name: "single type single status",
+			rows: sqlmock.NewRows([]string{"name", "status", "count"}).
+				AddRow("Протокол", "registered", 1),
+			want: []repositories.DocumentActivityByTypeAgg{
+				{TypeName: "Протокол", Status: entities.DocumentStatusRegistered, Count: 1},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, mock := newDocRepoMock(t)
+
+			mock.ExpectQuery(`SELECT dt.name, d.status, COUNT\(\*\) FROM documents d\s+JOIN document_types dt ON dt.id = d.document_type_id\s+WHERE d.created_at >= \$1 AND d.created_at < \$2\s+GROUP BY dt.name, d.status`).
+				WithArgs(from, to).
+				WillReturnRows(tc.rows)
+
+			got, err := repo.AggregateActivityByType(context.Background(), from, to)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("query error propagates wrapped", func(t *testing.T) {
+		repo, mock := newDocRepoMock(t)
+
+		mock.ExpectQuery(`SELECT dt.name, d.status, COUNT\(\*\) FROM documents`).
+			WithArgs(from, to).
+			WillReturnError(fmt.Errorf("conn refused"))
+
+		got, err := repo.AggregateActivityByType(context.Background(), from, to)
+		require.Error(t, err)
+		require.Nil(t, got)
+	})
+}

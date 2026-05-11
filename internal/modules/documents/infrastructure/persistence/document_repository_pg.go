@@ -1005,3 +1005,10 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 
 	return results, total, nil
 }
+
+// AggregateActivityByType counts documents per (document_type.name,
+// document.status) for documents whose created_at lies in the half-open
+// [from, to) range. Implementation deferred to GREEN.
+func (r *DocumentRepositoryPG) AggregateActivityByType(_ context.Context, _, _ time.Time) ([]repositories.DocumentActivityByTypeAgg, error) {
+	return nil, errors.New("documents: aggregate activity by type not implemented")
+}
