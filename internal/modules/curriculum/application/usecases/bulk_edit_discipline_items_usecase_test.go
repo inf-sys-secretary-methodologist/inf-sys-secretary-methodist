@@ -111,6 +111,10 @@ func (f *fakeBulkCurriculaRepo) AggregateByYearSpecialty(_ context.Context, _ in
 	return nil, errors.New("fake: AggregateByYearSpecialty not used by bulk-edit")
 }
 
+func (f *fakeBulkItemsRepo) AggregateHoursByYear(_ context.Context, _ int) ([]repositories.DisciplineItemHoursAgg, error) {
+	return nil, errors.New("fake: AggregateHoursByYear not used by bulk-edit")
+}
+
 // fakeBulkTx implements repositories.BulkDisciplineItemsTx. Tracks
 // commit/rollback calls so tests can assert tx lifecycle.
 type fakeBulkTx struct {

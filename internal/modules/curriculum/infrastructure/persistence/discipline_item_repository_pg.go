@@ -210,6 +210,13 @@ func (r *DisciplineItemRepositoryPG) Delete(ctx context.Context, id int64) error
 	return nil
 }
 
+// AggregateHoursByYear sums the four hours columns per curriculum for
+// curricula with year = year. Two-level JOIN traverses sections then
+// items. Implementation deferred to GREEN.
+func (r *DisciplineItemRepositoryPG) AggregateHoursByYear(_ context.Context, _ int) ([]repositories.DisciplineItemHoursAgg, error) {
+	return nil, errors.New("discipline_item: aggregate hours by year not implemented")
+}
+
 // bumpDisciplineItemVersion increments the version on the entity to
 // reflect the SQL UPDATE's `version = version + 1`. Same encapsulation
 // pattern as bumpSectionVersion (Reconstitute-based re-build).

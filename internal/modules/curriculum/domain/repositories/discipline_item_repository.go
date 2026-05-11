@@ -55,4 +55,22 @@ type DisciplineItemRepository interface {
 	// Delete removes the DisciplineItem row by id. Returns
 	// ErrDisciplineItemNotFound if no row was deleted.
 	Delete(ctx context.Context, id int64) error
+
+	// AggregateHoursByYear sums hours (lectures / practice / lab / self)
+	// across all discipline items belonging to curricula with
+	// curricula.year = year, grouped per curriculum. Empty result is
+	// not an error. Used by the annual report pipeline.
+	AggregateHoursByYear(ctx context.Context, year int) ([]DisciplineItemHoursAgg, error)
+}
+
+// DisciplineItemHoursAgg is a read-model row produced by
+// AggregateHoursByYear: per-curriculum totals of the four hours
+// columns. Consumed by the annual report pipeline. DTO only.
+type DisciplineItemHoursAgg struct {
+	CurriculumID    int64
+	CurriculumTitle string
+	Lectures        int
+	Practice        int
+	Lab             int
+	SelfStudy       int
 }

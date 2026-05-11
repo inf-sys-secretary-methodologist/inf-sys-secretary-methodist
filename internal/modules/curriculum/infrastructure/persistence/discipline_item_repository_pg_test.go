@@ -295,3 +295,66 @@ func TestDisciplineItemRepoPG_Delete_TransportError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "delete")
 }
+
+func TestDisciplineItemRepositoryPG_AggregateHoursByYear(t *testing.T) {
+	cases := []struct {
+		name string
+		year int
+		rows *sqlmock.Rows
+		want []repositories.DisciplineItemHoursAgg
+	}{
+		{
+			name: "no matching rows returns empty slice",
+			year: 2026,
+			rows: sqlmock.NewRows([]string{"id", "title", "lectures", "practice", "lab", "self_study"}),
+			want: nil,
+		},
+		{
+			name: "rows aggregated per curriculum",
+			year: 2026,
+			rows: sqlmock.NewRows([]string{"id", "title", "lectures", "practice", "lab", "self_study"}).
+				AddRow(int64(11), "ИВТ-2026", 64, 32, 16, 88).
+				AddRow(int64(12), "ПИ-2026", 48, 48, 0, 64),
+			want: []repositories.DisciplineItemHoursAgg{
+				{CurriculumID: 11, CurriculumTitle: "ИВТ-2026", Lectures: 64, Practice: 32, Lab: 16, SelfStudy: 88},
+				{CurriculumID: 12, CurriculumTitle: "ПИ-2026", Lectures: 48, Practice: 48, Lab: 0, SelfStudy: 64},
+			},
+		},
+		{
+			name: "single curriculum zero-hours row still present",
+			year: 2025,
+			rows: sqlmock.NewRows([]string{"id", "title", "lectures", "practice", "lab", "self_study"}).
+				AddRow(int64(7), "ИС-2025", 0, 0, 0, 0),
+			want: []repositories.DisciplineItemHoursAgg{
+				{CurriculumID: 7, CurriculumTitle: "ИС-2025", Lectures: 0, Practice: 0, Lab: 0, SelfStudy: 0},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, mock := newDisciplineItemRepoMock(t)
+
+			mock.ExpectQuery(`SELECT c.id, c.title,\s+COALESCE\(SUM\(ci.hours_lectures\), 0\).*FROM curricula c\s+LEFT JOIN curriculum_sections s ON s.curriculum_id = c.id\s+LEFT JOIN curriculum_section_items ci ON ci.section_id = s.id\s+WHERE c.year = \$1\s+GROUP BY c.id, c.title`).
+				WithArgs(tc.year).
+				WillReturnRows(tc.rows)
+
+			got, err := repo.AggregateHoursByYear(context.Background(), tc.year)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("query error propagates wrapped", func(t *testing.T) {
+		repo, mock := newDisciplineItemRepoMock(t)
+
+		mock.ExpectQuery(`SELECT c.id, c.title.*FROM curricula c`).
+			WithArgs(2026).
+			WillReturnError(fmt.Errorf("conn refused"))
+
+		got, err := repo.AggregateHoursByYear(context.Background(), 2026)
+		require.Error(t, err)
+		require.Nil(t, got)
+	})
+}
