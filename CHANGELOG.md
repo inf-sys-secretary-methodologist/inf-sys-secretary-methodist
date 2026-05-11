@@ -15,6 +15,74 @@
 
 ---
 
+## [0.131.1] — 2026-05-11
+
+### Added — Audit logs coverage gaps (Phase 5 #1, third slot)
+
+Third and final slot of the 3-release audit-logs initiative. The
+backend persistence (v0.130.0) and admin UI (v0.131.0) shipped against
+the existing emission call sites; v0.131.1 closes the two modules
+that emitted nothing — messaging mutations and 1C integration sync /
+conflict resolution — so the forensic timeline covers every operation
+that mutates state of record.
+
+#### Messaging emissions (5 mutating methods)
+
+- `CreateDirectConversation` / `CreateGroupConversation` → `conversation.created`
+- `UpdateConversation` → `conversation.updated`
+- `SendMessage` → `message.sent`
+- `DeleteMessage` → `message.deleted`
+
+New narrow port `AuditSink` + package-private `emitMessagingAudit`
+helper in `internal/modules/messaging/application/usecases/`
+(mirroring the assignments precedent). `WithAuditSink` chainable
+setter keeps the existing 6-positional constructor backwards-
+compatible with ~100 unit-test setups.
+
+Resource is split: `"conversation"` for create/update vs `"message"`
+for send/delete — the v0.131.0 read API filter can target either
+stream independently. Denial paths (existing direct shortcut /
+non-admin update / non-participant send / non-author delete) emit
+nothing — forensic false-positive guard.
+
+#### Integration emissions (sync + conflict)
+
+- `SyncUseCase.StartSync` → `integration.sync_started` then
+  `integration.sync_completed` or `integration.sync_failed` (lifecycle
+  invariant: every attempt leaves a trail even on early failure)
+- `SyncUseCase.CancelSync` → `integration.sync_canceled`
+- `ConflictUseCase.Resolve` → `integration.conflict_resolved`
+- `ConflictUseCase.BulkResolve` → `integration.conflict_bulk_resolved`
+  (one summary event with `conflict_count`, not one-per-item)
+
+`emitIntegrationAudit` helper accepts `actorID == 0` sentinel for
+cron-triggered sync (the platform AuditLogger still extracts
+actor_user_id from ctx into the typed column when middleware
+promoted it on the user-triggered path).
+
+`Module.WithAuditSink` chains the same sink into both use cases on
+the enable branch; `main.go` wires `auditLogger` directly.
+
+### TDD
+
+2 RED→GREEN pairs + 1 Tier 2 absorb + 1 release. 21 sub-cases total
+across both packages (11 messaging + 10 integration) — success +
+denial + nil-sink (backward-compat invariant). Reviewer round-1
+**SHIP mean 8.86 / min 8** (TDD 9 / DDD 9 / CA 9 / Security 8 /
+Testing 9 / Code Quality 9 / Cross-module 9). 3 Tier 2 absorbed
+same-release: defense-in-depth zero-actor guard in messaging helper
+(mirror integration), sync emit order swap (persist before emit so
+the audit row and sync_logs row stay in lockstep), cosmetic test
+rename.
+
+### Initiative status
+
+- v0.130.0 — backend persistence ✅
+- v0.131.0 — read API + admin UI ✅
+- **v0.131.1 — coverage gaps ✅ (this release; initiative closed)**
+
+---
+
 ## [0.131.0] — 2026-05-11
 
 ### Added — Audit logs read API + admin UI (Phase 5 #1, frontend)
