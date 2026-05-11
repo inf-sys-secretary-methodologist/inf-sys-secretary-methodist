@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // AuditLogRepositoryPG is the PostgreSQL adapter for AuditLogWriter.
@@ -64,6 +65,23 @@ func (r *AuditLogRepositoryPG) Write(ctx context.Context, log *AuditLog) error {
 	return nil
 }
 
+// auditLogListColumns is the projection used by List. Keeping it as
+// a package-level constant gives the matching test fixture a single
+// source of truth for row layout.
+const auditLogListColumns = `id, created_at, action, resource,
+	actor_user_id, actor_ip, correlation_id, fields`
+
+// auditLogListFilterClause gates each filter dimension on its own
+// sentinel-arg null-coalesce so the plan stays stable across filter
+// combinations. From/To form a half-open [from, to) range — adding a
+// "to" of 2026-05-02 with from 2026-05-01 yields exactly one day of
+// rows without double-counting midnight boundaries.
+const auditLogListFilterClause = `WHERE ($1 = '' OR action = $1)
+	AND ($2 = '' OR resource = $2)
+	AND ($3::bigint IS NULL OR actor_user_id = $3::bigint)
+	AND ($4::timestamptz IS NULL OR created_at >= $4::timestamptz)
+	AND ($5::timestamptz IS NULL OR created_at < $5::timestamptz)`
+
 // List returns a page of audit_logs rows matching the filter together
 // with the total number of matching rows (ignoring Limit/Offset). The
 // COUNT and SELECT queries share the same WHERE predicate so an empty
@@ -74,18 +92,89 @@ func (r *AuditLogRepositoryPG) Write(ctx context.Context, log *AuditLog) error {
 // dimension. Sentinel-arg style mirrors the project's List repos
 // (curriculum, etc.) — each predicate is gated by a null-coalesce
 // against the typed parameter so the query plan stays stable.
-//
-// Stub: behavior deferred to the matching GREEN commit. The signature
-// + return shape are declared here so the RED test file compiles
-// against the AuditLogReader port without breaking the package build.
 func (r *AuditLogRepositoryPG) List(ctx context.Context, filter AuditLogFilter) (AuditLogListResult, error) {
-	_ = ctx
-	_ = filter
-	return AuditLogListResult{}, errAuditLogListNotImplemented
-}
+	var userArg sql.NullInt64
+	if filter.UserID != nil {
+		userArg = sql.NullInt64{Int64: *filter.UserID, Valid: true}
+	}
+	var fromArg sql.NullTime
+	if filter.From != nil {
+		fromArg = sql.NullTime{Time: *filter.From, Valid: true}
+	}
+	var toArg sql.NullTime
+	if filter.To != nil {
+		toArg = sql.NullTime{Time: *filter.To, Valid: true}
+	}
 
-// errAuditLogListNotImplemented marks the RED stub so the upcoming
-// GREEN commit replaces both the body and removes this sentinel. Not
-// exported — never crosses the package boundary; tests assert against
-// the error message in the RED commit only.
-var errAuditLogListNotImplemented = fmt.Errorf("audit_logs: list: not implemented")
+	countQuery := `SELECT COUNT(*) FROM audit_logs ` + auditLogListFilterClause
+	var total int
+	if err := r.db.QueryRowContext(ctx, countQuery,
+		filter.Action, filter.Resource, userArg, fromArg, toArg,
+	).Scan(&total); err != nil {
+		return AuditLogListResult{}, fmt.Errorf("audit_logs: count: %w", err)
+	}
+
+	listQuery := `SELECT ` + auditLogListColumns + ` FROM audit_logs ` + auditLogListFilterClause + `
+		ORDER BY created_at DESC, id DESC
+		LIMIT $6 OFFSET $7`
+
+	rows, err := r.db.QueryContext(ctx, listQuery,
+		filter.Action, filter.Resource, userArg, fromArg, toArg,
+		filter.Limit, filter.Offset,
+	)
+	if err != nil {
+		return AuditLogListResult{}, fmt.Errorf("audit_logs: list: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var items []*AuditLog
+	for rows.Next() {
+		var (
+			id            int64
+			createdAt     time.Time
+			action        string
+			resource      string
+			actorUserID   sql.NullInt64
+			actorIP       sql.NullString
+			correlationID sql.NullString
+			fieldsRaw     []byte
+		)
+		if err := rows.Scan(&id, &createdAt, &action, &resource,
+			&actorUserID, &actorIP, &correlationID, &fieldsRaw); err != nil {
+			return AuditLogListResult{}, fmt.Errorf("audit_logs: list scan: %w", err)
+		}
+
+		fields := map[string]any{}
+		if len(fieldsRaw) > 0 {
+			if err := json.Unmarshal(fieldsRaw, &fields); err != nil {
+				return AuditLogListResult{}, fmt.Errorf("audit_logs: list unmarshal fields: %w", err)
+			}
+		}
+
+		log := &AuditLog{
+			ID:        id,
+			CreatedAt: createdAt,
+			Action:    action,
+			Resource:  resource,
+			Fields:    fields,
+		}
+		if actorUserID.Valid {
+			v := actorUserID.Int64
+			log.ActorUserID = &v
+		}
+		if actorIP.Valid {
+			v := actorIP.String
+			log.ActorIP = &v
+		}
+		if correlationID.Valid {
+			v := correlationID.String
+			log.CorrelationID = &v
+		}
+		items = append(items, log)
+	}
+	if err := rows.Err(); err != nil {
+		return AuditLogListResult{}, fmt.Errorf("audit_logs: list iter: %w", err)
+	}
+
+	return AuditLogListResult{Items: items, Total: total}, nil
+}
