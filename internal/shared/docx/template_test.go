@@ -47,7 +47,7 @@ func extractEntry(t *testing.T, docxBytes []byte, entryName string) string {
 		if err != nil {
 			t.Fatalf("open entry %s: %v", entryName, err)
 		}
-		defer rc.Close()
+		defer func() { _ = rc.Close() }()
 		b, err := io.ReadAll(rc)
 		if err != nil {
 			t.Fatalf("read entry %s: %v", entryName, err)

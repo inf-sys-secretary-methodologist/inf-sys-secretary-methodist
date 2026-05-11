@@ -28,7 +28,7 @@ func readDocumentXML(t *testing.T, docxBytes []byte) string {
 		}
 		rc, err := f.Open()
 		require.NoError(t, err)
-		defer rc.Close()
+		defer func() { _ = rc.Close() }()
 		b, err := io.ReadAll(rc)
 		require.NoError(t, err)
 		return string(b)
