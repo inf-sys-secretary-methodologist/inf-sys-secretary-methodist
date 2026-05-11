@@ -26,6 +26,20 @@ type SyncUseCase struct {
 	logger       *slog.Logger
 	mu           sync.Mutex
 	running      map[entities.SyncEntityType]bool
+	auditSink    AuditSink
+}
+
+// WithAuditSink wires the AuditSink port for forensic emissions on
+// sync lifecycle events (started / completed / failed / canceled).
+// Chainable so wiring stays one line in main.go. Nil sink (the
+// default) is a no-op — backward-compatible with existing test setups.
+//
+// Stub: behavior deferred to GREEN; setter shape declared so the
+// RED test file compiles against the public surface.
+func (uc *SyncUseCase) WithAuditSink(sink AuditSink) *SyncUseCase {
+	uc.auditSink = sink
+	_ = emitIntegrationAudit
+	return uc
 }
 
 // NewSyncUseCase creates a new sync use case

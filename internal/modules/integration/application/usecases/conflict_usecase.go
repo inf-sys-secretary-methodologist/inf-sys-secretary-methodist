@@ -12,6 +12,7 @@ import (
 // ConflictUseCase handles sync conflict operations
 type ConflictUseCase struct {
 	conflictRepo repositories.SyncConflictRepository
+	auditSink    AuditSink
 }
 
 // NewConflictUseCase creates a new conflict use case
@@ -19,6 +20,16 @@ func NewConflictUseCase(conflictRepo repositories.SyncConflictRepository) *Confl
 	return &ConflictUseCase{
 		conflictRepo: conflictRepo,
 	}
+}
+
+// WithAuditSink wires the AuditSink port for forensic emissions on
+// conflict-resolution decisions (resolved / bulk_resolved). Chainable
+// so wiring stays one line. Nil sink (the default) is a no-op.
+//
+// Stub: behavior deferred to GREEN.
+func (uc *ConflictUseCase) WithAuditSink(sink AuditSink) *ConflictUseCase {
+	uc.auditSink = sink
+	return uc
 }
 
 // List retrieves conflicts with filtering
