@@ -8,10 +8,15 @@ import (
 )
 
 // AuditLogRepositoryPG is the PostgreSQL adapter for AuditLogWriter.
-// Holds its own *sql.DB handle so writes happen on an independent
-// connection — never inside a business transaction (ADR-2). This is
-// what guarantees that denied/failed business operations still record
-// an audit row: their tx rolls back, the audit INSERT does not.
+// Calls db.ExecContext directly — never via *sql.Tx — so writes happen
+// independently of any business transaction (ADR-2). This is what
+// guarantees that denied/failed business operations still record an
+// audit row: their tx rolls back, the audit INSERT does not.
+//
+// The *sql.DB handle is the singleton pool shared with every other
+// repository; "independent" here refers to the transaction boundary,
+// not the connection pool. Postgres leases a fresh pooled connection
+// for every ExecContext outside a tx.
 type AuditLogRepositoryPG struct {
 	db *sql.DB
 }
@@ -26,8 +31,18 @@ func NewAuditLogRepositoryPG(db *sql.DB) *AuditLogRepositoryPG {
 // the server (ADR-4); whatever the caller put in log.CreatedAt is
 // ignored on the write path (relevant only when AuditLog is later read
 // back from the database).
+//
+// A nil Fields map is normalized to an empty map so the JSONB column
+// receives the literal {} rather than null — caller-side guards in
+// AuditLogger already cover this path, the writer-side normalization
+// is defense-in-depth for direct callers (e.g., the v0.131.0 read API
+// reseed path if one is ever wired).
 func (r *AuditLogRepositoryPG) Write(ctx context.Context, log *AuditLog) error {
-	fieldsJSON, err := json.Marshal(log.Fields)
+	fields := log.Fields
+	if fields == nil {
+		fields = map[string]any{}
+	}
+	fieldsJSON, err := json.Marshal(fields)
 	if err != nil {
 		return fmt.Errorf("audit_logs: marshal fields: %w", err)
 	}

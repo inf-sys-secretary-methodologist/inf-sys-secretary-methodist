@@ -6,8 +6,9 @@
 -- Prior to migration 036 the AuditLogger (internal/shared/infrastructure/
 -- logging) emitted events only as structured stdout logs; this migration
 -- adds the persistent table that the same logger now writes to in
--- addition (ADR-2 sync write, separate connection — independent of any
--- business transaction so failed/denied business ops still get audited).
+-- addition (ADR-2 sync write — independent of any business transaction
+-- so failed/denied business ops still get audited; the writer calls
+-- db.ExecContext directly, never via *sql.Tx).
 --
 -- ADR-3: a failed INSERT INTO audit_logs is logged and NOT propagated —
 -- audit emit must never break a business operation.
@@ -33,7 +34,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     CONSTRAINT chk_audit_logs_resource_nonempty CHECK (length(resource) > 0)
 );
 
--- ADR-5 indexes — DESC on created_at optimises the dominant frontend
+-- ADR-5 indexes — DESC on created_at optimizes the dominant frontend
 -- query (recent events first); partial index on actor_user_id skips the
 -- bulk of rows when actor is unknown (system-emitted events).
 
