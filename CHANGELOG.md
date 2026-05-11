@@ -15,6 +15,73 @@
 
 ---
 
+## [0.131.0] — 2026-05-11
+
+### Added — Audit logs read API + admin UI (Phase 5 #1, frontend)
+
+Second of the 3-release audit-logs initiative — backend persistence
+shipped in v0.130.0, this release adds the read-side admin surface so
+a `system_admin` can inspect events through the web UI.
+
+#### Backend
+
+- `GET /api/admin/audit-logs?action=&resource=&user_id=&from=&to=&limit=&offset=`
+  under the existing `adminGroup` route guard (`RequireRole(system_admin)`).
+  Returns `response.List` shape with `data: AuditLog[]` and
+  `meta.pagination: {page, per_page, total, total_pages}`.
+- `AuditLogRepositoryPG.List(ctx, filter)` — sentinel-arg WHERE clause
+  mirrors the curriculum/section list pattern. COUNT and SELECT share
+  the same predicate so pagination stays correct past the result tail.
+  ORDER BY `created_at DESC, id DESC` pairs with the existing
+  `idx_audit_logs_created_at` index. Half-open `[from, to)` range on
+  `created_at` so daily buckets do not double-count midnight rows.
+- `AuditLogReader`, `AuditLogFilter`, `AuditLogListResult` ports
+  declared alongside the existing `AuditLogWriter` in
+  `internal/shared/infrastructure/logging/audit_log.go` (shared
+  infrastructure DTO, not a bounded-context entity).
+- `internal/shared/admin/auditlog/` — new shared subpackage for
+  cross-cutting admin features (audit-log, backup/restore in the
+  future); houses the thin use case (clamp Default=50/Max=200,
+  validate half-open time range with `ErrInvalidTimeRange` sentinel)
+  and HTTP handler (parse query, map to `response.List`, 400 on
+  parse error, generic 500 on reader error). Shared `ClampLimit`
+  helper keeps the use case and handler in sync.
+
+#### Frontend
+
+- `/admin/audit-logs` page — filter bar (action / resource / actor
+  user_id / RFC3339 datetime-local `from` + `to` / reset) + table
+  (timestamp / action / resource / actor / IP / correlation / expandable
+  JSON fields) + pagination (prev disabled at offset=0, next disabled
+  when page ≥ total_pages).
+- `useAuditLogs` SWR hook with `enabled` short-circuit and lifted
+  pagination meta on the result so consumers do not traverse the
+  envelope past the hook boundary.
+- `types/audit.ts` matching backend `LogResponse` shape; nullable
+  cells expressed as `T | null` rather than missing keys.
+- Nav entry under `adminGroup` (FileText icon, `system_admin`
+  allowlist).
+- i18n × 4 (ru / en / fr / ar) — `nav.auditLogs` + `adminAuditLogs.*`
+  (~23 keys × 4 = 92 entries). JSON-load parity test reads raw
+  message files (not the `useTranslations` mock) so a missing key in
+  any locale fails the build.
+
+### Reviewer round
+
+Round-1 SHIP **mean 9.0 / min 8.5** (TDD 9 / DDD 9 / CA 9 / Security 9
+/ Testing 9 / Code Quality 8.5 / i18n 9.5). 2 Tier 2 absorbed in the
+release: `ClampLimit` helper to remove handler/use-case clamp drift,
+and removal of dead `filters.limit` + `filters.apply` i18n keys (×4
+locales = 8 lines).
+
+### Initiative status
+
+- v0.130.0 — backend persistence ✅
+- **v0.131.0 — read API + admin UI ✅ (this release)**
+- v0.131.1 — coverage gaps (messaging + integration 1C sync) — next
+
+---
+
 ## [0.130.0] — 2026-05-11
 
 ### Added — Audit logs persistence (Phase 5 #1, backend)
