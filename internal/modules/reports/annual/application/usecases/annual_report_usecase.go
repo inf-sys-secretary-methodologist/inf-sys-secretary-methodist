@@ -2,7 +2,7 @@ package usecases
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
 	assignmentRepos "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
@@ -97,8 +97,44 @@ func NewAnnualReportUseCase(
 	}
 }
 
-// Generate runs the orchestration. Returns DOCX bytes ready to stream
-// to client. Implementation deferred to GREEN.
-func (uc *AnnualReportUseCase) Generate(_ context.Context, _ GenerateAnnualReportInput) ([]byte, error) {
-	return nil, errors.New("annual_report: generate not implemented")
+// Generate runs the orchestration: 4 aggregate fetches → DOCX render →
+// audit emit. The audit emit is best-effort and only fires after
+// rendering succeeds (forensic trail tracks completed generations only).
+// Time window is half-open [Y-01-01, (Y+1)-01-01) UTC per ADR-4.
+func (uc *AnnualReportUseCase) Generate(ctx context.Context, in GenerateAnnualReportInput) ([]byte, error) {
+	from := time.Date(in.Year, 1, 1, 0, 0, 0, 0, time.UTC)
+	to := time.Date(in.Year+1, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	curricula, err := uc.curriculumRepo.AggregateByYearSpecialty(ctx, in.Year)
+	if err != nil {
+		return nil, fmt.Errorf("annual_report: curricula aggregate: %w", err)
+	}
+
+	grades, err := uc.assignmentRepo.AggregateGradeDistribution(ctx, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("annual_report: grades aggregate: %w", err)
+	}
+
+	hours, err := uc.itemRepo.AggregateHoursByYear(ctx, in.Year)
+	if err != nil {
+		return nil, fmt.Errorf("annual_report: hours aggregate: %w", err)
+	}
+
+	activity, err := uc.documentRepo.AggregateActivityByType(ctx, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("annual_report: documents activity aggregate: %w", err)
+	}
+
+	bytes, err := uc.renderer.RenderAnnualReport(in.Year, curricula, grades, hours, activity)
+	if err != nil {
+		return nil, fmt.Errorf("annual_report: render: %w", err)
+	}
+
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "report.annual_generated", "report", map[string]any{
+			"year":          in.Year,
+			"actor_user_id": in.ActorID,
+		})
+	}
+	return bytes, nil
 }
