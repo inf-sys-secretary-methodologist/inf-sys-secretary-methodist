@@ -3,9 +3,15 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 )
+
+// ErrInvalidOrderBy is returned when DocumentFilter.OrderBy does not match
+// the whitelist of safe ORDER BY clauses accepted by the repository.
+// Guards SQL injection through the ORDER BY interpolation surface.
+var ErrInvalidOrderBy = errors.New("invalid order_by clause")
 
 // DocumentRepository defines the interface for document persistence
 type DocumentRepository interface {

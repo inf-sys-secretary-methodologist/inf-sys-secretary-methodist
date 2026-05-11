@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"testing"
@@ -260,6 +261,33 @@ func TestDocumentRepositoryPG_List_QueryError(t *testing.T) {
 	mock.ExpectQuery("SELECT d.id").WillReturnError(fmt.Errorf("query error"))
 	_, _, err := repo.List(context.Background(), repositories.DocumentFilter{Limit: 10})
 	assert.Contains(t, err.Error(), "failed to list documents")
+}
+
+func TestDocumentRepositoryPG_List_RejectsInjectionInOrderBy(t *testing.T) {
+	cases := []struct {
+		name    string
+		orderBy string
+	}{
+		{"semicolon_drop", "1; DROP TABLE documents"},
+		{"case_blind_subselect", "(CASE WHEN 1=1 THEN id ELSE 1 END)"},
+		{"raw_ddl", "DROP TABLE documents"},
+		{"comment_terminator", "id--"},
+		{"unknown_column", "password ASC"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, _ := newDocRepoMock(t)
+
+			_, _, err := repo.List(context.Background(), repositories.DocumentFilter{
+				Limit:   10,
+				OrderBy: tc.orderBy,
+			})
+			require.Error(t, err)
+			require.True(t, errors.Is(err, repositories.ErrInvalidOrderBy),
+				"expected ErrInvalidOrderBy, got: %v", err)
+		})
+	}
 }
 
 func TestDocumentRepositoryPG_GetByAuthorID(t *testing.T) {
