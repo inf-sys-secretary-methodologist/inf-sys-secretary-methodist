@@ -197,14 +197,17 @@ func NewAuditLogger(logger *Logger) *AuditLogger {
 // LogAuditEvent persists to audit_logs in addition to the structured
 // stdout emit. Returns the receiver so callers can chain
 // NewAuditLogger(l).WithRepository(repo) at DI time.
-//
-// Stub: persistence call wired in Pair 2 GREEN.
 func (al *AuditLogger) WithRepository(writer AuditLogWriter) *AuditLogger {
 	al.writer = writer
 	return al
 }
 
-// LogAuditEvent logs an audit event
+// LogAuditEvent emits an audit event to the structured log and, if a
+// repository was attached via WithRepository, also persists it to the
+// audit_logs table. Per ADR-3 a writer failure does NOT propagate to
+// the caller — the original structured log line is still emitted, plus
+// a separate error-level log line records the persist failure for
+// post-mortem.
 func (al *AuditLogger) LogAuditEvent(ctx context.Context, action string, resource string, fields map[string]interface{}) {
 	enrichedFields := map[string]interface{}{
 		"action":    action,
@@ -230,6 +233,75 @@ func (al *AuditLogger) LogAuditEvent(ctx context.Context, action string, resourc
 	}
 
 	al.logger.Info("Audit event", enrichedFields)
+
+	if al.writer != nil {
+		al.persist(ctx, action, resource, fields)
+	}
+}
+
+// persist builds the AuditLog row from ctx + caller args and writes it.
+// Failure is captured and logged at error level — never propagated to
+// the caller (ADR-3 fire-and-forget). Keeping this off the hot path of
+// LogAuditEvent body keeps the structured-log emission, which is the
+// most important forensic record, ahead of any DB latency.
+func (al *AuditLogger) persist(ctx context.Context, action, resource string, fields map[string]interface{}) {
+	rowFields := fields
+	if rowFields == nil {
+		rowFields = map[string]interface{}{}
+	}
+	row := &AuditLog{
+		Action:        action,
+		Resource:      resource,
+		ActorUserID:   extractActorUserID(ctx),
+		ActorIP:       extractActorIP(ctx),
+		CorrelationID: extractCorrelationID(ctx),
+		Fields:        rowFields,
+	}
+	if err := al.writer.Write(ctx, row); err != nil {
+		al.logger.Error("Audit event persistence failed", map[string]interface{}{
+			"action":   action,
+			"resource": resource,
+			"cause":    err.Error(),
+		})
+	}
+}
+
+// extractActorUserID pulls user_id from context. Supports int64 directly
+// or any integer type assignable to int64 via a type switch; otherwise
+// nil so the row writes SQL NULL.
+func extractActorUserID(ctx context.Context) *int64 {
+	v := ctx.Value(ContextKeyUserID)
+	if v == nil {
+		return nil
+	}
+	if id, ok := v.(int64); ok {
+		return &id
+	}
+	return nil
+}
+
+// extractActorIP pulls the source IP from context as a string.
+func extractActorIP(ctx context.Context) *string {
+	v := ctx.Value(ContextKeyIPAddress)
+	if v == nil {
+		return nil
+	}
+	if ip, ok := v.(string); ok && ip != "" {
+		return &ip
+	}
+	return nil
+}
+
+// extractCorrelationID pulls the request correlation id from context.
+func extractCorrelationID(ctx context.Context) *string {
+	v := ctx.Value(ContextKeyCorrelationID)
+	if v == nil {
+		return nil
+	}
+	if id, ok := v.(string); ok && id != "" {
+		return &id
+	}
+	return nil
 }
 
 // PerformanceLogger logs performance metrics

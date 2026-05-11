@@ -263,6 +263,15 @@ func main() {
 		"max_idle_conns": cfg.Database.MaxIdleConns,
 	})
 
+	// Wire audit_logs persistence (v0.130.0). AuditLogger continues to
+	// emit structured stdout events for every LogAuditEvent call; with
+	// the repository attached it ALSO inserts a row into audit_logs on
+	// its own *sql.DB handle — independent of any business transaction
+	// per plan ADR-2, so failed/denied business ops still get audited.
+	// Write failure is logged at error level and not propagated to the
+	// caller per ADR-3.
+	auditLogger = auditLogger.WithRepository(logging.NewAuditLogRepositoryPG(db))
+
 	// Initialize n8n webhook client for workflow automation
 	n8nClient := n8ninfra.NewClient(n8ninfra.Config{
 		WebhookURL: cfg.N8N.WebhookURL,
