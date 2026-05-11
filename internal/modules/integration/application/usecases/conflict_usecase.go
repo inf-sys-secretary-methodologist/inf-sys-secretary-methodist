@@ -132,6 +132,11 @@ func (uc *ConflictUseCase) Resolve(ctx context.Context, id int64, userID int64, 
 		}
 	}
 
+	emitIntegrationAudit(uc.auditSink, ctx, userID, "integration.conflict_resolved", "integration_conflict", map[string]any{
+		"conflict_id": id,
+		"resolution":  string(req.Resolution),
+	})
+
 	return nil
 }
 
@@ -144,6 +149,11 @@ func (uc *ConflictUseCase) BulkResolve(ctx context.Context, userID int64, req *d
 	if err := uc.conflictRepo.BulkResolve(ctx, req.IDs, req.Resolution, userID); err != nil {
 		return fmt.Errorf("failed to bulk resolve conflicts: %w", err)
 	}
+
+	emitIntegrationAudit(uc.auditSink, ctx, userID, "integration.conflict_bulk_resolved", "integration_conflict", map[string]any{
+		"conflict_count": len(req.IDs),
+		"resolution":     string(req.Resolution),
+	})
 
 	return nil
 }

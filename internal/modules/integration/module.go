@@ -248,6 +248,21 @@ func (m *Module) runStudentSync(ctx context.Context) {
 	})
 }
 
+// WithAuditSink wires the AuditSink port on both SyncUseCase and
+// ConflictUseCase so the v0.131.1 audit-log coverage gap closes
+// (1C reconciliation outcomes + conflict-resolution decisions are
+// forensic-critical). No-op when the module is disabled (use cases
+// are not constructed in that branch).
+func (m *Module) WithAuditSink(sink usecases.AuditSink) *Module {
+	if m.syncUseCase != nil {
+		m.syncUseCase.WithAuditSink(sink)
+	}
+	if m.conflictUseCase != nil {
+		m.conflictUseCase.WithAuditSink(sink)
+	}
+	return m
+}
+
 // IsEnabled returns whether the module is enabled
 func (m *Module) IsEnabled() bool {
 	return m.config.Enabled

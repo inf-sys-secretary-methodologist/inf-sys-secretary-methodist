@@ -811,6 +811,7 @@ func main() {
 			errorKey: err.Error(),
 		})
 	} else if integrationModule.IsEnabled() {
+		integrationModule.WithAuditSink(auditLogger)
 		// Register routes under protected API group with admin guard.
 		// Only system_admin role may invoke 1C sync, browse external entities
 		// or resolve conflicts — see AUDIT_REPORT critical item #3.

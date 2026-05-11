@@ -33,12 +33,8 @@ type SyncUseCase struct {
 // sync lifecycle events (started / completed / failed / canceled).
 // Chainable so wiring stays one line in main.go. Nil sink (the
 // default) is a no-op — backward-compatible with existing test setups.
-//
-// Stub: behavior deferred to GREEN; setter shape declared so the
-// RED test file compiles against the public surface.
 func (uc *SyncUseCase) WithAuditSink(sink AuditSink) *SyncUseCase {
 	uc.auditSink = sink
-	_ = emitIntegrationAudit
 	return uc
 }
 
@@ -92,6 +88,12 @@ func (uc *SyncUseCase) StartSync(ctx context.Context, req *dto.StartSyncRequest)
 		slog.String("entity_type", string(req.EntityType)),
 		slog.String("direction", string(req.Direction)))
 
+	emitIntegrationAudit(uc.auditSink, ctx, 0, "integration.sync_started", "integration_sync", map[string]any{
+		"sync_log_id": syncLog.ID,
+		"entity_type": string(req.EntityType),
+		"direction":   string(req.Direction),
+	})
+
 	var result *dto.SyncResultDTO
 	var err error
 
@@ -110,6 +112,11 @@ func (uc *SyncUseCase) StartSync(ctx context.Context, req *dto.StartSyncRequest)
 		uc.logger.Error("Sync failed",
 			slog.Int64("sync_log_id", syncLog.ID),
 			slog.String("error", err.Error()))
+		emitIntegrationAudit(uc.auditSink, ctx, 0, "integration.sync_failed", "integration_sync", map[string]any{
+			"sync_log_id": syncLog.ID,
+			"entity_type": string(req.EntityType),
+			"error":       err.Error(),
+		})
 	} else {
 		syncLog.Complete()
 		uc.logger.Info("Sync completed",
@@ -118,6 +125,14 @@ func (uc *SyncUseCase) StartSync(ctx context.Context, req *dto.StartSyncRequest)
 			slog.Int("success", syncLog.SuccessCount),
 			slog.Int("errors", syncLog.ErrorCount),
 			slog.Int("conflicts", syncLog.ConflictCount))
+		emitIntegrationAudit(uc.auditSink, ctx, 0, "integration.sync_completed", "integration_sync", map[string]any{
+			"sync_log_id":    syncLog.ID,
+			"entity_type":    string(req.EntityType),
+			"total_records":  syncLog.TotalRecords,
+			"success_count":  syncLog.SuccessCount,
+			"error_count":    syncLog.ErrorCount,
+			"conflict_count": syncLog.ConflictCount,
+		})
 	}
 
 	if updateErr := uc.syncLogRepo.Update(ctx, syncLog); updateErr != nil {
@@ -485,6 +500,11 @@ func (uc *SyncUseCase) CancelSync(ctx context.Context, syncLogID int64) error {
 	if err := uc.syncLogRepo.Update(ctx, log); err != nil {
 		return fmt.Errorf("failed to update sync log: %w", err)
 	}
+
+	emitIntegrationAudit(uc.auditSink, ctx, 0, "integration.sync_canceled", "integration_sync", map[string]any{
+		"sync_log_id": log.ID,
+		"entity_type": string(log.EntityType),
+	})
 
 	return nil
 }
