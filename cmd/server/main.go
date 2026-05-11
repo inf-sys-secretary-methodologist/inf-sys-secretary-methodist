@@ -670,7 +670,8 @@ func main() {
 	go messagingHub.Run() // Start WebSocket hub in background
 	// Create message notifier for sending notifications about new messages
 	messageNotifier := messagingServices.NewNotificationNotifier(notificationUseCase)
-	messagingUseCase := messagingUsecases.NewMessagingUseCase(conversationRepo, messageRepo, messagingHub, logger, messageNotifier, s3Client)
+	messagingUseCase := messagingUsecases.NewMessagingUseCase(conversationRepo, messageRepo, messagingHub, logger, messageNotifier, s3Client).
+		WithAuditSink(auditLogger)
 	logger.Info("Messaging module initialized", nil)
 
 	// Initialize files module

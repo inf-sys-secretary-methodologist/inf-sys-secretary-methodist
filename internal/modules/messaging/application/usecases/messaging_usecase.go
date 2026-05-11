@@ -68,12 +68,8 @@ func NewMessagingUseCase(
 // DeleteMessage). Chainable so wiring stays one line in main.go.
 // Nil sink (the default) is a no-op — backward-compatible with
 // existing test setups.
-//
-// Stub: behavior deferred to the matching GREEN commit. Setter
-// shape declared so the RED test compiles.
 func (uc *MessagingUseCase) WithAuditSink(sink AuditSink) *MessagingUseCase {
 	uc.auditSink = sink
-	_ = emitMessagingAudit // referenced in GREEN; keeps the helper linker-happy in RED
 	return uc
 }
 
@@ -126,6 +122,12 @@ func (uc *MessagingUseCase) CreateDirectConversation(ctx context.Context, creato
 		"recipient_id":    input.RecipientID,
 	})
 
+	emitMessagingAudit(uc.auditSink, ctx, creatorID, "conversation.created", "conversation", map[string]any{
+		"conversation_id": conv.ID,
+		"type":            "direct",
+		"recipient_id":    input.RecipientID,
+	})
+
 	return conv, nil
 }
 
@@ -152,6 +154,12 @@ func (uc *MessagingUseCase) CreateGroupConversation(ctx context.Context, creator
 	uc.logger.Info("group conversation created", map[string]interface{}{
 		"conversation_id":    conv.ID,
 		"creator_id":         creatorID,
+		"participants_count": len(conv.Participants),
+	})
+
+	emitMessagingAudit(uc.auditSink, ctx, creatorID, "conversation.created", "conversation", map[string]any{
+		"conversation_id":    conv.ID,
+		"type":               "group",
 		"participants_count": len(conv.Participants),
 	})
 
@@ -269,6 +277,10 @@ func (uc *MessagingUseCase) UpdateConversation(ctx context.Context, userID, conv
 	if err := uc.conversationRepo.Update(ctx, conv); err != nil {
 		return nil, fmt.Errorf("failed to update conversation: %w", err)
 	}
+
+	emitMessagingAudit(uc.auditSink, ctx, userID, "conversation.updated", "conversation", map[string]any{
+		"conversation_id": conversationID,
+	})
 
 	// Broadcast update to all participants
 	uc.hub.BroadcastToConversation(conversationID, &websocket.Event{
@@ -392,6 +404,11 @@ func (uc *MessagingUseCase) SendMessage(ctx context.Context, userID, conversatio
 	if err := uc.messageRepo.Create(ctx, msg); err != nil {
 		return nil, fmt.Errorf("failed to create message: %w", err)
 	}
+
+	emitMessagingAudit(uc.auditSink, ctx, userID, "message.sent", "message", map[string]any{
+		"message_id":      msg.ID,
+		"conversation_id": conversationID,
+	})
 
 	// Create attachments if provided
 	if len(input.Attachments) > 0 {
@@ -594,6 +611,11 @@ func (uc *MessagingUseCase) DeleteMessage(ctx context.Context, userID, messageID
 	if err := uc.messageRepo.Update(ctx, msg); err != nil {
 		return fmt.Errorf("failed to delete message: %w", err)
 	}
+
+	emitMessagingAudit(uc.auditSink, ctx, userID, "message.deleted", "message", map[string]any{
+		"message_id":      messageID,
+		"conversation_id": msg.ConversationID,
+	})
 
 	// Broadcast deletion
 	uc.hub.BroadcastToConversation(msg.ConversationID, &websocket.Event{
