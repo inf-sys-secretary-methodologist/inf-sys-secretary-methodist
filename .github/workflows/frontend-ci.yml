@@ -11,6 +11,13 @@ on:
     paths:
       - 'frontend/**'
 
+# Minimal GITHUB_TOKEN scope: jobs only checkout + build + run lint/tests/
+# audit + upload artifacts (workflow-scoped, no extra token perm needed) +
+# codecov upload (CODECOV_TOKEN secret). Closes CodeQL
+# actions/missing-workflow-permissions.
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint & Format Check

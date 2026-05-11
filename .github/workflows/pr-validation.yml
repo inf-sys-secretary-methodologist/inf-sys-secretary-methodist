@@ -5,6 +5,13 @@ on:
     types: [opened, edited, synchronize, reopened]
     branches: [ main, develop ]
 
+# Minimal GITHUB_TOKEN scope: jobs only read PR metadata + checkout repo
+# (amannn/action-semantic-pull-request + actions/github-script reads).
+# Closes CodeQL actions/missing-workflow-permissions.
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   # Validate PR title and branch name.
   # Dependabot is exempt — its branch names follow `dependabot/{ecosystem}/{path}/{dep}-{ver}`

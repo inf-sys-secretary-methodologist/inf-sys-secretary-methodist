@@ -22,6 +22,12 @@ on:
       - '.github/golangci.yml'
       - '.github/workflows/backend-ci.yml'
 
+# Minimal GITHUB_TOKEN scope: jobs only checkout + build + run lint/tests +
+# upload coverage to codecov (uses CODECOV_TOKEN secret, not GITHUB_TOKEN).
+# Closes CodeQL actions/missing-workflow-permissions.
+permissions:
+  contents: read
+
 env:
   GO_VERSION: '1.25'
   # Pinned to a specific version: 'latest' makes CI non-deterministic,

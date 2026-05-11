@@ -15,6 +15,12 @@ on:
       - 'migrations/**'
       - 'docker-compose.yml'
 
+# Minimal GITHUB_TOKEN scope: jobs run integration tests against a service
+# container — no GitHub API writes. Closes CodeQL
+# actions/missing-workflow-permissions.
+permissions:
+  contents: read
+
 env:
   GO_VERSION: '1.25'
   POSTGRES_VERSION: '15'

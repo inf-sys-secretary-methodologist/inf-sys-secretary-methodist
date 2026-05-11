@@ -19,6 +19,12 @@ on:
       - '.env.example'
       - 'internal/shared/infrastructure/config/**'
 
+# Minimal GITHUB_TOKEN scope: jobs only run markdown-lint / link-check /
+# env-sync verification — read-only. Closes CodeQL
+# actions/missing-workflow-permissions.
+permissions:
+  contents: read
+
 jobs:
   # Validate Markdown files
   markdown-lint:
