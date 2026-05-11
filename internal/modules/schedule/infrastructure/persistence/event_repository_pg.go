@@ -189,8 +189,29 @@ func (r *EventRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.Ev
 	return event, nil
 }
 
+// validEventOrderBy enumerates the ORDER BY clauses accepted by EventRepositoryPG.List.
+// Whitelisting closes the SQL injection surface where filter.OrderBy reaches
+// fmt.Sprintf as raw string. Empty value falls back to the default applied below.
+var validEventOrderBy = map[string]struct{}{
+	"":                {},
+	"start_time ASC":  {},
+	"start_time DESC": {},
+	"end_time ASC":    {},
+	"end_time DESC":   {},
+	"title ASC":       {},
+	"title DESC":      {},
+	"created_at ASC":  {},
+	"created_at DESC": {},
+	"updated_at ASC":  {},
+	"updated_at DESC": {},
+}
+
 // List retrieves events with filtering and pagination
 func (r *EventRepositoryPG) List(ctx context.Context, filter repositories.EventFilter) ([]*entities.Event, int64, error) {
+	if _, ok := validEventOrderBy[filter.OrderBy]; !ok {
+		return nil, 0, repositories.ErrInvalidOrderBy
+	}
+
 	var conditions []string
 	var args []interface{}
 	argNum := 1
