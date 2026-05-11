@@ -63,3 +63,29 @@ func (r *AuditLogRepositoryPG) Write(ctx context.Context, log *AuditLog) error {
 	}
 	return nil
 }
+
+// List returns a page of audit_logs rows matching the filter together
+// with the total number of matching rows (ignoring Limit/Offset). The
+// COUNT and SELECT queries share the same WHERE predicate so an empty
+// page past the result-set tail still reports the correct dataset
+// size for pagination.
+//
+// Filter dimensions are independent: zero-valued fields disable that
+// dimension. Sentinel-arg style mirrors the project's List repos
+// (curriculum, etc.) — each predicate is gated by a null-coalesce
+// against the typed parameter so the query plan stays stable.
+//
+// Stub: behavior deferred to the matching GREEN commit. The signature
+// + return shape are declared here so the RED test file compiles
+// against the AuditLogReader port without breaking the package build.
+func (r *AuditLogRepositoryPG) List(ctx context.Context, filter AuditLogFilter) (AuditLogListResult, error) {
+	_ = ctx
+	_ = filter
+	return AuditLogListResult{}, errAuditLogListNotImplemented
+}
+
+// errAuditLogListNotImplemented marks the RED stub so the upcoming
+// GREEN commit replaces both the body and removes this sentinel. Not
+// exported — never crosses the package boundary; tests assert against
+// the error message in the RED commit only.
+var errAuditLogListNotImplemented = fmt.Errorf("audit_logs: list: not implemented")

@@ -35,3 +35,45 @@ type AuditLog struct {
 type AuditLogWriter interface {
 	Write(ctx context.Context, log *AuditLog) error
 }
+
+// AuditLogFilter narrows a List query. Zero-valued fields are treated
+// as "no filter on this dimension". Limit/Offset are honored by the
+// repository; a non-positive Limit means "no extra clamp" — callers
+// (use cases / handlers) are responsible for capping per-page size.
+type AuditLogFilter struct {
+	// Action filters by exact match when non-empty (e.g.
+	// "curriculum.approved").
+	Action string
+	// Resource filters by exact match when non-empty (e.g. "curriculum",
+	// "document").
+	Resource string
+	// UserID, when non-nil, restricts to events emitted by that actor.
+	UserID *int64
+	// From is the inclusive lower bound on created_at. Nil = no bound.
+	From *time.Time
+	// To is the exclusive upper bound on created_at (half-open range).
+	// Nil = no bound.
+	To *time.Time
+	// Limit caps the returned page size. Repositories must treat
+	// non-positive values as "no clamp".
+	Limit int
+	// Offset is the starting index for pagination.
+	Offset int
+}
+
+// AuditLogListResult bundles a page of audit events with the
+// unfiltered total so the UI can render pagination controls without
+// a second query.
+type AuditLogListResult struct {
+	Items []*AuditLog
+	Total int
+}
+
+// AuditLogReader is the narrow port for the audit-log read API.
+// Concrete implementation AuditLogRepositoryPG satisfies structurally.
+// Kept separate from AuditLogWriter so the AuditLogger collaborator
+// stays write-only and read consumers (admin handler) depend on the
+// narrower interface.
+type AuditLogReader interface {
+	List(ctx context.Context, filter AuditLogFilter) (AuditLogListResult, error)
+}
