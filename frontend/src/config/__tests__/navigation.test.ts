@@ -139,6 +139,22 @@ describe('navigationConfig', () => {
     // Single-role allowlist — only system_admin can approve / reject.
     expect(entry!.roles).toEqual([UserRole.SYSTEM_ADMIN])
   })
+
+  it('analyticsGroup contains annualReport visible only to methodist + system_admin', () => {
+    const analyticsGroup = navigationConfig.find((e) => e.nameKey === 'analyticsGroup') as NavGroup
+    expect(analyticsGroup).toBeDefined()
+    const entry = analyticsGroup.items.find((i) => i.nameKey === 'annualReport')
+    expect(entry).toBeDefined()
+    expect(entry!.url).toBe('/reports/annual')
+    // Mirror к backend ADR-6 — academic_secretary excluded (observer, not
+    // decision-maker); teacher / student also out (no aggregate access).
+    expect(entry!.roles).toEqual(
+      expect.arrayContaining([UserRole.METHODIST, UserRole.SYSTEM_ADMIN])
+    )
+    expect(entry!.roles).not.toContain(UserRole.ACADEMIC_SECRETARY)
+    expect(entry!.roles).not.toContain(UserRole.TEACHER)
+    expect(entry!.roles).not.toContain(UserRole.STUDENT)
+  })
 })
 
 describe('isNavGroup', () => {
