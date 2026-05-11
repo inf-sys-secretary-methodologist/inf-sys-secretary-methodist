@@ -35,9 +35,16 @@ type MessagingUseCase struct {
 	logger           *logging.Logger
 	notifier         MessageNotifier
 	s3Client         *storage.S3Client
+	auditSink        AuditSink
 }
 
 // NewMessagingUseCase creates a new messaging use case.
+//
+// Audit emission is wired separately via WithAuditSink so the
+// existing 6-positional constructor stays backwards-compatible with
+// the ~100 unit-test setups that pass concrete deps directly. Mirror
+// к v0.125.0 WithMFAVerification setter pattern (memory:
+// feedback_setter_pattern_optional_deps).
 func NewMessagingUseCase(
 	conversationRepo repositories.ConversationRepository,
 	messageRepo repositories.MessageRepository,
@@ -54,6 +61,20 @@ func NewMessagingUseCase(
 		notifier:         notifier,
 		s3Client:         s3Client,
 	}
+}
+
+// WithAuditSink wires an AuditSink for forensic emissions on the
+// 5 mutating methods (CreateDirect/Group + Update + SendMessage +
+// DeleteMessage). Chainable so wiring stays one line in main.go.
+// Nil sink (the default) is a no-op — backward-compatible with
+// existing test setups.
+//
+// Stub: behavior deferred to the matching GREEN commit. Setter
+// shape declared so the RED test compiles.
+func (uc *MessagingUseCase) WithAuditSink(sink AuditSink) *MessagingUseCase {
+	uc.auditSink = sink
+	_ = emitMessagingAudit // referenced in GREEN; keeps the helper linker-happy in RED
+	return uc
 }
 
 // resolveAvatarURL converts a storage path to a presigned URL.
