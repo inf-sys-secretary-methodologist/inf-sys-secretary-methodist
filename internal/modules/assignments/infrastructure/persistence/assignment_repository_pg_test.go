@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
@@ -209,5 +210,71 @@ func TestAssignmentRepositoryPG_List(t *testing.T) {
 		_, err := repo.List(context.Background(), repositories.AssignmentListFilter{Limit: 50})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "list")
+	})
+}
+
+func TestAssignmentRepositoryPG_AggregateGradeDistribution(t *testing.T) {
+	from := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	to := time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	cases := []struct {
+		name string
+		rows *sqlmock.Rows
+		want []repositories.AssignmentGradeDistributionAgg
+	}{
+		{
+			name: "no matching rows returns empty slice",
+			rows: sqlmock.NewRows([]string{"subject", "status", "count"}),
+			want: nil,
+		},
+		{
+			name: "rows grouped by subject and status",
+			rows: sqlmock.NewRows([]string{"subject", "status", "count"}).
+				AddRow("Алгоритмы", "graded", 12).
+				AddRow("Алгоритмы", "pending", 3).
+				AddRow("Базы данных", "graded", 8).
+				AddRow("Базы данных", "returned", 1),
+			want: []repositories.AssignmentGradeDistributionAgg{
+				{Subject: "Алгоритмы", Status: entities.StatusGraded, Count: 12},
+				{Subject: "Алгоритмы", Status: entities.StatusPending, Count: 3},
+				{Subject: "Базы данных", Status: entities.StatusGraded, Count: 8},
+				{Subject: "Базы данных", Status: entities.StatusReturned, Count: 1},
+			},
+		},
+		{
+			name: "single subject single status",
+			rows: sqlmock.NewRows([]string{"subject", "status", "count"}).
+				AddRow("Дискретная математика", "graded", 4),
+			want: []repositories.AssignmentGradeDistributionAgg{
+				{Subject: "Дискретная математика", Status: entities.StatusGraded, Count: 4},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, mock := newAssignmentRepoMock(t)
+
+			mock.ExpectQuery(`SELECT a.subject, s.status, COUNT\(\*\) FROM submissions s\s+JOIN assignments a ON a.id = s.assignment_id\s+WHERE s.created_at >= \$1 AND s.created_at < \$2\s+GROUP BY a.subject, s.status`).
+				WithArgs(from, to).
+				WillReturnRows(tc.rows)
+
+			got, err := repo.AggregateGradeDistribution(context.Background(), from, to)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("query error propagates wrapped", func(t *testing.T) {
+		repo, mock := newAssignmentRepoMock(t)
+
+		mock.ExpectQuery(`SELECT a.subject, s.status, COUNT\(\*\) FROM submissions`).
+			WithArgs(from, to).
+			WillReturnError(fmt.Errorf("conn refused"))
+
+		got, err := repo.AggregateGradeDistribution(context.Background(), from, to)
+		require.Error(t, err)
+		require.Nil(t, got)
 	})
 }

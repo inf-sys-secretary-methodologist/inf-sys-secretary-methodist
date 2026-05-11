@@ -210,6 +210,9 @@ func (r *fakeAssignmentRepo) List(ctx context.Context, filter repositories.Assig
 	}
 	return r.listResult, nil
 }
+func (r *fakeAssignmentRepo) AggregateGradeDistribution(_ context.Context, _, _ time.Time) ([]repositories.AssignmentGradeDistributionAgg, error) {
+	return nil, errors.New("fake: AggregateGradeDistribution not used by save-grade / return / resubmit tests")
+}
 
 type fakeSubmissionRepo struct {
 	byKey      map[string]*entities.Submission

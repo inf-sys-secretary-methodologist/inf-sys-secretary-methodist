@@ -131,3 +131,10 @@ func (r *AssignmentRepositoryPG) List(ctx context.Context, filter repositories.A
 	}
 	return repositories.AssignmentListResult{Items: items, Total: total}, nil
 }
+
+// AggregateGradeDistribution counts submissions per (assignment.subject,
+// submission.status) within a half-open created_at window. Implementation
+// deferred to GREEN.
+func (r *AssignmentRepositoryPG) AggregateGradeDistribution(_ context.Context, _, _ time.Time) ([]repositories.AssignmentGradeDistributionAgg, error) {
+	return nil, errors.New("assignments: aggregate grade distribution not implemented")
+}

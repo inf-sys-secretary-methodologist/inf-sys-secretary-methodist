@@ -5,6 +5,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
 )
@@ -43,6 +44,16 @@ type AssignmentListResult struct {
 	Total int
 }
 
+// AssignmentGradeDistributionAgg is a read-model row produced by
+// AggregateGradeDistribution: one row per (assignment subject, submission
+// status) for submissions created within a half-open time window.
+// Consumed by the annual report pipeline. Not an entity — DTO only.
+type AssignmentGradeDistributionAgg struct {
+	Subject string
+	Status  entities.SubmissionStatus
+	Count   int
+}
+
 // AssignmentRepository is the persistence port for Assignment aggregates.
 type AssignmentRepository interface {
 	// GetByID returns the Assignment with the given id or ErrAssignmentNotFound.
@@ -52,4 +63,10 @@ type AssignmentRepository interface {
 	// the total number of matching rows (ignoring Limit/Offset). Empty
 	// result is not an error.
 	List(ctx context.Context, filter AssignmentListFilter) (AssignmentListResult, error)
+
+	// AggregateGradeDistribution counts submissions grouped by
+	// (assignment.subject, submission.status) for submissions whose
+	// created_at lies in the half-open [from, to) range. Empty result
+	// is not an error. Used by the annual report pipeline.
+	AggregateGradeDistribution(ctx context.Context, from, to time.Time) ([]AssignmentGradeDistributionAgg, error)
 }
