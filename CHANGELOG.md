@@ -15,6 +15,89 @@
 
 ---
 
+## [0.130.0] — 2026-05-11
+
+### Added — Audit logs persistence (Phase 5 #1, backend)
+
+First of a 3-release initiative (plan in `docs/plans/2026-05-11-audit-logs.md`,
+local) that brings forensic audit-log persistence to PostgreSQL.
+Backend-only — read API and `/admin/audit-logs` UI ship in v0.131.0.
+
+Prior to v0.130.0 every `AuditLogger.LogAuditEvent` call emitted only a
+structured stdout line; v0.130.0 keeps that emission and additionally
+persists each event to a new `audit_logs` table.
+
+#### Migration 036 — `audit_logs` schema
+
+- `id BIGSERIAL PRIMARY KEY`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP`
+- `action TEXT NOT NULL` + CHECK length > 0
+- `resource TEXT NOT NULL` + CHECK length > 0
+- `actor_user_id BIGINT NULL` — no FK on `users(id)` (ADR-6) so the
+  audit trail survives user deletion
+- `actor_ip INET NULL`
+- `correlation_id TEXT NULL`
+- `fields JSONB NOT NULL DEFAULT '{}'::jsonb` — schema-less event
+  payload absorbs future field additions without migration
+- 5 indexes (ADR-5): `created_at DESC` (recent events query),
+  partial `actor_user_id` (per-actor lookups skip system events),
+  `action`, `resource`, GIN on `fields`
+
+#### Persistence wiring
+
+- `internal/shared/infrastructure/logging/AuditLog` — DTO mirroring the
+  column set; nullable columns use pointer types so missing values
+  write SQL NULL rather than zero.
+- `AuditLogWriter` narrow port + `AuditLogRepositoryPG` concrete
+  adapter. The repository calls `db.ExecContext` directly — never via
+  `*sql.Tx` — so the INSERT happens independently of any business
+  transaction (ADR-2): a denied/failed business operation rolls back
+  its tx, the audit row stays.
+- `AuditLogger.WithRepository(writer)` setter (ADR-7) attaches the
+  writer at DI time; existing `NewAuditLogger(logger)` call sites
+  remain backward-compatible (log-only behavior when no writer set).
+- Writer failure is logged at ERROR level with `action + resource +
+  cause` and **not** propagated to the caller (ADR-3 fire-and-forget).
+  The structured log emission always precedes the persist attempt, so
+  forensic reconstruction is possible from stdout even if the table is
+  unreachable.
+
+#### Production-chain typed-key promotion
+
+The Tier 1 finding from reviewer round-1 (`actor_user_id`,
+`actor_ip`, `correlation_id` would land NULL in 100% of production
+rows because middleware unexported `contextKey` type ≠ exported
+`logging.ContextKey` type — Go context matches on type AND value) is
+closed by promoting actor keys through the existing middleware stack:
+
+- `RequestIDMiddleware` now also writes `logging.ContextKeyCorrelationID`
+  alongside its `contextKeyRequestID`.
+- `RequestContextMiddleware` now also writes
+  `logging.ContextKeyIPAddress` alongside its `contextKeyIPAddress`.
+- `JWTMiddleware` now promotes the validated user id into the request
+  context under `logging.ContextKeyUserID` after the existing `c.Set`
+  (Gin's `c.Keys` does not propagate to `c.Request.Context()`).
+
+All three are pinned by RED tests that hit the real `gin.Engine` —
+not a `context.WithValue` mirror that would have hidden the bug.
+
+#### TDD discipline
+
+- Pair 1 RED `2f669b0a` → GREEN `0977ce77` — repo Write + migration 036
+- Pair 2 RED `12502bc2` → GREEN `e997dbfe` — logger persistence + extractors
+- Pair 3 RED `b0b27218` → GREEN `d5e7e660` — middleware typed-key promotion
+- Tier 2 absorb `983928df` — repo+migration doc claim correction,
+  AmE leaks (optimises/serialisable), extractor type-mismatch coverage,
+  fallback log-line assertion via `captureStdout` helper, nil-fields
+  guard in `Write` (defense-in-depth)
+- Release `chore(release): 0.130.0` — doc-nit polish, bump, CHANGELOG,
+  roles-and-flows update
+
+Reviewer round-1 FIX-CYCLE mean 7.0 / min 4 — Tier 1 Security
+(actor-NULL persistence) + 5 Tier 2/3 items. All closed.
+Reviewer round-2 SHIP mean 8.71 / min 8 (only Docs axis at 8 from a
+1-line doc-nit absorbed in the release commit).
+
 ## [0.129.1] — 2026-05-11
 
 ### Changed — Annual report Clean Architecture polish

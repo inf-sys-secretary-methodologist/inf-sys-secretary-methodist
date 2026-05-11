@@ -178,10 +178,10 @@ func (sl *SecurityLogger) LogPermissionDenied(ctx context.Context, resource stri
 //
 // The structured stdout emit is the original v0.99 surface. v0.130.0
 // adds an optional AuditLogWriter (set via WithRepository) for
-// persisting every event to audit_logs (ADR-2 sync write on an
-// independent connection; ADR-3 failure is logged and not propagated).
-// When writer is nil the logger behaves exactly as before — backwards
-// compatible with every existing call site (ADR-7).
+// persisting every event to audit_logs (ADR-2 sync write independent
+// of any business transaction; ADR-3 failure is logged and not
+// propagated). When writer is nil the logger behaves exactly as before
+// — backwards compatible with every existing call site (ADR-7).
 type AuditLogger struct {
 	logger *Logger
 	writer AuditLogWriter // optional; nil → log-only behavior

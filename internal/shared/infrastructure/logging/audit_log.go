@@ -29,8 +29,9 @@ type AuditLog struct {
 
 // AuditLogWriter is the narrow port used by AuditLogger to persist an
 // audit event after structured-log emission (ADR-2 sync write,
-// independent connection; ADR-3 failure is logged and not propagated).
-// Concrete implementation AuditLogRepositoryPG satisfies structurally.
+// independent of any business transaction; ADR-3 failure is logged and
+// not propagated). Concrete implementation AuditLogRepositoryPG
+// satisfies structurally.
 type AuditLogWriter interface {
 	Write(ctx context.Context, log *AuditLog) error
 }
