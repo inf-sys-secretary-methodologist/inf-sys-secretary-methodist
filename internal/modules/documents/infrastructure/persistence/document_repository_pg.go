@@ -170,8 +170,29 @@ func (r *DocumentRepositoryPG) SoftDelete(ctx context.Context, id int64) error {
 	return nil
 }
 
+// validDocumentOrderBy enumerates the ORDER BY clauses accepted by DocumentRepositoryPG.List.
+// Whitelisting closes the SQL injection surface where filter.OrderBy reaches
+// fmt.Sprintf as raw string. Empty value falls back to "created_at DESC" applied below.
+var validDocumentOrderBy = map[string]struct{}{
+	"":                       {},
+	"created_at ASC":         {},
+	"created_at DESC":        {},
+	"updated_at ASC":         {},
+	"updated_at DESC":        {},
+	"title ASC":              {},
+	"title DESC":             {},
+	"registration_date ASC":  {},
+	"registration_date DESC": {},
+	"deadline ASC":           {},
+	"deadline DESC":          {},
+}
+
 // List retrieves documents with filters and access control
 func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.DocumentFilter) ([]*entities.Document, int64, error) {
+	if _, ok := validDocumentOrderBy[filter.OrderBy]; !ok {
+		return nil, 0, repositories.ErrInvalidOrderBy
+	}
+
 	var conditions []string
 	var args []interface{}
 	argIndex := 1
