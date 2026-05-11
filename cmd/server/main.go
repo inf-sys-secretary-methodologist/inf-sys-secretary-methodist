@@ -132,6 +132,9 @@ import (
 	reportPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/infrastructure/persistence"
 	reportQuery "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/infrastructure/query"
 	reportHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/interfaces/http/handlers"
+	annualUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reports/annual/application/usecases"
+	annualDocxgen "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reports/annual/infrastructure/docxgen"
+	annualHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reports/annual/interfaces/http/handlers"
 	scheduleUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	schedulePersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/infrastructure/persistence"
 	scheduleHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/interfaces/http/handlers"
@@ -505,6 +508,20 @@ func main() {
 	bulkEditDisciplineItemsUseCase := curUsecases.NewBulkEditDisciplineItemsUseCase(bulkDisciplineItemsUoW, auditLogger, nil)
 	logger.Info("Curriculum module initialized", nil)
 
+	// Annual methodist report (B4, v0.129.0) — cross-module read-only
+	// orchestrator. Uses fresh DocumentRepositoryPG (independent от
+	// s3Client gating; annual report only reads documents table, не
+	// blob storage). Calendar-year aggregation per ADR-4.
+	annualReportUseCase := annualUsecases.NewAnnualReportUseCase(
+		curriculumRepo,
+		assignmentRepo,
+		disciplineItemRepo,
+		docPersistence.NewDocumentRepositoryPG(db),
+		annualDocxgen.NewRenderer(),
+		auditLogger,
+	)
+	logger.Info("Annual report module initialized", nil)
+
 	// Initialize schedule module
 	eventRepo := schedulePersistence.NewEventRepositoryPG(db)
 	participantRepo := schedulePersistence.NewEventParticipantRepositoryPG(db)
@@ -738,6 +755,7 @@ func main() {
 		updateDisciplineItemUseCase,
 		deleteDisciplineItemUseCase,
 		bulkEditDisciplineItemsUseCase,
+		annualReportUseCase,
 		eventUseCase,
 		lessonUseCase,
 		announcementUseCase,
@@ -1266,6 +1284,7 @@ func setupRoutes(
 	updateDisciplineItemUseCase *curUsecases.UpdateDisciplineItemUseCase,
 	deleteDisciplineItemUseCase *curUsecases.DeleteDisciplineItemUseCase,
 	bulkEditDisciplineItemsUseCase *curUsecases.BulkEditDisciplineItemsUseCase,
+	annualReportUseCase *annualUsecases.AnnualReportUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
@@ -2080,6 +2099,25 @@ func setupRoutes(
 			}
 
 			logger.Info("Curriculum module routes registered", nil)
+		}
+
+		// Annual methodist report — read-only DOCX download за календарный
+		// год; methodist + system_admin only (academic_secretary excluded
+		// per ADR-6 — observer не decision-maker). v0.129.0 B4.
+		{
+			annualReportHandlerInstance := annualHandler.NewAnnualReportHandler(annualReportUseCase)
+
+			annualReportGroup := protectedGroup.Group("/reports/annual")
+			annualReportGroup.Use(authMiddleware.RequireRole(
+				string(authDomain.RoleMethodist),
+				string(authDomain.RoleSystemAdmin),
+			))
+			{
+				annualReportGroup.GET("", annualReportHandlerInstance.Generate)
+				annualReportGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			logger.Info("Annual report module routes registered", nil)
 		}
 
 		// Section module routes (v0.128.0). RequireNonStudent — same scope
