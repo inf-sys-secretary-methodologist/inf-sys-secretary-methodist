@@ -2,7 +2,6 @@ package http_test
 
 import (
 	"context"
-	"time"
 
 	"github.com/stretchr/testify/mock"
 
@@ -147,14 +146,6 @@ func (m *MockDocumentRepository) GetHistory(ctx context.Context, documentID int6
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*entities.DocumentHistory), args.Error(1)
-}
-
-func (m *MockDocumentRepository) AggregateActivityByType(ctx context.Context, from, to time.Time) ([]repositories.DocumentActivityByTypeAgg, error) {
-	args := m.Called(ctx, from, to)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]repositories.DocumentActivityByTypeAgg), args.Error(1)
 }
 
 // --- MockDocumentTypeRepository ---

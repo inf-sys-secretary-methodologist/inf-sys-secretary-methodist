@@ -1006,18 +1006,12 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 	return results, total, nil
 }
 
-// AggregateActivityByType counts documents grouped by
-// (document_type.name, document.status) for documents whose created_at
-// lies in the half-open [from, to) range. Empty result is not an error.
-func (r *DocumentRepositoryPG) AggregateActivityByType(ctx context.Context, from, to time.Time) ([]repositories.DocumentActivityByTypeAgg, error) {
-	return aggregateActivityByType(ctx, r.db, from, to)
-}
-
-// aggregateActivityByType is the shared SQL execution for
-// (DocumentRepositoryPG, DocumentActivityReaderPG).AggregateActivityByType.
-// Lives at package scope so both the full repository and the narrow
-// activity reader call into a single source of truth — no SQL drift,
-// no construction-invariant coupling between adapters.
+// aggregateActivityByType is the SQL execution for the documents-activity
+// aggregate query. Consumed exclusively by DocumentActivityReaderPG (the
+// narrow port for the annual report) — the full DocumentRepository
+// interface no longer exposes this aggregate, since no production code
+// reads documents activity through the full repo. Empty result is not an
+// error; the half-open [from, to) window is the caller's responsibility.
 func aggregateActivityByType(ctx context.Context, db *sql.DB, from, to time.Time) ([]repositories.DocumentActivityByTypeAgg, error) {
 	const query = `SELECT dt.name, d.status, COUNT(*) FROM documents d
 		JOIN document_types dt ON dt.id = d.document_type_id
