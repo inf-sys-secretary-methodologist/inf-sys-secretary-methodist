@@ -15,6 +15,57 @@
 
 ---
 
+## [0.129.1] — 2026-05-11
+
+### Changed — Annual report Clean Architecture polish
+
+Patch release closing carry-forward TODOs from v0.129.0 reviewer round
+without adding user-visible features. Backend-only.
+
+#### Narrow port extraction (closes v0.129.0 DI smell)
+
+`cmd/server/main.go` no longer constructs a fresh full `DocumentRepositoryPG`
+for the annual-report wiring. Replaced with a new narrow read-only
+adapter:
+
+- `internal/modules/documents/infrastructure/persistence/DocumentActivityReaderPG` —
+  exposes a single method (`AggregateActivityByType`). Delegates to a
+  package-private SQL helper shared with no one else after dead-code
+  cleanup below, so the cross-module orchestrator no longer depends on
+  the full `DocumentRepository`'s construction invariants (logger /
+  cache / metrics it may grow tomorrow).
+- Removed `AggregateActivityByType` from the `DocumentRepository`
+  interface and from `DocumentRepositoryPG` — the method became dead in
+  production after the narrow port took over (only test mocks held
+  references). `DocumentActivityByTypeAgg` DTO retained: still consumed
+  via the narrow port.
+
+DDD-gate "никаких на будущее в domain" honoured: surface area trimmed to
+match real usage.
+
+#### Integration test (closes Tier 3.1 from v0.129.0)
+
+`internal/modules/reports/annual/interfaces/http/handlers/annual_report_integration_test.go`
+exercises the full chain over `httptest.NewServer`: gin router → real
+handler → real `AnnualReportUseCase` → fake aggregate repos returning
+cyrillic fixtures → REAL `docxgen.Renderer` → DOCX response bytes →
+`archive/zip.NewReader` validation. Asserts the response parses as a
+valid OOXML zip, `word/document.xml` carries every section header
+plus every aggregate cell value, the `report.annual_generated` audit
+event fires exactly once with the expected fields, and the escape-safe
+pipeline preserves XML metacharacters (& < > ") as their entity forms
+without leaking raw markup into the rendered document.
+
+#### Reviewer round (round-2 SHIP)
+
+Round-1 verdict FIX-CYCLE (mean 8.67 / min 8.0): three Tier 2 items —
+`require.Error` not actually proving the SQL error wrap, escape-safe
+claim not covered by fixtures with XML metacharacters, dead method on
+the full repo. All three absorbed in the same release (commits
+`e1d49e80` + `dc4bbc51`). Round-2 SHIP mean 9.0 / min 9.0 — matches
+v0.129.0 baseline. Senior-enterprise discipline: do not skip
+carry-forward TODOs, do not let dead code accumulate in the domain.
+
 ## [0.129.0] — 2026-05-11
 
 ### Added — B4 Annual methodist report (cross-module read-only orchestrator)

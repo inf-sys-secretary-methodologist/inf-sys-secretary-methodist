@@ -15,9 +15,8 @@ import (
 // DocumentRepositoryPG evolves to require new collaborators (logger,
 // cache, metrics), the activity reader is unaffected.
 //
-// Delegates to the package-private aggregateActivityByType helper, which
-// is the single source of truth for the SQL query (also called by
-// DocumentRepositoryPG.AggregateActivityByType).
+// Delegates to the package-private aggregateActivityByType helper —
+// the single source of truth for the documents-activity SQL query.
 type DocumentActivityReaderPG struct {
 	db *sql.DB
 }
