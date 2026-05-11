@@ -15,6 +15,74 @@
 
 ---
 
+## [0.128.10] — 2026-05-11
+
+### Security — CodeQL sweep: SQL injection guards + workflow permissions hardening
+
+Closes the first CodeQL default-setup scan: **2 errors + 32 warnings = 34 → 0**.
+First security release driven by CodeQL findings (rolled out 2026-05-11 per
+v0.128.9 Addendum).
+
+### Critical: SQL injection через ORDER BY interpolation (2 CodeQL errors)
+
+CodeQL `go/sql-injection` flagged two repository List queries where the
+user-controlled `filter.OrderBy` field (sourced from `?order_by=` query
+parameter via `form:"order_by"` DTO binding) reached `fmt.Sprintf` as raw
+string interpolation in the ORDER BY clause. PostgreSQL does not bind
+sort expressions, so whitelist default-deny is the canonical mitigation.
+
+**`internal/modules/schedule/infrastructure/persistence/event_repository_pg.go`** (`30f9aee9`)
+- `validEventOrderBy` map enumerates 11 safe clauses (empty + `start_time`/
+  `end_time`/`title`/`created_at`/`updated_at` × ASC/DESC).
+- `EventRepositoryPG.List` returns `repositories.ErrInvalidOrderBy` for any
+  value outside the whitelist, before constructing the SQL query.
+
+**`internal/modules/documents/infrastructure/persistence/document_repository_pg.go`** (`d856d365`)
+- `validDocumentOrderBy` map enumerates 11 safe clauses (empty + `created_at`/
+  `updated_at`/`title`/`registration_date`/`deadline` × ASC/DESC).
+- `DocumentRepositoryPG.List` rejects unknown values with `ErrInvalidOrderBy`.
+
+Both repos validated through table-driven TDD pairs (5 attack vectors —
+semicolon DDL / CASE blind subselect / raw DROP / comment terminator /
+unknown column).
+
+### Workflow permissions hardening (32 CodeQL warnings)
+
+CodeQL `actions/missing-workflow-permissions` flagged every job in 7
+workflow files (backend-ci / backup-test / database-ci / docs / frontend-ci /
+pr-validation / security) for not limiting the default `GITHUB_TOKEN` scope.
+
+**`012dbb34`** — declared minimum scope at workflow level:
+- `contents: read` — backend-ci, backup-test, database-ci, docs,
+  frontend-ci, security
+- `contents: read` + `pull-requests: read` — pr-validation
+  (amannn/action-semantic-pull-request + github-script PR metadata reads)
+
+Behaviour preserved: every existing step is read-only (lint / type-check /
+tests / scans / doc validation). Codecov uploads use the `CODECOV_TOKEN`
+secret, independent of `GITHUB_TOKEN`. `ci.yml` already had per-job
+permissions blocks since v0.128.5 — unchanged.
+
+### Files
+
+- `internal/modules/schedule/domain/repositories/event_repository.go` — `ErrInvalidOrderBy`
+- `internal/modules/schedule/infrastructure/persistence/event_repository_pg.go` — whitelist + validation
+- `internal/modules/schedule/infrastructure/persistence/event_repository_pg_test.go` — 5-vector table-driven test
+- `internal/modules/documents/domain/repositories/document_repository.go` — `ErrInvalidOrderBy`
+- `internal/modules/documents/infrastructure/persistence/document_repository_pg.go` — whitelist + validation
+- `internal/modules/documents/infrastructure/persistence/document_repository_pg_test.go` — 5-vector table-driven test
+- `.github/workflows/{backend-ci,backup-test,database-ci,docs,frontend-ci,pr-validation,security}.yml` — top-level `permissions:` blocks
+
+### Commits
+
+- `d9f46b11 test(schedule): add failing test for OrderBy SQL injection guard`
+- `30f9aee9 feat(schedule): whitelist OrderBy values to close SQL injection vector`
+- `74950e1d test(documents): add failing test for OrderBy SQL injection guard`
+- `d856d365 feat(documents): whitelist OrderBy values to close SQL injection vector`
+- `012dbb34 ci: declare minimal GITHUB_TOKEN permissions on 7 workflows`
+
+---
+
 ## [0.128.9] — 2026-05-10
 
 ### Security — Next.js + next-intl bumps + npm audit fix transitive cleanup
