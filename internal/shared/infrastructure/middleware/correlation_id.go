@@ -6,6 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // Context key types for type-safe context values
@@ -40,21 +42,37 @@ func RequestIDMiddleware() gin.HandlerFunc {
 		// Add to gin context (используем request_id для консистентности с другими middleware)
 		c.Set("request_id", requestID)
 
-		// Add to request context for downstream use
+		// Add to request context for downstream use. Two writes:
+		//   - middleware.contextKeyRequestID — preserves the original
+		//     unexported-key contract for existing in-package consumers.
+		//   - logging.ContextKeyCorrelationID — typed key that
+		//     AuditLogger.persist reads when populating audit_logs.
+		//     Without this second write every persisted row would carry
+		//     correlation_id = NULL (v0.130.0 reviewer Tier 1).
 		ctx := context.WithValue(c.Request.Context(), contextKeyRequestID, requestID)
+		ctx = context.WithValue(ctx, logging.ContextKeyCorrelationID, requestID)
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
 	}
 }
 
-// RequestContextMiddleware enriches context with request metadata
+// RequestContextMiddleware enriches context with request metadata.
+//
+// IP address is written under both the local unexported contextKey
+// (preserving existing in-package consumers) and the exported
+// logging.ContextKeyIPAddress so AuditLogger.persist can extract
+// actor_ip when writing an audit_logs row. The other metadata keys
+// remain middleware-internal — they are not consumed by the audit
+// pipeline today.
 func RequestContextMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
-		// Add IP address
-		ctx = context.WithValue(ctx, contextKeyIPAddress, c.ClientIP())
+		// Add IP address (both keys — see doc comment above)
+		ip := c.ClientIP()
+		ctx = context.WithValue(ctx, contextKeyIPAddress, ip)
+		ctx = context.WithValue(ctx, logging.ContextKeyIPAddress, ip)
 
 		// Add user agent
 		ctx = context.WithValue(ctx, contextKeyUserAgent, c.Request.UserAgent())

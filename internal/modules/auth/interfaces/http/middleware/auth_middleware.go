@@ -2,6 +2,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"sync"
@@ -13,6 +14,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // JWTMiddleware validates JWT tokens
@@ -53,11 +55,21 @@ func JWTMiddleware(authUseCase *usecases.AuthUseCase) gin.HandlerFunc {
 			return
 		}
 
-		// Add claims to context
+		// Add claims to gin's c.Keys map (handlers read via c.Get).
 		userID, _ := (*claims)["user_id"].(float64)
-		c.Set("user_id", int64(userID))
+		uid := int64(userID)
+		c.Set("user_id", uid)
 		c.Set("role", (*claims)["role"])
 		c.Set("claims", claims)
+
+		// Promote actor id into the request context under the typed
+		// logging.ContextKeyUserID so AuditLogger.persist can populate
+		// audit_logs.actor_user_id. Gin's c.Set does not propagate to
+		// c.Request.Context() — without this explicit promotion every
+		// persisted audit row would carry NULL actor (v0.130.0 reviewer
+		// Tier 1 finding).
+		ctx = context.WithValue(c.Request.Context(), logging.ContextKeyUserID, uid)
+		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
 	}
