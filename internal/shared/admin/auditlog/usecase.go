@@ -22,13 +22,15 @@ import (
 // passes a non-positive value.
 const DefaultLimit = 50
 
-// MaxLimit caps the per-page size regardless of request input.
+// MaxLimit caps the per-page size regardless of request input. At ~1
+// KiB JSON per row the cap keeps a single response well under any
+// reasonable reverse-proxy buffer ceiling.
 const MaxLimit = 200
 
 // ListInput is the validated, parsed input to AdminAuditLogUseCase.List.
-// Time fields are pointers so the empty/unset case is unambiguous; an
-// explicit zero-time would silently filter all rows older than
-// 0001-01-01 (i.e. everything).
+// Time fields are pointers so the empty/unset case is unambiguous —
+// an explicit zero-value time would silently filter all rows older
+// than 0001-01-01 (i.e. everything).
 type ListInput struct {
 	Action   string
 	Resource string
@@ -39,13 +41,15 @@ type ListInput struct {
 	Offset   int
 }
 
-// ErrInvalidTimeRange signals From >= To — the half-open semantic
-// [from, to) requires strict inequality to return any rows.
+// ErrInvalidTimeRange signals From >= To — the half-open [from, to)
+// reader contract requires strict inequality to return any rows.
 var ErrInvalidTimeRange = errors.New("audit-log list: from must be strictly before to")
 
 // AdminAuditLogUseCase is the application-layer collaborator that
 // clamps pagination, validates the time range, and delegates to the
-// reader port.
+// reader port. Intentionally thin — authorization is the route-level
+// RequireRole(system_admin) gate and persistence shape passes through
+// without transformation.
 type AdminAuditLogUseCase struct {
 	reader logging.AuditLogReader
 }
@@ -60,19 +64,32 @@ func NewAdminAuditLogUseCase(reader logging.AuditLogReader) *AdminAuditLogUseCas
 	return &AdminAuditLogUseCase{reader: reader}
 }
 
-// List clamps the page size, validates the time range, and forwards
-// the filter to the reader.
-//
-// Stub: behavior deferred to the matching GREEN commit; the signature
-// + return shape are declared so the RED test file compiles against
-// the use-case port without breaking the package build.
+// List clamps pagination, validates the time range, and forwards the
+// filter to the reader. Negative offsets clamp to zero (rather than
+// 400) because they are reachable from URL-template arithmetic on
+// the client and a silent floor is friendlier than a hard reject.
 func (uc *AdminAuditLogUseCase) List(ctx context.Context, in ListInput) (logging.AuditLogListResult, error) {
-	_ = ctx
-	_ = in
-	_ = uc.reader
-	return logging.AuditLogListResult{}, errAdminListNotImplemented
-}
+	if in.From != nil && in.To != nil && !in.From.Before(*in.To) {
+		return logging.AuditLogListResult{}, ErrInvalidTimeRange
+	}
 
-// errAdminListNotImplemented marks the RED stub. Removed by the GREEN
-// commit when the real body lands.
-var errAdminListNotImplemented = errors.New("admin audit-log list: not implemented")
+	limit := in.Limit
+	if limit <= 0 {
+		limit = DefaultLimit
+	}
+	if limit > MaxLimit {
+		limit = MaxLimit
+	}
+
+	offset := max(in.Offset, 0)
+
+	return uc.reader.List(ctx, logging.AuditLogFilter{
+		Action:   in.Action,
+		Resource: in.Resource,
+		UserID:   in.UserID,
+		From:     in.From,
+		To:       in.To,
+		Limit:    limit,
+		Offset:   offset,
+	})
+}

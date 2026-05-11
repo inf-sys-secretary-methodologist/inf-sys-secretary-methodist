@@ -145,6 +145,7 @@ import (
 	usersRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	usersPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/infrastructure/persistence"
 	usersHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/handlers"
+	adminAuditLog "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/auditlog"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -2551,6 +2552,17 @@ func setupRoutes(
 				adminGroup.OPTIONS("/notifications/bulk", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				logger.Info("Admin notification routes registered", nil)
 			}
+
+			// Admin audit-log read API. Both writer and reader wrap
+			// the same *sql.DB pool, so freshly written events are
+			// immediately visible to the read API — no replication
+			// lag or coherency concern.
+			adminAuditLogReader := logging.NewAuditLogRepositoryPG(db)
+			adminAuditLogUseCase := adminAuditLog.NewAdminAuditLogUseCase(adminAuditLogReader)
+			adminAuditLogHandler := adminAuditLog.NewAdminAuditLogHandler(adminAuditLogUseCase)
+			adminGroup.GET("/audit-logs", adminAuditLogHandler.List)
+			adminGroup.OPTIONS("/audit-logs", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			logger.Info("Admin audit-log read API registered", nil)
 		}
 	}
 

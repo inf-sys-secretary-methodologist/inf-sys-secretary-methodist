@@ -14,9 +14,10 @@ import (
 
 // AdminAuditLogHandler exposes GET /api/admin/audit-logs.
 // Mounted under the admin route group with RequireRole(system_admin)
-// — handler-level guard is intentionally absent because the
-// route-level middleware is the canonical gate and any handler-level
-// duplicate would drift over time.
+// — handler-level role guard is intentionally absent because the
+// route-level middleware is the canonical gate and a handler-side
+// duplicate would drift over time. Integration tests pin the
+// middleware-handler pair to keep the gate honest.
 type AdminAuditLogHandler struct {
 	uc *AdminAuditLogUseCase
 }
@@ -30,10 +31,10 @@ func NewAdminAuditLogHandler(uc *AdminAuditLogUseCase) *AdminAuditLogHandler {
 	return &AdminAuditLogHandler{uc: uc}
 }
 
-// LogResponse is the JSON projection of one persisted audit-log
-// row returned by List. Times are RFC3339 strings (ISO 8601 with
-// timezone) so the frontend can parse without ambiguity. Fields stays
-// as map[string]any so JSON marshaling preserves the JSONB shape.
+// LogResponse is the JSON projection of one persisted audit-log row.
+// Times are RFC3339 strings so the frontend parses without timezone
+// ambiguity. Fields stays as map[string]any so JSON marshaling
+// preserves the JSONB column shape one-to-one.
 type LogResponse struct {
 	ID            int64          `json:"id"`
 	CreatedAt     string         `json:"created_at"`
@@ -46,7 +47,6 @@ type LogResponse struct {
 }
 
 // List handles GET /api/admin/audit-logs.
-// Stub: returns 501 Not Implemented; replaced by the matching GREEN.
 //
 // @Summary List audit logs (admin only)
 // @Tags admin
@@ -66,28 +66,113 @@ type LogResponse struct {
 // @Security BearerAuth
 // @Router /api/admin/audit-logs [get]
 func (h *AdminAuditLogHandler) List(c *gin.Context) {
-	_ = h.uc
-	_, _ = parseListInput(c) // no-op call so the helper compiles unused-clean until GREEN
-	_ = mapItems(nil)        // no-op call so the helper compiles unused-clean until GREEN
-	c.JSON(http.StatusNotImplemented, response.ErrorResponse("NOT_IMPLEMENTED", "audit-log list: stub"))
+	input, err := parseListInput(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest(err.Error()))
+		return
+	}
+
+	result, err := h.uc.List(c.Request.Context(), input)
+	if err != nil {
+		if errors.Is(err, ErrInvalidTimeRange) {
+			c.JSON(http.StatusBadRequest, response.BadRequest(err.Error()))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, response.InternalError("failed to list audit logs"))
+		return
+	}
+
+	items := mapItems(result.Items)
+	perPage := input.Limit
+	if perPage <= 0 {
+		perPage = DefaultLimit
+	}
+	if perPage > MaxLimit {
+		perPage = MaxLimit
+	}
+	page := input.Offset/perPage + 1
+	totalPages := 0
+	if result.Total > 0 {
+		totalPages = (result.Total + perPage - 1) / perPage
+	}
+
+	c.JSON(http.StatusOK, response.List(items, response.Pagination{
+		Page:       page,
+		PerPage:    perPage,
+		Total:      result.Total,
+		TotalPages: totalPages,
+	}))
 }
 
-// parseListInput translates query-string values to a typed ListInput.
-// Stub: returns an empty input + the unimplemented error so the
-// handler test's parser-shape cases compile.
+// parseListInput translates query-string values into a typed ListInput.
+// Returns a user-facing error message ready to flow into 400 BadRequest
+// — no stack traces or internal identifiers leak.
 func parseListInput(c *gin.Context) (ListInput, error) {
-	_ = c
-	_ = errParseStub
-	_ = strconv.Atoi
-	_ = time.Parse
-	return ListInput{}, errParseStub
+	input := ListInput{
+		Action:   c.Query("action"),
+		Resource: c.Query("resource"),
+	}
+
+	if v := c.Query("user_id"); v != "" {
+		id, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || id <= 0 {
+			return ListInput{}, errors.New("invalid user_id: positive integer required")
+		}
+		input.UserID = &id
+	}
+
+	if v := c.Query("from"); v != "" {
+		t, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return ListInput{}, errors.New("invalid from: RFC3339 timestamp required")
+		}
+		input.From = &t
+	}
+
+	if v := c.Query("to"); v != "" {
+		t, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return ListInput{}, errors.New("invalid to: RFC3339 timestamp required")
+		}
+		input.To = &t
+	}
+
+	if v := c.Query("limit"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 0 {
+			return ListInput{}, errors.New("invalid limit: non-negative integer required")
+		}
+		input.Limit = n
+	}
+
+	if v := c.Query("offset"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 0 {
+			return ListInput{}, errors.New("invalid offset: non-negative integer required")
+		}
+		input.Offset = n
+	}
+
+	return input, nil
 }
 
-// mapItems projects domain logs to the JSON wire shape.
-// Stub: returns nil — exercised in GREEN.
+// mapItems projects domain logs to the JSON wire shape. Returns an
+// empty (non-nil) slice when the input is empty so the JSON body
+// renders `"data": []` rather than `"data": null`, matching the
+// pagination Meta when Total is zero.
 func mapItems(items []*logging.AuditLog) []LogResponse {
-	_ = items
-	return nil
+	out := make([]LogResponse, 0, len(items))
+	for _, log := range items {
+		out = append(out, LogResponse{
+			ID:            log.ID,
+			CreatedAt:     log.CreatedAt.UTC().Format(time.RFC3339),
+			Action:        log.Action,
+			Resource:      log.Resource,
+			ActorUserID:   log.ActorUserID,
+			ActorIP:       log.ActorIP,
+			CorrelationID: log.CorrelationID,
+			Fields:        log.Fields,
+		})
+	}
+	return out
 }
-
-var errParseStub = errors.New("audit-log parse: not implemented")
