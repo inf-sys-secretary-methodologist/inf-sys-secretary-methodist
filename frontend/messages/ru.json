@@ -195,7 +195,8 @@
     "assignments": "Задания",
     "myAssignments": "Мои задания",
     "curriculum": "Учебные планы",
-    "curriculumApprove": "Утверждение учебных планов"
+    "curriculumApprove": "Утверждение учебных планов",
+    "annualReport": "Годовой отчёт"
   },
   "roles": {
     "system_admin": "Администратор",
@@ -1673,6 +1674,14 @@
       "exportPdf": "Экспорт в PDF",
       "exportExcel": "Экспорт в Excel",
       "exportCsv": "Экспорт в CSV"
+    },
+    "annual": {
+      "title": "Годовой отчёт методиста",
+      "yearLabel": "Год",
+      "downloadButton": "Скачать отчёт",
+      "errorBadYear": "Некорректный год. Введите значение от 2000 до 2100.",
+      "errorForbidden": "У вас нет прав на просмотр этого отчёта.",
+      "errorServer": "Не удалось сгенерировать отчёт. Попробуйте позже."
     }
   },
   "templates": {

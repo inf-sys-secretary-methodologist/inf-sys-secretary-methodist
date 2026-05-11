@@ -195,7 +195,8 @@
     "assignments": "Assignments",
     "myAssignments": "My assignments",
     "curriculum": "Curricula",
-    "curriculumApprove": "Curriculum approval"
+    "curriculumApprove": "Curriculum approval",
+    "annualReport": "Annual report"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -1673,6 +1674,14 @@
       "exportPdf": "Export as PDF",
       "exportExcel": "Export as Excel",
       "exportCsv": "Export as CSV"
+    },
+    "annual": {
+      "title": "Methodist annual report",
+      "yearLabel": "Year",
+      "downloadButton": "Download report",
+      "errorBadYear": "Invalid year. Enter a value between 2000 and 2100.",
+      "errorForbidden": "You do not have permission to view this report.",
+      "errorServer": "Failed to generate the report. Please try again later."
     }
   },
   "templates": {

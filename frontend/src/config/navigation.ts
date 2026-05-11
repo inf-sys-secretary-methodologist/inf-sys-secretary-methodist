@@ -124,6 +124,15 @@ export const navigationConfig: NavEntry[] = [
         icon: TrendingUp,
         roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
       },
+      {
+        // Annual methodist report (v0.129.0 B4). Read-only DOCX download
+        // за календарный год. Methodist + system_admin only — backend
+        // ADR-6 excludes academic_secretary (observer, not decision-maker).
+        nameKey: 'annualReport',
+        url: '/reports/annual',
+        icon: FileCheck,
+        roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST],
+      },
     ],
   },
   // Education group — schedule + calendar + tasks

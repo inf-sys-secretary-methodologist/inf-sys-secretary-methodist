@@ -195,7 +195,8 @@
     "assignments": "الواجبات",
     "myAssignments": "واجباتي",
     "curriculum": "المناهج الدراسية",
-    "curriculumApprove": "اعتماد المناهج"
+    "curriculumApprove": "اعتماد المناهج",
+    "annualReport": "التقرير السنوي"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -1673,6 +1674,14 @@
       "exportPdf": "تصدير كـ PDF",
       "exportExcel": "تصدير كـ Excel",
       "exportCsv": "تصدير كـ CSV"
+    },
+    "annual": {
+      "title": "التقرير السنوي للمنهجي",
+      "yearLabel": "السنة",
+      "downloadButton": "تنزيل التقرير",
+      "errorBadYear": "سنة غير صالحة. أدخل قيمة بين 2000 و 2100.",
+      "errorForbidden": "ليس لديك إذن لعرض هذا التقرير.",
+      "errorServer": "فشل إنشاء التقرير. حاول مرة أخرى لاحقاً."
     }
   },
   "templates": {

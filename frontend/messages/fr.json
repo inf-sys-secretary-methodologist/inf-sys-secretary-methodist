@@ -195,7 +195,8 @@
     "assignments": "Devoirs",
     "myAssignments": "Mes devoirs",
     "curriculum": "Programmes",
-    "curriculumApprove": "Approbation des programmes"
+    "curriculumApprove": "Approbation des programmes",
+    "annualReport": "Rapport annuel"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -1673,6 +1674,14 @@
       "exportPdf": "Exporter en PDF",
       "exportExcel": "Exporter en Excel",
       "exportCsv": "Exporter en CSV"
+    },
+    "annual": {
+      "title": "Rapport annuel du méthodologiste",
+      "yearLabel": "Année",
+      "downloadButton": "Télécharger le rapport",
+      "errorBadYear": "Année invalide. Saisissez une valeur entre 2000 et 2100.",
+      "errorForbidden": "Vous n'avez pas le droit de consulter ce rapport.",
+      "errorServer": "Échec de la génération du rapport. Veuillez réessayer plus tard."
     }
   },
   "templates": {
