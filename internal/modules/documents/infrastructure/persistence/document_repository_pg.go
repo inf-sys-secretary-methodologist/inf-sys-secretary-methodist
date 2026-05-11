@@ -1006,9 +1006,40 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 	return results, total, nil
 }
 
-// AggregateActivityByType counts documents per (document_type.name,
-// document.status) for documents whose created_at lies in the half-open
-// [from, to) range. Implementation deferred to GREEN.
-func (r *DocumentRepositoryPG) AggregateActivityByType(_ context.Context, _, _ time.Time) ([]repositories.DocumentActivityByTypeAgg, error) {
-	return nil, errors.New("documents: aggregate activity by type not implemented")
+// AggregateActivityByType counts documents grouped by
+// (document_type.name, document.status) for documents whose created_at
+// lies in the half-open [from, to) range. Empty result is not an error.
+func (r *DocumentRepositoryPG) AggregateActivityByType(ctx context.Context, from, to time.Time) ([]repositories.DocumentActivityByTypeAgg, error) {
+	const query = `SELECT dt.name, d.status, COUNT(*) FROM documents d
+		JOIN document_types dt ON dt.id = d.document_type_id
+		WHERE d.created_at >= $1 AND d.created_at < $2
+		GROUP BY dt.name, d.status
+		ORDER BY dt.name, d.status`
+
+	rows, err := r.db.QueryContext(ctx, query, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("documents: aggregate activity by type: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var out []repositories.DocumentActivityByTypeAgg
+	for rows.Next() {
+		var (
+			name      string
+			statusStr string
+			count     int
+		)
+		if err := rows.Scan(&name, &statusStr, &count); err != nil {
+			return nil, fmt.Errorf("documents: aggregate activity scan: %w", err)
+		}
+		out = append(out, repositories.DocumentActivityByTypeAgg{
+			TypeName: name,
+			Status:   entities.DocumentStatus(statusStr),
+			Count:    count,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("documents: aggregate activity rows: %w", err)
+	}
+	return out, nil
 }
