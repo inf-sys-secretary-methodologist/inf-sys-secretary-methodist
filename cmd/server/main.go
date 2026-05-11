@@ -512,6 +512,13 @@ func main() {
 	// orchestrator. Uses fresh DocumentRepositoryPG (independent от
 	// s3Client gating; annual report only reads documents table, не
 	// blob storage). Calendar-year aggregation per ADR-4.
+	//
+	// TODO(v0.130.x): extract a narrow `AnnualReportDocumentReader`
+	// port exposing only AggregateActivityByType, decouple from the
+	// full DocumentRepository to avoid this duplicate-handle smell.
+	// Both wrappers share *sql.DB underneath — no extra connection
+	// pressure — but the duplication is brittle if documents module
+	// evolves invariants on its primary repo construction.
 	annualReportUseCase := annualUsecases.NewAnnualReportUseCase(
 		curriculumRepo,
 		assignmentRepo,

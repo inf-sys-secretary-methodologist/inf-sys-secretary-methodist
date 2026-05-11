@@ -55,6 +55,20 @@ func NewAnnualReportHandler(generate GenerateAnnualReportPort) *AnnualReportHand
 //   - 403 if role missing / not in allowedRoles
 //   - 422 if year missing / non-numeric / outside [2000, 2100]
 //   - 500 if the use case fails (aggregate / render path)
+//
+// @Summary Generate annual methodist report
+// @Description Returns a DOCX file aggregating curricula / grades / hours
+// @Description and document activity for the given calendar year.
+// @Tags reports
+// @Security BearerAuth
+// @Produce application/vnd.openxmlformats-officedocument.wordprocessingml.document
+// @Param year query int true "Calendar year (2000-2100)"
+// @Success 200 {file} binary "DOCX bytes"
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /api/reports/annual [get]
 func (h *AnnualReportHandler) Generate(c *gin.Context) {
 	actorID, ok := actorIDFromContext(c)
 	if !ok {
@@ -75,7 +89,7 @@ func (h *AnnualReportHandler) Generate(c *gin.Context) {
 		return
 	}
 
-	bytes, err := h.generate.Generate(c.Request.Context(), usecases.GenerateAnnualReportInput{
+	docxBytes, err := h.generate.Generate(c.Request.Context(), usecases.GenerateAnnualReportInput{
 		Year:    year,
 		ActorID: actorID,
 	})
@@ -85,7 +99,7 @@ func (h *AnnualReportHandler) Generate(c *gin.Context) {
 	}
 
 	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="annual_report_%d.docx"`, year))
-	c.Data(http.StatusOK, mimeDOCX, bytes)
+	c.Data(http.StatusOK, mimeDOCX, docxBytes)
 }
 
 func actorIDFromContext(c *gin.Context) (int64, bool) {

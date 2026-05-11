@@ -19,51 +19,74 @@ import (
 
 // --- fakes --------------------------------------------------------------
 
+// callTracker pins the order in which the use case fans out across its
+// dependencies. Reorder regressions (e.g. audit emitted BEFORE render
+// completes) would otherwise slip past per-fake recording assertions.
+type callTracker struct {
+	calls []string
+}
+
+func (c *callTracker) record(name string) {
+	if c == nil {
+		return
+	}
+	c.calls = append(c.calls, name)
+}
+
 type fakeCurriculumAggRepo struct {
+	tracker *callTracker
 	gotYear int
 	result  []curriculumRepos.CurriculumYearSpecialtyAgg
 	err     error
 }
 
 func (f *fakeCurriculumAggRepo) AggregateByYearSpecialty(_ context.Context, year int) ([]curriculumRepos.CurriculumYearSpecialtyAgg, error) {
+	f.tracker.record("curriculum")
 	f.gotYear = year
 	return f.result, f.err
 }
 
 type fakeAssignmentAggRepo struct {
+	tracker        *callTracker
 	gotFrom, gotTo time.Time
 	result         []assignmentRepos.AssignmentGradeDistributionAgg
 	err            error
 }
 
 func (f *fakeAssignmentAggRepo) AggregateGradeDistribution(_ context.Context, from, to time.Time) ([]assignmentRepos.AssignmentGradeDistributionAgg, error) {
+	f.tracker.record("assignment")
 	f.gotFrom, f.gotTo = from, to
 	return f.result, f.err
 }
 
 type fakeItemAggRepo struct {
+	tracker *callTracker
 	gotYear int
 	result  []curriculumRepos.DisciplineItemHoursAgg
 	err     error
 }
 
 func (f *fakeItemAggRepo) AggregateHoursByYear(_ context.Context, year int) ([]curriculumRepos.DisciplineItemHoursAgg, error) {
+	f.tracker.record("item")
 	f.gotYear = year
 	return f.result, f.err
 }
 
 type fakeDocumentAggRepo struct {
+	tracker        *callTracker
 	gotFrom, gotTo time.Time
 	result         []documentRepos.DocumentActivityByTypeAgg
 	err            error
 }
 
 func (f *fakeDocumentAggRepo) AggregateActivityByType(_ context.Context, from, to time.Time) ([]documentRepos.DocumentActivityByTypeAgg, error) {
+	f.tracker.record("document")
 	f.gotFrom, f.gotTo = from, to
 	return f.result, f.err
 }
 
 type fakeRenderer struct {
+	tracker      *callTracker
 	gotYear      int
 	gotCurricula []curriculumRepos.CurriculumYearSpecialtyAgg
 	gotGrades    []assignmentRepos.AssignmentGradeDistributionAgg
@@ -80,6 +103,7 @@ func (f *fakeRenderer) RenderAnnualReport(
 	hours []curriculumRepos.DisciplineItemHoursAgg,
 	activity []documentRepos.DocumentActivityByTypeAgg,
 ) ([]byte, error) {
+	f.tracker.record("render")
 	f.gotYear = year
 	f.gotCurricula = curricula
 	f.gotGrades = grades
@@ -95,34 +119,41 @@ type auditCall struct {
 }
 
 type fakeAuditSink struct {
-	calls []auditCall
+	tracker *callTracker
+	calls   []auditCall
 }
 
 func (f *fakeAuditSink) LogAuditEvent(_ context.Context, action, resource string, fields map[string]any) {
+	if f.tracker != nil {
+		f.tracker.record("audit")
+	}
 	f.calls = append(f.calls, auditCall{action: action, resource: resource, fields: fields})
 }
 
 // --- harness ------------------------------------------------------------
 
 type harness struct {
-	cur    *fakeCurriculumAggRepo
-	assign *fakeAssignmentAggRepo
-	item   *fakeItemAggRepo
-	doc    *fakeDocumentAggRepo
-	render *fakeRenderer
-	audit  *fakeAuditSink
-	uc     *usecases.AnnualReportUseCase
+	cur     *fakeCurriculumAggRepo
+	assign  *fakeAssignmentAggRepo
+	item    *fakeItemAggRepo
+	doc     *fakeDocumentAggRepo
+	render  *fakeRenderer
+	audit   *fakeAuditSink
+	tracker *callTracker
+	uc      *usecases.AnnualReportUseCase
 }
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
+	tracker := &callTracker{}
 	h := &harness{
-		cur:    &fakeCurriculumAggRepo{},
-		assign: &fakeAssignmentAggRepo{},
-		item:   &fakeItemAggRepo{},
-		doc:    &fakeDocumentAggRepo{},
-		render: &fakeRenderer{result: []byte{0x50, 0x4B, 0x03, 0x04, 'D', 'O', 'C', 'X'}},
-		audit:  &fakeAuditSink{},
+		tracker: tracker,
+		cur:     &fakeCurriculumAggRepo{tracker: tracker},
+		assign:  &fakeAssignmentAggRepo{tracker: tracker},
+		item:    &fakeItemAggRepo{tracker: tracker},
+		doc:     &fakeDocumentAggRepo{tracker: tracker},
+		render:  &fakeRenderer{tracker: tracker, result: []byte{0x50, 0x4B, 0x03, 0x04, 'D', 'O', 'C', 'X'}},
+		audit:   &fakeAuditSink{tracker: tracker},
 	}
 	h.uc = usecases.NewAnnualReportUseCase(h.cur, h.assign, h.item, h.doc, h.render, h.audit)
 	return h
@@ -167,6 +198,11 @@ func TestAnnualReportUseCase_Generate_HappyPath(t *testing.T) {
 	require.Equal(t, "report", h.audit.calls[0].resource)
 	require.Equal(t, 2026, h.audit.calls[0].fields["year"])
 	require.Equal(t, int64(42), h.audit.calls[0].fields["actor_user_id"])
+
+	// Order matters: aggregates fan out before render; audit fires only
+	// after a successful render (forensic trail tracks completed
+	// generations, не failed attempts).
+	require.Equal(t, []string{"curriculum", "assignment", "item", "document", "render", "audit"}, h.tracker.calls)
 }
 
 func TestAnnualReportUseCase_Generate_RepoErrorsPropagate(t *testing.T) {

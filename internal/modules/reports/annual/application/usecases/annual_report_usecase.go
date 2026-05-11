@@ -125,7 +125,7 @@ func (uc *AnnualReportUseCase) Generate(ctx context.Context, in GenerateAnnualRe
 		return nil, fmt.Errorf("annual_report: documents activity aggregate: %w", err)
 	}
 
-	bytes, err := uc.renderer.RenderAnnualReport(in.Year, curricula, grades, hours, activity)
+	docxBytes, err := uc.renderer.RenderAnnualReport(in.Year, curricula, grades, hours, activity)
 	if err != nil {
 		return nil, fmt.Errorf("annual_report: render: %w", err)
 	}
@@ -136,5 +136,5 @@ func (uc *AnnualReportUseCase) Generate(ctx context.Context, in GenerateAnnualRe
 			"actor_user_id": in.ActorID,
 		})
 	}
-	return bytes, nil
+	return docxBytes, nil
 }
