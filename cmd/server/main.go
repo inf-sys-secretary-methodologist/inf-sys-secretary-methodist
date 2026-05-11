@@ -508,22 +508,16 @@ func main() {
 	bulkEditDisciplineItemsUseCase := curUsecases.NewBulkEditDisciplineItemsUseCase(bulkDisciplineItemsUoW, auditLogger, nil)
 	logger.Info("Curriculum module initialized", nil)
 
-	// Annual methodist report (B4, v0.129.0) — cross-module read-only
-	// orchestrator. Uses fresh DocumentRepositoryPG (independent от
-	// s3Client gating; annual report only reads documents table, не
-	// blob storage). Calendar-year aggregation per ADR-4.
-	//
-	// TODO(v0.130.x): extract a narrow `AnnualReportDocumentReader`
-	// port exposing only AggregateActivityByType, decouple from the
-	// full DocumentRepository to avoid this duplicate-handle smell.
-	// Both wrappers share *sql.DB underneath — no extra connection
-	// pressure — but the duplication is brittle if documents module
-	// evolves invariants on its primary repo construction.
+	// Annual methodist report (B4, v0.129.0+) — cross-module read-only
+	// orchestrator. Calendar-year aggregation per ADR-4. The documents
+	// dependency is the narrow DocumentActivityReaderPG (v0.129.1),
+	// independent from the full DocumentRepositoryPG construction so
+	// the annual orchestrator does not couple to that repo's invariants.
 	annualReportUseCase := annualUsecases.NewAnnualReportUseCase(
 		curriculumRepo,
 		assignmentRepo,
 		disciplineItemRepo,
-		docPersistence.NewDocumentRepositoryPG(db),
+		docPersistence.NewDocumentActivityReaderPG(db),
 		annualDocxgen.NewRenderer(),
 		auditLogger,
 	)

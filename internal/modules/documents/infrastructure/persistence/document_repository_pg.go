@@ -1010,13 +1010,22 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 // (document_type.name, document.status) for documents whose created_at
 // lies in the half-open [from, to) range. Empty result is not an error.
 func (r *DocumentRepositoryPG) AggregateActivityByType(ctx context.Context, from, to time.Time) ([]repositories.DocumentActivityByTypeAgg, error) {
+	return aggregateActivityByType(ctx, r.db, from, to)
+}
+
+// aggregateActivityByType is the shared SQL execution for
+// (DocumentRepositoryPG, DocumentActivityReaderPG).AggregateActivityByType.
+// Lives at package scope so both the full repository and the narrow
+// activity reader call into a single source of truth — no SQL drift,
+// no construction-invariant coupling between adapters.
+func aggregateActivityByType(ctx context.Context, db *sql.DB, from, to time.Time) ([]repositories.DocumentActivityByTypeAgg, error) {
 	const query = `SELECT dt.name, d.status, COUNT(*) FROM documents d
 		JOIN document_types dt ON dt.id = d.document_type_id
 		WHERE d.created_at >= $1 AND d.created_at < $2
 		GROUP BY dt.name, d.status
 		ORDER BY dt.name, d.status`
 
-	rows, err := r.db.QueryContext(ctx, query, from, to)
+	rows, err := db.QueryContext(ctx, query, from, to)
 	if err != nil {
 		return nil, fmt.Errorf("documents: aggregate activity by type: %w", err)
 	}
