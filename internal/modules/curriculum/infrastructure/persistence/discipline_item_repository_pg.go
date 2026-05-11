@@ -210,11 +210,51 @@ func (r *DisciplineItemRepositoryPG) Delete(ctx context.Context, id int64) error
 	return nil
 }
 
-// AggregateHoursByYear sums the four hours columns per curriculum for
-// curricula with year = year. Two-level JOIN traverses sections then
-// items. Implementation deferred to GREEN.
-func (r *DisciplineItemRepositoryPG) AggregateHoursByYear(_ context.Context, _ int) ([]repositories.DisciplineItemHoursAgg, error) {
-	return nil, errors.New("discipline_item: aggregate hours by year not implemented")
+// AggregateHoursByYear sums the four hours columns per curriculum
+// for curricula with curricula.year = year. LEFT JOIN keeps curricula
+// that have no sections or items (they contribute 0 to each total).
+func (r *DisciplineItemRepositoryPG) AggregateHoursByYear(ctx context.Context, year int) ([]repositories.DisciplineItemHoursAgg, error) {
+	const query = `SELECT c.id, c.title,
+		COALESCE(SUM(ci.hours_lectures), 0),
+		COALESCE(SUM(ci.hours_practice), 0),
+		COALESCE(SUM(ci.hours_lab), 0),
+		COALESCE(SUM(ci.hours_self), 0)
+		FROM curricula c
+		LEFT JOIN curriculum_sections s ON s.curriculum_id = c.id
+		LEFT JOIN curriculum_section_items ci ON ci.section_id = s.id
+		WHERE c.year = $1
+		GROUP BY c.id, c.title
+		ORDER BY c.title, c.id`
+
+	rows, err := r.db.QueryContext(ctx, query, year)
+	if err != nil {
+		return nil, fmt.Errorf("discipline_item: aggregate hours by year: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var out []repositories.DisciplineItemHoursAgg
+	for rows.Next() {
+		var (
+			id                               int64
+			title                            string
+			lectures, practice, lab, selfHrs int
+		)
+		if err := rows.Scan(&id, &title, &lectures, &practice, &lab, &selfHrs); err != nil {
+			return nil, fmt.Errorf("discipline_item: aggregate hours scan: %w", err)
+		}
+		out = append(out, repositories.DisciplineItemHoursAgg{
+			CurriculumID:    id,
+			CurriculumTitle: title,
+			Lectures:        lectures,
+			Practice:        practice,
+			Lab:             lab,
+			SelfStudy:       selfHrs,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("discipline_item: aggregate hours rows: %w", err)
+	}
+	return out, nil
 }
 
 // bumpDisciplineItemVersion increments the version on the entity to
