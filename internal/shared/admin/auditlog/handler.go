@@ -83,13 +83,10 @@ func (h *AdminAuditLogHandler) List(c *gin.Context) {
 	}
 
 	items := mapItems(result.Items)
-	perPage := input.Limit
-	if perPage <= 0 {
-		perPage = DefaultLimit
-	}
-	if perPage > MaxLimit {
-		perPage = MaxLimit
-	}
+	// Single source of truth: ClampLimit is the use-case clamp policy.
+	// Without this the handler would re-implement Default/Max bounds
+	// and drift away from the use case over time.
+	perPage := ClampLimit(input.Limit)
 	page := input.Offset/perPage + 1
 	totalPages := 0
 	if result.Total > 0 {

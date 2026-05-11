@@ -64,6 +64,20 @@ func NewAdminAuditLogUseCase(reader logging.AuditLogReader) *AdminAuditLogUseCas
 	return &AdminAuditLogUseCase{reader: reader}
 }
 
+// ClampLimit applies the Default/Max policy to a page-size input.
+// Exported so the handler can match the use case's effective limit
+// when projecting the pagination metadata without re-implementing
+// the clamp — single source of truth (Tier 2 reviewer note v0.131.0).
+func ClampLimit(in int) int {
+	if in <= 0 {
+		return DefaultLimit
+	}
+	if in > MaxLimit {
+		return MaxLimit
+	}
+	return in
+}
+
 // List clamps pagination, validates the time range, and forwards the
 // filter to the reader. Negative offsets clamp to zero (rather than
 // 400) because they are reachable from URL-template arithmetic on
@@ -73,23 +87,13 @@ func (uc *AdminAuditLogUseCase) List(ctx context.Context, in ListInput) (logging
 		return logging.AuditLogListResult{}, ErrInvalidTimeRange
 	}
 
-	limit := in.Limit
-	if limit <= 0 {
-		limit = DefaultLimit
-	}
-	if limit > MaxLimit {
-		limit = MaxLimit
-	}
-
-	offset := max(in.Offset, 0)
-
 	return uc.reader.List(ctx, logging.AuditLogFilter{
 		Action:   in.Action,
 		Resource: in.Resource,
 		UserID:   in.UserID,
 		From:     in.From,
 		To:       in.To,
-		Limit:    limit,
-		Offset:   offset,
+		Limit:    ClampLimit(in.Limit),
+		Offset:   max(in.Offset, 0),
 	})
 }

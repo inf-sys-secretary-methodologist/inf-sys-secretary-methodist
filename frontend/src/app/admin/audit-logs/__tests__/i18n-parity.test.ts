@@ -20,8 +20,6 @@ type MessagesShape = {
       userId?: string
       from?: string
       to?: string
-      limit?: string
-      apply?: string
       reset?: string
     }
     columns?: {
@@ -45,16 +43,7 @@ const locales: Array<readonly [string, MessagesShape]> = [
   ['ar', ar as MessagesShape],
 ]
 
-const filterKeys = [
-  'action',
-  'resource',
-  'userId',
-  'from',
-  'to',
-  'limit',
-  'apply',
-  'reset',
-] as const
+const filterKeys = ['action', 'resource', 'userId', 'from', 'to', 'reset'] as const
 const columnKeys = [
   'created_at',
   'action',

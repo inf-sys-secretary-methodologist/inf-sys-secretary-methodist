@@ -2723,8 +2723,6 @@
       "userId": "ID de l'utilisateur",
       "from": "Du",
       "to": "Au",
-      "limit": "Taille de la page",
-      "apply": "Appliquer",
       "reset": "Réinitialiser"
     },
     "columns": {
