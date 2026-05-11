@@ -132,9 +132,41 @@ func (r *AssignmentRepositoryPG) List(ctx context.Context, filter repositories.A
 	return repositories.AssignmentListResult{Items: items, Total: total}, nil
 }
 
-// AggregateGradeDistribution counts submissions per (assignment.subject,
-// submission.status) within a half-open created_at window. Implementation
-// deferred to GREEN.
-func (r *AssignmentRepositoryPG) AggregateGradeDistribution(_ context.Context, _, _ time.Time) ([]repositories.AssignmentGradeDistributionAgg, error) {
-	return nil, errors.New("assignments: aggregate grade distribution not implemented")
+// AggregateGradeDistribution counts submissions grouped by
+// (assignment.subject, submission.status) for submissions whose
+// created_at lies in the half-open [from, to) range. Empty result
+// is not an error.
+func (r *AssignmentRepositoryPG) AggregateGradeDistribution(ctx context.Context, from, to time.Time) ([]repositories.AssignmentGradeDistributionAgg, error) {
+	const query = `SELECT a.subject, s.status, COUNT(*) FROM submissions s
+		JOIN assignments a ON a.id = s.assignment_id
+		WHERE s.created_at >= $1 AND s.created_at < $2
+		GROUP BY a.subject, s.status
+		ORDER BY a.subject, s.status`
+
+	rows, err := r.db.QueryContext(ctx, query, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("assignments: aggregate grade distribution: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var out []repositories.AssignmentGradeDistributionAgg
+	for rows.Next() {
+		var (
+			subject   string
+			statusStr string
+			count     int
+		)
+		if err := rows.Scan(&subject, &statusStr, &count); err != nil {
+			return nil, fmt.Errorf("assignments: aggregate grade scan: %w", err)
+		}
+		out = append(out, repositories.AssignmentGradeDistributionAgg{
+			Subject: subject,
+			Status:  entities.SubmissionStatus(statusStr),
+			Count:   count,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("assignments: aggregate grade rows: %w", err)
+	}
+	return out, nil
 }
