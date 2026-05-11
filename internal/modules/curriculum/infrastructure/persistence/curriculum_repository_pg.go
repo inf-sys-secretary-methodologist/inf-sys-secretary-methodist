@@ -253,10 +253,40 @@ func (r *CurriculumRepositoryPG) Update(ctx context.Context, c *entities.Curricu
 }
 
 // AggregateByYearSpecialty returns one row per (specialty, status)
-// combination for curricula with curricula.year = year, with a count
-// of matching rows. Implementation deferred to GREEN.
-func (r *CurriculumRepositoryPG) AggregateByYearSpecialty(_ context.Context, _ int) ([]repositories.CurriculumYearSpecialtyAgg, error) {
-	return nil, errors.New("curriculum: aggregate by year+specialty not implemented")
+// combination for curricula with curricula.year = year, counting matching
+// rows. Empty result is not an error.
+func (r *CurriculumRepositoryPG) AggregateByYearSpecialty(ctx context.Context, year int) ([]repositories.CurriculumYearSpecialtyAgg, error) {
+	const query = `SELECT specialty, status, COUNT(*) FROM curricula
+		WHERE year = $1
+		GROUP BY specialty, status
+		ORDER BY specialty, status`
+
+	rows, err := r.db.QueryContext(ctx, query, year)
+	if err != nil {
+		return nil, fmt.Errorf("curriculum: aggregate by year+specialty: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var out []repositories.CurriculumYearSpecialtyAgg
+	for rows.Next() {
+		var (
+			specialty string
+			statusStr string
+			count     int
+		)
+		if err := rows.Scan(&specialty, &statusStr, &count); err != nil {
+			return nil, fmt.Errorf("curriculum: aggregate scan: %w", err)
+		}
+		out = append(out, repositories.CurriculumYearSpecialtyAgg{
+			Specialty: specialty,
+			Status:    entities.CurriculumStatus(statusStr),
+			Count:     count,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("curriculum: aggregate rows: %w", err)
+	}
+	return out, nil
 }
 
 // nullableDescription maps an empty Go string to a SQL NULL so the
