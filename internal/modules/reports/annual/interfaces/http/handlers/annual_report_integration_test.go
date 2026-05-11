@@ -75,8 +75,11 @@ func (r *recordingAudit) LogAuditEvent(_ context.Context, action, resource strin
 // Asserts:
 //  1. status 200 + correct DOCX content-type + filename header
 //  2. response body parses as a valid OOXML zip package
-//  3. word/document.xml is present and contains every section header
-//     + at least one rendered aggregate cell value (no escape regression)
+//  3. word/document.xml is present, contains every section header +
+//     every rendered aggregate cell value, AND XML metacharacters in
+//     fixture data (& < > ") are emitted as escaped entities — never
+//     verbatim — proving the escape-safe pipeline through paragraph
+//     builder + substitution helper + gin response writer
 //  4. audit event report.annual_generated fired exactly once with the
 //     expected actor / year fields
 //
@@ -86,11 +89,17 @@ func (r *recordingAudit) LogAuditEvent(_ context.Context, action, resource strin
 func TestAnnualReport_Integration_HappyPath_ProducesValidDocx(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	// Fixtures intentionally carry XML metacharacters (& < > ") in one
+	// section each so the test fails if any layer (renderer paragraph
+	// builder, substitution helper, gin Data writer) regresses on escape
+	// safety. The assertions below check that the escaped forms (&amp; /
+	// &lt; / &gt;) appear in word/document.xml — never the raw metachars
+	// inside the rendered text runs.
 	const (
 		year         = 2026
 		actorID      = int64(42)
 		specialty    = "09.02.07 Информационные системы"
-		subject      = "Алгоритмы и структуры данных"
+		subject      = `Алгоритмы & <структуры "данных">` // <- XML metachars
 		curriculumTl = "Учебный план ИС-21"
 		docType      = "Приказ"
 	)
@@ -147,9 +156,17 @@ func TestAnnualReport_Integration_HappyPath_ProducesValidDocx(t *testing.T) {
 	require.Contains(t, docXML, "4. Документооборот")
 
 	require.Contains(t, docXML, specialty)
-	require.Contains(t, docXML, subject)
 	require.Contains(t, docXML, curriculumTl)
 	require.Contains(t, docXML, docType)
+
+	// Escape-safe pipeline check: raw subject contains & < > " which must
+	// be emitted as XML entities (&amp; / &lt; / &gt; / &#34;), and the
+	// raw metacharacters must NOT survive verbatim inside a <w:t> run.
+	const escapedSubject = `Алгоритмы &amp; &lt;структуры &#34;данных&#34;&gt;`
+	require.Contains(t, docXML, escapedSubject,
+		"subject text must be XML-escaped before reaching word/document.xml")
+	require.NotContains(t, docXML, subject,
+		"raw &/</>/\" must never leak verbatim into the rendered DOCX body")
 
 	// (4) audit event fired once with expected fields.
 	require.Len(t, audit.calls, 1, "report.annual_generated must fire exactly once on success")

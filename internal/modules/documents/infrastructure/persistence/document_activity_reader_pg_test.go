@@ -84,7 +84,9 @@ func TestDocumentActivityReaderPG_AggregateActivityByType(t *testing.T) {
 			WillReturnError(fmt.Errorf("conn refused"))
 
 		got, err := reader.AggregateActivityByType(context.Background(), from, to)
-		require.Error(t, err)
+		require.ErrorContains(t, err, "documents: aggregate activity by type")
+		require.ErrorContains(t, err, "conn refused")
 		require.Nil(t, got)
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
