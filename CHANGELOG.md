@@ -15,6 +15,138 @@
 
 ---
 
+## [0.129.0] — 2026-05-11
+
+### Added — B4 Annual methodist report (cross-module read-only orchestrator)
+
+First minor release shipping a printed-document workflow: methodist + system_admin
+can pull a DOCX year-summary report for the dean's office. Closes the last
+B-feature of the curriculum / assignments / documents triad.
+
+#### Endpoint
+
+`GET /api/reports/annual?year=YYYY` streams DOCX bytes. Calendar-year
+aggregation (ADR-4): `time.Date(year, 1, 1, ..., UTC)` to
+`time.Date(year+1, 1, 1, ..., UTC)` half-open. Responses: 200 + DOCX /
+401 missing user_id / 403 role missing or not in (methodist, system_admin) /
+422 year missing / non-numeric / out of [2000, 2100] / 500 pipeline failure.
+
+`RequireRole` middleware + handler defense-in-depth allowlist. Academic_secretary
+excluded per ADR-6 (observer, not decision-maker).
+
+#### DOCX synthesis — pure stdlib, zero new deps (ADR-2)
+
+- `internal/shared/docx/Substitute` — generic template-substitute helper:
+  opens DOCX as ZIP, mutates `word/document.xml`, preserves every other
+  entry verbatim. 8 table-driven sub-cases.
+- `internal/modules/reports/annual/infrastructure/docxgen.RenderAnnualReport` —
+  synthesizes minimal 3-entry OOXML package (`[Content_Types].xml` +
+  `_rels/.rels` + `word/document.xml`) with placeholders, delegates to
+  `Substitute`. Template-as-code per user direction (no embedded `.docx`
+  file, no Word authoring trip).
+- XML escape via `encoding/xml.EscapeText` — user data with markup
+  metacharacters is escaped, pinned by injection guard test.
+- Deterministic byte-identical output (zero ModTime on ZIP entries).
+
+#### Aggregate queries (4 producer modules)
+
+| Module | Method | Filter | Group by |
+|---|---|---|---|
+| curriculum | `CurriculumRepo.AggregateByYearSpecialty(year)` | `curricula.year=$1` | `specialty, status` |
+| assignments | `AssignmentRepo.AggregateGradeDistribution(from, to)` | `submissions.created_at IN [$1, $2)` | `a.subject, s.status` |
+| curriculum | `DisciplineItemRepo.AggregateHoursByYear(year)` | `c.year=$1` | `c.id, c.title` |
+| documents | `DocumentRepo.AggregateActivityByType(from, to)` | `documents.created_at IN [$1, $2)` | `dt.name, d.status` |
+
+Row-type DTOs (`CurriculumYearSpecialtyAgg`, `AssignmentGradeDistributionAgg`,
+`DisciplineItemHoursAgg`, `DocumentActivityByTypeAgg`) live in producer module's
+`domain/repositories/` package — rejected backward dependency direction
+(producer→consumer). Consumer (annual report use case) imports from producers
+through narrow ports defined in the use case package per Clean Architecture DIP.
+
+Each aggregate test: 4 sub-case table-driven sqlmock (empty / multi-group /
+single-row / transport error). Cyrillic fixtures throughout.
+
+Two-level JOIN для hours aggregate (`curricula ⋈ curriculum_sections ⋈
+curriculum_section_items`) with `LEFT JOIN` + `COALESCE(SUM(...), 0)` —
+curricula without sections still appear in output with zero totals.
+
+#### Orchestration use case
+
+`AnnualReportUseCase.Generate(ctx, {Year, ActorID})` fans out to 4 repos
+in fixed order, calls renderer, then emits `report.annual_generated`
+audit event with `{year, actor_user_id}` payload. Audit fires **only on
+success** — pipeline failures fail-fast WITHOUT emitting (forensic trail
+tracks completed generations only). Order pinned via `callTracker` test
+slice asserting `["curriculum", "assignment", "item", "document", "render",
+"audit"]`.
+
+Nil audit sink treated as successful no-op (optional dependency, mirror к
+`feedback_audit_emitter_narrow_interface` pattern from assignments module).
+
+Narrow ports per aggregate concern + renderer port — DIP по классике.
+`*usecases.AnnualReportUseCase` constructed in `main.go` (5 producer
+repos + renderer + audit sink); `panic` on nil for required deps.
+
+#### Frontend
+
+- `/reports/annual` page — year selector (last 10 calendar years) +
+  Download button. Role guard via `useAuthCheck` →
+  `router.replace('/forbidden')` for non-methodist / non-admin roles.
+  Download flow: `apiClient.get` → Blob → `URL.createObjectURL` →
+  anchor click → revoke URL. Error key surfaced via `role="alert"`.
+- `frontend/src/lib/api/annualReport.ts` — `download(year): Promise<Blob>`
+  via `apiClient.get('/api/reports/annual', { responseType: 'blob' })`.
+- Nav entry under `analyticsGroup`, methodist + system_admin only,
+  `FileCheck` icon. Pinned by `navigation.test.ts`.
+- i18n × 4: `nav.annualReport` + 6 `reports.annual.*` keys × ru/en/fr/ar
+  = 28 new entries. JSON-load parity test reads raw locale files and
+  asserts non-empty + non-key-verbatim values (defeats global
+  `useTranslations` mock illusion per memory `feedback_i18n_json_load_parity_test`).
+- 5 sub-case page test: renders для methodist + system_admin / redirects
+  teacher / does NOT redirect while auth loading / Download click invokes
+  api with selected year.
+
+#### Misc
+
+- `cmd/server/main.go` — module DI wiring + route registration; fresh
+  `DocumentRepositoryPG` для annual report independent from `s3Client`
+  gate. TODO(v0.130.x) on narrow `AnnualReportDocumentReader` port extraction.
+- 11 TDD pairs (24 commits) + 1 Tier 2 reviewer cleanup commit. Reviewer
+  round-1 verdict **SHIP** mean 9.0 / min 9.0 across TDD / DDD / CA /
+  Security / Testing / Code Quality. Tier 2 fixes (swagger annotations,
+  call-order tracker, `docxBytes` shadow rename, DI smell TODO) absorbed
+  same release per CLAUDE.md "review-bugs фиксить в том же релизе".
+- Backend: `go test ./...` green; `go build ./...` clean; lint clean in
+  new code.
+- Frontend: 200 jest suites / 2855 tests green.
+- No new migration — read-only feature on top of existing tables (ADR-10).
+- No schema breaks; backwards-compatible MINOR bump.
+
+#### ADR deviations from plan (locked decisions)
+
+- **ADR-3** template strategy: user chose "synthesize minimal XML
+  programmatically" over `go:embed templates/annual_report.docx` —
+  eliminates one-time Word authoring trip. Trade-off: bare-bones styling.
+- **ADR-7** alternative reading: aggregate DTOs placed in producer
+  modules (not central `reports/annual/domain/`). Producer ownership
+  avoids backward dependency direction.
+- Pair 2+3 merged into one table-driven RED+GREEN (single SQL query
+  handles both empty and grouped natively).
+- Pair 8-10 merged into one handler RED+GREEN with 13 sub-cases (single
+  handler function, multiple response codes co-tested).
+
+#### Out of scope (deferred)
+
+- Integration test через `httptest` с реальным renderer (manual
+  Word / LibreOffice verification per ADR risk #5).
+- Aggregate query caching (ADR risk #2; deferred unless measurable slow).
+- `AnnualReportDocumentReader` narrow port extraction (DI smell,
+  TODO v0.130.x).
+- Cosmetic DOCX styling (fonts, table borders, color) — current output
+  is plain text paragraphs sufficient для деканат-printing.
+
+---
+
 ## [0.128.10] — 2026-05-11
 
 ### Security — CodeQL sweep: SQL injection guards + workflow permissions hardening
