@@ -1,0 +1,55 @@
+# HELP backup_last_run_timestamp_seconds Unix timestamp of the last backup run
+# TYPE backup_last_run_timestamp_seconds gauge
+backup_last_run_timestamp_seconds{server_id="production",type="postgres"} 1705708800
+
+# HELP backup_last_success_timestamp_seconds Unix timestamp of the last successful backup
+# TYPE backup_last_success_timestamp_seconds gauge
+backup_last_success_timestamp_seconds{server_id="production",type="postgres"} 1705708800
+
+# HELP backup_last_run_success Whether the last backup was successful (1) or failed (0)
+# TYPE backup_last_run_success gauge
+backup_last_run_success{server_id="production",type="postgres"} 1
+
+# HELP backup_duration_seconds Duration of the last backup in seconds
+# TYPE backup_duration_seconds gauge
+backup_duration_seconds{server_id="production",type="postgres"} 120
+
+# HELP backup_size_bytes Size of the last backup in bytes
+# TYPE backup_size_bytes gauge
+backup_size_bytes{server_id="production",type="postgres"} 1048576
+
+# HELP backup_total_count Total number of backup attempts
+# TYPE backup_total_count counter
+backup_total_count{server_id="production",type="postgres"} 100
+
+# HELP backup_success_count Total number of successful backups
+# TYPE backup_success_count counter
+backup_success_count{server_id="production",type="postgres"} 99
+
+# HELP backup_failure_count Total number of failed backups
+# TYPE backup_failure_count counter
+backup_failure_count{server_id="production",type="postgres"} 1
+
+# HELP backup_age_seconds Time since last successful backup in seconds
+# TYPE backup_age_seconds gauge
+backup_age_seconds{server_id="production",type="postgres"} 3600
+
+backup_last_run_timestamp_seconds{server_id="production",type="minio"} 1705712400
+backup_last_success_timestamp_seconds{server_id="production",type="minio"} 1705712400
+backup_last_run_success{server_id="production",type="minio"} 0
+backup_duration_seconds{server_id="production",type="minio"} 45
+backup_size_bytes{server_id="production",type="minio"} 524288
+backup_total_count{server_id="production",type="minio"} 50
+backup_success_count{server_id="production",type="minio"} 48
+backup_failure_count{server_id="production",type="minio"} 2
+backup_age_seconds{server_id="production",type="minio"} 7200
+
+# HELP backup_remote_sync_last_run_timestamp_seconds Unix timestamp of last remote sync
+# TYPE backup_remote_sync_last_run_timestamp_seconds gauge
+backup_remote_sync_last_run_timestamp_seconds{server_id="production"} 1705710000
+backup_remote_sync_last_success_timestamp_seconds{server_id="production"} 1705710000
+backup_remote_sync_last_run_success{server_id="production"} 1
+backup_remote_sync_duration_seconds{server_id="production"} 30
+backup_remote_sync_total_count{server_id="production"} 25
+backup_remote_sync_success_count{server_id="production"} 24
+backup_remote_sync_failure_count{server_id="production"} 1

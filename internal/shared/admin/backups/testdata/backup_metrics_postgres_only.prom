@@ -1,0 +1,6 @@
+# HELP backup_last_run_timestamp_seconds Unix timestamp of the last backup run
+# TYPE backup_last_run_timestamp_seconds gauge
+backup_last_run_timestamp_seconds{server_id="production",type="postgres"} 1705708800
+backup_last_run_success{server_id="production",type="postgres"} 1
+backup_size_bytes{server_id="production",type="postgres"} 2097152
+backup_duration_seconds{server_id="production",type="postgres"} 60
