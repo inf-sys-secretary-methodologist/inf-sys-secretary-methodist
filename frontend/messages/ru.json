@@ -2905,5 +2905,22 @@
       "disabled": "Выключен",
       "webhookUrl": "Webhook URL"
     }
+  },
+  "adminComposio": {
+    "title": "Composio",
+    "description": "Состояние интеграции AI-агентов",
+    "loadFailed": "Не удалось загрузить конфигурацию Composio",
+    "status": {
+      "sectionLabel": "Статус интеграции",
+      "configured": "Подключён",
+      "unconfigured": "Не настроен"
+    },
+    "fields": {
+      "apiKey": "API ключ",
+      "entityID": "Entity ID",
+      "mcpConfigID": "MCP Config ID",
+      "set": "установлен",
+      "unset": "не установлен"
+    }
   }
 }

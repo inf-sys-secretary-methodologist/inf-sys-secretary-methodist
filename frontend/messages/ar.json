@@ -2905,5 +2905,22 @@
       "disabled": "معطَّل",
       "webhookUrl": "Webhook URL"
     }
+  },
+  "adminComposio": {
+    "title": "Composio",
+    "description": "حالة تشغيل تكامل عملاء الذكاء الاصطناعي",
+    "loadFailed": "فشل تحميل إعدادات Composio",
+    "status": {
+      "sectionLabel": "حالة التكامل",
+      "configured": "مهيأ",
+      "unconfigured": "غير مهيأ"
+    },
+    "fields": {
+      "apiKey": "مفتاح API",
+      "entityID": "معرّف الكيان",
+      "mcpConfigID": "معرّف تكوين MCP",
+      "set": "مضبوط",
+      "unset": "غير مضبوط"
+    }
   }
 }

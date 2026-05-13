@@ -2905,5 +2905,22 @@
       "disabled": "Disabled",
       "webhookUrl": "Webhook URL"
     }
+  },
+  "adminComposio": {
+    "title": "Composio",
+    "description": "AI agent integration runtime status",
+    "loadFailed": "Failed to load Composio configuration",
+    "status": {
+      "sectionLabel": "Integration status",
+      "configured": "Configured",
+      "unconfigured": "Not configured"
+    },
+    "fields": {
+      "apiKey": "API key",
+      "entityID": "Entity ID",
+      "mcpConfigID": "MCP Config ID",
+      "set": "set",
+      "unset": "unset"
+    }
   }
 }
