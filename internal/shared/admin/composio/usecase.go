@@ -81,10 +81,16 @@ func NewAdminComposioUseCase(probe Probe) *AdminComposioUseCase {
 	return &AdminComposioUseCase{probe: probe}
 }
 
-// GetConfig returns the Composio configuration projection. RED
-// stub — returns a zero Config so handler_test.go fails on the
-// configured-branch assertions until the GREEN commit ships the
-// real projection.
+// GetConfig returns the Composio configuration projection. The
+// aggregate Configured boolean is true only when all three env
+// vars are non-empty; the per-field booleans surface so admins
+// can see which specific field is missing when partial.
 func (uc *AdminComposioUseCase) GetConfig(_ context.Context) Config {
-	return Config{}
+	r := uc.probe()
+	return Config{
+		Configured:       r.AllConfigured(),
+		APIKeyConfigured: r.APIKeyConfigured,
+		EntityIDSet:      r.EntityIDSet,
+		MCPConfigIDSet:   r.MCPConfigIDSet,
+	}
 }

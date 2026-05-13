@@ -148,6 +148,7 @@ import (
 	usersRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/routes"
 	adminAuditLog "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/auditlog"
 	adminBackups "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/backups"
+	adminComposio "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/composio"
 	adminIntegrations "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/integrations"
 	adminSentry "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/sentry"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
@@ -2616,6 +2617,23 @@ func setupRoutes(
 			adminGroup.GET("/integrations/config", adminIntegrationsHandler.GetConfig)
 			adminGroup.OPTIONS("/integrations/config", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			logger.Info("Admin integrations config view registered", nil)
+
+			// Admin Composio config view (v0.135.0). Read-only
+			// projection of the runtime Composio integration state
+			// (API key + entity ID + MCP config ID). Only per-field
+			// booleans surface — the API key is a signing secret;
+			// entity ID and MCP config ID are opaque platform
+			// identifiers that do not serve admin observability
+			// beyond presence. Env-direct probe so the projection
+			// matches what consuming services in
+			// modules/notifications/application/services see.
+			adminComposioUseCase := adminComposio.NewAdminComposioUseCase(
+				adminComposio.EnvComposioProbe,
+			)
+			adminComposioHandler := adminComposio.NewAdminComposioHandler(adminComposioUseCase)
+			adminGroup.GET("/composio/config", adminComposioHandler.GetConfig)
+			adminGroup.OPTIONS("/composio/config", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			logger.Info("Admin Composio config view registered", nil)
 		}
 	}
 
