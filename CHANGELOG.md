@@ -15,6 +15,68 @@
 
 ---
 
+## [0.134.0] — 2026-05-13
+
+### Added — Admin integrations config view (Phase 5 #4 partial)
+
+Read-only admin surface at `/admin/integrations` over the runtime
+WebPush (VAPID) and n8n workflow automation configuration.
+Mirror к `/admin/sentry` pattern: env-direct probe, no cfg refactor,
+DSN-style boolean for the secret (VAPID private key), public fields
+surface verbatim.
+
+#### Backend
+
+- New package `internal/shared/admin/integrations/` — `Config` DTO
+  (`VAPIDConfig` + `N8NConfig`), `AdminIntegrationsUseCase` with
+  injectable `VAPIDProbe`, `EnvVAPIDProbe` (requires `VAPID_PUBLIC_KEY`
+  AND `VAPID_PRIVATE_KEY` AND `VAPID_SUBJECT` non-empty),
+  `AdminIntegrationsHandler.GetConfig` mounted under `adminGroup`.
+- `GET /api/admin/integrations/config` returns `{vapid: {configured,
+  public_key, subject}, n8n: {enabled, webhook_url}}`. VAPID private
+  key never leaves the server — only its presence as boolean. Public
+  key surfaces (browser receives it via `/push/public-key` anyway).
+  n8n WebhookURL is non-secret operational URL.
+
+#### Frontend
+
+- `/admin/integrations` page — two status cards (VAPID + n8n)
+  stack on mobile / side-by-side md+. Each card renders the
+  configured/enabled badge (CheckCircle2 green vs AlertCircle muted)
+  plus the operational fields (VAPID public key + subject, n8n
+  webhook URL).
+- `useIntegrationsConfig` SWR hook + `IntegrationsConfig` type
+  mirror the backend Config JSON shape exactly.
+- Nav entry `integrations` × 4 locales under `adminGroup` with Plug
+  icon (system_admin allowlist).
+
+#### Internationalisation
+
+- `adminIntegrations.*` namespace × 4 locales (ru/en/fr/ar) — 13
+  keys covering title / description / loadFailed / vapid.{
+  sectionLabel, configured, unconfigured, publicKey, subject} /
+  n8n.{sectionLabel, enabled, disabled, webhookUrl}.
+- `nav.integrations` × 4 locales.
+
+#### Tests
+
+- `internal/shared/admin/integrations/handler_test.go` —
+  configured/unconfigured branches + nil-probe panic + nil-handler
+  panic + EnvVAPIDProbe truth table (8 combinations).
+- Frontend: 22 tests (page + i18n parity × 4) covering both cards
+  + role guard + loading/error states.
+
+#### Reviewer round
+
+Mean **9.13** / Min **9** / Verdict **SHIP** single-pass.
+Per-axis: TDD 9 / DDD 9 / CA 9 / Security 10 / i18n 9 / Tests 10
+/ Cohesion 9 / Mirror к v0.133.0 10. Zero Tier 0/1/2 findings;
+three Tier 3 cosmetic items deferred (AR translation of
+"Subject" field, hook unit-test, EnvVAPIDProbe relocation to
+adapter.go).
+
+---
+
 ## [0.133.0] — 2026-05-13
 
 ### Added — Admin Sentry config + admin user management (Phase 5 #3)
