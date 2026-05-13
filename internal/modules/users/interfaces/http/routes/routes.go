@@ -28,28 +28,27 @@ func RegisterUserRoutes(
 	userHandler *handlers.UserHandler,
 	avatarHandler *handlers.AvatarHandler,
 ) {
-	// RED state: every endpoint mounted on the parent group without
-	// the admin gate. Tests in routes_test.go assert that the four
-	// non-admin roles must receive 403 on write endpoints — those
-	// assertions FAIL here and PASS once GREEN splits the writes
-	// under adminMW.
+	// Read-only subgroup — any authenticated caller. Cross-module
+	// consumers (documents author lookup, curriculum methodist
+	// resolver) depend on this surface and must not be admin-gated.
 	group.GET("", userHandler.List)
 	group.GET("/:id", userHandler.GetByID)
-	group.PUT("/:id/profile", userHandler.UpdateProfile)
-	group.PUT("/:id/role", userHandler.UpdateRole)
-	group.PUT("/:id/status", userHandler.UpdateStatus)
-	group.DELETE("/:id", userHandler.Delete)
-	group.POST("/bulk/department", userHandler.BulkUpdateDepartment)
-	group.POST("/bulk/position", userHandler.BulkUpdatePosition)
 	group.GET("/by-department/:id", userHandler.GetByDepartment)
 	group.GET("/by-position/:id", userHandler.GetByPosition)
-	group.POST("/:id/avatar", avatarHandler.Upload)
-	group.DELETE("/:id/avatar", avatarHandler.Delete)
 	group.GET("/:id/avatar", avatarHandler.GetAvatarURL)
 
-	// adminMW is the RequireRole(system_admin) gate. In the RED
-	// commit it stays unused — declared in the signature so callers
-	// can already pass it without a follow-up signature change. The
-	// GREEN commit applies it to the write subgroup.
-	_ = adminMW
+	// Admin-write subgroup — only system_admin (adminMW gates the
+	// whole subgroup). Closes the TIER 0 privilege-escalation gap
+	// where any authenticated user could DELETE /:id, PUT /:id/role,
+	// PUT /:id/status, PUT /:id/profile, or invoke /bulk/*.
+	admin := group.Group("")
+	admin.Use(adminMW)
+	admin.PUT("/:id/profile", userHandler.UpdateProfile)
+	admin.PUT("/:id/role", userHandler.UpdateRole)
+	admin.PUT("/:id/status", userHandler.UpdateStatus)
+	admin.DELETE("/:id", userHandler.Delete)
+	admin.POST("/bulk/department", userHandler.BulkUpdateDepartment)
+	admin.POST("/bulk/position", userHandler.BulkUpdatePosition)
+	admin.POST("/:id/avatar", avatarHandler.Upload)
+	admin.DELETE("/:id/avatar", avatarHandler.Delete)
 }

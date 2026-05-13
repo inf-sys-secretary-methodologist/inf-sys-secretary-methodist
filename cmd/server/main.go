@@ -145,6 +145,7 @@ import (
 	usersRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	usersPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/infrastructure/persistence"
 	usersHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/handlers"
+	usersRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/routes"
 	adminAuditLog "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/auditlog"
 	adminBackups "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/backups"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
@@ -2424,26 +2425,19 @@ func setupRoutes(
 			positionHandlerInstance := usersHandler.NewPositionHandler(positionUseCase)
 			avatarHandlerInstance := usersHandler.NewAvatarHandler(userUseCase, s3Client)
 
-			// Users management routes
+			// Users management routes — split into read-only and admin-write
+			// subgroups by usersRoutes.RegisterUserRoutes. Closes the TIER 0
+			// privilege-escalation gap (any authenticated user could
+			// PUT /role, PUT /status, DELETE /:id, POST /bulk/* prior to
+			// v0.133.0). Read-only endpoints (List, GetByID, by-department,
+			// by-position, GET avatar) stay permissive for cross-module
+			// consumers; write endpoints require system_admin.
 			usersGroup := protectedGroup.Group("/users")
+			usersAdminMW := authMiddleware.RequireRole(string(authDomain.RoleSystemAdmin))
+			usersRoutes.RegisterUserRoutes(usersGroup, usersAdminMW, userHandlerInstance, avatarHandlerInstance)
 			{
-				usersGroup.GET("", userHandlerInstance.List)
-				usersGroup.GET("/:id", userHandlerInstance.GetByID)
-				usersGroup.PUT("/:id/profile", userHandlerInstance.UpdateProfile)
-				usersGroup.PUT("/:id/role", userHandlerInstance.UpdateRole)
-				usersGroup.PUT("/:id/status", userHandlerInstance.UpdateStatus)
-				usersGroup.DELETE("/:id", userHandlerInstance.Delete)
-				usersGroup.POST("/bulk/department", userHandlerInstance.BulkUpdateDepartment)
-				usersGroup.POST("/bulk/position", userHandlerInstance.BulkUpdatePosition)
-				usersGroup.GET("/by-department/:id", userHandlerInstance.GetByDepartment)
-				usersGroup.GET("/by-position/:id", userHandlerInstance.GetByPosition)
-
-				// Avatar routes
-				usersGroup.POST("/:id/avatar", avatarHandlerInstance.Upload)
-				usersGroup.DELETE("/:id/avatar", avatarHandlerInstance.Delete)
-				usersGroup.GET("/:id/avatar", avatarHandlerInstance.GetAvatarURL)
-
-				// CORS preflight handlers
+				// CORS preflight handlers — must not be admin-gated; the
+				// browser preflight has no credentials/role context.
 				usersGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				usersGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				usersGroup.OPTIONS("/:id/profile", func(c *gin.Context) { c.Status(http.StatusNoContent) })
