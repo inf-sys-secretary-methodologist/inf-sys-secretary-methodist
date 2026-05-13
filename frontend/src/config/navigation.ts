@@ -21,6 +21,7 @@ import {
   HardDrive,
   Activity,
   UserCog,
+  Plug,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -334,6 +335,15 @@ export const navigationConfig: NavEntry[] = [
         nameKey: 'adminUsers',
         url: '/admin/users',
         icon: UserCog,
+        roles: [UserRole.SYSTEM_ADMIN],
+      },
+      {
+        // Admin integrations config view (v0.134.0). Read-only mirror
+        // of WebPush (VAPID) + n8n runtime config — DSN-style boolean
+        // for the VAPID private key, public fields surface verbatim.
+        nameKey: 'integrations',
+        url: '/admin/integrations',
+        icon: Plug,
         roles: [UserRole.SYSTEM_ADMIN],
       },
       {

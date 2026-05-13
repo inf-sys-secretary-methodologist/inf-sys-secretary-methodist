@@ -200,7 +200,8 @@
     "annualReport": "التقرير السنوي",
     "auditLogs": "سجل التدقيق",
     "sentry": "Sentry",
-    "adminUsers": "إدارة المستخدمين"
+    "adminUsers": "إدارة المستخدمين",
+    "integrations": "التكاملات"
   },
   "roles": {
     "system_admin": "مدير النظام",
