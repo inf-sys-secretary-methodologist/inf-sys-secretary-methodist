@@ -18,6 +18,19 @@ jest.mock('@/hooks/useUsers', () => ({
   useUsers: (filter: unknown, opts?: unknown) => mockUseUsers(filter, opts),
 }))
 
+const mockUpdateRole = jest.fn()
+const mockUpdateStatus = jest.fn()
+const mockDeleteUser = jest.fn()
+jest.mock('@/hooks/useUserMutations', () => ({
+  useUpdateUserRole: () => ({ updateRole: mockUpdateRole, isLoading: false, error: null }),
+  useUpdateUserStatus: () => ({
+    updateStatus: mockUpdateStatus,
+    isLoading: false,
+    error: null,
+  }),
+  useDeleteUser: () => ({ deleteUser: mockDeleteUser, isLoading: false, error: null }),
+}))
+
 jest.mock('@/components/layout', () => ({
   AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
@@ -191,6 +204,75 @@ describe('AdminUsersPage — filters', () => {
     const reset = screen.getByTestId('users-reset')
     await userEvent.click(reset)
     expect(search.value).toBe('')
+  })
+})
+
+describe('AdminUsersPage — dialogs', () => {
+  it('renders action buttons for each user row', () => {
+    render(<AdminUsersPage />)
+    expect(screen.getByTestId('change-role-button-2')).toBeInTheDocument()
+    expect(screen.getByTestId('change-status-button-2')).toBeInTheDocument()
+    expect(screen.getByTestId('delete-button-2')).toBeInTheDocument()
+  })
+
+  it('opens the change-role dialog on button click', async () => {
+    render(<AdminUsersPage />)
+    await userEvent.click(screen.getByTestId('change-role-button-2'))
+    expect(screen.getByTestId('change-role-dialog')).toBeInTheDocument()
+  })
+
+  it('invokes updateRole + closes dialog on confirm', async () => {
+    mockUpdateRole.mockResolvedValueOnce(undefined)
+    render(<AdminUsersPage />)
+    await userEvent.click(screen.getByTestId('change-role-button-2'))
+    const select = screen.getByTestId('change-role-select') as HTMLSelectElement
+    await userEvent.selectOptions(select, 'methodist')
+    await userEvent.click(screen.getByTestId('change-role-confirm'))
+    await waitFor(() => {
+      expect(mockUpdateRole).toHaveBeenCalledWith(2, 'methodist')
+    })
+  })
+
+  it('opens the change-status dialog on button click', async () => {
+    render(<AdminUsersPage />)
+    await userEvent.click(screen.getByTestId('change-status-button-2'))
+    expect(screen.getByTestId('change-status-dialog')).toBeInTheDocument()
+  })
+
+  it('invokes updateStatus + closes dialog on confirm', async () => {
+    mockUpdateStatus.mockResolvedValueOnce(undefined)
+    render(<AdminUsersPage />)
+    await userEvent.click(screen.getByTestId('change-status-button-2'))
+    const select = screen.getByTestId('change-status-select') as HTMLSelectElement
+    await userEvent.selectOptions(select, 'blocked')
+    await userEvent.click(screen.getByTestId('change-status-confirm'))
+    await waitFor(() => {
+      expect(mockUpdateStatus).toHaveBeenCalledWith(2, 'blocked')
+    })
+  })
+
+  it('opens the delete dialog on button click', async () => {
+    render(<AdminUsersPage />)
+    await userEvent.click(screen.getByTestId('delete-button-2'))
+    expect(screen.getByTestId('delete-dialog')).toBeInTheDocument()
+  })
+
+  it('invokes deleteUser + closes dialog on confirm', async () => {
+    mockDeleteUser.mockResolvedValueOnce(undefined)
+    render(<AdminUsersPage />)
+    await userEvent.click(screen.getByTestId('delete-button-2'))
+    await userEvent.click(screen.getByTestId('delete-confirm'))
+    await waitFor(() => {
+      expect(mockDeleteUser).toHaveBeenCalledWith(2)
+    })
+  })
+
+  it('closes the dialog on cancel without invoking mutation', async () => {
+    render(<AdminUsersPage />)
+    await userEvent.click(screen.getByTestId('change-role-button-2'))
+    await userEvent.click(screen.getByTestId('change-role-cancel'))
+    expect(mockUpdateRole).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('change-role-dialog')).not.toBeInTheDocument()
   })
 })
 
