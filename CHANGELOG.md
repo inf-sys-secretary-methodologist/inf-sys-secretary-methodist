@@ -15,6 +15,89 @@
 
 ---
 
+## [0.135.0] — 2026-05-13
+
+### Added — Admin Composio config view (Phase 5 #5 partial)
+
+Read-only admin surface at `/admin/composio` over the runtime
+Composio integration state (API key + entity ID + MCP config ID).
+Composio infrastructure was already wired before this release
+(`internal/shared/infrastructure/composio/client.go` + 4 consuming
+services in `notifications/application/services/`); admins had no
+visibility into wiring status without reading `docker logs` for
+the "Composio credentials not configured" log line. This release
+closes that observability gap — 5th sequential admin observability
+surface in the codified template (after audit-logs, backups,
+sentry, integrations).
+
+#### Backend
+
+- New package `internal/shared/admin/composio/` — `Config` DTO
+  (4 booleans: aggregate `Configured` + per-field
+  `APIKeyConfigured` / `EntityIDSet` / `MCPConfigIDSet`),
+  `AdminComposioUseCase` with injectable `Probe` returning
+  `ProbeResult` struct (drift from `func() bool` VAPID shape
+  justified — Composio has 3 fields all admin-visible-relevant,
+  no public values to surface from cfg snapshot), `EnvComposioProbe`
+  reading `COMPOSIO_API_KEY` / `COMPOSIO_ENTITY_ID` /
+  `COMPOSIO_MCP_CONFIG_ID` env vars directly,
+  `AdminComposioHandler.GetConfig` mounted under `adminGroup`.
+- `GET /api/admin/composio/config` returns `{configured,
+  api_key_configured, entity_id_set, mcp_config_id_set}`. No raw
+  values surface — API key is a signing secret, entity ID and MCP
+  config ID are opaque platform identifiers (per VAPID privacy
+  model). Aggregate `Configured` is true only when all three env
+  vars are non-empty; per-field booleans let admins see exactly
+  which field is missing in partial-state runtimes.
+- Route-level gate is `RequireRole(system_admin)` at `adminGroup`;
+  handler-level role guard intentionally absent (mirror к
+  audit-logs, backups, sentry, integrations precedent).
+- 5 handler tests + 2 table-driven (8 sub-cases each —
+  `ProbeResult.AllConfigured` truth matrix + `EnvComposioProbe`
+  env-var matrix). Integration tests through real `gin.Engine` +
+  `withAuth` helper mirroring production middleware contract.
+
+#### Frontend
+
+- `/admin/composio` page — single status card (mirror к
+  `/admin/sentry` single-card layout — Composio is one service).
+  Status badge flips on aggregate `configured`; dl below renders
+  `fields.set` / `fields.unset` marker per field so admins
+  identify the specific missing field in partial states.
+- `useComposioConfig` SWR hook + `ComposioConfig` type mirror the
+  backend JSON shape exactly. SWR fetcher lifts the response
+  envelope; default `dedupingInterval: SWR_DEDUPING.SHORT`.
+- Nav entry `composio` × 4 locales under `adminGroup` with `Bot`
+  lucide icon (`Sparkles` taken by settings/appearance + messages;
+  `Plug` taken by integrations; `Activity` by sentry).
+- i18n × 4 (ru/en/fr/ar) — new `adminComposio` namespace
+  (~11 keys/locale) + nav `composio` key (brand name identical
+  across locales). JSON-load parity test (~12 cases) over the new
+  namespace.
+
+#### Pattern
+
+- 5th admin observability surface — the template is now codified:
+  `internal/shared/admin/X/` package with usecase + handler +
+  env-direct probe; frontend `/admin/X` page with status card +
+  SWR hook + parity test; route under `adminGroup` with route-level
+  role gate; nav entry with lucide icon × 4 locales.
+- Single-pass reviewer SHIP **mean 9.29 / min 9** — second
+  consecutive release without absorb (v0.134.0 was the first). One
+  Tier 2 absorb (BrE→AmE comment fix in `usecase.go`) folded into
+  release commit per `feedback_tier2_absorb_same_release`.
+
+#### Out of scope (deferred к Phase 5 #5 final)
+
+- SetReminder for tasks (cross-module integration via Composio
+  scheduling) — separate release because the Composio admin
+  surface is read-only by design and SetReminder requires write
+  semantics + connectedAccount workflow.
+- Branding admin (Phase 5 #4 final) — full greenfield (no domain,
+  no DB, no config seam), 5-6 TDD pairs minimum, separate session.
+
+---
+
 ## [0.134.0] — 2026-05-13
 
 ### Added — Admin integrations config view (Phase 5 #4 partial)

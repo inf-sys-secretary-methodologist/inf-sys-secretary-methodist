@@ -35,7 +35,7 @@ type ProbeResult struct {
 
 // AllConfigured returns true when all three Composio env vars are
 // non-empty. Composio services in notifications/ gate their own
-// initialisation on APIKey AND EntityID (see main.go:339,347,1408);
+// initialization on APIKey AND EntityID (see main.go:339,347,1408);
 // MCP integration additionally requires MCPConfigID. "Fully
 // configured" therefore means all three.
 func (r ProbeResult) AllConfigured() bool {
@@ -53,7 +53,7 @@ type Probe func() ProbeResult
 // EnvComposioProbe is the production probe — reads the three
 // Composio env vars directly. Missing any of the three means the
 // corresponding Composio capability is unwired (notifications
-// services skip initialisation on empty APIKey or EntityID; MCP
+// services skip initialization on empty APIKey or EntityID; MCP
 // pipeline skips on empty MCPConfigID).
 func EnvComposioProbe() ProbeResult {
 	return ProbeResult{
