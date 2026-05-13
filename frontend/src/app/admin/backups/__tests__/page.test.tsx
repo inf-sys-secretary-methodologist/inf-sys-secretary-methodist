@@ -1,10 +1,16 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import AdminBackupsPage from '../page'
 import type { BackupFile, BackupMetricsResponse } from '@/types/backup'
 
 const mockReplace = jest.fn()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mockReplace }),
+}))
+
+const mockGetStoredToken = jest.fn()
+jest.mock('@/lib/auth/token', () => ({
+  getStoredToken: () => mockGetStoredToken(),
 }))
 
 const mockUseAuthCheck = jest.fn()
@@ -59,6 +65,7 @@ beforeEach(() => {
     error: undefined,
     mutate: jest.fn(),
   })
+  mockGetStoredToken.mockReturnValue('test-jwt-token')
 })
 
 describe('AdminBackupsPage — role guard', () => {
@@ -132,5 +139,36 @@ describe('AdminBackupsPage — content', () => {
     })
     render(<AdminBackupsPage />)
     expect(screen.getByTestId('backups-error')).toBeInTheDocument()
+  })
+
+  it('opens download URL with auth token on click (no plain anchor)', async () => {
+    const windowOpenSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+    mockUseBackups.mockReturnValue({
+      files: [sampleFile],
+      metrics: sampleMetrics,
+      isLoading: false,
+      error: undefined,
+      mutate: jest.fn(),
+    })
+
+    render(<AdminBackupsPage />)
+    const button = screen.getByTestId(`backup-download-${sampleFile.name}`)
+    await userEvent.click(button)
+
+    // The audit-gated route requires the JWT to be in the URL
+    // because <a download> cannot carry headers; mirror documents
+    // page pattern.
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `/api/admin/backups/postgres/${encodeURIComponent(sampleFile.name)}/download?token=`
+      ),
+      '_blank'
+    )
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      expect.stringContaining(encodeURIComponent('test-jwt-token')),
+      '_blank'
+    )
+
+    windowOpenSpy.mockRestore()
   })
 })

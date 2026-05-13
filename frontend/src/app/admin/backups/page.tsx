@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/table'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { useBackups } from '@/hooks/useBackups'
+import { getStoredToken } from '@/lib/auth/token'
 import { formatFileSize } from '@/lib/utils'
 import type { BackupFile, TypeMetrics, RemoteSyncMetrics } from '@/types/backup'
 
@@ -214,7 +215,20 @@ function RemoteSyncBanner({ metrics }: { metrics: RemoteSyncMetrics }) {
 
 function BackupFileRow({ file }: { file: BackupFile }) {
   const t = useTranslations('adminBackups')
-  const downloadUrl = `/api/admin/backups/${file.type}/${encodeURIComponent(file.name)}/download`
+
+  // The admin backup download route is gated by JWT + RequireRole; a
+  // plain <a href download> issues a no-auth GET → 401. Mirror the
+  // documents page pattern (frontend/src/app/documents/page.tsx:380):
+  // open in a new tab with ?token= query so the backend's middleware
+  // accepts the request despite the browser not being able to set the
+  // Authorization header on a navigation.
+  const handleDownload = () => {
+    const downloadUrl = `/api/admin/backups/${file.type}/${encodeURIComponent(file.name)}/download`
+    const token = getStoredToken()
+    const target = token ? `${downloadUrl}?token=${encodeURIComponent(token)}` : downloadUrl
+    window.open(target, '_blank')
+  }
+
   return (
     <TableRow>
       <TableCell className="font-mono text-xs">{file.name}</TableCell>
@@ -241,11 +255,14 @@ function BackupFileRow({ file }: { file: BackupFile }) {
         </span>
       </TableCell>
       <TableCell className="text-right">
-        <Button asChild variant="ghost" size="sm">
-          <a href={downloadUrl} download={file.name}>
-            <Download className="h-4 w-4 mr-2" />
-            {t('actions.download')}
-          </a>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleDownload}
+          data-testid={`backup-download-${file.name}`}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          {t('actions.download')}
         </Button>
       </TableCell>
     </TableRow>

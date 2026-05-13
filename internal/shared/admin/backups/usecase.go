@@ -168,7 +168,7 @@ func (uc *AdminBackupUseCase) Download(ctx context.Context, actorID int64, backu
 	}
 
 	if uc.audit != nil {
-		uc.audit.LogAuditEvent(ctx, "backup.downloaded", "backup_admin", map[string]any{
+		uc.audit.LogAuditEvent(ctx, "backup.downloaded", "backup", map[string]any{
 			"filename":        name,
 			"file_size_bytes": size,
 			"backup_type":     string(backupType),

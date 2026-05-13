@@ -248,7 +248,7 @@ func TestAdminBackup_Download(t *testing.T) {
 			if tc.wantAudit {
 				require.Len(t, events, 1, "expected one audit event")
 				require.Equal(t, "backup.downloaded", events[0].action)
-				require.Equal(t, "backup_admin", events[0].resource)
+				require.Equal(t, "backup", events[0].resource)
 				for k, want := range tc.auditFields {
 					require.Equalf(t, want, events[0].fields[k], "field %s", k)
 				}
