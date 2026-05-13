@@ -2886,5 +2886,23 @@
         "cancel": "Cancel"
       }
     }
+  },
+  "adminIntegrations": {
+    "title": "Integrations",
+    "description": "Runtime state of WebPush (VAPID) and n8n workflow automation",
+    "loadFailed": "Failed to load integrations configuration",
+    "vapid": {
+      "sectionLabel": "WebPush (VAPID)",
+      "configured": "Configured",
+      "unconfigured": "Not configured",
+      "publicKey": "Public key",
+      "subject": "Subject"
+    },
+    "n8n": {
+      "sectionLabel": "n8n",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "webhookUrl": "Webhook URL"
+    }
   }
 }

@@ -2886,5 +2886,23 @@
         "cancel": "Отмена"
       }
     }
+  },
+  "adminIntegrations": {
+    "title": "Интеграции",
+    "description": "Состояние WebPush (VAPID) и n8n workflow automation",
+    "loadFailed": "Не удалось загрузить конфигурацию интеграций",
+    "vapid": {
+      "sectionLabel": "WebPush (VAPID)",
+      "configured": "Настроен",
+      "unconfigured": "Не настроен",
+      "publicKey": "Публичный ключ",
+      "subject": "Subject"
+    },
+    "n8n": {
+      "sectionLabel": "n8n",
+      "enabled": "Включён",
+      "disabled": "Выключен",
+      "webhookUrl": "Webhook URL"
+    }
   }
 }

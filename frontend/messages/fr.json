@@ -2886,5 +2886,23 @@
         "cancel": "Annuler"
       }
     }
+  },
+  "adminIntegrations": {
+    "title": "Intégrations",
+    "description": "État d'exécution de WebPush (VAPID) et de l'automatisation n8n",
+    "loadFailed": "Échec du chargement de la configuration des intégrations",
+    "vapid": {
+      "sectionLabel": "WebPush (VAPID)",
+      "configured": "Configuré",
+      "unconfigured": "Non configuré",
+      "publicKey": "Clé publique",
+      "subject": "Sujet"
+    },
+    "n8n": {
+      "sectionLabel": "n8n",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "webhookUrl": "URL du webhook"
+    }
   }
 }

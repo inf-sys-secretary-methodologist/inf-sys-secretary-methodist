@@ -2886,5 +2886,23 @@
         "cancel": "إلغاء"
       }
     }
+  },
+  "adminIntegrations": {
+    "title": "التكاملات",
+    "description": "حالة تشغيل WebPush (VAPID) وأتمتة n8n",
+    "loadFailed": "فشل تحميل إعدادات التكاملات",
+    "vapid": {
+      "sectionLabel": "WebPush (VAPID)",
+      "configured": "مهيأ",
+      "unconfigured": "غير مهيأ",
+      "publicKey": "المفتاح العام",
+      "subject": "Subject"
+    },
+    "n8n": {
+      "sectionLabel": "n8n",
+      "enabled": "مفعَّل",
+      "disabled": "معطَّل",
+      "webhookUrl": "Webhook URL"
+    }
   }
 }
