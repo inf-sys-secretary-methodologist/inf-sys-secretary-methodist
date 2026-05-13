@@ -377,16 +377,6 @@ function UserRowView({
   )
 }
 
-const ROLE_VALUES_DIALOG: UserRole[] = [
-  'system_admin',
-  'methodist',
-  'academic_secretary',
-  'teacher',
-  'student',
-]
-
-const STATUS_VALUES_DIALOG: UserStatus[] = ['active', 'inactive', 'blocked']
-
 function ChangeRoleDialog({
   user,
   onCancel,
@@ -427,7 +417,7 @@ function ChangeRoleDialog({
             onChange={(e) => setSelected(e.target.value as UserRole)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
-            {ROLE_VALUES_DIALOG.map((r) => (
+            {ROLE_VALUES.map((r) => (
               <option key={r} value={r}>
                 {t(`roleOptions.${r}`)}
               </option>
@@ -498,7 +488,7 @@ function ChangeStatusDialog({
             onChange={(e) => setSelected(e.target.value as UserStatus)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
-            {STATUS_VALUES_DIALOG.map((s) => (
+            {STATUS_VALUES.map((s) => (
               <option key={s} value={s}>
                 {t(`statusOptions.${s}`)}
               </option>

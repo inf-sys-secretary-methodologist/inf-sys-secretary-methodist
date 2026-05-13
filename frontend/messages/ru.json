@@ -200,7 +200,7 @@
     "annualReport": "Годовой отчёт",
     "auditLogs": "Журнал аудита",
     "sentry": "Sentry",
-    "adminUsers": "Пользователи"
+    "adminUsers": "Управление пользователями"
   },
   "roles": {
     "system_admin": "Администратор",

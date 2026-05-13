@@ -53,23 +53,36 @@ type endpointCase struct {
 	path   string
 }
 
+// Admin-only destructive endpoints. UpdateProfile + avatar
+// Upload/Delete are intentionally NOT here — those are
+// permissive (handler-level self-or-admin override on avatar,
+// pre-existing permissive UpdateProfile) so non-admin self-edit
+// keeps working. v0.133.0 reviewer round-1 surfaced the
+// regression; absorbed by reverting those three to the
+// permissive subgroup.
 var writeEndpoints = []endpointCase{
-	{"updateProfile", http.MethodPut, "/api/users/2/profile"},
 	{"updateRole", http.MethodPut, "/api/users/2/role"},
 	{"updateStatus", http.MethodPut, "/api/users/2/status"},
 	{"deleteUser", http.MethodDelete, "/api/users/2"},
 	{"bulkDepartment", http.MethodPost, "/api/users/bulk/department"},
 	{"bulkPosition", http.MethodPost, "/api/users/bulk/position"},
-	{"uploadAvatar", http.MethodPost, "/api/users/2/avatar"},
-	{"deleteAvatar", http.MethodDelete, "/api/users/2/avatar"},
 }
 
+// Permissive endpoints — any authenticated caller reaches the
+// handler (middleware does not 403). UpdateProfile is included
+// here to verify the v0.133.0 reviewer-absorbed revert. Avatar
+// Upload/Delete are covered separately by
+// avatar_handler_role_key_test.go because the avatar handler
+// applies its own actor-vs-target ownership check (admin
+// override pattern) that doesn't fit the "all roles pass" shape
+// of this suite.
 var readEndpoints = []endpointCase{
 	{"list", http.MethodGet, "/api/users"},
 	{"getById", http.MethodGet, "/api/users/2"},
 	{"byDepartment", http.MethodGet, "/api/users/by-department/3"},
 	{"byPosition", http.MethodGet, "/api/users/by-position/3"},
 	{"getAvatar", http.MethodGet, "/api/users/2/avatar"},
+	{"updateProfile", http.MethodPut, "/api/users/2/profile"},
 }
 
 // TestRegisterUserRoutes_WriteEndpoints_DeniedForNonAdmin pins the

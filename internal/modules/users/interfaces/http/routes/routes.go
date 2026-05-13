@@ -28,27 +28,34 @@ func RegisterUserRoutes(
 	userHandler *handlers.UserHandler,
 	avatarHandler *handlers.AvatarHandler,
 ) {
-	// Read-only subgroup — any authenticated caller. Cross-module
+	// Permissive subgroup — any authenticated caller. Cross-module
 	// consumers (documents author lookup, curriculum methodist
-	// resolver) depend on this surface and must not be admin-gated.
+	// resolver) depend on read access; UpdateProfile + avatar
+	// Upload/Delete remain here because the handler already
+	// enforces a self-or-admin override (avatar_handler.go:75/200)
+	// and non-admin self-edit is a working flow we must not
+	// regress. Hardening to a usecase-level ownership check on
+	// UpdateProfile is deferred to a follow-up patch — the
+	// pre-v0.133.0 permissive state carries forward unchanged
+	// for these three endpoints.
 	group.GET("", userHandler.List)
 	group.GET("/:id", userHandler.GetByID)
 	group.GET("/by-department/:id", userHandler.GetByDepartment)
 	group.GET("/by-position/:id", userHandler.GetByPosition)
 	group.GET("/:id/avatar", avatarHandler.GetAvatarURL)
+	group.PUT("/:id/profile", userHandler.UpdateProfile)
+	group.POST("/:id/avatar", avatarHandler.Upload)
+	group.DELETE("/:id/avatar", avatarHandler.Delete)
 
 	// Admin-write subgroup — only system_admin (adminMW gates the
 	// whole subgroup). Closes the TIER 0 privilege-escalation gap
-	// where any authenticated user could DELETE /:id, PUT /:id/role,
-	// PUT /:id/status, PUT /:id/profile, or invoke /bulk/*.
+	// where any authenticated user could PUT /:id/role,
+	// PUT /:id/status, DELETE /:id, or invoke /bulk/*.
 	admin := group.Group("")
 	admin.Use(adminMW)
-	admin.PUT("/:id/profile", userHandler.UpdateProfile)
 	admin.PUT("/:id/role", userHandler.UpdateRole)
 	admin.PUT("/:id/status", userHandler.UpdateStatus)
 	admin.DELETE("/:id", userHandler.Delete)
 	admin.POST("/bulk/department", userHandler.BulkUpdateDepartment)
 	admin.POST("/bulk/position", userHandler.BulkUpdatePosition)
-	admin.POST("/:id/avatar", avatarHandler.Upload)
-	admin.DELETE("/:id/avatar", avatarHandler.Delete)
 }

@@ -200,7 +200,7 @@
     "annualReport": "Annual report",
     "auditLogs": "Audit logs",
     "sentry": "Sentry",
-    "adminUsers": "Users"
+    "adminUsers": "User management"
   },
   "roles": {
     "system_admin": "Administrator",
