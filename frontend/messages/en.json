@@ -2813,5 +2813,76 @@
       "enabled": "enabled",
       "disabled": "disabled"
     }
+  },
+  "adminUsers": {
+    "title": "User management",
+    "description": "Browse, filter and edit user accounts",
+    "loadFailed": "Failed to load users",
+    "empty": {
+      "title": "No users found",
+      "description": "Try resetting the filters or adjusting the search query"
+    },
+    "filters": {
+      "search": "Search by name or email",
+      "role": "Role",
+      "status": "Status",
+      "allRoles": "All roles",
+      "allStatuses": "All statuses",
+      "reset": "Reset filters"
+    },
+    "columns": {
+      "user": "User",
+      "role": "Role",
+      "status": "Status",
+      "department": "Department",
+      "position": "Position",
+      "actions": "Actions"
+    },
+    "actions": {
+      "changeRole": "Change role",
+      "changeStatus": "Change status",
+      "delete": "Delete"
+    },
+    "roleOptions": {
+      "system_admin": "System admin",
+      "methodist": "Methodist",
+      "academic_secretary": "Academic secretary",
+      "teacher": "Teacher",
+      "student": "Student"
+    },
+    "statusOptions": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "blocked": "Blocked"
+    },
+    "pagination": {
+      "prev": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {totalPages}"
+    },
+    "dialogs": {
+      "changeRole": {
+        "title": "Change role",
+        "description": "Change the role of user \"{name}\"",
+        "current": "Current role",
+        "new": "New role",
+        "confirm": "Save",
+        "cancel": "Cancel"
+      },
+      "changeStatus": {
+        "title": "Change status",
+        "description": "Change the status of user \"{name}\"",
+        "current": "Current status",
+        "new": "New status",
+        "confirm": "Save",
+        "cancel": "Cancel"
+      },
+      "delete": {
+        "title": "Delete user",
+        "description": "This action cannot be undone. The account of user \"{name}\" will be deleted.",
+        "confirm": "Delete",
+        "cancel": "Cancel"
+      }
+    }
   }
 }

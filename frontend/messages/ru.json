@@ -2813,5 +2813,76 @@
       "enabled": "включена",
       "disabled": "выключена"
     }
+  },
+  "adminUsers": {
+    "title": "Управление пользователями",
+    "description": "Просмотр, фильтрация и редактирование учётных записей",
+    "loadFailed": "Не удалось загрузить пользователей",
+    "empty": {
+      "title": "Пользователи не найдены",
+      "description": "Попробуйте сбросить фильтры или изменить поисковый запрос"
+    },
+    "filters": {
+      "search": "Поиск по имени или email",
+      "role": "Роль",
+      "status": "Статус",
+      "allRoles": "Все роли",
+      "allStatuses": "Все статусы",
+      "reset": "Сбросить фильтры"
+    },
+    "columns": {
+      "user": "Пользователь",
+      "role": "Роль",
+      "status": "Статус",
+      "department": "Подразделение",
+      "position": "Должность",
+      "actions": "Действия"
+    },
+    "actions": {
+      "changeRole": "Изменить роль",
+      "changeStatus": "Изменить статус",
+      "delete": "Удалить"
+    },
+    "roleOptions": {
+      "system_admin": "Сис. админ",
+      "methodist": "Методист",
+      "academic_secretary": "Академ. секретарь",
+      "teacher": "Преподаватель",
+      "student": "Студент"
+    },
+    "statusOptions": {
+      "active": "Активен",
+      "inactive": "Неактивен",
+      "blocked": "Заблокирован"
+    },
+    "pagination": {
+      "prev": "Предыдущая",
+      "next": "Следующая",
+      "pageOf": "Страница {page} из {totalPages}"
+    },
+    "dialogs": {
+      "changeRole": {
+        "title": "Изменить роль",
+        "description": "Изменить роль пользователя «{name}»",
+        "current": "Текущая роль",
+        "new": "Новая роль",
+        "confirm": "Сохранить",
+        "cancel": "Отмена"
+      },
+      "changeStatus": {
+        "title": "Изменить статус",
+        "description": "Изменить статус пользователя «{name}»",
+        "current": "Текущий статус",
+        "new": "Новый статус",
+        "confirm": "Сохранить",
+        "cancel": "Отмена"
+      },
+      "delete": {
+        "title": "Удалить пользователя",
+        "description": "Действие необратимо. Учётная запись пользователя «{name}» будет удалена.",
+        "confirm": "Удалить",
+        "cancel": "Отмена"
+      }
+    }
   }
 }

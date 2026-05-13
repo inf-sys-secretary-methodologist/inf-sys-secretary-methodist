@@ -2813,5 +2813,76 @@
       "enabled": "مفعَّل",
       "disabled": "معطَّل"
     }
+  },
+  "adminUsers": {
+    "title": "إدارة المستخدمين",
+    "description": "تصفح وتصفية وتعديل حسابات المستخدمين",
+    "loadFailed": "فشل تحميل المستخدمين",
+    "empty": {
+      "title": "لم يتم العثور على مستخدمين",
+      "description": "حاول إعادة تعيين الفلاتر أو تعديل استعلام البحث"
+    },
+    "filters": {
+      "search": "البحث بالاسم أو البريد الإلكتروني",
+      "role": "الدور",
+      "status": "الحالة",
+      "allRoles": "كل الأدوار",
+      "allStatuses": "كل الحالات",
+      "reset": "إعادة تعيين الفلاتر"
+    },
+    "columns": {
+      "user": "المستخدم",
+      "role": "الدور",
+      "status": "الحالة",
+      "department": "القسم",
+      "position": "المنصب",
+      "actions": "إجراءات"
+    },
+    "actions": {
+      "changeRole": "تغيير الدور",
+      "changeStatus": "تغيير الحالة",
+      "delete": "حذف"
+    },
+    "roleOptions": {
+      "system_admin": "مدير النظام",
+      "methodist": "منهجي",
+      "academic_secretary": "سكرتير أكاديمي",
+      "teacher": "معلم",
+      "student": "طالب"
+    },
+    "statusOptions": {
+      "active": "نشِط",
+      "inactive": "غير نشِط",
+      "blocked": "محظور"
+    },
+    "pagination": {
+      "prev": "السابق",
+      "next": "التالي",
+      "pageOf": "صفحة {page} من {totalPages}"
+    },
+    "dialogs": {
+      "changeRole": {
+        "title": "تغيير الدور",
+        "description": "تغيير دور المستخدم «{name}»",
+        "current": "الدور الحالي",
+        "new": "الدور الجديد",
+        "confirm": "حفظ",
+        "cancel": "إلغاء"
+      },
+      "changeStatus": {
+        "title": "تغيير الحالة",
+        "description": "تغيير حالة المستخدم «{name}»",
+        "current": "الحالة الحالية",
+        "new": "الحالة الجديدة",
+        "confirm": "حفظ",
+        "cancel": "إلغاء"
+      },
+      "delete": {
+        "title": "حذف المستخدم",
+        "description": "لا يمكن التراجع عن هذا الإجراء. سيُحذف حساب المستخدم «{name}».",
+        "confirm": "حذف",
+        "cancel": "إلغاء"
+      }
+    }
   }
 }

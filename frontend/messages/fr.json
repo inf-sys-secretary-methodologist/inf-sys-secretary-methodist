@@ -2813,5 +2813,76 @@
       "enabled": "activé",
       "disabled": "désactivé"
     }
+  },
+  "adminUsers": {
+    "title": "Gestion des utilisateurs",
+    "description": "Parcourir, filtrer et modifier les comptes utilisateurs",
+    "loadFailed": "Échec du chargement des utilisateurs",
+    "empty": {
+      "title": "Aucun utilisateur trouvé",
+      "description": "Essayez de réinitialiser les filtres ou d'ajuster la recherche"
+    },
+    "filters": {
+      "search": "Rechercher par nom ou e-mail",
+      "role": "Rôle",
+      "status": "Statut",
+      "allRoles": "Tous les rôles",
+      "allStatuses": "Tous les statuts",
+      "reset": "Réinitialiser les filtres"
+    },
+    "columns": {
+      "user": "Utilisateur",
+      "role": "Rôle",
+      "status": "Statut",
+      "department": "Département",
+      "position": "Poste",
+      "actions": "Actions"
+    },
+    "actions": {
+      "changeRole": "Changer le rôle",
+      "changeStatus": "Changer le statut",
+      "delete": "Supprimer"
+    },
+    "roleOptions": {
+      "system_admin": "Administrateur système",
+      "methodist": "Méthodologue",
+      "academic_secretary": "Secrétaire académique",
+      "teacher": "Enseignant",
+      "student": "Étudiant"
+    },
+    "statusOptions": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "blocked": "Bloqué"
+    },
+    "pagination": {
+      "prev": "Précédent",
+      "next": "Suivant",
+      "pageOf": "Page {page} sur {totalPages}"
+    },
+    "dialogs": {
+      "changeRole": {
+        "title": "Changer le rôle",
+        "description": "Changer le rôle de l'utilisateur « {name} »",
+        "current": "Rôle actuel",
+        "new": "Nouveau rôle",
+        "confirm": "Enregistrer",
+        "cancel": "Annuler"
+      },
+      "changeStatus": {
+        "title": "Changer le statut",
+        "description": "Changer le statut de l'utilisateur « {name} »",
+        "current": "Statut actuel",
+        "new": "Nouveau statut",
+        "confirm": "Enregistrer",
+        "cancel": "Annuler"
+      },
+      "delete": {
+        "title": "Supprimer l'utilisateur",
+        "description": "Cette action est irréversible. Le compte de « {name} » sera supprimé.",
+        "confirm": "Supprimer",
+        "cancel": "Annuler"
+      }
+    }
   }
 }
