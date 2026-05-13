@@ -18,6 +18,7 @@ import {
   GraduationCap,
   BookMarked,
   ClipboardCheck,
+  HardDrive,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -307,6 +308,14 @@ export const navigationConfig: NavEntry[] = [
         nameKey: 'auditLogs',
         url: '/admin/audit-logs',
         icon: FileText,
+        roles: [UserRole.SYSTEM_ADMIN],
+      },
+      {
+        // Admin backup observability (v0.132.0). Read-only surface
+        // over /backup sidecar's shared volumes.
+        nameKey: 'backups',
+        url: '/admin/backups',
+        icon: HardDrive,
         roles: [UserRole.SYSTEM_ADMIN],
       },
       {

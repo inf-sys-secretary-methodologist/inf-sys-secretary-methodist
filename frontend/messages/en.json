@@ -172,6 +172,7 @@
     "integration": "1C Integration",
     "analytics": "Analytics",
     "templates": "Templates",
+    "backups": "Backups",
     "documentsGroup": "Documents",
     "analyticsGroup": "Analytics",
     "adminGroup": "Admin",
@@ -2742,6 +2743,57 @@
     "fields": {
       "showJson": "Show JSON",
       "hide": "Hide"
+    }
+  },
+  "adminBackups": {
+    "title": "Backups",
+    "description": "PostgreSQL + MinIO backup artifacts and the /backup sidecar's metrics",
+    "loadFailed": "Failed to load the backup list",
+    "empty": {
+      "title": "No backups yet",
+      "description": "The /backup sidecar has not produced any artifacts yet. Make sure the backup compose profile is up"
+    },
+    "metrics": {
+      "sectionLabel": "Backup metrics",
+      "postgres": "PostgreSQL",
+      "minio": "MinIO",
+      "lastRun": "Last run",
+      "lastSuccess": "Last success",
+      "age": "Age",
+      "duration": "Duration",
+      "sizeBytes": "Size",
+      "totalCount": "Success/total (failures)",
+      "successCount": "Successful",
+      "failureCount": "Failed",
+      "never": "no data",
+      "ok": "OK",
+      "failed": "failed"
+    },
+    "remoteSync": {
+      "title": "Remote sync",
+      "ok": "OK",
+      "failed": "failed"
+    },
+    "columns": {
+      "name": "Filename",
+      "type": "Type",
+      "size": "Size",
+      "modifiedAt": "Modified",
+      "encryption": "Encryption",
+      "actions": "Actions"
+    },
+    "actions": {
+      "download": "Download"
+    },
+    "encryption": {
+      "none": "None",
+      "age": "age",
+      "gpg": "GPG",
+      "tooltip": "Decryption requires the private key"
+    },
+    "types": {
+      "postgres": "PostgreSQL",
+      "minio": "MinIO"
     }
   }
 }

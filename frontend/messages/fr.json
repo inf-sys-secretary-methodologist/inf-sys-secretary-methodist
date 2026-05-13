@@ -172,6 +172,7 @@
     "integration": "Intégration 1C",
     "analytics": "Analytique",
     "templates": "Modèles",
+    "backups": "Sauvegardes",
     "documentsGroup": "Documents",
     "analyticsGroup": "Analytique",
     "adminGroup": "Administration",
@@ -2742,6 +2743,57 @@
     "fields": {
       "showJson": "Afficher le JSON",
       "hide": "Masquer"
+    }
+  },
+  "adminBackups": {
+    "title": "Sauvegardes",
+    "description": "Artefacts de sauvegarde PostgreSQL + MinIO et métriques du sidecar /backup",
+    "loadFailed": "Échec du chargement de la liste des sauvegardes",
+    "empty": {
+      "title": "Aucune sauvegarde pour le moment",
+      "description": "Le sidecar /backup n'a encore produit aucun artefact. Vérifiez que le profil backup est démarré"
+    },
+    "metrics": {
+      "sectionLabel": "Métriques de sauvegarde",
+      "postgres": "PostgreSQL",
+      "minio": "MinIO",
+      "lastRun": "Dernière exécution",
+      "lastSuccess": "Dernier succès",
+      "age": "Âge",
+      "duration": "Durée",
+      "sizeBytes": "Taille",
+      "totalCount": "Succès/total (échecs)",
+      "successCount": "Réussies",
+      "failureCount": "Échecs",
+      "never": "aucune donnée",
+      "ok": "OK",
+      "failed": "échec"
+    },
+    "remoteSync": {
+      "title": "Synchronisation distante",
+      "ok": "OK",
+      "failed": "échec"
+    },
+    "columns": {
+      "name": "Nom de fichier",
+      "type": "Type",
+      "size": "Taille",
+      "modifiedAt": "Modifié",
+      "encryption": "Chiffrement",
+      "actions": "Actions"
+    },
+    "actions": {
+      "download": "Télécharger"
+    },
+    "encryption": {
+      "none": "Aucun",
+      "age": "age",
+      "gpg": "GPG",
+      "tooltip": "Le déchiffrement nécessite la clé privée"
+    },
+    "types": {
+      "postgres": "PostgreSQL",
+      "minio": "MinIO"
     }
   }
 }

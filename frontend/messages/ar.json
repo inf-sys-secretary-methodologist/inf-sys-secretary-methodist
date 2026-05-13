@@ -172,6 +172,7 @@
     "integration": "تكامل 1C",
     "analytics": "التحليلات",
     "templates": "القوالب",
+    "backups": "النسخ الاحتياطية",
     "documentsGroup": "المستندات",
     "analyticsGroup": "التحليلات",
     "adminGroup": "الإدارة",
@@ -2742,6 +2743,57 @@
     "fields": {
       "showJson": "عرض JSON",
       "hide": "إخفاء"
+    }
+  },
+  "adminBackups": {
+    "title": "النسخ الاحتياطية",
+    "description": "ملفات النسخ الاحتياطي لـ PostgreSQL و MinIO ومقاييس الخدمة الجانبية /backup",
+    "loadFailed": "فشل تحميل قائمة النسخ الاحتياطية",
+    "empty": {
+      "title": "لا توجد نسخ احتياطية بعد",
+      "description": "لم تنتج الخدمة الجانبية /backup أي ملفات بعد. تأكد من تشغيل ملف backup compose"
+    },
+    "metrics": {
+      "sectionLabel": "مقاييس النسخ الاحتياطي",
+      "postgres": "PostgreSQL",
+      "minio": "MinIO",
+      "lastRun": "آخر تشغيل",
+      "lastSuccess": "آخر نجاح",
+      "age": "العمر",
+      "duration": "المدة",
+      "sizeBytes": "الحجم",
+      "totalCount": "النجاح/المجموع (الإخفاقات)",
+      "successCount": "ناجحة",
+      "failureCount": "فاشلة",
+      "never": "لا توجد بيانات",
+      "ok": "ناجح",
+      "failed": "فشل"
+    },
+    "remoteSync": {
+      "title": "المزامنة عن بُعد",
+      "ok": "ناجح",
+      "failed": "فشل"
+    },
+    "columns": {
+      "name": "اسم الملف",
+      "type": "النوع",
+      "size": "الحجم",
+      "modifiedAt": "تم التعديل",
+      "encryption": "التشفير",
+      "actions": "الإجراءات"
+    },
+    "actions": {
+      "download": "تنزيل"
+    },
+    "encryption": {
+      "none": "بدون",
+      "age": "age",
+      "gpg": "GPG",
+      "tooltip": "يتطلب فك التشفير المفتاح الخاص"
+    },
+    "types": {
+      "postgres": "PostgreSQL",
+      "minio": "MinIO"
     }
   }
 }

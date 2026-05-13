@@ -172,6 +172,7 @@
     "integration": "Интеграция 1С",
     "analytics": "Аналитика",
     "templates": "Шаблоны",
+    "backups": "Резервные копии",
     "documentsGroup": "Документы",
     "analyticsGroup": "Аналитика",
     "adminGroup": "Управление",
@@ -2742,6 +2743,57 @@
     "fields": {
       "showJson": "Показать JSON",
       "hide": "Скрыть"
+    }
+  },
+  "adminBackups": {
+    "title": "Резервные копии",
+    "description": "Список бэкапов PostgreSQL и MinIO + метрики sidecar-сервиса /backup",
+    "loadFailed": "Не удалось загрузить список резервных копий",
+    "empty": {
+      "title": "Пока нет резервных копий",
+      "description": "Sidecar /backup ещё не создал ни одного файла. Проверьте, что профиль backup запущен в compose"
+    },
+    "metrics": {
+      "sectionLabel": "Метрики резервного копирования",
+      "postgres": "PostgreSQL",
+      "minio": "MinIO",
+      "lastRun": "Последний запуск",
+      "lastSuccess": "Последний успех",
+      "age": "Возраст",
+      "duration": "Длительность",
+      "sizeBytes": "Размер",
+      "totalCount": "Успех/всего (ошибок)",
+      "successCount": "Успешных",
+      "failureCount": "Сбоев",
+      "never": "нет данных",
+      "ok": "OK",
+      "failed": "сбой"
+    },
+    "remoteSync": {
+      "title": "Удалённая синхронизация",
+      "ok": "OK",
+      "failed": "сбой"
+    },
+    "columns": {
+      "name": "Имя файла",
+      "type": "Тип",
+      "size": "Размер",
+      "modifiedAt": "Изменён",
+      "encryption": "Шифрование",
+      "actions": "Действия"
+    },
+    "actions": {
+      "download": "Скачать"
+    },
+    "encryption": {
+      "none": "Нет",
+      "age": "age",
+      "gpg": "GPG",
+      "tooltip": "Для расшифровки требуется приватный ключ"
+    },
+    "types": {
+      "postgres": "PostgreSQL",
+      "minio": "MinIO"
     }
   }
 }
