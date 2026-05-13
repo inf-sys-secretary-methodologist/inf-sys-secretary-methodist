@@ -3,10 +3,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { ChevronLeft, ChevronRight, Loader2, Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Pencil, Trash2, Users } from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -19,6 +27,7 @@ import {
 } from '@/components/ui/table'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { useUsers } from '@/hooks/useUsers'
+import { useDeleteUser, useUpdateUserRole, useUpdateUserStatus } from '@/hooks/useUserMutations'
 import type { User, UserListFilter, UserRole, UserStatus } from '@/types/user'
 
 const PAGE_SIZE = 20
@@ -64,7 +73,24 @@ export default function AdminUsersPage() {
     totalPages,
     isLoading: listLoading,
     error,
+    mutate,
   } = useUsers(filter, { enabled })
+
+  // Single dialog slot — only one dialog is open at a time. The
+  // payload carries the row being edited so per-dialog state
+  // (selected role / status) lives in the dialog component, not
+  // here.
+  type DialogState =
+    | { kind: 'role'; user: User }
+    | { kind: 'status'; user: User }
+    | { kind: 'delete'; user: User }
+    | null
+  const [dialog, setDialog] = useState<DialogState>(null)
+  const closeDialog = () => setDialog(null)
+  const onMutationSuccess = () => {
+    closeDialog()
+    mutate()
+  }
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user?.role !== 'system_admin') {
@@ -198,7 +224,13 @@ export default function AdminUsersPage() {
                 </TableHeader>
                 <TableBody>
                   {users.map((u) => (
-                    <UserRowView key={u.id} user={u} />
+                    <UserRowView
+                      key={u.id}
+                      user={u}
+                      onChangeRole={() => setDialog({ kind: 'role', user: u })}
+                      onChangeStatus={() => setDialog({ kind: 'status', user: u })}
+                      onDelete={() => setDialog({ kind: 'delete', user: u })}
+                    />
                   ))}
                 </TableBody>
               </Table>
@@ -238,12 +270,44 @@ export default function AdminUsersPage() {
             )}
           </>
         )}
+
+        {dialog?.kind === 'role' && (
+          <ChangeRoleDialog
+            user={dialog.user}
+            onCancel={closeDialog}
+            onSuccess={onMutationSuccess}
+          />
+        )}
+        {dialog?.kind === 'status' && (
+          <ChangeStatusDialog
+            user={dialog.user}
+            onCancel={closeDialog}
+            onSuccess={onMutationSuccess}
+          />
+        )}
+        {dialog?.kind === 'delete' && (
+          <DeleteUserDialog
+            user={dialog.user}
+            onCancel={closeDialog}
+            onSuccess={onMutationSuccess}
+          />
+        )}
       </div>
     </AppLayout>
   )
 }
 
-function UserRowView({ user }: { user: User }) {
+function UserRowView({
+  user,
+  onChangeRole,
+  onChangeStatus,
+  onDelete,
+}: {
+  user: User
+  onChangeRole: () => void
+  onChangeStatus: () => void
+  onDelete: () => void
+}) {
   const t = useTranslations('adminUsers')
   return (
     <TableRow data-testid={`user-row-${user.id}`}>
@@ -275,7 +339,247 @@ function UserRowView({ user }: { user: User }) {
       </TableCell>
       <TableCell className="text-sm">{user.department_name ?? '—'}</TableCell>
       <TableCell className="text-sm">{user.position_name ?? '—'}</TableCell>
-      <TableCell className="text-right text-sm text-muted-foreground">—</TableCell>
+      <TableCell className="text-right">
+        <div className="inline-flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            data-testid={`change-role-button-${user.id}`}
+            onClick={onChangeRole}
+            title={t('actions.changeRole')}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            data-testid={`change-status-button-${user.id}`}
+            onClick={onChangeStatus}
+            title={t('actions.changeStatus')}
+          >
+            <span className="text-xs">{t('actions.changeStatus')}</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            data-testid={`delete-button-${user.id}`}
+            onClick={onDelete}
+            title={t('actions.delete')}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      </TableCell>
     </TableRow>
+  )
+}
+
+const ROLE_VALUES_DIALOG: UserRole[] = [
+  'system_admin',
+  'methodist',
+  'academic_secretary',
+  'teacher',
+  'student',
+]
+
+const STATUS_VALUES_DIALOG: UserStatus[] = ['active', 'inactive', 'blocked']
+
+function ChangeRoleDialog({
+  user,
+  onCancel,
+  onSuccess,
+}: {
+  user: User
+  onCancel: () => void
+  onSuccess: () => void
+}) {
+  const t = useTranslations('adminUsers')
+  const [selected, setSelected] = useState<UserRole>(user.role)
+  const { updateRole, isLoading } = useUpdateUserRole()
+
+  const handleConfirm = async () => {
+    try {
+      await updateRole(user.id, selected)
+      onSuccess()
+    } catch {
+      // Surface stays in hook.error; dialog stays open for retry.
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent data-testid="change-role-dialog">
+        <DialogHeader>
+          <DialogTitle>{t('dialogs.changeRole.title')}</DialogTitle>
+          <DialogDescription>
+            {t('dialogs.changeRole.description', { name: user.name })}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="change-role-select">{t('dialogs.changeRole.new')}</Label>
+          <select
+            id="change-role-select"
+            data-testid="change-role-select"
+            value={selected}
+            onChange={(e) => setSelected(e.target.value as UserRole)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            {ROLE_VALUES_DIALOG.map((r) => (
+              <option key={r} value={r}>
+                {t(`roleOptions.${r}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="ghost"
+            data-testid="change-role-cancel"
+            onClick={onCancel}
+            disabled={isLoading}
+          >
+            {t('dialogs.changeRole.cancel')}
+          </Button>
+          <Button
+            type="button"
+            data-testid="change-role-confirm"
+            onClick={handleConfirm}
+            disabled={isLoading}
+          >
+            {t('dialogs.changeRole.confirm')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ChangeStatusDialog({
+  user,
+  onCancel,
+  onSuccess,
+}: {
+  user: User
+  onCancel: () => void
+  onSuccess: () => void
+}) {
+  const t = useTranslations('adminUsers')
+  const [selected, setSelected] = useState<UserStatus>(user.status)
+  const { updateStatus, isLoading } = useUpdateUserStatus()
+
+  const handleConfirm = async () => {
+    try {
+      await updateStatus(user.id, selected)
+      onSuccess()
+    } catch {
+      // Stay open on error.
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent data-testid="change-status-dialog">
+        <DialogHeader>
+          <DialogTitle>{t('dialogs.changeStatus.title')}</DialogTitle>
+          <DialogDescription>
+            {t('dialogs.changeStatus.description', { name: user.name })}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="change-status-select">{t('dialogs.changeStatus.new')}</Label>
+          <select
+            id="change-status-select"
+            data-testid="change-status-select"
+            value={selected}
+            onChange={(e) => setSelected(e.target.value as UserStatus)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            {STATUS_VALUES_DIALOG.map((s) => (
+              <option key={s} value={s}>
+                {t(`statusOptions.${s}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="ghost"
+            data-testid="change-status-cancel"
+            onClick={onCancel}
+            disabled={isLoading}
+          >
+            {t('dialogs.changeStatus.cancel')}
+          </Button>
+          <Button
+            type="button"
+            data-testid="change-status-confirm"
+            onClick={handleConfirm}
+            disabled={isLoading}
+          >
+            {t('dialogs.changeStatus.confirm')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DeleteUserDialog({
+  user,
+  onCancel,
+  onSuccess,
+}: {
+  user: User
+  onCancel: () => void
+  onSuccess: () => void
+}) {
+  const t = useTranslations('adminUsers')
+  const { deleteUser, isLoading } = useDeleteUser()
+
+  const handleConfirm = async () => {
+    try {
+      await deleteUser(user.id)
+      onSuccess()
+    } catch {
+      // Stay open on error.
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent data-testid="delete-dialog">
+        <DialogHeader>
+          <DialogTitle>{t('dialogs.delete.title')}</DialogTitle>
+          <DialogDescription>
+            {t('dialogs.delete.description', { name: user.name })}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="ghost"
+            data-testid="delete-cancel"
+            onClick={onCancel}
+            disabled={isLoading}
+          >
+            {t('dialogs.delete.cancel')}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            data-testid="delete-confirm"
+            onClick={handleConfirm}
+            disabled={isLoading}
+          >
+            {t('dialogs.delete.confirm')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
