@@ -4,6 +4,11 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 // fileLister is the consumer-side projection of FileReader.List.
@@ -21,7 +26,7 @@ type metricsScraper interface {
 
 // fileOpener is the narrow port the use case uses to open a vetted
 // backup file for streaming download. The default implementation is
-// osFileOpener (os.Open + stat); tests substitute fakes.
+// osFileOpener (os.Open + stat); tests substitute fakes when needed.
 type fileOpener interface {
 	Open(absPath string) (io.ReadCloser, int64, error)
 }
@@ -105,28 +110,109 @@ func (uc *AdminBackupUseCase) WithAuditSink(sink AuditSink) *AdminBackupUseCase 
 	return uc
 }
 
-// ListWithMetrics returns the combined files+metrics snapshot.
-//
-// Pair-3 stub: returns errUsecaseNotImplemented until GREEN wires
-// the real fan-out + audit emission.
+// ListWithMetrics returns the combined files+metrics snapshot. Errors
+// from either the file lister or the metrics scraper bubble — the
+// admin UI cannot meaningfully render a partial result.
 func (uc *AdminBackupUseCase) ListWithMetrics(ctx context.Context) (CombinedSnapshot, error) {
-	return CombinedSnapshot{}, errUsecaseNotImplemented
+	files, err := uc.files.List(ctx)
+	if err != nil {
+		return CombinedSnapshot{}, err
+	}
+	metrics, err := uc.metrics.Read(ctx)
+	if err != nil {
+		return CombinedSnapshot{}, err
+	}
+	return CombinedSnapshot{Files: files, Metrics: metrics}, nil
 }
 
 // Download validates the requested artifact, opens the file, and
 // returns the streaming reader. Emits the `backup.downloaded` audit
-// event on success.
+// event on success — denied paths emit nothing (forensic
+// false-positive guard, mirrors v0.131.1 messaging/integration
+// patterns).
 func (uc *AdminBackupUseCase) Download(ctx context.Context, actorID int64, backupType BackupType, name string) (*DownloadResult, error) {
-	return nil, errUsecaseNotImplemented
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	var grammar *regexp.Regexp
+	switch backupType {
+	case BackupTypePostgres:
+		grammar = postgresBackupRe
+	case BackupTypeMinIO:
+		grammar = minioBackupRe
+	default:
+		return nil, ErrInvalidBackupName
+	}
+	if !grammar.MatchString(name) {
+		return nil, ErrInvalidBackupName
+	}
+
+	// Path resolution + defense-in-depth root containment check.
+	// The anchored regex already disallows '/' and '..' so this is
+	// belt-and-braces — keeps the invariant explicit at the layer
+	// that touches the filesystem in case the grammar is loosened
+	// later.
+	cleanRoot := filepath.Clean(uc.filesDir)
+	absPath := filepath.Clean(filepath.Join(cleanRoot, string(backupType), name))
+	if !strings.HasPrefix(absPath, cleanRoot+string(filepath.Separator)) {
+		return nil, ErrInvalidBackupName
+	}
+
+	reader, size, err := uc.opener.Open(absPath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, ErrBackupNotFound
+		}
+		return nil, err
+	}
+
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "backup.downloaded", "backup_admin", map[string]any{
+			"filename":        name,
+			"file_size_bytes": size,
+			"backup_type":     string(backupType),
+			"actor_user_id":   actorID,
+		})
+	}
+
+	return &DownloadResult{
+		Reader:      reader,
+		Size:        size,
+		ContentType: detectContentType(name),
+		Filename:    name,
+	}, nil
 }
 
-var errUsecaseNotImplemented = errors.New("backups: admin use case not implemented (RED stub)")
+// detectContentType picks a Content-Type for the download response.
+// We deliberately keep this minimal — gzip dumps and tarballs are
+// the common case; encrypted suffixes always fall back to the
+// generic octet-stream so browsers do not attempt inline decoding.
+func detectContentType(name string) string {
+	switch {
+	case strings.HasSuffix(name, ".age"), strings.HasSuffix(name, ".gpg"):
+		return "application/octet-stream"
+	case strings.HasSuffix(name, ".gz"):
+		return "application/gzip"
+	default:
+		return "application/octet-stream"
+	}
+}
 
 // osFileOpener is the production fileOpener — opens the path via
-// os.Open and stats it for the Content-Length header. Stubbed body
-// in the RED commit so the type exists for the constructor to wire.
+// os.Open and stats it for the Content-Length header.
 type osFileOpener struct{}
 
+// Open implements fileOpener.
 func (osFileOpener) Open(absPath string) (io.ReadCloser, int64, error) {
-	return nil, 0, errors.New("osFileOpener: not implemented (RED stub)")
+	f, err := os.Open(absPath) // #nosec G304 — path is whitelist-validated + root-contained upstream
+	if err != nil {
+		return nil, 0, err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		_ = f.Close()
+		return nil, 0, err
+	}
+	return f, info.Size(), nil
 }

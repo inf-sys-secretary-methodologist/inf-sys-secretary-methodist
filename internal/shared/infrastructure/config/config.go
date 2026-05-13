@@ -26,6 +26,16 @@ type Config struct {
 	Tracing     TracingConfig
 	N8N         N8NConfig
 	AI          AIConfig
+	Backup      BackupConfig
+}
+
+// BackupConfig holds the read-only paths the admin observability
+// surface (/admin/backups) uses to surface the /backup sidecar's
+// outputs. Both directories must be mounted into the backend
+// container read-only — see compose.yml.
+type BackupConfig struct {
+	FilesDir   string // root of the sidecar's backup_data volume (postgres/, minio/ subdirs)
+	MetricsDir string // root of the sidecar's backup_metrics volume (Prometheus textfile)
 }
 
 // ServerConfig holds HTTP server configuration
@@ -318,6 +328,10 @@ func Load() (*Config, error) {
 			FallbackEmbeddingBaseURL:        getEnv("AI_FALLBACK_EMBEDDING_BASE_URL", ""),
 			FallbackEmbeddingModel:          getEnv("AI_FALLBACK_EMBEDDING_MODEL", ""),
 			FallbackEmbeddingDimensionality: getEnvAsInt("AI_FALLBACK_EMBEDDING_DIMENSIONALITY", 0),
+		},
+		Backup: BackupConfig{
+			FilesDir:   getEnv("BACKUP_FILES_DIR", "/var/backups"),
+			MetricsDir: getEnv("BACKUP_METRICS_DIR", "/var/backup_metrics"),
 		},
 	}
 

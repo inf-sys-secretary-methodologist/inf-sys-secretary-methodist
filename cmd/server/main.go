@@ -146,6 +146,7 @@ import (
 	usersPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/infrastructure/persistence"
 	usersHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/handlers"
 	adminAuditLog "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/auditlog"
+	adminBackups "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/backups"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -2565,6 +2566,31 @@ func setupRoutes(
 			adminGroup.GET("/audit-logs", adminAuditLogHandler.List)
 			adminGroup.OPTIONS("/audit-logs", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			logger.Info("Admin audit-log read API registered", nil)
+
+			// Admin backup observability (v0.132.0). Read-only surface
+			// over the /backup sidecar's shared volumes — backend MUST
+			// have backup_data and backup_metrics mounted RO. The
+			// auditLogger satisfies AuditSink structurally; downloads
+			// emit `backup.downloaded` with the actor user id.
+			backupFileReader, err := adminBackups.NewFileReader(cfg.Backup.FilesDir)
+			if err != nil {
+				logger.Warn("Admin backups: file reader disabled", map[string]interface{}{"error": err.Error()})
+			} else {
+				backupMetricsReader, err := adminBackups.NewMetricsReader(cfg.Backup.MetricsDir + "/backup_metrics.prom")
+				if err != nil {
+					logger.Warn("Admin backups: metrics reader disabled", map[string]interface{}{"error": err.Error()})
+				} else {
+					adminBackupUseCase := adminBackups.
+						NewAdminBackupUseCase(backupFileReader, backupMetricsReader, cfg.Backup.FilesDir).
+						WithAuditSink(auditLogger)
+					adminBackupHandler := adminBackups.NewAdminBackupHandler(adminBackupUseCase)
+					adminGroup.GET("/backups", adminBackupHandler.List)
+					adminGroup.GET("/backups/:type/:name/download", adminBackupHandler.Download)
+					adminGroup.OPTIONS("/backups", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					adminGroup.OPTIONS("/backups/:type/:name/download", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+					logger.Info("Admin backup observability registered", nil)
+				}
+			}
 		}
 	}
 
