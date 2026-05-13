@@ -201,7 +201,8 @@
     "auditLogs": "سجل التدقيق",
     "sentry": "Sentry",
     "adminUsers": "إدارة المستخدمين",
-    "integrations": "التكاملات"
+    "integrations": "التكاملات",
+    "composio": "Composio"
   },
   "roles": {
     "system_admin": "مدير النظام",

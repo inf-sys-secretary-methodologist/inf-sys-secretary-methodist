@@ -201,7 +201,8 @@
     "auditLogs": "Journal d'audit",
     "sentry": "Sentry",
     "adminUsers": "Gestion des utilisateurs",
-    "integrations": "Intégrations"
+    "integrations": "Intégrations",
+    "composio": "Composio"
   },
   "roles": {
     "system_admin": "Administrateur",

@@ -201,7 +201,8 @@
     "auditLogs": "Audit logs",
     "sentry": "Sentry",
     "adminUsers": "User management",
-    "integrations": "Integrations"
+    "integrations": "Integrations",
+    "composio": "Composio"
   },
   "roles": {
     "system_admin": "Administrator",

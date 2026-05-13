@@ -22,6 +22,7 @@ import {
   Activity,
   UserCog,
   Plug,
+  Bot,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -344,6 +345,15 @@ export const navigationConfig: NavEntry[] = [
         nameKey: 'integrations',
         url: '/admin/integrations',
         icon: Plug,
+        roles: [UserRole.SYSTEM_ADMIN],
+      },
+      {
+        // Admin Composio config view (v0.135.0). Read-only mirror of
+        // the runtime Composio integration state — booleans only, no
+        // raw API key or opaque platform identifiers surface.
+        nameKey: 'composio',
+        url: '/admin/composio',
+        icon: Bot,
         roles: [UserRole.SYSTEM_ADMIN],
       },
       {
