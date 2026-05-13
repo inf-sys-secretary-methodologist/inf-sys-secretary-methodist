@@ -15,6 +15,113 @@
 
 ---
 
+## [0.133.0] — 2026-05-13
+
+### Added — Admin Sentry config + admin user management (Phase 5 #3)
+
+Two new admin surfaces ship behind the system_admin role guard:
+`GET /api/admin/sentry/config` plus the `/admin/sentry` page give
+operators a read-only view of the runtime Sentry integration
+(initialised in `cmd/server/main.go:181-198`), and the new
+`/admin/users` page wraps the existing `/api/users` CRUD with a
+filterable list + per-row Radix dialogs for role, status, and
+delete operations.
+
+A TIER 0 security gap was closed in the same release: prior to
+v0.133.0 `protectedGroup.Group("/users")` had no role guard, so
+any authenticated user could `PUT /api/users/:id/role`,
+`PUT /:id/status`, `DELETE /:id`, or invoke `/bulk/*`. The new
+`users.RegisterUserRoutes` helper splits the group into a
+read-only subgroup (any authenticated caller) and an admin-write
+subgroup gated by `RequireRole(system_admin)`. Self-edit of
+`profile` and avatar Upload/Delete remain permissive — the avatar
+handler already enforces a self-or-admin override and
+UpdateProfile carries the pre-v0.133.0 permissive state forward
+unchanged.
+
+#### Backend
+
+- **`internal/shared/admin/sentry/`** — read-only admin view:
+  `Config` DTO (`DSNConfigured` boolean — DSN value never exposed),
+  `AdminSentryUseCase` with injectable `DSNProbe` so tests cover
+  both branches deterministically, `AdminSentryHandler.GetConfig`
+  mounted under `adminGroup`. `EnvDSNProbe` is the production
+  probe; constants `TracesSampleRate=0.1` + `TracingEnabled=true`
+  mirror `initSentry`.
+- **`internal/modules/users/interfaces/http/routes/routes.go`** —
+  new package extracting the users-module routing out of
+  `cmd/server/main.go`. `RegisterUserRoutes(group, adminMW,
+  userHandler, avatarHandler)` mounts read-only endpoints on the
+  parent group and write endpoints (`/:id/role`, `/:id/status`,
+  `DELETE /:id`, `/bulk/department`, `/bulk/position`) on an
+  admin-gated subgroup.
+- Dead `adminGroup.GET("/users", stub)` placeholder removed.
+
+#### Frontend
+
+- **`/admin/sentry`** page — DSN-configured badge, environment,
+  release, traces sample rate, tracing enabled. Mirror к
+  `/admin/backups` read-only status card pattern.
+- **`/admin/users`** page — filterable list (search +
+  role + status), pagination (20/page), role/status badges,
+  Radix Dialog wrappers for change-role / change-status /
+  delete actions. Three thin mutation hooks
+  (`useUpdateUserRole`, `useUpdateUserStatus`, `useDeleteUser`)
+  wrap the admin-gated endpoints and surface `isLoading` +
+  `error` for dialog feedback.
+- Navigation entries `sentry` + `adminUsers` × 4 locales added
+  to `adminGroup` (system_admin only).
+- New types: `SentryConfig`, `User`, `UserRole`, `UserStatus`,
+  `UserListFilter`, `UserListResponse`.
+- New hooks: `useSentryConfig`, `useUsers`, `useUserMutations`.
+
+#### Internationalisation
+
+- `adminSentry.*` namespace × 4 locales (ru/en/fr/ar), 12 keys
+  covering title/description/loadFailed/status (configured /
+  unconfigured) + fields (environment/release/tracesSampleRate/
+  tracingEnabled with enabled|disabled).
+- `adminUsers.*` namespace × 4 locales, 70+ keys covering
+  filters, columns, actions, roleOptions, statusOptions,
+  pagination, and three dialog subtrees (changeRole /
+  changeStatus / delete) with `{name}` ICU placeholders.
+- `nav.sentry` + `nav.adminUsers` × 4 locales.
+
+#### Tests
+
+- `routes_test.go` — table-driven integration test pinning the
+  security gate: 4 non-admin roles × 5 write endpoints + 5 roles
+  × 6 read endpoints + stripped-context cases. Mounts production
+  `RequireRole` middleware against `withAuth(uid, role)` that
+  mirrors auth middleware context keys (`user_id` + `role`) per
+  the v0.126.0 wrong-key bug class fix.
+- `internal/shared/admin/sentry/handler_test.go` — DSN
+  configured / unconfigured / nil-probe panic / nil-handler
+  panic / EnvDSNProbe env reading.
+- 73 frontend tests (page + dialog + i18n parity × 4) across
+  `/admin/sentry` and `/admin/users`.
+- Total: backend `108` packages green; frontend `3179` tests
+  passing across `209` suites.
+
+#### Reviewer round
+
+Mean **8.94** / Min **8** / Verdict **SHIP** with same-cycle
+absorb. Tier 1 self-edit regression (admin gate over-tightened
+on `/profile` + avatar mutations) and Tier 2 (nav label dup +
+`ROLE_VALUES` duplication) absorbed in `6344b165`. Tier 3 polish
+(dialog component extraction, dialog error surfacing, DeleteUser
+self-delete guard) deferred to v0.133.x backlog.
+
+#### Plan doc
+
+`docs/plans/2026-05-13-admin-sentry-users.md` — 10 ADRs locked
+before TDD (env-direct Sentry config / route group split / dead
+stub removal / page shapes / Radix Dialog precedent / i18n
+breakdown / no new audit emission / 6 TDD pairs / single-pass
+SHIP preconditions).
+
+---
+
 ## [0.132.0] — 2026-05-13
 
 ### Added — Backup admin observability (Phase 5 #2)
