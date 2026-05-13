@@ -89,9 +89,20 @@ func NewAdminIntegrationsUseCase(
 	}
 }
 
-// GetConfig returns the combined integrations snapshot. RED stub
-// — returns a zero Config so handler_test.go fails
-// until the GREEN commit ships the real projection.
+// GetConfig returns the combined integrations snapshot. VAPID
+// Configured is computed by the injected probe so tests can flip
+// it deterministically; PublicKey / Subject / N8N fields come
+// from the constructor-stored cfg snapshot.
 func (uc *AdminIntegrationsUseCase) GetConfig(_ context.Context) Config {
-	return Config{}
+	return Config{
+		VAPID: VAPIDConfig{
+			Configured: uc.vapidProbe(),
+			PublicKey:  uc.vapidPublicKey,
+			Subject:    uc.vapidSubject,
+		},
+		N8N: N8NConfig{
+			Enabled:    uc.n8nEnabled,
+			WebhookURL: uc.n8nWebhookURL,
+		},
+	}
 }

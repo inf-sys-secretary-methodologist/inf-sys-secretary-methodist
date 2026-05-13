@@ -148,6 +148,7 @@ import (
 	usersRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/routes"
 	adminAuditLog "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/auditlog"
 	adminBackups "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/backups"
+	adminIntegrations "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/integrations"
 	adminSentry "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/sentry"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
@@ -2597,6 +2598,24 @@ func setupRoutes(
 			adminGroup.GET("/sentry/config", adminSentryHandler.GetConfig)
 			adminGroup.OPTIONS("/sentry/config", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			logger.Info("Admin Sentry config view registered", nil)
+
+			// Admin integrations config view (v0.134.0). Read-only
+			// projection of the runtime WebPush (VAPID) + n8n
+			// configuration. VAPID private key never exposed —
+			// boolean presence only; public key surfaces (browser
+			// receives it via /push/public-key anyway). n8n WebhookURL
+			// is non-secret operational URL.
+			adminIntegrationsUseCase := adminIntegrations.NewAdminIntegrationsUseCase(
+				adminIntegrations.EnvVAPIDProbe,
+				cfg.WebPush.VAPIDPublicKey,
+				cfg.WebPush.VAPIDSubject,
+				cfg.N8N.Enabled,
+				cfg.N8N.WebhookURL,
+			)
+			adminIntegrationsHandler := adminIntegrations.NewAdminIntegrationsHandler(adminIntegrationsUseCase)
+			adminGroup.GET("/integrations/config", adminIntegrationsHandler.GetConfig)
+			adminGroup.OPTIONS("/integrations/config", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			logger.Info("Admin integrations config view registered", nil)
 		}
 	}
 
