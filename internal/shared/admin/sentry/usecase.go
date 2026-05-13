@@ -62,9 +62,16 @@ func NewAdminSentryUseCase(dsnProbe DSNProbe, environment, release string) *Admi
 }
 
 // GetConfig returns the current Sentry runtime configuration snapshot.
-// RED stub — returns a zero Config so the handler-level integration
-// test in handler_test.go fails until the GREEN commit implements the
-// real projection.
+// DSNConfigured is computed by the injected probe (so tests can flip
+// it deterministically); Environment and Release come from the
+// constructor-stored cfg snapshot; TracesSampleRate and TracingEnabled
+// mirror the constants initSentry passes to sentry.Init.
 func (uc *AdminSentryUseCase) GetConfig(_ context.Context) Config {
-	return Config{}
+	return Config{
+		DSNConfigured:    uc.dsnProbe(),
+		Environment:      uc.environment,
+		Release:          uc.release,
+		TracesSampleRate: uc.tracesSampleRate,
+		TracingEnabled:   uc.tracingEnabled,
+	}
 }

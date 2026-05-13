@@ -148,6 +148,7 @@ import (
 	usersRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/routes"
 	adminAuditLog "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/auditlog"
 	adminBackups "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/backups"
+	adminSentry "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/sentry"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
@@ -2585,6 +2586,22 @@ func setupRoutes(
 					logger.Info("Admin backup observability registered", nil)
 				}
 			}
+
+			// Admin Sentry config observability (v0.133.0). Read-only
+			// view of the runtime Sentry integration: DSN configured
+			// (boolean only — never the value), environment, release,
+			// traces sample rate, tracing enabled. Mirrors initSentry's
+			// configuration so admins can confirm error tracking is
+			// wired without reading server logs.
+			adminSentryUseCase := adminSentry.NewAdminSentryUseCase(
+				adminSentry.EnvDSNProbe,
+				cfg.Environment,
+				cfg.Version,
+			)
+			adminSentryHandler := adminSentry.NewAdminSentryHandler(adminSentryUseCase)
+			adminGroup.GET("/sentry/config", adminSentryHandler.GetConfig)
+			adminGroup.OPTIONS("/sentry/config", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			logger.Info("Admin Sentry config view registered", nil)
 		}
 	}
 
