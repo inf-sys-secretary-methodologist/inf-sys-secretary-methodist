@@ -15,6 +15,81 @@
 
 ---
 
+## [0.132.0] — 2026-05-13
+
+### Added — Backup admin observability (Phase 5 #2)
+
+Read-only admin surface at `/admin/backups` over the existing
+`/backup/` sidecar container (commits `9e729270` + `3d5edf93`).
+The sidecar owns the backup lifecycle — cron schedule, pg_dump /
+MinIO tarball, age/GPG encryption, retention GC, Prometheus
+textfile metrics, Telegram / Email / Webhook notifications,
+offsite S3 sync. The new in-app surface gives `system_admin` a
+browser view of what the sidecar has produced without SSH-ing
+into the host.
+
+#### Backend (`internal/shared/admin/backups/`)
+
+- `GET /api/admin/backups` — combined response with file listing
+  and Prometheus metrics in one round-trip.
+- `GET /api/admin/backups/:type/:name/download` — streams a vetted
+  file with `Content-Disposition: attachment`. Audit emission
+  `backup.downloaded` on success (filename / size / type /
+  actor_user_id); rejected paths emit nothing.
+- Filename whitelist regex (anchored on the sidecar's grammar)
+  plus a defence-in-depth `filepath.Clean + hasPrefix(cleanRoot)`
+  guard. Path-traversal vectors return 400; vetted-name-missing-
+  file returns 404.
+- Two narrow ports satisfied by `FileReader` (filesystem walk +
+  encryption-suffix classification) and `MetricsReader` (Prometheus
+  textfile parser, tolerant to missing blocks + missing file).
+- New `BackupConfig` (`BACKUP_FILES_DIR` / `BACKUP_METRICS_DIR`)
+  surfaced via env with defaults matching the compose mount paths.
+
+#### Frontend (`/admin/backups`)
+
+- Role guard via `useAuthCheck` + redirect to `/forbidden` for
+  non-`system_admin`.
+- Metrics tile: two cards (postgres + minio) with OK / failed /
+  no-data status pill and a 2-column dl of last-run / age /
+  duration / size / total counts. Optional remote-sync banner
+  appears when the sidecar's offsite sync is enabled.
+- File table with name / type / size / mtime / encryption badge
+  / download button. Encryption badge surfaces `.age` / `.gpg`
+  with a tooltip "private key required for decryption".
+- Download uses `window.open(url + '?token=' + jwt, '_blank')`
+  mirroring the documents page pattern — `<a download>` cannot
+  carry the `Authorization` header so the route falls back to
+  the documented `?token=` query path.
+- i18n × 4 (ru / en / fr / ar), ~36 keys per locale, pinned by a
+  JSON-load parity test.
+
+#### Infrastructure
+
+- `compose.yml` mounts the sidecar's `backup_data` and
+  `backup_metrics` named volumes read-only into the backend
+  service so the new endpoints can list + parse without granting
+  any write capability.
+
+#### Decisions explicitly NOT made (out of scope)
+
+- No trigger / start backup from the UI — sidecar owns the cron
+  schedule; on-demand backup remains `docker compose run --rm
+  backup /scripts/backup-all.sh` (admin SSH). Trigger UI tracked
+  as v0.132.x backlog (sidecar API extension required).
+- No restore from the UI — restore wipes the DB; high blast
+  radius warrants a focused review in a separate release.
+- No delete / no encryption key management — sidecar's retention
+  GC + offline age/GPG key handling already cover these.
+
+This release closes Phase 5 #2 of the admin bundle. The
+audit-logs initiative (Phase 5 #1) shipped across v0.130.0 +
+v0.131.0 + v0.131.1; admin/users + Sentry (Phase 5 #3),
+VAPID + branding + n8n (Phase 5 #4), and Composio + SetReminder
+(Phase 5 #5) remain on the roadmap before Phase 6 closure.
+
+---
+
 ## [0.131.1] — 2026-05-11
 
 ### Added — Audit logs coverage gaps (Phase 5 #1, third slot)
