@@ -2795,5 +2795,23 @@
       "postgres": "PostgreSQL",
       "minio": "MinIO"
     }
+  },
+  "adminSentry": {
+    "title": "Конфигурация Sentry",
+    "description": "Состояние интеграции отслеживания ошибок",
+    "loadFailed": "Не удалось загрузить конфигурацию Sentry",
+    "status": {
+      "sectionLabel": "Статус интеграции",
+      "configured": "Подключён",
+      "unconfigured": "Не настроен"
+    },
+    "fields": {
+      "environment": "Окружение",
+      "release": "Версия (release)",
+      "tracesSampleRate": "Доля трассировки",
+      "tracingEnabled": "Трассировка",
+      "enabled": "включена",
+      "disabled": "выключена"
+    }
   }
 }

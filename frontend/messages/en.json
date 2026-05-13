@@ -2795,5 +2795,23 @@
       "postgres": "PostgreSQL",
       "minio": "MinIO"
     }
+  },
+  "adminSentry": {
+    "title": "Sentry configuration",
+    "description": "Runtime state of the error-tracking integration",
+    "loadFailed": "Failed to load Sentry configuration",
+    "status": {
+      "sectionLabel": "Integration status",
+      "configured": "Connected",
+      "unconfigured": "Not configured"
+    },
+    "fields": {
+      "environment": "Environment",
+      "release": "Release",
+      "tracesSampleRate": "Traces sample rate",
+      "tracingEnabled": "Tracing",
+      "enabled": "enabled",
+      "disabled": "disabled"
+    }
   }
 }

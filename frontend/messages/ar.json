@@ -2795,5 +2795,23 @@
       "postgres": "PostgreSQL",
       "minio": "MinIO"
     }
+  },
+  "adminSentry": {
+    "title": "إعدادات Sentry",
+    "description": "حالة تشغيل تكامل تتبع الأخطاء",
+    "loadFailed": "فشل تحميل إعدادات Sentry",
+    "status": {
+      "sectionLabel": "حالة التكامل",
+      "configured": "متصل",
+      "unconfigured": "غير مهيأ"
+    },
+    "fields": {
+      "environment": "البيئة",
+      "release": "الإصدار",
+      "tracesSampleRate": "معدل أخذ عينات التتبع",
+      "tracingEnabled": "التتبع",
+      "enabled": "مفعَّل",
+      "disabled": "معطَّل"
+    }
   }
 }
