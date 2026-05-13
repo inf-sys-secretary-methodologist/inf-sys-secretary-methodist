@@ -2536,11 +2536,6 @@ func setupRoutes(
 		adminGroup := protectedGroup.Group("/admin")
 		adminGroup.Use(authMiddleware.RequireRole(string(authDomain.RoleSystemAdmin)))
 		{
-			adminGroup.GET("/users", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"message": "Admin users list"})
-			})
-			adminGroup.OPTIONS("/users", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-
 			// Admin notification routes (create and broadcast notifications)
 			if notificationUseCase != nil {
 				notificationHandler := notifHttp.NewNotificationHandler(notificationUseCase)

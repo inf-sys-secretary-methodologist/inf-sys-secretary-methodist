@@ -198,7 +198,9 @@
     "curriculum": "Programmes",
     "curriculumApprove": "Approbation des programmes",
     "annualReport": "Rapport annuel",
-    "auditLogs": "Journal d'audit"
+    "auditLogs": "Journal d'audit",
+    "sentry": "Sentry",
+    "adminUsers": "Utilisateurs"
   },
   "roles": {
     "system_admin": "Administrateur",

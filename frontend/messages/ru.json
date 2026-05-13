@@ -198,7 +198,9 @@
     "curriculum": "Учебные планы",
     "curriculumApprove": "Утверждение учебных планов",
     "annualReport": "Годовой отчёт",
-    "auditLogs": "Журнал аудита"
+    "auditLogs": "Журнал аудита",
+    "sentry": "Sentry",
+    "adminUsers": "Пользователи"
   },
   "roles": {
     "system_admin": "Администратор",

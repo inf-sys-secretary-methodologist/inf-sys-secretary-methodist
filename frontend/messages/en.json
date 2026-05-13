@@ -198,7 +198,9 @@
     "curriculum": "Curricula",
     "curriculumApprove": "Curriculum approval",
     "annualReport": "Annual report",
-    "auditLogs": "Audit logs"
+    "auditLogs": "Audit logs",
+    "sentry": "Sentry",
+    "adminUsers": "Users"
   },
   "roles": {
     "system_admin": "Administrator",

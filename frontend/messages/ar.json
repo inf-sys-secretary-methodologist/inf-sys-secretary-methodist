@@ -198,7 +198,9 @@
     "curriculum": "المناهج الدراسية",
     "curriculumApprove": "اعتماد المناهج",
     "annualReport": "التقرير السنوي",
-    "auditLogs": "سجل التدقيق"
+    "auditLogs": "سجل التدقيق",
+    "sentry": "Sentry",
+    "adminUsers": "المستخدمون"
   },
   "roles": {
     "system_admin": "مدير النظام",

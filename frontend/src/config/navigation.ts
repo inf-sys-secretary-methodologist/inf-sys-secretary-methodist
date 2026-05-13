@@ -19,6 +19,8 @@ import {
   BookMarked,
   ClipboardCheck,
   HardDrive,
+  Activity,
+  UserCog,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -316,6 +318,22 @@ export const navigationConfig: NavEntry[] = [
         nameKey: 'backups',
         url: '/admin/backups',
         icon: HardDrive,
+        roles: [UserRole.SYSTEM_ADMIN],
+      },
+      {
+        // Admin Sentry config view (v0.133.0). Read-only mirror of
+        // initSentry runtime configuration — DSN-as-boolean only.
+        nameKey: 'sentry',
+        url: '/admin/sentry',
+        icon: Activity,
+        roles: [UserRole.SYSTEM_ADMIN],
+      },
+      {
+        // Admin user management (v0.133.0). List/filter/edit; write
+        // endpoints gated by RequireRole(system_admin) since v0.133.0.
+        nameKey: 'adminUsers',
+        url: '/admin/users',
+        icon: UserCog,
         roles: [UserRole.SYSTEM_ADMIN],
       },
       {
