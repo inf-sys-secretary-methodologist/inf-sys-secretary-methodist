@@ -2933,7 +2933,8 @@
     "placeholders": {
       "logoURL": "https://example.com/logo.png",
       "faviconURL": "https://example.com/favicon.ico",
-      "primaryColor": "#3b82f6"
+      "primaryColor": "#3b82f6",
+      "secondaryColor": "#64748b"
     }
   },
   "adminComposio": {

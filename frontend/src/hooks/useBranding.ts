@@ -84,17 +84,19 @@ export function useUpdateBranding() {
 }
 
 // extractErrorCode reads the backend-typed error code from the
-// thrown error. apiClient throws errors that may carry the
-// envelope's error.code on a `.code` property; we read it
-// defensively, returning null on any miss.
+// thrown error. We prefer the envelope's `error.code` (e.g.,
+// INVALID_APP_NAME) over the axios `e.code` field, because the
+// latter is the network-code namespace (ERR_NETWORK /
+// ECONNABORTED / ...) and would shadow a legitimate 422 code
+// during overlap. Returns null on any miss.
 function extractErrorCode(e: unknown): string | null {
-  if (e && typeof e === 'object' && 'code' in e) {
-    const c = (e as { code?: unknown }).code
-    if (typeof c === 'string') return c
-  }
   if (e && typeof e === 'object' && 'response' in e) {
     const r = (e as { response?: { data?: { error?: { code?: unknown } } } }).response
     const c = r?.data?.error?.code
+    if (typeof c === 'string') return c
+  }
+  if (e && typeof e === 'object' && 'code' in e) {
+    const c = (e as { code?: unknown }).code
     if (typeof c === 'string') return c
   }
   return null

@@ -85,7 +85,7 @@ function BrandingForm({ initial, saving, errorCode, onSubmit }: BrandingFormProp
   const [secondaryColor, setSecondaryColor] = useState(initial.secondary_color)
   const [successOpen, setSuccessOpen] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setSuccessOpen(false)
     try {
@@ -201,7 +201,7 @@ function BrandingForm({ initial, saving, errorCode, onSubmit }: BrandingFormProp
             type="text"
             value={secondaryColor}
             onChange={(e) => setSecondaryColor(e.target.value)}
-            placeholder={t('placeholders.primaryColor')}
+            placeholder={t('placeholders.secondaryColor')}
             className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <input

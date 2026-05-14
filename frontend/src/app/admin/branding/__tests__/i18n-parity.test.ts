@@ -32,6 +32,7 @@ type MessagesShape = {
       logoURL?: string
       faviconURL?: string
       primaryColor?: string
+      secondaryColor?: string
     }
   }
   nav?: {
@@ -57,7 +58,7 @@ const fieldKeys = [
 
 const errorKeys = ['INVALID_APP_NAME', 'INVALID_TAGLINE', 'INVALID_COLOR', 'INVALID_URL'] as const
 
-const placeholderKeys = ['logoURL', 'faviconURL', 'primaryColor'] as const
+const placeholderKeys = ['logoURL', 'faviconURL', 'primaryColor', 'secondaryColor'] as const
 
 describe('adminBranding i18n parity × 4 locales', () => {
   it.each(locales)('%s has the top-level keys', (_name, msgs) => {

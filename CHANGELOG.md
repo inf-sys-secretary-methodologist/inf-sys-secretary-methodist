@@ -15,6 +15,120 @@
 
 ---
 
+## [0.137.0] — 2026-05-14
+
+### Added — Branding admin frontend + login integration (Phase 5 #4 final closure)
+
+Closes Phase 5 #4 final by surfacing the v0.136.0 branding
+backend to admins via a form-based admin page and to all
+unauthenticated visitors via a branded login page. Phase 5 #4
+fully done (VAPID + n8n + Composio + Branding); 4 admin
+write/observability surfaces shipped в Phase 5 total.
+
+#### Frontend
+
+- **New types** `types/branding.ts` — `BrandSettings`
+  (mirroring backend DTO byte-for-byte) +
+  `UpdateBrandingRequest` (PUT body).
+- **New hooks** `hooks/useBranding.ts`:
+  - `useBranding({ public, enabled })` — SWR GET fetcher для
+    /api/admin/branding (default) или /api/public/branding
+    (когда `public: true`). Public variant uses
+    `SWR_DEDUPING.LONG` (30s) — login page rarely needs revalidate.
+  - `useUpdateBranding()` — PUT mutation hook tracking
+    `isLoading` + `error` + typed `errorCode`. `extractErrorCode`
+    reads the envelope's `error.code` first then axios's
+    `e.code` (network namespace) — backend INVALID_* codes
+    win over network-error overlap.
+- **New client component** `components/branding/BrandedHeader.
+  tsx`:
+  - Reads `useBranding({ public: true })`.
+  - Renders configured app_name + optional logo (next/image
+    `unoptimized` for arbitrary http/https URLs that already
+    passed the backend's scheme whitelist) + optional tagline.
+  - Optional inline `borderTop` accent driven by primary_color
+    — single visible accent (full theme cascade out of scope
+    per plan ADR-3).
+  - Graceful degradation: falls back к translated `titleFallback`
+    i18n key during loading and on fetch failure so the auth
+    chrome is never blank.
+- **New admin page** `/admin/branding` — 6 controlled inputs
+  (app_name `<input type="text" maxLength=100>` + tagline
+  `<textarea maxLength=200>` + logo & favicon URL textboxes +
+  two hex textboxes paired с native `<input type="color">`
+  pickers). Submit handler calls
+  `useUpdateBranding().updateBranding(...)`; success → banner +
+  SWR cache mutate; 422 INVALID_* → typed inline error banner
+  mapped к `adminBranding.errors.{CODE}` i18n key. State
+  preserved on rejected submit so admin can fix and retry.
+- **Login page integration** `(auth)/login/page.tsx` — server-
+  rendered shell imports the client `BrandedHeader` component
+  замещая hardcoded `loginWelcome` heading. Auth surface keeps
+  SSR while branded chrome hydrates client-side.
+- **Nav entry** `branding` × 4 locales с `Image` lucide icon
+  (system_admin only), inserted after the composio entry.
+- **i18n × 4** (ru/en/fr/ar) — `adminBranding` namespace (title +
+  description + loadFailed + savedSuccess + save + saving + 6
+  fields + 4 INVALID_* errors + 4 placeholders) + `nav.branding`.
+  JSON-load parity test pins every key across 4 locales.
+
+#### Tier 2 absorbed (per `feedback_tier2_absorb_same_release`)
+
+- `extractErrorCode` order swap в `hooks/useBranding.ts` —
+  envelope `error.code` reads first, axios `e.code` (network
+  namespace) reads second so backend INVALID_* codes never get
+  shadowed during overlap.
+- Distinct `placeholders.secondaryColor` key + locale entries +
+  parity test extension — was copy-paste of `primaryColor`
+  before absorb.
+- `React.FormEvent<HTMLFormElement>` left in place — TS5 emits
+  deprecation warning systemically across 3+ existing forms
+  (`GradeForm.tsx` / `TaskForm.tsx` / `AnnouncementForm.tsx`);
+  defer codebase-wide sweep к v0.137.x patch вместо isolated fix
+  on the new file.
+
+#### Reviewer
+
+- Round-1 SHIP mean 9.07 / min 8.5 single-pass — **4-й
+  consecutive single-pass SHIP** (v0.134.0 9.13/9 + v0.135.0
+  9.29/9 + v0.136.0 9.0/8 + v0.137.0 9.07/8.5). Per-axis: TDD
+  10 / Component design 9 / Form UX 9 / Security 9 / SWR +
+  mutation 8.5 / i18n × 4 9 / Accessibility 9.
+
+#### Tests
+
+- 37 new frontend tests passing (13 admin page + 16 i18n parity ×
+  4 locales + 8 BrandedHeader component). Full frontend suite:
+  3260 tests across 216 suites (no regressions from v0.136.0
+  baseline 3223 / 213).
+- Backend untouched в этом релизе (Tier 2 v0.136.0 backend
+  follow-up — RegisterBrandingRoutes extractor + UpdateBrandingInput
+  struct — deferred к v0.137.x patch).
+
+#### Phase 5 status
+
+Phase 5 closed end-to-end:
+- #1 audit-logs (v0.130.0 + v0.131.0 + v0.131.1)
+- #2 backup observability (v0.132.0)
+- #3 admin/sentry + admin/users + TIER 0 security (v0.133.0)
+- #4 admin/integrations VAPID + n8n (v0.134.0)
+- #4 final Branding (v0.136.0 backend + v0.137.0 frontend)
+- #5 partial admin/composio (v0.135.0)
+
+#### Out of scope (deferred)
+
+- v0.137.x backend patch — RegisterBrandingRoutes extractor +
+  UpdateBrandingInput struct (Tier 2 deferred from v0.136.0
+  reviewer).
+- v0.137.x frontend patch — rich file upload UX (drop zone,
+  preview, progress); Cache-Control headers on
+  `/api/public/branding`; full theme system cascade.
+- Phase 5 #5 final SetReminder (cross-module Composio scheduling).
+- Phase 6 — #210 DIP refactor; #196 backend coverage 78.7%→90%.
+- B3 Extracurricular events; v1.0.0 Final.
+
+---
+
 ## [0.136.0] — 2026-05-14
 
 ### Added — Branding admin backend (Phase 5 #4 final, half 1 of 2)
