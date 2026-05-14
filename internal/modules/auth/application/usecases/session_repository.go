@@ -1,5 +1,4 @@
-// Package repositories defines repository interfaces for the auth module.
-package repositories
+package usecases
 
 import (
 	"context"

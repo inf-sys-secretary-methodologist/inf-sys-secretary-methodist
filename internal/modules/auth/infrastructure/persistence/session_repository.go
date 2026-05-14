@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
 )
 
@@ -16,7 +16,7 @@ type SessionRepositoryPG struct {
 }
 
 // NewSessionRepositoryPG creates a new PostgreSQL session repository
-func NewSessionRepositoryPG(db *sql.DB) repositories.SessionRepository {
+func NewSessionRepositoryPG(db *sql.DB) usecases.SessionRepository {
 	return &SessionRepositoryPG{db: db}
 }
 

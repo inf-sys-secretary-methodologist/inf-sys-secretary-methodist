@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure/persistence"
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/testing/fixtures"
@@ -19,7 +19,7 @@ import (
 // SessionRepositoryTestSuite tests the PostgreSQL session repository
 type SessionRepositoryTestSuite struct {
 	testSuite.IntegrationSuite
-	repo   repositories.SessionRepository
+	repo   usecases.SessionRepository
 	userID int64
 }
 
