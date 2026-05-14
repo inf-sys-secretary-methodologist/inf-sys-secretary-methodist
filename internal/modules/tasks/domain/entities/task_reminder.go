@@ -79,7 +79,27 @@ type TaskReminder struct {
 // sentinel for errors.Is matching. `now` is injected так что tests
 // pin deterministic timestamps.
 func NewTaskReminder(taskID, userID int64, reminderType ReminderType, minutesBefore int, now time.Time) (*TaskReminder, error) {
-	return nil, errors.New("task_reminder: not implemented yet")
+	if taskID <= 0 {
+		return nil, ErrInvalidTaskID
+	}
+	if userID <= 0 {
+		return nil, ErrInvalidUserID
+	}
+	if !reminderType.IsValid() {
+		return nil, ErrInvalidReminderType
+	}
+	if minutesBefore <= 0 {
+		return nil, ErrInvalidMinutesBefore
+	}
+	return &TaskReminder{
+		taskID:        taskID,
+		userID:        userID,
+		reminderType:  reminderType,
+		minutesBefore: minutesBefore,
+		isSent:        false,
+		sentAt:        nil,
+		createdAt:     now,
+	}, nil
 }
 
 // ID returns the persistence-assigned identifier (0 until persisted).
