@@ -58,13 +58,15 @@ func (h *AdminBrandingHandler) UpdateBranding(c *gin.Context) {
 			response.ErrorResponse("INVALID_BODY", err.Error()))
 		return
 	}
-	actorUserID := actorIDFromContext(c)
-	settings, err := h.updateUC.Execute(
-		c.Request.Context(),
-		req.AppName, req.Tagline, req.LogoURL, req.FaviconURL,
-		req.PrimaryColor, req.SecondaryColor,
-		actorUserID,
-	)
+	settings, err := h.updateUC.Execute(c.Request.Context(), usecases.UpdateBrandingInput{
+		AppName:        req.AppName,
+		Tagline:        req.Tagline,
+		LogoURL:        req.LogoURL,
+		FaviconURL:     req.FaviconURL,
+		PrimaryColor:   req.PrimaryColor,
+		SecondaryColor: req.SecondaryColor,
+		ActorUserID:    actorIDFromContext(c),
+	})
 	if err != nil {
 		if isDomainValidationError(err) {
 			c.JSON(http.StatusUnprocessableEntity,

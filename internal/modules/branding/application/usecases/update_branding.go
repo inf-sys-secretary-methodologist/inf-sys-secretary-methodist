@@ -21,6 +21,20 @@ type SystemClock struct{}
 // Now returns the current wall-clock time.
 func (SystemClock) Now() time.Time { return time.Now() }
 
+// UpdateBrandingInput is the use case input — replaces a 7-positional
+// Execute signature with a named-field DTO (mirror к assignments /
+// curriculum XxxInput convention). Frontend / handler maps from the
+// HTTP DTO; ActorUserID is sourced from the JWT context.
+type UpdateBrandingInput struct {
+	AppName        string
+	Tagline        string
+	LogoURL        string
+	FaviconURL     string
+	PrimaryColor   string
+	SecondaryColor string
+	ActorUserID    int64
+}
+
 // UpdateBrandingUseCase replaces the singleton brand settings with
 // the caller-provided values. The new entity is constructed via
 // NewBrandSettings so all domain invariants run; the repo Update
@@ -55,13 +69,12 @@ func NewUpdateBrandingUseCase(
 // for the handler to map к 422; repo errors propagate as-is.
 func (uc *UpdateBrandingUseCase) Execute(
 	ctx context.Context,
-	appName, tagline, logoURL, faviconURL, primaryColor, secondaryColor string,
-	actorUserID int64,
+	in UpdateBrandingInput,
 ) (*entities.BrandSettings, error) {
 	now := uc.clock.Now()
 	settings, err := entities.NewBrandSettings(
-		appName, tagline, logoURL, faviconURL,
-		primaryColor, secondaryColor, now,
+		in.AppName, in.Tagline, in.LogoURL, in.FaviconURL,
+		in.PrimaryColor, in.SecondaryColor, now,
 	)
 	if err != nil {
 		return nil, err
@@ -69,7 +82,7 @@ func (uc *UpdateBrandingUseCase) Execute(
 	if err := uc.repo.Update(ctx, settings); err != nil {
 		return nil, err
 	}
-	uc.emitAudit(ctx, settings, actorUserID)
+	uc.emitAudit(ctx, settings, in.ActorUserID)
 	return settings, nil
 }
 
