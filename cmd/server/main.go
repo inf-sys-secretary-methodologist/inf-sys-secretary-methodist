@@ -103,6 +103,7 @@ import (
 	brandingUseCases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/application/usecases"
 	brandingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/infrastructure/persistence"
 	brandingHandlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/interfaces/http/handlers"
+	brandingRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/interfaces/http/routes"
 	curUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/application/usecases"
 	curPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/infrastructure/persistence"
 	curHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/interfaces/http/handlers"
@@ -1519,15 +1520,12 @@ func setupRoutes(
 	// Public branding route — always available (login page consumes
 	// this before the user authenticates). Mounted independently of
 	// the sharing-feature block below so a sharing-disabled deployment
-	// still surfaces the branded login chrome.
-	{
-		brandingPublicGroup := router.Group("/api/public")
-		if publicRateLimiter != nil {
-			brandingPublicGroup.Use(publicRateLimiter.RateLimitMiddleware())
-		}
-		brandingPublicGroup.GET("/branding", publicBrandingHandler.GetBranding)
-		brandingPublicGroup.OPTIONS("/branding", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-		logger.Info("Public branding route registered", nil)
+	// still surfaces the branded login chrome. Admin branding routes
+	// are mounted further down in the adminGroup block; both calls
+	// share the same handler and use case instances.
+	brandingPublicGroup := router.Group("/api/public")
+	if publicRateLimiter != nil {
+		brandingPublicGroup.Use(publicRateLimiter.RateLimitMiddleware())
 	}
 
 	// Public document access routes (no authentication required)
@@ -2666,15 +2664,24 @@ func setupRoutes(
 			adminGroup.OPTIONS("/composio/config", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			logger.Info("Admin Composio config view registered", nil)
 
-			// Admin branding endpoints (v0.136.0). System-wide brand
-			// settings — read+write. Domain invariants live в
+			// Branding module routes (v0.137.1 — ADR-7 deviation
+			// closure). RegisterBrandingRoutes owns both admin
+			// (GET/PUT/OPTIONS /branding) and public (GET/OPTIONS
+			// /branding) mounts. Domain invariants live в
 			// modules/branding/domain/entities/brand_settings.go
 			// (hex color + URL scheme whitelist + length bounds);
-			// validation errors map к 422 in the handler.
-			adminGroup.GET("/branding", adminBrandingHandler.GetBranding)
-			adminGroup.PUT("/branding", adminBrandingHandler.UpdateBranding)
-			adminGroup.OPTIONS("/branding", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-			logger.Info("Admin branding endpoints registered", nil)
+			// validation errors map к 422 in the handler. The
+			// brandingPublicGroup was assembled earlier (with
+			// optional rate-limit middleware) so that the public
+			// surface stays reachable even on a sharing-disabled
+			// deployment.
+			brandingRoutes.RegisterBrandingRoutes(
+				adminGroup,
+				brandingPublicGroup,
+				adminBrandingHandler,
+				publicBrandingHandler,
+			)
+			logger.Info("Branding module routes registered", nil)
 		}
 	}
 

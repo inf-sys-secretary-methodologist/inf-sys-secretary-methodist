@@ -27,16 +27,19 @@ import (
 //     is the caller's responsibility (the production wiring layers
 //     publicRateLimiter on the group before this call).
 //
-// Stub body — the v0.137.1 GREEN commit will provide the real mounts.
+// Admin routes: GET + PUT + OPTIONS /branding.
+// Public routes: GET + OPTIONS /branding (same DTO shape — no field
+// is sensitive, see brand_settings_dto.go).
 func RegisterBrandingRoutes(
 	adminGroup *gin.RouterGroup,
 	publicGroup *gin.RouterGroup,
 	adminHandler *handlers.AdminBrandingHandler,
 	publicHandler *handlers.PublicBrandingHandler,
 ) {
-	_ = adminGroup
-	_ = publicGroup
-	_ = adminHandler
-	_ = publicHandler
-	_ = http.StatusNoContent
+	adminGroup.GET("/branding", adminHandler.GetBranding)
+	adminGroup.PUT("/branding", adminHandler.UpdateBranding)
+	adminGroup.OPTIONS("/branding", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+	publicGroup.GET("/branding", publicHandler.GetBranding)
+	publicGroup.OPTIONS("/branding", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 }
