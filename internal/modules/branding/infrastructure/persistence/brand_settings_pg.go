@@ -38,24 +38,61 @@ func NewBrandSettingsRepositoryPG(db *sql.DB) *BrandSettingsRepositoryPG {
 // Compile-time assertion that the concrete type satisfies the port.
 var _ repositories.BrandSettingsRepository = (*BrandSettingsRepositoryPG)(nil)
 
-// Get reads the singleton row. RED stub returns an empty entity
-// so admin handler integration tests see "happy path" payload
-// without asserting on specific seed values; row-missing detection
-// lands in GREEN.
-func (r *BrandSettingsRepositoryPG) Get(_ context.Context) (*entities.BrandSettings, error) {
-	return entities.RehydrateBrandSettings("", "", "", "", "", "", time.Time{}), nil
+// Get reads the singleton row (id = 1). Returns
+// ErrBrandSettingsMissing if the seed row is absent — that means
+// migration 037 was not applied and main.go should fail fast.
+func (r *BrandSettingsRepositoryPG) Get(ctx context.Context) (*entities.BrandSettings, error) {
+	query := `SELECT ` + brandSettingsSelectColumns + ` FROM brand_settings WHERE id = 1`
+
+	var (
+		appName        string
+		tagline        string
+		logoURL        string
+		faviconURL     string
+		primaryColor   string
+		secondaryColor string
+		updatedAt      time.Time
+	)
+	err := r.db.QueryRowContext(ctx, query).Scan(
+		&appName, &tagline, &logoURL, &faviconURL,
+		&primaryColor, &secondaryColor, &updatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrBrandSettingsMissing
+		}
+		return nil, fmt.Errorf("branding: failed to read settings: %w", err)
+	}
+	return entities.RehydrateBrandSettings(
+		appName, tagline, logoURL, faviconURL,
+		primaryColor, secondaryColor, updatedAt,
+	), nil
 }
 
-// Update overwrites the singleton row. RED stub does nothing —
-// admin PUT tests will see "200 OK" but a subsequent Get won't
-// reflect the write. GREEN restores the real UPDATE.
-func (r *BrandSettingsRepositoryPG) Update(_ context.Context, _ *entities.BrandSettings) error {
+// Update overwrites the singleton row. RowsAffected == 0 means the
+// seed row is absent — surface as ErrBrandSettingsMissing so callers
+// can disambiguate infrastructure rot from a normal write.
+func (r *BrandSettingsRepositoryPG) Update(ctx context.Context, settings *entities.BrandSettings) error {
+	const query = `UPDATE brand_settings SET app_name = $1, tagline = $2, logo_url = $3, favicon_url = $4, primary_color = $5, secondary_color = $6, updated_at = $7 WHERE id = 1`
+
+	result, err := r.db.ExecContext(ctx, query,
+		settings.AppName(),
+		settings.Tagline(),
+		settings.LogoURL(),
+		settings.FaviconURL(),
+		settings.PrimaryColor(),
+		settings.SecondaryColor(),
+		settings.UpdatedAt(),
+	)
+	if err != nil {
+		return fmt.Errorf("branding: failed to update settings: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("branding: failed to inspect update result: %w", err)
+	}
+	if rows == 0 {
+		return ErrBrandSettingsMissing
+	}
 	return nil
 }
-
-// References reserved for the GREEN impl — silence "unused" linter
-// until the real Get/Update SQL is restored.
-var (
-	_ = fmt.Sprintf
-	_ = brandSettingsSelectColumns
-)
