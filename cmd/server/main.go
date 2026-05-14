@@ -97,7 +97,6 @@ import (
 	assignHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/interfaces/http/handlers"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure/persistence"
 	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
 	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
@@ -1388,7 +1387,7 @@ func setupRoutes(
 	// Token revocation infrastructure (logout endpoint, AUDIT_REPORT item #4).
 	// If Redis is unavailable, revokedTokenRepo stays nil and JWTMiddlewareWithRevocation
 	// gracefully degrades to plain validation without blacklist lookup.
-	var revokedTokenRepo repositories.RevokedTokenRepository
+	var revokedTokenRepo usecases.RevokedTokenRepository
 	var logoutUseCase *usecases.LogoutUseCase
 	if redisCache != nil {
 		revokedTokenRepo = persistence.NewRedisRevokedTokenRepository(redisCache.Client())

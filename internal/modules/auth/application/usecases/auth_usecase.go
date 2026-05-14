@@ -17,7 +17,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -70,7 +69,7 @@ type AuthUseCase struct {
 	// WithMFAVerification — see method below). nil-safe: when unset, the
 	// MFA branch in LoginWithUser still issues an intermediate token, but
 	// VerifyLoginMFA returns ErrMFAVerificationNotConfigured.
-	revokedTokenRepo repositories.RevokedTokenRepository
+	revokedTokenRepo RevokedTokenRepository
 	totpDriftWindow  int
 	now              func() time.Time
 }
@@ -476,7 +475,7 @@ const (
 // an MFA user may skip this call — the LoginWithUser MFA branch still
 // generates intermediate tokens, but VerifyLoginMFA refuses to run.
 func (u *AuthUseCase) WithMFAVerification(
-	revokedRepo repositories.RevokedTokenRepository,
+	revokedRepo RevokedTokenRepository,
 	driftWindow int,
 	now func() time.Time,
 ) *AuthUseCase {
