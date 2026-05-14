@@ -2016,6 +2016,7 @@
     "create": "Créer une tâche",
     "edit": "Modifier",
     "delete": "Supprimer",
+    "reminders": "Rappels",
     "menu": "Menu de la tâche",
     "overdue": "En retard",
     "noTasks": "Aucune tâche",
@@ -2057,6 +2058,27 @@
       "createFailed": "Échec de la création de la tâche",
       "updateFailed": "Échec de la mise à jour de la tâche",
       "deleteFailed": "Échec de la suppression de la tâche"
+    }
+  },
+  "taskReminders": {
+    "dialogTitle": "Rappels de la tâche",
+    "listTitle": "Rappels actuels",
+    "noReminders": "Aucun rappel pour le moment",
+    "reminderTypeLabel": "Canal",
+    "minutesBeforeLabel": "Minutes avant l'échéance",
+    "minutesBeforeShort": "{minutes} min avant",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer le rappel",
+    "type": {
+      "email": "Email",
+      "push": "Notification push",
+      "inApp": "Dans l'application",
+      "telegram": "Telegram"
+    },
+    "errors": {
+      "createFailed": "Échec de l'ajout du rappel",
+      "deleteFailed": "Échec de la suppression du rappel"
     }
   },
   "announcements": {

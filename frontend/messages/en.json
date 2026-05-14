@@ -2016,6 +2016,7 @@
     "create": "Create task",
     "edit": "Edit",
     "delete": "Delete",
+    "reminders": "Reminders",
     "menu": "Task menu",
     "overdue": "Overdue",
     "noTasks": "No tasks",
@@ -2057,6 +2058,27 @@
       "createFailed": "Failed to create task",
       "updateFailed": "Failed to update task",
       "deleteFailed": "Failed to delete task"
+    }
+  },
+  "taskReminders": {
+    "dialogTitle": "Task reminders",
+    "listTitle": "Current reminders",
+    "noReminders": "No reminders yet",
+    "reminderTypeLabel": "Channel",
+    "minutesBeforeLabel": "Minutes before the deadline",
+    "minutesBeforeShort": "{minutes} min ahead",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete reminder",
+    "type": {
+      "email": "Email",
+      "push": "Push",
+      "inApp": "In-app",
+      "telegram": "Telegram"
+    },
+    "errors": {
+      "createFailed": "Failed to add reminder",
+      "deleteFailed": "Failed to delete reminder"
     }
   },
   "announcements": {

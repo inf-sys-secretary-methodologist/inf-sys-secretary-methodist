@@ -2016,6 +2016,7 @@
     "create": "إنشاء مهمة",
     "edit": "تعديل",
     "delete": "حذف",
+    "reminders": "التذكيرات",
     "menu": "قائمة المهمة",
     "overdue": "متأخرة",
     "noTasks": "لا توجد مهام",
@@ -2057,6 +2058,27 @@
       "createFailed": "فشل إنشاء المهمة",
       "updateFailed": "فشل تحديث المهمة",
       "deleteFailed": "فشل حذف المهمة"
+    }
+  },
+  "taskReminders": {
+    "dialogTitle": "تذكيرات المهمة",
+    "listTitle": "التذكيرات الحالية",
+    "noReminders": "لا توجد تذكيرات بعد",
+    "reminderTypeLabel": "القناة",
+    "minutesBeforeLabel": "كم دقيقة قبل الموعد النهائي",
+    "minutesBeforeShort": "قبل {minutes} دقيقة",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف التذكير",
+    "type": {
+      "email": "البريد الإلكتروني",
+      "push": "إشعار",
+      "inApp": "داخل التطبيق",
+      "telegram": "تيليجرام"
+    },
+    "errors": {
+      "createFailed": "فشل إضافة التذكير",
+      "deleteFailed": "فشل حذف التذكير"
     }
   },
   "announcements": {

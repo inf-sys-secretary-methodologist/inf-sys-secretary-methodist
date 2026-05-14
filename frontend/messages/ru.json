@@ -2016,6 +2016,7 @@
     "create": "Создать задачу",
     "edit": "Редактировать",
     "delete": "Удалить",
+    "reminders": "Напоминания",
     "menu": "Меню задачи",
     "overdue": "Просрочена",
     "noTasks": "Задач нет",
@@ -2057,6 +2058,27 @@
       "createFailed": "Не удалось создать задачу",
       "updateFailed": "Не удалось обновить задачу",
       "deleteFailed": "Не удалось удалить задачу"
+    }
+  },
+  "taskReminders": {
+    "dialogTitle": "Напоминания о задаче",
+    "listTitle": "Текущие напоминания",
+    "noReminders": "Напоминаний пока нет",
+    "reminderTypeLabel": "Способ",
+    "minutesBeforeLabel": "За сколько минут до срока",
+    "minutesBeforeShort": "за {minutes} мин",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить напоминание",
+    "type": {
+      "email": "Email",
+      "push": "Push",
+      "inApp": "В приложении",
+      "telegram": "Telegram"
+    },
+    "errors": {
+      "createFailed": "Не удалось добавить напоминание",
+      "deleteFailed": "Не удалось удалить напоминание"
     }
   },
   "announcements": {
