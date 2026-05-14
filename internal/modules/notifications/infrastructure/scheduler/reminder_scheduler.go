@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
@@ -263,10 +264,27 @@ func (s *ReminderScheduler) sendPushReminder(ctx context.Context, reminder *sche
 	return s.sendInAppReminder(ctx, reminder, event)
 }
 
-// sendTelegramReminder sends a Telegram notification.
-// Currently falls back to in-app notification; Telegram bot integration planned for future.
+// sendTelegramReminder dispatches the reminder via the injected
+// ComposioTelegramService. Wiring is optional — WithTelegramDispatch
+// supplies the repo + service; absent either, the call falls back к
+// in-app notification so the reminder stays reachable. Mirror к
+// TaskReminderScheduler.sendTelegram impl from v0.138.0.
 func (s *ReminderScheduler) sendTelegramReminder(ctx context.Context, reminder *scheduleEntities.EventReminder, event *scheduleEntities.Event) error {
-	return s.sendInAppReminder(ctx, reminder, event)
+	if s.telegramRepo == nil || s.telegramService == nil {
+		return s.sendInAppReminder(ctx, reminder, event)
+	}
+	conn, err := s.telegramRepo.GetConnectionByUserID(ctx, reminder.UserID)
+	if err != nil || conn == nil || !conn.IsActive {
+		return s.sendInAppReminder(ctx, reminder, event)
+	}
+	chatID := strconv.FormatInt(conn.TelegramChatID, 10)
+	title := "Напоминание о событии"
+	message := s.formatEventReminderMessage(event, reminder.MinutesBefore)
+	if dispatchErr := s.telegramService.SendNotification(ctx, chatID, title, message, "high"); dispatchErr != nil {
+		log.Printf("reminder_scheduler: telegram dispatch failed: %v — falling back к in-app", dispatchErr)
+		return s.sendInAppReminder(ctx, reminder, event)
+	}
+	return nil
 }
 
 // formatEventReminderEmail formats the email body for event reminder

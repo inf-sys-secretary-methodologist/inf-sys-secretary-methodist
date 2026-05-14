@@ -585,6 +585,13 @@ func main() {
 			errorKey: err.Error(),
 		})
 	} else {
+		// v0.138.1 — wire telegram dispatch onto the existing event
+		// reminder scheduler so event_reminders also light up the
+		// Composio path (was a carry-forward gap closed alongside the
+		// Phase 5 #5 final task_reminders telegram dispatch).
+		if telegramService != nil {
+			reminderScheduler.WithTelegramDispatch(telegramRepo, telegramService)
+		}
 		if err := reminderScheduler.Start(); err != nil {
 			logger.Error("Failed to start reminder scheduler", map[string]interface{}{
 				errorKey: err.Error(),
