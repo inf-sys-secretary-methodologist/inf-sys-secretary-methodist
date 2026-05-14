@@ -15,6 +15,125 @@
 
 ---
 
+## [0.136.0] — 2026-05-14
+
+### Added — Branding admin backend (Phase 5 #4 final, half 1 of 2)
+
+First half of the Phase 5 #4 final initiative — full greenfield
+Branding module establishes persistence + admin write + public
+read API surface. The login page and admin chrome UI integration
+lands separately in v0.137.0 (split per ADR-8 / senior decision
+for cleaner single-pass-SHIP risk profile).
+
+#### Backend
+
+- **New module** `internal/modules/branding/` — first WRITE feature
+  module shipped since the audit-logs initiative; 5 prior admin
+  observability releases (v0.131.0–v0.135.0) were all read-only.
+- **Domain entity** `BrandSettings` (`domain/entities/`) — singleton
+  aggregate with 6 editable fields (app_name + tagline + logo_url
+  + favicon_url + primary_color + secondary_color) + updated_at.
+  Constructor + 6 setter methods enforce invariants via 4 typed
+  domain error sentinels: `ErrInvalidAppName` (1 ≤ len ≤ 100),
+  `ErrInvalidTagline` (≤200), `ErrInvalidColor`
+  (`^#[0-9a-fA-F]{6}|[0-9a-fA-F]{3}$`), `ErrInvalidURL` (parses +
+  scheme ∈ {http, https} + non-empty host). URL scheme whitelist
+  blocks `javascript:` / `data:` / `file:` / `ftp:` schemes from
+  sneaking onto the login page img tag — defense-in-depth before
+  React's renderer escapes them.
+- **Repository port** `domain/repositories/brand_settings_repository.
+  go` — narrow `Get + Update` interface, no Save (seed row exists
+  from migration time) and no Delete (brand always present).
+- **PG implementation** `infrastructure/persistence/` —
+  `BrandSettingsRepositoryPG` with `Get` (QueryRowContext SELECT
+  WHERE id=1; `sql.ErrNoRows` → `ErrBrandSettingsMissing`) and
+  `Update` (ExecContext UPDATE; RowsAffected=0 →
+  `ErrBrandSettingsMissing`). 4 sqlmock tests with WithArgs
+  pinning all 7 fields including updated_at (mutation-resistant
+  per `feedback_sqlmock_withargs_for_mutation_resistance`).
+- **Migration 037** `migrations/037_create_brand_settings.up.sql`
+  — singleton table with `CHECK (id = 1)` defense-in-depth +
+  length CHECKs on app_name (1-100) and tagline (≤200). DEFAULT
+  seed row INSERT ... ON CONFLICT DO NOTHING (idempotent), seed
+  text in Russian matching the production app identity.
+- **Use cases** `application/usecases/` — `GetBrandingUseCase` thin
+  delegate; `UpdateBrandingUseCase` composes domain validation +
+  repo write + audit emit. `Clock` port + `SystemClock` default
+  for time injection (deterministic tests). `AuditSink` narrow
+  port (consumer-side DIP per
+  `feedback_audit_emitter_narrow_interface`) — concrete
+  `*logging.AuditLogger` satisfies structurally.
+- **HTTP handlers** `interfaces/http/handlers/`:
+  - `AdminBrandingHandler.GetBranding` + `UpdateBranding` (GET +
+    PUT `/api/admin/branding` under `adminGroup` +
+    `RequireRole(system_admin)`). Domain errors map to 422 with
+    typed codes (INVALID_APP_NAME / INVALID_TAGLINE /
+    INVALID_COLOR / INVALID_URL) so the frontend can render
+    field-specific feedback.
+  - `PublicBrandingHandler.GetBranding` (GET `/api/public/branding`
+    under `publicGroup`, no auth, rate-limited via existing
+    `publicRateLimiter`). Same `BrandSettingsDTO` projection as
+    admin GET — no field is sensitive.
+- **Audit emit** — `brand.updated` event on successful PUT with
+  the full resulting snapshot + actor_user_id surfaced from the
+  JWT context. Fire-and-forget: emit failure does not roll back
+  the persistence write.
+- **DI wiring** `cmd/server/main.go` — branding module construction
+  uses the existing `*sql.DB` handle + `*logging.AuditLogger`.
+  Public branding route mounted в independent
+  `router.Group("/api/public")` block so a sharing-disabled
+  deployment still serves branded login chrome.
+
+#### Tests
+
+- **20 backend tests** across 4 packages: 11 domain (table-driven
+  across 4 axes: app_name 4 cases / tagline 4 cases / color 12
+  cases / URL 9 cases — CLAUDE.md ≥3-variant gate honored) + 4
+  sqlmock (2 Get + 2 Update branches) + 5 admin handler
+  integration (3 happy + 4 422 branches + 2 panic guards) +
+  1 public handler integration + 1 public nil-panic. All green.
+- Backend 110 packages green / 0 lint.
+
+#### Tier 1 absorbed (per `feedback_tier2_absorb_same_release`)
+
+- Removed dead `_ = strings.TrimSpace` placeholder line +
+  unused `strings` import in `domain/entities/brand_settings.go`
+  (CLAUDE.md "никакого мёртвого кода 'на будущее'").
+- Added `BrandSettingsDTO.UpdatedAt` docstring justifying its
+  surface on the public endpoint (stable cache key on the login
+  page; timestamp is not sensitive).
+
+#### Reviewer
+
+- **Round-1 SHIP mean 9.0 / min 8** single-pass — 3rd
+  consecutive single-pass SHIP (v0.134.0 9.13/9 + v0.135.0
+  9.29/9). Per-axis: TDD 9 / DDD 9 / Clean Architecture 8 /
+  Security 9 / Testing 9 / Code Quality 8 / Migration 9.
+
+#### Tier 2 deferred to v0.137.0 backend follow-up
+
+- ADR-7 deviation — route extraction to
+  `interfaces/http/routes/RegisterBrandingRoutes(adminGroup,
+  publicGroup, handlers, rateLimiter)` registrar mirroring
+  v0.133.0 `users.RegisterUserRoutes` precedent. Inlined routes
+  in `main.go` for v0.136.0 — not a security regression
+  (adminGroup middleware chain owns the gate) but forfeits the
+  integration-tested route mounting helper.
+- `UpdateBrandingInput` struct to reduce the 7-positional
+  argument shape in `UpdateBrandingUseCase.Execute`.
+
+#### Out of scope (deferred to v0.137.0)
+
+- Admin `/admin/branding` page (color pickers, file upload preview,
+  live preview)
+- Login page integration (consume `/api/public/branding`)
+- `useBranding` SWR hook for admin + public consumption
+- Nav entry for `/admin/branding`
+- Logo upload via existing files module (UI integration only;
+  backend `/api/files/upload` endpoint already supports it).
+
+---
+
 ## [0.135.0] — 2026-05-13
 
 ### Added — Admin Composio config view (Phase 5 #5 partial)

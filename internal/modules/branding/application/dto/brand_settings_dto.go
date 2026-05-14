@@ -9,6 +9,13 @@ import "time"
 // entity. Used by both admin endpoints (GET + PUT response) and
 // the public endpoint — no field is sensitive, so the same shape
 // surfaces in both contexts.
+//
+// UpdatedAt is intentionally surfaced on the public endpoint as
+// well — it lets the login page (and any CDN in front of it) use
+// a stable cache key, and a timestamp is not a secret. The
+// alternative (split into PublicBrandingDTO without UpdatedAt)
+// adds shape duplication without any meaningful info-leak
+// reduction.
 type BrandSettingsDTO struct {
 	AppName        string    `json:"app_name"`
 	Tagline        string    `json:"tagline"`

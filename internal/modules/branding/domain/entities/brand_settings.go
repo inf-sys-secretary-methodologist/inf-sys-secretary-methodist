@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net/url"
 	"regexp"
-	"strings"
 	"time"
 )
 
@@ -244,6 +243,5 @@ func validateURL(u string) error {
 	if parsed.Host == "" {
 		return ErrInvalidURL
 	}
-	_ = strings.TrimSpace // reserved for future trimming policy
 	return nil
 }
