@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
@@ -34,7 +33,10 @@ type SetReminderInput struct {
 }
 
 // SetReminderUseCase creates a new reminder for the caller against
-// the supplied task.
+// the supplied task. Domain invariants validated via
+// entities.NewTaskReminder; persistence delegated to the repo;
+// audit emitted on success (fire-and-forget — failure not
+// propagated к the HTTP layer).
 type SetReminderUseCase struct {
 	repo  repositories.TaskReminderRepository
 	clock Clock
@@ -43,7 +45,8 @@ type SetReminderUseCase struct {
 
 // NewSetReminderUseCase constructs the use case. Panics on nil repo
 // so misconfigured DI fails at boot. clock defaults to SystemClock
-// if nil. audit may be nil — emission is skipped в that case.
+// if nil. audit may be nil — emission is skipped в that case
+// (test-friendly).
 func NewSetReminderUseCase(
 	repo repositories.TaskReminderRepository,
 	clock Clock,
@@ -59,11 +62,38 @@ func NewSetReminderUseCase(
 }
 
 // Execute validates input via entities.NewTaskReminder, persists,
-// and emits a task_reminder.set audit event on success.
-//
-// Stub for RED — GREEN replaces the body with the real composition.
+// and emits a task_reminder.set audit event on success. Domain
+// errors (ErrInvalidTaskID / ErrInvalidUserID / ErrInvalidReminderType
+// / ErrInvalidMinutesBefore) propagate for the handler to map к 422.
+// Repo errors propagate as-is.
 func (uc *SetReminderUseCase) Execute(ctx context.Context, in SetReminderInput) (*entities.TaskReminder, error) {
-	_ = ctx
-	_ = in
-	return nil, errors.New("set_reminder: not implemented yet")
+	reminder, err := entities.NewTaskReminder(
+		in.TaskID,
+		in.ActorUserID,
+		in.ReminderType,
+		in.MinutesBefore,
+		uc.clock.Now(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := uc.repo.Create(ctx, reminder); err != nil {
+		return nil, err
+	}
+	uc.emitAudit(ctx, reminder)
+	return reminder, nil
+}
+
+// emitAudit logs a task_reminder.set forensic event. Nil-safe.
+func (uc *SetReminderUseCase) emitAudit(ctx context.Context, reminder *entities.TaskReminder) {
+	if uc.audit == nil {
+		return
+	}
+	uc.audit.LogAuditEvent(ctx, "task_reminder.set", "task_reminder", map[string]any{
+		"reminder_id":    reminder.ID(),
+		"task_id":        reminder.TaskID(),
+		"user_id":        reminder.UserID(),
+		"reminder_type":  string(reminder.ReminderType()),
+		"minutes_before": reminder.MinutesBefore(),
+	})
 }

@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
@@ -16,7 +15,8 @@ type ListTaskRemindersInput struct {
 }
 
 // ListTaskRemindersUseCase returns the caller's reminders для a
-// given task.
+// given task. Returns empty (non-nil) slice on no matches so JSON
+// renders [] not null.
 type ListTaskRemindersUseCase struct {
 	repo repositories.TaskReminderRepository
 }
@@ -31,10 +31,7 @@ func NewListTaskRemindersUseCase(repo repositories.TaskReminderRepository) *List
 }
 
 // Execute returns the caller's reminders для the supplied task.
-//
-// Stub for RED — GREEN replaces the body with the repo call.
+// Repo errors propagate as-is.
 func (uc *ListTaskRemindersUseCase) Execute(ctx context.Context, in ListTaskRemindersInput) ([]*entities.TaskReminder, error) {
-	_ = ctx
-	_ = in
-	return nil, errors.New("list_task_reminders: not implemented yet")
+	return uc.repo.ListByTaskAndUser(ctx, in.TaskID, in.ActorUserID)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
@@ -30,8 +31,12 @@ type DeleteReminderInput struct {
 // DeleteReminderUseCase removes a reminder after verifying:
 //   - the row exists (else 404 from underlying repo not-found),
 //   - the row belongs to the supplied task (else 404
-//     ErrReminderNotFoundForTask),
+//     ErrReminderNotFoundForTask — URL-path vs row mismatch is
+//     indistinguishable from missing row from the caller's
+//     perspective; we don't leak ownership existence),
 //   - the caller is the owner (else 403 ErrReminderOwnerOnly).
+//
+// Audit emitted on success.
 type DeleteReminderUseCase struct {
 	repo  repositories.TaskReminderRepository
 	audit AuditSink
@@ -47,11 +52,36 @@ func NewDeleteReminderUseCase(repo repositories.TaskReminderRepository, audit Au
 }
 
 // Execute loads → task-scope check → ownership check → deletes →
-// audit.
-//
-// Stub for RED — GREEN replaces the body with the real composition.
+// audit. Order pinned: existence first, then task scope, then
+// ownership, then mutation. Audit emit only on successful delete.
 func (uc *DeleteReminderUseCase) Execute(ctx context.Context, in DeleteReminderInput) error {
-	_ = ctx
-	_ = in
-	return errors.New("delete_reminder: not implemented yet")
+	reminder, err := uc.repo.GetByID(ctx, in.ReminderID)
+	if err != nil {
+		return err
+	}
+	if reminder.TaskID() != in.TaskID {
+		return ErrReminderNotFoundForTask
+	}
+	if reminder.UserID() != in.ActorUserID {
+		return ErrReminderOwnerOnly
+	}
+	if err := uc.repo.Delete(ctx, in.ReminderID); err != nil {
+		return err
+	}
+	uc.emitAudit(ctx, reminder)
+	return nil
+}
+
+// emitAudit logs a task_reminder.deleted forensic event. Nil-safe.
+func (uc *DeleteReminderUseCase) emitAudit(ctx context.Context, reminder *entities.TaskReminder) {
+	if uc.audit == nil {
+		return
+	}
+	uc.audit.LogAuditEvent(ctx, "task_reminder.deleted", "task_reminder", map[string]any{
+		"reminder_id":    reminder.ID(),
+		"task_id":        reminder.TaskID(),
+		"user_id":        reminder.UserID(),
+		"reminder_type":  string(reminder.ReminderType()),
+		"minutes_before": reminder.MinutesBefore(),
+	})
 }
