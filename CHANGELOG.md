@@ -15,6 +15,95 @@
 
 ---
 
+## [0.138.1] — 2026-05-14
+
+### Added — Phase 5 #5 final frontend SetReminder + event_reminders telegram fix (carry-forward)
+
+Closes Phase 5 fully UI-side. The v0.138.0 backend SetReminder
+pipeline now has a clickable frontend surface — users open the
+reminder dialog from any task card, choose a channel + minutes
+ahead, see their existing reminders, and delete them inline. The
+event_reminders dispatch path (existing scheduler from v0.043.0)
+also lights up Composio telegram — a long-dormant carry-forward
+gap from v0.138.0 — so event reminders реально доходят к Telegram
+chat, not silently fall back к in-app.
+
+#### Frontend
+
+- **`<ReminderForm />`** (`tasks/ReminderForm.tsx`) — Radix-free
+  form: reminder_type `<select>` × 4 (email/push/in_app/telegram)
+  + minutes_before `<Input type="number" min={1} max={10080}>` +
+  save/cancel buttons. Defaults `reminder_type=telegram`,
+  `minutes_before=60`. Submit guards parsed integer < 1; backend
+  domain `ErrInvalidMinutesBefore` 422 maps к toast.
+- **`useTaskReminders(taskID | null)`** SWR hook (`hooks/
+  useTaskReminders.ts`) — subscribes к `GET /api/tasks/:id/
+  reminders` only когда task is open in the reminder dialog;
+  short-circuits на null id. Standalone `createTaskReminder` +
+  `deleteTaskReminder` mutation functions mirror к `useTasks`
+  convention.
+- **TaskCard** new `onReminders?: () => void` prop — adds a Bell
+  icon `DropdownMenuItem` ("Напоминания") between Edit и Delete
+  when the prop is supplied. Existing callers без the prop see
+  unchanged menu (prop-presence-gated).
+- **tasks/page.tsx** new Radix Dialog composes ReminderForm +
+  a small reminder list с per-row delete-X button. SWR cache
+  invalidation via `mutate()` after each create/delete.
+- **i18n × 4** new `taskReminders.*` namespace в ru/en/fr/ar
+  (11 keys + type subtree × 4 + errors × 2) + `tasks.reminders`
+  для the menu label. JSON parity verified.
+- **Shared helper** `reminderTypeI18nKey(value)` (`types/
+  taskReminders.ts`) — single source для snake_case `in_app` ↔
+  camelCase `inApp` mapping; consumed by ReminderForm + page.
+
+#### Backend (carry-forward fix)
+
+- **`ReminderScheduler.WithTelegramDispatch(repo, service)`**
+  chainable setter (`notifications/infrastructure/scheduler/
+  reminder_scheduler.go`) — opt-in telegram dispatch on the
+  existing event scheduler. Setter pattern instead of constructor
+  extension per `feedback_setter_pattern_optional_deps` (7
+  positional args was already at the limit).
+- **`sendTelegramReminder`** new impl mirror к
+  `TaskReminderScheduler.sendTelegram` from v0.138.0: resolves
+  the user's telegram connection, formats chat_id, dispatches
+  via Composio с `"high"` priority. Absent/inactive connection
+  + dispatch failures fall back к in-app so reminder stays
+  reachable.
+- **`cmd/server/main.go`** post-construction
+  `.WithTelegramDispatch(telegramRepo, telegramService)`
+  applied only когда `telegramService != nil` (Composio env
+  vars set).
+
+#### Tests
+
+- `useTaskReminders.test.ts` — 8 cases (list fetch / null short-
+  circuit / empty / mutate handle / create POST / delete DELETE /
+  axios propagation × 2).
+- `ReminderForm.test.tsx` — 6 cases (renders 4 options / defaults
+  telegram+60 / submit parses int / cancel / guard min<1 /
+  disabled while submitting).
+- `TaskCard.test.tsx` — 3 new cases (menu item appears / absent
+  без prop / callback fires).
+- `reminder_scheduler_telegram_test.go` — table-driven 4 cases
+  на direct `sendTelegramReminder` call + 1 integration case
+  через `processReminder` switch path (Tier 1 absorb).
+
+#### Reviewer round
+
+Verdict **SHIP 8.5/8** single-pass. Tier 1 (integration test) +
+Tier 2.2 (extract `reminderTypeI18nKey`) absorbed в the release
+commit. Tier 2.3 (nil-guard symmetry) deferred к carry-forward.
+
+#### Defence narrative
+
+Phase 5 closure now visible через UI: defence talking point —
+«система управляется через web UI без SSH-доступа: backups +
+audit logs + sentry + users + integrations + branding +
+composio + reminders, всё clickable и end-to-end». 75-й релиз.
+
+---
+
 ## [0.138.0] — 2026-05-14
 
 ### Added — Phase 5 #5 final SetReminder backend (task reminders + telegram dispatch via Composio)
