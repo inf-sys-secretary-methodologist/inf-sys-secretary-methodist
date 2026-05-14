@@ -202,7 +202,8 @@
     "sentry": "Sentry",
     "adminUsers": "User management",
     "integrations": "Integrations",
-    "composio": "Composio"
+    "composio": "Composio",
+    "branding": "Branding"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -2905,6 +2906,34 @@
       "enabled": "Enabled",
       "disabled": "Disabled",
       "webhookUrl": "Webhook URL"
+    }
+  },
+  "adminBranding": {
+    "title": "Branding",
+    "description": "Customize the system name, logo, and brand colors",
+    "loadFailed": "Failed to load branding settings",
+    "savedSuccess": "Changes saved",
+    "saveFailed": "Failed to save changes",
+    "save": "Save",
+    "saving": "Saving…",
+    "fields": {
+      "appName": "System name",
+      "tagline": "Tagline",
+      "logoURL": "Logo URL",
+      "faviconURL": "Favicon URL",
+      "primaryColor": "Primary color",
+      "secondaryColor": "Secondary color"
+    },
+    "errors": {
+      "INVALID_APP_NAME": "Name must be 1–100 characters",
+      "INVALID_TAGLINE": "Tagline must be at most 200 characters",
+      "INVALID_COLOR": "Color must be in #RRGGBB or #RGB format",
+      "INVALID_URL": "Only http:// or https:// URLs are accepted"
+    },
+    "placeholders": {
+      "logoURL": "https://example.com/logo.png",
+      "faviconURL": "https://example.com/favicon.ico",
+      "primaryColor": "#3b82f6"
     }
   },
   "adminComposio": {

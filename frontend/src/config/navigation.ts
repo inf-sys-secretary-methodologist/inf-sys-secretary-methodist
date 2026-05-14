@@ -23,6 +23,7 @@ import {
   UserCog,
   Plug,
   Bot,
+  Image as ImageIcon,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
 
@@ -354,6 +355,15 @@ export const navigationConfig: NavEntry[] = [
         nameKey: 'composio',
         url: '/admin/composio',
         icon: Bot,
+        roles: [UserRole.SYSTEM_ADMIN],
+      },
+      {
+        // Admin branding config (v0.137.0). Editable system identity
+        // (app name + logo + favicon + accent colors + tagline).
+        // Surfaced by /api/public/branding on the login page.
+        nameKey: 'branding',
+        url: '/admin/branding',
+        icon: ImageIcon,
         roles: [UserRole.SYSTEM_ADMIN],
       },
       {

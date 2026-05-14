@@ -202,7 +202,8 @@
     "sentry": "Sentry",
     "adminUsers": "Gestion des utilisateurs",
     "integrations": "Intégrations",
-    "composio": "Composio"
+    "composio": "Composio",
+    "branding": "Marque"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -2905,6 +2906,34 @@
       "enabled": "Activé",
       "disabled": "Désactivé",
       "webhookUrl": "URL du webhook"
+    }
+  },
+  "adminBranding": {
+    "title": "Marque",
+    "description": "Personnaliser le nom du système, le logo et les couleurs de la marque",
+    "loadFailed": "Échec du chargement des paramètres de marque",
+    "savedSuccess": "Modifications enregistrées",
+    "saveFailed": "Échec de l'enregistrement des modifications",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "fields": {
+      "appName": "Nom du système",
+      "tagline": "Slogan",
+      "logoURL": "URL du logo",
+      "faviconURL": "URL du favicon",
+      "primaryColor": "Couleur principale",
+      "secondaryColor": "Couleur secondaire"
+    },
+    "errors": {
+      "INVALID_APP_NAME": "Le nom doit comporter de 1 à 100 caractères",
+      "INVALID_TAGLINE": "Le slogan ne doit pas dépasser 200 caractères",
+      "INVALID_COLOR": "La couleur doit être au format #RRGGBB ou #RGB",
+      "INVALID_URL": "Seules les URL http:// ou https:// sont acceptées"
+    },
+    "placeholders": {
+      "logoURL": "https://example.com/logo.png",
+      "faviconURL": "https://example.com/favicon.ico",
+      "primaryColor": "#3b82f6"
     }
   },
   "adminComposio": {

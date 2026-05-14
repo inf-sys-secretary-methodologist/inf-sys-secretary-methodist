@@ -202,7 +202,8 @@
     "sentry": "Sentry",
     "adminUsers": "إدارة المستخدمين",
     "integrations": "التكاملات",
-    "composio": "Composio"
+    "composio": "Composio",
+    "branding": "العلامة"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -2905,6 +2906,34 @@
       "enabled": "مفعَّل",
       "disabled": "معطَّل",
       "webhookUrl": "Webhook URL"
+    }
+  },
+  "adminBranding": {
+    "title": "العلامة التجارية",
+    "description": "تخصيص اسم النظام والشعار وألوان العلامة التجارية",
+    "loadFailed": "فشل تحميل إعدادات العلامة التجارية",
+    "savedSuccess": "تم حفظ التغييرات",
+    "saveFailed": "فشل حفظ التغييرات",
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ…",
+    "fields": {
+      "appName": "اسم النظام",
+      "tagline": "الشعار النصي",
+      "logoURL": "عنوان URL للشعار",
+      "faviconURL": "عنوان URL لأيقونة المفضلة",
+      "primaryColor": "اللون الأساسي",
+      "secondaryColor": "اللون الثانوي"
+    },
+    "errors": {
+      "INVALID_APP_NAME": "يجب أن يتراوح الاسم بين 1 و 100 حرف",
+      "INVALID_TAGLINE": "يجب ألا يتجاوز الشعار النصي 200 حرف",
+      "INVALID_COLOR": "يجب أن يكون اللون بصيغة #RRGGBB أو #RGB",
+      "INVALID_URL": "يُقبل فقط روابط http:// أو https://"
+    },
+    "placeholders": {
+      "logoURL": "https://example.com/logo.png",
+      "faviconURL": "https://example.com/favicon.ico",
+      "primaryColor": "#3b82f6"
     }
   },
   "adminComposio": {

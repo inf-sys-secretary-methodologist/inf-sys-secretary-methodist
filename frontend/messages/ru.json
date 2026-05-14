@@ -202,7 +202,8 @@
     "sentry": "Sentry",
     "adminUsers": "Управление пользователями",
     "integrations": "Интеграции",
-    "composio": "Composio"
+    "composio": "Composio",
+    "branding": "Брендинг"
   },
   "roles": {
     "system_admin": "Администратор",
@@ -2905,6 +2906,34 @@
       "enabled": "Включён",
       "disabled": "Выключен",
       "webhookUrl": "Webhook URL"
+    }
+  },
+  "adminBranding": {
+    "title": "Брендинг",
+    "description": "Настройка имени системы, логотипа и фирменных цветов",
+    "loadFailed": "Не удалось загрузить настройки бренда",
+    "savedSuccess": "Изменения сохранены",
+    "saveFailed": "Не удалось сохранить изменения",
+    "save": "Сохранить",
+    "saving": "Сохраняем…",
+    "fields": {
+      "appName": "Название системы",
+      "tagline": "Подзаголовок",
+      "logoURL": "URL логотипа",
+      "faviconURL": "URL favicon",
+      "primaryColor": "Основной цвет",
+      "secondaryColor": "Дополнительный цвет"
+    },
+    "errors": {
+      "INVALID_APP_NAME": "Название от 1 до 100 символов",
+      "INVALID_TAGLINE": "Подзаголовок не длиннее 200 символов",
+      "INVALID_COLOR": "Цвет в формате #RRGGBB или #RGB",
+      "INVALID_URL": "Только URL с http:// или https://"
+    },
+    "placeholders": {
+      "logoURL": "https://example.com/logo.png",
+      "faviconURL": "https://example.com/favicon.ico",
+      "primaryColor": "#3b82f6"
     }
   },
   "adminComposio": {
