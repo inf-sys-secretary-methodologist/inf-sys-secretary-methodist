@@ -55,7 +55,7 @@ var (
 
 // AuthUseCase handles authentication business logic.
 type AuthUseCase struct {
-	userRepo              repositories.UserRepository
+	userRepo              UserRepository
 	jwtSecret             []byte
 	refreshSecret         []byte
 	mfaIntermediateSecret []byte
@@ -82,7 +82,7 @@ type AuthUseCase struct {
 // against the access-token middleware. Tests that never enroll an MFA user
 // may pass any non-nil value (or nil — the MFA branch is never reached).
 func NewAuthUseCase(
-	userRepo repositories.UserRepository,
+	userRepo UserRepository,
 	jwtSecret, refreshSecret, mfaIntermediateSecret []byte,
 	securityLog *logging.SecurityLogger,
 	auditLog *logging.AuditLogger,

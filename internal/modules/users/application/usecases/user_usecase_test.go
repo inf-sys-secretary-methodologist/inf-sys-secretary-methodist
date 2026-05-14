@@ -16,7 +16,7 @@ import (
 
 const testEmail = "test@example.com"
 
-// MockUserRepository implements authRepos.UserRepository for testing.
+// MockUserRepository implements authUsecases.UserRepository for testing.
 type MockUserRepository struct {
 	users     map[int64]*authEntities.User
 	nextID    int64

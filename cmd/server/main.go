@@ -1276,7 +1276,7 @@ func initAuthModule(
 	perfLog *logging.PerformanceLogger,
 	cfg *config.Config,
 	notificationUseCase *notifUsecases.NotificationUseCase,
-) (*usecases.AuthUseCase, repositories.UserRepository) {
+) (*usecases.AuthUseCase, usecases.UserRepository) {
 	// JWT secrets from config
 	jwtSecret := []byte(cfg.JWT.AccessSecret)
 	refreshSecret := []byte(cfg.JWT.RefreshSecret)
@@ -1297,7 +1297,7 @@ func initAuthModule(
 
 	// Initialize use case with full logging and session repository
 	authUseCase := usecases.NewAuthUseCase(
-		userRepo.(repositories.UserRepository),
+		userRepo.(usecases.UserRepository),
 		jwtSecret,
 		refreshSecret,
 		mfaIntermediateSecret,
@@ -1306,7 +1306,7 @@ func initAuthModule(
 		notificationUseCase,
 	)
 
-	return authUseCase, userRepo.(repositories.UserRepository)
+	return authUseCase, userRepo.(usecases.UserRepository)
 }
 
 func setupRoutes(
@@ -1377,7 +1377,7 @@ func setupRoutes(
 	loggingMiddleware *appMiddleware.LoggingMiddleware,
 	db *sql.DB,
 	redisCache *cache.RedisCache,
-	userRepo repositories.UserRepository,
+	userRepo usecases.UserRepository,
 	userProfileRepo usersRepositories.UserProfileRepository,
 	validator *validation.Validator,
 	jwtSecret []byte,
