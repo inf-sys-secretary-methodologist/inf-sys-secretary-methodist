@@ -15,6 +15,139 @@
 
 ---
 
+## [0.138.0] — 2026-05-14
+
+### Added — Phase 5 #5 final SetReminder backend (task reminders + telegram dispatch via Composio)
+
+Closes Phase 5 #5 final by adding a full per-user task reminder
+pipeline. Methodist/teacher/student sets a reminder ("remind me
+15 minutes before deadline via Telegram"); `TaskReminderScheduler`
+(gocron, 1-min poll) discovers reminders past their trigger time
+and dispatches via the existing `ComposioTelegramService` (Composio
+TELEGRAM_SEND_MESSAGE) или email/in-app fallback. **Phase 5 fully
+closed end-to-end** (#1 audit-logs + #2 backups + #3 admin/users +
+#4 integrations+branding + #5 composio+SetReminder).
+
+#### Backend
+
+- **Migration 038** — `task_reminders` table mirror к `event_
+  reminders` shape (task_id + user_id + reminder_type + minutes_before
+  + is_sent + sent_at + created_at). FK ON DELETE CASCADE на
+  `tasks(id)` и `users(id)`. CHECK `reminder_type IN (email/push/
+  in_app/telegram)` identical к migration 014's event_reminders
+  CHECK. CHECK `minutes_before > 0`. 3 indices (task_id / user_id /
+  is_sent).
+- **Domain entity** `TaskReminder` (`tasks/domain/entities/`):
+  private fields + getter methods + `NewTaskReminder` constructor
+  с fail-fast invariant validation (taskID > 0, userID > 0,
+  reminderType.IsValid, minutesBefore > 0). 4 typed sentinel errors
+  (`ErrInvalidTaskID/UserID/ReminderType/MinutesBefore`). Typed
+  `ReminderType` enum с exhaustive `IsValid()` map (default-deny on
+  unknown). `HydrateFromPersistence` repo seam bypasses validation.
+- **Repository** `TaskReminderRepository` interface (6 methods —
+  Create + Delete + GetByID + ListByTaskAndUser + GetPendingReminders +
+  MarkSentBatch); `TaskReminderRepositoryPG` implementation with
+  sqlmock-pinned WithArgs. `GetPendingReminders` SQL: JOIN tasks
+  ON r.task_id = t.id WHERE r.is_sent = FALSE AND t.due_date IS NOT
+  NULL AND t.due_date - r.minutes_before * INTERVAL '1 minute' <=
+  \$1 — encapsulates timestamp arithmetic at the DB level (caller
+  никогда не reasons about it). LIMIT 100 matches existing
+  ReminderScheduler batch sizing.
+- **Use cases** (3):
+  - `SetReminderUseCase` — validate → Create → audit emit
+    "task_reminder.set". ActorUserID derived from JWT context
+    (per-user privacy boundary, не from body).
+  - `ListTaskRemindersUseCase` — composite (TaskID, ActorUserID)
+    filter.
+  - `DeleteReminderUseCase` — 3-tier check: existence (404) →
+    task scope (404 `ErrReminderNotFoundForTask` without leaking
+    row's actual task_id) → ownership (403 `ErrReminderOwnerOnly`)
+    → Delete + audit emit.
+- **HTTP** `TaskReminderHandler` + `RegisterTaskReminderRoutes`:
+  POST + GET + DELETE + OPTIONS под `/api/tasks/:id/reminders[/:reminderID]`.
+  Domain errors → 422; not-found sentinels → 404; ownership →
+  403; default → 500.
+- **`TaskReminderScheduler`** (greenfield в `notifications/infrastructure/
+  scheduler/`): gocron periodic job (1-min default), `processPendingReminders`
+  loop with batched `MarkSentBatch`. `processReminder` fans out
+  by ReminderType with channel-disabled fallback к in-app. Telegram
+  dispatch via injected `ComposioTelegramService` — Phase 5 #5
+  final closure target. Three graceful fallback gates: telegram deps
+  nil, user no active connection, Composio API error. `TaskLookup`
+  + `UserEmailLookup` narrow ports decouple scheduler from full
+  `TaskRepository` + direct `*sql.DB` (DDD bounded-context narrow
+  port). `Clock` injection (per reviewer round-1 Tier 2 absorb)
+  ends the wall-clock leak class — quiet-hours + dispatch timestamps
+  fully testable.
+- **`cmd/server/main.go`**: 3 init helpers extracted
+  (`initTaskReminderModule` + `initTaskReminderScheduler` +
+  `stopTaskReminderScheduler`) so `main()` cyclomatic complexity
+  stays under the golangci threshold of 70. Two adapter types
+  (`taskDispatchLookup` + `userEmailFromDB`) live in main.go DI
+  seam to keep notifications module free of cross-module Go imports
+  back into tasks.
+
+#### Testing
+
+- **45+ new backend tests** across 5 packages:
+  - Domain entity: 12 sub-tests (7 IsValid + 8 invariant table-driven
+    + happy-path + MarkSent + Hydrate).
+  - PG repo: 9 sqlmock cases with WithArgs pin.
+  - Use cases: 14 sub-tests across 3 use cases (validation +
+    repo error + nil-audit + ownership + privacy boundary).
+  - Routes integration: 9 cases through production gin engine
+    с withAuth (Create_201 + Create_422 × 2 + Create_401 +
+    List_FiltersByCaller + Delete_204 + Delete_WrongOwner_403 +
+    Delete_WrongTask_404 + OptionsCORS_204).
+  - Scheduler: 7 ProcessOnce cases (Telegram happy + 3 fallback
+    paths + InApp + NoPending + QuietHours-skip) + 4 ctor
+    nil-dep table-driven.
+- Full backend suite green; no regressions.
+- Lint: `golangci-lint run ./internal/modules/tasks/...
+  ./internal/modules/notifications/infrastructure/scheduler/...
+  ./cmd/server/...` — 0 issues.
+
+#### Reviewer round-1 → SHIP after Tier 1+2 absorb
+
+- Mean **8.6** / min **7** initial → mean **9.0+** / min **8+** after
+  absorbing Tier 1 (drop unused `tasksDomainEntities` import +
+  placeholder line in main.go) + Tier 2 #2 (`Clock` port injected
+  into `TaskReminderScheduler` so `IsWithinQuietHours(time.Now())` +
+  `sendInApp now := time.Now()` use the injected clock).
+- Single-pass streak: **continues post-absorb** (precedent: v0.133.0
+  + v0.134.0 + v0.136.0 + v0.137.0 + v0.137.1 all absorbed Tier
+  1/2 in release commit).
+- Tier 3 deferred: handler helper consolidation
+  (`actorID`/`pathInt64` duplicate `TaskHandler.getUserID`/`getIDParam`);
+  XSS hardening on email body (`html.EscapeString` on view.Title);
+  email path scheduler test coverage gap.
+
+#### Notes / out of scope (deferred)
+
+- **Frontend** (`<ReminderForm />` dialog + `useTaskReminders` SWR
+  hook + i18n × 4): split к **v0.138.1** patch per ADR-6 (mirror
+  к v0.136.0+v0.137.0 split precedent). Backend ships behind the
+  bound seam; frontend lights it up.
+- **Existing event_reminders telegram fix**: `ReminderScheduler.
+  sendTelegramReminder` still falls back к in-app для event-typed
+  reminders. v0.138.0 covers task reminders only; event scheduler
+  fix deferred к **v0.138.1+** patch (re-scoped during recon since
+  initial plan conflated both schedulers).
+- **Composio Triggers / n8n delay workflow** — not needed; gocron
+  poll-every-minute suffices and reuses existing scheduler pattern.
+- **Recurring reminders / snooze** — out of MVP scope (single
+  reminder per row, no rescheduling besides task.due_date moves).
+
+#### Versions synchronized (8 files)
+
+- `VERSION`, `frontend/VERSION` → `0.138.0`
+- `cmd/server/main.go` `@version 0.138.0` + `versionString = "0.138.0"`
+- `docs/swagger/swagger.json`, `docs/swagger/swagger.yaml`,
+  `docs/swagger/docs.go` → `0.138.0`
+- `frontend/package.json`, `frontend/package-lock.json` → `0.138.0`
+
+---
+
 ## [0.137.1] — 2026-05-14
 
 ### Changed — ADR-7 closure: RegisterBrandingRoutes extractor + UpdateBrandingInput parameter object

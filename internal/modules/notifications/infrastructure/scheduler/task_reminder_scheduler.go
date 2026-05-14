@@ -41,8 +41,21 @@ type TaskReminderScheduler struct {
 	preferencesRepo  notifRepositories.PreferencesRepository
 	emailService     notifServices.EmailService
 	userEmailLookup  UserEmailLookup
+	clock            Clock
 	checkInterval    time.Duration
 }
+
+// Clock is the narrow port for current-time injection. Lets tests
+// substitute deterministic clocks so quiet-hours + dispatch
+// timestamps stay testable end-to-end.
+type Clock interface {
+	Now() time.Time
+}
+
+// systemClock returns time.Now() — production default.
+type systemClock struct{}
+
+func (systemClock) Now() time.Time { return time.Now() }
 
 // TaskLookup is the narrow port providing per-task data the
 // scheduler needs for dispatch (title + due_date). Mirror к
@@ -67,14 +80,17 @@ type UserEmailLookup interface {
 	GetEmailByID(ctx context.Context, userID int64) (string, error)
 }
 
-// TaskReminderSchedulerConfig holds tunable parameters.
+// TaskReminderSchedulerConfig holds tunable parameters. Clock
+// defaults к systemClock когда nil; tests substitute a fake
+// to pin dispatch timestamps + quiet-hours decisions.
 type TaskReminderSchedulerConfig struct {
 	CheckInterval time.Duration
+	Clock         Clock
 }
 
 // DefaultTaskReminderConfig returns the production defaults.
 func DefaultTaskReminderConfig() *TaskReminderSchedulerConfig {
-	return &TaskReminderSchedulerConfig{CheckInterval: 1 * time.Minute}
+	return &TaskReminderSchedulerConfig{CheckInterval: 1 * time.Minute, Clock: systemClock{}}
 }
 
 // NewTaskReminderScheduler constructs the scheduler. Panics on a
@@ -108,6 +124,9 @@ func NewTaskReminderScheduler(
 	if config == nil {
 		config = DefaultTaskReminderConfig()
 	}
+	if config.Clock == nil {
+		config.Clock = systemClock{}
+	}
 	s, err := gocron.NewScheduler()
 	if err != nil {
 		return nil, fmt.Errorf("task_reminder_scheduler: failed to build gocron: %w", err)
@@ -122,6 +141,7 @@ func NewTaskReminderScheduler(
 		preferencesRepo:  preferencesRepo,
 		emailService:     emailService,
 		userEmailLookup:  userEmailLookup,
+		clock:            config.Clock,
 		checkInterval:    config.CheckInterval,
 	}, nil
 }
@@ -163,7 +183,7 @@ func (s *TaskReminderScheduler) ProcessOnce(ctx context.Context, now time.Time) 
 func (s *TaskReminderScheduler) processPendingReminders() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	s.processPendingRemindersAt(ctx, time.Now())
+	s.processPendingRemindersAt(ctx, s.clock.Now())
 }
 
 func (s *TaskReminderScheduler) processPendingRemindersAt(ctx context.Context, now time.Time) {
@@ -207,7 +227,7 @@ func (s *TaskReminderScheduler) processReminder(ctx context.Context, reminder *t
 	if err != nil {
 		return fmt.Errorf("preferences: %w", err)
 	}
-	if prefs.IsWithinQuietHours(time.Now()) {
+	if prefs.IsWithinQuietHours(s.clock.Now()) {
 		log.Printf("task_reminder_scheduler: skip reminder %d — user %d in quiet hours", reminder.ID(), reminder.UserID())
 		return nil
 	}
@@ -281,7 +301,7 @@ func (s *TaskReminderScheduler) sendEmail(ctx context.Context, reminder *tasksEn
 // sendInApp creates an in-app notification — the dispatch
 // last-resort that is always reachable.
 func (s *TaskReminderScheduler) sendInApp(ctx context.Context, reminder *tasksEntities.TaskReminder, view *TaskDispatchView) error {
-	now := time.Now()
+	now := s.clock.Now()
 	n := &notifEntities.Notification{
 		UserID:    reminder.UserID(),
 		Type:      notifEntities.NotificationTypeReminder,

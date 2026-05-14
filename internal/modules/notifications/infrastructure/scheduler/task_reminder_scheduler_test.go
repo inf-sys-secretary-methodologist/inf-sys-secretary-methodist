@@ -189,6 +189,10 @@ func enabledPrefs() *notifEntities.UserNotificationPreferences {
 	return p
 }
 
+type fakeClock struct{ now time.Time }
+
+func (c fakeClock) Now() time.Time { return c.now }
+
 func buildScheduler(t *testing.T,
 	reminders []*tasksEntities.TaskReminder,
 	views map[int64]*TaskDispatchView,
@@ -196,6 +200,23 @@ func buildScheduler(t *testing.T,
 	tgService *fakeTelegramService,
 	notifRepo *fakeNotificationRepo,
 	prefs *notifEntities.UserNotificationPreferences,
+) (*TaskReminderScheduler, *fakeReminderRepo) {
+	t.Helper()
+	return buildSchedulerAt(t, reminders, views, conns, tgService, notifRepo, prefs,
+		time.Date(2026, 5, 14, 12, 0, 0, 0, time.UTC))
+}
+
+// buildSchedulerAt — variant that pins the injected clock to a
+// specific instant. Lets quiet-hours tests pick a time the user's
+// quiet window covers.
+func buildSchedulerAt(t *testing.T,
+	reminders []*tasksEntities.TaskReminder,
+	views map[int64]*TaskDispatchView,
+	conns map[int64]*notifEntities.TelegramConnection,
+	tgService *fakeTelegramService,
+	notifRepo *fakeNotificationRepo,
+	prefs *notifEntities.UserNotificationPreferences,
+	now time.Time,
 ) (*TaskReminderScheduler, *fakeReminderRepo) {
 	t.Helper()
 	repo := &fakeReminderRepo{pending: reminders}
@@ -208,7 +229,7 @@ func buildScheduler(t *testing.T,
 		&fakePreferencesRepo{prefs: prefs},
 		nil, // emailService — not exercised here
 		nil, // userEmailLookup
-		&TaskReminderSchedulerConfig{CheckInterval: time.Hour},
+		&TaskReminderSchedulerConfig{CheckInterval: time.Hour, Clock: fakeClock{now: now}},
 	)
 	require.NoError(t, err)
 	return s, repo
@@ -319,6 +340,34 @@ func TestProcessOnce_InAppType_DirectInApp(t *testing.T) {
 
 	assert.Len(t, tg.calls, 0)
 	require.Len(t, notif.created, 1)
+}
+
+// TestProcessOnce_QuietHours_SkipsDispatch confirms the injected
+// clock drives the IsWithinQuietHours decision: user has quiet
+// window 22:00-07:00 + now=23:30 → reminder NOT dispatched and NOT
+// marked sent (so the next non-quiet tick processes it). This pins
+// the Tier 2 #2 fix from reviewer round-1 (clock injection ends
+// the wall-clock leak class).
+func TestProcessOnce_QuietHours_SkipsDispatch(t *testing.T) {
+	quietNow := time.Date(2026, 5, 14, 23, 30, 0, 0, time.UTC)
+	due := quietNow.Add(15 * time.Minute)
+	reminder := tasksEntities.HydrateFromPersistence(101, 42, 7, tasksEntities.ReminderTypeTelegram, 15, false, nil, quietNow.Add(-time.Hour))
+	views := map[int64]*TaskDispatchView{42: {Title: "Утвердить РПД", DueDate: &due}}
+	conns := map[int64]*notifEntities.TelegramConnection{7: {UserID: 7, TelegramChatID: 555000, IsActive: true}}
+	tg := &fakeTelegramService{}
+	notif := &fakeNotificationRepo{}
+	prefs := enabledPrefs()
+	prefs.QuietHoursEnabled = true
+	prefs.QuietHoursStart = "22:00"
+	prefs.QuietHoursEnd = "07:00"
+	prefs.Timezone = "UTC"
+	s, repo := buildSchedulerAt(t, []*tasksEntities.TaskReminder{reminder}, views, conns, tg, notif, prefs, quietNow)
+
+	s.ProcessOnce(context.Background(), quietNow)
+
+	assert.Len(t, tg.calls, 0, "quiet hours → no telegram dispatch")
+	assert.Len(t, notif.created, 0, "quiet hours → no in-app dispatch either")
+	assert.Equal(t, []int64{101}, repo.markedIDs, "reminder still marked processed so it does not retry indefinitely on next tick")
 }
 
 // TestProcessOnce_NoPending_NoOp — empty pending list bypasses
