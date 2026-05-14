@@ -15,6 +15,79 @@
 
 ---
 
+## [0.137.1] — 2026-05-14
+
+### Changed — ADR-7 closure: RegisterBrandingRoutes extractor + UpdateBrandingInput parameter object
+
+Cleanup patch closing two carry-forward items from the v0.136.0
+branding backend release:
+
+1. **ADR-7 deviation closed** — branding HTTP routes now live in a
+   dedicated `interfaces/http/routes` package via
+   `RegisterBrandingRoutes(adminGroup, publicGroup, adminHandler,
+   publicHandler)`, mirror к the v0.133.0 `users.RegisterUserRoutes`
+   precedent. `cmd/server/main.go` no longer mounts branding routes
+   inline; the registrar owns the GET + PUT + OPTIONS surface on the
+   admin group and the GET + OPTIONS surface on the public group.
+2. **UpdateBrandingInput parameter object** — replaces the
+   7-positional `UpdateBrandingUseCase.Execute` signature with a
+   named-field DTO, mirror к the
+   `assignments.GetAssignmentInput` / `curriculum.UpdateSectionInput`
+   convention already in use across the codebase. Handler caller
+   updated accordingly; no behavioral change.
+
+#### Backend
+
+- **New package** `internal/modules/branding/interfaces/http/routes`
+  with `routes.go` (registrar function — admin + public mounts) and
+  `routes_test.go` (5 integration cases through a production-shaped
+  gin engine — withAuth + RequireRole(system_admin) + non-auth public
+  group; pins system_admin GET/PUT 200, non-admin GET+PUT 403, public
+  GET 200 без auth, OPTIONS 204).
+- **`update_branding.go`** — `UpdateBrandingInput` struct introduced
+  (AppName / Tagline / LogoURL / FaviconURL / PrimaryColor /
+  SecondaryColor / ActorUserID); `Execute` signature simplified to
+  `(ctx, in UpdateBrandingInput)`. Handler caller (`admin_handler.go`)
+  constructs the input struct from the HTTP DTO + JWT context.
+- **`cmd/server/main.go`** — imports the new `brandingRoutes` package;
+  removes inline route mount blocks (5 lines admin + 6 lines public);
+  replaces with a single `RegisterBrandingRoutes(...)` call inside
+  the admin group. `brandingPublicGroup` construction stays inline
+  (so `publicRateLimiter` middleware composition remains visible at
+  the DI point), but the route mount itself now lives in the
+  registrar.
+
+#### Testing
+
+- **Backend**: 5 new routes integration tests; full branding module
+  suite (entities + persistence + admin/public handlers + routes)
+  green. Full backend suite green; no regressions.
+- **Lint**: `golangci-lint run ./internal/modules/branding/...
+  ./cmd/server/...` — 0 issues.
+
+#### Notes
+
+- 1 TDD pair (Pair 1 — routes extractor) + 1 cosmetic refactor
+  (`UpdateBrandingInput`). The refactor is committed honestly as
+  `refactor(...)`, not a TDD pair, per CLAUDE.md gate — signature
+  change без поведенческого delta.
+- ADR-7 deviation tracking: v0.136.0 plan called for the registrar
+  but the release shipped inline mounts as a placeholder. v0.137.1
+  closes this. Future Tier 2 items для branding (rich logo upload UX,
+  full theme cascade через CSS variables, Cache-Control headers on
+  /api/public/branding) tracked в .claude/handoffs backlog and
+  remain deferred to ad-hoc patches.
+
+#### Versions synchronized (8 files)
+
+- `VERSION`, `frontend/VERSION` → `0.137.1`
+- `cmd/server/main.go` `@version 0.137.1` + `versionString = "0.137.1"`
+- `docs/swagger/swagger.json`, `docs/swagger/swagger.yaml`,
+  `docs/swagger/docs.go` → `0.137.1`
+- `frontend/package.json`, `frontend/package-lock.json` → `0.137.1`
+
+---
+
 ## [0.137.0] — 2026-05-14
 
 ### Added — Branding admin frontend + login integration (Phase 5 #4 final closure)
