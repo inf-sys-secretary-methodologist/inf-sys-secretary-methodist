@@ -205,19 +205,26 @@ func TestDashboardRepositoryPG_TrendMethods(t *testing.T) {
 }
 
 func TestDashboardRepositoryPG_GetRecentActivity(t *testing.T) {
+	// Anchor regexes to the actual UNION arms from production
+	// (dashboard_repository_pg.go GetRecentActivity body) so a
+	// regression dropping one of the 5 UNION ALL chains (documents/
+	// reports/tasks/events/announcements) surfaces in tests.
+	const unionMatcher = `FROM documents.*UNION ALL.*FROM reports.*UNION ALL.*FROM tasks.*UNION ALL.*FROM events.*UNION ALL.*FROM announcements`
+	const countMatcher = `\(SELECT COUNT\(\*\) FROM documents\) \+.*\(SELECT COUNT\(\*\) FROM reports\) \+.*\(SELECT COUNT\(\*\) FROM tasks\) \+.*\(SELECT COUNT\(\*\) FROM events\) \+.*\(SELECT COUNT\(\*\) FROM announcements\)`
+
 	t.Run("returns activity entries + total count", func(t *testing.T) {
 		repo, mock := newDashboardRepoMock(t)
 		now := time.Now()
 		// Scan reads 8 columns: id, type, action, title, description,
-		// user_id, user_name, created_at.
+		// user_id, user_name, created_at. Production duplicates the
+		// same column set 5× via UNION ALL.
 		rows := sqlmock.NewRows([]string{"id", "type", "action", "title", "description", "user_id", "user_name", "created_at"}).
 			AddRow(int64(1), "document", "created", "Test Doc", "desc1", int64(10), "Alice", now).
 			AddRow(int64(2), "task", "created", "Task 1", "desc2", int64(11), "Bob", now)
-		mock.ExpectQuery("UNION ALL").
+		mock.ExpectQuery(unionMatcher).
 			WithArgs(10).
 			WillReturnRows(rows)
-		// Separate count query
-		mock.ExpectQuery(regexp.QuoteMeta("SELECT")).
+		mock.ExpectQuery(countMatcher).
 			WillReturnRows(sqlmock.NewRows([]string{"total"}).AddRow(int64(42)))
 
 		activities, total, err := repo.GetRecentActivity(context.Background(), 10)
@@ -228,7 +235,7 @@ func TestDashboardRepositoryPG_GetRecentActivity(t *testing.T) {
 
 	t.Run("propagates UNION query error", func(t *testing.T) {
 		repo, mock := newDashboardRepoMock(t)
-		mock.ExpectQuery("UNION ALL").
+		mock.ExpectQuery(unionMatcher).
 			WithArgs(10).
 			WillReturnError(errors.New("db down"))
 
@@ -241,10 +248,10 @@ func TestDashboardRepositoryPG_GetRecentActivity(t *testing.T) {
 		now := time.Now()
 		rows := sqlmock.NewRows([]string{"id", "type", "action", "title", "description", "user_id", "user_name", "created_at"}).
 			AddRow(int64(1), "document", "created", "Test Doc", "desc1", int64(10), "Alice", now)
-		mock.ExpectQuery("UNION ALL").
+		mock.ExpectQuery(unionMatcher).
 			WithArgs(10).
 			WillReturnRows(rows)
-		mock.ExpectQuery(regexp.QuoteMeta("SELECT")).
+		mock.ExpectQuery(countMatcher).
 			WillReturnError(errors.New("count failed"))
 
 		_, _, err := repo.GetRecentActivity(context.Background(), 10)
