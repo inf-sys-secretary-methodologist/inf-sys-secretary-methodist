@@ -16,7 +16,10 @@ import (
 
 const testEmail = "test@example.com"
 
-// MockUserRepository implements authUsecases.UserRepository for testing.
+// MockUserRepository implements the local UserAccountRepository port
+// (declared in user_account_repository.go) for testing. Extra methods
+// beyond the narrow port persist from the legacy wide-mock shape — Go
+// structural typing accepts the over-satisfaction.
 type MockUserRepository struct {
 	users     map[int64]*authEntities.User
 	nextID    int64

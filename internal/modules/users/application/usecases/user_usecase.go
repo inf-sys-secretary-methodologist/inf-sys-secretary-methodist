@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	authUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
@@ -18,7 +17,7 @@ import (
 
 // UserUseCase handles user management business logic.
 type UserUseCase struct {
-	userRepo            authUsecases.UserRepository
+	userRepo            UserAccountRepository
 	userProfileRepo     repositories.UserProfileRepository
 	departmentRepo      repositories.DepartmentRepository
 	positionRepo        repositories.PositionRepository
@@ -28,7 +27,7 @@ type UserUseCase struct {
 
 // NewUserUseCase creates a new user use case.
 func NewUserUseCase(
-	userRepo authUsecases.UserRepository,
+	userRepo UserAccountRepository,
 	userProfileRepo repositories.UserProfileRepository,
 	departmentRepo repositories.DepartmentRepository,
 	positionRepo repositories.PositionRepository,
