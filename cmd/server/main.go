@@ -100,6 +100,9 @@ import (
 	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure/persistence"
 	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
 	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
+	brandingUseCases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/application/usecases"
+	brandingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/infrastructure/persistence"
+	brandingHandlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/interfaces/http/handlers"
 	curUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/application/usecases"
 	curPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/infrastructure/persistence"
 	curHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/interfaces/http/handlers"
@@ -1499,6 +1502,34 @@ func setupRoutes(
 		authGroup.OPTIONS("/mfa/disable", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 	}
 
+	// Branding module wiring (v0.136.0). Singleton DB-backed
+	// settings used by both /admin/branding (system_admin write) and
+	// /public/branding (unauth read for the login page). Use cases
+	// composed here once and shared by both handler groups.
+	brandingRepo := brandingPersistence.NewBrandSettingsRepositoryPG(db)
+	brandingGetUC := brandingUseCases.NewGetBrandingUseCase(brandingRepo)
+	brandingUpdateUC := brandingUseCases.NewUpdateBrandingUseCase(
+		brandingRepo,
+		brandingUseCases.SystemClock{},
+		auditLogger,
+	)
+	adminBrandingHandler := brandingHandlers.NewAdminBrandingHandler(brandingGetUC, brandingUpdateUC)
+	publicBrandingHandler := brandingHandlers.NewPublicBrandingHandler(brandingGetUC)
+
+	// Public branding route — always available (login page consumes
+	// this before the user authenticates). Mounted independently of
+	// the sharing-feature block below so a sharing-disabled deployment
+	// still surfaces the branded login chrome.
+	{
+		brandingPublicGroup := router.Group("/api/public")
+		if publicRateLimiter != nil {
+			brandingPublicGroup.Use(publicRateLimiter.RateLimitMiddleware())
+		}
+		brandingPublicGroup.GET("/branding", publicBrandingHandler.GetBranding)
+		brandingPublicGroup.OPTIONS("/branding", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+		logger.Info("Public branding route registered", nil)
+	}
+
 	// Public document access routes (no authentication required)
 	if sharingUseCase != nil {
 		publicSharingHandler := docHandler.NewSharingHandler(sharingUseCase, validator)
@@ -2634,6 +2665,16 @@ func setupRoutes(
 			adminGroup.GET("/composio/config", adminComposioHandler.GetConfig)
 			adminGroup.OPTIONS("/composio/config", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			logger.Info("Admin Composio config view registered", nil)
+
+			// Admin branding endpoints (v0.136.0). System-wide brand
+			// settings — read+write. Domain invariants live в
+			// modules/branding/domain/entities/brand_settings.go
+			// (hex color + URL scheme whitelist + length bounds);
+			// validation errors map к 422 in the handler.
+			adminGroup.GET("/branding", adminBrandingHandler.GetBranding)
+			adminGroup.PUT("/branding", adminBrandingHandler.UpdateBranding)
+			adminGroup.OPTIONS("/branding", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			logger.Info("Admin branding endpoints registered", nil)
 		}
 	}
 

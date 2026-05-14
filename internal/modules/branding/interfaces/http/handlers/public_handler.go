@@ -27,9 +27,15 @@ func NewPublicBrandingHandler(getUC *usecases.GetBrandingUseCase) *PublicBrandin
 	return &PublicBrandingHandler{getUC: getUC}
 }
 
-// GetBranding handles GET /api/public/branding. RED stub returns
-// 500 — GREEN restores the projection.
+// GetBranding handles GET /api/public/branding. Returns the same
+// BrandSettingsDTO projection as the admin GET — no field is
+// sensitive, so single shape serves both consumers.
 func (h *PublicBrandingHandler) GetBranding(c *gin.Context) {
-	c.JSON(http.StatusInternalServerError,
-		response.ErrorResponse("INTERNAL", "not implemented yet"))
+	settings, err := h.getUC.Execute(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError,
+			response.ErrorResponse("INTERNAL", "failed to load branding"))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(projectDTO(settings)))
 }
