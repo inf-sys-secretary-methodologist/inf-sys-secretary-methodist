@@ -136,60 +136,114 @@ func (b *BrandSettings) SecondaryColor() string { return b.secondaryColor }
 func (b *BrandSettings) UpdatedAt() time.Time { return b.updatedAt }
 
 // UpdateAppName replaces the app name in-place; touches updatedAt
-// only on successful validation. RED stub returns nil без mutation —
-// GREEN restores validation + write.
-func (b *BrandSettings) UpdateAppName(_ string, _ time.Time) error {
+// only on successful validation. The previous value is preserved
+// when validation fails so callers can render the rejected form
+// without losing state.
+func (b *BrandSettings) UpdateAppName(name string, now time.Time) error {
+	if err := validateAppName(name); err != nil {
+		return err
+	}
+	b.appName = name
+	b.updatedAt = now
 	return nil
 }
 
-// UpdateTagline — stub в RED commit.
-func (b *BrandSettings) UpdateTagline(_ string, _ time.Time) error {
+// UpdateTagline replaces the tagline; empty value clears it.
+func (b *BrandSettings) UpdateTagline(tagline string, now time.Time) error {
+	if err := validateTagline(tagline); err != nil {
+		return err
+	}
+	b.tagline = tagline
+	b.updatedAt = now
 	return nil
 }
 
-// UpdateLogoURL — stub в RED commit.
-func (b *BrandSettings) UpdateLogoURL(_ string, _ time.Time) error {
+// UpdateLogoURL replaces the logo URL; empty clears it.
+func (b *BrandSettings) UpdateLogoURL(u string, now time.Time) error {
+	if err := validateURL(u); err != nil {
+		return err
+	}
+	b.logoURL = u
+	b.updatedAt = now
 	return nil
 }
 
-// UpdateFaviconURL — stub в RED commit.
-func (b *BrandSettings) UpdateFaviconURL(_ string, _ time.Time) error {
+// UpdateFaviconURL replaces the favicon URL; empty clears it.
+func (b *BrandSettings) UpdateFaviconURL(u string, now time.Time) error {
+	if err := validateURL(u); err != nil {
+		return err
+	}
+	b.faviconURL = u
+	b.updatedAt = now
 	return nil
 }
 
-// UpdatePrimaryColor — stub в RED commit.
-func (b *BrandSettings) UpdatePrimaryColor(_ string, _ time.Time) error {
+// UpdatePrimaryColor replaces the primary accent color; empty
+// clears it.
+func (b *BrandSettings) UpdatePrimaryColor(c string, now time.Time) error {
+	if err := validateColor(c); err != nil {
+		return err
+	}
+	b.primaryColor = c
+	b.updatedAt = now
 	return nil
 }
 
-// UpdateSecondaryColor — stub в RED commit.
-func (b *BrandSettings) UpdateSecondaryColor(_ string, _ time.Time) error {
+// UpdateSecondaryColor replaces the secondary accent color; empty
+// clears it.
+func (b *BrandSettings) UpdateSecondaryColor(c string, now time.Time) error {
+	if err := validateColor(c); err != nil {
+		return err
+	}
+	b.secondaryColor = c
+	b.updatedAt = now
 	return nil
 }
 
-// validateAppName — RED stub does no validation so NewBrandSettings
-// happy path passes; invariant tests on empty / too-long names fail
-// until GREEN ships the real predicate.
-func validateAppName(_ string) error {
+func validateAppName(name string) error {
+	if name == "" || len(name) > MaxAppNameLen {
+		return ErrInvalidAppName
+	}
 	return nil
 }
 
-func validateTagline(_ string) error {
+func validateTagline(tagline string) error {
+	if len(tagline) > MaxTaglineLen {
+		return ErrInvalidTagline
+	}
 	return nil
 }
 
-func validateColor(_ string) error {
+func validateColor(c string) error {
+	if c == "" {
+		return nil
+	}
+	if !hexColorRE.MatchString(c) {
+		return ErrInvalidColor
+	}
 	return nil
 }
 
-func validateURL(_ string) error {
+func validateURL(u string) error {
+	if u == "" {
+		return nil
+	}
+	// strings.HasPrefix would be cheap but url.Parse catches subtler
+	// malformations (whitespace, missing host, malformed escape
+	// sequences) — let it do the heavy lifting then assert the
+	// scheme whitelist.
+	parsed, err := url.Parse(u)
+	if err != nil {
+		return ErrInvalidURL
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return ErrInvalidURL
+	}
+	// Reject schemes that parse-successful but technically lack a
+	// host (e.g., "http:") — defense-in-depth for the renderer.
+	if parsed.Host == "" {
+		return ErrInvalidURL
+	}
+	_ = strings.TrimSpace // reserved for future trimming policy
 	return nil
 }
-
-// References reserved for the GREEN impl — silence "unused" linter
-// until the real predicates land in the next commit.
-var (
-	_ = hexColorRE
-	_ = strings.TrimSpace
-	_ = url.Parse
-)
