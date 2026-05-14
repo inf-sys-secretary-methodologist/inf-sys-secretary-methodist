@@ -10,6 +10,8 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/interfaces/http/handlers"
@@ -21,11 +23,19 @@ import (
 // middleware to the group before calling this function (mirror к
 // branding registrar contract).
 //
-// Stub for RED — GREEN replaces the body with the real mounts.
+// Routes:
+//   - POST   /tasks/:id/reminders                  → handler.Create
+//   - GET    /tasks/:id/reminders                  → handler.List
+//   - DELETE /tasks/:id/reminders/:reminderID      → handler.Delete
+//   - OPTIONS /tasks/:id/reminders                 → 204 CORS
+//   - OPTIONS /tasks/:id/reminders/:reminderID     → 204 CORS
 func RegisterTaskReminderRoutes(
 	protectedGroup *gin.RouterGroup,
 	handler *handlers.TaskReminderHandler,
 ) {
-	_ = protectedGroup
-	_ = handler
+	protectedGroup.POST("/tasks/:id/reminders", handler.Create)
+	protectedGroup.GET("/tasks/:id/reminders", handler.List)
+	protectedGroup.DELETE("/tasks/:id/reminders/:reminderID", handler.Delete)
+	protectedGroup.OPTIONS("/tasks/:id/reminders", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+	protectedGroup.OPTIONS("/tasks/:id/reminders/:reminderID", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 }
