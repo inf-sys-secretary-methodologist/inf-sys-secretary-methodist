@@ -16,6 +16,12 @@ import (
 
 const testEmail = "test@example.com"
 
+// Compile-time assertion that MockUserRepository satisfies the narrow port —
+// mirrors auth-side precedent (auth_handler_unit_test.go, auth_middleware_test.go)
+// and catches drift if either the port grows new methods or the mock signature
+// changes.
+var _ UserAccountRepository = (*MockUserRepository)(nil)
+
 // MockUserRepository implements the local UserAccountRepository port
 // (declared in user_account_repository.go) for testing. Extra methods
 // beyond the narrow port persist from the legacy wide-mock shape — Go

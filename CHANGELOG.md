@@ -15,6 +15,76 @@
 
 ---
 
+## [0.141.0] — 2026-05-14
+
+### Changed — Phase 6 #210 DIP refactor (auth/domain/repositories → application/usecases)
+
+Pure refactor: relocates all 4 auth repository interfaces (`UserRepository`,
+`SessionRepository`, `PasswordResetTokenRepository`, `RevokedTokenRepository`)
+из `internal/modules/auth/domain/repositories/` в `internal/modules/auth/application/usecases/`
+per CLAUDE.md DDD-гейт ("Repository interfaces — в пакете-потребителе
+(usecase/), НЕ в domain/"). No behavior change; tests + coverage unchanged
+(74.4%).
+
+Numbering note: Issue #210 был "reserved" под v0.139.0 в ROADMAP, но
+v0.140.0 уже занял предшествующий слот; данный refactor shipped как
+v0.141.0 (next minor) per semver forward-only convention. v0.139.0
+остаётся пустым историческим слотом.
+
+#### Moved interfaces (4)
+
+- **UserRepository** → `auth/application/usecases/user_repository.go` (8 methods: Create / Save / GetByID / GetByEmail / GetByEmailForAuth / GetByIDForAuth / Delete / List). 12 callers обновлены.
+- **SessionRepository** → `auth/application/usecases/session_repository.go` (6 methods). 2 callers обновлены.
+- **PasswordResetTokenRepository** → `auth/application/usecases/password_reset_token_repository.go` (3 methods). 1 in-package consumer + 1 sentinel reference.
+- **RevokedTokenRepository** → `auth/application/usecases/revoked_token_repository.go` (2 methods). 4 callers обновлены.
+
+#### Sentinel relocation
+
+- `ErrPasswordResetTokenNotFound` перемещён из `auth/domain/repositories/password_reset_token_repository.go` в `auth/domain/errors.go` (новый файл). Все 11 `errors.Is` call sites обновлены — sentinel value identity preserved (single `errors.New` package-level var), контракт неизменен.
+
+#### Cross-module import closure (users → auth)
+
+- `users/application/usecases/user_usecase.go` больше не импортит `auth/domain/repositories` (или `auth/application/usecases`). Локальный narrow port `UserAccountRepository` (3 методов: GetByID / Save / Delete) в `users/application/usecases/user_account_repository.go` — конкретный `*CachedUserRepository` satisfies structurally через main.go wiring. CLAUDE.md "Cross-module импорты запрещены" satisfied для repository contract.
+- **Compromise (ADR-3)**: `authEntities.User` остаётся parameter type в narrow port — полное entity-level decoupling требует users-owned User DTO + adapter layer, deferred future Phase 6 sprint.
+
+#### Package cleanup
+
+- `internal/modules/auth/domain/repositories/` directory полностью удалена (все 4 interface files + 1 sentinel evacuated). CLAUDE.md DDD-гейт satisfied: zero repository interfaces в auth/domain/.
+
+#### Commit sequence (per ADR-6, 6 atomic commits)
+
+1. `refactor(auth): relocate ErrPasswordResetTokenNotFound sentinel to domain/errors.go` (C1, sentinel-only)
+2. `refactor(auth): move UserRepository interface to application/usecases` (C2, 12 files)
+3. `refactor(auth): move SessionRepository interface to application/usecases` (C3, 3 files)
+4. `refactor(auth): move PasswordResetTokenRepository interface to application/usecases` (C4, 2 files)
+5. `refactor(auth): move RevokedTokenRepository + remove empty domain/repositories package` (C5+C6 bundled, 5 files)
+6. `refactor(users): introduce local UserAccountRepository narrow port` (C7, 3 files)
+
+Build / test / lint / gosec зелёные после каждого commit'а. Coverage delta = **0pp** (verifies no behavior change).
+
+#### Reviewer round
+
+`superpowers:code-reviewer` SHIP single-pass: **mean 8.625 / min 8** (axes: DDD 9 / CA 8 / Refactor hygiene 9 / TDD 9 / Commits 9 / Cross-module 8 / Plan doc 8 / Safety 9). **8 consecutive single-pass-after-absorb SHIPs streak hold** (v0.134.0/.135.0/.136.0/.137.0/.137.1/.138.1/.140.0/.141.0).
+
+#### Tier 2 absorbed
+
+- `users/.../user_usecase_test.go`: add `var _ UserAccountRepository = (*MockUserRepository)(nil)` compile-time assertion (mirrors auth-side precedent — catches drift if port grows or mock shrinks).
+
+#### Tier 3 deferred (carry-forward)
+
+- `cmd/server/main.go:1291` — `var userRepo interface{}` legacy pattern + 2 type assertions can be typed `var userRepo usecases.UserRepository` (eliminates runtime panic surface). Out of v0.141.0 scope.
+- Full `authEntities.User` decoupling between users ↔ auth modules — ADR-3 deferred.
+- Remaining ~30 repo interfaces в `domain/repositories/` for curriculum/assignments/documents/etc. — multi-session codebase-wide DIP sprint.
+
+#### Plan doc
+
+`docs/plans/2026-05-14-v0139-0-userrepo-dip.md` — 8 ADRs locked upfront
+(scope/sentinel/cross-module/cleanup/labeling/sequence/aliases/reviewer
+gate), risk register, verification plan. Filename retains v0139 prefix
+для historical traceability к ROADMAP issue #210.
+
+---
+
 ## [0.140.0] — 2026-05-14
 
 ### Added — Phase 6 #196 partial backend coverage backfill (initiative starting, multi-release sprint)
