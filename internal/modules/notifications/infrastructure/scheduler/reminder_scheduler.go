@@ -26,8 +26,26 @@ type ReminderScheduler struct {
 	notificationRepo repositories.NotificationRepository
 	preferencesRepo  repositories.PreferencesRepository
 	emailService     services.EmailService
+	telegramRepo     repositories.TelegramRepository
+	telegramService  services.TelegramService
 	checkInterval    time.Duration
 	batchSize        int
+}
+
+// WithTelegramDispatch wires the telegram repository + service onto an
+// existing ReminderScheduler. RED stub — fields stored but
+// sendTelegramReminder still falls back к in-app; GREEN replaces the
+// body with real dispatch logic mirror к TaskReminderScheduler.sendTelegram.
+//
+// Chainable so wire-up reads `NewReminderScheduler(...).WithTelegramDispatch(...)`
+// in main.go.
+func (s *ReminderScheduler) WithTelegramDispatch(
+	telegramRepo repositories.TelegramRepository,
+	telegramService services.TelegramService,
+) *ReminderScheduler {
+	s.telegramRepo = telegramRepo
+	s.telegramService = telegramService
+	return s
 }
 
 // ReminderSchedulerConfig contains configuration for the scheduler
