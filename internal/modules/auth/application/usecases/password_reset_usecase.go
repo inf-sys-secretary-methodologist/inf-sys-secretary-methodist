@@ -12,7 +12,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 )
 
 const (
@@ -68,14 +67,14 @@ type userLookup interface {
 // set a new password.
 type PasswordResetUseCase struct {
 	userRepo  userLookup
-	tokenRepo repositories.PasswordResetTokenRepository
+	tokenRepo PasswordResetTokenRepository
 	emailer   EmailSender
 }
 
 // NewPasswordResetUseCase wires the dependencies.
 func NewPasswordResetUseCase(
 	userRepo userLookup,
-	tokenRepo repositories.PasswordResetTokenRepository,
+	tokenRepo PasswordResetTokenRepository,
 	emailer EmailSender,
 ) *PasswordResetUseCase {
 	return &PasswordResetUseCase{
