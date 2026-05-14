@@ -9,7 +9,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 )
 
 // passwordResetKeyPrefix isolates the keyspace from other Redis users.
@@ -53,12 +53,12 @@ func (r *RedisPasswordResetTokenRepository) Store(ctx context.Context, token str
 // callers do not need to import the redis package.
 func (r *RedisPasswordResetTokenRepository) LookupUser(ctx context.Context, token string) (int64, error) {
 	if token == "" {
-		return 0, repositories.ErrPasswordResetTokenNotFound
+		return 0, domain.ErrPasswordResetTokenNotFound
 	}
 	key := passwordResetKeyPrefix + token
 	raw, err := r.client.Get(ctx, key).Result()
 	if errors.Is(err, redis.Nil) {
-		return 0, repositories.ErrPasswordResetTokenNotFound
+		return 0, domain.ErrPasswordResetTokenNotFound
 	}
 	if err != nil {
 		return 0, fmt.Errorf("redis GET %s: %w", key, err)
