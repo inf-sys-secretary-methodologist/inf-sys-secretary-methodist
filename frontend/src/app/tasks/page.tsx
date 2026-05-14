@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Plus, ListTodo, Loader2 } from 'lucide-react'
+import { Plus, ListTodo, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AppLayout } from '@/components/layout'
@@ -11,19 +11,30 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { TaskCard } from '@/components/tasks/TaskCard'
 import { TaskFilters } from '@/components/tasks/TaskFilters'
 import { TaskForm } from '@/components/tasks/TaskForm'
+import { ReminderForm } from '@/components/tasks/ReminderForm'
 import { useTasks, createTask, updateTask, deleteTask } from '@/hooks/useTasks'
+import { useTaskReminders, createTaskReminder, deleteTaskReminder } from '@/hooks/useTaskReminders'
 import type { CreateTaskInput, Task, TaskFilterParams } from '@/types/tasks'
+import type { CreateTaskReminderInput } from '@/types/taskReminders'
 import { useAuthCheck } from '@/hooks/useAuth'
 
 export default function TasksPage() {
   const t = useTranslations('tasks')
+  const tr = useTranslations('taskReminders')
   useAuthCheck()
 
   const [filters, setFilters] = useState<TaskFilterParams>({})
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined)
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [reminderTask, setReminderTask] = useState<Task | null>(null)
+  const [reminderSubmitting, setReminderSubmitting] = useState(false)
 
   const { tasks, total, isLoading, error, mutate } = useTasks({ ...filters, limit: 100 })
+  const {
+    reminders,
+    isLoading: remindersLoading,
+    mutate: mutateReminders,
+  } = useTaskReminders(reminderTask?.id ?? null)
 
   const openCreate = () => {
     setEditingTask(undefined)
@@ -33,6 +44,14 @@ export default function TasksPage() {
   const openEdit = (task: Task) => {
     setEditingTask(task)
     setIsFormOpen(true)
+  }
+
+  const openReminders = (task: Task) => {
+    setReminderTask(task)
+  }
+
+  const closeReminders = () => {
+    setReminderTask(null)
   }
 
   const handleSubmit = async (input: CreateTaskInput) => {
@@ -56,6 +75,29 @@ export default function TasksPage() {
       await mutate()
     } catch {
       toast.error(t('errors.deleteFailed'))
+    }
+  }
+
+  const handleReminderSubmit = async (input: CreateTaskReminderInput) => {
+    if (!reminderTask) return
+    setReminderSubmitting(true)
+    try {
+      await createTaskReminder(reminderTask.id, input)
+      await mutateReminders()
+    } catch {
+      toast.error(tr('errors.createFailed'))
+    } finally {
+      setReminderSubmitting(false)
+    }
+  }
+
+  const handleReminderDelete = async (reminderId: number) => {
+    if (!reminderTask) return
+    try {
+      await deleteTaskReminder(reminderTask.id, reminderId)
+      await mutateReminders()
+    } catch {
+      toast.error(tr('errors.deleteFailed'))
     }
   }
 
@@ -97,6 +139,7 @@ export default function TasksPage() {
                 onClick={() => openEdit(task)}
                 onEdit={() => openEdit(task)}
                 onDelete={() => handleDelete(task)}
+                onReminders={() => openReminders(task)}
               />
             ))}
           </div>
@@ -120,7 +163,65 @@ export default function TasksPage() {
             />
           </DialogContent>
         </Dialog>
+
+        <Dialog
+          open={reminderTask !== null}
+          onOpenChange={(open) => {
+            if (!open) closeReminders()
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{tr('dialogTitle')}</DialogTitle>
+            </DialogHeader>
+
+            <ReminderForm
+              onSubmit={handleReminderSubmit}
+              onCancel={closeReminders}
+              submitting={reminderSubmitting}
+            />
+
+            <div className="mt-4 border-t pt-4">
+              <h4 className="text-sm font-medium mb-2">{tr('listTitle')}</h4>
+              {remindersLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : reminders.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{tr('noReminders')}</p>
+              ) : (
+                <ul className="space-y-2">
+                  {reminders.map((r) => (
+                    <li
+                      key={r.id}
+                      className="flex items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <span>
+                        {tr(`type.${typeKey(r.reminder_type)}`)} —{' '}
+                        {tr('minutesBeforeShort', { minutes: r.minutes_before })}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={tr('delete')}
+                        onClick={() => handleReminderDelete(r.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   )
+}
+
+// typeKey mirrors the ReminderForm convention — backend uses snake_case
+// `in_app` but the i18n namespace stores the camelCase `inApp` key
+// because nested JSON keys must be valid identifiers.
+function typeKey(value: string): string {
+  return value === 'in_app' ? 'inApp' : value
 }

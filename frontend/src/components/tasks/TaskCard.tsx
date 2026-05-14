@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns'
 import { ru, enUS, fr, ar } from 'date-fns/locale'
-import { Calendar, User, AlertTriangle, MoreHorizontal } from 'lucide-react'
+import { Calendar, User, AlertTriangle, MoreHorizontal, Bell } from 'lucide-react'
 import { useTranslations, useLocale } from 'next-intl'
 
 const localeMap = { ru, en: enUS, fr, ar }
@@ -63,7 +63,14 @@ const STATUS_COLORS: Record<TaskStatus, string> = {
   deferred: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
 }
 
-export function TaskCard({ task, onClick, onEdit, onDelete, className }: TaskCardProps) {
+export function TaskCard({
+  task,
+  onClick,
+  onEdit,
+  onDelete,
+  onReminders,
+  className,
+}: TaskCardProps) {
   const t = useTranslations('tasks')
   const locale = useLocale()
   const dateLocale = localeMap[locale as keyof typeof localeMap] || enUS
@@ -130,7 +137,7 @@ export function TaskCard({ task, onClick, onEdit, onDelete, className }: TaskCar
             )}
           </div>
 
-          {(onEdit || onDelete) && (
+          {(onEdit || onDelete || onReminders) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -144,6 +151,12 @@ export function TaskCard({ task, onClick, onEdit, onDelete, className }: TaskCar
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {onEdit && <DropdownMenuItem onClick={onEdit}>{t('edit')}</DropdownMenuItem>}
+                {onReminders && (
+                  <DropdownMenuItem onClick={onReminders}>
+                    <Bell className="h-4 w-4 mr-2" />
+                    {t('reminders')}
+                  </DropdownMenuItem>
+                )}
                 {onDelete && (
                   <>
                     <DropdownMenuSeparator />
