@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/repositories"
@@ -24,9 +23,8 @@ func NewGetBrandingUseCase(repo repositories.BrandSettingsRepository) *GetBrandi
 	return &GetBrandingUseCase{repo: repo}
 }
 
-// Execute returns the current brand settings. RED stub returns
-// an empty entity so handler integration tests fail on the
-// "settings surface" assertions; GREEN restores the repo call.
-func (uc *GetBrandingUseCase) Execute(_ context.Context) (*entities.BrandSettings, error) {
-	return entities.RehydrateBrandSettings("", "", "", "", "", "", time.Time{}), nil
+// Execute returns the current brand settings via the injected
+// repository. Errors propagate unchanged for the handler to map.
+func (uc *GetBrandingUseCase) Execute(ctx context.Context) (*entities.BrandSettings, error) {
+	return uc.repo.Get(ctx)
 }

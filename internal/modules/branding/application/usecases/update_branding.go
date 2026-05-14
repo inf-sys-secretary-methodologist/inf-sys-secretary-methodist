@@ -53,13 +53,40 @@ func NewUpdateBrandingUseCase(
 // repo.Update, and emits a brand.updated audit event on success.
 // Returns the resulting entity. Domain validation errors propagate
 // for the handler to map к 422; repo errors propagate as-is.
-//
-// RED stub returns nil + nil — handler tests fail on the projected
-// fields. GREEN restores the real validation + persistence path.
 func (uc *UpdateBrandingUseCase) Execute(
-	_ context.Context,
-	_, _, _, _, _, _ string,
-	_ int64,
+	ctx context.Context,
+	appName, tagline, logoURL, faviconURL, primaryColor, secondaryColor string,
+	actorUserID int64,
 ) (*entities.BrandSettings, error) {
-	return nil, nil
+	now := uc.clock.Now()
+	settings, err := entities.NewBrandSettings(
+		appName, tagline, logoURL, faviconURL,
+		primaryColor, secondaryColor, now,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := uc.repo.Update(ctx, settings); err != nil {
+		return nil, err
+	}
+	uc.emitAudit(ctx, settings, actorUserID)
+	return settings, nil
+}
+
+// emitAudit logs a brand.updated forensic event with the
+// resulting field snapshot. Nil-safe: callers passing a nil
+// AuditSink skip emission entirely (test-friendly).
+func (uc *UpdateBrandingUseCase) emitAudit(ctx context.Context, settings *entities.BrandSettings, actorUserID int64) {
+	if uc.audit == nil {
+		return
+	}
+	uc.audit.LogAuditEvent(ctx, "brand.updated", "brand", map[string]any{
+		"actor_user_id":   actorUserID,
+		"app_name":        settings.AppName(),
+		"tagline":         settings.Tagline(),
+		"logo_url":        settings.LogoURL(),
+		"favicon_url":     settings.FaviconURL(),
+		"primary_color":   settings.PrimaryColor(),
+		"secondary_color": settings.SecondaryColor(),
+	})
 }
