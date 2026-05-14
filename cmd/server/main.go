@@ -51,6 +51,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"fmt"
 	"log"
@@ -143,8 +144,11 @@ import (
 	schedulePersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/infrastructure/persistence"
 	scheduleHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/interfaces/http/handlers"
 	taskUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
+	tasksDomainEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
+	taskRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 	taskPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/infrastructure/persistence"
 	taskHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/interfaces/http/handlers"
+	taskRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/interfaces/http/routes"
 	usersUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	usersRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	usersPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/infrastructure/persistence"
@@ -439,6 +443,15 @@ func main() {
 	projectUseCase := taskUsecases.NewProjectUseCase(projectRepo, auditLogger)
 	logger.Info("Tasks module initialized", nil)
 
+	// Task reminders (v0.138.0 — Phase 5 #5 final SetReminder).
+	// Repo + 3 use cases + handler composition extracted к
+	// initTaskReminderModule helper so main() cyclomatic complexity
+	// stays под the golangci threshold. The cross-module
+	// TaskReminderScheduler (wired below) reuses the existing
+	// notifications module telegramRepo + ComposioTelegramService
+	// for delivery.
+	taskReminderRepo, taskReminderHandlerInstance := initTaskReminderModule(db, auditLogger)
+
 	// Initialize assignments module — academic Tasks Context (separate
 	// bounded context from project-management tasks). v0.109.0 ships the
 	// SaveGrade flow only; submission upload + rubric land in later
@@ -581,6 +594,25 @@ func main() {
 			logger.Info("Reminder scheduler started", nil)
 		}
 	}
+
+	// Task reminder scheduler (v0.138.0 — Phase 5 #5 final). Mirror
+	// к the existing reminderScheduler shape но drives
+	// task_reminders. Telegram dispatch uses the existing
+	// ComposioTelegramService — Phase 5 #5 final closes by lighting
+	// up the long-dormant fallback path. Extracted к initTaskReminder
+	// Scheduler so main() cyclomatic complexity stays under the
+	// golangci threshold.
+	taskReminderScheduler := initTaskReminderScheduler(
+		logger,
+		taskReminderRepo,
+		taskRepo,
+		db,
+		telegramRepo,
+		telegramService,
+		notificationRepo,
+		preferencesRepo,
+		notifEmailService,
+	)
 
 	// Initialize announcements module
 	announcementRepo := announcementPersistence.NewAnnouncementRepositoryPG(db)
@@ -750,6 +782,7 @@ func main() {
 		customReportUseCase,
 		taskUseCase,
 		projectUseCase,
+		taskReminderHandlerInstance,
 		saveGradeUseCase,
 		returnSubmissionUseCase,
 		resubmitSubmissionUseCase,
@@ -1131,6 +1164,7 @@ func main() {
 	}
 
 	// Stop reminder scheduler
+	stopTaskReminderScheduler(taskReminderScheduler, logger)
 	if reminderScheduler != nil {
 		if err := reminderScheduler.Stop(); err != nil {
 			logger.Error("Failed to stop reminder scheduler", map[string]interface{}{
@@ -1280,6 +1314,7 @@ func setupRoutes(
 	customReportUseCase *reportUsecases.CustomReportUseCase,
 	taskUseCase *taskUsecases.TaskUseCase,
 	projectUseCase *taskUsecases.ProjectUseCase,
+	taskReminderHandler *taskHandler.TaskReminderHandler,
 	saveGradeUseCase *assignUsecases.SaveGradeUseCase,
 	returnSubmissionUseCase *assignUsecases.ReturnSubmissionUseCase,
 	resubmitSubmissionUseCase *assignUsecases.ResubmitSubmissionUseCase,
@@ -2056,6 +2091,14 @@ func setupRoutes(
 			}
 
 			logger.Info("Tasks module routes registered", nil)
+
+			// Task reminder routes (v0.138.0 — Phase 5 #5 final).
+			// Mounted under the same /tasks/:id path tree but in a
+			// dedicated registrar so the surface stays modular.
+			// No adminMW parameter — reminder endpoints are
+			// user-self-scoped (per-user privacy at use-case layer).
+			taskRoutes.RegisterTaskReminderRoutes(protectedGroup, taskReminderHandler)
+			logger.Info("Task reminder routes registered", nil)
 		}
 
 		// Assignments module routes — academic grading flow.
@@ -2934,6 +2977,139 @@ func healthCheckHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFun
 			"status":    status,
 			"timestamp": time.Now().UTC(),
 			"checks":    checks,
+		})
+	}
+}
+
+// taskDispatchLookup adapts the existing tasks TaskRepository to the
+// narrow TaskLookup port consumed by TaskReminderScheduler. Lives in
+// main.go (the DI seam) so the notifications module stays free of
+// cross-module Go imports back into tasks.
+type taskDispatchLookup struct {
+	repo taskRepositories.TaskRepository
+}
+
+// GetByID loads the task and projects к the read-only DispatchView.
+// Returns nil view (no error) when the task is absent so the
+// scheduler can skip gracefully without retrying.
+func (a *taskDispatchLookup) GetByID(ctx context.Context, id int64) (*notifScheduler.TaskDispatchView, error) {
+	if a == nil || a.repo == nil {
+		return nil, nil
+	}
+	task, err := a.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if task == nil {
+		return nil, nil
+	}
+	return &notifScheduler.TaskDispatchView{
+		Title:   task.Title,
+		DueDate: task.DueDate,
+	}, nil
+}
+
+// userEmailFromDB resolves a user's email by id via the shared
+// *sql.DB. Mirror к the existing ReminderScheduler.sendEmailReminder
+// pattern (also queries users table directly) but expressed as a
+// narrow interface so the scheduler tests can substitute a stub.
+type userEmailFromDB struct {
+	db *sql.DB
+}
+
+// GetEmailByID returns the user's email address or an empty string
+// when not found. Errors propagate for the scheduler к log.
+func (a *userEmailFromDB) GetEmailByID(ctx context.Context, userID int64) (string, error) {
+	if a == nil || a.db == nil {
+		return "", nil
+	}
+	var email string
+	err := a.db.QueryRowContext(ctx, "SELECT email FROM users WHERE id = $1", userID).Scan(&email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	return email, nil
+}
+
+// suppress unused-import warning for taskDomainEntities — imported
+// to make the bounded-context dependency on the tasks aggregate
+// explicit in this file, even though the adapter accesses fields
+// directly through entity getters.
+var _ = tasksDomainEntities.ReminderType("")
+
+// initTaskReminderScheduler builds the TaskReminderScheduler с
+// the supplied deps + logs failure paths. Extracted из main() to
+// keep its cyclomatic complexity under the golangci threshold (the
+// v0.138.0 Pair 5 wiring would otherwise push main() over the
+// limit). Returns nil on construction failure so the caller can
+// skip the Stop() path в graceful shutdown.
+func initTaskReminderScheduler(
+	logger *logging.Logger,
+	taskReminderRepo taskRepositories.TaskReminderRepository,
+	taskRepo taskRepositories.TaskRepository,
+	db *sql.DB,
+	telegramRepo notifRepositories.TelegramRepository,
+	telegramService emailDomain.TelegramService,
+	notificationRepo notifRepositories.NotificationRepository,
+	preferencesRepo notifRepositories.PreferencesRepository,
+	notifEmailService emailDomain.EmailService,
+) *notifScheduler.TaskReminderScheduler {
+	scheduler, err := notifScheduler.NewTaskReminderScheduler(
+		taskReminderRepo,
+		&taskDispatchLookup{repo: taskRepo},
+		telegramRepo,
+		telegramService,
+		notificationRepo,
+		preferencesRepo,
+		notifEmailService,
+		&userEmailFromDB{db: db},
+		nil,
+	)
+	if err != nil {
+		logger.Error("Failed to initialize task reminder scheduler", map[string]interface{}{
+			errorKey: err.Error(),
+		})
+		return nil
+	}
+	if err := scheduler.Start(); err != nil {
+		logger.Error("Failed to start task reminder scheduler", map[string]interface{}{
+			errorKey: err.Error(),
+		})
+		return scheduler
+	}
+	logger.Info("Task reminder scheduler started", nil)
+	return scheduler
+}
+
+// initTaskReminderModule composes the v0.138.0 task reminder
+// pipeline: PG repo + 3 use cases (Set / List / Delete) + handler.
+// Extracted из main() to keep its cyclomatic complexity under the
+// golangci threshold (Pair 5 wiring would push main() over the
+// limit otherwise).
+func initTaskReminderModule(
+	db *sql.DB,
+	auditLogger *logging.AuditLogger,
+) (taskRepositories.TaskReminderRepository, *taskHandler.TaskReminderHandler) {
+	repo := taskPersistence.NewTaskReminderRepositoryPG(db)
+	setUC := taskUsecases.NewSetReminderUseCase(repo, taskUsecases.SystemClock{}, auditLogger)
+	listUC := taskUsecases.NewListTaskRemindersUseCase(repo)
+	delUC := taskUsecases.NewDeleteReminderUseCase(repo, auditLogger)
+	return repo, taskHandler.NewTaskReminderHandler(setUC, listUC, delUC)
+}
+
+// stopTaskReminderScheduler is a small helper that wraps the nil-
+// safe Stop() call + error log path. Extracted из main() so the
+// shutdown branch keeps cyclomatic complexity in check.
+func stopTaskReminderScheduler(scheduler *notifScheduler.TaskReminderScheduler, logger *logging.Logger) {
+	if scheduler == nil {
+		return
+	}
+	if err := scheduler.Stop(); err != nil {
+		logger.Error("Failed to stop task reminder scheduler", map[string]interface{}{
+			errorKey: err.Error(),
 		})
 	}
 }
