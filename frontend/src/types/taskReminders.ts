@@ -23,3 +23,11 @@ export interface CreateTaskReminderInput {
   reminder_type: ReminderType
   minutes_before: number
 }
+
+// reminderTypeI18nKey maps the on-the-wire reminder_type к the
+// camelCase i18n key fragment. Backend uses snake_case `in_app`; the
+// i18n namespace stores `inApp` because nested JSON keys must remain
+// valid identifiers in next-intl call signatures.
+export function reminderTypeI18nKey(value: ReminderType | string): string {
+  return value === 'in_app' ? 'inApp' : value
+}

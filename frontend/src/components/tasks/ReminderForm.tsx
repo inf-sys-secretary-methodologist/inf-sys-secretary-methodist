@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   REMINDER_TYPES,
+  reminderTypeI18nKey,
   type CreateTaskReminderInput,
   type ReminderType,
 } from '@/types/taskReminders'
@@ -57,7 +58,7 @@ export function ReminderForm({ onSubmit, onCancel, submitting, className }: Remi
         >
           {REMINDER_TYPES.map((value) => (
             <option key={value} value={value}>
-              {t(`type.${typeKeyOf(value)}`)}
+              {t(`type.${reminderTypeI18nKey(value)}`)}
             </option>
           ))}
         </select>
@@ -90,11 +91,4 @@ export function ReminderForm({ onSubmit, onCancel, submitting, className }: Remi
       </div>
     </form>
   )
-}
-
-// typeKeyOf maps the on-the-wire reminder_type к i18n key fragment.
-// Backend uses snake_case `in_app`; i18n namespace uses camelCase
-// `inApp` so the key tree stays valid JSON identifier shape.
-function typeKeyOf(value: ReminderType): string {
-  return value === 'in_app' ? 'inApp' : value
 }

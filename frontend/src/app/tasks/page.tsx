@@ -16,6 +16,7 @@ import { useTasks, createTask, updateTask, deleteTask } from '@/hooks/useTasks'
 import { useTaskReminders, createTaskReminder, deleteTaskReminder } from '@/hooks/useTaskReminders'
 import type { CreateTaskInput, Task, TaskFilterParams } from '@/types/tasks'
 import type { CreateTaskReminderInput } from '@/types/taskReminders'
+import { reminderTypeI18nKey } from '@/types/taskReminders'
 import { useAuthCheck } from '@/hooks/useAuth'
 
 export default function TasksPage() {
@@ -195,7 +196,7 @@ export default function TasksPage() {
                       className="flex items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
                       <span>
-                        {tr(`type.${typeKey(r.reminder_type)}`)} —{' '}
+                        {tr(`type.${reminderTypeI18nKey(r.reminder_type)}`)} —{' '}
                         {tr('minutesBeforeShort', { minutes: r.minutes_before })}
                       </span>
                       <Button
@@ -217,11 +218,4 @@ export default function TasksPage() {
       </div>
     </AppLayout>
   )
-}
-
-// typeKey mirrors the ReminderForm convention — backend uses snake_case
-// `in_app` but the i18n namespace stores the camelCase `inApp` key
-// because nested JSON keys must be valid identifiers.
-function typeKey(value: string): string {
-  return value === 'in_app' ? 'inApp' : value
 }
