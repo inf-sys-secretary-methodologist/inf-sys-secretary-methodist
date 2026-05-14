@@ -79,4 +79,27 @@ describe('TaskCard', () => {
     render(<TaskCard task={{ ...baseTask, priority }} />)
     expect(screen.getByText(`priority.${priority}`)).toBeInTheDocument()
   })
+
+  it('shows "reminders" menu item when onReminders prop supplied', async () => {
+    const user = userEvent.setup()
+    render(<TaskCard task={baseTask} onReminders={jest.fn()} onEdit={jest.fn()} />)
+    await user.click(screen.getByRole('button', { name: /menu/i }))
+    expect(screen.getByText(/reminders/i)).toBeInTheDocument()
+  })
+
+  it('does NOT show "reminders" menu item when onReminders prop missing', async () => {
+    const user = userEvent.setup()
+    render(<TaskCard task={baseTask} onEdit={jest.fn()} />)
+    await user.click(screen.getByRole('button', { name: /menu/i }))
+    expect(screen.queryByText(/reminders/i)).not.toBeInTheDocument()
+  })
+
+  it('calls onReminders when the reminders menu item is clicked', async () => {
+    const onReminders = jest.fn()
+    const user = userEvent.setup()
+    render(<TaskCard task={baseTask} onReminders={onReminders} onEdit={jest.fn()} />)
+    await user.click(screen.getByRole('button', { name: /menu/i }))
+    await user.click(screen.getByText(/reminders/i))
+    expect(onReminders).toHaveBeenCalledTimes(1)
+  })
 })

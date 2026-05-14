@@ -23,6 +23,10 @@ interface TaskCardProps {
   onClick?: () => void
   onEdit?: () => void
   onDelete?: () => void
+  // onReminders opens the reminder dialog. Pair 3 RED placeholder —
+  // declared upfront so the failing test compiles; menu item wiring
+  // lands в Pair 3 GREEN.
+  onReminders?: () => void
   className?: string
 }
 
