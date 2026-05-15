@@ -12,7 +12,14 @@ const setCookie = (name: string, value: string, days: number = 7) => {
   expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
   // Encode the JSON value properly for cookie storage
   const encodedValue = encodeURIComponent(value)
-  document.cookie = `${name}=${encodedValue};expires=${expires.toUTCString()};path=/;SameSite=Lax${process.env.NODE_ENV === 'production' ? ';Secure' : ''}`
+  // Secure flag only over HTTPS — checking process.env.NODE_ENV at runtime is
+  // unreliable for Next.js apps (NODE_ENV=production baked at `next build`
+  // time regardless of where the container later runs). Without HTTPS the
+  // browser silently drops cookies marked Secure, breaking auth on
+  // http://localhost. window.location.protocol gives the true runtime answer.
+  const secureFlag =
+    typeof window !== 'undefined' && window.location.protocol === 'https:' ? ';Secure' : ''
+  document.cookie = `${name}=${encodedValue};expires=${expires.toUTCString()};path=/;SameSite=Lax${secureFlag}`
 }
 
 const getCookie = (name: string): string | null => {

@@ -151,6 +151,7 @@
   },
   "authPages": {
     "loginWelcome": "مرحباً بعودتك",
+    "loginTitle": "تسجيل الدخول",
     "loginSubtitle": "سجل الدخول إلى حسابك للمتابعة",
     "registerTitle": "إنشاء حساب",
     "registerSubtitle": "سجل للوصول إلى النظام",
@@ -203,7 +204,8 @@
     "adminUsers": "إدارة المستخدمين",
     "integrations": "التكاملات",
     "composio": "Composio",
-    "branding": "العلامة"
+    "branding": "العلامة",
+    "usersCatalog": "دليل المستخدمين"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -876,27 +878,6 @@
         "enabled": "ساعات الهدوء مفعلة",
         "disabled": "ساعات الهدوء معطلة"
       }
-    },
-    "automation": {
-      "title": "الأتمتة",
-      "description": "إدارة أتمتة العمليات عبر n8n",
-      "platform": "منصة n8n",
-      "platformDesc": "أتمتة مستضافة ذاتياً مع أكثر من 400 تكامل",
-      "checking": "جارٍ التحقق...",
-      "connected": "متصل",
-      "offline": "غير متصل",
-      "dashboard": "لوحة تحكم n8n",
-      "openN8n": "فتح n8n",
-      "refreshStatus": "تحديث الحالة",
-      "workflowsTitle": "سير العمل المتاحة",
-      "workflowsDesc": "سير عمل أتمتة مُعدة مسبقاً. قم باستيرادها في n8n لتفعيلها.",
-      "workflow1Name": "مستند جديد → تيليجرام",
-      "workflow1Desc": "إشعار عند إنشاء مستند جديد",
-      "workflow2Name": "غياب الطلاب → تنبيه المشرف",
-      "workflow2Desc": "تنبيه المشرف عند ارتفاع درجة المخاطر",
-      "workflow3Name": "موعد نهائي → تذكير",
-      "workflow3Desc": "تذكيرات يومية للمواعيد النهائية القادمة",
-      "ready": "جاهز"
     }
   },
   "notifications": {
@@ -2286,37 +2267,14 @@
   },
   "adminSettings": {
     "title": "إعدادات النظام",
-    "appearance": {
-      "title": "المظهر",
-      "subtitle": "السمة العامة والشعار والهوية البصرية للنظام",
-      "brandTitle": "الهوية البصرية",
-      "brandDescription": "الشعار ونظام الألوان والأيقونة المفضلة — تُطبق على جميع المستخدمين",
-      "logoLabel": "شعار النظام",
-      "primaryColorLabel": "اللون الأساسي",
-      "faviconLabel": "الأيقونة المفضلة"
-    },
-    "notifications": {
-      "title": "الإشعارات",
-      "subtitle": "إعدادات تسليم الإشعارات العامة",
-      "smtpTitle": "خادم SMTP",
-      "smtpDescription": "إعدادات البريد الصادر لجميع الإشعارات",
-      "smtpHost": "المضيف",
-      "smtpPort": "المنفذ",
-      "smtpUser": "اسم المستخدم",
-      "smtpPassword": "كلمة المرور",
-      "pushTitle": "إشعارات الدفع",
-      "pushDescription": "مفاتيح VAPID لإشعارات الويب",
-      "vapidPublicKey": "مفتاح VAPID العام",
-      "vapidPrivateKey": "مفتاح VAPID الخاص",
-      "telegramTitle": "بوت تيليجرام",
-      "telegramDescription": "رمز البوت لإشعارات النظام",
-      "botToken": "رمز البوت"
-    },
     "automation": {
       "title": "الأتمتة",
       "subtitle": "إدارة سير عمل n8n والعمليات الآلية",
       "workflowsTitle": "سير العمل",
-      "workflowsDescription": "٣ عمليات آلية: إشعارات المستندات، تنبيهات الغياب، تذكيرات المواعيد النهائية"
+      "workflowsDescription": "٣ عمليات آلية: إشعارات المستندات، تنبيهات الغياب، تذكيرات المواعيد النهائية",
+      "workflowDocNotifications": "إشعارات المستندات",
+      "workflowAbsenceAlerts": "تنبيهات الغياب",
+      "workflowDeadlineReminders": "تذكيرات المواعيد النهائية"
     },
     "security": {
       "title": "الأمان",

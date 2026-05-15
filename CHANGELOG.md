@@ -15,6 +15,66 @@
 
 ---
 
+## [0.142.0] — 2026-05-15
+
+### Changed — Admin settings cleanup + role-based separation (UX hardening + 3 incident-driven backend fixes)
+
+UX consolidation discovered и closed during local docker-compose rollout
+of the v0.141.0 branch. Two parallel settings surfaces (`/admin/settings/*`
+admin-only vs `/settings/*` personal) had overlapping mockup pages
+duplicating real backends and one route reachable by non-admin roles
+contradicting `docs/roles-and-flows.md` PermissionMatrix
+(`system_settings: admin=full, others=denied`). Also closes 3 pre-existing
+production blockers found while running the stack: Gin routing collision
+(backend wouldn't start), HTTPS-baked Secure cookie (auth broken on
+http://localhost), missing i18n strings.
+
+#### Settings surface cleanup
+
+- **Deleted `/admin/settings/appearance`** (static mockup, no save backend) —
+  duplicated `/admin/branding` which is the real branding editor (PUT to
+  `brand_settings` table). Removed the route directory + its test.
+- **Deleted `/admin/settings/notifications`** (static SMTP/VAPID mockup, no
+  save backend) — admin notification config will eventually live as
+  real-backend page; until then the broken mockup misled users.
+- **Deleted `/settings/automation`** — n8n is admin-only per
+  `roles-and-flows.md`, but this route was reachable by `student`/`teacher`/
+  `methodist`/`academic_secretary`. Admin's n8n view stays at
+  `/admin/settings/automation`.
+- **`AdminSettingsTabs`** trimmed from 4 → 2 tabs (automation + security).
+- **`SettingsTabs`** trimmed from 3 → 2 tabs (appearance + notifications).
+- **Navigation `adminSettings` entry** retargeted from `/admin/settings/appearance`
+  (now 404) to `/admin/settings/automation`.
+
+#### Label clarity (Управление dropdown)
+
+- **`nav.users` → `nav.usersCatalog`** ("Каталог пользователей" / "User directory" / "Annuaire des utilisateurs" / "دليل المستخدمين") so the read-only directory entry (4 roles) is visually distinct from "Управление пользователями" (`/admin/users`, system_admin CRUD).
+
+#### i18n × 4 cleanup
+
+- Dropped dead namespaces `adminSettings.appearance` + `adminSettings.notifications` + `settings.automation` across ru/en/fr/ar — parity preserved (top-level key set identical).
+- Added `nav.usersCatalog` × 4 locales.
+
+#### Production blockers fixed (carry-forward from rollout)
+
+- **`fix(curriculum): rename section route param :id → :sectionID`** (`a4dae0a1`) — Gin routing collision between `/api/sections/:id` (Section handler) and `/api/sections/:sectionID/items` (DisciplineItem handler) panicked the server on startup. Existed on main since at least v0.140.0; 76 releases shipped без обнаружения because unit/integration tests use per-test subset `gin.New()`, not a full `setupRoutes` registration. CI never did a full smoke startup.
+- **`fix(authStore): runtime HTTPS detection for Secure cookie flag`** — `process.env.NODE_ENV === 'production'` is baked at `next build` time regardless of runtime context. The flag was forcing `;Secure` on the auth cookie, which browsers silently drop over `http://localhost`. Auth was broken on local dev (login succeeded server-side, cookie never persisted, middleware bounced back to `/login`). Replaced with `window.location.protocol === 'https:'` runtime check.
+- **`fix(login): plain heading "Вход" replaces BrandedHeader`** — user pref simplification of the login page header to mirror the register page structure (`<h1>{t('loginTitle')}</h1>` instead of remote-fetch BrandedHeader). New `authPages.loginTitle` key × 4 locales.
+- **`fix(admin/automation): 3 hardcoded English workflow names → i18n × 4`** — `Document notifications` / `Absence alerts` / `Deadline reminders` literals lacked translations. Added `adminSettings.automation.workflow{DocNotifications,AbsenceAlerts,DeadlineReminders}` × 4 locales.
+
+#### Tests
+
+- Navigation tests updated к use `usersCatalog` key. All 30 tests pass.
+- 449 settings|admin-pattern frontend tests pass.
+- Backend `go test ./...` green; golangci-lint 0 issues; gosec 0 issues.
+
+#### Numbering
+
+v0.142.0 follows v0.141.0 (Phase 6 #210 DIP refactor). v0.139.0 remains
+historical-empty slot.
+
+---
+
 ## [0.141.0] — 2026-05-14
 
 ### Changed — Phase 6 #210 DIP refactor (auth/domain/repositories → application/usecases)

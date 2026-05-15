@@ -32,15 +32,15 @@ export default function AdminAutomationPage() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-green-500" />
-                Document notifications
+                {t('automation.workflowDocNotifications')}
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-green-500" />
-                Absence alerts
+                {t('automation.workflowAbsenceAlerts')}
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-green-500" />
-                Deadline reminders
+                {t('automation.workflowDeadlineReminders')}
               </li>
             </ul>
           </CardContent>
