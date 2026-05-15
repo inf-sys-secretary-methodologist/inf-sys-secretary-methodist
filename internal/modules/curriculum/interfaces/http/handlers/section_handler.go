@@ -192,7 +192,7 @@ func (h *SectionHandler) Get(c *gin.Context) {
 		c.JSON(http.StatusForbidden, response.Forbidden("students cannot read this section view"))
 		return
 	}
-	id, ok := parsePositiveID(c.Param("id"))
+	id, ok := parsePositiveID(c.Param("sectionID"))
 	if !ok {
 		c.JSON(http.StatusBadRequest, response.BadRequest("invalid section id"))
 		return
@@ -269,7 +269,7 @@ func (h *SectionHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may edit sections"))
 		return
 	}
-	id, ok := parsePositiveID(c.Param("id"))
+	id, ok := parsePositiveID(c.Param("sectionID"))
 	if !ok {
 		c.JSON(http.StatusBadRequest, response.BadRequest("invalid section id"))
 		return
@@ -316,7 +316,7 @@ func (h *SectionHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may delete sections"))
 		return
 	}
-	id, ok := parsePositiveID(c.Param("id"))
+	id, ok := parsePositiveID(c.Param("sectionID"))
 	if !ok {
 		c.JSON(http.StatusBadRequest, response.BadRequest("invalid section id"))
 		return

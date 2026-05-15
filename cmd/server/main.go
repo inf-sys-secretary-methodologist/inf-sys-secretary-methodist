@@ -2237,10 +2237,10 @@ func setupRoutes(
 				sectionGroup.POST("/curricula/:curriculumID/sections", sectionHandler.Create)
 				sectionGroup.OPTIONS("/curricula/:curriculumID/sections", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				sectionGroup.GET("/curricula/:curriculumID/sections", sectionHandler.List)
-				sectionGroup.GET("/sections/:id", sectionHandler.Get)
-				sectionGroup.PUT("/sections/:id", sectionHandler.Update)
-				sectionGroup.DELETE("/sections/:id", sectionHandler.Delete)
-				sectionGroup.OPTIONS("/sections/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				sectionGroup.GET("/sections/:sectionID", sectionHandler.Get)
+				sectionGroup.PUT("/sections/:sectionID", sectionHandler.Update)
+				sectionGroup.DELETE("/sections/:sectionID", sectionHandler.Delete)
+				sectionGroup.OPTIONS("/sections/:sectionID", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 			logger.Info("Section module routes registered", nil)
 		}
