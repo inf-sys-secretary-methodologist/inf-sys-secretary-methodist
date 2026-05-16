@@ -32,19 +32,35 @@ func NewWorkflowHandler(
 }
 
 // RegisterWorkflowRoutes mounts the three workflow endpoints onto the
-// provided group. Caller is responsible for pre-gating с admin
-// middleware on the /admin sub-paths — keeps routes registrar
-// permission-agnostic per `feedback_routes_registrar_adminMW_choice`
-// (same-tier set → caller pre-gates).
+// provided group. Mounted under one group для backwards-compat с the
+// integration tests; production callers receive admin-tier endpoints
+// behind an admin middleware via RegisterAdminWorkflowRoutes.
 //
 // Routes:
 //   - POST /documents/:id/submit          (any authenticated non-student)
-//   - POST /admin/documents/:id/approve   (secretary/admin pre-gated)
-//   - POST /admin/documents/:id/reject    (secretary/admin pre-gated)
+//   - POST /admin/documents/:id/approve   (caller-side admin gate)
+//   - POST /admin/documents/:id/reject    (caller-side admin gate)
+//
+// Issue: #227
 func RegisterWorkflowRoutes(g *gin.RouterGroup, h *WorkflowHandler) {
 	g.POST("/documents/:id/submit", h.Submit)
 	g.POST("/admin/documents/:id/approve", h.Approve)
 	g.POST("/admin/documents/:id/reject", h.Reject)
+}
+
+// RegisterSubmitRoute mounts only POST /:id/submit. Caller already
+// scoped к /documents-style group with non-student gate.
+func RegisterSubmitRoute(g *gin.RouterGroup, h *WorkflowHandler) {
+	g.POST("/:id/submit", h.Submit)
+}
+
+// RegisterAdminWorkflowRoutes mounts POST /:id/approve and /:id/reject
+// on the caller's admin group (already gated by RequireRole
+// (AcademicSecretary, SystemAdmin)). Mirror к curriculum's admin route
+// pattern.
+func RegisterAdminWorkflowRoutes(g *gin.RouterGroup, h *WorkflowHandler) {
+	g.POST("/:id/approve", h.Approve)
+	g.POST("/:id/reject", h.Reject)
 }
 
 // rejectBody is the request DTO for the Reject endpoint.

@@ -59,6 +59,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -111,6 +112,7 @@ import (
 	dashboardPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/infrastructure/persistence"
 	dashboardHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/interfaces/http/handlers"
 	docUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
+	docEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	docPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/infrastructure/persistence"
 	docHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
 	filesUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
@@ -404,6 +406,12 @@ func main() {
 	var docVersionUseCase *docUsecases.DocumentVersionUseCase
 	var tagUseCase *docUsecases.TagUseCase
 	var templateUseCase *docUsecases.TemplateUseCase
+	// Workflow use cases (v0.148.0 #227). Declared at outer scope so
+	// route registration далее в main() can reference them once the
+	// optional documents block has wired them up.
+	var submitDocUseCase *docUsecases.SubmitDocumentUseCase
+	var approveDocUseCase *docUsecases.ApproveDocumentUseCase
+	var rejectDocUseCase *docUsecases.RejectDocumentUseCase
 	if s3Client != nil {
 		docRepo := docPersistence.NewDocumentRepositoryPG(db)
 		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
@@ -417,6 +425,15 @@ func main() {
 		tagUseCase = docUsecases.NewTagUseCase(docTagRepo, docRepo, auditLogger)
 		templateRepo := docPersistence.NewTemplateRepositoryAdapter(docTypeRepo)
 		templateUseCase = docUsecases.NewTemplateUseCase(templateRepo, docRepo, auditLogger)
+		// v0.148.0 — workflow use cases (issue #227). The PG repo
+		// returns a generic fmt.Errorf("document not found") which the
+		// usecases compare via errors.Is(ErrDocumentNotFound) — wrap
+		// it in workflowDocRepoAdapter so the sentinel matches без
+		// touching existing PG repo consumers.
+		workflowRepoAdapter := &workflowDocRepoAdapter{inner: docRepo}
+		submitDocUseCase = docUsecases.NewSubmitDocumentUseCase(workflowRepoAdapter, auditLogger, nil)
+		approveDocUseCase = docUsecases.NewApproveDocumentUseCase(workflowRepoAdapter, auditLogger, nil)
+		rejectDocUseCase = docUsecases.NewRejectDocumentUseCase(workflowRepoAdapter, auditLogger, nil)
 		logger.Info("Documents module initialized", nil)
 	} else {
 		logger.Warn("Documents module not initialized - S3 storage not available", nil)
@@ -848,6 +865,9 @@ func main() {
 		userProfileRepo,
 		validator,
 		jwtSecret,
+		submitDocUseCase,
+		approveDocUseCase,
+		rejectDocUseCase,
 	)
 
 	// Initialize integration module (1C synchronization)
@@ -1380,6 +1400,9 @@ func setupRoutes(
 	userProfileRepo usersRepositories.UserProfileRepository,
 	validator *validation.Validator,
 	jwtSecret []byte,
+	submitDocUseCase *docUsecases.SubmitDocumentUseCase,
+	approveDocUseCase *docUsecases.ApproveDocumentUseCase,
+	rejectDocUseCase *docUsecases.RejectDocumentUseCase,
 ) (*gin.Engine, *telegram.PollingService) {
 	router := gin.New()
 	var telegramPollingService *telegram.PollingService
@@ -1790,6 +1813,28 @@ func setupRoutes(
 				documentsGroup.OPTIONS("/search", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				documentsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				documentsGroup.OPTIONS("/:id/file", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			}
+
+			// v0.148.0 — workflow gates (issue #227). Submit endpoint
+			// stays на /documents (non-student gate), approve/reject
+			// move к /admin/documents с secretary+admin role guard.
+			if submitDocUseCase != nil && approveDocUseCase != nil && rejectDocUseCase != nil {
+				workflowHandler := docHandler.NewWorkflowHandler(submitDocUseCase, approveDocUseCase, rejectDocUseCase)
+				docSubmitGroup := protectedGroup.Group("/documents")
+				docSubmitGroup.Use(authMiddleware.RequireNonStudent())
+				docHandler.RegisterSubmitRoute(docSubmitGroup, workflowHandler)
+				docSubmitGroup.OPTIONS("/:id/submit", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+				adminDocsGroup := protectedGroup.Group("/admin/documents")
+				adminDocsGroup.Use(authMiddleware.RequireRole(
+					string(authDomain.RoleAcademicSecretary),
+					string(authDomain.RoleSystemAdmin),
+				))
+				docHandler.RegisterAdminWorkflowRoutes(adminDocsGroup, workflowHandler)
+				adminDocsGroup.OPTIONS("/:id/approve", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				adminDocsGroup.OPTIONS("/:id/reject", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+				logger.Info("Documents workflow routes registered (v0.148.0 #227)", nil)
 			}
 
 			// Document sharing routes
@@ -3105,6 +3150,32 @@ func initTaskReminderModule(
 	listUC := taskUsecases.NewListTaskRemindersUseCase(repo)
 	delUC := taskUsecases.NewDeleteReminderUseCase(repo, auditLogger)
 	return repo, taskHandler.NewTaskReminderHandler(setUC, listUC, delUC)
+}
+
+// workflowDocRepoAdapter wraps DocumentRepositoryPG so the v0.148.0
+// workflow use cases see the sentinel ErrDocumentNotFound on lookup
+// failure instead of the legacy fmt.Errorf("document not found")
+// string. Adapter pattern keeps the PG repo's existing consumers
+// untouched while the workflow path gets the matchable error.
+//
+// Issue: #227
+type workflowDocRepoAdapter struct {
+	inner *docPersistence.DocumentRepositoryPG
+}
+
+func (a *workflowDocRepoAdapter) GetByID(ctx context.Context, id int64) (*docEntities.Document, error) {
+	d, err := a.inner.GetByID(ctx, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "document not found") {
+			return nil, docUsecases.ErrDocumentNotFound
+		}
+		return nil, err
+	}
+	return d, nil
+}
+
+func (a *workflowDocRepoAdapter) Update(ctx context.Context, d *docEntities.Document) error {
+	return a.inner.Update(ctx, d)
 }
 
 // wireEventReminderDispatch threads optional telegram + webpush
