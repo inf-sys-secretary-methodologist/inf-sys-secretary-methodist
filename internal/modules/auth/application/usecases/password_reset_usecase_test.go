@@ -13,7 +13,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 )
 
 // --- local mocks (kept here so the RED is self-contained — same
@@ -260,7 +259,7 @@ func TestPasswordResetUseCase_ConfirmReset(t *testing.T) {
 			password: goodPassword,
 			setup: func(_ *mockUserLookupRepo, tokenRepo *mockPasswordResetTokenRepo, _ *savedSlot) {
 				tokenRepo.On("LookupUser", mock.Anything, "bad-token").
-					Return(int64(0), repositories.ErrPasswordResetTokenNotFound)
+					Return(int64(0), domain.ErrPasswordResetTokenNotFound)
 			},
 			wantErrIs: ErrInvalidResetToken,
 		},
@@ -340,7 +339,7 @@ func TestPasswordResetUseCase_VerifyToken_Invalid(t *testing.T) {
 	userRepo := new(mockUserLookupRepo)
 	tokenRepo := new(mockPasswordResetTokenRepo)
 	tokenRepo.On("LookupUser", mock.Anything, "bad-token").
-		Return(int64(0), repositories.ErrPasswordResetTokenNotFound)
+		Return(int64(0), domain.ErrPasswordResetTokenNotFound)
 	emailer := new(mockEmailSender)
 
 	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)

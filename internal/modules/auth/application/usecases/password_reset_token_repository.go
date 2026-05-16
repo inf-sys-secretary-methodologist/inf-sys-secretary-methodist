@@ -1,16 +1,9 @@
-package repositories
+package usecases
 
 import (
 	"context"
-	"errors"
 	"time"
 )
-
-// ErrPasswordResetTokenNotFound is returned by LookupUser when the token
-// is absent or has expired. Exposed as a domain sentinel so callers can
-// distinguish "invalid/expired token" from a transport/storage failure
-// via errors.Is, without parsing strings.
-var ErrPasswordResetTokenNotFound = errors.New("password reset token not found")
 
 // PasswordResetTokenRepository persists short-lived single-use tokens
 // that authenticate the holder to set a new password for a specific user.
@@ -25,8 +18,8 @@ type PasswordResetTokenRepository interface {
 	Store(ctx context.Context, token string, userID int64, ttl time.Duration) error
 
 	// LookupUser returns the userID associated with a stored token.
-	// Returns ErrPasswordResetTokenNotFound when the token is absent or
-	// expired.
+	// Returns domain.ErrPasswordResetTokenNotFound when the token is absent
+	// or expired.
 	LookupUser(ctx context.Context, token string) (int64, error)
 
 	// Delete removes the token unconditionally — used after a successful

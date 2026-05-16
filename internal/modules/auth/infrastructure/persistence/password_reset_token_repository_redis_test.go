@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 )
 
 // setupResetTokenRedis spins a miniredis instance and a real go-redis
@@ -44,7 +44,7 @@ func TestRedisPasswordResetTokenRepository_LookupMissingReturnsSentinel(t *testi
 	_, repo := setupResetTokenRedis(t)
 
 	_, err := repo.LookupUser(context.Background(), "never-stored")
-	assert.ErrorIs(t, err, repositories.ErrPasswordResetTokenNotFound)
+	assert.ErrorIs(t, err, domain.ErrPasswordResetTokenNotFound)
 }
 
 // TestRedisPasswordResetTokenRepository_TTLExpiry — a token past its TTL
@@ -58,7 +58,7 @@ func TestRedisPasswordResetTokenRepository_TTLExpiry(t *testing.T) {
 	mr.FastForward(2 * time.Second)
 
 	_, err := repo.LookupUser(ctx, "tok-ttl")
-	assert.ErrorIs(t, err, repositories.ErrPasswordResetTokenNotFound)
+	assert.ErrorIs(t, err, domain.ErrPasswordResetTokenNotFound)
 }
 
 // TestRedisPasswordResetTokenRepository_DeleteEnforcesSingleUse — after
@@ -73,7 +73,7 @@ func TestRedisPasswordResetTokenRepository_DeleteEnforcesSingleUse(t *testing.T)
 	require.NoError(t, repo.Delete(ctx, "tok-del"))
 
 	_, err := repo.LookupUser(ctx, "tok-del")
-	assert.ErrorIs(t, err, repositories.ErrPasswordResetTokenNotFound)
+	assert.ErrorIs(t, err, domain.ErrPasswordResetTokenNotFound)
 }
 
 // TestRedisPasswordResetTokenRepository_RejectsEmptyOrNonPositiveInputs

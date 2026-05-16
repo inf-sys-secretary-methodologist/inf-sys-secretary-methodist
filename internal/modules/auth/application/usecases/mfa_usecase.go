@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/security/totp"
 )
@@ -27,7 +26,7 @@ type AuditEmitter interface {
 
 // MFAUseCase orchestrates TOTP enrollment, confirmation, and disable flows.
 type MFAUseCase struct {
-	userRepo    repositories.UserRepository
+	userRepo    UserRepository
 	auditLogger AuditEmitter
 	issuer      string
 	now         func() time.Time
@@ -35,7 +34,7 @@ type MFAUseCase struct {
 
 // NewMFAUseCase builds the use case. issuer is embedded in the otpauth URI
 // so the user's authenticator app shows a recognizable label.
-func NewMFAUseCase(userRepo repositories.UserRepository, auditLogger *logging.AuditLogger, issuer string) *MFAUseCase {
+func NewMFAUseCase(userRepo UserRepository, auditLogger *logging.AuditLogger, issuer string) *MFAUseCase {
 	// nil concrete pointer becomes nil interface only when the type is
 	// known at construction; cast through AuditEmitter explicitly so a nil
 	// auditLogger argument stays nil for the (audit == nil) check.
@@ -49,7 +48,7 @@ func NewMFAUseCase(userRepo repositories.UserRepository, auditLogger *logging.Au
 // NewMFAUseCaseWithClock is the same as NewMFAUseCase but accepts an
 // injectable clock so tests can pin TOTP verification to a deterministic
 // timestamp, plus an AuditEmitter for spy-based audit assertions.
-func NewMFAUseCaseWithClock(userRepo repositories.UserRepository, auditLogger AuditEmitter, issuer string, now func() time.Time) *MFAUseCase {
+func NewMFAUseCaseWithClock(userRepo UserRepository, auditLogger AuditEmitter, issuer string, now func() time.Time) *MFAUseCase {
 	if userRepo == nil {
 		panic("mfa usecase: userRepo is nil")
 	}

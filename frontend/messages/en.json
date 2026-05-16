@@ -151,6 +151,7 @@
   },
   "authPages": {
     "loginWelcome": "Welcome back",
+    "loginTitle": "Sign in",
     "loginSubtitle": "Sign in to your account to continue",
     "registerTitle": "Create account",
     "registerSubtitle": "Sign up to access the system",
@@ -203,7 +204,8 @@
     "adminUsers": "User management",
     "integrations": "Integrations",
     "composio": "Composio",
-    "branding": "Branding"
+    "branding": "Branding",
+    "usersCatalog": "User directory"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -876,27 +878,6 @@
         "enabled": "Quiet hours enabled",
         "disabled": "Quiet hours disabled"
       }
-    },
-    "automation": {
-      "title": "Automation",
-      "description": "Manage workflow automation via n8n",
-      "platform": "n8n Platform",
-      "platformDesc": "Self-hosted workflow automation with 400+ integrations",
-      "checking": "Checking...",
-      "connected": "Connected",
-      "offline": "Offline",
-      "dashboard": "n8n Dashboard",
-      "openN8n": "Open n8n",
-      "refreshStatus": "Refresh Status",
-      "workflowsTitle": "Available Workflows",
-      "workflowsDesc": "Pre-configured automation workflows. Import them into n8n to activate.",
-      "workflow1Name": "Document Created → Telegram",
-      "workflow1Desc": "Sends notification when a new document is created",
-      "workflow2Name": "Student Absences → Curator Alert",
-      "workflow2Desc": "Alerts curator when student has high risk score",
-      "workflow3Name": "Deadline → Reminder",
-      "workflow3Desc": "Daily reminders for approaching task deadlines",
-      "ready": "Ready"
     }
   },
   "notifications": {
@@ -2286,37 +2267,14 @@
   },
   "adminSettings": {
     "title": "System Settings",
-    "appearance": {
-      "title": "Appearance",
-      "subtitle": "Global theme, logo, and system branding",
-      "brandTitle": "Branding",
-      "brandDescription": "Logo, color scheme, and favicon — applied to all users",
-      "logoLabel": "System logo",
-      "primaryColorLabel": "Primary color",
-      "faviconLabel": "Favicon"
-    },
-    "notifications": {
-      "title": "Notifications",
-      "subtitle": "Global notification delivery settings",
-      "smtpTitle": "SMTP Server",
-      "smtpDescription": "Outgoing mail settings for all notifications",
-      "smtpHost": "Host",
-      "smtpPort": "Port",
-      "smtpUser": "Username",
-      "smtpPassword": "Password",
-      "pushTitle": "Push Notifications",
-      "pushDescription": "VAPID keys for Web Push",
-      "vapidPublicKey": "VAPID Public Key",
-      "vapidPrivateKey": "VAPID Private Key",
-      "telegramTitle": "Telegram Bot",
-      "telegramDescription": "Bot token for system notifications",
-      "botToken": "Bot Token"
-    },
     "automation": {
       "title": "Automation",
       "subtitle": "Manage n8n workflows and automated processes",
       "workflowsTitle": "Workflows",
-      "workflowsDescription": "3 automated workflows: document notifications, absence alerts, deadline reminders"
+      "workflowsDescription": "3 automated workflows: document notifications, absence alerts, deadline reminders",
+      "workflowDocNotifications": "Document notifications",
+      "workflowAbsenceAlerts": "Absence alerts",
+      "workflowDeadlineReminders": "Deadline reminders"
     },
     "security": {
       "title": "Security",

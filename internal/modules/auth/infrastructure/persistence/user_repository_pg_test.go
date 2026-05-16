@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure/persistence"
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/testing/fixtures"
@@ -17,7 +17,7 @@ import (
 // UserRepositoryTestSuite tests the PostgreSQL user repository
 type UserRepositoryTestSuite struct {
 	testSuite.IntegrationSuite
-	repo repositories.UserRepository
+	repo usecases.UserRepository
 }
 
 // SetupSuite runs once before all tests

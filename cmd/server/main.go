@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.140.0
+// @version         0.142.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -97,7 +97,6 @@ import (
 	assignHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/interfaces/http/handlers"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	persistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/infrastructure/persistence"
 	authHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/handlers"
 	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
@@ -174,7 +173,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.140.0"
+const versionString = "0.142.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -1276,7 +1275,7 @@ func initAuthModule(
 	perfLog *logging.PerformanceLogger,
 	cfg *config.Config,
 	notificationUseCase *notifUsecases.NotificationUseCase,
-) (*usecases.AuthUseCase, repositories.UserRepository) {
+) (*usecases.AuthUseCase, usecases.UserRepository) {
 	// JWT secrets from config
 	jwtSecret := []byte(cfg.JWT.AccessSecret)
 	refreshSecret := []byte(cfg.JWT.RefreshSecret)
@@ -1297,7 +1296,7 @@ func initAuthModule(
 
 	// Initialize use case with full logging and session repository
 	authUseCase := usecases.NewAuthUseCase(
-		userRepo.(repositories.UserRepository),
+		userRepo.(usecases.UserRepository),
 		jwtSecret,
 		refreshSecret,
 		mfaIntermediateSecret,
@@ -1306,7 +1305,7 @@ func initAuthModule(
 		notificationUseCase,
 	)
 
-	return authUseCase, userRepo.(repositories.UserRepository)
+	return authUseCase, userRepo.(usecases.UserRepository)
 }
 
 func setupRoutes(
@@ -1377,7 +1376,7 @@ func setupRoutes(
 	loggingMiddleware *appMiddleware.LoggingMiddleware,
 	db *sql.DB,
 	redisCache *cache.RedisCache,
-	userRepo repositories.UserRepository,
+	userRepo usecases.UserRepository,
 	userProfileRepo usersRepositories.UserProfileRepository,
 	validator *validation.Validator,
 	jwtSecret []byte,
@@ -1388,7 +1387,7 @@ func setupRoutes(
 	// Token revocation infrastructure (logout endpoint, AUDIT_REPORT item #4).
 	// If Redis is unavailable, revokedTokenRepo stays nil and JWTMiddlewareWithRevocation
 	// gracefully degrades to plain validation without blacklist lookup.
-	var revokedTokenRepo repositories.RevokedTokenRepository
+	var revokedTokenRepo usecases.RevokedTokenRepository
 	var logoutUseCase *usecases.LogoutUseCase
 	if redisCache != nil {
 		revokedTokenRepo = persistence.NewRedisRevokedTokenRepository(redisCache.Client())
@@ -2238,10 +2237,10 @@ func setupRoutes(
 				sectionGroup.POST("/curricula/:curriculumID/sections", sectionHandler.Create)
 				sectionGroup.OPTIONS("/curricula/:curriculumID/sections", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				sectionGroup.GET("/curricula/:curriculumID/sections", sectionHandler.List)
-				sectionGroup.GET("/sections/:id", sectionHandler.Get)
-				sectionGroup.PUT("/sections/:id", sectionHandler.Update)
-				sectionGroup.DELETE("/sections/:id", sectionHandler.Delete)
-				sectionGroup.OPTIONS("/sections/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				sectionGroup.GET("/sections/:sectionID", sectionHandler.Get)
+				sectionGroup.PUT("/sections/:sectionID", sectionHandler.Update)
+				sectionGroup.DELETE("/sections/:sectionID", sectionHandler.Delete)
+				sectionGroup.OPTIONS("/sections/:sectionID", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 			logger.Info("Section module routes registered", nil)
 		}

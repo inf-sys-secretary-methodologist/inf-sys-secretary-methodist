@@ -8,7 +8,6 @@ import (
 
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	authRepos "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
@@ -18,7 +17,7 @@ import (
 
 // UserUseCase handles user management business logic.
 type UserUseCase struct {
-	userRepo            authRepos.UserRepository
+	userRepo            UserAccountRepository
 	userProfileRepo     repositories.UserProfileRepository
 	departmentRepo      repositories.DepartmentRepository
 	positionRepo        repositories.PositionRepository
@@ -28,7 +27,7 @@ type UserUseCase struct {
 
 // NewUserUseCase creates a new user use case.
 func NewUserUseCase(
-	userRepo authRepos.UserRepository,
+	userRepo UserAccountRepository,
 	userProfileRepo repositories.UserProfileRepository,
 	departmentRepo repositories.DepartmentRepository,
 	positionRepo repositories.PositionRepository,

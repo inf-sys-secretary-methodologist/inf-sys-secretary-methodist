@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
@@ -78,7 +78,7 @@ func (m *mockUserRepo) List(ctx context.Context, limit, offset int) ([]*entities
 	return []*entities.User{}, nil
 }
 
-func newTestCachedRepo(t *testing.T, repo repositories.UserRepository) *CachedUserRepository {
+func newTestCachedRepo(t *testing.T, repo usecases.UserRepository) *CachedUserRepository {
 	t.Helper()
 	mr := miniredis.RunT(t)
 	redisCache, err := cache.NewRedisCache(mr.Addr(), "", 0)

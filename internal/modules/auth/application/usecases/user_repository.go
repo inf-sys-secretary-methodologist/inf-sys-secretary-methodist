@@ -1,4 +1,9 @@
-package repositories
+// Package usecases contains business logic and the repository ports
+// (interfaces) consumed by the auth module use cases. Repository ports
+// live in the consumer package per Dependency Inversion Principle
+// (CLAUDE.md DDD-гейт: "Repository interfaces — в пакете-потребителе
+// (usecase/), НЕ в domain/").
+package usecases
 
 import (
 	"context"

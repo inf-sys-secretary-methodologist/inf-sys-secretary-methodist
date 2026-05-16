@@ -17,7 +17,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 )
 
 // --- local mocks (kept here so the handler test is self-contained;
@@ -203,7 +202,7 @@ func TestPasswordResetHandler_Verify(t *testing.T) {
 			token: "bad-tok",
 			setup: func(tr *fakeResetTokenRepo) {
 				tr.On("LookupUser", mock.Anything, "bad-tok").
-					Return(int64(0), repositories.ErrPasswordResetTokenNotFound)
+					Return(int64(0), domain.ErrPasswordResetTokenNotFound)
 			},
 			wantStatus: http.StatusGone,
 		},
@@ -265,7 +264,7 @@ func TestPasswordResetHandler_Confirm(t *testing.T) {
 			body: `{"token":"bad-tok","password":"NewStrongPass1!"}`,
 			setup: func(u *fakeUserRepoForResetHandler, tr *fakeResetTokenRepo) {
 				tr.On("LookupUser", mock.Anything, "bad-tok").
-					Return(int64(0), repositories.ErrPasswordResetTokenNotFound)
+					Return(int64(0), domain.ErrPasswordResetTokenNotFound)
 			},
 			wantStatus: http.StatusGone,
 		},

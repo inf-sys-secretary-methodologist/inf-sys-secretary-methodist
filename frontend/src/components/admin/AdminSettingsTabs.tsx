@@ -3,12 +3,15 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Palette, Bell, Workflow, ShieldCheck } from 'lucide-react'
+import { Workflow, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+// System-admin settings tabs.
+// Global brand/colors live in /admin/branding (real backend persistence).
+// Global notification channels (SMTP/VAPID/Telegram bot) — backlog, not
+// in the system settings UI yet. Личные настройки (своя тема, свои
+// каналы уведомлений) — /settings/* per roles-and-flows.md (PermissionMatrix).
 const tabs = [
-  { href: '/admin/settings/appearance', labelKey: 'appearance.title' as const, icon: Palette },
-  { href: '/admin/settings/notifications', labelKey: 'notifications.title' as const, icon: Bell },
   { href: '/admin/settings/automation', labelKey: 'automation.title' as const, icon: Workflow },
   { href: '/admin/settings/security', labelKey: 'security.title' as const, icon: ShieldCheck },
 ]

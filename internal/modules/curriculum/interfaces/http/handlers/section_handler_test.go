@@ -129,9 +129,9 @@ func setupSectionRouter(
 	h := handlers.NewSectionHandler(create, get, list, update, del)
 	r.POST("/api/curricula/:curriculumID/sections", h.Create)
 	r.GET("/api/curricula/:curriculumID/sections", h.List)
-	r.GET("/api/sections/:id", h.Get)
-	r.PUT("/api/sections/:id", h.Update)
-	r.DELETE("/api/sections/:id", h.Delete)
+	r.GET("/api/sections/:sectionID", h.Get)
+	r.PUT("/api/sections/:sectionID", h.Update)
+	r.DELETE("/api/sections/:sectionID", h.Delete)
 	return r
 }
 

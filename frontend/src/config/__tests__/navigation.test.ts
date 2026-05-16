@@ -127,7 +127,7 @@ describe('navigationConfig', () => {
     expect(adminGroup).toBeDefined()
     expect(isNavGroup(adminGroup)).toBe(true)
     const itemKeys = adminGroup.items.map((i) => i.nameKey)
-    expect(itemKeys).toContain('users')
+    expect(itemKeys).toContain('usersCatalog')
     expect(itemKeys).toContain('integration')
   })
 
@@ -220,7 +220,7 @@ describe('getAvailableNavEntries', () => {
     const adminGroup = entries.find((e) => e.nameKey === 'adminGroup') as NavGroup
     expect(adminGroup).toBeDefined()
     const adminItemKeys = adminGroup.items.map((i) => i.nameKey)
-    expect(adminItemKeys).toContain('users')
+    expect(adminItemKeys).toContain('usersCatalog')
     expect(adminItemKeys).not.toContain('integration')
   })
 
@@ -229,7 +229,7 @@ describe('getAvailableNavEntries', () => {
     const adminGroup = entries.find((e) => e.nameKey === 'adminGroup') as NavGroup
     expect(adminGroup).toBeDefined()
     const adminItemKeys = adminGroup.items.map((i) => i.nameKey)
-    expect(adminItemKeys).toContain('users')
+    expect(adminItemKeys).toContain('usersCatalog')
     expect(adminItemKeys).not.toContain('integration')
   })
 
@@ -292,7 +292,7 @@ describe('getAvailableNavItems (legacy)', () => {
     expect(itemKeys).toContain('announcements')
     expect(itemKeys).toContain('messages')
     expect(itemKeys).toContain('aiAssistant')
-    expect(itemKeys).toContain('users')
+    expect(itemKeys).toContain('usersCatalog')
     expect(itemKeys).toContain('integration')
   })
 
@@ -313,7 +313,7 @@ describe('getAvailableNavItems (legacy)', () => {
     expect(itemKeys).not.toContain('templates')
     expect(itemKeys).not.toContain('reports')
     expect(itemKeys).not.toContain('analytics')
-    expect(itemKeys).not.toContain('users')
+    expect(itemKeys).not.toContain('usersCatalog')
     expect(itemKeys).not.toContain('integration')
   })
 

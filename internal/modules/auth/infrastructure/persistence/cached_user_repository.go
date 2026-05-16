@@ -6,25 +6,25 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // CachedUserRepository wraps UserRepository with caching layer
 type CachedUserRepository struct {
-	repo      repositories.UserRepository
+	repo      usecases.UserRepository
 	userCache *cache.UserCache
 	perfLog   *logging.PerformanceLogger
 }
 
 // NewCachedUserRepository creates a new cached repository
 func NewCachedUserRepository(
-	repo repositories.UserRepository,
+	repo usecases.UserRepository,
 	userCache *cache.UserCache,
 	perfLog *logging.PerformanceLogger,
-) repositories.UserRepository {
+) usecases.UserRepository {
 	return &CachedUserRepository{
 		repo:      repo,
 		userCache: userCache,

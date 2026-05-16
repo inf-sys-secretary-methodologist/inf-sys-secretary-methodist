@@ -9,8 +9,8 @@ test.describe('Аутентификация', () => {
   test('должна отображаться страница входа', async ({ page }) => {
     await page.goto('/login')
 
-    // Проверяем заголовок
-    await expect(page.getByRole('heading', { name: /добро пожаловать/i })).toBeVisible()
+    // Проверяем заголовок (loginTitle = "Вход" с v0.142.0; BrandedHeader удалён)
+    await expect(page.getByRole('heading', { name: /^вход$/i })).toBeVisible()
 
     // Проверяем наличие полей формы
     await expect(page.getByLabel(/электронная почта/i)).toBeVisible()

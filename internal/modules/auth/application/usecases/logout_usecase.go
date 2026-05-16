@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 )
 
 var (
@@ -28,13 +26,13 @@ var (
 // them; revocation of refresh tokens belongs to SessionRepository (separate
 // concern).
 type LogoutUseCase struct {
-	revokedRepo repositories.RevokedTokenRepository
+	revokedRepo RevokedTokenRepository
 	jwtSecret   []byte
 }
 
 // NewLogoutUseCase wires a LogoutUseCase. jwtSecret must match the secret
 // used to sign access tokens (see AuthUseCase.generateTokens).
-func NewLogoutUseCase(revokedRepo repositories.RevokedTokenRepository, jwtSecret []byte) *LogoutUseCase {
+func NewLogoutUseCase(revokedRepo RevokedTokenRepository, jwtSecret []byte) *LogoutUseCase {
 	return &LogoutUseCase{
 		revokedRepo: revokedRepo,
 		jwtSecret:   jwtSecret,

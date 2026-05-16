@@ -3,13 +3,15 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Palette, Bell, Workflow } from 'lucide-react'
+import { Palette, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+// Personal settings tabs available к all authenticated roles.
+// n8n / automation — admin-only per roles-and-flows.md (PermissionMatrix),
+// surfaced under /admin/settings/automation, not here.
 const tabs = [
   { href: '/settings/appearance', labelKey: 'appearance.title' as const, icon: Palette },
   { href: '/settings/notifications', labelKey: 'notifications.title' as const, icon: Bell },
-  { href: '/settings/automation', labelKey: 'automation.title' as const, icon: Workflow },
 ]
 
 export function SettingsTabs() {

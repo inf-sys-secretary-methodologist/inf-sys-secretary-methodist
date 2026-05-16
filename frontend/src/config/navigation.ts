@@ -273,7 +273,11 @@ export const navigationConfig: NavEntry[] = [
     ],
     items: [
       {
-        nameKey: 'users',
+        // Read-only user directory. Full CRUD (edit role/status, deactivate)
+        // lives at /admin/users — system_admin only. Label was renamed
+        // 'users' → 'usersCatalog' so the two entries (catalog vs. manage)
+        // are visually distinct in the admin's dropdown.
+        nameKey: 'usersCatalog',
         url: '/users',
         icon: Users,
         roles: [
@@ -300,8 +304,12 @@ export const navigationConfig: NavEntry[] = [
         roles: [UserRole.SYSTEM_ADMIN],
       },
       {
+        // System settings — admin-only configuration that affects the
+        // whole system (n8n workflows + MFA enrollment). Personal theme
+        // and notification preferences live в /settings/* (all roles).
+        // Per roles-and-flows.md PermissionMatrix `system_settings` row.
         nameKey: 'adminSettings',
-        url: '/admin/settings/appearance',
+        url: '/admin/settings/automation',
         icon: Shield,
         roles: [UserRole.SYSTEM_ADMIN],
       },

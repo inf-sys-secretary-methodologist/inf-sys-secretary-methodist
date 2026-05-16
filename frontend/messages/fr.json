@@ -151,6 +151,7 @@
   },
   "authPages": {
     "loginWelcome": "Bienvenue",
+    "loginTitle": "Connexion",
     "loginSubtitle": "Connectez-vous à votre compte pour continuer",
     "registerTitle": "Créer un compte",
     "registerSubtitle": "Inscrivez-vous pour accéder au système",
@@ -203,7 +204,8 @@
     "adminUsers": "Gestion des utilisateurs",
     "integrations": "Intégrations",
     "composio": "Composio",
-    "branding": "Marque"
+    "branding": "Marque",
+    "usersCatalog": "Annuaire des utilisateurs"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -876,27 +878,6 @@
         "enabled": "Heures calmes activées",
         "disabled": "Heures calmes désactivées"
       }
-    },
-    "automation": {
-      "title": "Automatisation",
-      "description": "Gestion de l'automatisation des processus via n8n",
-      "platform": "Plateforme n8n",
-      "platformDesc": "Automatisation auto-hébergée avec plus de 400 intégrations",
-      "checking": "Vérification...",
-      "connected": "Connecté",
-      "offline": "Hors ligne",
-      "dashboard": "Tableau de bord n8n",
-      "openN8n": "Ouvrir n8n",
-      "refreshStatus": "Actualiser le statut",
-      "workflowsTitle": "Workflows disponibles",
-      "workflowsDesc": "Workflows d'automatisation préconfigurés. Importez-les dans n8n pour les activer.",
-      "workflow1Name": "Document créé → Telegram",
-      "workflow1Desc": "Notification lors de la création d'un nouveau document",
-      "workflow2Name": "Absences → Alerte au curateur",
-      "workflow2Desc": "Alerte le curateur lorsque le score de risque est élevé",
-      "workflow3Name": "Échéance → Rappel",
-      "workflow3Desc": "Rappels quotidiens pour les échéances approchantes",
-      "ready": "Prêt"
     }
   },
   "notifications": {
@@ -2286,37 +2267,14 @@
   },
   "adminSettings": {
     "title": "Paramètres système",
-    "appearance": {
-      "title": "Apparence",
-      "subtitle": "Thème global, logo et identité visuelle du système",
-      "brandTitle": "Identité visuelle",
-      "brandDescription": "Logo, palette de couleurs et favicon — appliqués à tous les utilisateurs",
-      "logoLabel": "Logo du système",
-      "primaryColorLabel": "Couleur principale",
-      "faviconLabel": "Favicon"
-    },
-    "notifications": {
-      "title": "Notifications",
-      "subtitle": "Paramètres globaux de livraison des notifications",
-      "smtpTitle": "Serveur SMTP",
-      "smtpDescription": "Paramètres de messagerie sortante pour toutes les notifications",
-      "smtpHost": "Hôte",
-      "smtpPort": "Port",
-      "smtpUser": "Utilisateur",
-      "smtpPassword": "Mot de passe",
-      "pushTitle": "Notifications push",
-      "pushDescription": "Clés VAPID pour Web Push",
-      "vapidPublicKey": "Clé publique VAPID",
-      "vapidPrivateKey": "Clé privée VAPID",
-      "telegramTitle": "Bot Telegram",
-      "telegramDescription": "Jeton du bot pour les notifications système",
-      "botToken": "Jeton du bot"
-    },
     "automation": {
       "title": "Automatisation",
       "subtitle": "Gestion des workflows n8n et des processus automatisés",
       "workflowsTitle": "Workflows",
-      "workflowsDescription": "3 workflows automatisés : notifications de documents, alertes d'absences, rappels de délais"
+      "workflowsDescription": "3 workflows automatisés : notifications de documents, alertes d'absences, rappels de délais",
+      "workflowDocNotifications": "Notifications de documents",
+      "workflowAbsenceAlerts": "Alertes d'absence",
+      "workflowDeadlineReminders": "Rappels d'échéance"
     },
     "security": {
       "title": "Sécurité",

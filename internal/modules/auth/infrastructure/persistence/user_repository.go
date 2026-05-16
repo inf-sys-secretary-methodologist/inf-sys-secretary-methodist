@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
 )
 
@@ -16,7 +16,7 @@ type UserRepositoryPG struct {
 }
 
 // NewUserRepositoryPG creates a new PostgreSQL user repository
-func NewUserRepositoryPG(db *sql.DB) repositories.UserRepository {
+func NewUserRepositoryPG(db *sql.DB) usecases.UserRepository {
 	return &UserRepositoryPG{db: db}
 }
 

@@ -12,7 +12,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
@@ -83,7 +82,7 @@ func JWTMiddleware(authUseCase *usecases.AuthUseCase) gin.HandlerFunc {
 //
 // Pass revokedRepo=nil to bypass the revocation check (useful in dev or
 // in tests that do not exercise logout).
-func JWTMiddlewareWithRevocation(authUseCase *usecases.AuthUseCase, revokedRepo repositories.RevokedTokenRepository) gin.HandlerFunc {
+func JWTMiddlewareWithRevocation(authUseCase *usecases.AuthUseCase, revokedRepo usecases.RevokedTokenRepository) gin.HandlerFunc {
 	base := JWTMiddleware(authUseCase)
 
 	return func(c *gin.Context) {

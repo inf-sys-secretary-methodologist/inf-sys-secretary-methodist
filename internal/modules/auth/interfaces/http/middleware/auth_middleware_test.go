@@ -15,15 +15,14 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 )
 
 func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-// Ensure MockUserRepository implements repositories.UserRepository
-var _ repositories.UserRepository = (*MockUserRepository)(nil)
+// Ensure MockUserRepository implements usecases.UserRepository
+var _ usecases.UserRepository = (*MockUserRepository)(nil)
 
 // MockUserRepository is a mock implementation of UserRepository for testing
 type MockUserRepository struct {

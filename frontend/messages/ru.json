@@ -151,6 +151,7 @@
   },
   "authPages": {
     "loginWelcome": "Добро пожаловать",
+    "loginTitle": "Вход",
     "loginSubtitle": "Войдите в свою учетную запись для продолжения",
     "registerTitle": "Создать аккаунт",
     "registerSubtitle": "Зарегистрируйтесь для доступа к системе",
@@ -203,7 +204,8 @@
     "adminUsers": "Управление пользователями",
     "integrations": "Интеграции",
     "composio": "Composio",
-    "branding": "Брендинг"
+    "branding": "Брендинг",
+    "usersCatalog": "Каталог пользователей"
   },
   "roles": {
     "system_admin": "Администратор",
@@ -876,27 +878,6 @@
         "enabled": "Тихие часы включены",
         "disabled": "Тихие часы отключены"
       }
-    },
-    "automation": {
-      "title": "Автоматизация",
-      "description": "Управление автоматизацией процессов через n8n",
-      "platform": "Платформа n8n",
-      "platformDesc": "Self-hosted автоматизация с 400+ интеграциями",
-      "checking": "Проверка...",
-      "connected": "Подключено",
-      "offline": "Не в сети",
-      "dashboard": "Панель n8n",
-      "openN8n": "Открыть n8n",
-      "refreshStatus": "Обновить статус",
-      "workflowsTitle": "Доступные воркфлоу",
-      "workflowsDesc": "Готовые автоматизации. Импортируйте их в n8n для активации.",
-      "workflow1Name": "Документ → Telegram",
-      "workflow1Desc": "Уведомление при создании нового документа",
-      "workflow2Name": "Пропуски → Алерт куратору",
-      "workflow2Desc": "Оповещение куратора при высоком риске студента",
-      "workflow3Name": "Дедлайн → Напоминание",
-      "workflow3Desc": "Ежедневные напоминания о приближающихся дедлайнах",
-      "ready": "Готов"
     }
   },
   "notifications": {
@@ -2286,37 +2267,14 @@
   },
   "adminSettings": {
     "title": "Системные настройки",
-    "appearance": {
-      "title": "Оформление",
-      "subtitle": "Глобальная тема, логотип и фирменный стиль системы",
-      "brandTitle": "Фирменный стиль",
-      "brandDescription": "Логотип, цветовая схема и favicon — применяются ко всем пользователям",
-      "logoLabel": "Логотип системы",
-      "primaryColorLabel": "Основной цвет",
-      "faviconLabel": "Favicon"
-    },
-    "notifications": {
-      "title": "Уведомления",
-      "subtitle": "Глобальные параметры доставки уведомлений",
-      "smtpTitle": "SMTP-сервер",
-      "smtpDescription": "Настройки исходящей почты для всех уведомлений",
-      "smtpHost": "Хост",
-      "smtpPort": "Порт",
-      "smtpUser": "Пользователь",
-      "smtpPassword": "Пароль",
-      "pushTitle": "Push-уведомления",
-      "pushDescription": "VAPID-ключи для Web Push",
-      "vapidPublicKey": "Публичный ключ VAPID",
-      "vapidPrivateKey": "Приватный ключ VAPID",
-      "telegramTitle": "Telegram-бот",
-      "telegramDescription": "Токен бота для системных уведомлений",
-      "botToken": "Токен бота"
-    },
     "automation": {
       "title": "Автоматизация",
       "subtitle": "Управление n8n workflows и автоматическими процессами",
       "workflowsTitle": "Рабочие процессы",
-      "workflowsDescription": "3 автоматических workflow: уведомления документов, алерты пропусков, напоминания дедлайнов"
+      "workflowsDescription": "3 автоматических workflow: уведомления документов, алерты пропусков, напоминания дедлайнов",
+      "workflowDocNotifications": "Уведомления о документах",
+      "workflowAbsenceAlerts": "Оповещения о пропусках",
+      "workflowDeadlineReminders": "Напоминания о дедлайнах"
     },
     "security": {
       "title": "Безопасность",

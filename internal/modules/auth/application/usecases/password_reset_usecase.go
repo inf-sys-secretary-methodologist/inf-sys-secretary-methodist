@@ -10,8 +10,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/repositories"
 )
 
 const (
@@ -67,14 +67,14 @@ type userLookup interface {
 // set a new password.
 type PasswordResetUseCase struct {
 	userRepo  userLookup
-	tokenRepo repositories.PasswordResetTokenRepository
+	tokenRepo PasswordResetTokenRepository
 	emailer   EmailSender
 }
 
 // NewPasswordResetUseCase wires the dependencies.
 func NewPasswordResetUseCase(
 	userRepo userLookup,
-	tokenRepo repositories.PasswordResetTokenRepository,
+	tokenRepo PasswordResetTokenRepository,
 	emailer EmailSender,
 ) *PasswordResetUseCase {
 	return &PasswordResetUseCase{
@@ -119,7 +119,7 @@ func (u *PasswordResetUseCase) RequestReset(ctx context.Context, email string) e
 // unknown / expired tokens; storage faults bubble up wrapped.
 func (u *PasswordResetUseCase) VerifyToken(ctx context.Context, token string) error {
 	if _, err := u.tokenRepo.LookupUser(ctx, token); err != nil {
-		if errors.Is(err, repositories.ErrPasswordResetTokenNotFound) {
+		if errors.Is(err, domain.ErrPasswordResetTokenNotFound) {
 			return ErrInvalidResetToken
 		}
 		return fmt.Errorf("lookup reset token: %w", err)
@@ -146,7 +146,7 @@ func (u *PasswordResetUseCase) ConfirmReset(ctx context.Context, token, newPassw
 
 	userID, err := u.tokenRepo.LookupUser(ctx, token)
 	if err != nil {
-		if errors.Is(err, repositories.ErrPasswordResetTokenNotFound) {
+		if errors.Is(err, domain.ErrPasswordResetTokenNotFound) {
 			return ErrInvalidResetToken
 		}
 		return fmt.Errorf("lookup reset token: %w", err)
