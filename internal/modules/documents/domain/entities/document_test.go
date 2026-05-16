@@ -84,9 +84,13 @@ func TestDocument_ClearFile(t *testing.T) {
 
 func TestDocument_Register(t *testing.T) {
 	doc := NewDocument("Test", 1, 1)
+	doc.Status = DocumentStatusApproved
 	regNumber := "REG-2024-001"
+	now := time.Now()
 
-	doc.Register(regNumber)
+	if err := doc.Register(regNumber, 7, now); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if doc.RegistrationNumber == nil || *doc.RegistrationNumber != regNumber {
 		t.Errorf("expected registration number %q, got %v", regNumber, doc.RegistrationNumber)
@@ -106,7 +110,10 @@ func TestDocument_IsDraft(t *testing.T) {
 		t.Error("expected new document to be draft")
 	}
 
-	doc.Register("REG-001")
+	doc.Status = DocumentStatusApproved
+	if err := doc.Register("REG-001", 7, time.Now()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if doc.IsDraft() {
 		t.Error("expected registered document to not be draft")

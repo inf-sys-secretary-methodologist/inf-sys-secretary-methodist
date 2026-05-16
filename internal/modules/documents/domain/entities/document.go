@@ -33,6 +33,18 @@ var ErrCannotApprove = errors.New("document: cannot approve, status must be appr
 // Issue: #227
 var ErrCannotReject = errors.New("document: cannot reject, status must be approval")
 
+// ErrCannotRegister signals Register invoked on a non-approved
+// document. Phase 2 workflow gate.
+//
+// Issue: #230
+var ErrCannotRegister = errors.New("document: cannot register, status must be approved")
+
+// ErrInvalidRegistrationNumber signals empty / whitespace-only / too
+// short registration number passed к Register. Min length 3 после trim.
+//
+// Issue: #230
+var ErrInvalidRegistrationNumber = errors.New("document: registration number invalid (must be ≥3 chars after trim)")
+
 // DocumentStatus represents the status of a document in workflow
 type DocumentStatus string
 
@@ -126,6 +138,8 @@ type Document struct {
 	RejectedBy     *int64     `json:"rejected_by,omitempty"`
 	RejectedAt     *time.Time `json:"rejected_at,omitempty"`
 	RejectedReason *string    `json:"rejected_reason,omitempty"`
+	// v0.149.0 Phase 2 — Register transition (#230).
+	RegisteredBy *int64 `json:"registered_by,omitempty"`
 }
 
 // NewDocument creates a new document with default values
@@ -162,13 +176,15 @@ func (d *Document) ClearFile() {
 	d.UpdatedAt = time.Now()
 }
 
-// Register registers the document with a number and date
-func (d *Document) Register(registrationNumber string) {
-	now := time.Now()
-	d.RegistrationNumber = &registrationNumber
-	d.RegistrationDate = &now
-	d.Status = DocumentStatusRegistered
-	d.UpdatedAt = now
+// Register registers the document с the number + date + audit trail.
+// v0.149.0 Phase 2 (#230) — extends original Register с registrarID +
+// now params + invariant check (status must be approved) + non-empty
+// number validation. RED stub returns ErrCannotRegister
+// unconditionally; GREEN replaces the body.
+//
+// Issue: #230
+func (d *Document) Register(registrationNumber string, registrarID int64, now time.Time) error {
+	return ErrCannotRegister
 }
 
 // IsDraft checks if document is in draft status
