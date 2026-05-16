@@ -262,7 +262,7 @@ func (s *TaskReminderScheduler) processReminder(ctx context.Context, reminder *t
 		}
 	case tasksEntities.ReminderTypePush:
 		if prefs.PushEnabled {
-			return s.sendInApp(ctx, reminder, view)
+			return s.sendPush(ctx, reminder, view)
 		}
 	case tasksEntities.ReminderTypeInApp:
 		if prefs.InAppEnabled {
@@ -293,6 +293,46 @@ func (s *TaskReminderScheduler) sendTelegram(ctx context.Context, reminder *task
 	message := formatTaskReminderMessage(view, reminder.MinutesBefore())
 	if err := s.telegramService.SendNotification(ctx, chatID, title, message, "high"); err != nil {
 		log.Printf("task_reminder_scheduler: telegram dispatch failed: %v — falling back к in-app", err)
+		return s.sendInApp(ctx, reminder, view)
+	}
+	return nil
+}
+
+// sendPush dispatches via the injected WebPushService. v0.147.0
+// closes the silent-fallback gap: previously push case routed
+// directly to sendInApp, hiding from users that their VAPID-keys
+// + browser-subscription setup was never reaching the dispatcher.
+//
+// Four fallback gates keep the reminder reachable when push is
+// not viable:
+//  1. un-wired deps (main.go did not call WithWebPushDispatch)
+//  2. service not configured (missing VAPID keys)
+//  3. user has no active browser subscriptions
+//  4. dispatch failure (network / 4xx / 5xx)
+//
+// Issue: #226
+func (s *TaskReminderScheduler) sendPush(ctx context.Context, reminder *tasksEntities.TaskReminder, view *TaskDispatchView) error {
+	if s.webPushRepo == nil || s.webPushService == nil {
+		return s.sendInApp(ctx, reminder, view)
+	}
+	if !s.webPushService.IsConfigured() {
+		return s.sendInApp(ctx, reminder, view)
+	}
+	subs, err := s.webPushRepo.GetActiveByUserID(ctx, reminder.UserID())
+	if err != nil || len(subs) == 0 {
+		if err != nil {
+			log.Printf("task_reminder_scheduler: webpush GetActiveByUserID failed: %v — falling back к in-app", err)
+		}
+		return s.sendInApp(ctx, reminder, view)
+	}
+	payload := notifEntities.NewWebPushPayload(
+		"Напоминание о задаче",
+		formatTaskReminderMessage(view, reminder.MinutesBefore()),
+	)
+	payload.URL = fmt.Sprintf("/tasks/%d", reminder.TaskID())
+	payload.Tag = fmt.Sprintf("task-reminder-%d", reminder.ID())
+	if err := s.webPushService.SendToUser(ctx, reminder.UserID(), payload); err != nil {
+		log.Printf("task_reminder_scheduler: webpush dispatch failed: %v — falling back к in-app", err)
 		return s.sendInApp(ctx, reminder, view)
 	}
 	return nil
