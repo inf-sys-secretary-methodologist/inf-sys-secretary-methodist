@@ -172,24 +172,31 @@ func (r *DocumentRepositoryPG) SoftDelete(ctx context.Context, id int64) error {
 
 // validDocumentOrderBy enumerates the ORDER BY clauses accepted by DocumentRepositoryPG.List.
 // Whitelisting closes the SQL injection surface where filter.OrderBy reaches
-// fmt.Sprintf as raw string. Empty value falls back to "created_at DESC" applied below.
-var validDocumentOrderBy = map[string]struct{}{
-	"":                       {},
-	"created_at ASC":         {},
-	"created_at DESC":        {},
-	"updated_at ASC":         {},
-	"updated_at DESC":        {},
-	"title ASC":              {},
-	"title DESC":             {},
-	"registration_date ASC":  {},
-	"registration_date DESC": {},
-	"deadline ASC":           {},
-	"deadline DESC":          {},
+// validDocumentOrderBy maps client-provided OrderBy keys к canonical SQL
+// ORDER BY expressions (column + direction). The map *value* (not user input)
+// is interpolated into final SQL via `fmt.Sprintf` так even if caller mutates
+// filter.OrderBy after validation, only static literals from this map flow
+// into the query. CodeQL go/sql-injection data-flow tracer cannot recognize
+// a map-key existence check as a sanitizer; value-from-static-map breaks the
+// user-input→SQL flow at analyser level. Empty key returns "created_at DESC".
+var validDocumentOrderBy = map[string]string{
+	"":                       "created_at DESC",
+	"created_at ASC":         "created_at ASC",
+	"created_at DESC":        "created_at DESC",
+	"updated_at ASC":         "updated_at ASC",
+	"updated_at DESC":        "updated_at DESC",
+	"title ASC":              "title ASC",
+	"title DESC":             "title DESC",
+	"registration_date ASC":  "registration_date ASC",
+	"registration_date DESC": "registration_date DESC",
+	"deadline ASC":           "deadline ASC",
+	"deadline DESC":          "deadline DESC",
 }
 
 // List retrieves documents with filters and access control
 func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.DocumentFilter) ([]*entities.Document, int64, error) {
-	if _, ok := validDocumentOrderBy[filter.OrderBy]; !ok {
+	orderBy, ok := validDocumentOrderBy[filter.OrderBy]
+	if !ok {
 		return nil, 0, repositories.ErrInvalidOrderBy
 	}
 
@@ -275,12 +282,7 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 		return nil, 0, fmt.Errorf("failed to count documents: %w", err)
 	}
 
-	// Get documents
-	orderBy := "created_at DESC"
-	if filter.OrderBy != "" {
-		orderBy = filter.OrderBy
-	}
-
+	// Get documents — orderBy уже resolved из validDocumentOrderBy map at function entry.
 	query := fmt.Sprintf(`
 		SELECT d.id, d.document_type_id, d.category_id, d.registration_number, d.registration_date,
 			d.title, d.subject, d.content, d.author_id, d.author_department, d.author_position,
