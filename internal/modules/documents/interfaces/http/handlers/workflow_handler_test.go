@@ -65,9 +65,35 @@ func docAtStatus(id, authorID int64, s entities.DocumentStatus) *entities.Docume
 	return d
 }
 
+// adminRoleGate mirrors the production RequireRole(AcademicSecretary,
+// SystemAdmin) middleware — only those two roles pass. Anything else
+// → 403. Catches the test-vs-production drift class flagged by reviewer
+// per `feedback_route_extraction_for_security_test`.
+func adminRoleGate() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleVal, exists := c.Get("role")
+		if !exists {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+		role, ok := roleVal.(string)
+		if !ok {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+		if role != "academic_secretary" && role != "system_admin" {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+		c.Next()
+	}
+}
+
 // mountWorkflow mounts the three workflow endpoints onto a fresh
-// gin.Engine с the test auth shim. Mirror к production route layout
-// (/api/documents/:id/submit, /api/admin/documents/:id/approve|reject).
+// gin.Engine using the production-shaped split: submit on a non-student
+// group, approve/reject on an admin-gated /admin/documents sub-group.
+// Mirror к main.go:1820-1832 routing layout so a regression in the
+// admin gate surfaces here, not only in manual smoke.
 func mountWorkflow(t *testing.T, userID int64, role string, repo *fakeWorkflowRepo) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
@@ -80,7 +106,13 @@ func mountWorkflow(t *testing.T, userID int64, role string, repo *fakeWorkflowRe
 	r := gin.New()
 	api := r.Group("/api")
 	api.Use(withAuth(userID, role))
-	docHttp.RegisterWorkflowRoutes(api, h)
+
+	submitGroup := api.Group("/documents")
+	docHttp.RegisterSubmitRoute(submitGroup, h)
+
+	adminGroup := api.Group("/admin/documents")
+	adminGroup.Use(adminRoleGate())
+	docHttp.RegisterAdminWorkflowRoutes(adminGroup, h)
 	return r
 }
 
@@ -180,4 +212,26 @@ func TestReject_ConflictForNonApprovalStatus(t *testing.T) {
 	body := map[string]string{"reason": "Корректное обоснование отказа"}
 	w := performRequest(r, "POST", "/api/admin/documents/1/reject", body)
 	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
+// TestAdminGate_MethodistBlockedFromApprove pins the route-level
+// admin gate: methodist может submit, но НЕ approve/reject. Catches
+// a regression class where the admin middleware гайляется
+// от /admin/documents в main.go. Defense-in-depth per
+// `feedback_route_extraction_for_security_test`.
+func TestAdminGate_MethodistBlockedFromApprove(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusApproval))
+	r := mountWorkflow(t, 99, "methodist", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/approve", nil)
+	assert.Equal(t, http.StatusForbidden, w.Code, "methodist must not approve via admin gate")
+}
+
+// TestAdminGate_TeacherBlockedFromReject — same defense as above для
+// the reject path.
+func TestAdminGate_TeacherBlockedFromReject(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusApproval))
+	r := mountWorkflow(t, 42, "teacher", repo)
+	body := map[string]string{"reason": "Корректное обоснование отказа"}
+	w := performRequest(r, "POST", "/api/admin/documents/1/reject", body)
+	assert.Equal(t, http.StatusForbidden, w.Code, "teacher must not reject via admin gate")
 }

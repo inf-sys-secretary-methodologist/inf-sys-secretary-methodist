@@ -9,6 +9,7 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
 // WorkflowHandler exposes the v0.148.0 documents workflow gates
@@ -29,23 +30,6 @@ func NewWorkflowHandler(
 	reject *usecases.RejectDocumentUseCase,
 ) *WorkflowHandler {
 	return &WorkflowHandler{submit: submit, approve: approve, reject: reject}
-}
-
-// RegisterWorkflowRoutes mounts the three workflow endpoints onto the
-// provided group. Mounted under one group для backwards-compat с the
-// integration tests; production callers receive admin-tier endpoints
-// behind an admin middleware via RegisterAdminWorkflowRoutes.
-//
-// Routes:
-//   - POST /documents/:id/submit          (any authenticated non-student)
-//   - POST /admin/documents/:id/approve   (caller-side admin gate)
-//   - POST /admin/documents/:id/reject    (caller-side admin gate)
-//
-// Issue: #227
-func RegisterWorkflowRoutes(g *gin.RouterGroup, h *WorkflowHandler) {
-	g.POST("/documents/:id/submit", h.Submit)
-	g.POST("/admin/documents/:id/approve", h.Approve)
-	g.POST("/admin/documents/:id/reject", h.Reject)
 }
 
 // RegisterSubmitRoute mounts only POST /:id/submit. Caller already
@@ -89,7 +73,7 @@ func (h *WorkflowHandler) Submit(c *gin.Context) {
 		mapWorkflowError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, doc)
+	c.JSON(http.StatusOK, response.Success(doc))
 }
 
 // Approve handles POST /api/admin/documents/:id/approve.
@@ -112,7 +96,7 @@ func (h *WorkflowHandler) Approve(c *gin.Context) {
 		mapWorkflowError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, doc)
+	c.JSON(http.StatusOK, response.Success(doc))
 }
 
 // Reject handles POST /api/admin/documents/:id/reject.
@@ -140,7 +124,7 @@ func (h *WorkflowHandler) Reject(c *gin.Context) {
 		mapWorkflowError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, doc)
+	c.JSON(http.StatusOK, response.Success(doc))
 }
 
 // readActor extracts (userID, role) from gin context populated by the

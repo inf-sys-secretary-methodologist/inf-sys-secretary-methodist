@@ -77,11 +77,9 @@ export function RejectDocumentDialog({
       let key: string
       switch (status) {
         case 422:
-          // 422 covers both invalid reason AND not-in-approval-status.
-          // Backend wraps either ErrRejectionReasonInvalid или
-          // ErrCannotReject — frontend cannot distinguish without
-          // parsing the message, so falls к generic invalid-reason
-          // copy. Acceptable trade-off для defense window.
+          // 422 = ErrRejectionReasonInvalid (VO failed length/empty
+          // check). Backend mapWorkflowError returns 409 for
+          // ErrCannotReject (wrong status) — handled below.
           key = 'rejectToast.errors.invalidOrConflict'
           break
         case 409:
