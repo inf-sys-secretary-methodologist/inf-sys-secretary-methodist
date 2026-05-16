@@ -445,6 +445,19 @@ func TestEventList_ScanError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestEventList_EmptyOrderByDefaultsToStartTimeAsc(t *testing.T) {
+	repo, mock := newEventRepoMock(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM events WHERE deleted_at IS NULL")).
+		WillReturnRows(sqlmock.NewRows([]string{"c"}).AddRow(int64(0)))
+	mock.ExpectQuery(regexp.QuoteMeta("ORDER BY start_time ASC")).
+		WillReturnRows(sqlmock.NewRows(eventCols))
+
+	_, _, err := repo.List(context.Background(), repositories.EventFilter{})
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestEventList_RejectsInjectionInOrderBy(t *testing.T) {
 	cases := []struct {
 		name    string

@@ -15,6 +15,118 @@
 
 ---
 
+## [0.147.0] — 2026-05-16
+
+### Fixed — WebPush dispatch in reminder schedulers (defense doc gap #226)
+
+Closes [#226](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/226). Обнаружено при honest validation формулировки «Email, Telegram и Push» в ВКР Акте испытания против реального кода.
+
+**Backend — production gap**:
+- `ReminderScheduler.sendPushReminder` и `TaskReminderScheduler` switch-case `ReminderTypePush` делали **silent fallback** к `sendInAppReminder`/`sendInApp` вместо реального dispatch через `WebPushService.SendToUser`.
+- Пользователи могли выбирать push через UI, VAPID-keys были настроены (v0.134.0 admin integrations), но dispatch уходил в in-app — без логов, без ошибок.
+
+**Fix shape** (mirror к v0.138.0 `WithTelegramDispatch`):
+- `WithWebPushDispatch(webPushRepo, webPushService) *ReminderScheduler` chainable setter на обоих schedulers.
+- `sendPushReminder` (event) и `sendPush` (task) реализуют 4 fallback gates: nil deps / not configured (нет VAPID) / no active subscriptions / dispatch error → in-app. Все 4 пути логируются.
+- Payload `notifEntities.NewWebPushPayload(title, body)` + `URL` (deep link к `/schedule/events/:id` или `/tasks/:id`) + `Tag` для browser-side deduplication.
+- `main.go` wiring: `wireEventReminderDispatch` helper extracted чтобы сохранить `main()` cyclomatic complexity под gocyclo threshold. `initTaskReminderScheduler` signature extended.
+
+**TDD**: 2 RED→GREEN pairs (4 commits), 6+5=11 cases table-driven для обоих schedulers covering happy path + 4 fallback gates каждый + 1 integration test через `processReminder` switch.
+
+**Wiring точка** (для архитектурного reviewer'а):
+```go
+// cmd/server/main.go
+wireEventReminderDispatch(reminderScheduler, telegramRepo, telegramService, webpushRepo, webpushService)
+// + setter в initTaskReminderScheduler
+```
+
+Files: 4 modified в production (`reminder_scheduler.go`, `task_reminder_scheduler.go`, `main.go`, 8 version files), 2 new test files (~430 LoC новых тестов).
+
+После v0.147.0 — формулировка «Email, Telegram и Push» в ВКР Акте испытания снова **honest contract**.
+
+---
+
+## [0.146.0] — 2026-05-16
+
+### Security — Security cluster: CodeQL SQL injection + leaked OAuth + postcss XSS
+
+Single release closing 3 категории GitHub Security alerts (2 Code scanning HIGH + 2 Secret scanning + 1 Dependabot medium).
+
+**Code scanning closures** (2 × `go/sql-injection` HIGH severity):
+- `internal/modules/schedule/infrastructure/persistence/event_repository_pg.go:301` (alert #34) — `validEventOrderBy` refactored `map[string]struct{}` → `map[string]string`; map *value* (canonical SQL clause) теперь interpolated в `fmt.Sprintf` ORDER BY, не user input.
+- `internal/modules/documents/infrastructure/persistence/document_repository_pg.go:300` (alert #33) — same pattern для `validDocumentOrderBy`.
+
+CodeQL data-flow tracer не recognizes map-key existence check как sanitizer; refactoring к value-from-static-map breaks user-input → SQL flow at analyzer level. Existing tests pass без modifications; `ErrInvalidOrderBy` still returned для any input не в whitelist. Mirror к v0.128.10 ORDER BY whitelist precedent.
+
+**Secret scanning closures** (2 publicly leaked Google OAuth credentials):
+- `docs/integrations/composio-gmail.md:156-157` — real Client ID + Client Secret committed 2026-03-04 (commit `aaf2edcb`) replaced с `YOUR_CLIENT_ID.apps.googleusercontent.com` + `YOUR_CLIENT_SECRET` placeholders. Inline warning callout directs к `.env` / secret manager pattern.
+
+**MANUAL ACTION REQUIRED**: User должен rotate credentials в Google Cloud Console (revoke prior client + create new) и mark secret-scanning alerts #1 #2 as "revoked" в GitHub Security tab. Credentials remain в git history at `aaf2edcb` — full removal requires `git filter-repo` / BFG (destructive on public repo, out of scope).
+
+**Dependabot closure** (1 × `postcss` XSS medium):
+- `frontend/package.json` — direct dep bumped `^8.5.6` → `^8.5.10`; added `overrides.postcss: ^8.5.10` cascading к all transitive consumers. Previously vulnerable `next@16.2.6 → postcss@8.4.31` теперь resolves к 8.5.14 deduped.
+
+Verified post-fix:
+- `npm ls postcss` — all 4 consumers on 8.5.14 deduped, no 8.4.31.
+- `npm audit` — postcss больше не в vulnerabilities report.
+
+**Reviewer round-1 FIX-CYCLE** mean Tier 1 hit (Code hygiene 5/10 < 8 floor due dangling/duplicated godoc + BrE `analyser` + plan-doc partial-token leak). Post-absorb mean ~9.0 / min 8: Security correctness 8 (manual rotation handoff) / Refactor honesty 9 / DDD+CA 8 (pre-existing `domain/repositories/` violation, out of scope) / Code hygiene 9 / Plan adherence 9 / Documentation 9.
+
+**Tier 1 absorbs**:
+- `event_repository_pg.go` + `document_repository_pg.go` — removed duplicated/dangling godoc stubs left from initial edits.
+- `document_repository_pg.go:181` — `analyser` → `analyzer` (AmE) per `feedback_misspell_be_to_ae`.
+- `docs/plans/2026-05-16-v0146-0-security-cluster.md:53` — redacted partial client_id prefix к `<see secret-scanning alert #1>` (self-contradicted ADR-6 verification claim).
+
+**Tier 2 absorbs** в release commit:
+- `composio-gmail.md` warning callout: past-tense "ротированы" → conditional "должны быть ротированы" per ADR-4 (user manual action).
+- New test pins для default-empty-key path в `event_repository_pg_test.go` (`TestEventList_EmptyOrderByDefaultsToStartTimeAsc`) + `document_repository_pg_test.go` (`TestDocumentRepositoryPG_List_EmptyOrderByDefaultsToCreatedAtDesc`). Protect map[""] value from regression.
+
+**Tier 3 carry-forward**:
+- Extract `OrderByClause` typed VO к shared domain layer (eliminate per-repository whitelist duplication).
+- `ErrInvalidOrderBy` живёт в `domain/repositories/` (pre-existing DIP violation per CLAUDE.md gate — separate refactor release).
+- `@tootallnate/once` GHSA-vpq2-c234-7xj6 low (via jest-environment-jsdom@29 major bump deferred).
+
+12-th consecutive single-pass-or-skip SHIP after absorb. Branch `feature/issue-security-v0146-0`.
+
+---
+
+## [0.145.0] — 2026-05-16
+
+### Added — reporting/infrastructure/query coverage backfill (Phase 6 #196 sprint 4/15)
+
+Pure backfill релиз: 4-й модуль в multi-release sprint к 90% backend
+coverage. Production-код не изменён.
+
+**Surface covered**: `internal/modules/reporting/infrastructure/query/dynamic_query_builder.go` (667 LoC, 12 функций).
+
+**Test commits (4)**:
+- C1: pure helpers (`formatValue` 8 cases, `sanitizeFilename` 14, `truncateString` 5) + `GetAvailableFields` (6 data sources × field-ID/enum/source assertions) + `NewDynamicQueryBuilder` smoke test.
+- C2: `buildWhereClause` table-driven 15 операторов + 4 edge cases (non-array IN dropped, empty-array degenerate `IN ()`, unknown field skipped, unknown operator filtered).
+- C3: `Execute` через sqlmock — happy path + unsupported source + no-valid-fields + 5 aggregations independently + alias-replaces-field-name + composite (filter+groupBy+sortByDesc+pagination ceil) + default ORDER BY 1 ASC + count/main-query errors + []byte→string row conversion + nil value passthrough.
+- C4: `Export` (CSV/XLSX/PDF + unsupported) + `exportCSV` (with/without headers + value-type formatting) + `exportXLSX` (`excelize.OpenReader` + 6 cell-value assertions) + `exportPDF` (happy + landscape + Letter + no-headers + no-columns error + 50-row page-break path).
+
+**Tier 2 absorbs в release commit** (per `feedback_tier2_absorb_same_release`, reviewer round-1 SHIP mean 9.17 / min 8):
+- CSV: `csv.NewReader` round-trip + exact `[][]string` equality (was `strings.Contains` — mutation-resistance restored per plan ADR-4).
+- XLSX: `excelize.OpenReader` + 6 cell-value assertions (was ZIP magic-byte only).
+- CSV no-headers: exact 2-record assertion (was negative-only assertion).
+- PDF: `%PDF-` (с trailing dash) at all 5 sites per plan ADR-4.
+
+**Coverage impact**:
+- Package `reporting/infrastructure/query`: 0% → 97.4% statement.
+- Per-function: 8/12 at 100%. Execute 97.5% (`rows.Scan` error path uncoverable стандартным sqlmock — RowError lands в `rows.Err()` not `Scan()`, и Execute не checks `rows.Err()` post-loop; carry-forward refactor для отдельного release). exportCSV 84.2% / exportXLSX 95.8% / exportPDF 97.9% (third-party writer-error branches uncoverable без custom transport).
+- Global backend: 75.0% → 76.0% (+1.0pp single module).
+- Remaining к 90% target: +14pp (multi-release sprint ongoing).
+
+**Carry-forward backlog**:
+- `Execute` add `rows.Err()` check post-loop — separate `fix(reporting/query):` release.
+- `IN ()` empty-array emits invalid Postgres SQL — backlog issue.
+
+**Reviewer**: round-1 SHIP. Axes: Test quality 8 (post-absorb 9) / TDD 10 / DDD+CA 10 / Hygiene 10 / Coverage honesty 9 / Plan adherence 8 (post-absorb 9). Mean 9.17 / min 8.
+
+Advances #196. Branch `feature/issue-196-reporting-query-coverage`.
+
+---
+
 ## [0.144.0] — 2026-05-16
 
 ### Changed — Branding + Dashboard DIP refactor + Branding use case coverage backfill (Phase 6 #196 modules 2-3)
