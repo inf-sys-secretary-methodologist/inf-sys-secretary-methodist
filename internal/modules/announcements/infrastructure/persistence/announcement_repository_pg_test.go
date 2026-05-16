@@ -367,7 +367,11 @@ func TestAnnouncementRepositoryPG_GetPublished_Success(t *testing.T) {
 	now := time.Now()
 	audience := domain.TargetAudienceTeachers
 
-	mock.ExpectQuery(regexp.QuoteMeta("WHERE status = $1")+".+"+regexp.QuoteMeta("LIMIT $3 OFFSET $4")).
+	mock.ExpectQuery(regexp.QuoteMeta(
+		"WHERE status = $1 AND (target_audience = $2 OR target_audience = 'all') "+
+			"AND (publish_at IS NULL OR publish_at <= NOW()) AND (expire_at IS NULL OR expire_at > NOW()) "+
+			"ORDER BY is_pinned DESC, publish_at DESC NULLS LAST, created_at DESC LIMIT $3 OFFSET $4",
+	)).
 		WithArgs(domain.AnnouncementStatusPublished, audience, 10, 0).
 		WillReturnRows(sampleAnnouncementRow(1, now))
 
@@ -393,7 +397,11 @@ func TestAnnouncementRepositoryPG_GetPinned_Success(t *testing.T) {
 	repo, mock := newAnnouncementRepoMock(t)
 	now := time.Now()
 
-	mock.ExpectQuery(regexp.QuoteMeta("WHERE is_pinned = true") + ".+" + regexp.QuoteMeta("LIMIT $1")).
+	mock.ExpectQuery(regexp.QuoteMeta(
+		"WHERE is_pinned = true AND status = 'published' " +
+			"AND (publish_at IS NULL OR publish_at <= NOW()) AND (expire_at IS NULL OR expire_at > NOW()) " +
+			"ORDER BY priority DESC, created_at DESC LIMIT $1",
+	)).
 		WithArgs(5).
 		WillReturnRows(sampleAnnouncementRow(1, now))
 
@@ -419,7 +427,11 @@ func TestAnnouncementRepositoryPG_GetRecent_Success(t *testing.T) {
 	repo, mock := newAnnouncementRepoMock(t)
 	now := time.Now()
 
-	mock.ExpectQuery(regexp.QuoteMeta("WHERE status = 'published'") + ".+" + regexp.QuoteMeta("LIMIT $1")).
+	mock.ExpectQuery(regexp.QuoteMeta(
+		"WHERE status = 'published' " +
+			"AND (publish_at IS NULL OR publish_at <= NOW()) AND (expire_at IS NULL OR expire_at > NOW()) " +
+			"ORDER BY publish_at DESC NULLS LAST, created_at DESC LIMIT $1",
+	)).
 		WithArgs(20).
 		WillReturnRows(sampleAnnouncementRow(1, now))
 
