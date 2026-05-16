@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/application/dto"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/domain/repositories"
 )
 
 const (
@@ -20,16 +19,16 @@ const (
 // MockDashboardRepository is a mock implementation of DashboardRepository
 // with per-method error support for granular testing.
 type MockDashboardRepository struct {
-	documentsCount *repositories.CountResult
-	reportsCount   *repositories.CountResult
-	tasksCount     *repositories.CountResult
-	eventsCount    *repositories.CountResult
-	studentsCount  *repositories.CountResult
-	documentsTrend []repositories.TrendData
-	reportsTrend   []repositories.TrendData
-	tasksTrend     []repositories.TrendData
-	eventsTrend    []repositories.TrendData
-	activities     []repositories.ActivityData
+	documentsCount *CountResult
+	reportsCount   *CountResult
+	tasksCount     *CountResult
+	eventsCount    *CountResult
+	studentsCount  *CountResult
+	documentsTrend []TrendData
+	reportsTrend   []TrendData
+	tasksTrend     []TrendData
+	eventsTrend    []TrendData
+	activities     []ActivityData
 	activityTotal  int64
 	err            error // global error for all methods
 
@@ -53,70 +52,70 @@ func (m *MockDashboardRepository) getErr(specific *error) error {
 	return m.err
 }
 
-func (m *MockDashboardRepository) GetDocumentsCount(_ context.Context, _ int) (*repositories.CountResult, error) {
+func (m *MockDashboardRepository) GetDocumentsCount(_ context.Context, _ int) (*CountResult, error) {
 	if err := m.getErr(m.documentsCountErr); err != nil {
 		return nil, err
 	}
 	return m.documentsCount, nil
 }
 
-func (m *MockDashboardRepository) GetReportsCount(_ context.Context, _ int) (*repositories.CountResult, error) {
+func (m *MockDashboardRepository) GetReportsCount(_ context.Context, _ int) (*CountResult, error) {
 	if err := m.getErr(m.reportsCountErr); err != nil {
 		return nil, err
 	}
 	return m.reportsCount, nil
 }
 
-func (m *MockDashboardRepository) GetTasksCount(_ context.Context, _ int) (*repositories.CountResult, error) {
+func (m *MockDashboardRepository) GetTasksCount(_ context.Context, _ int) (*CountResult, error) {
 	if err := m.getErr(m.tasksCountErr); err != nil {
 		return nil, err
 	}
 	return m.tasksCount, nil
 }
 
-func (m *MockDashboardRepository) GetEventsCount(_ context.Context, _ int) (*repositories.CountResult, error) {
+func (m *MockDashboardRepository) GetEventsCount(_ context.Context, _ int) (*CountResult, error) {
 	if err := m.getErr(m.eventsCountErr); err != nil {
 		return nil, err
 	}
 	return m.eventsCount, nil
 }
 
-func (m *MockDashboardRepository) GetStudentsCount(_ context.Context, _ int) (*repositories.CountResult, error) {
+func (m *MockDashboardRepository) GetStudentsCount(_ context.Context, _ int) (*CountResult, error) {
 	if err := m.getErr(m.studentsCountErr); err != nil {
 		return nil, err
 	}
 	return m.studentsCount, nil
 }
 
-func (m *MockDashboardRepository) GetDocumentsTrend(_ context.Context, _, _ time.Time) ([]repositories.TrendData, error) {
+func (m *MockDashboardRepository) GetDocumentsTrend(_ context.Context, _, _ time.Time) ([]TrendData, error) {
 	if err := m.getErr(m.documentsTrendErr); err != nil {
 		return nil, err
 	}
 	return m.documentsTrend, nil
 }
 
-func (m *MockDashboardRepository) GetReportsTrend(_ context.Context, _, _ time.Time) ([]repositories.TrendData, error) {
+func (m *MockDashboardRepository) GetReportsTrend(_ context.Context, _, _ time.Time) ([]TrendData, error) {
 	if err := m.getErr(m.reportsTrendErr); err != nil {
 		return nil, err
 	}
 	return m.reportsTrend, nil
 }
 
-func (m *MockDashboardRepository) GetTasksTrend(_ context.Context, _, _ time.Time) ([]repositories.TrendData, error) {
+func (m *MockDashboardRepository) GetTasksTrend(_ context.Context, _, _ time.Time) ([]TrendData, error) {
 	if err := m.getErr(m.tasksTrendErr); err != nil {
 		return nil, err
 	}
 	return m.tasksTrend, nil
 }
 
-func (m *MockDashboardRepository) GetEventsTrend(_ context.Context, _, _ time.Time) ([]repositories.TrendData, error) {
+func (m *MockDashboardRepository) GetEventsTrend(_ context.Context, _, _ time.Time) ([]TrendData, error) {
 	if err := m.getErr(m.eventsTrendErr); err != nil {
 		return nil, err
 	}
 	return m.eventsTrend, nil
 }
 
-func (m *MockDashboardRepository) GetRecentActivity(_ context.Context, _ int) ([]repositories.ActivityData, int64, error) {
+func (m *MockDashboardRepository) GetRecentActivity(_ context.Context, _ int) ([]ActivityData, int64, error) {
 	if err := m.getErr(m.activityErr); err != nil {
 		return nil, 0, err
 	}
@@ -131,16 +130,16 @@ func errPtr(err error) *error {
 // successMock returns a mock with all counts and trends populated (no errors).
 func successMock() *MockDashboardRepository {
 	return &MockDashboardRepository{
-		documentsCount: &repositories.CountResult{Total: 100, PreviousTotal: 80},
-		reportsCount:   &repositories.CountResult{Total: 50, PreviousTotal: 40},
-		tasksCount:     &repositories.CountResult{Total: 200, PreviousTotal: 150},
-		eventsCount:    &repositories.CountResult{Total: 30, PreviousTotal: 25},
-		studentsCount:  &repositories.CountResult{Total: 500, PreviousTotal: 450},
-		documentsTrend: []repositories.TrendData{{Date: time.Now(), Count: 10}},
-		reportsTrend:   []repositories.TrendData{{Date: time.Now(), Count: 5}},
-		tasksTrend:     []repositories.TrendData{{Date: time.Now(), Count: 8}},
-		eventsTrend:    []repositories.TrendData{{Date: time.Now(), Count: 3}},
-		activities:     []repositories.ActivityData{},
+		documentsCount: &CountResult{Total: 100, PreviousTotal: 80},
+		reportsCount:   &CountResult{Total: 50, PreviousTotal: 40},
+		tasksCount:     &CountResult{Total: 200, PreviousTotal: 150},
+		eventsCount:    &CountResult{Total: 30, PreviousTotal: 25},
+		studentsCount:  &CountResult{Total: 500, PreviousTotal: 450},
+		documentsTrend: []TrendData{{Date: time.Now(), Count: 10}},
+		reportsTrend:   []TrendData{{Date: time.Now(), Count: 5}},
+		tasksTrend:     []TrendData{{Date: time.Now(), Count: 8}},
+		eventsTrend:    []TrendData{{Date: time.Now(), Count: 3}},
+		activities:     []ActivityData{},
 		activityTotal:  0,
 	}
 }
@@ -182,11 +181,11 @@ func TestDashboardUseCase_GetStats(t *testing.T) {
 			name:   "zero previous total",
 			period: "month",
 			mock: &MockDashboardRepository{
-				documentsCount: &repositories.CountResult{Total: 10, PreviousTotal: 0},
-				reportsCount:   &repositories.CountResult{Total: 5, PreviousTotal: 0},
-				tasksCount:     &repositories.CountResult{Total: 20, PreviousTotal: 0},
-				eventsCount:    &repositories.CountResult{Total: 3, PreviousTotal: 0},
-				studentsCount:  &repositories.CountResult{Total: 50, PreviousTotal: 0},
+				documentsCount: &CountResult{Total: 10, PreviousTotal: 0},
+				reportsCount:   &CountResult{Total: 5, PreviousTotal: 0},
+				tasksCount:     &CountResult{Total: 20, PreviousTotal: 0},
+				eventsCount:    &CountResult{Total: 3, PreviousTotal: 0},
+				studentsCount:  &CountResult{Total: 50, PreviousTotal: 0},
 			},
 			validate: func(t *testing.T, result *dto.DashboardStatsOutput) {
 				if result.Documents.Change != 100.0 {
@@ -449,7 +448,7 @@ func TestDashboardUseCase_GetActivity(t *testing.T) {
 			name:  "successful activity retrieval",
 			limit: 10,
 			mock: &MockDashboardRepository{
-				activities: []repositories.ActivityData{
+				activities: []ActivityData{
 					{
 						ID:          1,
 						Type:        "document",
@@ -479,7 +478,7 @@ func TestDashboardUseCase_GetActivity(t *testing.T) {
 			name:  "limit enforced to max 50",
 			limit: 100,
 			mock: &MockDashboardRepository{
-				activities:    []repositories.ActivityData{},
+				activities:    []ActivityData{},
 				activityTotal: 0,
 			},
 		},
@@ -487,7 +486,7 @@ func TestDashboardUseCase_GetActivity(t *testing.T) {
 			name:  "default limit when zero",
 			limit: 0,
 			mock: &MockDashboardRepository{
-				activities:    []repositories.ActivityData{},
+				activities:    []ActivityData{},
 				activityTotal: 0,
 			},
 		},
@@ -495,7 +494,7 @@ func TestDashboardUseCase_GetActivity(t *testing.T) {
 			name:  "negative limit defaults to 10",
 			limit: -5,
 			mock: &MockDashboardRepository{
-				activities:    []repositories.ActivityData{},
+				activities:    []ActivityData{},
 				activityTotal: 0,
 			},
 		},
@@ -509,7 +508,7 @@ func TestDashboardUseCase_GetActivity(t *testing.T) {
 			name:  "long description gets truncated",
 			limit: 10,
 			mock: &MockDashboardRepository{
-				activities: []repositories.ActivityData{
+				activities: []ActivityData{
 					{
 						ID:          1,
 						Type:        "document",
@@ -746,7 +745,7 @@ func TestGetTrendDateRange(t *testing.T) {
 
 func TestConvertTrendData(t *testing.T) {
 	now := time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC)
-	data := []repositories.TrendData{
+	data := []TrendData{
 		{Date: now, Count: 10},
 		{Date: now.AddDate(0, 0, 1), Count: 20},
 	}

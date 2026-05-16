@@ -7,16 +7,15 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/application/dto"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/domain/repositories"
 )
 
 // DashboardUseCase handles dashboard business logic
 type DashboardUseCase struct {
-	repo repositories.DashboardRepository
+	repo DashboardRepository
 }
 
 // NewDashboardUseCase creates a new DashboardUseCase
-func NewDashboardUseCase(repo repositories.DashboardRepository) *DashboardUseCase {
+func NewDashboardUseCase(repo DashboardRepository) *DashboardUseCase {
 	return &DashboardUseCase{repo: repo}
 }
 
@@ -203,7 +202,7 @@ func getTrendDateRange(input *dto.DashboardTrendsInput) (time.Time, time.Time) {
 	return startDate, endDate
 }
 
-func convertTrendData(data []repositories.TrendData) []dto.TrendPoint {
+func convertTrendData(data []TrendData) []dto.TrendPoint {
 	result := make([]dto.TrendPoint, len(data))
 	for i, d := range data {
 		result[i] = dto.TrendPoint{

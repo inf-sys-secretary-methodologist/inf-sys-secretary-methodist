@@ -17,7 +17,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/repositories"
 )
 
 // fakeRepo is a deterministic in-memory replacement for
@@ -81,7 +80,7 @@ func withAuth(uid int64, role string) gin.HandlerFunc {
 	}
 }
 
-func newTestEngine(t *testing.T, repo repositories.BrandSettingsRepository, clock usecases.Clock, audit usecases.AuditSink) *gin.Engine {
+func newTestEngine(t *testing.T, repo usecases.BrandSettingsRepository, clock usecases.Clock, audit usecases.AuditSink) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	getUC := usecases.NewGetBrandingUseCase(repo)
