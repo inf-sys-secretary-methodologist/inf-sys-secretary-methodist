@@ -3,6 +3,7 @@ package entities
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -198,32 +199,59 @@ func (d *Document) HasFile() bool {
 	return d.FilePath != nil && *d.FilePath != ""
 }
 
-// Submit moves a draft document into the approval queue. RED stub
-// for v0.148.0 — actual transition logic + audit trail are filled
-// in by the paired GREEN commit. Currently returns ErrCannotSubmit
-// unconditionally so tests fail with the right sentinel.
+// Submit moves a draft document into the approval queue. Sets the
+// SubmittedBy + SubmittedAt audit fields. Returns ErrCannotSubmit
+// when the current status is not Draft — workflow invariant guarded
+// at the domain boundary.
 //
 // Issue: #227
 func (d *Document) Submit(actorID int64, now time.Time) error {
-	return ErrCannotSubmit
+	if d.Status != DocumentStatusDraft {
+		return fmt.Errorf("%w: status %q", ErrCannotSubmit, string(d.Status))
+	}
+	d.Status = DocumentStatusApproval
+	d.SubmittedBy = &actorID
+	d.SubmittedAt = &now
+	d.UpdatedAt = now
+	return nil
 }
 
 // Approve advances an approval-queue document к the approved state.
-// RED stub — GREEN replaces the body with the transition + audit
-// fields update.
+// Sets ApprovedBy + ApprovedAt audit fields. Returns ErrCannotApprove
+// when the current status is not Approval.
 //
 // Issue: #227
 func (d *Document) Approve(adminID int64, now time.Time) error {
-	return ErrCannotApprove
+	if d.Status != DocumentStatusApproval {
+		return fmt.Errorf("%w: status %q", ErrCannotApprove, string(d.Status))
+	}
+	d.Status = DocumentStatusApproved
+	d.ApprovedBy = &adminID
+	d.ApprovedAt = &now
+	d.UpdatedAt = now
+	return nil
 }
 
 // Reject marks an approval-queue document as rejected с обоснованием.
-// RED stub — GREEN replaces the body с the transition + audit fields
-// update + RejectionReason persistence.
+// Sets RejectedBy + RejectedAt + RejectedReason audit fields. Returns
+// ErrCannotReject when the current status is not Approval, or
+// ErrRejectionReasonInvalid when the reason VO is zero-value.
 //
 // Issue: #227
 func (d *Document) Reject(adminID int64, reason RejectionReason, now time.Time) error {
-	return ErrCannotReject
+	if reason.IsZero() {
+		return fmt.Errorf("%w: zero-value reason", ErrRejectionReasonInvalid)
+	}
+	if d.Status != DocumentStatusApproval {
+		return fmt.Errorf("%w: status %q", ErrCannotReject, string(d.Status))
+	}
+	d.Status = DocumentStatusRejected
+	d.RejectedBy = &adminID
+	d.RejectedAt = &now
+	reasonStr := reason.String()
+	d.RejectedReason = &reasonStr
+	d.UpdatedAt = now
+	return nil
 }
 
 // CanBeEditedBy reports whether a user holding the given role is

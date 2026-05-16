@@ -32,18 +32,17 @@ type RejectionReason struct {
 	value string
 }
 
-// NewRejectionReason validates the raw string + returns the VO. RED
-// stub for v0.148.0 — currently returns ErrRejectionReasonInvalid
-// unconditionally so the Pair 1 RED test проваливается с the right
-// sentinel; GREEN replaces the body с real validation.
-//
-// References rejectionReasonMinLen/MaxLen so golangci `unusedfunc`
-// linter stays satisfied на the RED commit; GREEN inlines the
-// invariant check.
+// NewRejectionReason validates the raw string + returns the VO.
+// Trims leading/trailing whitespace before measuring length.
+// Returns ErrRejectionReasonInvalid for empty / whitespace-only /
+// too short / too long inputs.
 func NewRejectionReason(raw string) (RejectionReason, error) {
-	_ = rejectionReasonMinLen
-	_ = rejectionReasonMaxLen
-	return RejectionReason{}, ErrRejectionReasonInvalid
+	trimmed := strings.TrimSpace(raw)
+	length := len([]rune(trimmed))
+	if length < rejectionReasonMinLen || length > rejectionReasonMaxLen {
+		return RejectionReason{}, fmt.Errorf("%w: got %d chars", ErrRejectionReasonInvalid, length)
+	}
+	return RejectionReason{value: trimmed}, nil
 }
 
 // MustRejectionReason panics on validation failure. Convenience for
