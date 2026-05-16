@@ -6,8 +6,11 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/dashboard/application/usecases"
 )
+
+// Compile-time guarantee that DashboardRepositoryPG satisfies the port.
+var _ usecases.DashboardRepository = (*DashboardRepositoryPG)(nil)
 
 // DashboardRepositoryPG implements DashboardRepository using PostgreSQL
 type DashboardRepositoryPG struct {
@@ -20,7 +23,7 @@ func NewDashboardRepositoryPG(db *sql.DB) *DashboardRepositoryPG {
 }
 
 // GetDocumentsCount returns document count with comparison to previous period
-func (r *DashboardRepositoryPG) GetDocumentsCount(ctx context.Context, periodDays int) (*repositories.CountResult, error) {
+func (r *DashboardRepositoryPG) GetDocumentsCount(ctx context.Context, periodDays int) (*usecases.CountResult, error) {
 	now := time.Now()
 	periodStart := now.AddDate(0, 0, -periodDays)
 	previousStart := periodStart.AddDate(0, 0, -periodDays)
@@ -43,14 +46,14 @@ func (r *DashboardRepositoryPG) GetDocumentsCount(ctx context.Context, periodDay
 		return nil, err
 	}
 
-	return &repositories.CountResult{
+	return &usecases.CountResult{
 		Total:         total,
 		PreviousTotal: previousTotal,
 	}, nil
 }
 
 // GetReportsCount returns reports count with comparison to previous period
-func (r *DashboardRepositoryPG) GetReportsCount(ctx context.Context, periodDays int) (*repositories.CountResult, error) {
+func (r *DashboardRepositoryPG) GetReportsCount(ctx context.Context, periodDays int) (*usecases.CountResult, error) {
 	now := time.Now()
 	periodStart := now.AddDate(0, 0, -periodDays)
 	previousStart := periodStart.AddDate(0, 0, -periodDays)
@@ -71,14 +74,14 @@ func (r *DashboardRepositoryPG) GetReportsCount(ctx context.Context, periodDays 
 		return nil, err
 	}
 
-	return &repositories.CountResult{
+	return &usecases.CountResult{
 		Total:         total,
 		PreviousTotal: previousTotal,
 	}, nil
 }
 
 // GetTasksCount returns tasks count with comparison to previous period
-func (r *DashboardRepositoryPG) GetTasksCount(ctx context.Context, periodDays int) (*repositories.CountResult, error) {
+func (r *DashboardRepositoryPG) GetTasksCount(ctx context.Context, periodDays int) (*usecases.CountResult, error) {
 	now := time.Now()
 	periodStart := now.AddDate(0, 0, -periodDays)
 	previousStart := periodStart.AddDate(0, 0, -periodDays)
@@ -99,14 +102,14 @@ func (r *DashboardRepositoryPG) GetTasksCount(ctx context.Context, periodDays in
 		return nil, err
 	}
 
-	return &repositories.CountResult{
+	return &usecases.CountResult{
 		Total:         total,
 		PreviousTotal: previousTotal,
 	}, nil
 }
 
 // GetEventsCount returns events count with comparison to previous period
-func (r *DashboardRepositoryPG) GetEventsCount(ctx context.Context, periodDays int) (*repositories.CountResult, error) {
+func (r *DashboardRepositoryPG) GetEventsCount(ctx context.Context, periodDays int) (*usecases.CountResult, error) {
 	now := time.Now()
 	periodStart := now.AddDate(0, 0, -periodDays)
 	previousStart := periodStart.AddDate(0, 0, -periodDays)
@@ -127,14 +130,14 @@ func (r *DashboardRepositoryPG) GetEventsCount(ctx context.Context, periodDays i
 		return nil, err
 	}
 
-	return &repositories.CountResult{
+	return &usecases.CountResult{
 		Total:         total,
 		PreviousTotal: previousTotal,
 	}, nil
 }
 
 // GetStudentsCount returns students count (users with student role)
-func (r *DashboardRepositoryPG) GetStudentsCount(ctx context.Context, periodDays int) (*repositories.CountResult, error) {
+func (r *DashboardRepositoryPG) GetStudentsCount(ctx context.Context, periodDays int) (*usecases.CountResult, error) {
 	now := time.Now()
 	periodStart := now.AddDate(0, 0, -periodDays)
 	previousStart := periodStart.AddDate(0, 0, -periodDays)
@@ -155,14 +158,14 @@ func (r *DashboardRepositoryPG) GetStudentsCount(ctx context.Context, periodDays
 		return nil, err
 	}
 
-	return &repositories.CountResult{
+	return &usecases.CountResult{
 		Total:         total,
 		PreviousTotal: previousTotal,
 	}, nil
 }
 
 // GetDocumentsTrend returns document creation trend for the period
-func (r *DashboardRepositoryPG) GetDocumentsTrend(ctx context.Context, startDate, endDate time.Time) ([]repositories.TrendData, error) {
+func (r *DashboardRepositoryPG) GetDocumentsTrend(ctx context.Context, startDate, endDate time.Time) ([]usecases.TrendData, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT DATE(created_at) as date, COUNT(*) as count
 		FROM documents
@@ -179,7 +182,7 @@ func (r *DashboardRepositoryPG) GetDocumentsTrend(ctx context.Context, startDate
 }
 
 // GetReportsTrend returns reports creation trend for the period
-func (r *DashboardRepositoryPG) GetReportsTrend(ctx context.Context, startDate, endDate time.Time) ([]repositories.TrendData, error) {
+func (r *DashboardRepositoryPG) GetReportsTrend(ctx context.Context, startDate, endDate time.Time) ([]usecases.TrendData, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT DATE(created_at) as date, COUNT(*) as count
 		FROM reports
@@ -196,7 +199,7 @@ func (r *DashboardRepositoryPG) GetReportsTrend(ctx context.Context, startDate, 
 }
 
 // GetTasksTrend returns tasks creation trend for the period
-func (r *DashboardRepositoryPG) GetTasksTrend(ctx context.Context, startDate, endDate time.Time) ([]repositories.TrendData, error) {
+func (r *DashboardRepositoryPG) GetTasksTrend(ctx context.Context, startDate, endDate time.Time) ([]usecases.TrendData, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT DATE(created_at) as date, COUNT(*) as count
 		FROM tasks
@@ -213,7 +216,7 @@ func (r *DashboardRepositoryPG) GetTasksTrend(ctx context.Context, startDate, en
 }
 
 // GetEventsTrend returns events creation trend for the period
-func (r *DashboardRepositoryPG) GetEventsTrend(ctx context.Context, startDate, endDate time.Time) ([]repositories.TrendData, error) {
+func (r *DashboardRepositoryPG) GetEventsTrend(ctx context.Context, startDate, endDate time.Time) ([]usecases.TrendData, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT DATE(created_at) as date, COUNT(*) as count
 		FROM events
@@ -230,7 +233,7 @@ func (r *DashboardRepositoryPG) GetEventsTrend(ctx context.Context, startDate, e
 }
 
 // GetRecentActivity returns recent activity across all modules
-func (r *DashboardRepositoryPG) GetRecentActivity(ctx context.Context, limit int) ([]repositories.ActivityData, int64, error) {
+func (r *DashboardRepositoryPG) GetRecentActivity(ctx context.Context, limit int) ([]usecases.ActivityData, int64, error) {
 	// Union query for activity from different modules
 	query := `
 		WITH activity AS (
@@ -314,9 +317,9 @@ func (r *DashboardRepositoryPG) GetRecentActivity(ctx context.Context, limit int
 	}
 	defer func() { _ = rows.Close() }()
 
-	var activities []repositories.ActivityData
+	var activities []usecases.ActivityData
 	for rows.Next() {
-		var a repositories.ActivityData
+		var a usecases.ActivityData
 		err := rows.Scan(&a.ID, &a.Type, &a.Action, &a.Title, &a.Description, &a.UserID, &a.UserName, &a.CreatedAt)
 		if err != nil {
 			return nil, 0, err
@@ -346,10 +349,10 @@ func (r *DashboardRepositoryPG) GetRecentActivity(ctx context.Context, limit int
 }
 
 // scanTrendData scans rows into TrendData slice
-func scanTrendData(rows *sql.Rows) ([]repositories.TrendData, error) {
-	var result []repositories.TrendData
+func scanTrendData(rows *sql.Rows) ([]usecases.TrendData, error) {
+	var result []usecases.TrendData
 	for rows.Next() {
-		var t repositories.TrendData
+		var t usecases.TrendData
 		if err := rows.Scan(&t.Date, &t.Count); err != nil {
 			return nil, err
 		}
