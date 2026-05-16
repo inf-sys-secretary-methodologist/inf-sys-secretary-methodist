@@ -38,6 +38,8 @@ var docSelectCols = []string{
 	// v0.148.0 — workflow audit trail (#227).
 	"submitted_by", "submitted_at", "approved_by", "approved_at",
 	"rejected_by", "rejected_at", "rejected_reason",
+	// v0.149.0 Phase 2 — Register transition (#230).
+	"registered_by",
 	"author_name", "recipient_name",
 }
 
@@ -54,6 +56,8 @@ func addDocRow(rows *sqlmock.Rows, id int64, title string, ver int, meta []byte)
 		now, now, nil,
 		// v0.148.0 — 7 workflow audit columns; NULL для pre-workflow rows.
 		nil, nil, nil, nil, nil, nil, nil,
+		// v0.149.0 — registered_by audit column.
+		nil,
 		nil, nil,
 	)
 }

@@ -12,6 +12,7 @@ import {
   Send,
   CheckCircle2,
   XCircle,
+  FileSignature,
 } from 'lucide-react'
 import { getStoredToken } from '@/lib/auth/token'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ import { DocumentVersionHistory } from './DocumentVersionHistory'
 import { SubmitDocumentDialog } from './SubmitDocumentDialog'
 import { ApproveDocumentDialog } from './ApproveDocumentDialog'
 import { RejectDocumentDialog } from './RejectDocumentDialog'
+import { RegisterDocumentDialog } from './RegisterDocumentDialog'
 
 type TabType = 'preview' | 'versions'
 
@@ -50,6 +52,7 @@ export function DocumentPreview({
   const [submitOpen, setSubmitOpen] = useState(false)
   const [approveOpen, setApproveOpen] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
+  const [registerOpen, setRegisterOpen] = useState(false)
 
   // Workflow gates (v0.148.0 #227). Submit visible to author OR
   // any edit-role on a draft. Approve/Reject visible only к
@@ -63,6 +66,11 @@ export function DocumentPreview({
       role === UserRole.TEACHER)
   const canAdminApprove =
     doc.status === DocumentStatus.APPROVAL &&
+    (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
+  // v0.149.0 Phase 2 — Register transition (#230). approved →
+  // registered. Admin-only role gate.
+  const canRegister =
+    doc.status === DocumentStatus.APPROVED &&
     (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
 
   /* c8 ignore start - Keyboard and click handlers, tested in e2e */
@@ -165,6 +173,12 @@ export function DocumentPreview({
                   {tWorkflow('actions.rejectButton')}
                 </Button>
               </>
+            )}
+            {canRegister && (
+              <Button variant="default" size="sm" onClick={() => setRegisterOpen(true)}>
+                <FileSignature className="h-4 w-4 mr-2" />
+                {tWorkflow('actions.registerButton')}
+              </Button>
             )}
             {onDownload && (
               <Button variant="outline" size="sm" onClick={onDownload}>
@@ -346,6 +360,12 @@ export function DocumentPreview({
         open={rejectOpen}
         onClose={() => setRejectOpen(false)}
         onRejected={onDocumentUpdated}
+      />
+      <RegisterDocumentDialog
+        documentId={Number(doc.id)}
+        open={registerOpen}
+        onClose={() => setRegisterOpen(false)}
+        onRegistered={onDocumentUpdated}
       />
     </div>
   )

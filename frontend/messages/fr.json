@@ -2988,7 +2988,8 @@
     "actions": {
       "submitButton": "Soumettre à approbation",
       "approveButton": "Approuver",
-      "rejectButton": "Rejeter"
+      "rejectButton": "Rejeter",
+      "registerButton": "Enregistrer"
     },
     "statusBadge": {
       "draft": "Brouillon",
@@ -3000,6 +3001,25 @@
       "execution": "En exécution",
       "executed": "Exécuté",
       "archived": "Archivé"
+    },
+    "register": {
+      "dialogTitle": "Enregistrer le document ?",
+      "dialogBody": "Le document recevra un numéro d'enregistrement и une date. L'action est consignée dans le journal d'audit ; le numéro doit être unique.",
+      "numberLabel": "Numéro d'enregistrement",
+      "numberPlaceholder": "ex. 01-2026/123",
+      "numberTooShort": "Minimum {min} caractères",
+      "confirmLabel": "Enregistrer",
+      "cancelLabel": "Annuler"
+    },
+    "registerToast": {
+      "success": "Document enregistré",
+      "errors": {
+        "invalidNumber": "Numéro d'enregistrement invalide",
+        "notApproved": "Impossible d'enregistrer — document non approuvé",
+        "forbidden": "Non autorisé à enregistrer",
+        "notFound": "Document introuvable",
+        "generic": "Échec de l'enregistrement du document"
+      }
     }
   }
 }

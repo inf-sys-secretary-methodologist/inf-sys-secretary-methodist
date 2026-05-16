@@ -2988,7 +2988,8 @@
     "actions": {
       "submitButton": "Submit for review",
       "approveButton": "Approve",
-      "rejectButton": "Reject"
+      "rejectButton": "Reject",
+      "registerButton": "Register"
     },
     "statusBadge": {
       "draft": "Draft",
@@ -3000,6 +3001,25 @@
       "execution": "Execution",
       "executed": "Executed",
       "archived": "Archived"
+    },
+    "register": {
+      "dialogTitle": "Register document?",
+      "dialogBody": "The document will receive a registration number и date. Action is logged in the audit trail; number must be unique.",
+      "numberLabel": "Registration number",
+      "numberPlaceholder": "e.g. 01-2026/123",
+      "numberTooShort": "Minimum {min} characters",
+      "confirmLabel": "Register",
+      "cancelLabel": "Cancel"
+    },
+    "registerToast": {
+      "success": "Document registered",
+      "errors": {
+        "invalidNumber": "Invalid registration number",
+        "notApproved": "Cannot register — document is not approved",
+        "forbidden": "Not authorized to register",
+        "notFound": "Document not found",
+        "generic": "Failed to register the document"
+      }
     }
   }
 }

@@ -31,6 +31,10 @@ export interface RejectDocumentRequest {
   reason: string
 }
 
+export interface RegisterDocumentRequest {
+  number: string
+}
+
 // submitDocument transitions a draft document into the approval
 // queue. Body empty per backend contract (path id + JWT subject
 // identify row + actor). Axios errors propagate — caller branches
@@ -66,6 +70,21 @@ export async function rejectDocument(
 ): Promise<DocumentWorkflowFields> {
   const response = await apiClient.post<ApiResponse<DocumentWorkflowFields>>(
     `${ADMIN_DOCUMENTS_URL}/${id}/reject`,
+    body
+  )
+  return response.data
+}
+
+// registerDocument (v0.149.0 #230) transitions approved → registered с
+// registration number. Backend validates: status invariant + non-empty
+// trim length ≥3 + UNIQUE registration_number (DB constraint). Errors:
+// 422 invalid number / 409 not_approved / 404 not_found / 403 forbidden.
+export async function registerDocument(
+  id: number,
+  body: RegisterDocumentRequest
+): Promise<DocumentWorkflowFields> {
+  const response = await apiClient.post<ApiResponse<DocumentWorkflowFields>>(
+    `${ADMIN_DOCUMENTS_URL}/${id}/register`,
     body
   )
   return response.data
