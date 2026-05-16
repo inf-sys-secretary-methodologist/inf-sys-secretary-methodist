@@ -2933,5 +2933,73 @@
       "set": "مضبوط",
       "unset": "غير مضبوط"
     }
+  },
+  "documentsWorkflow": {
+    "submit": {
+      "dialogTitle": "إرسال المستند للموافقة؟",
+      "dialogBody": "سيدخل المستند طابور الموافقة. ستصبح المسودة للقراءة فقط حتى الإرجاع أو الموافقة.",
+      "confirmLabel": "إرسال",
+      "cancelLabel": "إلغاء"
+    },
+    "approve": {
+      "dialogTitle": "الموافقة على المستند؟",
+      "dialogBody": "سينتقل المستند إلى حالة «موافق عليه». يتم تسجيل الإجراء في سجل المراجعة.",
+      "confirmLabel": "موافقة",
+      "cancelLabel": "إلغاء"
+    },
+    "reject": {
+      "dialogTitle": "رفض المستند؟",
+      "dialogBody": "سينتقل المستند إلى حالة «مرفوض». قدم سببًا — سيتم تخزينه وإظهاره للمؤلف أثناء المراجعة.",
+      "reasonLabel": "سبب الرفض",
+      "reasonPlaceholder": "مثال: قالب 2023 قديم — يرجى التحديث وفقًا للمتطلبات الجديدة.",
+      "reasonTooShort": "الحد الأدنى {min} حرف",
+      "reasonTooLong": "الحد الأقصى {max} حرف",
+      "confirmLabel": "رفض",
+      "cancelLabel": "إلغاء"
+    },
+    "submitToast": {
+      "success": "تم إرسال المستند للموافقة",
+      "errors": {
+        "notDraft": "لا يمكن الإرسال — المستند لم يعد مسودة",
+        "forbidden": "غير مصرح لك بإرسال هذا المستند",
+        "notFound": "المستند غير موجود",
+        "generic": "فشل إرسال المستند"
+      }
+    },
+    "approveToast": {
+      "success": "تم اعتماد المستند",
+      "errors": {
+        "notApproval": "لا يمكن الاعتماد — المستند ليس في طابور الموافقة",
+        "forbidden": "غير مصرح لك بالاعتماد",
+        "notFound": "المستند غير موجود",
+        "generic": "فشل اعتماد المستند"
+      }
+    },
+    "rejectToast": {
+      "success": "تم رفض المستند",
+      "errors": {
+        "invalidOrConflict": "لا يمكن الرفض — سبب غير صالح أو المستند لم يعد في المراجعة",
+        "notApproval": "لا يمكن الرفض — المستند ليس في طابور الموافقة",
+        "forbidden": "غير مصرح لك بالرفض",
+        "notFound": "المستند غير موجود",
+        "generic": "فشل رفض المستند"
+      }
+    },
+    "actions": {
+      "submitButton": "إرسال للموافقة",
+      "approveButton": "اعتماد",
+      "rejectButton": "رفض"
+    },
+    "statusBadge": {
+      "draft": "مسودة",
+      "approval": "قيد المراجعة",
+      "approved": "معتمد",
+      "rejected": "مرفوض",
+      "registered": "مسجل",
+      "routing": "في المسار",
+      "execution": "قيد التنفيذ",
+      "executed": "منفذ",
+      "archived": "مؤرشف"
+    }
   }
 }

@@ -2933,5 +2933,73 @@
       "set": "défini",
       "unset": "non défini"
     }
+  },
+  "documentsWorkflow": {
+    "submit": {
+      "dialogTitle": "Soumettre le document à approbation ?",
+      "dialogBody": "Le document entrera dans la file d'approbation. Le contenu du brouillon deviendra en lecture seule jusqu'à retour ou approbation.",
+      "confirmLabel": "Soumettre",
+      "cancelLabel": "Annuler"
+    },
+    "approve": {
+      "dialogTitle": "Approuver le document ?",
+      "dialogBody": "Le document passera au statut «approuvé». L'action est enregistrée dans le journal d'audit.",
+      "confirmLabel": "Approuver",
+      "cancelLabel": "Annuler"
+    },
+    "reject": {
+      "dialogTitle": "Rejeter le document ?",
+      "dialogBody": "Le document passera au statut «rejeté». Fournissez un motif — il sera stocké et visible par l'auteur pendant la révision.",
+      "reasonLabel": "Motif du rejet",
+      "reasonPlaceholder": "par exemple, le modèle 2023 est obsolète — à mettre à jour selon les nouvelles exigences.",
+      "reasonTooShort": "Minimum {min} caractères",
+      "reasonTooLong": "Maximum {max} caractères",
+      "confirmLabel": "Rejeter",
+      "cancelLabel": "Annuler"
+    },
+    "submitToast": {
+      "success": "Document soumis à approbation",
+      "errors": {
+        "notDraft": "Impossible de soumettre — le document n'est plus un brouillon",
+        "forbidden": "Non autorisé à soumettre ce document",
+        "notFound": "Document introuvable",
+        "generic": "Échec de la soumission du document"
+      }
+    },
+    "approveToast": {
+      "success": "Document approuvé",
+      "errors": {
+        "notApproval": "Impossible d'approuver — le document n'est pas dans la file d'approbation",
+        "forbidden": "Non autorisé à approuver",
+        "notFound": "Document introuvable",
+        "generic": "Échec de l'approbation du document"
+      }
+    },
+    "rejectToast": {
+      "success": "Document rejeté",
+      "errors": {
+        "invalidOrConflict": "Impossible de rejeter — motif invalide ou document plus en révision",
+        "notApproval": "Impossible de rejeter — le document n'est pas dans la file d'approbation",
+        "forbidden": "Non autorisé à rejeter",
+        "notFound": "Document introuvable",
+        "generic": "Échec du rejet du document"
+      }
+    },
+    "actions": {
+      "submitButton": "Soumettre à approbation",
+      "approveButton": "Approuver",
+      "rejectButton": "Rejeter"
+    },
+    "statusBadge": {
+      "draft": "Brouillon",
+      "approval": "En révision",
+      "approved": "Approuvé",
+      "rejected": "Rejeté",
+      "registered": "Enregistré",
+      "routing": "En route",
+      "execution": "En exécution",
+      "executed": "Exécuté",
+      "archived": "Archivé"
+    }
   }
 }
