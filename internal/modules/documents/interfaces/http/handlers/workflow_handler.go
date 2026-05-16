@@ -14,25 +14,36 @@ import (
 
 // WorkflowHandler exposes the documents workflow gates as HTTP
 // endpoints. Grew across multiple phases (#227 v0.148.0 — submit/
-// approve/reject; #230 v0.149.0 — register; #231/#232/#233 в очереди).
-// Keeps existing DocumentHandler untouched so CRUD endpoints stay
-// independent.
+// approve/reject; #230 v0.149.0 — register; #231 v0.150.0 — routing;
+// #232/#233 в очереди). Keeps existing DocumentHandler untouched so
+// CRUD endpoints stay independent.
 type WorkflowHandler struct {
-	submit   *usecases.SubmitDocumentUseCase
-	approve  *usecases.ApproveDocumentUseCase
-	reject   *usecases.RejectDocumentUseCase
-	register *usecases.RegisterDocumentUseCase
+	submit       *usecases.SubmitDocumentUseCase
+	approve      *usecases.ApproveDocumentUseCase
+	reject       *usecases.RejectDocumentUseCase
+	register     *usecases.RegisterDocumentUseCase
+	startRouting *usecases.StartRoutingUseCase
+	signVisa     *usecases.SignVisaUseCase
 }
 
-// NewWorkflowHandler wires the workflow handler. Register use case
-// is optional — passing nil disables the route (handler returns 501).
+// NewWorkflowHandler wires the workflow handler. Phase use cases are
+// optional — passing nil disables the matching route (handler returns 501).
 func NewWorkflowHandler(
 	submit *usecases.SubmitDocumentUseCase,
 	approve *usecases.ApproveDocumentUseCase,
 	reject *usecases.RejectDocumentUseCase,
 	register *usecases.RegisterDocumentUseCase,
+	startRouting *usecases.StartRoutingUseCase,
+	signVisa *usecases.SignVisaUseCase,
 ) *WorkflowHandler {
-	return &WorkflowHandler{submit: submit, approve: approve, reject: reject, register: register}
+	return &WorkflowHandler{
+		submit:       submit,
+		approve:      approve,
+		reject:       reject,
+		register:     register,
+		startRouting: startRouting,
+		signVisa:     signVisa,
+	}
 }
 
 // RegisterSubmitRoute mounts only POST /:id/submit. Caller already
@@ -42,14 +53,17 @@ func RegisterSubmitRoute(g *gin.RouterGroup, h *WorkflowHandler) {
 }
 
 // RegisterAdminWorkflowRoutes mounts POST /:id/approve, /:id/reject,
-// /:id/register on the caller's admin group (already gated by
-// RequireRole(AcademicSecretary, SystemAdmin)). Mirror к curriculum's
-// admin route pattern.
+// /:id/register, /:id/start-routing, /:id/sign-visa on the caller's
+// admin group (already gated by RequireRole(AcademicSecretary,
+// SystemAdmin)). Mirror к curriculum's admin route pattern.
 func RegisterAdminWorkflowRoutes(g *gin.RouterGroup, h *WorkflowHandler) {
 	g.POST("/:id/approve", h.Approve)
 	g.POST("/:id/reject", h.Reject)
 	// v0.149.0 Phase 2 — Register endpoint (#230).
 	g.POST("/:id/register", h.Register)
+	// v0.150.0 Phase 3 — Routing endpoints (#231).
+	g.POST("/:id/start-routing", h.StartRouting)
+	g.POST("/:id/sign-visa", h.SignVisa)
 }
 
 // rejectBody is the request DTO for the Reject endpoint.
@@ -144,6 +158,66 @@ func (h *WorkflowHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(doc))
 }
 
+// StartRouting handles POST /api/admin/documents/:id/start-routing.
+//
+// Route-level admin middleware pre-gates the call; the usecase
+// enforces the status invariant via the entity SendToRouting method.
+// Body empty — path id + JWT subject identify row + actor.
+//
+// Issue: #231
+func (h *WorkflowHandler) StartRouting(c *gin.Context) {
+	if h.startRouting == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "start-routing usecase not wired"})
+		return
+	}
+	id, err := parseDocID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		return
+	}
+	routerID, _, ok := readActor(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	doc, err := h.startRouting.Execute(c.Request.Context(), routerID, usecases.StartRoutingInput{ID: id})
+	if err != nil {
+		mapWorkflowError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(doc))
+}
+
+// SignVisa handles POST /api/admin/documents/:id/sign-visa.
+//
+// Single-step visa per ADR-1. Route-level admin middleware pre-gates
+// the call; entity SignVisa method enforces the status invariant.
+// Body empty — same envelope as Approve.
+//
+// Issue: #231
+func (h *WorkflowHandler) SignVisa(c *gin.Context) {
+	if h.signVisa == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "sign-visa usecase not wired"})
+		return
+	}
+	id, err := parseDocID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		return
+	}
+	visaID, _, ok := readActor(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	doc, err := h.signVisa.Execute(c.Request.Context(), visaID, usecases.SignVisaInput{ID: id})
+	if err != nil {
+		mapWorkflowError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(doc))
+}
+
 // Reject handles POST /api/admin/documents/:id/reject.
 //
 // Body: {"reason": "10..500 chars"}. The usecase validates the reason
@@ -218,7 +292,9 @@ func mapWorkflowError(c *gin.Context, err error) {
 	case errors.Is(err, entities.ErrCannotSubmit),
 		errors.Is(err, entities.ErrCannotApprove),
 		errors.Is(err, entities.ErrCannotReject),
-		errors.Is(err, entities.ErrCannotRegister):
+		errors.Is(err, entities.ErrCannotRegister),
+		errors.Is(err, entities.ErrCannotRoute),
+		errors.Is(err, entities.ErrCannotSignVisa):
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 	case errors.Is(err, entities.ErrRejectionReasonInvalid),
 		errors.Is(err, entities.ErrInvalidRegistrationNumber):
