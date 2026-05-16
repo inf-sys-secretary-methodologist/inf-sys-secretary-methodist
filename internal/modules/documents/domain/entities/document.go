@@ -46,6 +46,18 @@ var ErrCannotRegister = errors.New("document: cannot register, status must be ap
 // Issue: #230
 var ErrInvalidRegistrationNumber = errors.New("document: registration number invalid (must be ≥3 chars after trim)")
 
+// ErrCannotRoute signals SendToRouting invoked on a non-registered
+// document. Phase 3 workflow gate.
+//
+// Issue: #231
+var ErrCannotRoute = errors.New("document: cannot send to routing, status must be registered")
+
+// ErrCannotSignVisa signals SignVisa invoked on a document not currently
+// in the routing queue. Phase 3 workflow gate.
+//
+// Issue: #231
+var ErrCannotSignVisa = errors.New("document: cannot sign visa, status must be routing")
+
 // DocumentStatus represents the status of a document in workflow
 type DocumentStatus string
 
@@ -141,6 +153,11 @@ type Document struct {
 	RejectedReason *string    `json:"rejected_reason,omitempty"`
 	// v0.149.0 Phase 2 — Register transition (#230).
 	RegisteredBy *int64 `json:"registered_by,omitempty"`
+	// v0.150.0 Phase 3 — Routing transitions (#231).
+	RoutedBy     *int64     `json:"routed_by,omitempty"`
+	RoutedAt     *time.Time `json:"routed_at,omitempty"`
+	VisaSignedBy *int64     `json:"visa_signed_by,omitempty"`
+	VisaSignedAt *time.Time `json:"visa_signed_at,omitempty"`
 }
 
 // NewDocument creates a new document with default values
@@ -278,6 +295,42 @@ func (d *Document) Reject(adminID int64, reason RejectionReason, now time.Time) 
 	d.RejectedAt = &now
 	reasonStr := reason.String()
 	d.RejectedReason = &reasonStr
+	d.UpdatedAt = now
+	return nil
+}
+
+// SendToRouting advances a registered document into the routing queue.
+// Sets RoutedBy + RoutedAt audit fields. Returns ErrCannotRoute when
+// the current status is not Registered — workflow invariant guarded
+// at the domain boundary.
+//
+// Issue: #231
+func (d *Document) SendToRouting(routerID int64, now time.Time) error {
+	if d.Status != DocumentStatusRegistered {
+		return fmt.Errorf("%w: status %q", ErrCannotRoute, string(d.Status))
+	}
+	d.Status = DocumentStatusRouting
+	d.RoutedBy = &routerID
+	d.RoutedAt = &now
+	d.UpdatedAt = now
+	return nil
+}
+
+// SignVisa advances a routing-queue document к the execution state.
+// Sets VisaSignedBy + VisaSignedAt audit fields. Returns ErrCannotSignVisa
+// when the current status is not Routing.
+//
+// Single-step visa per ADR-1 (one approver). Multi-step parallel routing
+// — out of scope.
+//
+// Issue: #231
+func (d *Document) SignVisa(visaID int64, now time.Time) error {
+	if d.Status != DocumentStatusRouting {
+		return fmt.Errorf("%w: status %q", ErrCannotSignVisa, string(d.Status))
+	}
+	d.Status = DocumentStatusExecution
+	d.VisaSignedBy = &visaID
+	d.VisaSignedAt = &now
 	d.UpdatedAt = now
 	return nil
 }
