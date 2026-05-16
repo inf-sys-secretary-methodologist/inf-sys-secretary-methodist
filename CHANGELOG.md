@@ -15,6 +15,37 @@
 
 ---
 
+## [0.147.0] — 2026-05-16
+
+### Fixed — WebPush dispatch in reminder schedulers (defense doc gap #226)
+
+Closes [#226](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/226). Обнаружено при honest validation формулировки «Email, Telegram и Push» в ВКР Акте испытания против реального кода.
+
+**Backend — production gap**:
+- `ReminderScheduler.sendPushReminder` и `TaskReminderScheduler` switch-case `ReminderTypePush` делали **silent fallback** к `sendInAppReminder`/`sendInApp` вместо реального dispatch через `WebPushService.SendToUser`.
+- Пользователи могли выбирать push через UI, VAPID-keys были настроены (v0.134.0 admin integrations), но dispatch уходил в in-app — без логов, без ошибок.
+
+**Fix shape** (mirror к v0.138.0 `WithTelegramDispatch`):
+- `WithWebPushDispatch(webPushRepo, webPushService) *ReminderScheduler` chainable setter на обоих schedulers.
+- `sendPushReminder` (event) и `sendPush` (task) реализуют 4 fallback gates: nil deps / not configured (нет VAPID) / no active subscriptions / dispatch error → in-app. Все 4 пути логируются.
+- Payload `notifEntities.NewWebPushPayload(title, body)` + `URL` (deep link к `/schedule/events/:id` или `/tasks/:id`) + `Tag` для browser-side deduplication.
+- `main.go` wiring: `wireEventReminderDispatch` helper extracted чтобы сохранить `main()` cyclomatic complexity под gocyclo threshold. `initTaskReminderScheduler` signature extended.
+
+**TDD**: 2 RED→GREEN pairs (4 commits), 6+5=11 cases table-driven для обоих schedulers covering happy path + 4 fallback gates каждый + 1 integration test через `processReminder` switch.
+
+**Wiring точка** (для архитектурного reviewer'а):
+```go
+// cmd/server/main.go
+wireEventReminderDispatch(reminderScheduler, telegramRepo, telegramService, webpushRepo, webpushService)
+// + setter в initTaskReminderScheduler
+```
+
+Files: 4 modified в production (`reminder_scheduler.go`, `task_reminder_scheduler.go`, `main.go`, 8 version files), 2 new test files (~430 LoC новых тестов).
+
+После v0.147.0 — формулировка «Email, Telegram и Push» в ВКР Акте испытания снова **honest contract**.
+
+---
+
 ## [0.146.0] — 2026-05-16
 
 ### Security — Security cluster: CodeQL SQL injection + leaked OAuth + postcss XSS
