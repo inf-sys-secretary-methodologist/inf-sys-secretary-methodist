@@ -21,14 +21,18 @@ type AuditSink interface {
 // audit event carries.
 const auditResource = "document"
 
+// auditFieldDocumentID centralizes the audit payload key so a single
+// rename propagates across all workflow use cases.
+const auditFieldDocumentID = "document_id"
+
 // denialFields composes the canonical {actor_user_id, document_id,
 // reason} field shape that every *_denied audit event carries. Mirror
 // к curriculum.denialFields.
 func denialFields(actorID, documentID int64, reason string) map[string]any {
 	return map[string]any{
-		"actor_user_id": actorID,
-		"document_id":   documentID,
-		"reason":        reason,
+		"actor_user_id":      actorID,
+		auditFieldDocumentID: documentID,
+		"reason":             reason,
 	}
 }
 

@@ -84,9 +84,9 @@ func (uc *SubmitDocumentUseCase) Execute(ctx context.Context, actorID int64, rol
 		return nil, err
 	}
 	emitAudit(uc.audit, ctx, "document.submitted", map[string]any{
-		"actor_user_id": actorID,
-		"document_id":   d.ID,
-		"status":        string(d.Status),
+		"actor_user_id":      actorID,
+		auditFieldDocumentID: d.ID,
+		"status":             string(d.Status),
 	})
 	return d, nil
 }
@@ -157,9 +157,9 @@ func (uc *ApproveDocumentUseCase) Execute(ctx context.Context, adminID int64, in
 		return nil, err
 	}
 	emitAudit(uc.audit, ctx, "document.approved", map[string]any{
-		"actor_user_id": adminID,
-		"document_id":   d.ID,
-		"status":        string(d.Status),
+		"actor_user_id":      adminID,
+		auditFieldDocumentID: d.ID,
+		"status":             string(d.Status),
 	})
 	return d, nil
 }
@@ -223,10 +223,10 @@ func (uc *RejectDocumentUseCase) Execute(ctx context.Context, adminID int64, in 
 		return nil, err
 	}
 	emitAudit(uc.audit, ctx, "document.rejected", map[string]any{
-		"actor_user_id":   adminID,
-		"document_id":     d.ID,
-		"status":          string(d.Status),
-		"rejected_reason": reason.String(),
+		"actor_user_id":      adminID,
+		auditFieldDocumentID: d.ID,
+		"status":             string(d.Status),
+		"rejected_reason":    reason.String(),
 	})
 	return d, nil
 }
