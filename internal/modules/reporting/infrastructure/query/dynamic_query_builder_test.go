@@ -1,8 +1,10 @@
 package query
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/csv"
 	"errors"
 	"regexp"
 	"strings"
@@ -10,6 +12,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/xuri/excelize/v2"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
 )
@@ -787,12 +790,27 @@ func TestExportCSV_WithHeaders(t *testing.T) {
 	if !strings.HasPrefix(filename, "My_Report_") || !strings.HasSuffix(filename, ".csv") {
 		t.Errorf("filename = %q, want prefix 'My_Report_' suffix '.csv'", filename)
 	}
-	got := string(data)
-	if !strings.Contains(got, "Name,Count") {
-		t.Errorf("CSV missing header row 'Name,Count':\n%s", got)
+	records, err := csv.NewReader(bytes.NewReader(data)).ReadAll()
+	if err != nil {
+		t.Fatalf("csv.ReadAll: %v", err)
 	}
-	if !strings.Contains(got, "Alpha,10") || !strings.Contains(got, "Beta,20") {
-		t.Errorf("CSV missing data rows:\n%s", got)
+	want := [][]string{
+		{"Name", "Count"},
+		{"Alpha", "10"},
+		{"Beta", "20"},
+	}
+	if len(records) != len(want) {
+		t.Fatalf("records len = %d, want %d (records=%v)", len(records), len(want), records)
+	}
+	for i, row := range want {
+		if len(records[i]) != len(row) {
+			t.Fatalf("row %d cols = %d, want %d", i, len(records[i]), len(row))
+		}
+		for j, cell := range row {
+			if records[i][j] != cell {
+				t.Errorf("record[%d][%d] = %q, want %q", i, j, records[i][j], cell)
+			}
+		}
 	}
 }
 
@@ -806,12 +824,24 @@ func TestExportCSV_WithoutHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Export csv: %v", err)
 	}
-	got := string(data)
-	if strings.Contains(got, "Name") {
-		t.Errorf("CSV header row should be absent:\n%s", got)
+	records, err := csv.NewReader(bytes.NewReader(data)).ReadAll()
+	if err != nil {
+		t.Fatalf("csv.ReadAll: %v", err)
 	}
-	if !strings.Contains(got, "Alpha,10") {
-		t.Errorf("CSV missing data row:\n%s", got)
+	// IncludeHeaders=false → exactly len(Rows) records, no header line.
+	if len(records) != 2 {
+		t.Fatalf("records len = %d, want 2 (no-header expectation): %v", len(records), records)
+	}
+	want := [][]string{
+		{"Alpha", "10"},
+		{"Beta", "20"},
+	}
+	for i, row := range want {
+		for j, cell := range row {
+			if records[i][j] != cell {
+				t.Errorf("record[%d][%d] = %q, want %q", i, j, records[i][j], cell)
+			}
+		}
 	}
 }
 
@@ -855,12 +885,32 @@ func TestExportXLSX_WithHeaders(t *testing.T) {
 	if !strings.HasPrefix(filename, "Stats_") || !strings.HasSuffix(filename, ".xlsx") {
 		t.Errorf("filename = %q", filename)
 	}
-	if len(data) == 0 {
-		t.Fatal("XLSX bytes empty")
-	}
-	// XLSX is a ZIP — magic bytes 'PK\x03\x04'.
 	if len(data) < 4 || data[0] != 'P' || data[1] != 'K' || data[2] != 0x03 || data[3] != 0x04 {
-		t.Errorf("XLSX magic bytes mismatch: got %x", data[:4])
+		t.Fatalf("XLSX magic bytes mismatch: got %x", data[:4])
+	}
+	f, err := excelize.OpenReader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("excelize.OpenReader: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	wantCells := map[string]string{
+		"A1": "Name",
+		"B1": "Count",
+		"A2": "Alpha",
+		"B2": "10",
+		"A3": "Beta",
+		"B3": "20",
+	}
+	for axis, want := range wantCells {
+		got, err := f.GetCellValue("Report", axis)
+		if err != nil {
+			t.Errorf("GetCellValue(Report,%s): %v", axis, err)
+			continue
+		}
+		if got != want {
+			t.Errorf("Report!%s = %q, want %q", axis, got, want)
+		}
 	}
 }
 
@@ -874,8 +924,20 @@ func TestExportXLSX_WithoutHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Export xlsx no-headers: %v", err)
 	}
-	if len(data) < 4 || data[0] != 'P' || data[1] != 'K' {
-		t.Errorf("XLSX magic mismatch")
+	f, err := excelize.OpenReader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("excelize.OpenReader: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	// IncludeHeaders=false → data starts at row 1, no header row.
+	a1, _ := f.GetCellValue("Report", "A1")
+	if a1 != "Alpha" {
+		t.Errorf("Report!A1 = %q, want %q (no-header expectation)", a1, "Alpha")
+	}
+	b1, _ := f.GetCellValue("Report", "B1")
+	if b1 != "10" {
+		t.Errorf("Report!B1 = %q, want %q", b1, "10")
 	}
 }
 
@@ -892,8 +954,8 @@ func TestExportPDF_HappyPath(t *testing.T) {
 	if !strings.HasPrefix(filename, "PDF_Report_") || !strings.HasSuffix(filename, ".pdf") {
 		t.Errorf("filename = %q", filename)
 	}
-	if len(data) < 4 || string(data[:4]) != "%PDF" {
-		t.Errorf("PDF magic mismatch: got %q", string(data[:min(len(data), 4)]))
+	if len(data) < 5 || !strings.HasPrefix(string(data), "%PDF-") {
+		t.Errorf("PDF magic mismatch: got %q", string(data[:min(len(data), 8)]))
 	}
 }
 
@@ -911,8 +973,8 @@ func TestExportPDF_LandscapeOrientation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Export pdf landscape: %v", err)
 	}
-	if len(data) < 4 || string(data[:4]) != "%PDF" {
-		t.Errorf("PDF magic mismatch")
+	if len(data) < 5 || !strings.HasPrefix(string(data), "%PDF-") {
+		t.Errorf("PDF magic mismatch: got %q", string(data[:min(len(data), 8)]))
 	}
 }
 
@@ -930,8 +992,8 @@ func TestExportPDF_CustomPageSize(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Export pdf letter: %v", err)
 	}
-	if len(data) < 4 || string(data[:4]) != "%PDF" {
-		t.Errorf("PDF magic mismatch")
+	if len(data) < 5 || !strings.HasPrefix(string(data), "%PDF-") {
+		t.Errorf("PDF magic mismatch: got %q", string(data[:min(len(data), 8)]))
 	}
 }
 
@@ -948,8 +1010,8 @@ func TestExportPDF_WithoutHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Export pdf no-headers: %v", err)
 	}
-	if len(data) < 4 || string(data[:4]) != "%PDF" {
-		t.Errorf("PDF magic mismatch")
+	if len(data) < 5 || !strings.HasPrefix(string(data), "%PDF-") {
+		t.Errorf("PDF magic mismatch: got %q", string(data[:min(len(data), 8)]))
 	}
 }
 
@@ -989,8 +1051,8 @@ func TestExportPDF_PageBreakWithManyRows(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Export pdf many rows: %v", err)
 	}
-	if len(data) < 4 || string(data[:4]) != "%PDF" {
-		t.Errorf("PDF magic mismatch")
+	if len(data) < 5 || !strings.HasPrefix(string(data), "%PDF-") {
+		t.Errorf("PDF magic mismatch: got %q", string(data[:min(len(data), 8)]))
 	}
 }
 
