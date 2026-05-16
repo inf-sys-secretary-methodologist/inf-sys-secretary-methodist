@@ -588,9 +588,7 @@ func main() {
 		// reminder scheduler so event_reminders also light up the
 		// Composio path (was a carry-forward gap closed alongside the
 		// Phase 5 #5 final task_reminders telegram dispatch).
-		if telegramService != nil {
-			reminderScheduler.WithTelegramDispatch(telegramRepo, telegramService)
-		}
+		wireEventReminderDispatch(reminderScheduler, telegramRepo, telegramService, webpushRepo, webpushService)
 		if err := reminderScheduler.Start(); err != nil {
 			logger.Error("Failed to start reminder scheduler", map[string]interface{}{
 				errorKey: err.Error(),
@@ -617,6 +615,8 @@ func main() {
 		notificationRepo,
 		preferencesRepo,
 		notifEmailService,
+		webpushRepo,
+		webpushService,
 	)
 
 	// Initialize announcements module
@@ -3055,6 +3055,8 @@ func initTaskReminderScheduler(
 	notificationRepo notifRepositories.NotificationRepository,
 	preferencesRepo notifRepositories.PreferencesRepository,
 	notifEmailService emailDomain.EmailService,
+	webpushRepo notifRepositories.WebPushRepository,
+	webpushService emailDomain.WebPushService,
 ) *notifScheduler.TaskReminderScheduler {
 	scheduler, err := notifScheduler.NewTaskReminderScheduler(
 		taskReminderRepo,
@@ -3072,6 +3074,12 @@ func initTaskReminderScheduler(
 			errorKey: err.Error(),
 		})
 		return nil
+	}
+	// v0.147.0 — wire WebPush dispatch so the push switch-case lights up
+	// the real WebPushService path instead of the silent in-app fallback
+	// (issue #226). Scheduler's own gates handle un-configured runtime.
+	if webpushService != nil {
+		scheduler.WithWebPushDispatch(webpushRepo, webpushService)
 	}
 	if err := scheduler.Start(); err != nil {
 		logger.Error("Failed to start task reminder scheduler", map[string]interface{}{
@@ -3097,6 +3105,28 @@ func initTaskReminderModule(
 	listUC := taskUsecases.NewListTaskRemindersUseCase(repo)
 	delUC := taskUsecases.NewDeleteReminderUseCase(repo, auditLogger)
 	return repo, taskHandler.NewTaskReminderHandler(setUC, listUC, delUC)
+}
+
+// wireEventReminderDispatch threads optional telegram + webpush
+// dispatch hooks onto an event ReminderScheduler. Extracted из main()
+// so adding dispatch channels (v0.147.0 push) does not push main()
+// over the gocyclo threshold. Nil deps are no-op — scheduler's own
+// gates handle un-configured runtime.
+//
+// Issue: #226
+func wireEventReminderDispatch(
+	scheduler *notifScheduler.ReminderScheduler,
+	telegramRepo notifRepositories.TelegramRepository,
+	telegramService emailDomain.TelegramService,
+	webpushRepo notifRepositories.WebPushRepository,
+	webpushService emailDomain.WebPushService,
+) {
+	if telegramService != nil {
+		scheduler.WithTelegramDispatch(telegramRepo, telegramService)
+	}
+	if webpushService != nil {
+		scheduler.WithWebPushDispatch(webpushRepo, webpushService)
+	}
 }
 
 // stopTaskReminderScheduler is a small helper that wraps the nil-
