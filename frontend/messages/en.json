@@ -2933,5 +2933,73 @@
       "set": "set",
       "unset": "unset"
     }
+  },
+  "documentsWorkflow": {
+    "submit": {
+      "dialogTitle": "Submit document for review?",
+      "dialogBody": "The document will enter the approval queue. The draft content will become read-only for the author until returned or approved.",
+      "confirmLabel": "Submit",
+      "cancelLabel": "Cancel"
+    },
+    "approve": {
+      "dialogTitle": "Approve document?",
+      "dialogBody": "The document will move to the approved state. This action is recorded in the audit log.",
+      "confirmLabel": "Approve",
+      "cancelLabel": "Cancel"
+    },
+    "reject": {
+      "dialogTitle": "Reject document?",
+      "dialogBody": "The document will move to the rejected state. Provide a reason — it will be stored and visible to the author during rework.",
+      "reasonLabel": "Rejection reason",
+      "reasonPlaceholder": "e.g., the 2023 template is outdated — update per the new requirements.",
+      "reasonTooShort": "Minimum {min} characters",
+      "reasonTooLong": "Maximum {max} characters",
+      "confirmLabel": "Reject",
+      "cancelLabel": "Cancel"
+    },
+    "submitToast": {
+      "success": "Document submitted for review",
+      "errors": {
+        "notDraft": "Cannot submit — the document is no longer a draft",
+        "forbidden": "Not authorized to submit this document",
+        "notFound": "Document not found",
+        "generic": "Failed to submit the document"
+      }
+    },
+    "approveToast": {
+      "success": "Document approved",
+      "errors": {
+        "notApproval": "Cannot approve — the document is not in the review queue",
+        "forbidden": "Not authorized to approve",
+        "notFound": "Document not found",
+        "generic": "Failed to approve the document"
+      }
+    },
+    "rejectToast": {
+      "success": "Document rejected",
+      "errors": {
+        "invalidOrConflict": "Cannot reject — invalid reason or the document is no longer in review",
+        "notApproval": "Cannot reject — the document is not in the review queue",
+        "forbidden": "Not authorized to reject",
+        "notFound": "Document not found",
+        "generic": "Failed to reject the document"
+      }
+    },
+    "actions": {
+      "submitButton": "Submit for review",
+      "approveButton": "Approve",
+      "rejectButton": "Reject"
+    },
+    "statusBadge": {
+      "draft": "Draft",
+      "approval": "In review",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "registered": "Registered",
+      "routing": "Routing",
+      "execution": "Execution",
+      "executed": "Executed",
+      "archived": "Archived"
+    }
   }
 }

@@ -15,6 +15,62 @@
 
 ---
 
+## [0.148.0] — 2026-05-16
+
+### Added — Documents workflow HTTP gates + frontend (defense doc gap #227)
+
+Closes [#227](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/227). Обнаружено при honest validation формулировки «электронное согласование документов» в ВКР Акте испытания против реального кода.
+
+**Backend** (mirror к curriculum workflow precedent):
+
+Domain layer (`internal/modules/documents/domain/entities/`):
+- 3 новых sentinel: `ErrCannotSubmit`, `ErrCannotApprove`, `ErrCannotReject`.
+- `Document.Submit(actorID, now)` — `draft → approval` + audit fields (`SubmittedBy`, `SubmittedAt`).
+- `Document.Approve(adminID, now)` — `approval → approved` + audit fields (`ApprovedBy`, `ApprovedAt`).
+- `Document.Reject(adminID, reason, now)` — `approval → rejected` + audit fields (`RejectedBy`, `RejectedAt`, `RejectedReason`).
+- `RejectionReason` VO (`rejection_reason.go`): инвариант rune-count `[10, 500]` после `strings.TrimSpace`; sentinel `ErrRejectionReasonInvalid`. Zero-value rejected даже if accidentally passed по ошибке.
+
+Application layer (`internal/modules/documents/application/usecases/`):
+- `AuditSink` narrow port (`audit_sink.go`) — mirror к curriculum + assignments shape; platform `*logging.AuditLogger` satisfies structurally.
+- `SubmitDocumentUseCase` — load → `canSubmit(actor, role, doc)` authorization gate (Methodist/Secretary/Admin OR author Teacher) → `entity.Submit` → repo.Update. 4 канонических audit reasons: `submitted` / `submit_denied{not_found|forbidden|not_draft}`.
+- `ApproveDocumentUseCase` — load → `entity.Approve(adminID)` → repo.Update. Admin-only по route gate; 3 audit reasons: `approved` / `approve_denied{not_found|not_approval}`.
+- `RejectDocumentUseCase` — load → `NewRejectionReason(raw)` VO → `entity.Reject(adminID, reason)` → repo.Update. 4 audit reasons: `rejected` / `reject_denied{not_found|invalid_reason|not_approval}`.
+- 2 новых sentinel: `ErrDocumentNotFound`, `ErrDocumentForbidden`.
+
+Interfaces layer (`internal/modules/documents/interfaces/http/handlers/`):
+- `WorkflowHandler` + `RegisterSubmitRoute` + `RegisterAdminWorkflowRoutes` — split registrars per `feedback_routes_registrar_adminMW_choice` (same-tier set → caller pre-gates с actual middleware).
+- `readActor(c)` reads `"user_id"` + `"role"` ctx keys verbatim из production JWT middleware per `feedback_handler_context_key_must_match_middleware`; accepts entities.UserRole + raw string; defense-in-depth failure-closed (401) on missing/wrong-type.
+- `mapWorkflowError(c, err)` — single error mapper для consistent HTTP codes: 404 not-found / 403 forbidden / 409 state-machine violation / 422 invalid input.
+
+Migration `039_documents_workflow_fields.up.sql`:
+- 7 nullable audit columns added к `documents`: `submitted_by`/`submitted_at` + `approved_by`/`approved_at` + `rejected_by`/`rejected_at`/`rejected_reason`. FK к `users(id) ON DELETE SET NULL` сохраняет forensic trail при cascade delete.
+
+Wiring (`cmd/server/main.go`):
+- `workflowDocRepoAdapter` translates legacy `fmt.Errorf("document not found")` string из `DocumentRepositoryPG.GetByID` к sentinel `ErrDocumentNotFound` без touching existing PG repo consumers.
+- 3 use cases wired в documents init block; `setupRoutes` signature extended.
+- Routes: `POST /api/documents/:id/submit` (protected + RequireNonStudent) + `POST /api/admin/documents/:id/{approve,reject}` (admin group с `RequireRole(AcademicSecretary, SystemAdmin)`).
+
+**Frontend** (mirror к curriculum dialogs):
+
+- `frontend/src/hooks/useDocumentWorkflow.ts` — `submitDocument` / `approveDocument` / `rejectDocument` thin axios POST wrappers; axios errors propagate so dialogs branch by HTTP status.
+- `SubmitDocumentDialog.tsx` — confirm modal для draft→approval; `Send` icon; toast on success/error per-status.
+- `ApproveDocumentDialog.tsx` — admin confirm modal для approval→approved; `CheckCircle2` icon.
+- `RejectDocumentDialog.tsx` — admin modal с `Textarea` + rune-aware length counter (10..500) matching backend VO; `XCircle` icon на destructive variant; status-aware error mapping (422 invalid-or-conflict / 409 not-approval / 403 forbidden / 404 not-found / default generic).
+- `DocumentPreview.tsx` header gains 3 role-gated buttons: Submit (status=draft + edit-cluster + teacher) и Approve+Reject (status=approval + secretary/admin). `onDocumentUpdated` callback refreshes SWR.
+
+i18n × 4 (ru/en/fr/ar) parity для new namespace `documentsWorkflow`: 8 sub-namespaces — `submit`/`approve`/`reject` dialog copy + 3 toast streams с per-error-reason keys + `actions` buttons + `statusBadge` mapping.
+
+**TDD**: 6 RED→GREEN pairs.
+- Domain table-driven: 22 cases (Submit 6 / Approve 5 / Reject 4 + 7 VO validation cases + 1 zero-value guard).
+- Usecase mock tests: 19 cases (Submit 8 / Approve 3 / Reject 5 + 1 transport-error must-not-emit-success-audit guard).
+- Handler integration: 11 cases через real `gin.Engine` с `withAuth` shim — full ctx-key contract pinned per `feedback_handler_context_key_must_match_middleware`.
+
+**Tier 0 fix dispatched same-release**: `workflowDocRepoAdapter` — chose adapter over modifying existing PG repo to keep existing consumers untouched. Per `feedback_tier2_absorb_same_release`.
+
+После v0.148.0 — формулировка «электронное согласование документов» в ВКР Акте испытания снова **honest contract**. End-to-end UI clickable: автор / методист submit'ит draft → secretary review → approve OR reject с обоснованием → audit trail на каждом transition.
+
+---
+
 ## [0.147.0] — 2026-05-16
 
 ### Fixed — WebPush dispatch in reminder schedulers (defense doc gap #226)

@@ -84,8 +84,11 @@ func (r *DocumentRepositoryPG) Update(ctx context.Context, doc *entities.Documen
 			recipient_id = $10, recipient_department = $11, recipient_position = $12, recipient_external = $13,
 			status = $14, file_name = $15, file_path = $16, file_size = $17, mime_type = $18, version = $19,
 			deadline = $20, execution_date = $21, metadata = $22, is_public = $23, importance = $24,
-			updated_at = $25
-		WHERE id = $26 AND deleted_at IS NULL`
+			updated_at = $25,
+			submitted_by = $26, submitted_at = $27,
+			approved_by = $28, approved_at = $29,
+			rejected_by = $30, rejected_at = $31, rejected_reason = $32
+		WHERE id = $33 AND deleted_at IS NULL`
 
 	result, err := r.db.ExecContext(ctx, query,
 		doc.DocumentTypeID, doc.CategoryID, doc.RegistrationNumber, doc.RegistrationDate,
@@ -93,7 +96,14 @@ func (r *DocumentRepositoryPG) Update(ctx context.Context, doc *entities.Documen
 		doc.RecipientID, doc.RecipientDepartment, doc.RecipientPosition, doc.RecipientExternal,
 		doc.Status, doc.FileName, doc.FilePath, doc.FileSize, doc.MimeType, doc.Version,
 		doc.Deadline, doc.ExecutionDate, metadataJSON, doc.IsPublic, doc.Importance,
-		doc.UpdatedAt, doc.ID,
+		doc.UpdatedAt,
+		// v0.148.0 — workflow audit trail (#227). NULL-friendly via
+		// the existing *int64 / *time.Time / *string pointers; the
+		// columns are migration-added as nullable.
+		doc.SubmittedBy, doc.SubmittedAt,
+		doc.ApprovedBy, doc.ApprovedAt,
+		doc.RejectedBy, doc.RejectedAt, doc.RejectedReason,
+		doc.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update document: %w", err)
@@ -115,6 +125,8 @@ func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities
 			d.status, d.file_name, d.file_path, d.file_size, d.mime_type, d.version,
 			d.parent_document_id, d.deadline, d.execution_date, d.metadata, d.is_public, d.importance,
 			d.created_at, d.updated_at, d.deleted_at,
+			d.submitted_by, d.submitted_at, d.approved_by, d.approved_at,
+			d.rejected_by, d.rejected_at, d.rejected_reason,
 			author.name as author_name, recipient.name as recipient_name
 		FROM documents d
 		LEFT JOIN users author ON d.author_id = author.id
@@ -131,6 +143,9 @@ func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities
 		&doc.Status, &doc.FileName, &doc.FilePath, &doc.FileSize, &doc.MimeType, &doc.Version,
 		&doc.ParentDocumentID, &doc.Deadline, &doc.ExecutionDate, &metadataJSON, &doc.IsPublic, &doc.Importance,
 		&doc.CreatedAt, &doc.UpdatedAt, &doc.DeletedAt,
+		// v0.148.0 — workflow audit trail (#227).
+		&doc.SubmittedBy, &doc.SubmittedAt, &doc.ApprovedBy, &doc.ApprovedAt,
+		&doc.RejectedBy, &doc.RejectedAt, &doc.RejectedReason,
 		&doc.AuthorName, &doc.RecipientName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -288,6 +303,8 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 			d.status, d.file_name, d.file_path, d.file_size, d.mime_type, d.version,
 			d.parent_document_id, d.deadline, d.execution_date, d.metadata, d.is_public, d.importance,
 			d.created_at, d.updated_at, d.deleted_at,
+			d.submitted_by, d.submitted_at, d.approved_by, d.approved_at,
+			d.rejected_by, d.rejected_at, d.rejected_reason,
 			author.name as author_name, recipient.name as recipient_name
 		FROM documents d
 		LEFT JOIN users author ON d.author_id = author.id
@@ -315,6 +332,9 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 			&doc.Status, &doc.FileName, &doc.FilePath, &doc.FileSize, &doc.MimeType, &doc.Version,
 			&doc.ParentDocumentID, &doc.Deadline, &doc.ExecutionDate, &metadataJSON, &doc.IsPublic, &doc.Importance,
 			&doc.CreatedAt, &doc.UpdatedAt, &doc.DeletedAt,
+			// v0.148.0 — workflow audit trail (#227).
+			&doc.SubmittedBy, &doc.SubmittedAt, &doc.ApprovedBy, &doc.ApprovedAt,
+			&doc.RejectedBy, &doc.RejectedAt, &doc.RejectedReason,
 			&doc.AuthorName, &doc.RecipientName,
 		)
 		if err != nil {

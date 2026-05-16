@@ -3,11 +3,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
-import { X, Download, ExternalLink, FileText, History } from 'lucide-react'
+import {
+  X,
+  Download,
+  ExternalLink,
+  FileText,
+  History,
+  Send,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react'
 import { getStoredToken } from '@/lib/auth/token'
 import { Button } from '@/components/ui/button'
-import { Document } from '@/types/document'
+import { Document, DocumentStatus } from '@/types/document'
+import { UserRole } from '@/types/auth'
+import { useAuthCheck } from '@/hooks/useAuth'
 import { DocumentVersionHistory } from './DocumentVersionHistory'
+import { SubmitDocumentDialog } from './SubmitDocumentDialog'
+import { ApproveDocumentDialog } from './ApproveDocumentDialog'
+import { RejectDocumentDialog } from './RejectDocumentDialog'
 
 type TabType = 'preview' | 'versions'
 
@@ -29,8 +43,27 @@ export function DocumentPreview({
   const t = useTranslations('common')
   const tDocs = useTranslations('documents')
   const tPreview = useTranslations('documentPreview')
+  const tWorkflow = useTranslations('documentsWorkflow')
+  const { user } = useAuthCheck()
   const modalRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<TabType>('preview')
+  const [submitOpen, setSubmitOpen] = useState(false)
+  const [approveOpen, setApproveOpen] = useState(false)
+  const [rejectOpen, setRejectOpen] = useState(false)
+
+  // Workflow gates (v0.148.0 #227). Submit visible to author OR
+  // any edit-role on a draft. Approve/Reject visible only к
+  // academic_secretary + system_admin AND only when in approval queue.
+  const role = user?.role
+  const canSubmit =
+    doc.status === DocumentStatus.DRAFT &&
+    (role === UserRole.METHODIST ||
+      role === UserRole.ACADEMIC_SECRETARY ||
+      role === UserRole.SYSTEM_ADMIN ||
+      role === UserRole.TEACHER)
+  const canAdminApprove =
+    doc.status === DocumentStatus.APPROVAL &&
+    (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
 
   /* c8 ignore start - Keyboard and click handlers, tested in e2e */
   useEffect(() => {
@@ -114,7 +147,25 @@ export function DocumentPreview({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {canSubmit && (
+              <Button variant="default" size="sm" onClick={() => setSubmitOpen(true)}>
+                <Send className="h-4 w-4 mr-2" />
+                {tWorkflow('actions.submitButton')}
+              </Button>
+            )}
+            {canAdminApprove && (
+              <>
+                <Button variant="default" size="sm" onClick={() => setApproveOpen(true)}>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  {tWorkflow('actions.approveButton')}
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => setRejectOpen(true)}>
+                  <XCircle className="h-4 w-4 mr-2" />
+                  {tWorkflow('actions.rejectButton')}
+                </Button>
+              </>
+            )}
             {onDownload && (
               <Button variant="outline" size="sm" onClick={onDownload}>
                 <Download className="h-4 w-4 mr-2" />
@@ -278,6 +329,24 @@ export function DocumentPreview({
           {/* c8 ignore stop */}
         </div>
       </div>
+      <SubmitDocumentDialog
+        documentId={Number(doc.id)}
+        open={submitOpen}
+        onClose={() => setSubmitOpen(false)}
+        onSubmitted={onDocumentUpdated}
+      />
+      <ApproveDocumentDialog
+        documentId={Number(doc.id)}
+        open={approveOpen}
+        onClose={() => setApproveOpen(false)}
+        onApproved={onDocumentUpdated}
+      />
+      <RejectDocumentDialog
+        documentId={Number(doc.id)}
+        open={rejectOpen}
+        onClose={() => setRejectOpen(false)}
+        onRejected={onDocumentUpdated}
+      />
     </div>
   )
 }

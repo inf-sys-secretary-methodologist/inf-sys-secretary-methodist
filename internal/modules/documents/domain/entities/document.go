@@ -3,6 +3,7 @@ package entities
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -12,6 +13,25 @@ import (
 // handlers can errors.Is it and map to a stable 403 response without
 // string parsing.
 var ErrDocumentEditDenied = errors.New("not allowed to edit this document")
+
+// ErrCannotSubmit signals Submit invoked on a non-draft document
+// (already submitted, approved, rejected, etc.). v0.148.0 workflow gate.
+//
+// Issue: #227
+var ErrCannotSubmit = errors.New("document: cannot submit, status must be draft")
+
+// ErrCannotApprove signals Approve invoked on a document not in the
+// approval queue (e.g. caller pressed approve on a draft or already
+// approved document).
+//
+// Issue: #227
+var ErrCannotApprove = errors.New("document: cannot approve, status must be approval")
+
+// ErrCannotReject signals Reject invoked on a document not in the
+// approval queue.
+//
+// Issue: #227
+var ErrCannotReject = errors.New("document: cannot reject, status must be approval")
 
 // DocumentStatus represents the status of a document in workflow
 type DocumentStatus string
@@ -94,6 +114,18 @@ type Document struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Workflow audit trail (v0.148.0 — issue #227). Nullable so
+	// pre-v0.148.0 documents (which never traversed approval gates)
+	// keep clean JSON output. Mirror к curriculum's approved_by /
+	// _at + adds rejected/submitted columns.
+	SubmittedBy    *int64     `json:"submitted_by,omitempty"`
+	SubmittedAt    *time.Time `json:"submitted_at,omitempty"`
+	ApprovedBy     *int64     `json:"approved_by,omitempty"`
+	ApprovedAt     *time.Time `json:"approved_at,omitempty"`
+	RejectedBy     *int64     `json:"rejected_by,omitempty"`
+	RejectedAt     *time.Time `json:"rejected_at,omitempty"`
+	RejectedReason *string    `json:"rejected_reason,omitempty"`
 }
 
 // NewDocument creates a new document with default values
@@ -165,6 +197,61 @@ func (d *Document) Restore() {
 // HasFile checks if document has an attached file
 func (d *Document) HasFile() bool {
 	return d.FilePath != nil && *d.FilePath != ""
+}
+
+// Submit moves a draft document into the approval queue. Sets the
+// SubmittedBy + SubmittedAt audit fields. Returns ErrCannotSubmit
+// when the current status is not Draft — workflow invariant guarded
+// at the domain boundary.
+//
+// Issue: #227
+func (d *Document) Submit(actorID int64, now time.Time) error {
+	if d.Status != DocumentStatusDraft {
+		return fmt.Errorf("%w: status %q", ErrCannotSubmit, string(d.Status))
+	}
+	d.Status = DocumentStatusApproval
+	d.SubmittedBy = &actorID
+	d.SubmittedAt = &now
+	d.UpdatedAt = now
+	return nil
+}
+
+// Approve advances an approval-queue document к the approved state.
+// Sets ApprovedBy + ApprovedAt audit fields. Returns ErrCannotApprove
+// when the current status is not Approval.
+//
+// Issue: #227
+func (d *Document) Approve(adminID int64, now time.Time) error {
+	if d.Status != DocumentStatusApproval {
+		return fmt.Errorf("%w: status %q", ErrCannotApprove, string(d.Status))
+	}
+	d.Status = DocumentStatusApproved
+	d.ApprovedBy = &adminID
+	d.ApprovedAt = &now
+	d.UpdatedAt = now
+	return nil
+}
+
+// Reject marks an approval-queue document as rejected с обоснованием.
+// Sets RejectedBy + RejectedAt + RejectedReason audit fields. Returns
+// ErrCannotReject when the current status is not Approval, or
+// ErrRejectionReasonInvalid when the reason VO is zero-value.
+//
+// Issue: #227
+func (d *Document) Reject(adminID int64, reason RejectionReason, now time.Time) error {
+	if reason.IsZero() {
+		return fmt.Errorf("%w: zero-value reason", ErrRejectionReasonInvalid)
+	}
+	if d.Status != DocumentStatusApproval {
+		return fmt.Errorf("%w: status %q", ErrCannotReject, string(d.Status))
+	}
+	d.Status = DocumentStatusRejected
+	d.RejectedBy = &adminID
+	d.RejectedAt = &now
+	reasonStr := reason.String()
+	d.RejectedReason = &reasonStr
+	d.UpdatedAt = now
+	return nil
 }
 
 // CanBeEditedBy reports whether a user holding the given role is
