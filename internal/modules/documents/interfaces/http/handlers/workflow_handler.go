@@ -52,27 +52,108 @@ type rejectBody struct {
 	Reason string `json:"reason"`
 }
 
-// Submit handles POST /api/documents/:id/submit (RED stub —
-// references helpers in dead branch so golangci `unused` stays
-// satisfied without changing test observable behavior; GREEN replaces
-// the body).
+// Submit handles POST /api/documents/:id/submit.
+//
+// Authorization: JWT middleware sets user_id + role in context; the
+// usecase enforces the author-or-edit-role rule and returns
+// ErrDocumentForbidden when violated.
 func (h *WorkflowHandler) Submit(c *gin.Context) {
-	if false {
-		_, _ = parseDocID(c)
-		_ = rejectBody{}
-		mapWorkflowError(c, usecases.ErrDocumentNotFound)
+	id, err := parseDocID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		return
 	}
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "stub"})
+	userID, role, ok := readActor(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	doc, err := h.submit.Execute(c.Request.Context(), userID, role, usecases.SubmitDocumentInput{ID: id})
+	if err != nil {
+		mapWorkflowError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, doc)
 }
 
-// Approve handles POST /api/admin/documents/:id/approve (RED stub).
+// Approve handles POST /api/admin/documents/:id/approve.
+//
+// Route-level admin middleware pre-gates the call; the usecase
+// enforces the status invariant via the entity Approve method.
 func (h *WorkflowHandler) Approve(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "stub"})
+	id, err := parseDocID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		return
+	}
+	adminID, _, ok := readActor(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	doc, err := h.approve.Execute(c.Request.Context(), adminID, usecases.ApproveDocumentInput{ID: id})
+	if err != nil {
+		mapWorkflowError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, doc)
 }
 
-// Reject handles POST /api/admin/documents/:id/reject (RED stub).
+// Reject handles POST /api/admin/documents/:id/reject.
+//
+// Body: {"reason": "10..500 chars"}. The usecase validates the reason
+// VO; invalid → 422 ErrRejectionReasonInvalid.
 func (h *WorkflowHandler) Reject(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "stub"})
+	id, err := parseDocID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		return
+	}
+	adminID, _, ok := readActor(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	var body rejectBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "invalid request body"})
+		return
+	}
+	doc, err := h.reject.Execute(c.Request.Context(), adminID, usecases.RejectDocumentInput{ID: id, Reason: body.Reason})
+	if err != nil {
+		mapWorkflowError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, doc)
+}
+
+// readActor extracts (userID, role) from gin context populated by the
+// production JWT middleware. Returns ok=false when either key is missing
+// или has the wrong type — defense-in-depth against context-key drift.
+//
+// Mirror к `feedback_handler_context_key_must_match_middleware`: reads
+// "user_id" + "role" exactly as auth_middleware.go sets them.
+func readActor(c *gin.Context) (int64, entities.UserRole, bool) {
+	uidVal, exists := c.Get("user_id")
+	if !exists {
+		return 0, "", false
+	}
+	uid, ok := uidVal.(int64)
+	if !ok {
+		return 0, "", false
+	}
+	roleVal, exists := c.Get("role")
+	if !exists {
+		return 0, "", false
+	}
+	switch r := roleVal.(type) {
+	case entities.UserRole:
+		return uid, r, true
+	case string:
+		return uid, entities.UserRole(r), true
+	default:
+		return 0, "", false
+	}
 }
 
 // parseID is the shared :id parsing helper.
