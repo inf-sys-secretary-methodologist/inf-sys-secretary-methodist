@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.148.0
+// @version         0.149.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -175,7 +175,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.148.0"
+const versionString = "0.149.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -412,6 +412,7 @@ func main() {
 	var submitDocUseCase *docUsecases.SubmitDocumentUseCase
 	var approveDocUseCase *docUsecases.ApproveDocumentUseCase
 	var rejectDocUseCase *docUsecases.RejectDocumentUseCase
+	var registerDocUseCase *docUsecases.RegisterDocumentUseCase
 	if s3Client != nil {
 		docRepo := docPersistence.NewDocumentRepositoryPG(db)
 		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
@@ -434,6 +435,7 @@ func main() {
 		submitDocUseCase = docUsecases.NewSubmitDocumentUseCase(workflowRepoAdapter, auditLogger, nil)
 		approveDocUseCase = docUsecases.NewApproveDocumentUseCase(workflowRepoAdapter, auditLogger, nil)
 		rejectDocUseCase = docUsecases.NewRejectDocumentUseCase(workflowRepoAdapter, auditLogger, nil)
+		registerDocUseCase = docUsecases.NewRegisterDocumentUseCase(workflowRepoAdapter, auditLogger, nil)
 		logger.Info("Documents module initialized", nil)
 	} else {
 		logger.Warn("Documents module not initialized - S3 storage not available", nil)
@@ -868,6 +870,7 @@ func main() {
 		submitDocUseCase,
 		approveDocUseCase,
 		rejectDocUseCase,
+		registerDocUseCase,
 	)
 
 	// Initialize integration module (1C synchronization)
@@ -1403,6 +1406,7 @@ func setupRoutes(
 	submitDocUseCase *docUsecases.SubmitDocumentUseCase,
 	approveDocUseCase *docUsecases.ApproveDocumentUseCase,
 	rejectDocUseCase *docUsecases.RejectDocumentUseCase,
+	registerDocUseCase *docUsecases.RegisterDocumentUseCase,
 ) (*gin.Engine, *telegram.PollingService) {
 	router := gin.New()
 	var telegramPollingService *telegram.PollingService
@@ -1819,7 +1823,7 @@ func setupRoutes(
 			// stays на /documents (non-student gate), approve/reject
 			// move к /admin/documents с secretary+admin role guard.
 			if submitDocUseCase != nil && approveDocUseCase != nil && rejectDocUseCase != nil {
-				workflowHandler := docHandler.NewWorkflowHandler(submitDocUseCase, approveDocUseCase, rejectDocUseCase)
+				workflowHandler := docHandler.NewWorkflowHandler(submitDocUseCase, approveDocUseCase, rejectDocUseCase, registerDocUseCase)
 				docSubmitGroup := protectedGroup.Group("/documents")
 				docSubmitGroup.Use(authMiddleware.RequireNonStudent())
 				docHandler.RegisterSubmitRoute(docSubmitGroup, workflowHandler)

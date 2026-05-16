@@ -101,7 +101,8 @@ func mountWorkflow(t *testing.T, userID int64, role string, repo *fakeWorkflowRe
 	submitUC := usecases.NewSubmitDocumentUseCase(repo, noopAudit{}, fixedClock(now))
 	approveUC := usecases.NewApproveDocumentUseCase(repo, noopAudit{}, fixedClock(now))
 	rejectUC := usecases.NewRejectDocumentUseCase(repo, noopAudit{}, fixedClock(now))
-	h := docHttp.NewWorkflowHandler(submitUC, approveUC, rejectUC)
+	registerUC := usecases.NewRegisterDocumentUseCase(repo, noopAudit{}, fixedClock(now))
+	h := docHttp.NewWorkflowHandler(submitUC, approveUC, rejectUC, registerUC)
 
 	r := gin.New()
 	api := r.Group("/api")

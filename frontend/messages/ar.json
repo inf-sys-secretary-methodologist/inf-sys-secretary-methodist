@@ -2988,7 +2988,8 @@
     "actions": {
       "submitButton": "إرسال للموافقة",
       "approveButton": "اعتماد",
-      "rejectButton": "رفض"
+      "rejectButton": "رفض",
+      "registerButton": "تسجيل"
     },
     "statusBadge": {
       "draft": "مسودة",
@@ -3000,6 +3001,25 @@
       "execution": "قيد التنفيذ",
       "executed": "منفذ",
       "archived": "مؤرشف"
+    },
+    "register": {
+      "dialogTitle": "تسجيل المستند؟",
+      "dialogBody": "سيحصل المستند على رقم تسجيل وتاريخ. يتم تسجيل الإجراء في سجل المراجعة؛ يجب أن يكون الرقم فريدًا.",
+      "numberLabel": "رقم التسجيل",
+      "numberPlaceholder": "مثال: 01-2026/123",
+      "numberTooShort": "الحد الأدنى {min} حرف",
+      "confirmLabel": "تسجيل",
+      "cancelLabel": "إلغاء"
+    },
+    "registerToast": {
+      "success": "تم تسجيل المستند",
+      "errors": {
+        "invalidNumber": "رقم تسجيل غير صالح",
+        "notApproved": "لا يمكن التسجيل — المستند غير معتمد",
+        "forbidden": "غير مصرح لك بالتسجيل",
+        "notFound": "المستند غير موجود",
+        "generic": "فشل تسجيل المستند"
+      }
     }
   }
 }

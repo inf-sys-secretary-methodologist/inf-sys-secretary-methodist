@@ -15,6 +15,31 @@
 
 ---
 
+## [0.149.0] — 2026-05-16
+
+### Added — Documents workflow Phase 2: Register transition (#230)
+
+Phase 2 of #227. Closes #230. `approved → registered` transition: документу присваивается регистрационный номер + дата + admin audit trail.
+
+**Backend**:
+- Domain: `Document.Register(number, registrarID, now)` signature change — добавлены registrarID + now params + error return; sentinels `ErrCannotRegister` (status invariant) + `ErrInvalidRegistrationNumber` (length ≥3 после trim).
+- New entity field: `RegisteredBy *int64`.
+- Usecase: `RegisterDocumentUseCase` — load → entity.Register → repo.Update + audit. 5 cases (happy + not_found + not_approved + invalid_number × 2).
+- Handler: `POST /api/admin/documents/:id/register` (RequireRole AcademicSecretary, SystemAdmin) — body `{number: string}`.
+- AuditEmit: `document.registered` / `document.register_denied{not_found|not_approved|invalid_number}`.
+- Migration 040: `registered_by` BIGINT FK + partial UNIQUE index on `registration_number WHERE registered_by IS NOT NULL`.
+
+**Frontend**:
+- `registerDocument` hook function.
+- `RegisterDocumentDialog.tsx` — input + length validation + status-aware error mapping (422/409/403/404).
+- DocumentPreview button: `canRegister` gated на status=approved + admin role.
+- i18n × 4 (ru/en/fr/ar) parity для `register/registerToast/actions.registerButton`.
+
+**Code health**:
+- `auditFieldDocumentID` const closes goconst lint flag (25 occurrences cluster); workflow + register usecases use the constant. Legacy usecases (sharing/tag/version/template) — Tier 3 cleanup PR.
+
+---
+
 ## [0.148.0] — 2026-05-16
 
 ### Added — Documents workflow HTTP gates + frontend (defense doc gap #227)

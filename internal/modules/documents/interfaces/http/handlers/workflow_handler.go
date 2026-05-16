@@ -12,24 +12,27 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
-// WorkflowHandler exposes the v0.148.0 documents workflow gates
-// (Submit / Approve / Reject) as HTTP endpoints. Keeps existing
-// DocumentHandler untouched so CRUD endpoints stay independent.
-//
-// Issue: #227
+// WorkflowHandler exposes the documents workflow gates as HTTP
+// endpoints. Grew across multiple phases (#227 v0.148.0 — submit/
+// approve/reject; #230 v0.149.0 — register; #231/#232/#233 в очереди).
+// Keeps existing DocumentHandler untouched so CRUD endpoints stay
+// independent.
 type WorkflowHandler struct {
-	submit  *usecases.SubmitDocumentUseCase
-	approve *usecases.ApproveDocumentUseCase
-	reject  *usecases.RejectDocumentUseCase
+	submit   *usecases.SubmitDocumentUseCase
+	approve  *usecases.ApproveDocumentUseCase
+	reject   *usecases.RejectDocumentUseCase
+	register *usecases.RegisterDocumentUseCase
 }
 
-// NewWorkflowHandler wires the workflow handler.
+// NewWorkflowHandler wires the workflow handler. Register use case
+// is optional — passing nil disables the route (handler returns 501).
 func NewWorkflowHandler(
 	submit *usecases.SubmitDocumentUseCase,
 	approve *usecases.ApproveDocumentUseCase,
 	reject *usecases.RejectDocumentUseCase,
+	register *usecases.RegisterDocumentUseCase,
 ) *WorkflowHandler {
-	return &WorkflowHandler{submit: submit, approve: approve, reject: reject}
+	return &WorkflowHandler{submit: submit, approve: approve, reject: reject, register: register}
 }
 
 // RegisterSubmitRoute mounts only POST /:id/submit. Caller already
@@ -38,18 +41,26 @@ func RegisterSubmitRoute(g *gin.RouterGroup, h *WorkflowHandler) {
 	g.POST("/:id/submit", h.Submit)
 }
 
-// RegisterAdminWorkflowRoutes mounts POST /:id/approve and /:id/reject
-// on the caller's admin group (already gated by RequireRole
-// (AcademicSecretary, SystemAdmin)). Mirror к curriculum's admin route
-// pattern.
+// RegisterAdminWorkflowRoutes mounts POST /:id/approve, /:id/reject,
+// /:id/register on the caller's admin group (already gated by
+// RequireRole(AcademicSecretary, SystemAdmin)). Mirror к curriculum's
+// admin route pattern.
 func RegisterAdminWorkflowRoutes(g *gin.RouterGroup, h *WorkflowHandler) {
 	g.POST("/:id/approve", h.Approve)
 	g.POST("/:id/reject", h.Reject)
+	// v0.149.0 Phase 2 — Register endpoint (#230).
+	g.POST("/:id/register", h.Register)
 }
 
 // rejectBody is the request DTO for the Reject endpoint.
 type rejectBody struct {
 	Reason string `json:"reason"`
+}
+
+// registerBody is the request DTO for the Register endpoint
+// (v0.149.0 #230). number трим-валидируется в the entity layer.
+type registerBody struct {
+	Number string `json:"number"`
 }
 
 // Submit handles POST /api/documents/:id/submit.
@@ -92,6 +103,40 @@ func (h *WorkflowHandler) Approve(c *gin.Context) {
 		return
 	}
 	doc, err := h.approve.Execute(c.Request.Context(), adminID, usecases.ApproveDocumentInput{ID: id})
+	if err != nil {
+		mapWorkflowError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(doc))
+}
+
+// Register handles POST /api/admin/documents/:id/register.
+//
+// Body: {"number": "..."}. Entity validates 3..N rune count after
+// trim; invalid → 422 ErrInvalidRegistrationNumber.
+//
+// Issue: #230
+func (h *WorkflowHandler) Register(c *gin.Context) {
+	if h.register == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "register usecase not wired"})
+		return
+	}
+	id, err := parseDocID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		return
+	}
+	adminID, _, ok := readActor(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	var body registerBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "invalid request body"})
+		return
+	}
+	doc, err := h.register.Execute(c.Request.Context(), adminID, usecases.RegisterDocumentInput{ID: id, Number: body.Number})
 	if err != nil {
 		mapWorkflowError(c, err)
 		return
@@ -172,9 +217,11 @@ func mapWorkflowError(c *gin.Context, err error) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 	case errors.Is(err, entities.ErrCannotSubmit),
 		errors.Is(err, entities.ErrCannotApprove),
-		errors.Is(err, entities.ErrCannotReject):
+		errors.Is(err, entities.ErrCannotReject),
+		errors.Is(err, entities.ErrCannotRegister):
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-	case errors.Is(err, entities.ErrRejectionReasonInvalid):
+	case errors.Is(err, entities.ErrRejectionReasonInvalid),
+		errors.Is(err, entities.ErrInvalidRegistrationNumber):
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal"})
