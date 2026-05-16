@@ -15,6 +15,30 @@
 
 ---
 
+## [0.150.0] — 2026-05-16
+
+### Added — Documents workflow Phase 3 backend: Routing transitions (#231)
+
+Phase 3 of #227 (backend half). Closes backend portion of #231. `registered → routing → execution` chain через single-step visa (one approver per ADR-1). Frontend ships в v0.150.1 (split per PR Size soft-fail; ADR-016 phase-split delivery).
+
+**Backend**:
+- Domain: `Document.SendToRouting(routerID, now)` + `Document.SignVisa(visaID, now)` — 2 state-machine gates wrapping the chain. Sentinels: `ErrCannotRoute` (status invariant) + `ErrCannotSignVisa` (status invariant). 14 RED→GREEN table-driven test cases.
+- New entity fields: `RoutedBy *int64`, `RoutedAt *time.Time`, `VisaSignedBy *int64`, `VisaSignedAt *time.Time` (all nullable).
+- Use cases: `StartRoutingUseCase` + `SignVisaUseCase` — mirror к RegisterDocumentUseCase pattern (load → entity → repo.Update → audit). 8 cases table-driven.
+- Handlers: `POST /api/admin/documents/:id/start-routing` + `POST /api/admin/documents/:id/sign-visa` (RequireRole AcademicSecretary, SystemAdmin). Both body-less; `response.Success(doc)` envelope per ADR-8.
+- AuditEmit: `document.routed` / `document.route_denied{not_found|not_registered}`; `document.visa_signed` / `document.sign_visa_denied{not_found|not_routing}`.
+- Migration 041: `routed_by` BIGINT FK + `routed_at` TIMESTAMPTZ + `visa_signed_by` BIGINT FK + `visa_signed_at` TIMESTAMPTZ — all nullable.
+- PG repo: Update SET / GetByID SELECT / List SELECT extended; `docSelectCols` test helper + `addDocRow` parity per ADR-7 (T1-A upfront).
+
+**Integration tests** (T1-B + T1-C verify upfront):
+- StartRouting + SignVisa happy/NotFound/Conflict triple per endpoint.
+- AdminGate methodist/teacher blocked from start-routing/sign-visa.
+- EnvelopeContract: response wraps doc в `.data` per `response.Success` — regression here breaks frontend hook silently.
+
+**Frontend**: deferred к v0.150.1 (this PR backend-only per PR Size soft-fail; backend-only ~760 LOC under 1000).
+
+---
+
 ## [0.149.0] — 2026-05-16
 
 ### Added — Documents workflow Phase 2: Register transition (#230)
