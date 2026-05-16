@@ -263,6 +263,18 @@ func TestDocumentRepositoryPG_List_QueryError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to list documents")
 }
 
+func TestDocumentRepositoryPG_List_EmptyOrderByDefaultsToCreatedAtDesc(t *testing.T) {
+	repo, mock := newDocRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(0)))
+	mock.ExpectQuery(regexp.QuoteMeta("ORDER BY d.created_at DESC")).
+		WillReturnRows(newDocRows())
+
+	_, _, err := repo.List(context.Background(), repositories.DocumentFilter{Limit: 10})
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestDocumentRepositoryPG_List_RejectsInjectionInOrderBy(t *testing.T) {
 	cases := []struct {
 		name    string

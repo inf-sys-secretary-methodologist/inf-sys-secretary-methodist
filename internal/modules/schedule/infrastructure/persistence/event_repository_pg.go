@@ -189,26 +189,31 @@ func (r *EventRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.Ev
 	return event, nil
 }
 
-// validEventOrderBy enumerates the ORDER BY clauses accepted by EventRepositoryPG.List.
-// Whitelisting closes the SQL injection surface where filter.OrderBy reaches
-// fmt.Sprintf as raw string. Empty value falls back to the default applied below.
-var validEventOrderBy = map[string]struct{}{
-	"":                {},
-	"start_time ASC":  {},
-	"start_time DESC": {},
-	"end_time ASC":    {},
-	"end_time DESC":   {},
-	"title ASC":       {},
-	"title DESC":      {},
-	"created_at ASC":  {},
-	"created_at DESC": {},
-	"updated_at ASC":  {},
-	"updated_at DESC": {},
+// validEventOrderBy maps client-provided OrderBy keys к canonical SQL ORDER BY
+// expressions. Empty key returns the default ("start_time ASC"). The map *value*
+// (not the user input) is interpolated в final SQL via `fmt.Sprintf`, so even
+// если caller mutates filter.OrderBy после validation, only static literals from
+// this map flow в the query. This pattern satisfies CodeQL go/sql-injection
+// data-flow tracer, which cannot recognize a map-key existence check как
+// sanitizer on its own.
+var validEventOrderBy = map[string]string{
+	"":                "start_time ASC",
+	"start_time ASC":  "start_time ASC",
+	"start_time DESC": "start_time DESC",
+	"end_time ASC":    "end_time ASC",
+	"end_time DESC":   "end_time DESC",
+	"title ASC":       "title ASC",
+	"title DESC":      "title DESC",
+	"created_at ASC":  "created_at ASC",
+	"created_at DESC": "created_at DESC",
+	"updated_at ASC":  "updated_at ASC",
+	"updated_at DESC": "updated_at DESC",
 }
 
 // List retrieves events with filtering and pagination
 func (r *EventRepositoryPG) List(ctx context.Context, filter repositories.EventFilter) ([]*entities.Event, int64, error) {
-	if _, ok := validEventOrderBy[filter.OrderBy]; !ok {
+	orderBy, ok := validEventOrderBy[filter.OrderBy]
+	if !ok {
 		return nil, 0, repositories.ErrInvalidOrderBy
 	}
 
@@ -274,12 +279,7 @@ func (r *EventRepositoryPG) List(ctx context.Context, filter repositories.EventF
 		return nil, 0, fmt.Errorf("failed to count events: %w", err)
 	}
 
-	// Get events
-	orderBy := "start_time ASC"
-	if filter.OrderBy != "" {
-		orderBy = filter.OrderBy
-	}
-
+	// Get events — orderBy уже resolved из validEventOrderBy map at function entry.
 	limit := 20
 	if filter.Limit > 0 {
 		limit = filter.Limit

@@ -150,13 +150,17 @@
      https://backend.composio.dev/api/v1/auth-apps/add
      ```
 
-4. **Сохраните credentials:**
+4. **Сохраните credentials в виде:**
    ```json
    {
-     "client_id": "451773640106-403d63dukqff5qgvusjpub5u6nfhtgr9.apps.googleusercontent.com",
-     "client_secret": "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"
+     "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+     "client_secret": "YOUR_CLIENT_SECRET"
    }
    ```
+   > ⚠️ Никогда не коммитьте реальные значения в git. Используйте `.env` файл
+   > (см. `.env.example`) или secret manager. Предыдущие значения, опубликованные
+   > в этом файле до v0.146.0, должны быть ротированы вручную в Google Cloud
+   > Console — см. release handoff `.claude/handoffs/2026-05-16_v0146-0-security-cluster.md`.
 
 ### Шаг 3: Настройка Composio
 
