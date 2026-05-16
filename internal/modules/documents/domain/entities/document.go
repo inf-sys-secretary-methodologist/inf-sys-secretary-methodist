@@ -4,6 +4,7 @@ package entities
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -178,13 +179,24 @@ func (d *Document) ClearFile() {
 
 // Register registers the document с the number + date + audit trail.
 // v0.149.0 Phase 2 (#230) — extends original Register с registrarID +
-// now params + invariant check (status must be approved) + non-empty
-// number validation. RED stub returns ErrCannotRegister
-// unconditionally; GREEN replaces the body.
+// now params + invariant check (status must be approved) +
+// non-empty number validation.
 //
 // Issue: #230
 func (d *Document) Register(registrationNumber string, registrarID int64, now time.Time) error {
-	return ErrCannotRegister
+	trimmed := strings.TrimSpace(registrationNumber)
+	if len([]rune(trimmed)) < 3 {
+		return fmt.Errorf("%w: got %q", ErrInvalidRegistrationNumber, registrationNumber)
+	}
+	if d.Status != DocumentStatusApproved {
+		return fmt.Errorf("%w: status %q", ErrCannotRegister, string(d.Status))
+	}
+	d.RegistrationNumber = &trimmed
+	d.RegistrationDate = &now
+	d.RegisteredBy = &registrarID
+	d.Status = DocumentStatusRegistered
+	d.UpdatedAt = now
+	return nil
 }
 
 // IsDraft checks if document is in draft status
