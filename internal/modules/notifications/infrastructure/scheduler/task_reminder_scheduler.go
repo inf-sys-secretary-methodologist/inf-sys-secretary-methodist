@@ -41,8 +41,28 @@ type TaskReminderScheduler struct {
 	preferencesRepo  notifRepositories.PreferencesRepository
 	emailService     notifServices.EmailService
 	userEmailLookup  UserEmailLookup
+	webPushRepo      notifRepositories.WebPushRepository
+	webPushService   notifServices.WebPushService
 	clock            Clock
 	checkInterval    time.Duration
+}
+
+// WithWebPushDispatch wires the WebPushRepository + WebPushService
+// onto an existing TaskReminderScheduler. RED stub for v0.147.0 —
+// fields stored; the push switch-case still falls through к sendInApp.
+// GREEN replaces processReminder push case with a real sendPush call.
+//
+// Chainable so wire-up reads
+// `NewTaskReminderScheduler(...).WithWebPushDispatch(...)` in main.go.
+//
+// Issue: #226
+func (s *TaskReminderScheduler) WithWebPushDispatch(
+	webPushRepo notifRepositories.WebPushRepository,
+	webPushService notifServices.WebPushService,
+) *TaskReminderScheduler {
+	s.webPushRepo = webPushRepo
+	s.webPushService = webPushService
+	return s
 }
 
 // Clock is the narrow port for current-time injection. Lets tests
