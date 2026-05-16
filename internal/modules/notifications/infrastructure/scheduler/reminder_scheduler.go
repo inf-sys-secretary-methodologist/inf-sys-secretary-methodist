@@ -280,7 +280,7 @@ func (s *ReminderScheduler) sendInAppReminder(ctx context.Context, reminder *sch
 // so the reminder stays reachable. Mirror к
 // TaskReminderScheduler push dispatch behavior introduced в v0.147.0.
 //
-// Three fallback gates protect the dispatch:
+// Four fallback gates protect the dispatch:
 //  1. nil deps (un-wired) → in-app
 //  2. service not configured (no VAPID keys) → in-app
 //  3. user has no active subscriptions → in-app

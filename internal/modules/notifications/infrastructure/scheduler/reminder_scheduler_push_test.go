@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -168,6 +169,12 @@ func TestReminderSchedulerSendPushReminder(t *testing.T) {
 					assert.Equal(t, reminder.UserID, pushService.calls[0].UserID)
 					assert.NotNil(t, pushService.calls[0].Payload)
 					assert.Contains(t, pushService.calls[0].Payload.Title, "Напоминание")
+					// Deep-link URL pins the defense-critical "click reminder
+					// → open event" navigation contract. A regression that
+					// silently drops the URL would surface here, not only in
+					// the manual smoke test.
+					assert.Equal(t, fmt.Sprintf("/schedule/events/%d", event.ID), pushService.calls[0].Payload.URL)
+					assert.Equal(t, fmt.Sprintf("event-reminder-%d", reminder.ID), pushService.calls[0].Payload.Tag)
 				}
 			}
 			assert.Len(t, notifRepo.created, tc.wantInApp, "in-app fallback count")

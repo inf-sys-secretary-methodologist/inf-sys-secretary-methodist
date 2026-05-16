@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -74,6 +75,11 @@ func TestProcessOnce_PushHappyPath(t *testing.T) {
 	assert.Equal(t, int64(7), pushService.calls[0].UserID)
 	assert.Contains(t, pushService.calls[0].Payload.Title, "Напоминание")
 	assert.Contains(t, pushService.calls[0].Payload.Body, "Утвердить РПД")
+	// Deep-link URL pins the defense-critical "click reminder → open task"
+	// navigation contract. A regression that silently drops the URL or Tag
+	// would surface here, not only in manual smoke.
+	assert.Equal(t, fmt.Sprintf("/tasks/%d", reminder.TaskID()), pushService.calls[0].Payload.URL)
+	assert.Equal(t, fmt.Sprintf("task-reminder-%d", reminder.ID()), pushService.calls[0].Payload.Tag)
 	assert.Empty(t, notif.created, "happy-path push dispatch must not fan out к in-app")
 	assert.Equal(t, []int64{101}, repo.markedIDs, "processed reminder marked as sent")
 }
