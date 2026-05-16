@@ -15,6 +15,59 @@
 
 ---
 
+## [0.144.0] — 2026-05-16
+
+### Changed — Branding + Dashboard DIP refactor + Branding use case coverage backfill (Phase 6 #196 modules 2-3)
+
+Second and third modules released under the Phase 6 #196 multi-release
+coverage sprint. Two `domain/repositories/` directories deleted via the
+v0.141.0 DIP template — pattern now applied across **3 of ~15** modules.
+
+**Branding DIP**:
+- `BrandSettingsRepository` interface relocated from
+  `branding/domain/repositories/` to `branding/application/usecases/`.
+- Empty `domain/repositories/` directory removed.
+- 5 consumer sites updated (usecases + pg adapter + 3 test files).
+- Compile-time guarantee preserved in pg adapter.
+
+**Dashboard DIP**:
+- `DashboardRepository` interface + `CountResult` / `TrendData` /
+  `ActivityData` query DTOs relocated to
+  `dashboard/application/usecases/`.
+- Empty `domain/repositories/` directory removed.
+- 3 dashboard consumers updated + cross-module ai consumer (mood +
+  chat use cases) retargeted to new import location.
+
+**Cross-module note**: ai module retains its dependency on the dashboard
+port for context features (mood/chat consume counts + trends). A narrow
+port à la users/auth precedent is feasible but deferred to a separate
+patch — current state is "correct location, same coupling".
+
+**Coverage backfill (honest `test: backfill` label)**:
+- `branding/application/usecases`: **0.0% → 100.0%** statement coverage
+  via 10 test cases — fake repo with error injection, spy audit sink,
+  injected clock. Covers `SystemClock.Now()`, `NewXxxUseCase` panic
+  paths, `GetBrandingUseCase.Execute` happy + repo-error, and
+  `UpdateBrandingUseCase.Execute` happy / validation-error / repo-error
+  / nil-audit branches with full field snapshot audit emission check.
+- Global backend: **74.9% → 75.0%** (+0.1pp, single module backfill).
+- Dashboard usecases already at 100% from prior releases; pg at 97.2%;
+  dashboard DIP move is structural only, no coverage delta.
+
+**Quality**:
+- Backend lint 0 / packages green; frontend untouched.
+- Reviewer skipped per CLAUDE.md gate (DIP refactor + honest backfill
+  pattern, mechanical scope locked by v0.141.0 + v0.143.0 precedents).
+
+**Phase 6 sprint status**: 3 of ~15 modules done. Remaining 39
+repository interfaces in 12 modules. Pattern repeatable; bigger
+coverage gains are now in handler error-path backfills (announcements
+handleError 0%, branding 67.4% handlers, etc.) and 0% infra packages
+(reporting/query 667 LoC, integration/odata 395 LoC, ai/adapters 258
+LoC, ai/scheduler 199 LoC, analytics/scheduler 168 LoC).
+
+---
+
 ## [0.143.0] — 2026-05-16
 
 ### Changed — Announcements DIP refactor + PG repo coverage backfill (Phase 6 #196 / #210 follow-up)
