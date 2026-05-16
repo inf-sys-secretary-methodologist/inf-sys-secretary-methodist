@@ -15,6 +15,50 @@
 
 ---
 
+## [0.146.0] — 2026-05-16
+
+### Security — Security cluster: CodeQL SQL injection + leaked OAuth + postcss XSS
+
+Single release closing 3 категории GitHub Security alerts (2 Code scanning HIGH + 2 Secret scanning + 1 Dependabot medium).
+
+**Code scanning closures** (2 × `go/sql-injection` HIGH severity):
+- `internal/modules/schedule/infrastructure/persistence/event_repository_pg.go:301` (alert #34) — `validEventOrderBy` refactored `map[string]struct{}` → `map[string]string`; map *value* (canonical SQL clause) теперь interpolated в `fmt.Sprintf` ORDER BY, не user input.
+- `internal/modules/documents/infrastructure/persistence/document_repository_pg.go:300` (alert #33) — same pattern для `validDocumentOrderBy`.
+
+CodeQL data-flow tracer не recognizes map-key existence check как sanitizer; refactoring к value-from-static-map breaks user-input → SQL flow at analyzer level. Existing tests pass без modifications; `ErrInvalidOrderBy` still returned для any input не в whitelist. Mirror к v0.128.10 ORDER BY whitelist precedent.
+
+**Secret scanning closures** (2 publicly leaked Google OAuth credentials):
+- `docs/integrations/composio-gmail.md:156-157` — real Client ID + Client Secret committed 2026-03-04 (commit `aaf2edcb`) replaced с `YOUR_CLIENT_ID.apps.googleusercontent.com` + `YOUR_CLIENT_SECRET` placeholders. Inline warning callout directs к `.env` / secret manager pattern.
+
+**MANUAL ACTION REQUIRED**: User должен rotate credentials в Google Cloud Console (revoke prior client + create new) и mark secret-scanning alerts #1 #2 as "revoked" в GitHub Security tab. Credentials remain в git history at `aaf2edcb` — full removal requires `git filter-repo` / BFG (destructive on public repo, out of scope).
+
+**Dependabot closure** (1 × `postcss` XSS medium):
+- `frontend/package.json` — direct dep bumped `^8.5.6` → `^8.5.10`; added `overrides.postcss: ^8.5.10` cascading к all transitive consumers. Previously vulnerable `next@16.2.6 → postcss@8.4.31` теперь resolves к 8.5.14 deduped.
+
+Verified post-fix:
+- `npm ls postcss` — all 4 consumers on 8.5.14 deduped, no 8.4.31.
+- `npm audit` — postcss больше не в vulnerabilities report.
+
+**Reviewer round-1 FIX-CYCLE** mean Tier 1 hit (Code hygiene 5/10 < 8 floor due dangling/duplicated godoc + BrE `analyser` + plan-doc partial-token leak). Post-absorb mean ~9.0 / min 8: Security correctness 8 (manual rotation handoff) / Refactor honesty 9 / DDD+CA 8 (pre-existing `domain/repositories/` violation, out of scope) / Code hygiene 9 / Plan adherence 9 / Documentation 9.
+
+**Tier 1 absorbs**:
+- `event_repository_pg.go` + `document_repository_pg.go` — removed duplicated/dangling godoc stubs left from initial edits.
+- `document_repository_pg.go:181` — `analyser` → `analyzer` (AmE) per `feedback_misspell_be_to_ae`.
+- `docs/plans/2026-05-16-v0146-0-security-cluster.md:53` — redacted partial client_id prefix к `<see secret-scanning alert #1>` (self-contradicted ADR-6 verification claim).
+
+**Tier 2 absorbs** в release commit:
+- `composio-gmail.md` warning callout: past-tense "ротированы" → conditional "должны быть ротированы" per ADR-4 (user manual action).
+- New test pins для default-empty-key path в `event_repository_pg_test.go` (`TestEventList_EmptyOrderByDefaultsToStartTimeAsc`) + `document_repository_pg_test.go` (`TestDocumentRepositoryPG_List_EmptyOrderByDefaultsToCreatedAtDesc`). Protect map[""] value from regression.
+
+**Tier 3 carry-forward**:
+- Extract `OrderByClause` typed VO к shared domain layer (eliminate per-repository whitelist duplication).
+- `ErrInvalidOrderBy` живёт в `domain/repositories/` (pre-existing DIP violation per CLAUDE.md gate — separate refactor release).
+- `@tootallnate/once` GHSA-vpq2-c234-7xj6 low (via jest-environment-jsdom@29 major bump deferred).
+
+12-th consecutive single-pass-or-skip SHIP after absorb. Branch `feature/issue-security-v0146-0`.
+
+---
+
 ## [0.145.0] — 2026-05-16
 
 ### Added — reporting/infrastructure/query coverage backfill (Phase 6 #196 sprint 4/15)

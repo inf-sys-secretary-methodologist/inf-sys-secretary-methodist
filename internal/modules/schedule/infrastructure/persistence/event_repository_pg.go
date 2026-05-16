@@ -189,9 +189,6 @@ func (r *EventRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.Ev
 	return event, nil
 }
 
-// validEventOrderBy enumerates the ORDER BY clauses accepted by EventRepositoryPG.List.
-// Whitelisting closes the SQL injection surface where filter.OrderBy reaches
-// fmt.Sprintf as raw string. Empty value falls back to the default applied below.
 // validEventOrderBy maps client-provided OrderBy keys к canonical SQL ORDER BY
 // expressions. Empty key returns the default ("start_time ASC"). The map *value*
 // (not the user input) is interpolated в final SQL via `fmt.Sprintf`, so even

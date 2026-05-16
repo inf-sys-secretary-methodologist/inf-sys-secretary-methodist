@@ -170,15 +170,13 @@ func (r *DocumentRepositoryPG) SoftDelete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// validDocumentOrderBy enumerates the ORDER BY clauses accepted by DocumentRepositoryPG.List.
-// Whitelisting closes the SQL injection surface where filter.OrderBy reaches
 // validDocumentOrderBy maps client-provided OrderBy keys к canonical SQL
 // ORDER BY expressions (column + direction). The map *value* (not user input)
 // is interpolated into final SQL via `fmt.Sprintf` так even if caller mutates
 // filter.OrderBy after validation, only static literals from this map flow
 // into the query. CodeQL go/sql-injection data-flow tracer cannot recognize
 // a map-key existence check as a sanitizer; value-from-static-map breaks the
-// user-input→SQL flow at analyser level. Empty key returns "created_at DESC".
+// user-input→SQL flow at analyzer level. Empty key returns "created_at DESC".
 var validDocumentOrderBy = map[string]string{
 	"":                       "created_at DESC",
 	"created_at ASC":         "created_at ASC",

@@ -50,7 +50,7 @@ No TDD pairs — refactor preserves existing test contracts (`ErrInvalidOrderBy`
 
 **Decision**: After release merge, user must:
 1. Login к Google Cloud Console (`https://console.cloud.google.com/apis/credentials`)
-2. Revoke OAuth Client ID `451773640106-403d63dukqff5qgvusjpub5u6nfhtgr9...`
+2. Revoke OAuth Client ID `<see secret-scanning alert #1 для значения>`
 3. Create new OAuth Client ID with same scopes (`gmail.send`)
 4. Update Composio dashboard с new credentials
 5. Optionally close secret-scanning alerts 1 + 2 as "revoked" в GitHub Security tab
