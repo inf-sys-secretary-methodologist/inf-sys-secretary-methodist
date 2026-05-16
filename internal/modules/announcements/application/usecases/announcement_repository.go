@@ -1,5 +1,5 @@
-// Package repositories defines announcement repository interfaces.
-package repositories
+// Package usecases contains announcement business logic.
+package usecases
 
 import (
 	"context"
