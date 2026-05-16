@@ -14,6 +14,14 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
 )
 
+// fieldNameID is the literal column-key string repeated across this test
+// file's fixtures. Extracted as a const so the package-wide goconst threshold
+// (min-occurrences: 25 in .github/golangci.yml) is not tripped — production
+// dynamic_query_builder.go uses "name" 6 times legitimately as column-key,
+// and the test file adds ~20 fixture references; pinning all test
+// occurrences to this const keeps literal count well under the limit.
+const fieldNameID = "name"
+
 // ============================================================================
 // B1 — Pure helpers + GetAvailableFields
 // ============================================================================
@@ -116,14 +124,14 @@ func TestGetAvailableFields(t *testing.T) {
 			name:           "documents",
 			dataSource:     entities.DataSourceDocuments,
 			wantCount:      9,
-			mustHaveIDs:    []string{"id", "name", "category", "status", "size", "created_at", "updated_at", "author_name", "tags"},
+			mustHaveIDs:    []string{"id", fieldNameID, "category", "status", "size", "created_at", "updated_at", "author_name", "tags"},
 			mustHaveEnumOn: "status",
 		},
 		{
 			name:           "users",
 			dataSource:     entities.DataSourceUsers,
 			wantCount:      7,
-			mustHaveIDs:    []string{"id", "name", "email", "role", "department", "created_at", "is_active"},
+			mustHaveIDs:    []string{"id", fieldNameID, "email", "role", "department", "created_at", "is_active"},
 			mustHaveEnumOn: "role",
 		},
 		{
@@ -144,7 +152,7 @@ func TestGetAvailableFields(t *testing.T) {
 			name:           "students",
 			dataSource:     entities.DataSourceStudents,
 			wantCount:      7,
-			mustHaveIDs:    []string{"id", "name", "group", "course", "faculty", "status", "enrolled_at"},
+			mustHaveIDs:    []string{"id", fieldNameID, "group", "course", "faculty", "status", "enrolled_at"},
 			mustHaveEnumOn: "status",
 		},
 		{
@@ -198,7 +206,7 @@ func TestBuildWhereClause_SingleFilterPerOperator(t *testing.T) {
 	cfg := DataSourceConfig{
 		TableName: "users u",
 		ColumnMappings: map[string]string{
-			"name": "u.name",
+			fieldNameID: "u.name",
 		},
 	}
 
@@ -230,7 +238,7 @@ func TestBuildWhereClause_SingleFilterPerOperator(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			filters := []entities.ReportFilterConfig{{
-				Field:    entities.ReportField{Name: "name"},
+				Field:    entities.ReportField{Name: fieldNameID},
 				Operator: tc.operator,
 				Value:    tc.value,
 				Value2:   tc.value2,
@@ -332,12 +340,12 @@ func TestBuildWhereClause_InAndNotInArrays(t *testing.T) {
 }
 
 func TestBuildWhereClause_UnknownFieldSkipped(t *testing.T) {
-	cfg := DataSourceConfig{ColumnMappings: map[string]string{"name": "u.name"}}
+	cfg := DataSourceConfig{ColumnMappings: map[string]string{fieldNameID: "u.name"}}
 	b := &DynamicQueryBuilder{}
 
 	filters := []entities.ReportFilterConfig{
 		{Field: entities.ReportField{Name: "unknown_field"}, Operator: entities.FilterEquals, Value: "x"},
-		{Field: entities.ReportField{Name: "name"}, Operator: entities.FilterEquals, Value: "Bob"},
+		{Field: entities.ReportField{Name: fieldNameID}, Operator: entities.FilterEquals, Value: "Bob"},
 	}
 	clauses, args := b.buildWhereClause(filters, cfg)
 
@@ -353,11 +361,11 @@ func TestBuildWhereClause_UnknownFieldSkipped(t *testing.T) {
 }
 
 func TestBuildWhereClause_UnknownOperatorSkipped(t *testing.T) {
-	cfg := DataSourceConfig{ColumnMappings: map[string]string{"name": "u.name"}}
+	cfg := DataSourceConfig{ColumnMappings: map[string]string{fieldNameID: "u.name"}}
 	b := &DynamicQueryBuilder{}
 
 	filters := []entities.ReportFilterConfig{{
-		Field:    entities.ReportField{Name: "name"},
+		Field:    entities.ReportField{Name: fieldNameID},
 		Operator: entities.FilterOperator("nonsense_op"),
 		Value:    "x",
 	}}
@@ -374,15 +382,15 @@ func TestBuildWhereClause_UnknownOperatorSkipped(t *testing.T) {
 func TestBuildWhereClause_ArgIndexIncrementsAcrossFilters(t *testing.T) {
 	cfg := DataSourceConfig{
 		ColumnMappings: map[string]string{
-			"name":   "u.name",
-			"status": "u.status",
-			"age":    "u.age",
+			fieldNameID: "u.name",
+			"status":    "u.status",
+			"age":       "u.age",
 		},
 	}
 	b := &DynamicQueryBuilder{}
 
 	filters := []entities.ReportFilterConfig{
-		{Field: entities.ReportField{Name: "name"}, Operator: entities.FilterEquals, Value: "Alice"},
+		{Field: entities.ReportField{Name: fieldNameID}, Operator: entities.FilterEquals, Value: "Alice"},
 		{Field: entities.ReportField{Name: "age"}, Operator: entities.FilterBetween, Value: 18, Value2: 65},
 		{Field: entities.ReportField{Name: "status"}, Operator: entities.FilterIn, Value: []any{"active", "pending"}},
 	}
@@ -480,12 +488,12 @@ func TestExecute_HappyPathSingleRow(t *testing.T) {
 	mock.ExpectQuery(anchor("SELECT COUNT(*) FROM documents d LEFT JOIN users u ON d.author_id = u.id")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(3)))
 	mock.ExpectQuery(anchor("SELECT d.name AS name FROM documents d LEFT JOIN users u ON d.author_id = u.id ORDER BY 1 ASC LIMIT 10 OFFSET 0")).
-		WillReturnRows(sqlmock.NewRows([]string{"name"}).
+		WillReturnRows(sqlmock.NewRows([]string{fieldNameID}).
 			AddRow("Doc-A").
 			AddRow("Doc-B").
 			AddRow("Doc-C"))
 
-	report := reportForDocuments("name", "", entities.AggregationNone)
+	report := reportForDocuments(fieldNameID, "", entities.AggregationNone)
 	result, err := b.Execute(context.Background(), report, 1, 10)
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -499,10 +507,10 @@ func TestExecute_HappyPathSingleRow(t *testing.T) {
 	if len(result.Rows) != 3 {
 		t.Fatalf("Rows len = %d, want 3", len(result.Rows))
 	}
-	if got := result.Rows[0]["name"]; got != "Doc-A" {
+	if got := result.Rows[0][fieldNameID]; got != "Doc-A" {
 		t.Errorf("Rows[0][name] = %v, want Doc-A", got)
 	}
-	if len(result.Columns) != 1 || result.Columns[0].Key != "name" || result.Columns[0].Label != "Lbl-name" {
+	if len(result.Columns) != 1 || result.Columns[0].Key != fieldNameID || result.Columns[0].Label != "Lbl-name" {
 		t.Errorf("Columns = %+v, want [{name, Lbl-name}]", result.Columns)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -531,9 +539,9 @@ func TestExecute_AggregationBranches(t *testing.T) {
 			mock.ExpectQuery(anchor("SELECT COUNT(*) FROM documents d LEFT JOIN users u ON d.author_id = u.id")).
 				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(0)))
 			mock.ExpectQuery(anchor("SELECT " + tc.wantColExpr + " AS name FROM documents d LEFT JOIN users u ON d.author_id = u.id ORDER BY 1 ASC LIMIT 5 OFFSET 0")).
-				WillReturnRows(sqlmock.NewRows([]string{"name"}))
+				WillReturnRows(sqlmock.NewRows([]string{fieldNameID}))
 
-			report := reportForDocuments("name", "", tc.agg)
+			report := reportForDocuments(fieldNameID, "", tc.agg)
 			result, err := b.Execute(context.Background(), report, 1, 5)
 			if err != nil {
 				t.Fatalf("Execute: %v", err)
@@ -557,7 +565,7 @@ func TestExecute_AliasReplacesFieldName(t *testing.T) {
 	mock.ExpectQuery(anchor("SELECT d.name AS title FROM documents d LEFT JOIN users u ON d.author_id = u.id ORDER BY 1 ASC LIMIT 10 OFFSET 0")).
 		WillReturnRows(sqlmock.NewRows([]string{"title"}).AddRow("X"))
 
-	report := reportForDocuments("name", "title", entities.AggregationNone)
+	report := reportForDocuments(fieldNameID, "title", entities.AggregationNone)
 	result, err := b.Execute(context.Background(), report, 1, 10)
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -738,6 +746,252 @@ func TestExecute_NilValuePassesThroughMap(t *testing.T) {
 // contains is a thin wrapper for error-message substring assertions.
 func contains(haystack, needle string) bool {
 	return strings.Contains(haystack, needle)
+}
+
+// ============================================================================
+// B4 — Export + exportCSV + exportXLSX + exportPDF
+// ============================================================================
+
+func sampleResult() *entities.ReportExecutionResult {
+	return &entities.ReportExecutionResult{
+		Columns: []entities.ReportColumn{
+			{Key: fieldNameID, Label: "Name"},
+			{Key: "count", Label: "Count"},
+		},
+		Rows: []map[string]any{
+			{fieldNameID: "Alpha", "count": int64(10)},
+			{fieldNameID: "Beta", "count": int64(20)},
+		},
+		TotalCount: 2, Page: 1, PageSize: 10, TotalPages: 1,
+	}
+}
+
+func TestExport_UnsupportedFormat(t *testing.T) {
+	b := &DynamicQueryBuilder{}
+	_, _, err := b.Export(sampleResult(), entities.ExportOptions{Format: "rtf"}, "rep")
+	if err == nil || !strings.Contains(err.Error(), "unsupported export format") {
+		t.Fatalf("expected 'unsupported export format', got %v", err)
+	}
+}
+
+func TestExportCSV_WithHeaders(t *testing.T) {
+	b := &DynamicQueryBuilder{}
+	data, filename, err := b.Export(
+		sampleResult(),
+		entities.ExportOptions{Format: entities.ExportFormatCSV, IncludeHeaders: true},
+		"My Report",
+	)
+	if err != nil {
+		t.Fatalf("Export csv: %v", err)
+	}
+	if !strings.HasPrefix(filename, "My_Report_") || !strings.HasSuffix(filename, ".csv") {
+		t.Errorf("filename = %q, want prefix 'My_Report_' suffix '.csv'", filename)
+	}
+	got := string(data)
+	if !strings.Contains(got, "Name,Count") {
+		t.Errorf("CSV missing header row 'Name,Count':\n%s", got)
+	}
+	if !strings.Contains(got, "Alpha,10") || !strings.Contains(got, "Beta,20") {
+		t.Errorf("CSV missing data rows:\n%s", got)
+	}
+}
+
+func TestExportCSV_WithoutHeaders(t *testing.T) {
+	b := &DynamicQueryBuilder{}
+	data, _, err := b.Export(
+		sampleResult(),
+		entities.ExportOptions{Format: entities.ExportFormatCSV, IncludeHeaders: false},
+		"r",
+	)
+	if err != nil {
+		t.Fatalf("Export csv: %v", err)
+	}
+	got := string(data)
+	if strings.Contains(got, "Name") {
+		t.Errorf("CSV header row should be absent:\n%s", got)
+	}
+	if !strings.Contains(got, "Alpha,10") {
+		t.Errorf("CSV missing data row:\n%s", got)
+	}
+}
+
+func TestExportCSV_FormatsValueTypes(t *testing.T) {
+	result := &entities.ReportExecutionResult{
+		Columns: []entities.ReportColumn{
+			{Key: "ts", Label: "TS"},
+			{Key: "flag", Label: "Flag"},
+			{Key: "missing", Label: "Missing"},
+		},
+		Rows: []map[string]any{{
+			"ts":      time.Date(2026, 5, 16, 12, 0, 0, 0, time.UTC),
+			"flag":    true,
+			"missing": nil,
+		}},
+	}
+	b := &DynamicQueryBuilder{}
+	data, _, err := b.Export(result, entities.ExportOptions{Format: entities.ExportFormatCSV, IncludeHeaders: false}, "r")
+	if err != nil {
+		t.Fatalf("Export csv: %v", err)
+	}
+	got := string(data)
+	if !strings.Contains(got, "2026-05-16 12:00:00") {
+		t.Errorf("CSV missing time formatting:\n%s", got)
+	}
+	if !strings.Contains(got, "Yes") {
+		t.Errorf("CSV missing bool true → 'Yes':\n%s", got)
+	}
+}
+
+func TestExportXLSX_WithHeaders(t *testing.T) {
+	b := &DynamicQueryBuilder{}
+	data, filename, err := b.Export(
+		sampleResult(),
+		entities.ExportOptions{Format: entities.ExportFormatXLSX, IncludeHeaders: true},
+		"Stats",
+	)
+	if err != nil {
+		t.Fatalf("Export xlsx: %v", err)
+	}
+	if !strings.HasPrefix(filename, "Stats_") || !strings.HasSuffix(filename, ".xlsx") {
+		t.Errorf("filename = %q", filename)
+	}
+	if len(data) == 0 {
+		t.Fatal("XLSX bytes empty")
+	}
+	// XLSX is a ZIP — magic bytes 'PK\x03\x04'.
+	if len(data) < 4 || data[0] != 'P' || data[1] != 'K' || data[2] != 0x03 || data[3] != 0x04 {
+		t.Errorf("XLSX magic bytes mismatch: got %x", data[:4])
+	}
+}
+
+func TestExportXLSX_WithoutHeaders(t *testing.T) {
+	b := &DynamicQueryBuilder{}
+	data, _, err := b.Export(
+		sampleResult(),
+		entities.ExportOptions{Format: entities.ExportFormatXLSX, IncludeHeaders: false},
+		"r",
+	)
+	if err != nil {
+		t.Fatalf("Export xlsx no-headers: %v", err)
+	}
+	if len(data) < 4 || data[0] != 'P' || data[1] != 'K' {
+		t.Errorf("XLSX magic mismatch")
+	}
+}
+
+func TestExportPDF_HappyPath(t *testing.T) {
+	b := &DynamicQueryBuilder{}
+	data, filename, err := b.Export(
+		sampleResult(),
+		entities.ExportOptions{Format: entities.ExportFormatPDF, IncludeHeaders: true},
+		"PDF Report",
+	)
+	if err != nil {
+		t.Fatalf("Export pdf: %v", err)
+	}
+	if !strings.HasPrefix(filename, "PDF_Report_") || !strings.HasSuffix(filename, ".pdf") {
+		t.Errorf("filename = %q", filename)
+	}
+	if len(data) < 4 || string(data[:4]) != "%PDF" {
+		t.Errorf("PDF magic mismatch: got %q", string(data[:min(len(data), 4)]))
+	}
+}
+
+func TestExportPDF_LandscapeOrientation(t *testing.T) {
+	b := &DynamicQueryBuilder{}
+	data, _, err := b.Export(
+		sampleResult(),
+		entities.ExportOptions{
+			Format:         entities.ExportFormatPDF,
+			IncludeHeaders: true,
+			Orientation:    "landscape",
+		},
+		"L",
+	)
+	if err != nil {
+		t.Fatalf("Export pdf landscape: %v", err)
+	}
+	if len(data) < 4 || string(data[:4]) != "%PDF" {
+		t.Errorf("PDF magic mismatch")
+	}
+}
+
+func TestExportPDF_CustomPageSize(t *testing.T) {
+	b := &DynamicQueryBuilder{}
+	data, _, err := b.Export(
+		sampleResult(),
+		entities.ExportOptions{
+			Format:         entities.ExportFormatPDF,
+			IncludeHeaders: true,
+			PageSize:       "Letter",
+		},
+		"L",
+	)
+	if err != nil {
+		t.Fatalf("Export pdf letter: %v", err)
+	}
+	if len(data) < 4 || string(data[:4]) != "%PDF" {
+		t.Errorf("PDF magic mismatch")
+	}
+}
+
+func TestExportPDF_WithoutHeaders(t *testing.T) {
+	b := &DynamicQueryBuilder{}
+	data, _, err := b.Export(
+		sampleResult(),
+		entities.ExportOptions{
+			Format:         entities.ExportFormatPDF,
+			IncludeHeaders: false,
+		},
+		"r",
+	)
+	if err != nil {
+		t.Fatalf("Export pdf no-headers: %v", err)
+	}
+	if len(data) < 4 || string(data[:4]) != "%PDF" {
+		t.Errorf("PDF magic mismatch")
+	}
+}
+
+func TestExportPDF_NoColumnsError(t *testing.T) {
+	b := &DynamicQueryBuilder{}
+	emptyCols := &entities.ReportExecutionResult{
+		Columns: []entities.ReportColumn{},
+		Rows:    []map[string]any{},
+	}
+	_, _, err := b.Export(emptyCols, entities.ExportOptions{Format: entities.ExportFormatPDF}, "r")
+	if err == nil || !strings.Contains(err.Error(), "no columns in report") {
+		t.Fatalf("expected 'no columns in report' error, got %v", err)
+	}
+}
+
+func TestExportPDF_PageBreakWithManyRows(t *testing.T) {
+	// Many rows to trigger pdf.GetY() > 270 page-break branch.
+	rows := make([]map[string]any, 0, 50)
+	for i := range 50 {
+		rows = append(rows, map[string]any{
+			fieldNameID: "Row",
+			"count":     int64(i),
+		})
+	}
+	result := &entities.ReportExecutionResult{
+		Columns: []entities.ReportColumn{
+			{Key: fieldNameID, Label: "Name"},
+			{Key: "count", Label: "Count"},
+		},
+		Rows: rows,
+	}
+	b := &DynamicQueryBuilder{}
+	data, _, err := b.Export(result, entities.ExportOptions{
+		Format:         entities.ExportFormatPDF,
+		IncludeHeaders: true,
+	}, "many")
+	if err != nil {
+		t.Fatalf("Export pdf many rows: %v", err)
+	}
+	if len(data) < 4 || string(data[:4]) != "%PDF" {
+		t.Errorf("PDF magic mismatch")
+	}
 }
 
 func TestNewDynamicQueryBuilder_PopulatesAllSources(t *testing.T) {
