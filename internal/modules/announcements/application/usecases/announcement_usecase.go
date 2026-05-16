@@ -10,7 +10,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/repositories"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
@@ -31,7 +30,7 @@ type UserIDsProvider interface {
 
 // AnnouncementUseCase handles announcement business logic.
 type AnnouncementUseCase struct {
-	repo                repositories.AnnouncementRepository
+	repo                AnnouncementRepository
 	auditLogger         *logging.AuditLogger
 	notificationUseCase *notifUsecases.NotificationUseCase
 	userIDsProvider     UserIDsProvider
@@ -40,7 +39,7 @@ type AnnouncementUseCase struct {
 
 // NewAnnouncementUseCase creates a new AnnouncementUseCase.
 func NewAnnouncementUseCase(
-	repo repositories.AnnouncementRepository,
+	repo AnnouncementRepository,
 	auditLogger *logging.AuditLogger,
 	notificationUseCase *notifUsecases.NotificationUseCase,
 	userIDsProvider UserIDsProvider,
@@ -225,7 +224,7 @@ func (uc *AnnouncementUseCase) List(ctx context.Context, req *dto.ListAnnounceme
 		req.Limit = 100
 	}
 
-	filter := repositories.AnnouncementFilter{
+	filter := AnnouncementFilter{
 		AuthorID:       req.AuthorID,
 		Status:         req.Status,
 		Priority:       req.Priority,

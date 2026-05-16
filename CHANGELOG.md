@@ -15,6 +15,73 @@
 
 ---
 
+## [0.143.0] — 2026-05-16
+
+### Changed — Announcements DIP refactor + PG repo coverage backfill (Phase 6 #196 / #210 follow-up)
+
+Applies the v0.141.0 auth-module DIP template to the announcements
+module and pairs it with a full coverage backfill of the PG adapter.
+First module released under the Phase 6 #196 multi-release sprint.
+
+**Refactor (mechanical, no behavior change)**:
+- `AnnouncementRepository` interface and its co-located
+  `AnnouncementFilter` struct relocated from
+  `internal/modules/announcements/domain/repositories/` to
+  `internal/modules/announcements/application/usecases/` per CLAUDE.md
+  DDD-gate ("Repository interfaces в пакете-потребителе").
+- Empty `domain/repositories/` directory removed.
+- Three consumer sites updated: usecase, usecase_test, pg adapter.
+  PG adapter now imports `application/usecases` (aliased as `usecases`),
+  matching the v0.141.0 auth precedent.
+- Compile-time guarantee added in the PG adapter:
+  `var _ usecases.AnnouncementRepository = (*AnnouncementRepositoryPG)(nil)`.
+
+**Coverage backfill (sqlmock, honest `test: backfill` label)**:
+- `announcement_repository_pg.go`: **0.0% → 100.0%** statement coverage
+  across 18 interface methods + 2 helpers (`buildListQuery`,
+  `scanAnnouncements`).
+- New `announcement_repository_pg_test.go` (609 LoC) covers:
+  - CRUD success + DB-error paths (Create/Save/GetByID/Delete).
+  - `sql.ErrNoRows` → `(nil, nil)` contract for GetByID and
+    GetAttachmentByID.
+  - List with no filter, all-scalar filters (8-arg WHERE chain),
+    `IsExpired` branch table (expired=true/false), query error,
+    scan error.
+  - Count with no filter, status-only filter, query error.
+  - GetByAuthor / GetPublished / GetPinned / GetRecent — happy path +
+    one query-error variant each. Tight single-anchor `QuoteMeta`
+    fragments cover full WHERE+ORDER BY chains (no `.+` glue) per
+    reviewer Tier 2.
+  - IncrementViewCount / AddAttachment / RemoveAttachment — success +
+    error.
+  - GetAttachments — many-row / empty / query-error / scan-error
+    (wrong-column-count rows).
+- Mutation-resistance: `regexp.QuoteMeta(SQL)` for query anchoring +
+  exact `WithArgs(...)` for argument pinning per
+  `feedback_sqlmock_withargs_for_mutation_resistance`. Table-driven
+  where ≥3 variants per CLAUDE.md TDD gate.
+
+**Coverage impact**: backend global `74.4% → 74.9%` (+0.5pp from one
+module). Backend lint 0 / packages green. Frontend untouched.
+
+**Quality**: reviewer single-pass `superpowers:code-reviewer` SHIP
+mean **9.71 / min 9** (DDD 10 / Clean Architecture 10 / Refactor
+hygiene 10 / TDD labeling 9 / Test quality 9 / Commit hygiene 10 /
+Safety 10). Tier 1 = none. Tier 2 (3 anchoring spots in `GetPublished`/
+`GetPinned`/`GetRecent` happy-path tests) absorbed in the release
+commit. Tier 3 carry-forward: `rows.Err()` exercise via sqlmock
+`RowError`; handler error-path gaps (handleError 0%, handleAttachmentError
+0%, GetByID 33%) — need handler-mocking against the new narrow port,
+deferred to v0.143.x patch or a future module sweep; explicit
+`GetByAuthor` error-path test for symmetry.
+
+**Phase 6 sprint status**: 1 module released / ~15 modules
+(~40+ remaining interfaces) carry-forward. Pattern locked + reusable.
+Next iteration may target curriculum (4 interfaces) или assignments
+(2 interfaces) per senior pick.
+
+---
+
 ## [0.142.0] — 2026-05-15
 
 ### Changed — Admin settings cleanup + role-based separation (UX hardening + 3 incident-driven backend fixes)

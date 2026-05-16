@@ -10,15 +10,18 @@ import (
 
 	"github.com/lib/pq"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/repositories"
 )
 
 // AnnouncementRepositoryPG implements AnnouncementRepository using PostgreSQL.
 type AnnouncementRepositoryPG struct {
 	db *sql.DB
 }
+
+// Compile-time guarantee that AnnouncementRepositoryPG satisfies the port.
+var _ usecases.AnnouncementRepository = (*AnnouncementRepositoryPG)(nil)
 
 // NewAnnouncementRepositoryPG creates a new AnnouncementRepositoryPG.
 func NewAnnouncementRepositoryPG(db *sql.DB) *AnnouncementRepositoryPG {
@@ -101,7 +104,7 @@ func (r *AnnouncementRepositoryPG) Delete(ctx context.Context, id int64) error {
 }
 
 // List lists announcements with filters.
-func (r *AnnouncementRepositoryPG) List(ctx context.Context, filter repositories.AnnouncementFilter, limit, offset int) ([]*entities.Announcement, error) {
+func (r *AnnouncementRepositoryPG) List(ctx context.Context, filter usecases.AnnouncementFilter, limit, offset int) ([]*entities.Announcement, error) {
 	query, args := r.buildListQuery(filter, limit, offset, false)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
@@ -114,7 +117,7 @@ func (r *AnnouncementRepositoryPG) List(ctx context.Context, filter repositories
 }
 
 // Count counts announcements with filters.
-func (r *AnnouncementRepositoryPG) Count(ctx context.Context, filter repositories.AnnouncementFilter) (int64, error) {
+func (r *AnnouncementRepositoryPG) Count(ctx context.Context, filter usecases.AnnouncementFilter) (int64, error) {
 	query, args := r.buildListQuery(filter, 0, 0, true)
 
 	var count int64
@@ -124,14 +127,14 @@ func (r *AnnouncementRepositoryPG) Count(ctx context.Context, filter repositorie
 
 // GetByAuthor retrieves announcements by author.
 func (r *AnnouncementRepositoryPG) GetByAuthor(ctx context.Context, authorID int64, limit, offset int) ([]*entities.Announcement, error) {
-	filter := repositories.AnnouncementFilter{AuthorID: &authorID}
+	filter := usecases.AnnouncementFilter{AuthorID: &authorID}
 	return r.List(ctx, filter, limit, offset)
 }
 
 // GetPublished retrieves published announcements for a specific audience.
 func (r *AnnouncementRepositoryPG) GetPublished(ctx context.Context, audience domain.TargetAudience, limit, offset int) ([]*entities.Announcement, error) {
 	status := domain.AnnouncementStatusPublished
-	filter := repositories.AnnouncementFilter{
+	filter := usecases.AnnouncementFilter{
 		Status:         &status,
 		TargetAudience: &audience,
 	}
@@ -282,7 +285,7 @@ func (r *AnnouncementRepositoryPG) GetAttachmentByID(ctx context.Context, attach
 	return att, nil
 }
 
-func (r *AnnouncementRepositoryPG) buildListQuery(filter repositories.AnnouncementFilter, limit, offset int, countOnly bool) (string, []interface{}) {
+func (r *AnnouncementRepositoryPG) buildListQuery(filter usecases.AnnouncementFilter, limit, offset int, countOnly bool) (string, []interface{}) {
 	var conditions []string
 	var args []interface{}
 	argNum := 1

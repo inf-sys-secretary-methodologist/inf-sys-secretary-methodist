@@ -12,7 +12,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -77,7 +76,7 @@ func (m *MockAnnouncementRepository) Delete(_ context.Context, id int64) error {
 	return nil
 }
 
-func (m *MockAnnouncementRepository) List(_ context.Context, _ repositories.AnnouncementFilter, limit, offset int) ([]*entities.Announcement, error) {
+func (m *MockAnnouncementRepository) List(_ context.Context, _ AnnouncementFilter, limit, offset int) ([]*entities.Announcement, error) {
 	var result []*entities.Announcement
 	i := 0
 	for _, a := range m.announcements {
@@ -89,7 +88,7 @@ func (m *MockAnnouncementRepository) List(_ context.Context, _ repositories.Anno
 	return result, nil
 }
 
-func (m *MockAnnouncementRepository) Count(_ context.Context, _ repositories.AnnouncementFilter) (int64, error) {
+func (m *MockAnnouncementRepository) Count(_ context.Context, _ AnnouncementFilter) (int64, error) {
 	return int64(len(m.announcements)), nil
 }
 
@@ -228,14 +227,14 @@ func (m *ErrorMockAnnouncementRepository) Delete(ctx context.Context, id int64) 
 	return m.MockAnnouncementRepository.Delete(ctx, id)
 }
 
-func (m *ErrorMockAnnouncementRepository) List(ctx context.Context, f repositories.AnnouncementFilter, limit, offset int) ([]*entities.Announcement, error) {
+func (m *ErrorMockAnnouncementRepository) List(ctx context.Context, f AnnouncementFilter, limit, offset int) ([]*entities.Announcement, error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
 	return m.MockAnnouncementRepository.List(ctx, f, limit, offset)
 }
 
-func (m *ErrorMockAnnouncementRepository) Count(ctx context.Context, f repositories.AnnouncementFilter) (int64, error) {
+func (m *ErrorMockAnnouncementRepository) Count(ctx context.Context, f AnnouncementFilter) (int64, error) {
 	if m.countErr != nil {
 		return 0, m.countErr
 	}
