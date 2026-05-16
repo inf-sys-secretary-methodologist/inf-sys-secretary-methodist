@@ -15,6 +15,43 @@
 
 ---
 
+## [0.145.0] — 2026-05-16
+
+### Added — reporting/infrastructure/query coverage backfill (Phase 6 #196 sprint 4/15)
+
+Pure backfill релиз: 4-й модуль в multi-release sprint к 90% backend
+coverage. Production-код не изменён.
+
+**Surface covered**: `internal/modules/reporting/infrastructure/query/dynamic_query_builder.go` (667 LoC, 12 функций).
+
+**Test commits (4)**:
+- C1: pure helpers (`formatValue` 8 cases, `sanitizeFilename` 14, `truncateString` 5) + `GetAvailableFields` (6 data sources × field-ID/enum/source assertions) + `NewDynamicQueryBuilder` smoke test.
+- C2: `buildWhereClause` table-driven 15 операторов + 4 edge cases (non-array IN dropped, empty-array degenerate `IN ()`, unknown field skipped, unknown operator filtered).
+- C3: `Execute` через sqlmock — happy path + unsupported source + no-valid-fields + 5 aggregations independently + alias-replaces-field-name + composite (filter+groupBy+sortByDesc+pagination ceil) + default ORDER BY 1 ASC + count/main-query errors + []byte→string row conversion + nil value passthrough.
+- C4: `Export` (CSV/XLSX/PDF + unsupported) + `exportCSV` (with/without headers + value-type formatting) + `exportXLSX` (`excelize.OpenReader` + 6 cell-value assertions) + `exportPDF` (happy + landscape + Letter + no-headers + no-columns error + 50-row page-break path).
+
+**Tier 2 absorbs в release commit** (per `feedback_tier2_absorb_same_release`, reviewer round-1 SHIP mean 9.17 / min 8):
+- CSV: `csv.NewReader` round-trip + exact `[][]string` equality (was `strings.Contains` — mutation-resistance restored per plan ADR-4).
+- XLSX: `excelize.OpenReader` + 6 cell-value assertions (was ZIP magic-byte only).
+- CSV no-headers: exact 2-record assertion (was negative-only assertion).
+- PDF: `%PDF-` (с trailing dash) at all 5 sites per plan ADR-4.
+
+**Coverage impact**:
+- Package `reporting/infrastructure/query`: 0% → 97.4% statement.
+- Per-function: 8/12 at 100%. Execute 97.5% (`rows.Scan` error path uncoverable стандартным sqlmock — RowError lands в `rows.Err()` not `Scan()`, и Execute не checks `rows.Err()` post-loop; carry-forward refactor для отдельного release). exportCSV 84.2% / exportXLSX 95.8% / exportPDF 97.9% (third-party writer-error branches uncoverable без custom transport).
+- Global backend: 75.0% → 76.0% (+1.0pp single module).
+- Remaining к 90% target: +14pp (multi-release sprint ongoing).
+
+**Carry-forward backlog**:
+- `Execute` add `rows.Err()` check post-loop — separate `fix(reporting/query):` release.
+- `IN ()` empty-array emits invalid Postgres SQL — backlog issue.
+
+**Reviewer**: round-1 SHIP. Axes: Test quality 8 (post-absorb 9) / TDD 10 / DDD+CA 10 / Hygiene 10 / Coverage honesty 9 / Plan adherence 8 (post-absorb 9). Mean 9.17 / min 8.
+
+Advances #196. Branch `feature/issue-196-reporting-query-coverage`.
+
+---
+
 ## [0.144.0] — 2026-05-16
 
 ### Changed — Branding + Dashboard DIP refactor + Branding use case coverage backfill (Phase 6 #196 modules 2-3)
