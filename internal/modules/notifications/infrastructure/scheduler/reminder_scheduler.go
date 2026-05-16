@@ -29,23 +29,39 @@ type ReminderScheduler struct {
 	emailService     services.EmailService
 	telegramRepo     repositories.TelegramRepository
 	telegramService  services.TelegramService
+	webPushRepo      repositories.WebPushRepository
+	webPushService   services.WebPushService
 	checkInterval    time.Duration
 	batchSize        int
 }
 
 // WithTelegramDispatch wires the telegram repository + service onto an
-// existing ReminderScheduler. RED stub — fields stored but
-// sendTelegramReminder still falls back к in-app; GREEN replaces the
-// body with real dispatch logic mirror к TaskReminderScheduler.sendTelegram.
-//
-// Chainable so wire-up reads `NewReminderScheduler(...).WithTelegramDispatch(...)`
-// in main.go.
+// existing ReminderScheduler. Chainable so wire-up reads
+// `NewReminderScheduler(...).WithTelegramDispatch(...)` in main.go.
 func (s *ReminderScheduler) WithTelegramDispatch(
 	telegramRepo repositories.TelegramRepository,
 	telegramService services.TelegramService,
 ) *ReminderScheduler {
 	s.telegramRepo = telegramRepo
 	s.telegramService = telegramService
+	return s
+}
+
+// WithWebPushDispatch wires the WebPushRepository + WebPushService onto
+// an existing ReminderScheduler. RED stub for v0.147.0 — fields stored;
+// sendPushReminder still falls back к in-app. GREEN replaces the body
+// with real dispatch logic mirror к WithTelegramDispatch.
+//
+// Chainable so wire-up reads
+// `NewReminderScheduler(...).WithWebPushDispatch(...)` in main.go.
+//
+// Issue: #226
+func (s *ReminderScheduler) WithWebPushDispatch(
+	webPushRepo repositories.WebPushRepository,
+	webPushService services.WebPushService,
+) *ReminderScheduler {
+	s.webPushRepo = webPushRepo
+	s.webPushService = webPushService
 	return s
 }
 
