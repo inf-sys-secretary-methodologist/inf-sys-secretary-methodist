@@ -19,7 +19,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/interfaces/http/handlers"
 )
 
@@ -69,7 +68,7 @@ func withAuth(uid int64, role string) gin.HandlerFunc {
 // All wiring goes through RegisterBrandingRoutes so the test pins the
 // extractor's contract (rather than re-mounting routes inline, which
 // would tautologically pass even if the registrar were broken).
-func newTestEngine(t *testing.T, uid int64, role string, repo repositories.BrandSettingsRepository) *gin.Engine {
+func newTestEngine(t *testing.T, uid int64, role string, repo usecases.BrandSettingsRepository) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

@@ -1,7 +1,5 @@
-// Package repositories declares the persistence port for the
-// branding module. Concrete implementation lives в infrastructure/
-// persistence; tests inject a fake satisfying the same interface.
-package repositories
+// Package usecases contains branding business logic.
+package usecases
 
 import (
 	"context"

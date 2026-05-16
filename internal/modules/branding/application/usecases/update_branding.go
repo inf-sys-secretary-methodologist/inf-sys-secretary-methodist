@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/repositories"
 )
 
 // Clock is the narrow port for current-time injection. Lets tests
@@ -41,7 +40,7 @@ type UpdateBrandingInput struct {
 // then persists. An audit event "brand.updated" is emitted on
 // success (fire-and-forget — failure is not propagated).
 type UpdateBrandingUseCase struct {
-	repo  repositories.BrandSettingsRepository
+	repo  BrandSettingsRepository
 	clock Clock
 	audit AuditSink
 }
@@ -50,7 +49,7 @@ type UpdateBrandingUseCase struct {
 // nil repo. clock defaults to SystemClock if nil. audit may be
 // nil — emission is skipped in that case (test-friendly).
 func NewUpdateBrandingUseCase(
-	repo repositories.BrandSettingsRepository,
+	repo BrandSettingsRepository,
 	clock Clock,
 	audit AuditSink,
 ) *UpdateBrandingUseCase {

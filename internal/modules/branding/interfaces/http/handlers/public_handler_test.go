@@ -15,7 +15,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/repositories"
 )
 
 // stubRepo serves a fixed BrandSettings without any state beyond
@@ -31,9 +30,9 @@ func (r *stubRepo) Update(_ context.Context, _ *entities.BrandSettings) error {
 	return nil
 }
 
-var _ repositories.BrandSettingsRepository = (*stubRepo)(nil)
+var _ usecases.BrandSettingsRepository = (*stubRepo)(nil)
 
-func newPublicTestEngine(t *testing.T, repo repositories.BrandSettingsRepository) *gin.Engine {
+func newPublicTestEngine(t *testing.T, repo usecases.BrandSettingsRepository) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	getUC := usecases.NewGetBrandingUseCase(repo)

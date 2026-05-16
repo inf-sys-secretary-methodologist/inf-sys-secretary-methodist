@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/branding/domain/repositories"
 )
 
 // ErrBrandSettingsMissing is the infrastructure-level sentinel
@@ -36,7 +36,7 @@ func NewBrandSettingsRepositoryPG(db *sql.DB) *BrandSettingsRepositoryPG {
 }
 
 // Compile-time assertion that the concrete type satisfies the port.
-var _ repositories.BrandSettingsRepository = (*BrandSettingsRepositoryPG)(nil)
+var _ usecases.BrandSettingsRepository = (*BrandSettingsRepositoryPG)(nil)
 
 // Get reads the singleton row (id = 1). Returns
 // ErrBrandSettingsMissing if the seed row is absent — that means
