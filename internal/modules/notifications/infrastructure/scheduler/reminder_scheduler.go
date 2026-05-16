@@ -274,10 +274,44 @@ func (s *ReminderScheduler) sendInAppReminder(ctx context.Context, reminder *sch
 	return s.notificationRepo.Create(ctx, notification)
 }
 
-// sendPushReminder sends a push notification.
-// Currently falls back to in-app notification; Firebase FCM integration planned for future.
+// sendPushReminder dispatches the reminder via the injected
+// WebPushService. Wiring is optional — WithWebPushDispatch supplies
+// the repo + service; absent either, the call falls back к in-app
+// so the reminder stays reachable. Mirror к
+// TaskReminderScheduler push dispatch behavior introduced в v0.147.0.
+//
+// Three fallback gates protect the dispatch:
+//  1. nil deps (un-wired) → in-app
+//  2. service not configured (no VAPID keys) → in-app
+//  3. user has no active subscriptions → in-app
+//  4. dispatch error (network/4xx/5xx) → in-app
+//
+// Issue: #226
 func (s *ReminderScheduler) sendPushReminder(ctx context.Context, reminder *scheduleEntities.EventReminder, event *scheduleEntities.Event) error {
-	return s.sendInAppReminder(ctx, reminder, event)
+	if s.webPushRepo == nil || s.webPushService == nil {
+		return s.sendInAppReminder(ctx, reminder, event)
+	}
+	if !s.webPushService.IsConfigured() {
+		return s.sendInAppReminder(ctx, reminder, event)
+	}
+	subs, err := s.webPushRepo.GetActiveByUserID(ctx, reminder.UserID)
+	if err != nil || len(subs) == 0 {
+		if err != nil {
+			log.Printf("reminder_scheduler: webpush GetActiveByUserID failed: %v — falling back к in-app", err)
+		}
+		return s.sendInAppReminder(ctx, reminder, event)
+	}
+	payload := notifEntities.NewWebPushPayload(
+		"Напоминание о событии",
+		s.formatEventReminderMessage(event, reminder.MinutesBefore),
+	)
+	payload.URL = fmt.Sprintf("/schedule/events/%d", event.ID)
+	payload.Tag = fmt.Sprintf("event-reminder-%d", reminder.ID)
+	if dispatchErr := s.webPushService.SendToUser(ctx, reminder.UserID, payload); dispatchErr != nil {
+		log.Printf("reminder_scheduler: webpush dispatch failed: %v — falling back к in-app", dispatchErr)
+		return s.sendInAppReminder(ctx, reminder, event)
+	}
+	return nil
 }
 
 // sendTelegramReminder dispatches the reminder via the injected
