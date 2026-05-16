@@ -2989,7 +2989,9 @@
       "submitButton": "Submit for review",
       "approveButton": "Approve",
       "rejectButton": "Reject",
-      "registerButton": "Register"
+      "registerButton": "Register",
+      "routeButton": "Send to routing",
+      "signVisaButton": "Sign visa"
     },
     "statusBadge": {
       "draft": "Draft",
@@ -3019,6 +3021,36 @@
         "forbidden": "Not authorized to register",
         "notFound": "Document not found",
         "generic": "Failed to register the document"
+      }
+    },
+    "routing": {
+      "dialogTitle": "Send document to routing?",
+      "dialogBody": "The document will move to the 'routing' status and be forwarded to the approver for visa. Action is logged in the audit trail.",
+      "confirmLabel": "Send to routing",
+      "cancelLabel": "Cancel"
+    },
+    "routingToast": {
+      "success": "Document sent to routing",
+      "errors": {
+        "notRegistered": "Cannot send to routing — document is not registered",
+        "forbidden": "Not authorized to send to routing",
+        "notFound": "Document not found",
+        "generic": "Failed to send the document to routing"
+      }
+    },
+    "signVisa": {
+      "dialogTitle": "Sign the document visa?",
+      "dialogBody": "The document will move to the 'execution' status. Action is logged in the audit trail and records the approver visa.",
+      "confirmLabel": "Sign visa",
+      "cancelLabel": "Cancel"
+    },
+    "signVisaToast": {
+      "success": "Visa signed",
+      "errors": {
+        "notRouting": "Cannot sign visa — document is not in routing",
+        "forbidden": "Not authorized to sign visa",
+        "notFound": "Document not found",
+        "generic": "Failed to sign the visa"
       }
     }
   }

@@ -2989,7 +2989,9 @@
       "submitButton": "Soumettre à approbation",
       "approveButton": "Approuver",
       "rejectButton": "Rejeter",
-      "registerButton": "Enregistrer"
+      "registerButton": "Enregistrer",
+      "routeButton": "Envoyer en circuit",
+      "signVisaButton": "Signer le visa"
     },
     "statusBadge": {
       "draft": "Brouillon",
@@ -3019,6 +3021,36 @@
         "forbidden": "Non autorisé à enregistrer",
         "notFound": "Document introuvable",
         "generic": "Échec de l'enregistrement du document"
+      }
+    },
+    "routing": {
+      "dialogTitle": "Envoyer le document en circuit ?",
+      "dialogBody": "Le document passera au statut « en circuit » et sera transmis à l'approbateur pour visa. L'action est consignée dans le journal d'audit.",
+      "confirmLabel": "Envoyer en circuit",
+      "cancelLabel": "Annuler"
+    },
+    "routingToast": {
+      "success": "Document envoyé en circuit",
+      "errors": {
+        "notRegistered": "Impossible d'envoyer en circuit — document non enregistré",
+        "forbidden": "Non autorisé à envoyer en circuit",
+        "notFound": "Document introuvable",
+        "generic": "Échec de l'envoi en circuit"
+      }
+    },
+    "signVisa": {
+      "dialogTitle": "Signer le visa du document ?",
+      "dialogBody": "Le document passera au statut « en exécution ». L'action est consignée dans le journal d'audit et enregistre le visa de l'approbateur.",
+      "confirmLabel": "Signer le visa",
+      "cancelLabel": "Annuler"
+    },
+    "signVisaToast": {
+      "success": "Visa signé",
+      "errors": {
+        "notRouting": "Impossible de signer le visa — document hors circuit",
+        "forbidden": "Non autorisé à signer le visa",
+        "notFound": "Document introuvable",
+        "generic": "Échec de la signature du visa"
       }
     }
   }

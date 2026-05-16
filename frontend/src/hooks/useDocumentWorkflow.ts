@@ -89,3 +89,26 @@ export async function registerDocument(
   )
   return response.data
 }
+
+// startRoutingDocument (v0.150.0 #231) transitions registered → routing.
+// Single-step visa per ADR-1 — sends the document to one admin approver.
+// Body empty (path id + JWT subject identify row + actor).
+// Errors: 409 not_registered / 404 not_found / 403 forbidden.
+export async function startRoutingDocument(id: number): Promise<DocumentWorkflowFields> {
+  const response = await apiClient.post<ApiResponse<DocumentWorkflowFields>>(
+    `${ADMIN_DOCUMENTS_URL}/${id}/start-routing`,
+    {}
+  )
+  return response.data
+}
+
+// signVisaDocument (v0.150.0 #231) transitions routing → execution
+// when the visa is signed. Single-step — one approver completes the
+// visa. Errors: 409 not_routing / 404 not_found / 403 forbidden.
+export async function signVisaDocument(id: number): Promise<DocumentWorkflowFields> {
+  const response = await apiClient.post<ApiResponse<DocumentWorkflowFields>>(
+    `${ADMIN_DOCUMENTS_URL}/${id}/sign-visa`,
+    {}
+  )
+  return response.data
+}
