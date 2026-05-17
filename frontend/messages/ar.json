@@ -2991,7 +2991,9 @@
       "rejectButton": "رفض",
       "registerButton": "تسجيل",
       "routeButton": "إرسال إلى المسار",
-      "signVisaButton": "توقيع التأشيرة"
+      "signVisaButton": "توقيع التأشيرة",
+      "assignExecutorButton": "تعيين المنفذ",
+      "markExecutedButton": "وضع علامة منفذ"
     },
     "statusBadge": {
       "draft": "مسودة",
@@ -3051,6 +3053,42 @@
         "forbidden": "غير مصرح لك بتوقيع التأشيرة",
         "notFound": "المستند غير موجود",
         "generic": "فشل توقيع التأشيرة"
+      }
+    },
+    "assignExecutor": {
+      "dialogTitle": "تعيين المنفذ؟",
+      "dialogBody": "اختر منفذًا وحدد اختياريًا تاريخ الاستحقاق. يتم تسجيل الإجراء في سجل المراجعة؛ يمكن تغيير التعيين قبل وضع علامة على المستند كمنفذ.",
+      "executorLabel": "المنفذ",
+      "executorPlaceholder": "اختر مستخدمًا",
+      "dueDateLabel": "تاريخ الاستحقاق (اختياري)",
+      "dueDateHint": "اترك الحقل فارغًا إذا لم يكن هناك موعد نهائي صارم.",
+      "confirmLabel": "تعيين",
+      "cancelLabel": "إلغاء"
+    },
+    "assignExecutorToast": {
+      "success": "تم تعيين المنفذ",
+      "errors": {
+        "invalid": "بيانات تعيين غير صالحة",
+        "notExecution": "يمكن التعيين فقط عندما يكون المستند قيد التنفيذ",
+        "forbidden": "غير مصرح لك بتعيين منفذ",
+        "notFound": "المستند غير موجود",
+        "loadUsers": "فشل تحميل قائمة المستخدمين",
+        "generic": "فشل تعيين المنفذ"
+      }
+    },
+    "markExecuted": {
+      "dialogTitle": "وضع علامة على المستند كمنفذ؟",
+      "dialogBody": "سينتقل المستند إلى حالة «منفذ» — الخطوة النهائية في دورة الحياة. يتم تسجيل الإجراء في سجل المراجعة.",
+      "confirmLabel": "وضع علامة منفذ",
+      "cancelLabel": "إلغاء"
+    },
+    "markExecutedToast": {
+      "success": "تم وضع علامة منفذ على المستند",
+      "errors": {
+        "notExecution": "لا يمكن وضع علامة — المستند ليس قيد التنفيذ",
+        "forbidden": "غير مصرح لك بوضع علامة منفذ",
+        "notFound": "المستند غير موجود",
+        "generic": "فشل وضع علامة منفذ على المستند"
       }
     }
   }

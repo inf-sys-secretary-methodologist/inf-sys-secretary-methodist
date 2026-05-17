@@ -112,3 +112,35 @@ export async function signVisaDocument(id: number): Promise<DocumentWorkflowFiel
   )
   return response.data
 }
+
+// AssignExecutorRequest body для AssignExecutor endpoint (v0.151.0 #232).
+// dueDate optional — YYYY-MM-DD string или RFC3339; backend handles both.
+export interface AssignExecutorRequest {
+  executor_id: number
+  due_date?: string
+}
+
+// assignExecutorDocument (v0.151.0 #232) shapes executor assignment on an
+// execution-status document. Status stays execution — shape-only per ADR-1.
+// Reassign overwrites prior. Errors: 422 invalid_executor / 422 invalid
+// due_date / 409 not_execution / 404 not_found / 403 forbidden.
+export async function assignExecutorDocument(
+  id: number,
+  body: AssignExecutorRequest
+): Promise<DocumentWorkflowFields> {
+  const response = await apiClient.post<ApiResponse<DocumentWorkflowFields>>(
+    `${ADMIN_DOCUMENTS_URL}/${id}/assign-executor`,
+    body
+  )
+  return response.data
+}
+
+// markExecutedDocument (v0.151.0 #232) transitions execution → executed.
+// Body-less. Errors: 409 not_execution / 404 not_found / 403 forbidden.
+export async function markExecutedDocument(id: number): Promise<DocumentWorkflowFields> {
+  const response = await apiClient.post<ApiResponse<DocumentWorkflowFields>>(
+    `${ADMIN_DOCUMENTS_URL}/${id}/mark-executed`,
+    {}
+  )
+  return response.data
+}

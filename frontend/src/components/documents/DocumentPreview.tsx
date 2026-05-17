@@ -15,6 +15,8 @@ import {
   FileSignature,
   Route,
   Stamp,
+  UserCheck,
+  CheckCheck,
 } from 'lucide-react'
 import { getStoredToken } from '@/lib/auth/token'
 import { Button } from '@/components/ui/button'
@@ -28,6 +30,8 @@ import { RejectDocumentDialog } from './RejectDocumentDialog'
 import { RegisterDocumentDialog } from './RegisterDocumentDialog'
 import { StartRoutingDialog } from './StartRoutingDialog'
 import { SignVisaDialog } from './SignVisaDialog'
+import { AssignExecutorDialog } from './AssignExecutorDialog'
+import { MarkExecutedDialog } from './MarkExecutedDialog'
 
 type TabType = 'preview' | 'versions'
 
@@ -59,6 +63,8 @@ export function DocumentPreview({
   const [registerOpen, setRegisterOpen] = useState(false)
   const [routingOpen, setRoutingOpen] = useState(false)
   const [signVisaOpen, setSignVisaOpen] = useState(false)
+  const [assignExecutorOpen, setAssignExecutorOpen] = useState(false)
+  const [markExecutedOpen, setMarkExecutedOpen] = useState(false)
 
   // Workflow gates (v0.148.0 #227). Submit visible to author OR
   // any edit-role on a draft. Approve/Reject visible only к
@@ -85,6 +91,14 @@ export function DocumentPreview({
     (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
   const canSignVisa =
     doc.status === DocumentStatus.ROUTING &&
+    (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
+  // v0.151.0 Phase 4 — Execution transitions (#232). AssignExecutor +
+  // MarkExecuted both gated на execution + admin role.
+  const canAssignExecutor =
+    doc.status === DocumentStatus.EXECUTION &&
+    (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
+  const canMarkExecuted =
+    doc.status === DocumentStatus.EXECUTION &&
     (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
 
   /* c8 ignore start - Keyboard and click handlers, tested in e2e */
@@ -204,6 +218,18 @@ export function DocumentPreview({
               <Button variant="default" size="sm" onClick={() => setSignVisaOpen(true)}>
                 <Stamp className="h-4 w-4 mr-2" />
                 {tWorkflow('actions.signVisaButton')}
+              </Button>
+            )}
+            {canAssignExecutor && (
+              <Button variant="outline" size="sm" onClick={() => setAssignExecutorOpen(true)}>
+                <UserCheck className="h-4 w-4 mr-2" />
+                {tWorkflow('actions.assignExecutorButton')}
+              </Button>
+            )}
+            {canMarkExecuted && (
+              <Button variant="default" size="sm" onClick={() => setMarkExecutedOpen(true)}>
+                <CheckCheck className="h-4 w-4 mr-2" />
+                {tWorkflow('actions.markExecutedButton')}
               </Button>
             )}
             {onDownload && (
@@ -404,6 +430,18 @@ export function DocumentPreview({
         open={signVisaOpen}
         onClose={() => setSignVisaOpen(false)}
         onSigned={onDocumentUpdated}
+      />
+      <AssignExecutorDialog
+        documentId={Number(doc.id)}
+        open={assignExecutorOpen}
+        onClose={() => setAssignExecutorOpen(false)}
+        onAssigned={onDocumentUpdated}
+      />
+      <MarkExecutedDialog
+        documentId={Number(doc.id)}
+        open={markExecutedOpen}
+        onClose={() => setMarkExecutedOpen(false)}
+        onMarked={onDocumentUpdated}
       />
     </div>
   )

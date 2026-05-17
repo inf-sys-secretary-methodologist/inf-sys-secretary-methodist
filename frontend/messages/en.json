@@ -2991,7 +2991,9 @@
       "rejectButton": "Reject",
       "registerButton": "Register",
       "routeButton": "Send to routing",
-      "signVisaButton": "Sign visa"
+      "signVisaButton": "Sign visa",
+      "assignExecutorButton": "Assign executor",
+      "markExecutedButton": "Mark executed"
     },
     "statusBadge": {
       "draft": "Draft",
@@ -3051,6 +3053,42 @@
         "forbidden": "Not authorized to sign visa",
         "notFound": "Document not found",
         "generic": "Failed to sign the visa"
+      }
+    },
+    "assignExecutor": {
+      "dialogTitle": "Assign executor?",
+      "dialogBody": "Choose an executor and optionally set a due date. The action is logged in the audit trail; the assignment can be changed before marking the document executed.",
+      "executorLabel": "Executor",
+      "executorPlaceholder": "Select a user",
+      "dueDateLabel": "Due date (optional)",
+      "dueDateHint": "Leave the field empty if there is no hard deadline.",
+      "confirmLabel": "Assign",
+      "cancelLabel": "Cancel"
+    },
+    "assignExecutorToast": {
+      "success": "Executor assigned",
+      "errors": {
+        "invalid": "Invalid assignment data",
+        "notExecution": "Can only assign while the document is in execution",
+        "forbidden": "Not authorized to assign executor",
+        "notFound": "Document not found",
+        "loadUsers": "Failed to load the users list",
+        "generic": "Failed to assign executor"
+      }
+    },
+    "markExecuted": {
+      "dialogTitle": "Mark the document as executed?",
+      "dialogBody": "The document will move to the 'executed' status — terminal step of the lifecycle. The action is logged in the audit trail.",
+      "confirmLabel": "Mark executed",
+      "cancelLabel": "Cancel"
+    },
+    "markExecutedToast": {
+      "success": "Document marked as executed",
+      "errors": {
+        "notExecution": "Cannot mark — document is not in execution",
+        "forbidden": "Not authorized to mark executed",
+        "notFound": "Document not found",
+        "generic": "Failed to mark the document as executed"
       }
     }
   }
