@@ -88,8 +88,10 @@ func (r *DocumentRepositoryPG) Update(ctx context.Context, doc *entities.Documen
 			submitted_by = $26, submitted_at = $27,
 			approved_by = $28, approved_at = $29,
 			rejected_by = $30, rejected_at = $31, rejected_reason = $32,
-			registered_by = $33
-		WHERE id = $34 AND deleted_at IS NULL`
+			registered_by = $33,
+			routed_by = $34, routed_at = $35,
+			visa_signed_by = $36, visa_signed_at = $37
+		WHERE id = $38 AND deleted_at IS NULL`
 
 	result, err := r.db.ExecContext(ctx, query,
 		doc.DocumentTypeID, doc.CategoryID, doc.RegistrationNumber, doc.RegistrationDate,
@@ -105,6 +107,9 @@ func (r *DocumentRepositoryPG) Update(ctx context.Context, doc *entities.Documen
 		doc.ApprovedBy, doc.ApprovedAt,
 		doc.RejectedBy, doc.RejectedAt, doc.RejectedReason,
 		doc.RegisteredBy,
+		// v0.150.0 — routing audit trail (#231).
+		doc.RoutedBy, doc.RoutedAt,
+		doc.VisaSignedBy, doc.VisaSignedAt,
 		doc.ID,
 	)
 	if err != nil {
@@ -129,6 +134,7 @@ func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities
 			d.created_at, d.updated_at, d.deleted_at,
 			d.submitted_by, d.submitted_at, d.approved_by, d.approved_at,
 			d.rejected_by, d.rejected_at, d.rejected_reason, d.registered_by,
+			d.routed_by, d.routed_at, d.visa_signed_by, d.visa_signed_at,
 			author.name as author_name, recipient.name as recipient_name
 		FROM documents d
 		LEFT JOIN users author ON d.author_id = author.id
@@ -148,6 +154,8 @@ func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities
 		// v0.148.0 — workflow audit trail (#227).
 		&doc.SubmittedBy, &doc.SubmittedAt, &doc.ApprovedBy, &doc.ApprovedAt,
 		&doc.RejectedBy, &doc.RejectedAt, &doc.RejectedReason, &doc.RegisteredBy,
+		// v0.150.0 — routing audit trail (#231).
+		&doc.RoutedBy, &doc.RoutedAt, &doc.VisaSignedBy, &doc.VisaSignedAt,
 		&doc.AuthorName, &doc.RecipientName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -307,6 +315,7 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 			d.created_at, d.updated_at, d.deleted_at,
 			d.submitted_by, d.submitted_at, d.approved_by, d.approved_at,
 			d.rejected_by, d.rejected_at, d.rejected_reason, d.registered_by,
+			d.routed_by, d.routed_at, d.visa_signed_by, d.visa_signed_at,
 			author.name as author_name, recipient.name as recipient_name
 		FROM documents d
 		LEFT JOIN users author ON d.author_id = author.id
@@ -337,6 +346,8 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 			// v0.148.0 — workflow audit trail (#227).
 			&doc.SubmittedBy, &doc.SubmittedAt, &doc.ApprovedBy, &doc.ApprovedAt,
 			&doc.RejectedBy, &doc.RejectedAt, &doc.RejectedReason, &doc.RegisteredBy,
+			// v0.150.0 — routing audit trail (#231).
+			&doc.RoutedBy, &doc.RoutedAt, &doc.VisaSignedBy, &doc.VisaSignedAt,
 			&doc.AuthorName, &doc.RecipientName,
 		)
 		if err != nil {

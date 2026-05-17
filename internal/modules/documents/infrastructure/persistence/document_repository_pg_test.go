@@ -40,6 +40,8 @@ var docSelectCols = []string{
 	"rejected_by", "rejected_at", "rejected_reason",
 	// v0.149.0 Phase 2 — Register transition (#230).
 	"registered_by",
+	// v0.150.0 Phase 3 — Routing transitions (#231).
+	"routed_by", "routed_at", "visa_signed_by", "visa_signed_at",
 	"author_name", "recipient_name",
 }
 
@@ -58,6 +60,8 @@ func addDocRow(rows *sqlmock.Rows, id int64, title string, ver int, meta []byte)
 		nil, nil, nil, nil, nil, nil, nil,
 		// v0.149.0 — registered_by audit column.
 		nil,
+		// v0.150.0 — 4 routing audit columns (routed_by/at + visa_signed_by/at).
+		nil, nil, nil, nil,
 		nil, nil,
 	)
 }

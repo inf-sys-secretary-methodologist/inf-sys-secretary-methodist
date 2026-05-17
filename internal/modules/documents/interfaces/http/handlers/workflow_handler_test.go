@@ -102,7 +102,9 @@ func mountWorkflow(t *testing.T, userID int64, role string, repo *fakeWorkflowRe
 	approveUC := usecases.NewApproveDocumentUseCase(repo, noopAudit{}, fixedClock(now))
 	rejectUC := usecases.NewRejectDocumentUseCase(repo, noopAudit{}, fixedClock(now))
 	registerUC := usecases.NewRegisterDocumentUseCase(repo, noopAudit{}, fixedClock(now))
-	h := docHttp.NewWorkflowHandler(submitUC, approveUC, rejectUC, registerUC)
+	startRoutingUC := usecases.NewStartRoutingUseCase(repo, noopAudit{}, fixedClock(now))
+	signVisaUC := usecases.NewSignVisaUseCase(repo, noopAudit{}, fixedClock(now))
+	h := docHttp.NewWorkflowHandler(submitUC, approveUC, rejectUC, registerUC, startRoutingUC, signVisaUC)
 
 	r := gin.New()
 	api := r.Group("/api")
@@ -235,4 +237,112 @@ func TestAdminGate_TeacherBlockedFromReject(t *testing.T) {
 	body := map[string]string{"reason": "Корректное обоснование отказа"}
 	w := performRequest(r, "POST", "/api/admin/documents/1/reject", body)
 	assert.Equal(t, http.StatusForbidden, w.Code, "teacher must not reject via admin gate")
+}
+
+// --- StartRouting endpoint integration (#231) ---
+
+func TestStartRouting_HappyPath(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusRegistered))
+	r := mountWorkflow(t, 7, "academic_secretary", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/start-routing", nil)
+
+	require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
+	stored := repo.stored[1]
+	assert.Equal(t, entities.DocumentStatusRouting, stored.Status)
+	require.NotNil(t, stored.RoutedBy)
+	assert.Equal(t, int64(7), *stored.RoutedBy)
+}
+
+func TestStartRouting_NotFound(t *testing.T) {
+	repo := newRepo()
+	r := mountWorkflow(t, 7, "system_admin", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/999/start-routing", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestStartRouting_ConflictForNonRegistered(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusApproved))
+	r := mountWorkflow(t, 7, "academic_secretary", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/start-routing", nil)
+	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
+// TestAdminGate_MethodistBlockedFromStartRouting pins T1-C: methodist
+// must not pass production admin gate для routing.
+func TestAdminGate_MethodistBlockedFromStartRouting(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusRegistered))
+	r := mountWorkflow(t, 99, "methodist", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/start-routing", nil)
+	assert.Equal(t, http.StatusForbidden, w.Code, "methodist must not start routing via admin gate")
+}
+
+// --- SignVisa endpoint integration (#231) ---
+
+func TestSignVisa_HappyPath(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusRouting))
+	r := mountWorkflow(t, 9, "academic_secretary", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/sign-visa", nil)
+
+	require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
+	stored := repo.stored[1]
+	assert.Equal(t, entities.DocumentStatusExecution, stored.Status)
+	require.NotNil(t, stored.VisaSignedBy)
+	assert.Equal(t, int64(9), *stored.VisaSignedBy)
+}
+
+func TestSignVisa_NotFound(t *testing.T) {
+	repo := newRepo()
+	r := mountWorkflow(t, 9, "system_admin", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/999/sign-visa", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestSignVisa_ConflictForNonRouting(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusRegistered))
+	r := mountWorkflow(t, 9, "academic_secretary", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/sign-visa", nil)
+	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
+// TestAdminGate_TeacherBlockedFromSignVisa pins T1-C: teacher must
+// not pass production admin gate для visa signing.
+func TestAdminGate_TeacherBlockedFromSignVisa(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusRouting))
+	r := mountWorkflow(t, 42, "teacher", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/sign-visa", nil)
+	assert.Equal(t, http.StatusForbidden, w.Code, "teacher must not sign visa via admin gate")
+}
+
+// TestStartRouting_EnvelopeContract pins T1-B: backend returns
+// {"data": doc} envelope (response.Success), not raw doc. Frontend
+// hook unwraps .data — regression here breaks the UI silently.
+func TestStartRouting_EnvelopeContract(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusRegistered))
+	r := mountWorkflow(t, 7, "academic_secretary", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/start-routing", nil)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	body := parseResponseBody(w)
+	_, ok := body["data"]
+	assert.True(t, ok, "response must wrap doc in .data envelope; got keys=%v", keysOf(body))
+}
+
+// TestSignVisa_EnvelopeContract — same T1-B defense for visa path.
+func TestSignVisa_EnvelopeContract(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusRouting))
+	r := mountWorkflow(t, 9, "academic_secretary", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/sign-visa", nil)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	body := parseResponseBody(w)
+	_, ok := body["data"]
+	assert.True(t, ok, "response must wrap doc in .data envelope; got keys=%v", keysOf(body))
+}
+
+func keysOf(m map[string]interface{}) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
 }
