@@ -15,6 +15,24 @@
 
 ---
 
+## [0.150.1] — 2026-05-17
+
+### Added — Documents workflow Phase 3 frontend: Routing UI (#231)
+
+Phase 3 of #227 frontend half. Closes UI side of #231 — replays против backend endpoints shipped в v0.150.0.
+
+**Frontend**:
+- `startRoutingDocument` + `signVisaDocument` hook functions.
+- `StartRoutingDialog` + `SignVisaDialog` — confirmation-only modals per ADR-5 (no input — single-step visa).
+- DocumentPreview buttons: `canStartRouting` (registered + admin role) + `canSignVisa` (routing + admin role).
+- i18n × 4 (ru/en/fr/ar) parity для `routing/routingToast` + `signVisa/signVisaToast` namespaces + `actions.routeButton` + `actions.signVisaButton`.
+
+**Versions**:
+- Frontend bumped к 0.150.1 (previously held at 0.149.0 in v0.150.0 backend-only release per ADR-016 phase-split delivery).
+- Backend bumped к 0.150.1 для sync; no backend code changes.
+
+---
+
 ## [0.150.0] — 2026-05-16
 
 ### Added — Documents workflow Phase 3 backend: Routing transitions (#231)
