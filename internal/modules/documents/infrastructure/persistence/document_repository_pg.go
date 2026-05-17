@@ -90,8 +90,10 @@ func (r *DocumentRepositoryPG) Update(ctx context.Context, doc *entities.Documen
 			rejected_by = $30, rejected_at = $31, rejected_reason = $32,
 			registered_by = $33,
 			routed_by = $34, routed_at = $35,
-			visa_signed_by = $36, visa_signed_at = $37
-		WHERE id = $38 AND deleted_at IS NULL`
+			visa_signed_by = $36, visa_signed_at = $37,
+			executor_assigned_to = $38, executor_assigned_at = $39, executor_due_date = $40,
+			executed_by = $41, executed_at = $42
+		WHERE id = $43 AND deleted_at IS NULL`
 
 	result, err := r.db.ExecContext(ctx, query,
 		doc.DocumentTypeID, doc.CategoryID, doc.RegistrationNumber, doc.RegistrationDate,
@@ -110,6 +112,9 @@ func (r *DocumentRepositoryPG) Update(ctx context.Context, doc *entities.Documen
 		// v0.150.0 — routing audit trail (#231).
 		doc.RoutedBy, doc.RoutedAt,
 		doc.VisaSignedBy, doc.VisaSignedAt,
+		// v0.151.0 — execution audit trail (#232).
+		doc.ExecutorAssignedTo, doc.ExecutorAssignedAt, doc.ExecutorDueDate,
+		doc.ExecutedBy, doc.ExecutedAt,
 		doc.ID,
 	)
 	if err != nil {
@@ -135,6 +140,8 @@ func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities
 			d.submitted_by, d.submitted_at, d.approved_by, d.approved_at,
 			d.rejected_by, d.rejected_at, d.rejected_reason, d.registered_by,
 			d.routed_by, d.routed_at, d.visa_signed_by, d.visa_signed_at,
+			d.executor_assigned_to, d.executor_assigned_at, d.executor_due_date,
+			d.executed_by, d.executed_at,
 			author.name as author_name, recipient.name as recipient_name
 		FROM documents d
 		LEFT JOIN users author ON d.author_id = author.id
@@ -156,6 +163,9 @@ func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities
 		&doc.RejectedBy, &doc.RejectedAt, &doc.RejectedReason, &doc.RegisteredBy,
 		// v0.150.0 — routing audit trail (#231).
 		&doc.RoutedBy, &doc.RoutedAt, &doc.VisaSignedBy, &doc.VisaSignedAt,
+		// v0.151.0 — execution audit trail (#232).
+		&doc.ExecutorAssignedTo, &doc.ExecutorAssignedAt, &doc.ExecutorDueDate,
+		&doc.ExecutedBy, &doc.ExecutedAt,
 		&doc.AuthorName, &doc.RecipientName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -316,6 +326,8 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 			d.submitted_by, d.submitted_at, d.approved_by, d.approved_at,
 			d.rejected_by, d.rejected_at, d.rejected_reason, d.registered_by,
 			d.routed_by, d.routed_at, d.visa_signed_by, d.visa_signed_at,
+			d.executor_assigned_to, d.executor_assigned_at, d.executor_due_date,
+			d.executed_by, d.executed_at,
 			author.name as author_name, recipient.name as recipient_name
 		FROM documents d
 		LEFT JOIN users author ON d.author_id = author.id
@@ -348,6 +360,9 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 			&doc.RejectedBy, &doc.RejectedAt, &doc.RejectedReason, &doc.RegisteredBy,
 			// v0.150.0 — routing audit trail (#231).
 			&doc.RoutedBy, &doc.RoutedAt, &doc.VisaSignedBy, &doc.VisaSignedAt,
+			// v0.151.0 — execution audit trail (#232).
+			&doc.ExecutorAssignedTo, &doc.ExecutorAssignedAt, &doc.ExecutorDueDate,
+			&doc.ExecutedBy, &doc.ExecutedAt,
 			&doc.AuthorName, &doc.RecipientName,
 		)
 		if err != nil {

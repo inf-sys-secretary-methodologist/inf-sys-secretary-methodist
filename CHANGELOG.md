@@ -15,6 +15,33 @@
 
 ---
 
+## [0.151.0] — 2026-05-17
+
+### Added — Documents workflow Phase 4 backend: Execution transitions (#232)
+
+Phase 4 of #227 (backend half). Closes backend portion of #232. `execution → executed` lifecycle через `AssignExecutor` (shape-only — без status change) + `MarkExecuted` (transition gate). Pre-emptive split per ADR-9 (lesson from v0.150.0): frontend ships в v0.151.1.
+
+**Backend**:
+- Domain: `Document.AssignExecutor(executorID, dueDate *time.Time, actorID, now)` — shape-only mutation на статусе Execution (sets ExecutorAssignedTo/At + optional ExecutorDueDate; reassign overwrites prior per ADR-1). Returns `ErrCannotAssignExecutor` для wrong status.
+- Domain: `Document.MarkExecuted(actorID, now)` — transition Execution → Executed + ExecutedBy/At audit. Returns `ErrCannotMarkExecuted` для wrong status.
+- 5 new nullable entity fields: ExecutorAssignedTo/At + ExecutorDueDate + ExecutedBy/At.
+- Use cases: `AssignExecutorUseCase` + `MarkExecutedUseCase` mirror к RoutingPattern с extra `ErrInvalidExecutor` 422 branch (executor identity validated на usecase boundary per ADR-6).
+- Handlers: `POST /api/admin/documents/:id/assign-executor` (body: `executor_id` + optional `due_date` YYYY-MM-DD/RFC3339) + `POST /api/admin/documents/:id/mark-executed` (body-less). Both за `RequireRole(AcademicSecretary, SystemAdmin)`.
+- AuditEmit: `document.executor_assigned` / `document.assign_executor_denied{invalid_executor|not_found|not_execution}`; `document.executed` / `document.mark_executed_denied{not_found|not_execution}`.
+- Migration 042: `executor_assigned_to` BIGINT FK + `executor_assigned_at` TZ + `executor_due_date` DATE (optional) + `executed_by` BIGINT FK + `executed_at` TZ — все nullable.
+- PG repo: Update SET / GetByID SELECT / List SELECT extended; `docSelectCols` test helper parity per ADR-7 (T1-A upfront).
+
+**Code health**:
+- `errorKey` const reused from template_handler.go для всех `gin.H{errorKey: ...}` payloads в workflow_handler.go (closes goconst 30-occurrence cluster tripped by new endpoints).
+
+**Integration tests** (T1-B + T1-C verify upfront):
+- AssignExecutor: HappyPath × 2 (nil due + with due) + NotFound + Conflict + InvalidExecutorID + InvalidDueDateFormat + AdminGate methodist blocked + EnvelopeContract.
+- MarkExecuted: Happy + NotFound + Conflict + AdminGate teacher blocked + EnvelopeContract.
+
+**Frontend**: deferred к v0.151.1 (this PR backend-only per pre-emptive split — frontend ~550 LOC + backend ~800 LOC would trigger Check PR Size soft-fail at 1000).
+
+---
+
 ## [0.150.1] — 2026-05-17
 
 ### Added — Documents workflow Phase 3 frontend: Routing UI (#231)
