@@ -415,6 +415,8 @@ func main() {
 	var registerDocUseCase *docUsecases.RegisterDocumentUseCase
 	var startRoutingDocUseCase *docUsecases.StartRoutingUseCase
 	var signVisaDocUseCase *docUsecases.SignVisaUseCase
+	var assignExecutorDocUseCase *docUsecases.AssignExecutorUseCase
+	var markExecutedDocUseCase *docUsecases.MarkExecutedUseCase
 	if s3Client != nil {
 		docRepo := docPersistence.NewDocumentRepositoryPG(db)
 		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
@@ -442,6 +444,10 @@ func main() {
 		// routing → execution через single-step visa.
 		startRoutingDocUseCase = docUsecases.NewStartRoutingUseCase(workflowRepoAdapter, auditLogger, nil)
 		signVisaDocUseCase = docUsecases.NewSignVisaUseCase(workflowRepoAdapter, auditLogger, nil)
+		// v0.151.0 Phase 4 — execution use cases (#232). execution →
+		// executed via AssignExecutor (shape-only) + MarkExecuted.
+		assignExecutorDocUseCase = docUsecases.NewAssignExecutorUseCase(workflowRepoAdapter, auditLogger, nil)
+		markExecutedDocUseCase = docUsecases.NewMarkExecutedUseCase(workflowRepoAdapter, auditLogger, nil)
 		logger.Info("Documents module initialized", nil)
 	} else {
 		logger.Warn("Documents module not initialized - S3 storage not available", nil)
@@ -879,6 +885,8 @@ func main() {
 		registerDocUseCase,
 		startRoutingDocUseCase,
 		signVisaDocUseCase,
+		assignExecutorDocUseCase,
+		markExecutedDocUseCase,
 	)
 
 	// Initialize integration module (1C synchronization)
@@ -1417,6 +1425,8 @@ func setupRoutes(
 	registerDocUseCase *docUsecases.RegisterDocumentUseCase,
 	startRoutingDocUseCase *docUsecases.StartRoutingUseCase,
 	signVisaDocUseCase *docUsecases.SignVisaUseCase,
+	assignExecutorDocUseCase *docUsecases.AssignExecutorUseCase,
+	markExecutedDocUseCase *docUsecases.MarkExecutedUseCase,
 ) (*gin.Engine, *telegram.PollingService) {
 	router := gin.New()
 	var telegramPollingService *telegram.PollingService
@@ -1833,7 +1843,7 @@ func setupRoutes(
 			// stays на /documents (non-student gate), approve/reject
 			// move к /admin/documents с secretary+admin role guard.
 			if submitDocUseCase != nil && approveDocUseCase != nil && rejectDocUseCase != nil {
-				workflowHandler := docHandler.NewWorkflowHandler(submitDocUseCase, approveDocUseCase, rejectDocUseCase, registerDocUseCase, startRoutingDocUseCase, signVisaDocUseCase)
+				workflowHandler := docHandler.NewWorkflowHandler(submitDocUseCase, approveDocUseCase, rejectDocUseCase, registerDocUseCase, startRoutingDocUseCase, signVisaDocUseCase, assignExecutorDocUseCase, markExecutedDocUseCase)
 				docSubmitGroup := protectedGroup.Group("/documents")
 				docSubmitGroup.Use(authMiddleware.RequireNonStudent())
 				docHandler.RegisterSubmitRoute(docSubmitGroup, workflowHandler)

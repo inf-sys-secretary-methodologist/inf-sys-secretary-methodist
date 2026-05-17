@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -12,18 +13,23 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
+// errorKey lives в template_handler.go (same package) — reused here
+// for all gin.H error payloads to close the goconst lint cluster.
+
 // WorkflowHandler exposes the documents workflow gates as HTTP
 // endpoints. Grew across multiple phases (#227 v0.148.0 — submit/
 // approve/reject; #230 v0.149.0 — register; #231 v0.150.0 — routing;
-// #232/#233 в очереди). Keeps existing DocumentHandler untouched so
-// CRUD endpoints stay independent.
+// #232 v0.151.0 — execution; #233 в очереди). Keeps existing
+// DocumentHandler untouched so CRUD endpoints stay independent.
 type WorkflowHandler struct {
-	submit       *usecases.SubmitDocumentUseCase
-	approve      *usecases.ApproveDocumentUseCase
-	reject       *usecases.RejectDocumentUseCase
-	register     *usecases.RegisterDocumentUseCase
-	startRouting *usecases.StartRoutingUseCase
-	signVisa     *usecases.SignVisaUseCase
+	submit         *usecases.SubmitDocumentUseCase
+	approve        *usecases.ApproveDocumentUseCase
+	reject         *usecases.RejectDocumentUseCase
+	register       *usecases.RegisterDocumentUseCase
+	startRouting   *usecases.StartRoutingUseCase
+	signVisa       *usecases.SignVisaUseCase
+	assignExecutor *usecases.AssignExecutorUseCase
+	markExecuted   *usecases.MarkExecutedUseCase
 }
 
 // NewWorkflowHandler wires the workflow handler. Phase use cases are
@@ -35,14 +41,18 @@ func NewWorkflowHandler(
 	register *usecases.RegisterDocumentUseCase,
 	startRouting *usecases.StartRoutingUseCase,
 	signVisa *usecases.SignVisaUseCase,
+	assignExecutor *usecases.AssignExecutorUseCase,
+	markExecuted *usecases.MarkExecutedUseCase,
 ) *WorkflowHandler {
 	return &WorkflowHandler{
-		submit:       submit,
-		approve:      approve,
-		reject:       reject,
-		register:     register,
-		startRouting: startRouting,
-		signVisa:     signVisa,
+		submit:         submit,
+		approve:        approve,
+		reject:         reject,
+		register:       register,
+		startRouting:   startRouting,
+		signVisa:       signVisa,
+		assignExecutor: assignExecutor,
+		markExecuted:   markExecuted,
 	}
 }
 
@@ -64,6 +74,9 @@ func RegisterAdminWorkflowRoutes(g *gin.RouterGroup, h *WorkflowHandler) {
 	// v0.150.0 Phase 3 — Routing endpoints (#231).
 	g.POST("/:id/start-routing", h.StartRouting)
 	g.POST("/:id/sign-visa", h.SignVisa)
+	// v0.151.0 Phase 4 — Execution endpoints (#232).
+	g.POST("/:id/assign-executor", h.AssignExecutor)
+	g.POST("/:id/mark-executed", h.MarkExecuted)
 }
 
 // rejectBody is the request DTO for the Reject endpoint.
@@ -77,6 +90,14 @@ type registerBody struct {
 	Number string `json:"number"`
 }
 
+// assignExecutorBody is the request DTO for the AssignExecutor endpoint
+// (v0.151.0 #232). DueDate optional — RFC3339 string ("2026-05-24" or
+// "2026-05-24T00:00:00Z"); empty/omitted ⇒ no hard deadline.
+type assignExecutorBody struct {
+	ExecutorID int64  `json:"executor_id"`
+	DueDate    string `json:"due_date,omitempty"`
+}
+
 // Submit handles POST /api/documents/:id/submit.
 //
 // Authorization: JWT middleware sets user_id + role in context; the
@@ -85,12 +106,12 @@ type registerBody struct {
 func (h *WorkflowHandler) Submit(c *gin.Context) {
 	id, err := parseDocID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid document id"})
 		return
 	}
 	userID, role, ok := readActor(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 	doc, err := h.submit.Execute(c.Request.Context(), userID, role, usecases.SubmitDocumentInput{ID: id})
@@ -108,12 +129,12 @@ func (h *WorkflowHandler) Submit(c *gin.Context) {
 func (h *WorkflowHandler) Approve(c *gin.Context) {
 	id, err := parseDocID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid document id"})
 		return
 	}
 	adminID, _, ok := readActor(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 	doc, err := h.approve.Execute(c.Request.Context(), adminID, usecases.ApproveDocumentInput{ID: id})
@@ -132,22 +153,22 @@ func (h *WorkflowHandler) Approve(c *gin.Context) {
 // Issue: #230
 func (h *WorkflowHandler) Register(c *gin.Context) {
 	if h.register == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"error": "register usecase not wired"})
+		c.JSON(http.StatusNotImplemented, gin.H{errorKey: "register usecase not wired"})
 		return
 	}
 	id, err := parseDocID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid document id"})
 		return
 	}
 	adminID, _, ok := readActor(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 	var body registerBody
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{errorKey: "invalid request body"})
 		return
 	}
 	doc, err := h.register.Execute(c.Request.Context(), adminID, usecases.RegisterDocumentInput{ID: id, Number: body.Number})
@@ -167,17 +188,17 @@ func (h *WorkflowHandler) Register(c *gin.Context) {
 // Issue: #231
 func (h *WorkflowHandler) StartRouting(c *gin.Context) {
 	if h.startRouting == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"error": "start-routing usecase not wired"})
+		c.JSON(http.StatusNotImplemented, gin.H{errorKey: "start-routing usecase not wired"})
 		return
 	}
 	id, err := parseDocID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid document id"})
 		return
 	}
 	routerID, _, ok := readActor(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 	doc, err := h.startRouting.Execute(c.Request.Context(), routerID, usecases.StartRoutingInput{ID: id})
@@ -197,17 +218,17 @@ func (h *WorkflowHandler) StartRouting(c *gin.Context) {
 // Issue: #231
 func (h *WorkflowHandler) SignVisa(c *gin.Context) {
 	if h.signVisa == nil {
-		c.JSON(http.StatusNotImplemented, gin.H{"error": "sign-visa usecase not wired"})
+		c.JSON(http.StatusNotImplemented, gin.H{errorKey: "sign-visa usecase not wired"})
 		return
 	}
 	id, err := parseDocID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid document id"})
 		return
 	}
 	visaID, _, ok := readActor(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 	doc, err := h.signVisa.Execute(c.Request.Context(), visaID, usecases.SignVisaInput{ID: id})
@@ -218,6 +239,90 @@ func (h *WorkflowHandler) SignVisa(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(doc))
 }
 
+// AssignExecutor handles POST /api/admin/documents/:id/assign-executor.
+//
+// Body: {"executor_id": int64, "due_date": optional RFC3339 date string}.
+// Route-level admin middleware pre-gates the call; the usecase
+// validates executor_id > 0 → 422 ErrInvalidExecutor.
+//
+// Issue: #232
+func (h *WorkflowHandler) AssignExecutor(c *gin.Context) {
+	if h.assignExecutor == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{errorKey: "assign-executor usecase not wired"})
+		return
+	}
+	id, err := parseDocID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid document id"})
+		return
+	}
+	actorID, _, ok := readActor(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		return
+	}
+	var body assignExecutorBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{errorKey: "invalid request body"})
+		return
+	}
+	var duePtr *time.Time
+	if body.DueDate != "" {
+		due, perr := parseDueDate(body.DueDate)
+		if perr != nil {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{errorKey: "invalid due_date format (use YYYY-MM-DD or RFC3339)"})
+			return
+		}
+		duePtr = &due
+	}
+	doc, err := h.assignExecutor.Execute(c.Request.Context(), actorID, usecases.AssignExecutorInput{
+		ID: id, ExecutorID: body.ExecutorID, DueDate: duePtr,
+	})
+	if err != nil {
+		mapWorkflowError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(doc))
+}
+
+// MarkExecuted handles POST /api/admin/documents/:id/mark-executed.
+//
+// Body-less. Route-level admin middleware pre-gates the call; entity
+// MarkExecuted method enforces the status invariant.
+//
+// Issue: #232
+func (h *WorkflowHandler) MarkExecuted(c *gin.Context) {
+	if h.markExecuted == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{errorKey: "mark-executed usecase not wired"})
+		return
+	}
+	id, err := parseDocID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid document id"})
+		return
+	}
+	actorID, _, ok := readActor(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		return
+	}
+	doc, err := h.markExecuted.Execute(c.Request.Context(), actorID, usecases.MarkExecutedInput{ID: id})
+	if err != nil {
+		mapWorkflowError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(doc))
+}
+
+// parseDueDate accepts either YYYY-MM-DD (local midnight UTC) or full
+// RFC3339. Returns time.Time + error.
+func parseDueDate(s string) (time.Time, error) {
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t, nil
+	}
+	return time.Parse(time.RFC3339, s)
+}
+
 // Reject handles POST /api/admin/documents/:id/reject.
 //
 // Body: {"reason": "10..500 chars"}. The usecase validates the reason
@@ -225,17 +330,17 @@ func (h *WorkflowHandler) SignVisa(c *gin.Context) {
 func (h *WorkflowHandler) Reject(c *gin.Context) {
 	id, err := parseDocID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document id"})
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid document id"})
 		return
 	}
 	adminID, _, ok := readActor(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 	var body rejectBody
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{errorKey: "invalid request body"})
 		return
 	}
 	doc, err := h.reject.Execute(c.Request.Context(), adminID, usecases.RejectDocumentInput{ID: id, Reason: body.Reason})
@@ -286,20 +391,23 @@ func parseDocID(c *gin.Context) (int64, error) {
 func mapWorkflowError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, usecases.ErrDocumentNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "document not found"})
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "document not found"})
 	case errors.Is(err, usecases.ErrDocumentForbidden):
-		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "forbidden"})
 	case errors.Is(err, entities.ErrCannotSubmit),
 		errors.Is(err, entities.ErrCannotApprove),
 		errors.Is(err, entities.ErrCannotReject),
 		errors.Is(err, entities.ErrCannotRegister),
 		errors.Is(err, entities.ErrCannotRoute),
-		errors.Is(err, entities.ErrCannotSignVisa):
-		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		errors.Is(err, entities.ErrCannotSignVisa),
+		errors.Is(err, entities.ErrCannotAssignExecutor),
+		errors.Is(err, entities.ErrCannotMarkExecuted):
+		c.JSON(http.StatusConflict, gin.H{errorKey: err.Error()})
 	case errors.Is(err, entities.ErrRejectionReasonInvalid),
-		errors.Is(err, entities.ErrInvalidRegistrationNumber):
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		errors.Is(err, entities.ErrInvalidRegistrationNumber),
+		errors.Is(err, usecases.ErrInvalidExecutor):
+		c.JSON(http.StatusUnprocessableEntity, gin.H{errorKey: err.Error()})
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal"})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "internal"})
 	}
 }
