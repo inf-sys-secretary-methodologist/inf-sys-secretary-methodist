@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // mockRevokedTokenRepo is a hand-rolled mock for RevokedTokenRepository.
@@ -117,3 +118,72 @@ func TestLogoutUseCase_RejectsTokenWithoutJTI(t *testing.T) {
 	assert.Error(t, err)
 	repo.AssertNotCalled(t, "Revoke", mock.Anything, mock.Anything, mock.Anything)
 }
+
+// =================== v0.153.1 #196 coverage push: Logout error branches ===================
+
+// TestLogoutUseCase_RevokeRepoError covers the "revoke token" fmt.Errorf
+// wrap branch (line 80 в logout_usecase.go).
+func TestLogoutUseCase_RevokeRepoError(t *testing.T) {
+	secret := []byte("test-secret-revoke-error")
+	expiresAt := time.Now().Add(5 * time.Minute)
+	token := signTokenWithJTI(t, secret, "jti-revoke-fail", expiresAt)
+
+	repo := new(mockRevokedTokenRepo)
+	repo.On("Revoke", mock.Anything, "jti-revoke-fail",
+		mock.AnythingOfType("time.Duration")).
+		Return(errInterceptedRevoke)
+
+	uc := NewLogoutUseCase(repo, secret)
+	err := uc.Logout(context.Background(), token)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "revoke token")
+}
+
+// TestLogoutUseCase_RejectsTokenWithWrongAlgorithm covers the "unexpected
+// signing method" branch — a token signed с RS256 (asymmetric) when HS256
+// (symmetric) is expected should fail at the key-callback gate.
+func TestLogoutUseCase_RejectsTokenWithWrongAlgorithm(t *testing.T) {
+	secret := []byte("test-secret-wrong-alg")
+	// Use the "none" algorithm — also rejected by the SigningMethodHMAC type-assert.
+	tok := jwt.NewWithClaims(jwt.SigningMethodNone, jwt.MapClaims{
+		"jti": "jti-none",
+		"exp": time.Now().Add(5 * time.Minute).Unix(),
+	})
+	signed, err := tok.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	require.NoError(t, err)
+
+	repo := new(mockRevokedTokenRepo)
+	uc := NewLogoutUseCase(repo, secret)
+	logoutErr := uc.Logout(context.Background(), signed)
+
+	require.Error(t, logoutErr)
+	repo.AssertNotCalled(t, "Revoke", mock.Anything, mock.Anything, mock.Anything)
+}
+
+// TestLogoutUseCase_RejectsTokenMissingExp covers the "missing exp claim"
+// branch — a token without `exp` claim cannot have its TTL computed.
+func TestLogoutUseCase_RejectsTokenMissingExp(t *testing.T) {
+	secret := []byte("test-secret-missing-exp")
+	// Token with jti but no exp.
+	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"jti":     "jti-no-exp",
+		"user_id": float64(7),
+	})
+	signed, err := tok.SignedString(secret)
+	require.NoError(t, err)
+
+	repo := new(mockRevokedTokenRepo)
+	uc := NewLogoutUseCase(repo, secret)
+	logoutErr := uc.Logout(context.Background(), signed)
+
+	require.Error(t, logoutErr)
+	assert.Contains(t, logoutErr.Error(), "missing exp claim")
+	repo.AssertNotCalled(t, "Revoke", mock.Anything, mock.Anything, mock.Anything)
+}
+
+var errInterceptedRevoke = errInterceptedT{msg: "redis revoke unavailable"}
+
+type errInterceptedT struct{ msg string }
+
+func (e errInterceptedT) Error() string { return e.msg }
