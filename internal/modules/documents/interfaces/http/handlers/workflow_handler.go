@@ -19,8 +19,9 @@ import (
 // WorkflowHandler exposes the documents workflow gates as HTTP
 // endpoints. Grew across multiple phases (#227 v0.148.0 — submit/
 // approve/reject; #230 v0.149.0 — register; #231 v0.150.0 — routing;
-// #232 v0.151.0 — execution; #233 в очереди). Keeps existing
-// DocumentHandler untouched so CRUD endpoints stay independent.
+// #232 v0.151.0 — execution; #233 v0.152.0 — archive+resubmit, final).
+// Keeps existing DocumentHandler untouched so CRUD endpoints stay
+// independent.
 type WorkflowHandler struct {
 	submit         *usecases.SubmitDocumentUseCase
 	approve        *usecases.ApproveDocumentUseCase
@@ -30,6 +31,8 @@ type WorkflowHandler struct {
 	signVisa       *usecases.SignVisaUseCase
 	assignExecutor *usecases.AssignExecutorUseCase
 	markExecuted   *usecases.MarkExecutedUseCase
+	archive        *usecases.ArchiveDocumentUseCase
+	resubmit       *usecases.ResubmitDocumentUseCase
 }
 
 // NewWorkflowHandler wires the workflow handler. Phase use cases are
@@ -43,6 +46,8 @@ func NewWorkflowHandler(
 	signVisa *usecases.SignVisaUseCase,
 	assignExecutor *usecases.AssignExecutorUseCase,
 	markExecuted *usecases.MarkExecutedUseCase,
+	archive *usecases.ArchiveDocumentUseCase,
+	resubmit *usecases.ResubmitDocumentUseCase,
 ) *WorkflowHandler {
 	return &WorkflowHandler{
 		submit:         submit,
@@ -53,19 +58,27 @@ func NewWorkflowHandler(
 		signVisa:       signVisa,
 		assignExecutor: assignExecutor,
 		markExecuted:   markExecuted,
+		archive:        archive,
+		resubmit:       resubmit,
 	}
 }
 
-// RegisterSubmitRoute mounts only POST /:id/submit. Caller already
-// scoped к /documents-style group with non-student gate.
+// RegisterSubmitRoute mounts POST /:id/submit + /:id/resubmit. Caller
+// already scoped к /documents-style group with non-student gate.
+// Resubmit author-or-edit-role gated at usecase boundary (mirror к
+// Submit pattern) per ADR-2 #233.
 func RegisterSubmitRoute(g *gin.RouterGroup, h *WorkflowHandler) {
 	g.POST("/:id/submit", h.Submit)
+	// v0.152.0 Phase 5 — Resubmit endpoint (#233). Same non-admin
+	// route group as Submit; author OR edit-role allowed.
+	g.POST("/:id/resubmit", h.Resubmit)
 }
 
 // RegisterAdminWorkflowRoutes mounts POST /:id/approve, /:id/reject,
-// /:id/register, /:id/start-routing, /:id/sign-visa on the caller's
-// admin group (already gated by RequireRole(AcademicSecretary,
-// SystemAdmin)). Mirror к curriculum's admin route pattern.
+// /:id/register, /:id/start-routing, /:id/sign-visa, /:id/assign-executor,
+// /:id/mark-executed, /:id/archive on the caller's admin group
+// (already gated by RequireRole(AcademicSecretary, SystemAdmin)).
+// Mirror к curriculum's admin route pattern.
 func RegisterAdminWorkflowRoutes(g *gin.RouterGroup, h *WorkflowHandler) {
 	g.POST("/:id/approve", h.Approve)
 	g.POST("/:id/reject", h.Reject)
@@ -77,6 +90,8 @@ func RegisterAdminWorkflowRoutes(g *gin.RouterGroup, h *WorkflowHandler) {
 	// v0.151.0 Phase 4 — Execution endpoints (#232).
 	g.POST("/:id/assign-executor", h.AssignExecutor)
 	g.POST("/:id/mark-executed", h.MarkExecuted)
+	// v0.152.0 Phase 5 — Archive endpoint (#233).
+	g.POST("/:id/archive", h.Archive)
 }
 
 // rejectBody is the request DTO for the Reject endpoint.
@@ -314,6 +329,67 @@ func (h *WorkflowHandler) MarkExecuted(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(doc))
 }
 
+// Archive handles POST /api/admin/documents/:id/archive.
+//
+// Body-less. Route-level admin middleware pre-gates the call; entity
+// Archive method enforces the status invariant (must be Executed).
+// Terminal — no further transitions allowed after archive.
+//
+// Issue: #233
+func (h *WorkflowHandler) Archive(c *gin.Context) {
+	if h.archive == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{errorKey: "archive usecase not wired"})
+		return
+	}
+	id, err := parseDocID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid document id"})
+		return
+	}
+	actorID, _, ok := readActor(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		return
+	}
+	doc, err := h.archive.Execute(c.Request.Context(), actorID, usecases.ArchiveDocumentInput{ID: id})
+	if err != nil {
+		mapWorkflowError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(doc))
+}
+
+// Resubmit handles POST /api/documents/:id/resubmit.
+//
+// Body-less. Route mounted on non-student group (not admin); usecase
+// enforces author-or-edit-role gate per ADR-2. Entity Resubmit method
+// enforces the status invariant (must be Rejected) and clears the
+// rejection audit fields atomically.
+//
+// Issue: #233
+func (h *WorkflowHandler) Resubmit(c *gin.Context) {
+	if h.resubmit == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{errorKey: "resubmit usecase not wired"})
+		return
+	}
+	id, err := parseDocID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{errorKey: "invalid document id"})
+		return
+	}
+	userID, role, ok := readActor(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		return
+	}
+	doc, err := h.resubmit.Execute(c.Request.Context(), userID, role, usecases.ResubmitDocumentInput{ID: id})
+	if err != nil {
+		mapWorkflowError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(doc))
+}
+
 // parseDueDate accepts either YYYY-MM-DD (local midnight UTC) or full
 // RFC3339. Returns time.Time + error.
 func parseDueDate(s string) (time.Time, error) {
@@ -401,7 +477,9 @@ func mapWorkflowError(c *gin.Context, err error) {
 		errors.Is(err, entities.ErrCannotRoute),
 		errors.Is(err, entities.ErrCannotSignVisa),
 		errors.Is(err, entities.ErrCannotAssignExecutor),
-		errors.Is(err, entities.ErrCannotMarkExecuted):
+		errors.Is(err, entities.ErrCannotMarkExecuted),
+		errors.Is(err, entities.ErrCannotArchive),
+		errors.Is(err, entities.ErrCannotResubmit):
 		c.JSON(http.StatusConflict, gin.H{errorKey: err.Error()})
 	case errors.Is(err, entities.ErrRejectionReasonInvalid),
 		errors.Is(err, entities.ErrInvalidRegistrationNumber),

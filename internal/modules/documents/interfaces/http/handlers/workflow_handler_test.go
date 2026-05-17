@@ -106,7 +106,9 @@ func mountWorkflow(t *testing.T, userID int64, role string, repo *fakeWorkflowRe
 	signVisaUC := usecases.NewSignVisaUseCase(repo, noopAudit{}, fixedClock(now))
 	assignExecutorUC := usecases.NewAssignExecutorUseCase(repo, noopAudit{}, fixedClock(now))
 	markExecutedUC := usecases.NewMarkExecutedUseCase(repo, noopAudit{}, fixedClock(now))
-	h := docHttp.NewWorkflowHandler(submitUC, approveUC, rejectUC, registerUC, startRoutingUC, signVisaUC, assignExecutorUC, markExecutedUC)
+	archiveUC := usecases.NewArchiveDocumentUseCase(repo, noopAudit{}, fixedClock(now))
+	resubmitUC := usecases.NewResubmitDocumentUseCase(repo, noopAudit{}, fixedClock(now))
+	h := docHttp.NewWorkflowHandler(submitUC, approveUC, rejectUC, registerUC, startRoutingUC, signVisaUC, assignExecutorUC, markExecutedUC, archiveUC, resubmitUC)
 
 	r := gin.New()
 	api := r.Group("/api")
@@ -467,6 +469,120 @@ func TestMarkExecuted_EnvelopeContract(t *testing.T) {
 	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusExecution))
 	r := mountWorkflow(t, 7, "academic_secretary", repo)
 	w := performRequest(r, "POST", "/api/admin/documents/1/mark-executed", nil)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	respBody := parseResponseBody(w)
+	_, ok := respBody["data"]
+	assert.True(t, ok, "response must wrap doc в .data envelope; got keys=%v", keysOf(respBody))
+}
+
+// --- Archive endpoint integration (#233) ---
+
+func TestArchive_HappyPath(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusExecuted))
+	r := mountWorkflow(t, 7, "academic_secretary", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/archive", nil)
+
+	require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
+	stored := repo.stored[1]
+	assert.Equal(t, entities.DocumentStatusArchived, stored.Status)
+	require.NotNil(t, stored.ArchivedBy)
+	assert.Equal(t, int64(7), *stored.ArchivedBy)
+}
+
+func TestArchive_NotFound(t *testing.T) {
+	repo := newRepo()
+	r := mountWorkflow(t, 7, "system_admin", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/999/archive", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestArchive_ConflictForNonExecuted(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusExecution))
+	r := mountWorkflow(t, 7, "academic_secretary", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/archive", nil)
+	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
+// TestAdminGate_TeacherBlockedFromArchive pins T1-C.
+func TestAdminGate_TeacherBlockedFromArchive(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusExecuted))
+	r := mountWorkflow(t, 42, "teacher", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/archive", nil)
+	assert.Equal(t, http.StatusForbidden, w.Code, "teacher must not archive via admin gate")
+}
+
+// TestAdminGate_MethodistBlockedFromArchive pins T1-C — methodist also
+// blocked (mirror к other admin-only endpoints).
+func TestAdminGate_MethodistBlockedFromArchive(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusExecuted))
+	r := mountWorkflow(t, 99, "methodist", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/archive", nil)
+	assert.Equal(t, http.StatusForbidden, w.Code, "methodist must not archive via admin gate")
+}
+
+func TestArchive_EnvelopeContract(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusExecuted))
+	r := mountWorkflow(t, 7, "academic_secretary", repo)
+	w := performRequest(r, "POST", "/api/admin/documents/1/archive", nil)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	respBody := parseResponseBody(w)
+	_, ok := respBody["data"]
+	assert.True(t, ok, "response must wrap doc в .data envelope; got keys=%v", keysOf(respBody))
+}
+
+// --- Resubmit endpoint integration (#233) ---
+
+func TestResubmit_AuthorHappyPath(t *testing.T) {
+	doc := docAtStatus(1, 42, entities.DocumentStatusRejected)
+	rejectorID := int64(99)
+	reason := "Шаблон 2023 устарел"
+	doc.RejectedBy = &rejectorID
+	doc.RejectedReason = &reason
+	repo := newRepo(doc)
+	r := mountWorkflow(t, 42, "teacher", repo)
+	w := performRequest(r, "POST", "/api/documents/1/resubmit", nil)
+
+	require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
+	stored := repo.stored[1]
+	assert.Equal(t, entities.DocumentStatusDraft, stored.Status)
+	assert.Nil(t, stored.RejectedBy, "RejectedBy must be cleared on resubmit")
+	assert.Nil(t, stored.RejectedReason, "RejectedReason must be cleared on resubmit")
+}
+
+func TestResubmit_AdminCanResubmitAny(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusRejected))
+	r := mountWorkflow(t, 7, "system_admin", repo)
+	w := performRequest(r, "POST", "/api/documents/1/resubmit", nil)
+	assert.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
+}
+
+func TestResubmit_NotFound(t *testing.T) {
+	repo := newRepo()
+	r := mountWorkflow(t, 42, "teacher", repo)
+	w := performRequest(r, "POST", "/api/documents/999/resubmit", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestResubmit_ForbiddenForNonAuthorTeacher(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusRejected))
+	r := mountWorkflow(t, 99, "teacher", repo)
+	w := performRequest(r, "POST", "/api/documents/1/resubmit", nil)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestResubmit_ConflictForNonRejected(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusDraft))
+	r := mountWorkflow(t, 42, "teacher", repo)
+	w := performRequest(r, "POST", "/api/documents/1/resubmit", nil)
+	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
+func TestResubmit_EnvelopeContract(t *testing.T) {
+	repo := newRepo(docAtStatus(1, 42, entities.DocumentStatusRejected))
+	r := mountWorkflow(t, 42, "teacher", repo)
+	w := performRequest(r, "POST", "/api/documents/1/resubmit", nil)
 
 	require.Equal(t, http.StatusOK, w.Code)
 	respBody := parseResponseBody(w)

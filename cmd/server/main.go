@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.151.1
+// @version         0.152.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -175,7 +175,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.151.1"
+const versionString = "0.152.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -417,6 +417,8 @@ func main() {
 	var signVisaDocUseCase *docUsecases.SignVisaUseCase
 	var assignExecutorDocUseCase *docUsecases.AssignExecutorUseCase
 	var markExecutedDocUseCase *docUsecases.MarkExecutedUseCase
+	var archiveDocUseCase *docUsecases.ArchiveDocumentUseCase
+	var resubmitDocUseCase *docUsecases.ResubmitDocumentUseCase
 	if s3Client != nil {
 		docRepo := docPersistence.NewDocumentRepositoryPG(db)
 		docTypeRepo := docPersistence.NewDocumentTypeRepositoryPG(db)
@@ -448,6 +450,11 @@ func main() {
 		// executed via AssignExecutor (shape-only) + MarkExecuted.
 		assignExecutorDocUseCase = docUsecases.NewAssignExecutorUseCase(workflowRepoAdapter, auditLogger, nil)
 		markExecutedDocUseCase = docUsecases.NewMarkExecutedUseCase(workflowRepoAdapter, auditLogger, nil)
+		// v0.152.0 Phase 5 — archive + resubmit use cases (#233, final
+		// phase). Closes 5-phase pack #227. Archive admin-only;
+		// Resubmit author OR edit-role per ADR-2.
+		archiveDocUseCase = docUsecases.NewArchiveDocumentUseCase(workflowRepoAdapter, auditLogger, nil)
+		resubmitDocUseCase = docUsecases.NewResubmitDocumentUseCase(workflowRepoAdapter, auditLogger, nil)
 		logger.Info("Documents module initialized", nil)
 	} else {
 		logger.Warn("Documents module not initialized - S3 storage not available", nil)
@@ -887,6 +894,8 @@ func main() {
 		signVisaDocUseCase,
 		assignExecutorDocUseCase,
 		markExecutedDocUseCase,
+		archiveDocUseCase,
+		resubmitDocUseCase,
 	)
 
 	// Initialize integration module (1C synchronization)
@@ -1427,6 +1436,8 @@ func setupRoutes(
 	signVisaDocUseCase *docUsecases.SignVisaUseCase,
 	assignExecutorDocUseCase *docUsecases.AssignExecutorUseCase,
 	markExecutedDocUseCase *docUsecases.MarkExecutedUseCase,
+	archiveDocUseCase *docUsecases.ArchiveDocumentUseCase,
+	resubmitDocUseCase *docUsecases.ResubmitDocumentUseCase,
 ) (*gin.Engine, *telegram.PollingService) {
 	router := gin.New()
 	var telegramPollingService *telegram.PollingService
@@ -1843,7 +1854,7 @@ func setupRoutes(
 			// stays на /documents (non-student gate), approve/reject
 			// move к /admin/documents с secretary+admin role guard.
 			if submitDocUseCase != nil && approveDocUseCase != nil && rejectDocUseCase != nil {
-				workflowHandler := docHandler.NewWorkflowHandler(submitDocUseCase, approveDocUseCase, rejectDocUseCase, registerDocUseCase, startRoutingDocUseCase, signVisaDocUseCase, assignExecutorDocUseCase, markExecutedDocUseCase)
+				workflowHandler := docHandler.NewWorkflowHandler(submitDocUseCase, approveDocUseCase, rejectDocUseCase, registerDocUseCase, startRoutingDocUseCase, signVisaDocUseCase, assignExecutorDocUseCase, markExecutedDocUseCase, archiveDocUseCase, resubmitDocUseCase)
 				docSubmitGroup := protectedGroup.Group("/documents")
 				docSubmitGroup.Use(authMiddleware.RequireNonStudent())
 				docHandler.RegisterSubmitRoute(docSubmitGroup, workflowHandler)
