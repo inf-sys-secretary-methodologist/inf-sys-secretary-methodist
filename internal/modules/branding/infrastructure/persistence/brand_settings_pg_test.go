@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -120,4 +121,54 @@ func TestUpdate_RowsAffectedZero_ReturnsErrBrandSettingsMissing(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, ErrBrandSettingsMissing),
 		"RowsAffected=0 → ErrBrandSettingsMissing, got %v", err)
+}
+
+func TestGet_DBError_WrappedNotSentinel(t *testing.T) {
+	repo, mock, cleanup := newRepoMock(t)
+	defer cleanup()
+
+	mock.ExpectQuery(`SELECT app_name, tagline, logo_url, favicon_url, primary_color, secondary_color, updated_at FROM brand_settings WHERE id = 1`).
+		WillReturnError(fmt.Errorf("connection closed"))
+
+	_, err := repo.Get(context.Background())
+	require.Error(t, err)
+	assert.False(t, errors.Is(err, ErrBrandSettingsMissing),
+		"non-NoRows DB error must NOT collapse to ErrBrandSettingsMissing")
+	assert.Contains(t, err.Error(), "failed to read settings")
+}
+
+func TestUpdate_ExecError_Wrapped(t *testing.T) {
+	repo, mock, cleanup := newRepoMock(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 14, 11, 0, 0, 0, time.UTC)
+	bs, err := entities.NewBrandSettings("ok", "", "", "", "", "", now)
+	require.NoError(t, err)
+
+	mock.ExpectExec(`UPDATE brand_settings SET app_name = $1, tagline = $2, logo_url = $3, favicon_url = $4, primary_color = $5, secondary_color = $6, updated_at = $7 WHERE id = 1`).
+		WithArgs("ok", "", "", "", "", "", now).
+		WillReturnError(fmt.Errorf("constraint violation"))
+
+	err = repo.Update(context.Background(), bs)
+	require.Error(t, err)
+	assert.False(t, errors.Is(err, ErrBrandSettingsMissing))
+	assert.Contains(t, err.Error(), "failed to update settings")
+}
+
+func TestUpdate_RowsAffectedError_Wrapped(t *testing.T) {
+	repo, mock, cleanup := newRepoMock(t)
+	defer cleanup()
+
+	now := time.Date(2026, 5, 14, 11, 0, 0, 0, time.UTC)
+	bs, err := entities.NewBrandSettings("ok", "", "", "", "", "", now)
+	require.NoError(t, err)
+
+	failingResult := sqlmock.NewErrorResult(fmt.Errorf("driver does not support RowsAffected"))
+	mock.ExpectExec(`UPDATE brand_settings SET app_name = $1, tagline = $2, logo_url = $3, favicon_url = $4, primary_color = $5, secondary_color = $6, updated_at = $7 WHERE id = 1`).
+		WithArgs("ok", "", "", "", "", "", now).
+		WillReturnResult(failingResult)
+
+	err = repo.Update(context.Background(), bs)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to inspect update result")
 }
