@@ -2991,7 +2991,9 @@
       "rejectButton": "Rejeter",
       "registerButton": "Enregistrer",
       "routeButton": "Envoyer en circuit",
-      "signVisaButton": "Signer le visa"
+      "signVisaButton": "Signer le visa",
+      "assignExecutorButton": "Assigner l'exécutant",
+      "markExecutedButton": "Marquer exécuté"
     },
     "statusBadge": {
       "draft": "Brouillon",
@@ -3051,6 +3053,42 @@
         "forbidden": "Non autorisé à signer le visa",
         "notFound": "Document introuvable",
         "generic": "Échec de la signature du visa"
+      }
+    },
+    "assignExecutor": {
+      "dialogTitle": "Assigner l'exécutant ?",
+      "dialogBody": "Choisissez un exécutant et indiquez éventuellement la date limite. L'action est consignée dans le journal d'audit ; l'assignation peut être modifiée avant de marquer le document comme exécuté.",
+      "executorLabel": "Exécutant",
+      "executorPlaceholder": "Sélectionnez un utilisateur",
+      "dueDateLabel": "Date limite (optionnelle)",
+      "dueDateHint": "Laissez vide s'il n'y a pas de date limite stricte.",
+      "confirmLabel": "Assigner",
+      "cancelLabel": "Annuler"
+    },
+    "assignExecutorToast": {
+      "success": "Exécutant assigné",
+      "errors": {
+        "invalid": "Données d'assignation invalides",
+        "notExecution": "Assignation possible uniquement quand le document est en exécution",
+        "forbidden": "Non autorisé à assigner un exécutant",
+        "notFound": "Document introuvable",
+        "loadUsers": "Échec du chargement de la liste des utilisateurs",
+        "generic": "Échec de l'assignation de l'exécutant"
+      }
+    },
+    "markExecuted": {
+      "dialogTitle": "Marquer le document comme exécuté ?",
+      "dialogBody": "Le document passera au statut « exécuté » — étape terminale du cycle de vie. L'action est consignée dans le journal d'audit.",
+      "confirmLabel": "Marquer exécuté",
+      "cancelLabel": "Annuler"
+    },
+    "markExecutedToast": {
+      "success": "Document marqué comme exécuté",
+      "errors": {
+        "notExecution": "Impossible de marquer — document non en exécution",
+        "forbidden": "Non autorisé à marquer exécuté",
+        "notFound": "Document introuvable",
+        "generic": "Échec du marquage du document comme exécuté"
       }
     }
   }
