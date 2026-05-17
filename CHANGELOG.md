@@ -15,6 +15,26 @@
 
 ---
 
+## [0.151.1] — 2026-05-17
+
+### Added — Documents workflow Phase 4 frontend: Execution UI (#232)
+
+Phase 4 of #227 frontend half. Closes UI side of #232 — replays против backend endpoints shipped в v0.151.0.
+
+**Frontend**:
+- `assignExecutorDocument` + `markExecutedDocument` hook functions + `AssignExecutorRequest` DTO.
+- `AssignExecutorDialog`: shadcn `Select` for executor user-picker (fetches `usersApi.getAll()` on dialog open) + optional HTML date input for due date. Reassign overwrites prior per Phase 4 ADR-1.
+- `MarkExecutedDialog`: confirmation-only (terminal step) per Phase 4 ADR-3.
+- `DocumentPreview` buttons: `canAssignExecutor` (execution + admin) + `canMarkExecuted` (execution + admin). AssignExecutor uses outline variant (shape-only), MarkExecuted uses default (state transition).
+- i18n × 4 (ru/en/fr/ar) parity для `assignExecutor/assignExecutorToast` + `markExecuted/markExecutedToast` namespaces + `actions.assignExecutorButton` + `actions.markExecutedButton`. 18 documentsWorkflow keys per locale.
+
+**Versions**:
+- All 8 files synced к 0.151.1.
+- Frontend bumped 0.150.1 → 0.151.1 here (was held в v0.151.0 backend-only release per ADR-9 honest deployed-state contract).
+- Backend bumped 0.151.0 → 0.151.1 для sync; no backend code changes.
+
+---
+
 ## [0.151.0] — 2026-05-17
 
 ### Added — Documents workflow Phase 4 backend: Execution transitions (#232)
