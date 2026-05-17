@@ -144,3 +144,27 @@ export async function markExecutedDocument(id: number): Promise<DocumentWorkflow
   )
   return response.data
 }
+
+// archiveDocument (v0.152.0 #233) transitions executed → archived
+// (terminal step closing lifecycle). Admin-only via route gate.
+// Body-less. Errors: 409 not_executed / 404 not_found / 403 forbidden.
+export async function archiveDocument(id: number): Promise<DocumentWorkflowFields> {
+  const response = await apiClient.post<ApiResponse<DocumentWorkflowFields>>(
+    `${ADMIN_DOCUMENTS_URL}/${id}/archive`,
+    {}
+  )
+  return response.data
+}
+
+// resubmitDocument (v0.152.0 #233) transitions rejected → draft (rework
+// cycle). Clears RejectedBy/At/Reason audit fields. Author OR edit-role
+// gated at use-case boundary (mirror к submit pattern, NOT admin-only)
+// — mounted on non-admin /api/documents path.
+// Body-less. Errors: 409 not_rejected / 404 not_found / 403 forbidden.
+export async function resubmitDocument(id: number): Promise<DocumentWorkflowFields> {
+  const response = await apiClient.post<ApiResponse<DocumentWorkflowFields>>(
+    `${DOCUMENTS_URL}/${id}/resubmit`,
+    {}
+  )
+  return response.data
+}

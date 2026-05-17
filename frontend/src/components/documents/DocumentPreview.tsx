@@ -17,6 +17,8 @@ import {
   Stamp,
   UserCheck,
   CheckCheck,
+  Archive,
+  RotateCcw,
 } from 'lucide-react'
 import { getStoredToken } from '@/lib/auth/token'
 import { Button } from '@/components/ui/button'
@@ -32,6 +34,8 @@ import { StartRoutingDialog } from './StartRoutingDialog'
 import { SignVisaDialog } from './SignVisaDialog'
 import { AssignExecutorDialog } from './AssignExecutorDialog'
 import { MarkExecutedDialog } from './MarkExecutedDialog'
+import { ArchiveDocumentDialog } from './ArchiveDocumentDialog'
+import { ResubmitDocumentDialog } from './ResubmitDocumentDialog'
 
 type TabType = 'preview' | 'versions'
 
@@ -65,6 +69,8 @@ export function DocumentPreview({
   const [signVisaOpen, setSignVisaOpen] = useState(false)
   const [assignExecutorOpen, setAssignExecutorOpen] = useState(false)
   const [markExecutedOpen, setMarkExecutedOpen] = useState(false)
+  const [archiveOpen, setArchiveOpen] = useState(false)
+  const [resubmitOpen, setResubmitOpen] = useState(false)
 
   // Workflow gates (v0.148.0 #227). Submit visible to author OR
   // any edit-role on a draft. Approve/Reject visible only к
@@ -100,6 +106,20 @@ export function DocumentPreview({
   const canMarkExecuted =
     doc.status === DocumentStatus.EXECUTION &&
     (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
+  // v0.152.0 Phase 5 — Archive terminal transition (#233). executed →
+  // archived gated на admin role only (ADR-1).
+  const canArchive =
+    doc.status === DocumentStatus.EXECUTED &&
+    (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
+  // v0.152.0 Phase 5 — Resubmit rework cycle (#233). rejected → draft
+  // gated по any edit-role role (mirror к canSubmit pattern); backend
+  // usecase enforces author-or-edit-role authorization, mirror к Submit.
+  const canResubmit =
+    doc.status === DocumentStatus.REJECTED &&
+    (role === UserRole.METHODIST ||
+      role === UserRole.ACADEMIC_SECRETARY ||
+      role === UserRole.SYSTEM_ADMIN ||
+      role === UserRole.TEACHER)
 
   /* c8 ignore start - Keyboard and click handlers, tested in e2e */
   useEffect(() => {
@@ -230,6 +250,18 @@ export function DocumentPreview({
               <Button variant="default" size="sm" onClick={() => setMarkExecutedOpen(true)}>
                 <CheckCheck className="h-4 w-4 mr-2" />
                 {tWorkflow('actions.markExecutedButton')}
+              </Button>
+            )}
+            {canArchive && (
+              <Button variant="destructive" size="sm" onClick={() => setArchiveOpen(true)}>
+                <Archive className="h-4 w-4 mr-2" />
+                {tWorkflow('actions.archiveButton')}
+              </Button>
+            )}
+            {canResubmit && (
+              <Button variant="default" size="sm" onClick={() => setResubmitOpen(true)}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                {tWorkflow('actions.resubmitButton')}
               </Button>
             )}
             {onDownload && (
@@ -442,6 +474,18 @@ export function DocumentPreview({
         open={markExecutedOpen}
         onClose={() => setMarkExecutedOpen(false)}
         onMarked={onDocumentUpdated}
+      />
+      <ArchiveDocumentDialog
+        documentId={Number(doc.id)}
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onArchived={onDocumentUpdated}
+      />
+      <ResubmitDocumentDialog
+        documentId={Number(doc.id)}
+        open={resubmitOpen}
+        onClose={() => setResubmitOpen(false)}
+        onResubmitted={onDocumentUpdated}
       />
     </div>
   )
