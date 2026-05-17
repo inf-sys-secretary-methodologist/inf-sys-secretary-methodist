@@ -2993,7 +2993,9 @@
       "routeButton": "Send to routing",
       "signVisaButton": "Sign visa",
       "assignExecutorButton": "Assign executor",
-      "markExecutedButton": "Mark executed"
+      "markExecutedButton": "Mark executed",
+      "archiveButton": "Archive",
+      "resubmitButton": "Resubmit"
     },
     "statusBadge": {
       "draft": "Draft",
@@ -3089,6 +3091,36 @@
         "forbidden": "Not authorized to mark executed",
         "notFound": "Document not found",
         "generic": "Failed to mark the document as executed"
+      }
+    },
+    "archive": {
+      "dialogTitle": "Archive the document?",
+      "dialogBody": "The document will move to the 'archived' status — terminal step of the lifecycle; no further transitions are possible. The action is logged in the audit trail.",
+      "confirmLabel": "Archive",
+      "cancelLabel": "Cancel"
+    },
+    "archiveToast": {
+      "success": "Document archived",
+      "errors": {
+        "notExecuted": "Cannot archive — document is not executed",
+        "forbidden": "Not authorized to archive",
+        "notFound": "Document not found",
+        "generic": "Failed to archive the document"
+      }
+    },
+    "resubmit": {
+      "dialogTitle": "Resubmit the document?",
+      "dialogBody": "The document will return to 'draft' and the rejection information will be cleared so it can be revised and resubmitted for review. The action is logged in the audit trail.",
+      "confirmLabel": "Resubmit",
+      "cancelLabel": "Cancel"
+    },
+    "resubmitToast": {
+      "success": "Document returned to drafts",
+      "errors": {
+        "notRejected": "Cannot resubmit — document is not rejected",
+        "forbidden": "Not authorized to resubmit",
+        "notFound": "Document not found",
+        "generic": "Failed to resubmit the document"
       }
     }
   }

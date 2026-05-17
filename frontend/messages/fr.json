@@ -2993,7 +2993,9 @@
       "routeButton": "Envoyer en circuit",
       "signVisaButton": "Signer le visa",
       "assignExecutorButton": "Assigner l'exécutant",
-      "markExecutedButton": "Marquer exécuté"
+      "markExecutedButton": "Marquer exécuté",
+      "archiveButton": "Archiver",
+      "resubmitButton": "Soumettre à nouveau"
     },
     "statusBadge": {
       "draft": "Brouillon",
@@ -3089,6 +3091,36 @@
         "forbidden": "Non autorisé à marquer exécuté",
         "notFound": "Document introuvable",
         "generic": "Échec du marquage du document comme exécuté"
+      }
+    },
+    "archive": {
+      "dialogTitle": "Archiver le document ?",
+      "dialogBody": "Le document passera au statut « archivé » — étape terminale du cycle de vie ; aucune autre transition n'est possible. L'action est enregistrée dans le journal d'audit.",
+      "confirmLabel": "Archiver",
+      "cancelLabel": "Annuler"
+    },
+    "archiveToast": {
+      "success": "Document archivé",
+      "errors": {
+        "notExecuted": "Impossible d'archiver — le document n'est pas exécuté",
+        "forbidden": "Non autorisé à archiver",
+        "notFound": "Document introuvable",
+        "generic": "Échec de l'archivage du document"
+      }
+    },
+    "resubmit": {
+      "dialogTitle": "Soumettre à nouveau le document ?",
+      "dialogBody": "Le document reviendra au statut « brouillon » et les informations de rejet seront effacées afin qu'il puisse être révisé et soumis à nouveau. L'action est enregistrée dans le journal d'audit.",
+      "confirmLabel": "Soumettre à nouveau",
+      "cancelLabel": "Annuler"
+    },
+    "resubmitToast": {
+      "success": "Document renvoyé aux brouillons",
+      "errors": {
+        "notRejected": "Impossible de soumettre à nouveau — le document n'est pas rejeté",
+        "forbidden": "Non autorisé à soumettre à nouveau",
+        "notFound": "Document introuvable",
+        "generic": "Échec de la soumission à nouveau du document"
       }
     }
   }
