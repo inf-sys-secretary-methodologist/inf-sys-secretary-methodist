@@ -71,6 +71,20 @@ var ErrCannotAssignExecutor = errors.New("document: cannot assign executor, stat
 // Issue: #232
 var ErrCannotMarkExecuted = errors.New("document: cannot mark executed, status must be execution")
 
+// ErrCannotArchive signals Archive invoked on a document not currently
+// in the executed state. Phase 5 terminal gate (#233) — forces
+// lifecycle к flow through executed.
+//
+// Issue: #233
+var ErrCannotArchive = errors.New("document: cannot archive, status must be executed")
+
+// ErrCannotResubmit signals Resubmit invoked on a document not currently
+// in the rejected state. Phase 5 rework-cycle gate (#233) — author
+// can revise only after rejection.
+//
+// Issue: #233
+var ErrCannotResubmit = errors.New("document: cannot resubmit, status must be rejected")
+
 // DocumentStatus represents the status of a document in workflow
 type DocumentStatus string
 
@@ -177,6 +191,10 @@ type Document struct {
 	ExecutorDueDate    *time.Time `json:"executor_due_date,omitempty"`
 	ExecutedBy         *int64     `json:"executed_by,omitempty"`
 	ExecutedAt         *time.Time `json:"executed_at,omitempty"`
+	// v0.152.0 Phase 5 — Archive transition (#233). Resubmit clears
+	// rejected_* audit fields rather than adding new columns.
+	ArchivedBy *int64     `json:"archived_by,omitempty"`
+	ArchivedAt *time.Time `json:"archived_at,omitempty"`
 }
 
 // NewDocument creates a new document with default values
@@ -389,6 +407,45 @@ func (d *Document) MarkExecuted(actorID int64, now time.Time) error {
 	d.ExecutedBy = &actorID
 	d.ExecutedAt = &now
 	d.UpdatedAt = now
+	return nil
+}
+
+// Archive flips an executed document к the terminal archived state +
+// sets the archive audit trail. Admin-only по route gate. Terminal —
+// no further transitions allowed.
+//
+// Returns ErrCannotArchive when status is not Executed.
+//
+// Issue: #233
+func (d *Document) Archive(actorID int64, now time.Time) error {
+	if d.Status != DocumentStatusExecuted {
+		return fmt.Errorf("%w: status %q", ErrCannotArchive, string(d.Status))
+	}
+	d.Status = DocumentStatusArchived
+	d.ArchivedBy = &actorID
+	d.ArchivedAt = &now
+	d.UpdatedAt = now
+	return nil
+}
+
+// Resubmit returns a rejected document к the draft cycle — clears the
+// RejectedBy/At/Reason audit fields so the author/admin can revise +
+// resubmit. SubmittedBy/At preserved (historical record). Author OR
+// edit-role gated at the use-case boundary, NOT admin-only.
+//
+// Returns ErrCannotResubmit when status is not Rejected.
+//
+// Issue: #233
+func (d *Document) Resubmit(actorID int64, now time.Time) error {
+	if d.Status != DocumentStatusRejected {
+		return fmt.Errorf("%w: status %q", ErrCannotResubmit, string(d.Status))
+	}
+	d.Status = DocumentStatusDraft
+	d.RejectedBy = nil
+	d.RejectedAt = nil
+	d.RejectedReason = nil
+	d.UpdatedAt = now
+	_ = actorID // captured by use case audit trail; entity tracks no resubmit actor
 	return nil
 }
 

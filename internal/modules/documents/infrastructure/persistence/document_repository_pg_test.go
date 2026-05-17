@@ -45,6 +45,8 @@ var docSelectCols = []string{
 	// v0.151.0 Phase 4 — Execution transitions (#232).
 	"executor_assigned_to", "executor_assigned_at", "executor_due_date",
 	"executed_by", "executed_at",
+	// v0.152.0 Phase 5 — Archive transition (#233).
+	"archived_by", "archived_at",
 	"author_name", "recipient_name",
 }
 
@@ -67,6 +69,8 @@ func addDocRow(rows *sqlmock.Rows, id int64, title string, ver int, meta []byte)
 		nil, nil, nil, nil,
 		// v0.151.0 — 5 execution audit columns.
 		nil, nil, nil, nil, nil,
+		// v0.152.0 — 2 archive audit columns.
+		nil, nil,
 		nil, nil,
 	)
 }
