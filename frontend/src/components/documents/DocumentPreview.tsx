@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   XCircle,
   FileSignature,
+  Route,
+  Stamp,
 } from 'lucide-react'
 import { getStoredToken } from '@/lib/auth/token'
 import { Button } from '@/components/ui/button'
@@ -24,6 +26,8 @@ import { SubmitDocumentDialog } from './SubmitDocumentDialog'
 import { ApproveDocumentDialog } from './ApproveDocumentDialog'
 import { RejectDocumentDialog } from './RejectDocumentDialog'
 import { RegisterDocumentDialog } from './RegisterDocumentDialog'
+import { StartRoutingDialog } from './StartRoutingDialog'
+import { SignVisaDialog } from './SignVisaDialog'
 
 type TabType = 'preview' | 'versions'
 
@@ -53,6 +57,8 @@ export function DocumentPreview({
   const [approveOpen, setApproveOpen] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
   const [registerOpen, setRegisterOpen] = useState(false)
+  const [routingOpen, setRoutingOpen] = useState(false)
+  const [signVisaOpen, setSignVisaOpen] = useState(false)
 
   // Workflow gates (v0.148.0 #227). Submit visible to author OR
   // any edit-role on a draft. Approve/Reject visible only к
@@ -71,6 +77,14 @@ export function DocumentPreview({
   // registered. Admin-only role gate.
   const canRegister =
     doc.status === DocumentStatus.APPROVED &&
+    (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
+  // v0.150.0 Phase 3 — Routing transitions (#231). Single-step visa
+  // per ADR-1: registered → routing → execution.
+  const canStartRouting =
+    doc.status === DocumentStatus.REGISTERED &&
+    (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
+  const canSignVisa =
+    doc.status === DocumentStatus.ROUTING &&
     (role === UserRole.ACADEMIC_SECRETARY || role === UserRole.SYSTEM_ADMIN)
 
   /* c8 ignore start - Keyboard and click handlers, tested in e2e */
@@ -178,6 +192,18 @@ export function DocumentPreview({
               <Button variant="default" size="sm" onClick={() => setRegisterOpen(true)}>
                 <FileSignature className="h-4 w-4 mr-2" />
                 {tWorkflow('actions.registerButton')}
+              </Button>
+            )}
+            {canStartRouting && (
+              <Button variant="default" size="sm" onClick={() => setRoutingOpen(true)}>
+                <Route className="h-4 w-4 mr-2" />
+                {tWorkflow('actions.routeButton')}
+              </Button>
+            )}
+            {canSignVisa && (
+              <Button variant="default" size="sm" onClick={() => setSignVisaOpen(true)}>
+                <Stamp className="h-4 w-4 mr-2" />
+                {tWorkflow('actions.signVisaButton')}
               </Button>
             )}
             {onDownload && (
@@ -366,6 +392,18 @@ export function DocumentPreview({
         open={registerOpen}
         onClose={() => setRegisterOpen(false)}
         onRegistered={onDocumentUpdated}
+      />
+      <StartRoutingDialog
+        documentId={Number(doc.id)}
+        open={routingOpen}
+        onClose={() => setRoutingOpen(false)}
+        onRouted={onDocumentUpdated}
+      />
+      <SignVisaDialog
+        documentId={Number(doc.id)}
+        open={signVisaOpen}
+        onClose={() => setSignVisaOpen(false)}
+        onSigned={onDocumentUpdated}
       />
     </div>
   )
