@@ -263,3 +263,79 @@ func TestUserRepo_List_ScanError(t *testing.T) {
 	_, err := repo.List(context.Background(), 10, 0)
 	assert.Error(t, err)
 }
+
+// --- GetByIDForAuth (delegate to GetByID at PG layer — cache-free) ---
+
+func TestUserRepo_GetByIDForAuth_Success(t *testing.T) {
+	repo, mock := newUserRepoMock(t)
+	now := time.Now()
+	rows := sqlmock.NewRows(userCols).AddRow(int64(7), "auth@test.com", "hash", "Auth User", domain.RoleAcademicSecretary, entities.UserStatusActive, nil, false, now, now)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+		WithArgs(int64(7)).WillReturnRows(rows)
+	user, err := repo.GetByIDForAuth(context.Background(), 7)
+	require.NoError(t, err)
+	assert.Equal(t, "hash", user.Password, "GetByIDForAuth must return password for auth flow")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUserRepo_GetByIDForAuth_NotFound(t *testing.T) {
+	repo, mock := newUserRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+		WithArgs(int64(999)).WillReturnError(sql.ErrNoRows)
+	_, err := repo.GetByIDForAuth(context.Background(), 999)
+	assert.Error(t, err)
+}
+
+// --- GetByEmailForAuth additional branches ---
+
+func TestUserRepo_GetByEmailForAuth_NotFound(t *testing.T) {
+	repo, mock := newUserRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+		WithArgs("missing@test.com").WillReturnError(sql.ErrNoRows)
+	_, err := repo.GetByEmailForAuth(context.Background(), "missing@test.com")
+	assert.Error(t, err)
+}
+
+// --- scanUserByQuery: MFA secret parse error branch (corrupt persisted secret) ---
+
+func TestUserRepo_GetByID_InvalidPersistedMFASecret(t *testing.T) {
+	repo, mock := newUserRepoMock(t)
+	now := time.Now()
+	// Persisted MFA secret with wrong length triggers entities.NewMFASecret error
+	// inside scanUserByQuery, which wraps with "invalid persisted MFA secret".
+	rows := sqlmock.NewRows(userCols).
+		AddRow(int64(1), "test@test.com", "hash", "T", domain.RoleTeacher, entities.UserStatusActive, "TOOSHORT", false, now, now)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+		WithArgs(int64(1)).WillReturnRows(rows)
+	_, err := repo.GetByID(context.Background(), 1)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid persisted MFA secret")
+}
+
+// --- List: rows.Err() after iteration + invalid MFA in row ---
+
+func TestUserRepo_List_RowsErrAfterIteration(t *testing.T) {
+	repo, mock := newUserRepoMock(t)
+	now := time.Now()
+	// First row scans OK, then rows.Err() returns failure (driver-level).
+	rows := sqlmock.NewRows(userCols).
+		AddRow(int64(1), "a@test.com", "hash", "A", domain.RoleTeacher, entities.UserStatusActive, nil, false, now, now).
+		RowError(0, fmt.Errorf("connection reset during iteration"))
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+		WithArgs(10, 0).WillReturnRows(rows)
+	_, err := repo.List(context.Background(), 10, 0)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "connection reset")
+}
+
+func TestUserRepo_List_InvalidPersistedMFASecret(t *testing.T) {
+	repo, mock := newUserRepoMock(t)
+	now := time.Now()
+	rows := sqlmock.NewRows(userCols).
+		AddRow(int64(1), "a@test.com", "hash", "A", domain.RoleTeacher, entities.UserStatusActive, "BROKEN", false, now, now)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+		WithArgs(10, 0).WillReturnRows(rows)
+	_, err := repo.List(context.Background(), 10, 0)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid persisted MFA secret")
+}

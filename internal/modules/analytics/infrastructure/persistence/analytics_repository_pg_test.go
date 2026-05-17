@@ -456,3 +456,243 @@ func TestAnalyticsGetAtRiskStudents_EmptyScopeYieldsZeroRows(t *testing.T) {
 	assert.Empty(t, students)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+// ---- GetRiskWeightConfig ----
+
+var riskWeightCols = []string{
+	"id", "attendance_weight", "grade_weight", "submission_weight", "inactivity_weight",
+	"high_risk_threshold", "critical_risk_threshold", "updated_by", "updated_at",
+}
+
+func TestAnalyticsGetRiskWeightConfig_Success(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+	updatedBy := int64(42)
+	updatedAt := time.Now()
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM risk_weight_config ORDER BY id LIMIT 1")).
+		WillReturnRows(sqlmock.NewRows(riskWeightCols).
+			AddRow(1, 0.40, 0.30, 0.20, 0.10, 75.0, 90.0, updatedBy, updatedAt))
+
+	cfg, err := repo.GetRiskWeightConfig(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 1, cfg.ID)
+	assert.Equal(t, 0.40, cfg.AttendanceWeight)
+	assert.Equal(t, 75.0, cfg.HighRiskThreshold)
+	require.NotNil(t, cfg.UpdatedBy)
+	assert.Equal(t, int64(42), *cfg.UpdatedBy)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnalyticsGetRiskWeightConfig_NotFoundReturnsDefaults(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM risk_weight_config ORDER BY id LIMIT 1")).
+		WillReturnError(sql.ErrNoRows)
+
+	cfg, err := repo.GetRiskWeightConfig(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, 0.35, cfg.AttendanceWeight)
+	assert.Equal(t, 0.30, cfg.GradeWeight)
+	assert.Equal(t, 0.20, cfg.SubmissionWeight)
+	assert.Equal(t, 0.15, cfg.InactivityWeight)
+	assert.Equal(t, 70.0, cfg.HighRiskThreshold)
+	assert.Equal(t, 85.0, cfg.CriticalRiskThreshold)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnalyticsGetRiskWeightConfig_DBError(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM risk_weight_config ORDER BY id LIMIT 1")).
+		WillReturnError(fmt.Errorf("connection refused"))
+
+	_, err := repo.GetRiskWeightConfig(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get risk weight config")
+}
+
+// ---- UpdateRiskWeightConfig ----
+
+func TestAnalyticsUpdateRiskWeightConfig_Success(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+	updatedBy := int64(7)
+	cfg := &entities.RiskWeightConfig{
+		AttendanceWeight:      0.40,
+		GradeWeight:           0.30,
+		SubmissionWeight:      0.20,
+		InactivityWeight:      0.10,
+		HighRiskThreshold:     70.0,
+		CriticalRiskThreshold: 85.0,
+		UpdatedBy:             &updatedBy,
+	}
+
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE risk_weight_config SET")).
+		WithArgs(0.40, 0.30, 0.20, 0.10, 70.0, 85.0, &updatedBy).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err := repo.UpdateRiskWeightConfig(context.Background(), cfg)
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnalyticsUpdateRiskWeightConfig_DBError(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+	cfg := &entities.RiskWeightConfig{AttendanceWeight: 0.5}
+
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE risk_weight_config SET")).
+		WillReturnError(fmt.Errorf("constraint violation"))
+
+	err := repo.UpdateRiskWeightConfig(context.Background(), cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to update risk weight config")
+}
+
+// ---- SaveRiskHistory ----
+
+func TestAnalyticsSaveRiskHistory_WithoutFactors(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+	entry := &entities.RiskHistoryEntry{
+		StudentID:    101,
+		RiskScore:    72.5,
+		RiskLevel:    entities.RiskLevelHigh,
+		CalculatedAt: time.Now(),
+	}
+
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO student_risk_history")).
+		WithArgs(int64(101), 72.5, entities.RiskLevelHigh, (*float64)(nil), (*float64)(nil), (*float64)(nil), []byte(nil), entry.CalculatedAt).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err := repo.SaveRiskHistory(context.Background(), entry)
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnalyticsSaveRiskHistory_WithFactors(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+	attendance := 0.85
+	grade := 4.2
+	submission := 0.9
+	entry := &entities.RiskHistoryEntry{
+		StudentID:      101,
+		RiskScore:      88.0,
+		RiskLevel:      entities.RiskLevelCritical,
+		AttendanceRate: &attendance,
+		GradeAverage:   &grade,
+		SubmissionRate: &submission,
+		RiskFactors:    &entities.RiskFactors{},
+		CalculatedAt:   time.Now(),
+	}
+
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO student_risk_history")).
+		WithArgs(int64(101), 88.0, entities.RiskLevelCritical, &attendance, &grade, &submission, sqlmock.AnyArg(), entry.CalculatedAt).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err := repo.SaveRiskHistory(context.Background(), entry)
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnalyticsSaveRiskHistory_DBError(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+	entry := &entities.RiskHistoryEntry{StudentID: 101, CalculatedAt: time.Now()}
+
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO student_risk_history")).
+		WillReturnError(fmt.Errorf("disk full"))
+
+	err := repo.SaveRiskHistory(context.Background(), entry)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to save risk history")
+}
+
+// ---- GetStudentRiskHistory ----
+
+var riskHistoryCols = []string{
+	"id", "student_id", "risk_score", "risk_level",
+	"attendance_rate", "grade_average", "submission_rate",
+	"risk_factors", "calculated_at",
+}
+
+func TestAnalyticsGetStudentRiskHistory_Success(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+	calculatedAt := time.Now()
+	factorsJSON := []byte(`{"days_absent":3}`)
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM student_risk_history")).
+		WithArgs(int64(101), 50).
+		WillReturnRows(sqlmock.NewRows(riskHistoryCols).
+			AddRow(int64(1), int64(101), 72.5, entities.RiskLevelHigh, nil, nil, nil, factorsJSON, calculatedAt).
+			AddRow(int64(2), int64(101), 88.0, entities.RiskLevelCritical, nil, nil, nil, nil, calculatedAt))
+
+	history, err := repo.GetStudentRiskHistory(context.Background(), 101, 50)
+	require.NoError(t, err)
+	assert.Len(t, history, 2)
+	assert.Equal(t, int64(1), history[0].ID)
+	assert.NotNil(t, history[0].RiskFactors, "row 1 should parse risk_factors JSON")
+	assert.Nil(t, history[1].RiskFactors, "row 2 has nil risk_factors")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnalyticsGetStudentRiskHistory_InvalidFactorsJSONSilentlySkipped(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM student_risk_history")).
+		WithArgs(int64(101), 90).
+		WillReturnRows(sqlmock.NewRows(riskHistoryCols).
+			AddRow(int64(1), int64(101), 72.5, entities.RiskLevelHigh, nil, nil, nil, []byte("not-json"), time.Now()))
+
+	history, err := repo.GetStudentRiskHistory(context.Background(), 101, 0)
+	require.NoError(t, err)
+	require.Len(t, history, 1)
+	assert.Nil(t, history[0].RiskFactors, "invalid JSON must NOT crash, just leave RiskFactors nil")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnalyticsGetStudentRiskHistory_LimitClampedToDefault(t *testing.T) {
+	tests := []struct {
+		name      string
+		inLimit   int
+		wantQuery int
+	}{
+		{name: "zero clamped to 90", inLimit: 0, wantQuery: 90},
+		{name: "negative clamped to 90", inLimit: -5, wantQuery: 90},
+		{name: "over 365 clamped to 90", inLimit: 1000, wantQuery: 90},
+		{name: "within bounds passed through", inLimit: 30, wantQuery: 30},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, mock := newAnalyticsRepoMock(t)
+			mock.ExpectQuery(regexp.QuoteMeta("FROM student_risk_history")).
+				WithArgs(int64(101), tc.wantQuery).
+				WillReturnRows(sqlmock.NewRows(riskHistoryCols))
+
+			_, err := repo.GetStudentRiskHistory(context.Background(), 101, tc.inLimit)
+			require.NoError(t, err)
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestAnalyticsGetStudentRiskHistory_QueryError(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM student_risk_history")).
+		WithArgs(int64(101), 90).
+		WillReturnError(fmt.Errorf("connection lost"))
+
+	_, err := repo.GetStudentRiskHistory(context.Background(), 101, 0)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get risk history")
+}
+
+func TestAnalyticsGetStudentRiskHistory_ScanError(t *testing.T) {
+	repo, mock := newAnalyticsRepoMock(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM student_risk_history")).
+		WithArgs(int64(101), 90).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("not-an-int64"))
+
+	_, err := repo.GetStudentRiskHistory(context.Background(), 101, 0)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to scan risk history")
+}
