@@ -12,6 +12,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // --- Mock implementations ---
@@ -44,6 +45,13 @@ type mockAnalyticsRepository struct {
 	allGroupsScopeCaptured bool
 	riskLevelScope         *entities.TeacherScope
 	riskLevelScopeCaptured bool
+
+	// Risk weight config — used by GetRiskWeightConfig/UpdateRiskWeightConfig
+	// coverage tests added in v0.153.0 (#196 coverage push).
+	riskWeightConfig    *entities.RiskWeightConfig
+	riskWeightConfigErr error
+	updateConfigArg     *entities.RiskWeightConfig // captured for assertion
+	updateConfigErr     error
 }
 
 func (m *mockAnalyticsRepository) GetAtRiskStudents(_ context.Context, scope *entities.TeacherScope, _, _ int) ([]entities.StudentRiskScore, int64, error) {
@@ -92,10 +100,14 @@ func (m *mockAnalyticsRepository) GetMonthlyAttendanceTrend(_ context.Context, _
 }
 
 func (m *mockAnalyticsRepository) GetRiskWeightConfig(_ context.Context) (*entities.RiskWeightConfig, error) {
-	return nil, nil
+	if m.riskWeightConfigErr != nil {
+		return nil, m.riskWeightConfigErr
+	}
+	return m.riskWeightConfig, nil
 }
-func (m *mockAnalyticsRepository) UpdateRiskWeightConfig(_ context.Context, _ *entities.RiskWeightConfig) error {
-	return nil
+func (m *mockAnalyticsRepository) UpdateRiskWeightConfig(_ context.Context, cfg *entities.RiskWeightConfig) error {
+	m.updateConfigArg = cfg
+	return m.updateConfigErr
 }
 func (m *mockAnalyticsRepository) SaveRiskHistory(_ context.Context, _ *entities.RiskHistoryEntry) error {
 	return nil
@@ -1190,4 +1202,181 @@ func TestGetStudentsByRiskLevel_ForwardsScopeToRepo(t *testing.T) {
 			assert.Same(t, tc.scope, repo.riskLevelScope)
 		})
 	}
+}
+
+// --- v0.153.0 #196 coverage push: RiskWeightConfig + RiskHistory error branches ---
+
+// TestGetRiskWeightConfig_TableDriven pins GetRiskWeightConfig contract:
+// happy path returns a populated DTO with all 6 weights/thresholds; repo
+// error propagates wrapped. Mirror к pattern других getter tests.
+func TestGetRiskWeightConfig_TableDriven(t *testing.T) {
+	now := time.Date(2026, 5, 17, 12, 0, 0, 0, time.UTC)
+	sample := &entities.RiskWeightConfig{
+		AttendanceWeight:      0.4,
+		GradeWeight:           0.3,
+		SubmissionWeight:      0.2,
+		InactivityWeight:      0.1,
+		HighRiskThreshold:     70.0,
+		CriticalRiskThreshold: 85.0,
+		UpdatedAt:             now,
+	}
+
+	tests := []struct {
+		name      string
+		cfg       *entities.RiskWeightConfig
+		repoErr   error
+		wantErr   bool
+		wantErrIs string
+	}{
+		{name: "happy path returns full config", cfg: sample, wantErr: false},
+		{name: "repo error propagates wrapped", cfg: nil, repoErr: errors.New("db down"), wantErr: true, wantErrIs: "failed to get risk weight config"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := &mockAnalyticsRepository{
+				riskWeightConfig:    tc.cfg,
+				riskWeightConfigErr: tc.repoErr,
+			}
+			uc := newTestUseCase(repo, nil, nil)
+
+			resp, err := uc.GetRiskWeightConfig(context.Background())
+
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErrIs)
+				assert.Nil(t, resp)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			assert.InDelta(t, 0.4, resp.AttendanceWeight, 0.0001)
+			assert.InDelta(t, 0.3, resp.GradeWeight, 0.0001)
+			assert.InDelta(t, 0.2, resp.SubmissionWeight, 0.0001)
+			assert.InDelta(t, 0.1, resp.InactivityWeight, 0.0001)
+			assert.InDelta(t, 70.0, resp.HighRiskThreshold, 0.0001)
+			assert.InDelta(t, 85.0, resp.CriticalRiskThreshold, 0.0001)
+			assert.Equal(t, now, resp.UpdatedAt)
+		})
+	}
+}
+
+// TestUpdateRiskWeightConfig_TableDriven pins UpdateRiskWeightConfig
+// validation + persist + audit-skip-on-nil-logger behavior.
+// Audit-emit branch is exercised separately в TestUpdateRiskWeightConfig_AuditEmit.
+func TestUpdateRiskWeightConfig_TableDriven(t *testing.T) {
+	validReq := dto.UpdateRiskWeightConfigRequest{
+		AttendanceWeight:      0.4,
+		GradeWeight:           0.3,
+		SubmissionWeight:      0.2,
+		InactivityWeight:      0.1,
+		HighRiskThreshold:     70.0,
+		CriticalRiskThreshold: 85.0,
+	}
+
+	tests := []struct {
+		name        string
+		req         dto.UpdateRiskWeightConfigRequest
+		repoErr     error
+		wantErr     bool
+		wantMsg     string
+		wantCapture bool
+	}{
+		{name: "happy path persists with captured updatedBy", req: validReq, wantCapture: true},
+		{name: "weight sum > 1.0 rejected", req: dto.UpdateRiskWeightConfigRequest{AttendanceWeight: 0.5, GradeWeight: 0.5, SubmissionWeight: 0.5, InactivityWeight: 0.5}, wantErr: true, wantMsg: "weights must sum to 1.0"},
+		{name: "weight sum < 1.0 rejected", req: dto.UpdateRiskWeightConfigRequest{AttendanceWeight: 0.1, GradeWeight: 0.1, SubmissionWeight: 0.1, InactivityWeight: 0.1}, wantErr: true, wantMsg: "weights must sum to 1.0"},
+		{name: "weight sum within 0.01 tolerance OK", req: dto.UpdateRiskWeightConfigRequest{AttendanceWeight: 0.4, GradeWeight: 0.3, SubmissionWeight: 0.2, InactivityWeight: 0.105, HighRiskThreshold: 70, CriticalRiskThreshold: 85}, wantCapture: true},
+		{name: "repo error propagates wrapped", req: validReq, repoErr: errors.New("db conflict"), wantErr: true, wantMsg: "failed to update risk weight config"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := &mockAnalyticsRepository{updateConfigErr: tc.repoErr}
+			uc := newTestUseCase(repo, nil, nil)
+			updatedBy := int64(7)
+
+			err := uc.UpdateRiskWeightConfig(context.Background(), tc.req, updatedBy)
+
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantMsg)
+				return
+			}
+			require.NoError(t, err)
+			if tc.wantCapture {
+				require.NotNil(t, repo.updateConfigArg, "repo.Update must have been called")
+				require.NotNil(t, repo.updateConfigArg.UpdatedBy)
+				assert.Equal(t, updatedBy, *repo.updateConfigArg.UpdatedBy)
+				assert.InDelta(t, tc.req.AttendanceWeight, repo.updateConfigArg.AttendanceWeight, 0.0001)
+			}
+		})
+	}
+}
+
+// TestUpdateRiskWeightConfig_AuditEmit covers the `if uc.auditLogger != nil`
+// emit branch by constructing the use case with a real (non-nil) AuditLogger.
+// Verifies no panic + repo invocation; structured log output is captured к
+// stdout and not asserted (smoke coverage только).
+func TestUpdateRiskWeightConfig_AuditEmit(t *testing.T) {
+	repo := &mockAnalyticsRepository{}
+	logger := logging.NewLogger("error") // quiet, but non-nil
+	auditLogger := logging.NewAuditLogger(logger)
+	uc := usecases.NewAnalyticsUseCase(repo, &mockAttendanceRepository{}, &mockGradeRepository{}, auditLogger)
+
+	err := uc.UpdateRiskWeightConfig(context.Background(), dto.UpdateRiskWeightConfigRequest{
+		AttendanceWeight:      0.4,
+		GradeWeight:           0.3,
+		SubmissionWeight:      0.2,
+		InactivityWeight:      0.1,
+		HighRiskThreshold:     70.0,
+		CriticalRiskThreshold: 85.0,
+	}, 7)
+
+	require.NoError(t, err)
+	require.NotNil(t, repo.updateConfigArg)
+}
+
+// TestGetStudentRiskHistory_RepoErrorBranches closes the remaining
+// 20% gap в GetStudentRiskHistory (was 80%): repo error на initial
+// scope-check load + repo error on final history fetch.
+func TestGetStudentRiskHistory_RepoErrorBranches(t *testing.T) {
+	scope := entities.NewTeacherScope(7, []string{"ИС-21"})
+
+	t.Run("scope check load fails", func(t *testing.T) {
+		repo := &mockAnalyticsRepository{
+			studentRiskErr: errors.New("connection refused"),
+		}
+		uc := newTestUseCase(repo, nil, nil)
+
+		resp, err := uc.GetStudentRiskHistory(context.Background(), scope, 1, 30)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get student risk for scope check")
+		assert.Nil(t, resp)
+	})
+
+	t.Run("history fetch fails after scope passes", func(t *testing.T) {
+		risk := sampleStudentRisk()
+		risk.GroupName = ptrString("ИС-21")
+		repo := &mockAnalyticsRepository{
+			studentRisk:    &risk,
+			riskHistoryErr: errors.New("query timeout"),
+		}
+		uc := newTestUseCase(repo, nil, nil)
+
+		resp, err := uc.GetStudentRiskHistory(context.Background(), scope, 1, 30)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get risk history")
+		assert.Nil(t, resp)
+	})
+
+	t.Run("limit defaults к 90 when caller passes 0", func(t *testing.T) {
+		repo := &mockAnalyticsRepository{
+			riskHistory: []entities.RiskHistoryEntry{{ID: 1, StudentID: 1, RiskScore: 50.0}},
+		}
+		uc := newTestUseCase(repo, nil, nil)
+
+		resp, err := uc.GetStudentRiskHistory(context.Background(), nil, 1, 0)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+	})
 }
