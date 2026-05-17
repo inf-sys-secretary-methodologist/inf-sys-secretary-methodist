@@ -347,3 +347,163 @@ func TestPasswordResetUseCase_VerifyToken_Invalid(t *testing.T) {
 
 	assert.ErrorIs(t, err, ErrInvalidResetToken)
 }
+
+// =================== v0.153.1 #196 coverage push: error-wrap branches ===================
+
+// TestPasswordResetUseCase_RequestReset_StoreError covers the
+// "store reset token" fmt.Errorf wrap branch (line 108).
+func TestPasswordResetUseCase_RequestReset_StoreError(t *testing.T) {
+	userRepo := new(mockUserLookupRepo)
+	tokenRepo := new(mockPasswordResetTokenRepo)
+	emailer := new(mockEmailSender)
+
+	user := mkUser(42, "alice@example.com", entities.UserStatusActive)
+	userRepo.On("GetByEmail", mock.Anything, "alice@example.com").Return(user, nil)
+	tokenRepo.On("Store", mock.Anything, mock.AnythingOfType("string"), int64(42),
+		mock.AnythingOfType("time.Duration")).Return(errors.New("redis down"))
+
+	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)
+	err := uc.RequestReset(context.Background(), "alice@example.com")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "store reset token")
+	emailer.AssertNotCalled(t, "SendPasswordResetEmail", mock.Anything, mock.Anything, mock.Anything)
+}
+
+// TestPasswordResetUseCase_RequestReset_EmailError covers the
+// "send reset email" fmt.Errorf wrap branch (line 111).
+func TestPasswordResetUseCase_RequestReset_EmailError(t *testing.T) {
+	userRepo := new(mockUserLookupRepo)
+	tokenRepo := new(mockPasswordResetTokenRepo)
+	emailer := new(mockEmailSender)
+
+	user := mkUser(42, "alice@example.com", entities.UserStatusActive)
+	userRepo.On("GetByEmail", mock.Anything, "alice@example.com").Return(user, nil)
+	tokenRepo.On("Store", mock.Anything, mock.AnythingOfType("string"), int64(42),
+		mock.AnythingOfType("time.Duration")).Return(nil)
+	emailer.On("SendPasswordResetEmail", mock.Anything, "alice@example.com",
+		mock.AnythingOfType("string")).Return(errors.New("smtp timeout"))
+
+	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)
+	err := uc.RequestReset(context.Background(), "alice@example.com")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "send reset email")
+}
+
+// TestPasswordResetUseCase_VerifyToken_StorageError covers the
+// non-NotFound storage fault wrap (line 125).
+func TestPasswordResetUseCase_VerifyToken_StorageError(t *testing.T) {
+	userRepo := new(mockUserLookupRepo)
+	tokenRepo := new(mockPasswordResetTokenRepo)
+	emailer := new(mockEmailSender)
+
+	tokenRepo.On("LookupUser", mock.Anything, "some-token").
+		Return(int64(0), errors.New("redis connection lost"))
+
+	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)
+	err := uc.VerifyToken(context.Background(), "some-token")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "lookup reset token")
+	assert.NotErrorIs(t, err, ErrInvalidResetToken,
+		"non-NotFound storage error must NOT collapse к ErrInvalidResetToken")
+}
+
+// TestPasswordResetUseCase_ConfirmReset_LookupStorageError covers the
+// non-NotFound storage fault wrap on confirm (line 152).
+func TestPasswordResetUseCase_ConfirmReset_LookupStorageError(t *testing.T) {
+	userRepo := new(mockUserLookupRepo)
+	tokenRepo := new(mockPasswordResetTokenRepo)
+	emailer := new(mockEmailSender)
+
+	tokenRepo.On("LookupUser", mock.Anything, "valid-but-redis-broke").
+		Return(int64(0), errors.New("redis down"))
+
+	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)
+	err := uc.ConfirmReset(context.Background(), "valid-but-redis-broke", "strong-password-here")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "lookup reset token")
+}
+
+// TestPasswordResetUseCase_ConfirmReset_SaveUserError covers the
+// "save user" fmt.Errorf wrap branch (line 167).
+func TestPasswordResetUseCase_ConfirmReset_SaveUserError(t *testing.T) {
+	userRepo := new(mockUserLookupRepo)
+	tokenRepo := new(mockPasswordResetTokenRepo)
+	emailer := new(mockEmailSender)
+
+	user := mkUser(42, "alice@example.com", entities.UserStatusActive)
+	tokenRepo.On("LookupUser", mock.Anything, "valid-token").Return(int64(42), nil)
+	userRepo.On("GetByID", mock.Anything, int64(42)).Return(user, nil)
+	userRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.User")).
+		Return(errors.New("postgres write failed"))
+
+	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)
+	err := uc.ConfirmReset(context.Background(), "valid-token", "strong-password-here")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "save user")
+	tokenRepo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
+}
+
+// TestPasswordResetUseCase_ConfirmReset_DeleteTokenError covers the
+// "delete reset token" fmt.Errorf wrap branch (line 170).
+func TestPasswordResetUseCase_ConfirmReset_DeleteTokenError(t *testing.T) {
+	userRepo := new(mockUserLookupRepo)
+	tokenRepo := new(mockPasswordResetTokenRepo)
+	emailer := new(mockEmailSender)
+
+	user := mkUser(42, "alice@example.com", entities.UserStatusActive)
+	tokenRepo.On("LookupUser", mock.Anything, "valid-token").Return(int64(42), nil)
+	userRepo.On("GetByID", mock.Anything, int64(42)).Return(user, nil)
+	userRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.User")).Return(nil)
+	tokenRepo.On("Delete", mock.Anything, "valid-token").
+		Return(errors.New("redis del failed"))
+
+	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)
+	err := uc.ConfirmReset(context.Background(), "valid-token", "strong-password-here")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "delete reset token")
+}
+
+// TestGenerateResetToken_Determinism — generateResetToken is a private helper
+// but its property contract (URL-safe base64, sufficient length, non-empty
+// across calls) is testable via the public RequestReset path. Here we verify
+// the token emitted during Store has the expected shape.
+func TestGenerateResetToken_TokenShape(t *testing.T) {
+	userRepo := new(mockUserLookupRepo)
+	tokenRepo := new(mockPasswordResetTokenRepo)
+	emailer := new(mockEmailSender)
+
+	user := mkUser(42, "alice@example.com", entities.UserStatusActive)
+	userRepo.On("GetByEmail", mock.Anything, "alice@example.com").Return(user, nil)
+
+	var capturedTokens []string
+	tokenRepo.On("Store", mock.Anything, mock.AnythingOfType("string"), int64(42),
+		mock.AnythingOfType("time.Duration")).
+		Run(func(args mock.Arguments) {
+			capturedTokens = append(capturedTokens, args.String(1))
+		}).Return(nil)
+	emailer.On("SendPasswordResetEmail", mock.Anything, "alice@example.com",
+		mock.AnythingOfType("string")).Return(nil)
+
+	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)
+
+	// Two calls — tokens must differ (cryptographic randomness).
+	require.NoError(t, uc.RequestReset(context.Background(), "alice@example.com"))
+	require.NoError(t, uc.RequestReset(context.Background(), "alice@example.com"))
+
+	require.Len(t, capturedTokens, 2)
+	assert.NotEqual(t, capturedTokens[0], capturedTokens[1],
+		"successive tokens must differ — generateResetToken is not cryptographic")
+	assert.GreaterOrEqual(t, len(capturedTokens[0]), 32,
+		"token base64 length must reflect at least 24 random bytes (passwordResetTokenBytes)")
+	// URL-safe charset only (no padding "=", no "+/").
+	assert.Regexp(t, "^[A-Za-z0-9_-]+$", capturedTokens[0])
+}
+
+// Confirm bcrypt path is fast enough — sanity check к unused warning on bcrypt import.
+var _ = bcrypt.MinCost
