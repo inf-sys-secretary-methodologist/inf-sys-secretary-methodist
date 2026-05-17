@@ -58,6 +58,19 @@ var ErrCannotRoute = errors.New("document: cannot send to routing, status must b
 // Issue: #231
 var ErrCannotSignVisa = errors.New("document: cannot sign visa, status must be routing")
 
+// ErrCannotAssignExecutor signals AssignExecutor invoked on a document
+// not currently in the execution state. Phase 4 shape gate (status
+// stays execution; assign reshapes audit fields without transition).
+//
+// Issue: #232
+var ErrCannotAssignExecutor = errors.New("document: cannot assign executor, status must be execution")
+
+// ErrCannotMarkExecuted signals MarkExecuted invoked on a document not
+// currently in the execution state. Phase 4 transition gate.
+//
+// Issue: #232
+var ErrCannotMarkExecuted = errors.New("document: cannot mark executed, status must be execution")
+
 // DocumentStatus represents the status of a document in workflow
 type DocumentStatus string
 
@@ -158,6 +171,12 @@ type Document struct {
 	RoutedAt     *time.Time `json:"routed_at,omitempty"`
 	VisaSignedBy *int64     `json:"visa_signed_by,omitempty"`
 	VisaSignedAt *time.Time `json:"visa_signed_at,omitempty"`
+	// v0.151.0 Phase 4 — Execution transitions (#232).
+	ExecutorAssignedTo *int64     `json:"executor_assigned_to,omitempty"`
+	ExecutorAssignedAt *time.Time `json:"executor_assigned_at,omitempty"`
+	ExecutorDueDate    *time.Time `json:"executor_due_date,omitempty"`
+	ExecutedBy         *int64     `json:"executed_by,omitempty"`
+	ExecutedAt         *time.Time `json:"executed_at,omitempty"`
 }
 
 // NewDocument creates a new document with default values
@@ -331,6 +350,44 @@ func (d *Document) SignVisa(visaID int64, now time.Time) error {
 	d.Status = DocumentStatusExecution
 	d.VisaSignedBy = &visaID
 	d.VisaSignedAt = &now
+	d.UpdatedAt = now
+	return nil
+}
+
+// AssignExecutor sets the executor assignment on a document currently
+// in the execution state. Does NOT change status — assignment is a
+// shape-only operation reflecting the admin's routing decision after
+// visa was signed. Repeating the call overwrites prior executor (admin
+// can reassign до MarkExecuted). dueDate optional (nil-ok per ADR-2).
+//
+// Returns ErrCannotAssignExecutor when status is not Execution.
+//
+// Issue: #232
+func (d *Document) AssignExecutor(executorID int64, dueDate *time.Time, actorID int64, now time.Time) error {
+	if d.Status != DocumentStatusExecution {
+		return fmt.Errorf("%w: status %q", ErrCannotAssignExecutor, string(d.Status))
+	}
+	d.ExecutorAssignedTo = &executorID
+	d.ExecutorAssignedAt = &now
+	d.ExecutorDueDate = dueDate
+	_ = actorID // captured by use case audit trail; entity doesn't store assigner
+	d.UpdatedAt = now
+	return nil
+}
+
+// MarkExecuted finalizes a document in the execution state — flips status
+// к executed + sets the audit trail. Admin-only по route gate.
+//
+// Returns ErrCannotMarkExecuted when status is not Execution.
+//
+// Issue: #232
+func (d *Document) MarkExecuted(actorID int64, now time.Time) error {
+	if d.Status != DocumentStatusExecution {
+		return fmt.Errorf("%w: status %q", ErrCannotMarkExecuted, string(d.Status))
+	}
+	d.Status = DocumentStatusExecuted
+	d.ExecutedBy = &actorID
+	d.ExecutedAt = &now
 	d.UpdatedAt = now
 	return nil
 }
