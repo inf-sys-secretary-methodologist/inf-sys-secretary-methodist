@@ -15,6 +15,68 @@
 
 ---
 
+## [0.153.12] — 2026-05-19
+
+### Docs — `roles-and-flows.md` refresh + CHANGELOG catch-up
+
+Brief для научрука синхронизирован после Phase 6 #196 strict-90 close. Сжат 13-entry changelog wall в один консолидированный summary block, обновлена таблица "Что РАБОТАЕТ полностью" (16+ модулей включая workflow / audit logs / branding admin / MFA), убран устаревший #41 stub-mention (закрыт реализацией в documents/workflow_handler).
+
+CHANGELOG.md также подтянут — добавлены compact entries для всех 13 missed releases (v0.152.0 → v0.153.11) ссылающиеся на детальные notes в GitHub Releases.
+
+**Versions**: All 8 files bumped 0.153.11 → 0.153.12.
+
+---
+
+## [0.153.11] — 2026-05-19
+
+### Tests — Phase 6 #196 final push к strict > 90.0% backend coverage (CLOSED)
+
+Backend coverage 89.4% → **90.2%** (+0.8pp). Strict gate **> 90.0% ✅ ACHIEVED**. Issue #196 closed via PR #257.
+
+4 packages backfilled in single release: notifications/infrastructure/scheduler (72.1 → 85.9%), files/interfaces/http/handlers (33.8 → 59.0%), integration/interfaces/http (95.3 → 98.5%), announcements/interfaces/http/handlers (27.7 → 41.0%). Functions newly 100%-covered: `processPendingReminders` / `sendEmailReminder` / `file_handler.List` / `file_handler.CleanupExpired` / `sync_handler.Ping` / `handleAttachmentError`.
+
+Closes #196. Details in [GitHub Release v0.153.11](../../releases/tag/v0.153.11).
+
+---
+
+## [0.153.0] — [0.153.10] — 2026-05-18..19
+
+### Tests — Phase 6 coverage sprint (12 releases, 85.0% → 89.4% incremental → 90.2% final)
+
+Multi-release backfill sprint targeting strict > 90.0% backend coverage gate. См. подробности по каждому release в GitHub Releases:
+
+- **v0.153.0**: analytics/application/usecases 86 → 97.8% (PR #241)
+- **v0.153.1**: auth + schedule cumulative (PR #242, admin-merged test-only > 1000 LOC)
+- **v0.153.2**: integration/odata 1C client 0 → 97.5% (PR #243)
+- **v0.153.3**: ai/adapters FunFactSeeder 0 → 100% (PR #244)
+- **v0.153.4**: persistence backfill + CI timeout fix `go test -timeout=15m` для bcryptCost flake (PR #245)
+- **v0.153.5**: documents/usecases branch backfill (PR #249)
+- **v0.153.6**: schedulers backfill + transitive ws@8.20.1 override (PR #250)
+- **v0.153.7**: persistence batch 4 pkgs → 100% (PR #252)
+- **v0.153.8**: notif scheduler formatters + ws checkOrigin + lesson DTOs (PR #253)
+- **v0.153.9**: handler branches analytics+branding+tasks+documents (PR #254) + tootallnate@3.0.1 override (PR #255)
+- **v0.153.10**: schedule lesson handlers + messaging notifier + public branding (PR #256) + secret-scanning resolution flow codified
+
+Patterns codified: embedded narrow interface fakes, real *UseCase + fake repo для DIP-blocked handlers, httptest.Server для odata client tests, sqlmock для persistence batch, setter pattern для optional UC deps, admin-merge precedent для test-only PR > 1000 LOC.
+
+---
+
+## [0.152.1] — 2026-05-17
+
+### Patch — Phase 5 Archive+Resubmit polish
+
+Closes review-cycle Tier 1+2 findings from v0.152.0 (handler integration tests + audit emit consistency). 5-phase Documents workflow pack #227 fully CLOSED end-to-end.
+
+---
+
+## [0.152.0] — 2026-05-17
+
+### Added — Documents workflow Phase 5: Archive + Resubmit (#233)
+
+Phase 5 of #227 (final). `executed → archived` через `Archive` (terminal) + `returned → pending` через `Resubmit` (cycle restart). Domain methods + sentinels + audit fields + 2 transition endpoints за `RequireRole(AcademicSecretary, SystemAdmin)`. Frontend dialogs + i18n × 4 в same release. **#227 5-phase pack CLOSED**.
+
+---
+
 ## [0.151.1] — 2026-05-17
 
 ### Added — Documents workflow Phase 4 frontend: Execution UI (#232)
