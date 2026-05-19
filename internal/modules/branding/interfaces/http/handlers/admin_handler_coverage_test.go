@@ -173,3 +173,18 @@ func TestNewAdminBrandingHandler_NilUpdateUC_Panics(t *testing.T) {
 
 // Sanity guard — ensures the import chain still works.
 var _ = require.NotNil
+
+// ===== PublicBrandingHandler error branch (GetBranding 60% → 100%) =====
+
+func TestPublicBrandingHandler_Get_RepoError_Returns500(t *testing.T) {
+	repo := &errorRepo{getErr: fmt.Errorf("db down")}
+	getUC := usecases.NewGetBrandingUseCase(repo)
+	h := NewPublicBrandingHandler(getUC)
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/api/public/branding", h.GetBranding)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/public/branding", nil)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
