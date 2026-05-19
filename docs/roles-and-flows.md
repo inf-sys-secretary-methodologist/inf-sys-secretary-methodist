@@ -1,6 +1,6 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.153.12 (см. `VERSION` в корне)
+> **Версия проекта:** 0.153.13 (см. `VERSION` в корне)
 > **Состояние на:** 19 мая 2026 — **Phase 6 #196 CLOSED** (backend coverage 90.2%, strict > 90.0% ✅), **5-phase Documents workflow pack #227 CLOSED** end-to-end, **#41 Workflow automation CLOSED**, **Phase 5 admin observability CLOSED** (audit logs + backup + sentry + integrations + composio + branding), **B-feature triad CLOSED** (curriculum + assignments + B4 annual report), **MFA полностью end-to-end UI**.
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`, история релизов в GitHub Releases.
 

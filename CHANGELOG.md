@@ -15,6 +15,26 @@
 
 ---
 
+## [0.153.13] — 2026-05-19
+
+### Docs — `market-analysis.md` для issue #80
+
+Комплексный анализ российского + зарубежного рынка систем автоматизации академического секретаря/методиста (713 строк, 36 источников, 10 разделов). Покрытие:
+
+- **8 российских систем**: 1С:Колледж ПРОФ (179,300 ₽), 1С:Университет ПРОФ (282,700 ₽), 1С:Электронное обучение (200k-900k ₽ tiered), ТАНДЕМ.Университет (8+18+3 модулей), Галактика ВУЗ (50+ внедрений), Naumen University (Open J2EE), ММИС Деканат, Modeus (CUSTIS, IOT)
+- **5 зарубежных систем**: Moodle / Sakai (free open-source) + Canvas / PowerSchool / Blackboard / Workday (verified $5-30/student/year SaaS)
+- **Market sizing TAM/SAM/SOM**: ~₽855M/год TAM, ~₽130-200M/год SAM, ~₽600k-1.2M/год SOM 3-year target
+- **TCO comparison**: fair-compare таблица (1С:Колледж ~827k vs self-hosted ~230k vs Canvas ₽15M за 3 года)
+- **Структурная матрица функциональности** 26 функций × 7 конкурентов + наша система — **5-6 уникальных features**
+
+Methodology: 11 WebSearch + 20+ прямых WebFetch reads vendor pages. Verification gaps acknowledged (SITITO academic paper timeout; реестр Минцифры спот-чекинг не выполнен).
+
+Issue #80 остаётся открытым для review автором; будет закрыт после approval.
+
+**Versions**: All 8 files bumped 0.153.12 → 0.153.13.
+
+---
+
 ## [0.153.12] — 2026-05-19
 
 ### Docs — `roles-and-flows.md` refresh + CHANGELOG catch-up
