@@ -353,8 +353,13 @@ func (h *AIHandler) UpdateConversation(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Router /api/ai/conversations/{id} [delete]
 func (h *AIHandler) DeleteConversation(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	rawUserID, exists := c.Get("user_id")
 	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		return
+	}
+	userID, ok := rawUserID.(int64)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
@@ -365,7 +370,7 @@ func (h *AIHandler) DeleteConversation(c *gin.Context) {
 		return
 	}
 
-	if err := h.chatUseCase.DeleteConversation(c.Request.Context(), userID.(int64), conversationID); err != nil {
+	if err := h.chatUseCase.DeleteConversation(c.Request.Context(), userID, conversationID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
 	}
@@ -384,8 +389,13 @@ func (h *AIHandler) DeleteConversation(c *gin.Context) {
 // @Success 200 {object} dto.MessageListResponse
 // @Router /api/ai/conversations/{id}/messages [get]
 func (h *AIHandler) GetMessages(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	rawUserID, exists := c.Get("user_id")
 	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		return
+	}
+	userID, ok := rawUserID.(int64)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
@@ -405,7 +415,7 @@ func (h *AIHandler) GetMessages(c *gin.Context) {
 		}
 	}
 
-	response, err := h.chatUseCase.GetMessages(c.Request.Context(), userID.(int64), conversationID, limit, beforeID)
+	response, err := h.chatUseCase.GetMessages(c.Request.Context(), userID, conversationID, limit, beforeID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
 		return
