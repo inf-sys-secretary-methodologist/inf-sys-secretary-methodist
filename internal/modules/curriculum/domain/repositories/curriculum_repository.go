@@ -1,10 +1,16 @@
-// Package repositories declares the persistence ports for the
-// curriculum module. Concrete implementations live in the
-// infrastructure layer.
+// Package repositories declares the persistence-side domain values for
+// the curriculum module: sentinel errors callers chain with errors.Is
+// (ErrCurriculumNotFound / ErrCurriculumCodeExists /
+// ErrCurriculumVersionConflict) and query-shape DTOs consumed by
+// read-model pipelines (CurriculumListFilter / CurriculumListResult /
+// CurriculumYearSpecialtyAgg + their Section / DisciplineItem siblings).
+//
+// The wide repository ports themselves (CurriculumRepository etc.)
+// live в internal/modules/curriculum/application/usecases per CLAUDE.md
+// DIP gate. v0.157.1 (ADR-1 carry-forward from #269).
 package repositories
 
 import (
-	"context"
 	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
@@ -75,34 +81,6 @@ type CurriculumYearSpecialtyAgg struct {
 	Count     int
 }
 
-// CurriculumRepository is the persistence port for Curriculum
-// aggregates. Implementations must satisfy the documented sentinel
-// contract: ErrCurriculumNotFound on missing rows, ErrCurriculumCodeExists
-// on unique-constraint violations against the code column.
-type CurriculumRepository interface {
-	// GetByID returns the Curriculum with the given id or
-	// ErrCurriculumNotFound.
-	GetByID(ctx context.Context, id int64) (*entities.Curriculum, error)
-
-	// List returns a page of curricula matching the filter together
-	// with the total number of matching rows (ignoring Limit/Offset).
-	// Empty result is not an error.
-	List(ctx context.Context, filter CurriculumListFilter) (CurriculumListResult, error)
-
-	// Save inserts a new Curriculum and assigns the generated id back
-	// onto the entity. Returns ErrCurriculumCodeExists if a row with
-	// the same code already exists.
-	Save(ctx context.Context, c *entities.Curriculum) error
-
-	// Update writes the (already-mutated) entity back. Returns
-	// ErrCurriculumNotFound if the underlying row vanished and
-	// ErrCurriculumCodeExists if the rename collides with an
-	// existing code.
-	Update(ctx context.Context, c *entities.Curriculum) error
-
-	// AggregateByYearSpecialty returns one row per (specialty, status)
-	// combination for curricula with the given year, counting matching
-	// rows. Empty result is not an error. Used by the annual report
-	// pipeline to render the curricula summary section.
-	AggregateByYearSpecialty(ctx context.Context, year int) ([]CurriculumYearSpecialtyAgg, error)
-}
+// The CurriculumRepository port itself lives в
+// internal/modules/curriculum/application/usecases/repository_interfaces.go
+// (DIP — interface lives with consumer).

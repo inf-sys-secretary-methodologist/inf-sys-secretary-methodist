@@ -16,7 +16,7 @@ import (
 
 // ===== Bulk-tx fakes =====
 
-// fakeBulkItemsRepo implements repositories.DisciplineItemRepository.
+// fakeBulkItemsRepo implements DisciplineItemRepository.
 // All 5 methods are stubbed; per-test wires only the ones it exercises.
 type fakeBulkItemsRepo struct {
 	saveCalls   []*entities.DisciplineItem
@@ -61,7 +61,7 @@ func (f *fakeBulkItemsRepo) Delete(_ context.Context, id int64) error {
 	return f.deleteErr
 }
 
-// fakeBulkSectionsRepo implements repositories.SectionRepository.
+// fakeBulkSectionsRepo implements SectionRepository.
 type fakeBulkSectionsRepo struct {
 	getByIDFn func(ctx context.Context, id int64) (*entities.Section, error)
 }
@@ -86,7 +86,7 @@ func (f *fakeBulkSectionsRepo) Delete(_ context.Context, _ int64) error {
 	return errors.New("fake: Delete not used by bulk-edit")
 }
 
-// fakeBulkCurriculaRepo implements repositories.CurriculumRepository.
+// fakeBulkCurriculaRepo implements CurriculumRepository.
 type fakeBulkCurriculaRepo struct {
 	getByIDFn func(ctx context.Context, id int64) (*entities.Curriculum, error)
 }
@@ -115,7 +115,7 @@ func (f *fakeBulkItemsRepo) AggregateHoursByYear(_ context.Context, _ int) ([]re
 	return nil, errors.New("fake: AggregateHoursByYear not used by bulk-edit")
 }
 
-// fakeBulkTx implements repositories.BulkDisciplineItemsTx. Tracks
+// fakeBulkTx implements BulkDisciplineItemsTx. Tracks
 // commit/rollback calls so tests can assert tx lifecycle.
 type fakeBulkTx struct {
 	items         *fakeBulkItemsRepo
@@ -127,13 +127,13 @@ type fakeBulkTx struct {
 	rollbackErr   error
 }
 
-func (t *fakeBulkTx) Items() repositories.DisciplineItemRepository {
+func (t *fakeBulkTx) Items() DisciplineItemRepository {
 	return t.items
 }
-func (t *fakeBulkTx) Sections() repositories.SectionRepository {
+func (t *fakeBulkTx) Sections() SectionRepository {
 	return t.sections
 }
-func (t *fakeBulkTx) Curricula() repositories.CurriculumRepository {
+func (t *fakeBulkTx) Curricula() CurriculumRepository {
 	return t.curricula
 }
 func (t *fakeBulkTx) Commit() error {
@@ -153,7 +153,7 @@ type fakeBulkUoW struct {
 	gotOpts    *sql.TxOptions
 }
 
-func (u *fakeBulkUoW) Begin(_ context.Context, opts *sql.TxOptions) (repositories.BulkDisciplineItemsTx, error) {
+func (u *fakeBulkUoW) Begin(_ context.Context, opts *sql.TxOptions) (BulkDisciplineItemsTx, error) {
 	u.beginCalls++
 	u.gotOpts = opts
 	if u.beginErr != nil {

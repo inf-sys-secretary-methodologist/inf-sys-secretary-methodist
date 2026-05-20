@@ -7,9 +7,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/repositories"
 )
+
+// Compile-time assertion that the PG impl satisfies the wide port
+// declared in the consuming application/usecases layer (DIP). v0.157.1.
+var _ usecases.DisciplineItemRepository = (*DisciplineItemRepositoryPG)(nil)
 
 // DisciplineItemRepositoryPG is the SQL implementation of
 // DisciplineItemRepository (curriculum_section_items table, migration 035).

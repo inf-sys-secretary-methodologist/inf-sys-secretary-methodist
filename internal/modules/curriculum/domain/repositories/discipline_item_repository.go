@@ -1,11 +1,6 @@
 package repositories
 
-import (
-	"context"
-	"errors"
-
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
-)
+import "errors"
 
 // ErrDisciplineItemNotFound signals that no DisciplineItem row exists
 // for the requested id (or that the row was deleted between load and
@@ -24,45 +19,6 @@ var ErrDisciplineItemNotFound = errors.New("discipline_item: item not found")
 // vs "this item is gone"). Mirror к Section optimistic-lock behavior.
 var ErrDisciplineItemVersionConflict = errors.New("discipline_item: version conflict")
 
-// DisciplineItemRepository is the persistence port for DisciplineItem
-// aggregates. Implementations must satisfy the documented sentinel
-// contract: ErrDisciplineItemNotFound on missing rows;
-// ErrDisciplineItemVersionConflict on stale-version Update attempts.
-type DisciplineItemRepository interface {
-	// Save inserts a new DisciplineItem and writes the generated id
-	// back onto the entity. version starts at 0 в the row.
-	Save(ctx context.Context, d *entities.DisciplineItem) error
-
-	// GetByID returns the DisciplineItem with the given id or
-	// ErrDisciplineItemNotFound.
-	GetByID(ctx context.Context, id int64) (*entities.DisciplineItem, error)
-
-	// ListBySectionID returns every DisciplineItem attached to the
-	// given section, ordered by (order_index ASC, created_at ASC, id ASC)
-	// для deterministic display. An empty result is not an error.
-	ListBySectionID(ctx context.Context, sectionID int64) ([]*entities.DisciplineItem, error)
-
-	// Update writes the (already-mutated) entity back. Implementations
-	// MUST enforce optimistic locking: WHERE id = ? AND version = ?.
-	// On RowsAffected == 0 the impl distinguishes via a follow-up
-	// existence check:
-	//   row missing entirely → ErrDisciplineItemNotFound
-	//   row exists but version stale → ErrDisciplineItemVersionConflict
-	// On success, the entity's version is bumped to reflect the new
-	// row state.
-	Update(ctx context.Context, d *entities.DisciplineItem) error
-
-	// Delete removes the DisciplineItem row by id. Returns
-	// ErrDisciplineItemNotFound if no row was deleted.
-	Delete(ctx context.Context, id int64) error
-
-	// AggregateHoursByYear sums hours (lectures / practice / lab / self)
-	// across all discipline items belonging to curricula with
-	// curricula.year = year, grouped per curriculum. Empty result is
-	// not an error. Used by the annual report pipeline.
-	AggregateHoursByYear(ctx context.Context, year int) ([]DisciplineItemHoursAgg, error)
-}
-
 // DisciplineItemHoursAgg is a read-model row produced by
 // AggregateHoursByYear: per-curriculum totals of the four hours
 // columns. Consumed by the annual report pipeline. DTO only.
@@ -74,3 +30,7 @@ type DisciplineItemHoursAgg struct {
 	Lab             int
 	SelfStudy       int
 }
+
+// The DisciplineItemRepository port itself lives в
+// internal/modules/curriculum/application/usecases/repository_interfaces.go
+// (DIP — interface lives with consumer). v0.157.1.

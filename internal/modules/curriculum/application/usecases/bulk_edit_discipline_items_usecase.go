@@ -106,7 +106,7 @@ var ErrBulkVersionConflict = errors.New("bulk_edit: one or more updates have sta
 // bulkEditUnitOfWork is the narrow port на UoW Begin (full UoW interface
 // excludes anything else).
 type bulkEditUnitOfWork interface {
-	Begin(ctx context.Context, opts *sql.TxOptions) (repositories.BulkDisciplineItemsTx, error)
+	Begin(ctx context.Context, opts *sql.TxOptions) (BulkDisciplineItemsTx, error)
 }
 
 // ===== Use case =====
