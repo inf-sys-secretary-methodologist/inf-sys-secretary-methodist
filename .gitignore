@@ -42,10 +42,33 @@ docker-compose.override.yml
 # IDE files
 .vscode/
 .idea/
-.mcp.json
 *.swp
 *.swo
 *~
+
+# AI agent / MCP / coding-assistant configuration — local-only,
+# не часть продуктового кода. Каждый разработчик держит свои конфиги
+# (Claude Code, Cursor, Aider, Continue, Cline, Windsurf, Copilot, etc.)
+# у себя локально. На GitHub этих файлов быть не должно.
+.mcp.json
+.mcp/
+.claude/
+.cursor/
+.cursorrules
+.aider*
+.aiderignore
+.copilot/
+.github/copilot-instructions.md
+.continue/
+.cline/
+.windsurf/
+.windsurfrules
+.roo/
+.roomodes
+.specstory/
+AGENTS.md
+agents.md
+CODEX.md
 
 # OS files
 .DS_Store
