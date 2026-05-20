@@ -16,10 +16,15 @@ type IndexingScheduler struct {
 	embeddingUseCase *usecases.EmbeddingUseCase
 	batchSize        int
 	logger           *slog.Logger
+	serverCtx        context.Context
 }
 
-// NewIndexingScheduler creates a new IndexingScheduler.
+// NewIndexingScheduler creates a new IndexingScheduler. serverCtx is the
+// application lifecycle context — tick body derives its own ctx from it
+// so SIGTERM cancels in-flight indexing rather than running к completion
+// on context.Background() (issue #263 ADR-4).
 func NewIndexingScheduler(
+	serverCtx context.Context,
 	embeddingUseCase *usecases.EmbeddingUseCase,
 	batchSize int,
 	logger *slog.Logger,
@@ -38,6 +43,7 @@ func NewIndexingScheduler(
 		embeddingUseCase: embeddingUseCase,
 		batchSize:        batchSize,
 		logger:           logger,
+		serverCtx:        serverCtx,
 	}, nil
 }
 
@@ -62,7 +68,14 @@ func (is *IndexingScheduler) Stop() error {
 }
 
 func (is *IndexingScheduler) indexPendingDocuments() {
-	ctx := context.Background()
+	ctx := is.serverCtx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		is.logger.Info("indexing scheduler tick skipped — server shutting down", "error", err)
+		return
+	}
 
 	indexed, err := is.embeddingUseCase.IndexPendingDocuments(ctx, is.batchSize)
 	if err != nil {

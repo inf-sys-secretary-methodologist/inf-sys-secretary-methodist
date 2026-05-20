@@ -23,10 +23,16 @@ type FactScheduler struct {
 	personalityService *services.TelegramPersonalityService
 	telegramRepo       notifRepos.TelegramRepository
 	logger             *slog.Logger
+	serverCtx          context.Context
 }
 
-// NewFactScheduler creates a new FactScheduler
+// NewFactScheduler creates a new FactScheduler. serverCtx is the
+// application lifecycle context — when canceled (SIGTERM), the periodic
+// deliverDailyFact task derives its own ctx from it and short-circuits
+// rather than continuing with context.Background() (issue #263 ADR-4).
+// Pass context.Background() in tests for no-cancelation semantics.
 func NewFactScheduler(
+	serverCtx context.Context,
 	funFactUseCase *usecases.FunFactUseCase,
 	moodUseCase *usecases.MoodUseCase,
 	personalityService *services.TelegramPersonalityService,
@@ -45,6 +51,7 @@ func NewFactScheduler(
 		personalityService: personalityService,
 		telegramRepo:       telegramRepo,
 		logger:             logger,
+		serverCtx:          serverCtx,
 	}, nil
 }
 
@@ -70,7 +77,17 @@ func (fs *FactScheduler) Stop() error {
 }
 
 func (fs *FactScheduler) deliverDailyFact() {
-	ctx := context.Background()
+	// Derive task ctx from the application lifecycle ctx so a SIGTERM
+	// during a daily tick cancels in-flight work rather than running к
+	// completion on context.Background().
+	ctx := fs.serverCtx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		fs.logger.Info("fact scheduler tick skipped — server shutting down", "error", err)
+		return
+	}
 
 	// Get a random fact
 	fact, err := fs.funFactUseCase.GetRandomFact(ctx)

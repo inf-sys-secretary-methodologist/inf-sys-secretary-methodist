@@ -221,6 +221,15 @@ func main() {
 
 	initSentry(cfg)
 
+	// serverCtx is the application lifecycle context. Background goroutines
+	// and schedulers derive their tick contexts from it so SIGTERM cancels
+	// in-flight work instead of letting it run to completion on
+	// context.Background(). Canceled explicitly in the graceful-shutdown
+	// branch before any scheduler.Stop() calls (see issue #263 ADR-4); no
+	// defer here because log.Fatalf paths above can exit before any work
+	// using the ctx kicks off.
+	serverCtx, cancelServerCtx := context.WithCancel(context.Background())
+
 	// Initialize logger
 	logger := logging.NewLogger(cfg.Log.Level)
 	securityLogger := logging.NewSecurityLogger(logger)
@@ -924,6 +933,12 @@ func main() {
 	}
 
 	// Initialize AI module (RAG/Chat functionality)
+	// AI schedulers hoisted к outer scope so the graceful-shutdown branch
+	// can call Stop() on them (issue #263 ADR-4 — closes goroutine leak via
+	// gocron.Shutdown on SIGTERM). Both stay nil when cfg.AI.Enabled is false.
+	var aiFactScheduler *aiScheduler.FactScheduler
+	var aiIndexingScheduler *aiScheduler.IndexingScheduler
+
 	if cfg.AI.Enabled {
 		// Initialize AI repositories
 		aiEmbeddingRepo := aiPersistence.NewEmbeddingRepositoryPg(db)
@@ -1131,6 +1146,7 @@ func main() {
 		// Initialize fact scheduler for daily fact delivery
 		if telegramPersonalityService != nil {
 			factScheduler, err := aiScheduler.NewFactScheduler(
+				serverCtx,
 				funFactUseCase,
 				moodUseCase,
 				telegramPersonalityService,
@@ -1144,12 +1160,14 @@ func main() {
 					logger.Warn("Failed to start fact scheduler", map[string]interface{}{errorKey: err.Error()})
 				} else {
 					logger.Info("Fact scheduler started", nil)
+					aiFactScheduler = factScheduler
 				}
 			}
 		}
 
 		// Initialize indexing scheduler for automatic document indexing
 		indexingScheduler, err := aiScheduler.NewIndexingScheduler(
+			serverCtx,
 			aiEmbeddingUseCase,
 			10,
 			slog.Default(),
@@ -1161,6 +1179,7 @@ func main() {
 				logger.Warn("Failed to start indexing scheduler", map[string]interface{}{errorKey: err.Error()})
 			} else {
 				logger.Info("Indexing scheduler started", nil)
+				aiIndexingScheduler = indexingScheduler
 			}
 		}
 
@@ -1214,6 +1233,14 @@ func main() {
 	<-quit
 
 	logger.Info("Server shutting down...", nil)
+
+	// Cancel the lifecycle ctx first so scheduler tick bodies that have
+	// captured it short-circuit on the next ctx.Err() check (issue #263 ADR-4).
+	cancelServerCtx()
+
+	// Stop AI schedulers (no-op when nil — cfg.AI.Enabled was false).
+	stopAIScheduler(aiFactScheduler, "fact", logger)
+	stopAIScheduler(aiIndexingScheduler, "indexing", logger)
 
 	// Stop Telegram polling if running
 	if telegramPollingService != nil {
@@ -3255,6 +3282,30 @@ func stopTaskReminderScheduler(scheduler *notifScheduler.TaskReminderScheduler, 
 		logger.Error("Failed to stop task reminder scheduler", map[string]interface{}{
 			errorKey: err.Error(),
 		})
+	}
+}
+
+// aiSchedulerStopper is the narrow interface satisfied by both AI schedulers
+// (FactScheduler + IndexingScheduler). Lets stopAIScheduler accept either
+// concrete type without reflection or per-type branches.
+type aiSchedulerStopper interface {
+	Stop() error
+}
+
+// stopAIScheduler wraps the nil-safe Stop() call + error log used by both
+// AI schedulers (fact + indexing). kind is a free-form label used in the
+// log message for forensics. Issue #263 ADR-4.
+func stopAIScheduler(s aiSchedulerStopper, kind string, logger *logging.Logger) {
+	if s == nil {
+		return
+	}
+	if err := s.Stop(); err != nil {
+		logger.Error("Failed to stop AI scheduler", map[string]interface{}{
+			"kind":   kind,
+			errorKey: err.Error(),
+		})
+	} else {
+		logger.Info("AI scheduler stopped", map[string]interface{}{"kind": kind})
 	}
 }
 

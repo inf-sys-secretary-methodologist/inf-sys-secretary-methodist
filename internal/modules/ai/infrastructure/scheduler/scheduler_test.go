@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"testing"
@@ -35,14 +36,14 @@ func TestNewFactScheduler_HappyPath(t *testing.T) {
 	// All use-case pointers can be nil — constructor only stores them;
 	// they're only dereferenced inside deliverDailyFact (which our cron
 	// schedule "0 9 * * *" never fires during the test window).
-	fs, err := NewFactScheduler(nil, nil, nil, nil, quietLogger())
+	fs, err := NewFactScheduler(context.Background(), nil, nil, nil, nil, quietLogger())
 	require.NoError(t, err)
 	require.NotNil(t, fs)
 	require.NotNil(t, fs.scheduler, "internal gocron scheduler must be wired")
 }
 
 func TestFactScheduler_StartStop(t *testing.T) {
-	fs, err := NewFactScheduler(nil, nil, nil, nil, quietLogger())
+	fs, err := NewFactScheduler(context.Background(), nil, nil, nil, nil, quietLogger())
 	require.NoError(t, err)
 
 	require.NoError(t, fs.Start(), "Start с valid cron must not error")
@@ -54,7 +55,7 @@ func TestFactScheduler_StartStop(t *testing.T) {
 // --- IndexingScheduler ---
 
 func TestNewIndexingScheduler_HappyPath(t *testing.T) {
-	is, err := NewIndexingScheduler(nil, 25, quietLogger())
+	is, err := NewIndexingScheduler(context.Background(), nil, 25, quietLogger())
 	require.NoError(t, err)
 	require.NotNil(t, is)
 	assert.Equal(t, 25, is.batchSize, "explicit batchSize must be preserved")
@@ -72,7 +73,7 @@ func TestNewIndexingScheduler_DefaultBatchSize(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			is, err := NewIndexingScheduler(nil, tc.inSize, quietLogger())
+			is, err := NewIndexingScheduler(context.Background(), nil, tc.inSize, quietLogger())
 			require.NoError(t, err)
 			assert.Equal(t, tc.wantBatch, is.batchSize)
 		})
@@ -80,7 +81,7 @@ func TestNewIndexingScheduler_DefaultBatchSize(t *testing.T) {
 }
 
 func TestIndexingScheduler_StartStop(t *testing.T) {
-	is, err := NewIndexingScheduler(nil, 10, quietLogger())
+	is, err := NewIndexingScheduler(context.Background(), nil, 10, quietLogger())
 	require.NoError(t, err)
 
 	require.NoError(t, is.Start())
