@@ -411,7 +411,7 @@ func (h *DocumentHandler) DownloadFile(c *gin.Context) {
 	// avoid clickjacking via scriptable/executable downloads.
 	isInline := c.Query("inline") == "true" && IsInlineSafeMime(fileInfo.ContentType)
 	if isInline {
-		c.Header("Content-Disposition", "inline; filename=\""+fileInfo.FileName+"\"")
+		c.Header("Content-Disposition", BuildContentDisposition("inline", fileInfo.FileName))
 		// Restrict iframe embedding к same-origin (СОХРАНЯЕМ frame-ancestors
 		// 'self' вместо wildcard `*`) — previous wildcard CSP открывал
 		// clickjacking vector. Same-origin allows internal preview без
@@ -419,7 +419,7 @@ func (h *DocumentHandler) DownloadFile(c *gin.Context) {
 		c.Header("X-Frame-Options", "SAMEORIGIN")
 		c.Header("Content-Security-Policy", "frame-ancestors 'self'")
 	} else {
-		c.Header("Content-Disposition", "attachment; filename=\""+fileInfo.FileName+"\"")
+		c.Header("Content-Disposition", BuildContentDisposition("attachment", fileInfo.FileName))
 	}
 	c.Header("Content-Type", fileInfo.ContentType)
 	c.Header("Content-Length", strconv.FormatInt(fileInfo.Size, 10))
