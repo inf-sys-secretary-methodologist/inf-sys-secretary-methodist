@@ -130,9 +130,14 @@ func (uc *SharingUseCase) ShareDocument(ctx context.Context, input dto.ShareDocu
 	if uc.notifier != nil && input.UserID != nil {
 		if notifyErr := uc.notifier.NotifyDocumentShared(ctx, *input.UserID, input.DocumentID, doc.Title); notifyErr != nil {
 			// Best-effort: notification failure must not block the share.
-			// Logging would be ideal but auditLog already carries the
-			// share event; the adapter is expected to log its own errors.
-			_ = notifyErr
+			// Emit audit trail так failures are observable in /admin/audit-logs.
+			if uc.auditLog != nil {
+				uc.auditLog.LogAuditEvent(ctx, "document_share_notification_failed", "document_permission", map[string]interface{}{
+					"document_id":  input.DocumentID,
+					"recipient_id": *input.UserID,
+					"error":        notifyErr.Error(),
+				})
+			}
 		}
 	}
 

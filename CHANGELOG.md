@@ -15,6 +15,35 @@
 
 ---
 
+## [0.156.0] — 2026-05-20
+
+### Security — documents module Tier 1 hotfix (#266)
+
+Closes 7 Tier 1 audit findings from pre-v1.0.0 reviewer pass on documents module (`docs/plans/2026-05-20-v1.0.0-batch1-audit.md` → mean 6.7/10 / min 6/10 FIX-CYCLE). Split-mind module: workflow pack (v0.148.0+) exemplary, legacy code dragged down — this hotfix closes the legacy gaps. 6 RED→GREEN TDD pairs + 1 config-fix.
+
+**Shipped (7 ADRs)**:
+
+- **ADR-1: Sentinel error refactor** — `ErrDocumentNotFound` + `ErrVersionNotFound` declared в `domain/repositories/document_repository.go` (alongside `ErrInvalidOrderBy` precedent). 7 repo sites (`document_repository_pg.go:129/178/209/499/534/601/628`) routed к sentinels via direct return. `workflow_usecases.ErrDocumentNotFound` aliased к canonical sentinel (single errors.Is chain). Pre-fix: repo returned `fmt.Errorf("document not found")` so `workflow_handler.go:469 mapWorkflowError` not-found branches fell through к 500. Post-fix: stable 404.
+- **ADR-2: `?inline=true` MIME whitelist** — `IsInlineSafeMime` lookup gates inline preview к 7 preview-friendly types (image/png|jpeg|gif|webp|svg+xml, application/pdf, text/plain). Non-whitelisted MIMEs force `Content-Disposition: attachment` regardless of query. Inline branch sets `X-Frame-Options: SAMEORIGIN` + `CSP frame-ancestors 'self'` (was `Del X-Frame-Options` + `frame-ancestors *` wildcard — open clickjacking vector для ANY authenticated download). 18 table-driven sub-tests.
+- **ADR-3: RFC 2231 Content-Disposition encoding** — `BuildContentDisposition` uses `mime.FormatMediaType` для proper non-ASCII filename encoding (RFC 5987 `filename*=utf-8''<percent>`); `stripControlBytes` neutralizes \r / \n / NUL / DEL / quote injection vectors. 7 table-driven sub-tests covering ASCII / Cyrillic / CRLF injection / quotes / empty / NUL.
+- **ADR-4: Typed admin role recognition** — `IsAdminRole` helper recognizes both `"admin"` (legacy DocumentPermission rows) и `"system_admin"` (canonical auth.RoleSystemAdmin), case-insensitive. 2 magic-string sites (`document_repository_pg.go:255/932`) replaced. Pre-fix: production JWT carries `"system_admin"`, was caught by access-control WHERE → admins could not see all rows. 10 table-driven sub-tests.
+- **ADR-5: ShareNotifier narrow port** — `notification_sink.go` declares port; `SharingUseCase` gains chainable `WithShareNotifier(n)` setter. Cross-module concrete import `notifUsecases "...notifications/application/usecases"` removed from `sharing_usecase.go`; fire-and-forget goroutine + `context.Background()` removed; Russian UI strings ("Документ открыт для вас" + share message) moved к adapter `documentsShareNotifier` в `cmd/server/main.go` (mirror existing `assignmentsGradeNotifier` DI seam pattern). Sink contract test spy verifies call exactly once с correct args.
+- **ADR-6: UploadFile bypass removed** — 3-line direct mutation `if doc.Status == Draft { doc.Status = Registered }` deleted from `document_usecase.go:305-308`. Bypassed `Document.Register` domain method (v0.149.0 #230) which enforces: registration_number ≥3 chars, status must be Approved before Register, audit triplet (number / date / registrar ID) populated atomically. Upload is now a pure file operation; transition к Registered is exclusively the Phase 2 workflow's job. No frontend dependency on auto-register (verified via grep).
+- **ADR-7: Russian strings → tag sentinels** — `tag_errors.go` declares `ErrTagNotFound` + `ErrTagAlreadyExists` (wrap shared `domainErrors.ErrNotFound` / `ErrAlreadyExists` via `fmt.Errorf("%w")`). 11 fmt.Errorf sites in `tag_usecase.go` replaced: 5 "тег не найден" → `ErrTagNotFound`; 2 "тег с таким именем уже существует" → `ErrTagAlreadyExists`; 3 "документ не найден" → `repositories.ErrDocumentNotFound`; 1 site preserves ID context via `fmt.Errorf("%w (tag ID %d)", ErrTagNotFound, tagID)`. `response.MapDomainError` now fires correct 404/409 через errors.Is chain (was 500 fallthrough). 5 legacy assert.Contains assertions migrated к `assert.ErrorIs`.
+
+### Plan / cross-references
+
+- `docs/plans/2026-05-20-v0156-documents-security.md` — 7 ADRs locked upfront
+- v0.154.0 / v0.155.0 precedents: `docs/plans/2026-05-20-v0154-reporting-security.md` + `2026-05-20-v0155-ai-security.md`
+
+### Tier 2 carry-forward (post v0.156)
+
+- DocumentUseCase S3Client DIP refactor (UploadFile / DownloadFile integration tests blocked on this)
+- Legacy template / version use cases narrow-port sweep (beyond ADR-5 sharing scope)
+- pre-existing `interface{}` → `any` linter warnings across `document_repository_pg.go` (~15 sites)
+
+---
+
 ## [0.155.0] — 2026-05-20
 
 ### Security — ai module Tier 1 hotfix (#263)
