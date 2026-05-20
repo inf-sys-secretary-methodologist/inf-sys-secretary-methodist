@@ -484,6 +484,45 @@ func TestExecute_NoValidFields(t *testing.T) {
 	}
 }
 
+// TestExecute_RejectsMaliciousAliasDefenseInDepth covers ADR-1 layer 3:
+// even when a caller bypasses domain SetFields by directly constructing a
+// CustomReport via struct literal (as some tests + raw repo paths do), the
+// query builder must refuse to interpolate an unsafe Alias into "AS <x>".
+// No SQL is sent on rejection.
+func TestExecute_RejectsMaliciousAliasDefenseInDepth(t *testing.T) {
+	tests := []struct {
+		name  string
+		alias string
+	}{
+		{"drop_table", `x"; DROP TABLE users; --`},
+		{"single_quote", "x' OR '1'='1"},
+		{"semicolon", "x; SELECT 1"},
+		{"leading_digit", "1bad"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b, mock, db := newMockBuilder(t)
+			defer func() { _ = db.Close() }()
+
+			report := &entities.CustomReport{
+				DataSource: entities.DataSourceDocuments,
+				Fields: []entities.SelectedField{{
+					Field: entities.ReportField{Name: fieldNameID, Label: "Name"},
+					Alias: tt.alias,
+				}},
+			}
+			_, err := b.Execute(context.Background(), report, 1, 10)
+			if !errors.Is(err, entities.ErrInvalidAlias) {
+				t.Errorf("Execute(alias=%q) returned %v, want errors.Is(ErrInvalidAlias)", tt.alias, err)
+			}
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("no SQL should have been sent on rejection: %v", err)
+			}
+		})
+	}
+}
+
 func TestExecute_HappyPathSingleRow(t *testing.T) {
 	b, mock, db := newMockBuilder(t)
 	defer func() { _ = db.Close() }()
