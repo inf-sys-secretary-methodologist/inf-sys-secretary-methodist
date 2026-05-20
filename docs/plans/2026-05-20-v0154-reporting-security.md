@@ -40,13 +40,15 @@ Tier 1 security blockers identified в reporting module audit (mean 4.5/10, min 
 
 ### ADR-4: `Generate` endpoint returns 501 Not Implemented
 
-`simulateGeneration` removed completely. `Generate` use case returns `ErrGenerationNotImplemented` sentinel. Handler maps к 501 + structured response. Background goroutines в reporting use case (lines 335, 487) eliminated с removal of simulateGeneration.
+`simulateGeneration` removed completely. `Generate` use case returns `ErrGenerationNotImplemented` sentinel. Handler maps к 501 + structured response. The fire-and-forget goroutine at line 335 (`go uc.simulateGeneration(context.Background(), ...)`) is eliminated с removal of the method. The Publish-notification goroutine at line 487 (now line 441) still uses `context.Background()` — flagged as Tier 2 carry-forward; proper fix requires lifecycle-ctx injection through constructor and is out of v0.154 scope.
 
 **Audit**: every 501 emission logged via `auditLogger.LogAuditEvent(ctx, "report.generate_not_implemented", ...)` для forensics. Will be replaced с real generator (extract Annual's `docxgen/render.go` pattern) в post-v1.0.0 work.
 
 ### ADR-5: Role gate at routing level
 
-`cmd/server/main.go customReportsGroup.Use(authMiddleware.RequireRole("methodist", "academic_secretary", "system_admin"))`. Mirrors `reportsGroup.Use(authMiddleware.RequireNonStudent())` precedent (line 2012). Integration test через `httptest` мount production middleware → 403 для student.
+`cmd/server/main.go customReportsGroup.Use(authMiddleware.RequireNonStudent())`. Mirrors `reportsGroup.Use(authMiddleware.RequireNonStudent())` precedent (line 2012) — admits methodist / academic_secretary / teacher / system_admin and 403s students or missing-role requests.
+
+**Integration test deferred to Tier 2 carry-forward**: a proper router-level RED→GREEN pair требует extraction of `RegisterCustomReportRoutes(group, ...)` function so the production middleware chain can be exercised from tests (per `feedback_route_extraction_for_security_test` memory). For v0.154 the gate ships as a single-line config change в main.go with reviewer + diff verification; route extraction queued as `v0.154.1` polish patch or absorbed into batch-2 follow-ups. `RequireNonStudent` itself is exercised по existing reportsGroup tests so the middleware is not unverified — only the wiring on this group lacks automated coverage.
 
 ## TDD pairs
 
@@ -55,7 +57,7 @@ Tier 1 security blockers identified в reporting module audit (mean 4.5/10, min 
 | 1 | table-driven `TestSelectedField_Validate_Alias` rejects 10+ injection payloads + accepts safe identifiers | `SelectedField.Validate() error` + `ErrInvalidAlias` sentinel |
 | 2 | `TestCustomReport_SetFields_RejectsInvalidAlias` | `SetFields([]SelectedField) error` returns error from Validate; update 2 callers + tests |
 | 3 | `TestDynamicQueryBuilder_Execute_DefenseInDepth_RejectsMaliciousAlias` (bypasses domain via direct entity construction) | Re-validate в Execute before SQL gen; return `entities.ErrInvalidAlias` |
-| 4 | `TestCustomReportRoutes_StudentDenied` integration через production middleware mount | `main.go customReportsGroup.Use(RequireRole(...))` |
+| 4 | _(deferred — see ADR-5; needs route extraction refactor)_ | `main.go customReportsGroup.Use(RequireNonStudent())` config-only commit; integration test queued as Tier 2 |
 | 5 | `TestReportHandler_Generate_Returns501` + remove simulateGeneration paths | `Generate` returns `ErrGenerationNotImplemented` mapped к 501; audit log entry |
 
 Plus: `SetFieldsFromJSON` validates after unmarshal (covered by Pair 2 if implementation routes through SetFields).
@@ -66,8 +68,8 @@ Plus: `SetFieldsFromJSON` validates after unmarshal (covered by Pair 2 if implem
 - [ ] Domain entity `SelectedField.Validate()` + `ErrInvalidAlias` sentinel
 - [ ] Defense-in-depth: query builder re-validates before SQL execution
 - [ ] `SetFields` returns error; 2 callers updated
-- [ ] `/api/custom-reports` group gated к methodist/academic_secretary/system_admin
-- [ ] Integration test: student gets 403 POST /api/custom-reports
+- [ ] `/api/custom-reports` group gated через `RequireNonStudent()` (admits methodist / academic_secretary / teacher / system_admin)
+- [ ] ~~Integration test: student gets 403 POST /api/custom-reports~~ → deferred к Tier 2 (requires route extraction)
 - [ ] `simulateGeneration` removed entirely
 - [ ] `Generate` returns 501 + audit log emission
 - [ ] Background goroutines с `context.Background()` eliminated
