@@ -179,7 +179,7 @@ func TestReconstituteCurriculum_BypassesInvariants(t *testing.T) {
 	approvedBy := int64(99)
 	c := ReconstituteCurriculum(
 		7, "title", "code", "specialty", 2026, "desc",
-		StatusApproved, 42, &approvedBy, &approvedAt, now, now,
+		StatusApproved, 42, &approvedBy, &approvedAt, now, now, 0,
 	)
 	if c == nil {
 		t.Fatal("ReconstituteCurriculum returned nil")

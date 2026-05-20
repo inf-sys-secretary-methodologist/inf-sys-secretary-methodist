@@ -48,7 +48,7 @@ func reconstituted(t *testing.T, id int64, createdBy int64, status entities.Curr
 	}
 	return entities.ReconstituteCurriculum(
 		id, "Original", "ORIG-2026", "Original Specialty", 2026, "orig desc",
-		status, createdBy, ab, aat, now, now,
+		status, createdBy, ab, aat, now, now, 0,
 	)
 }
 

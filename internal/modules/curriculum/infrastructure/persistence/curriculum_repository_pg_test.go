@@ -49,10 +49,10 @@ func TestCurriculumRepositoryPG_GetByID(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "title", "code", "specialty", "year", "description",
 			"status", "created_by", "approved_by", "approved_at",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "version",
 		}).AddRow(int64(10), "ИВТ-2026", "09.03.04-2026",
 			"Информатика и вычислительная техника", 2026, "desc",
-			"draft", int64(42), sql.NullInt64{}, sql.NullTime{}, now, now)
+			"draft", int64(42), sql.NullInt64{}, sql.NullTime{}, now, now, 0)
 
 		mock.ExpectQuery(regexp.QuoteMeta("FROM curricula WHERE id = $1")).
 			WithArgs(int64(10)).
@@ -78,12 +78,12 @@ func TestCurriculumRepositoryPG_GetByID(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "title", "code", "specialty", "year", "description",
 			"status", "created_by", "approved_by", "approved_at",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "version",
 		}).AddRow(int64(7), "T", "C", "S", 2026, "",
 			"approved", int64(42),
 			sql.NullInt64{Int64: 99, Valid: true},
 			sql.NullTime{Time: approvedAt, Valid: true},
-			now, now)
+			now, now, 0)
 
 		mock.ExpectQuery(regexp.QuoteMeta("FROM curricula WHERE id = $1")).
 			WithArgs(int64(7)).
@@ -133,12 +133,12 @@ func TestCurriculumRepositoryPG_List(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "title", "code", "specialty", "year", "description",
 			"status", "created_by", "approved_by", "approved_at",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "version",
 		}).
 			AddRow(int64(1), "T1", "C1", "S", 2026, "",
-				"draft", int64(42), sql.NullInt64{}, sql.NullTime{}, now, now).
+				"draft", int64(42), sql.NullInt64{}, sql.NullTime{}, now, now, 0).
 			AddRow(int64(2), "T2", "C2", "S", 2025, "",
-				"draft", int64(42), sql.NullInt64{}, sql.NullTime{}, now, now)
+				"draft", int64(42), sql.NullInt64{}, sql.NullTime{}, now, now, 0)
 
 		mock.ExpectQuery(regexp.QuoteMeta("ORDER BY year DESC, created_at DESC")).
 			WithArgs("", sql.NullInt64{}, "", sql.NullInt64{}, 50, 0).
@@ -257,16 +257,20 @@ func TestCurriculumRepositoryPG_Update(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("zero rows updated returns ErrCurriculumNotFound", func(t *testing.T) {
+	t.Run("zero rows + row vanished returns ErrCurriculumNotFound", func(t *testing.T) {
 		repo, mock := newCurriculumRepoMock(t)
 
 		mock.ExpectExec(regexp.QuoteMeta("UPDATE curricula SET")).
 			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Disambiguate: row missing → ErrCurriculumNotFound
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM curricula")).
+			WillReturnError(sql.ErrNoRows)
 
 		c := freshDraft(t, "09.03.04-2026")
 		c.ID = 999
 		err := repo.Update(context.Background(), c)
 		assert.True(t, errors.Is(err, repositories.ErrCurriculumNotFound))
+		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
 	t.Run("unique violation maps to ErrCurriculumCodeExists", func(t *testing.T) {
