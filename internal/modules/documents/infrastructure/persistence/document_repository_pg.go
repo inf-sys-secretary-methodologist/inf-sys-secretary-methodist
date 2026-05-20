@@ -252,7 +252,7 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 	// 2. Document is public
 	// 3. They have explicit permission via document_permissions
 	// 4. They are admin (can see all)
-	if filter.CurrentUserID > 0 && filter.CurrentUserRole != "admin" {
+	if filter.CurrentUserID > 0 && !IsAdminRole(filter.CurrentUserRole) {
 		accessCondition := fmt.Sprintf(`(
 			d.author_id = $%d
 			OR d.is_public = true
@@ -929,7 +929,7 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 	// 2. Document is public
 	// 3. They have explicit permission via document_permissions
 	// 4. They are admin (can see all)
-	if filter.CurrentUserID > 0 && filter.CurrentUserRole != "admin" {
+	if filter.CurrentUserID > 0 && !IsAdminRole(filter.CurrentUserRole) {
 		accessCondition := fmt.Sprintf(`(
 			d.author_id = $%d
 			OR d.is_public = true
