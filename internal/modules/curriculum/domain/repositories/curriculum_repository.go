@@ -23,6 +23,17 @@ var ErrCurriculumNotFound = errors.New("curriculum: curriculum not found")
 // user to pick a different code.
 var ErrCurriculumCodeExists = errors.New("curriculum: code already exists")
 
+// ErrCurriculumVersionConflict signals that an Update was attempted
+// against a stale version of the entity — another transaction has
+// committed a newer version since this one was loaded. Callers should
+// reload + reapply (no automatic retry — admin-internal write fitness).
+// Handlers map к HTTP 409 (mirror Section pattern, v0.128.0+).
+//
+// Distinct from ErrCurriculumNotFound which signals "row vanished
+// entirely" — different operational story (deleted, not stale) than
+// the lost-update race. v0.157.0 #269 ADR-2.
+var ErrCurriculumVersionConflict = errors.New("curriculum: version conflict")
+
 // CurriculumListFilter narrows a List query. Zero-valued fields are
 // treated as "no filter on this dimension". Limit/Offset are honored
 // by the repository; a non-positive Limit means "no clamp at the

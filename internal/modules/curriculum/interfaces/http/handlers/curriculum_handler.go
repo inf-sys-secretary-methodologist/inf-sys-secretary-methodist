@@ -670,6 +670,14 @@ func mapCurriculumError(c *gin.Context, err error) {
 		c.JSON(http.StatusConflict,
 			response.ErrorResponse("CODE_EXISTS", "curriculum code already exists"))
 		return
+	case errors.Is(err, repositories.ErrCurriculumVersionConflict):
+		// v0.157.0 #269 ADR-2 — lost-update race (concurrent edit).
+		// Mirror section_handler.go VERSION_CONFLICT mapping so UI can
+		// render "reload and retry" instead of generic 500.
+		c.JSON(http.StatusConflict,
+			response.ErrorResponse("VERSION_CONFLICT",
+				"curriculum was modified by another request; reload and retry"))
+		return
 	case errors.Is(err, entities.ErrCurriculumScopeForbidden):
 		c.JSON(http.StatusForbidden,
 			response.Forbidden("only the author or an administrator may edit this curriculum"))

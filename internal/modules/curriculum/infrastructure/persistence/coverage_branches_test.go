@@ -101,12 +101,12 @@ func TestCurriculumRepositoryPG_List_ApprovedByAndAtPopulated(t *testing.T) {
 	rows := sqlmock.NewRows([]string{
 		"id", "title", "code", "specialty", "year", "description",
 		"status", "created_by", "approved_by", "approved_at",
-		"created_at", "updated_at",
+		"created_at", "updated_at", "version",
 	}).AddRow(int64(7), "T", "C", "S", 2026, "approved-desc",
 		"approved", int64(42),
 		sql.NullInt64{Int64: 99, Valid: true},
 		sql.NullTime{Time: approvedAt, Valid: true},
-		now, now)
+		now, now, 0)
 	mock.ExpectQuery(regexp.QuoteMeta("ORDER BY year DESC, created_at DESC")).
 		WithArgs("", sql.NullInt64{}, "", sql.NullInt64{}, 50, 0).
 		WillReturnRows(rows)

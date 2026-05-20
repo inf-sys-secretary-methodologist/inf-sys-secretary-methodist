@@ -72,6 +72,10 @@ type Curriculum struct {
 	approvedAt  *time.Time
 	createdAt   time.Time
 	updatedAt   time.Time
+	// v0.157.0 #269 ADR-2 — optimistic-locking version. Starts at 0
+	// for fresh aggregates; persistence layer's WHERE id = ? AND
+	// version = ? guards lost-update races.
+	version int
 }
 
 // NewCurriculumParams bundles the constructor inputs so call sites
@@ -152,6 +156,7 @@ func ReconstituteCurriculum(
 	status CurriculumStatus, createdBy int64,
 	approvedBy *int64, approvedAt *time.Time,
 	createdAt, updatedAt time.Time,
+	version int,
 ) *Curriculum {
 	return &Curriculum{
 		ID:          id,
@@ -166,7 +171,31 @@ func ReconstituteCurriculum(
 		approvedAt:  approvedAt,
 		createdAt:   createdAt,
 		updatedAt:   updatedAt,
+		version:     version,
 	}
+}
+
+// Version returns the optimistic-locking version (≥ 0). Persistence
+// uses this in the UPDATE WHERE clause; on success the row's stored
+// version becomes version+1 и BumpCurriculumVersion lifts the entity's
+// in-memory copy to match.
+//
+// v0.157.0 #269 ADR-2.
+func (c *Curriculum) Version() int { return c.version }
+
+// BumpCurriculumVersion is the cross-package helper для repository
+// implementations к sync the entity's in-memory version after a
+// successful UPDATE. Lives в the entities package (where the field
+// is private) и is exported deliberately — Section uses a different
+// approach (rebuild via *s = *ReconstituteSection(...) inside the
+// persistence-package private helper), but Curriculum has fewer fields
+// + no curriculumID-relative invariants к re-validate on rebuild, so
+// a focused in-place increment is cleaner. Reviewers wanting к narrow
+// the surface should make the field public OR introduce a Setter
+// returning a new entity; this helper is the minimum-blast-radius
+// equivalent for now. v0.157.0 #269 ADR-2.
+func BumpCurriculumVersion(c *Curriculum) {
+	c.version++
 }
 
 // Title returns the curriculum's human-readable title.

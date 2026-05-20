@@ -78,7 +78,7 @@ func frozenCurriculum(t *testing.T, status entities.CurriculumStatus, createdBy 
 	now := time.Now()
 	return entities.ReconstituteCurriculum(
 		7, "ИВТ-2026", "C-1", "ИВТ", 2026, "",
-		status, createdBy, nil, nil, now, now,
+		status, createdBy, nil, nil, now, now, 0,
 	)
 }
 

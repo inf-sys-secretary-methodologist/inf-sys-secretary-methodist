@@ -23,7 +23,7 @@ func buildCurriculum(t *testing.T, createdBy int64, status CurriculumStatus) *Cu
 	}
 	return ReconstituteCurriculum(
 		1, "title", "code", "specialty", 2026, "desc",
-		status, createdBy, approvedBy, approvedAt, now, now,
+		status, createdBy, approvedBy, approvedAt, now, now, 0,
 	)
 }
 

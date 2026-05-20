@@ -30,7 +30,7 @@ func NewCurriculumRepositoryPG(db DBTX) *CurriculumRepositoryPG {
 	return &CurriculumRepositoryPG{db: db}
 }
 
-const curriculumSelectColumns = `id, title, code, specialty, year, description, status, created_by, approved_by, approved_at, created_at, updated_at`
+const curriculumSelectColumns = `id, title, code, specialty, year, description, status, created_by, approved_by, approved_at, created_at, updated_at, version`
 
 // pqUniqueViolation is the SQLSTATE code for a unique-constraint
 // violation in PostgreSQL. The pg-error mapping is centralized in
@@ -57,11 +57,12 @@ func (r *CurriculumRepositoryPG) GetByID(ctx context.Context, id int64) (*entiti
 		approvedAt  sql.NullTime
 		createdAt   time.Time
 		updatedAt   time.Time
+		version     int
 	)
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&idv, &title, &code, &specialty, &year, &description,
 		&statusStr, &createdBy, &approvedBy, &approvedAt,
-		&createdAt, &updatedAt,
+		&createdAt, &updatedAt, &version,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -83,7 +84,7 @@ func (r *CurriculumRepositoryPG) GetByID(ctx context.Context, id int64) (*entiti
 	return entities.ReconstituteCurriculum(
 		idv, title, code, specialty, year, description.String,
 		entities.CurriculumStatus(statusStr), createdBy,
-		ab, aat, createdAt, updatedAt,
+		ab, aat, createdAt, updatedAt, version,
 	), nil
 }
 
@@ -152,10 +153,11 @@ func (r *CurriculumRepositoryPG) List(ctx context.Context, filter repositories.C
 			approvedAt  sql.NullTime
 			createdAt   time.Time
 			updatedAt   time.Time
+			version     int
 		)
 		if err := rows.Scan(&id, &title, &code, &specialty, &year, &description,
 			&statusStr, &createdBy, &approvedBy, &approvedAt,
-			&createdAt, &updatedAt); err != nil {
+			&createdAt, &updatedAt, &version); err != nil {
 			return repositories.CurriculumListResult{}, fmt.Errorf("curriculum: list scan: %w", err)
 		}
 		var ab *int64
@@ -171,7 +173,7 @@ func (r *CurriculumRepositoryPG) List(ctx context.Context, filter repositories.C
 		items = append(items, entities.ReconstituteCurriculum(
 			id, title, code, specialty, year, description.String,
 			entities.CurriculumStatus(statusStr), createdBy,
-			ab, aat, createdAt, updatedAt,
+			ab, aat, createdAt, updatedAt, version,
 		))
 	}
 	if err := rows.Err(); err != nil {
@@ -216,6 +218,15 @@ func (r *CurriculumRepositoryPG) Save(ctx context.Context, c *entities.Curriculu
 // row vanished between load and write — likely a stale entity).
 // Maps unique-constraint violations on a code rename to
 // ErrCurriculumCodeExists.
+// v0.157.0 #269 ADR-2: optimistic locking via WHERE id = ? AND
+// version = ?. On RowsAffected == 0 the impl runs a follow-up SELECT 1
+// to distinguish:
+//   - row exists (different version)  → ErrCurriculumVersionConflict
+//   - row missing entirely             → ErrCurriculumNotFound
+//
+// On success the entity's version field is bumped by 1 to reflect
+// the new row state, so callers see a consistent post-update view
+// without a separate reload. Mirrors SectionRepositoryPG (v0.128.0+).
 func (r *CurriculumRepositoryPG) Update(ctx context.Context, c *entities.Curriculum) error {
 	query := `
 		UPDATE curricula SET
@@ -227,14 +238,15 @@ func (r *CurriculumRepositoryPG) Update(ctx context.Context, c *entities.Curricu
 			status      = $6,
 			approved_by = $7,
 			approved_at = $8,
-			updated_at  = $9
-		WHERE id = $10`
+			updated_at  = $9,
+			version     = version + 1
+		WHERE id = $10 AND version = $11`
 
 	res, err := r.db.ExecContext(ctx, query,
 		c.Title(), c.Code(), c.Specialty(), c.Year(), nullableDescription(c.Description()),
 		string(c.Status()),
 		nullableInt64Ptr(c.ApprovedBy()), nullableTimePtr(c.ApprovedAt()),
-		c.UpdatedAt(), c.ID,
+		c.UpdatedAt(), c.ID, c.Version(),
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -247,9 +259,33 @@ func (r *CurriculumRepositoryPG) Update(ctx context.Context, c *entities.Curricu
 		return fmt.Errorf("curriculum: update: rows affected: %w", err)
 	}
 	if rows == 0 {
-		return repositories.ErrCurriculumNotFound
+		return r.disambiguateAbsentUpdate(ctx, c.ID)
 	}
+	entities.BumpCurriculumVersion(c)
 	return nil
+}
+
+// disambiguateAbsentUpdate runs a follow-up existence query when
+// Update's RowsAffected was 0 — distinguishes a stale-version race
+// от a curriculum that vanished entirely. Sets a clear caller-facing
+// sentinel either way. Mirrors SectionRepositoryPG.disambiguateAbsentUpdate.
+//
+// TOCTOU note: a window exists between the failed UPDATE и this
+// SELECT during which a parallel transaction could DELETE the row.
+// In that case a "version conflict" race is reported here as
+// ErrCurriculumNotFound. Acceptable для admin-internal CRUD (UI shows
+// "curriculum was deleted, refresh") — same trade-off as Section.
+func (r *CurriculumRepositoryPG) disambiguateAbsentUpdate(ctx context.Context, id int64) error {
+	const probe = `SELECT 1 FROM curricula WHERE id = $1`
+	var found int
+	err := r.db.QueryRowContext(ctx, probe, id).Scan(&found)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return repositories.ErrCurriculumNotFound
+		}
+		return fmt.Errorf("curriculum: update: disambiguate: %w", err)
+	}
+	return repositories.ErrCurriculumVersionConflict
 }
 
 // AggregateByYearSpecialty returns one row per (specialty, status)

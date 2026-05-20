@@ -15,6 +15,37 @@
 
 ---
 
+## [0.157.0] — 2026-05-20
+
+### Security — curriculum module Tier 1 hotfix (#269) — partial
+
+Final v1.0.0 batch 1 fix-cycle release. Curriculum module audit verdict: **FIX-CYCLE** (mean 8.33/10, min 7.5/10 — strongest module из batch 1). 1 of 2 Tier 1 ADRs closed; ADR-1 (DIP cleanup) explicitly deferred к v0.157.1 polish patch (same precedent as v0.155 ADR-5 → v0.155.1).
+
+**Shipped (ADR-2 — 1 RED→GREEN pair)**:
+
+- **ADR-2: curricula optimistic-lock** — `curricula` table previously had no `version` column (migration 031), и `CurriculumRepositoryPG.Update` used bare `WHERE id = ?`. Methodist A and B could both load @v0, edit different fields, both write — last writer wins, first methodist's change silently lost. Section + DisciplineItem (migrations 034/035) had been correctly using optimistic locking since v0.128.0+; aggregate root needed к catch up.
+  - **migration 044**: `ALTER TABLE curricula ADD COLUMN version INT NOT NULL DEFAULT 0` + `CHECK (version >= 0)` + COMMENT. DEFAULT 0 backfills existing rows.
+  - **Curriculum entity**: private `version int` field + `Version()` accessor + `BumpCurriculumVersion(c)` exported helper (in-package callable from infrastructure/persistence). `ReconstituteCurriculum` signature gains trailing `version int` param (6 call sites updated).
+  - **CurriculumRepositoryPG**: `curriculumSelectColumns` gains "version"; `GetByID` + `List` scan version into Reconstitute; `Update` query gains `, version = version + 1 WHERE id = $10 AND version = $11` clause; on rows=0 calls `disambiguateAbsentUpdate` (follow-up `SELECT 1`) to distinguish `ErrCurriculumVersionConflict` (row exists, stale version) от `ErrCurriculumNotFound` (row vanished entirely). On success: `BumpCurriculumVersion` syncs in-memory version.
+  - **New sentinel**: `ErrCurriculumVersionConflict` в `domain/repositories` (handler maps к HTTP 409 mirror Section pattern).
+  - Tests: 1 new sqlmock-based race scenario; 1 legacy "zero rows" test migrated к disambiguate pattern (мock SELECT 1 returns sql.ErrNoRows для vanished branch); 4 NewRows headers gain "version" column + AddRow 0 value.
+
+### Deferred к v0.157.1 polish patch
+
+- **ADR-1: Repository interfaces relocation** from `domain/repositories/` к `application/usecases/` per CLAUDE.md DIP gate. 4 interfaces (CurriculumRepository, SectionRepository, DisciplineItemRepository, BulkUnitOfWork) + ~38 reference sites. Pure architectural cleanup, zero security/correctness impact. Sentinels + filter DTOs stay в domain (they're values, not contracts). Same precedent as v0.155 ADR-5 cross-module imports refactor → v0.155.1.
+
+### Plan / cross-references
+
+- `docs/plans/2026-05-20-v0157-curriculum-security.md` — 2 ADRs locked upfront
+- v0.154 / v0.155 / v0.156 precedents (full batch 1 audit closure trajectory)
+
+### Tier 2 carry-forward (post v0.157)
+
+- Section + DisciplineItem optimistic-lock alignment review (both already use the pattern; double-check no drift introduced)
+- pre-existing `interface{}` → `any` linter warnings sweep (cross-module — not curriculum-specific)
+
+---
+
 ## [0.156.0] — 2026-05-20
 
 ### Security — documents module Tier 1 hotfix (#266)
