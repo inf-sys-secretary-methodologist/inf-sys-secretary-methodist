@@ -293,6 +293,26 @@ func TestCurriculumRepositoryPG_Update(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "update")
 	})
+
+	// v0.157.0 #269 ADR-2: optimistic-lock conflict detection. When
+	// UPDATE rows=0 AND the row still exists (just с newer version),
+	// repo runs disambiguate SELECT и returns ErrCurriculumVersionConflict
+	// instead of ErrCurriculumNotFound. Mirrors Section precedent (v0.128.0+).
+	t.Run("stale version returns ErrCurriculumVersionConflict", func(t *testing.T) {
+		repo, mock := newCurriculumRepoMock(t)
+
+		mock.ExpectExec(regexp.QuoteMeta("UPDATE curricula SET")).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Disambiguate: row still exists (different version)
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM curricula")).
+			WillReturnRows(sqlmock.NewRows([]string{"?column?"}).AddRow(1))
+
+		c := freshDraft(t, "RACE-2026")
+		c.ID = 7
+		err := repo.Update(context.Background(), c)
+		assert.True(t, errors.Is(err, repositories.ErrCurriculumVersionConflict))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 }
 
 func TestCurriculumRepositoryPG_AggregateByYearSpecialty(t *testing.T) {
