@@ -1,9 +1,13 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.153.13 (см. `VERSION` в корне)
-> **Состояние на:** 19 мая 2026 — **Phase 6 #196 CLOSED** (backend coverage 90.2%, strict > 90.0% ✅), **5-phase Documents workflow pack #227 CLOSED** end-to-end, **#41 Workflow automation CLOSED**, **Phase 5 admin observability CLOSED** (audit logs + backup + sentry + integrations + composio + branding), **B-feature triad CLOSED** (curriculum + assignments + B4 annual report), **MFA полностью end-to-end UI**.
+> **Версия проекта:** 0.154.0 (см. `VERSION` в корне)
+> **Состояние на:** 20 мая 2026 — **v1.0.0 path opens** (batch 1 audit complete; reporting Tier 1 security closed #260), **Phase 6 #196 CLOSED** (backend coverage 90.2%, strict > 90.0% ✅), **5-phase Documents workflow pack #227 CLOSED** end-to-end, **#41 Workflow automation CLOSED**, **Phase 5 admin observability CLOSED** (audit logs + backup + sentry + integrations + composio + branding), **B-feature triad CLOSED** (curriculum + assignments + B4 annual report), **MFA полностью end-to-end UI**.
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`, история релизов в GitHub Releases.
 
+> **Изменения с 0.153.13 по 0.154.0 (v1.0.0 path opens, batch 1 audit)**:
+>
+> - **v0.154.0 reporting Tier 1 security hotfix #260** — 5 RED→GREEN TDD pairs + 1 config-fix + plan doc + release commit. Closes 4 Tier 1 audit findings: (1) **SQL injection** через user `field.Alias` JSON closed by **3-layer defense-in-depth** (domain `SelectedField.Validate` + persistence `SetFieldsFromJSON` + query builder `Execute` re-validation; PG identifier whitelist regex `^[A-Za-z_][A-Za-z0-9_]{0,62}$`); (2) **privilege escalation** on `/api/custom-reports` group closed via `RequireNonStudent()` gate; (3) **shipped fake report generation** — `simulateGeneration` removed, `Generate` returns `ErrGenerationNotImplemented` mapped to HTTP 501 + audit log emission; (4) `context.Background()` goroutine leak partially closed. 21 table-driven sub-tests + 4 struct-literal bypass tests. Reviewer SHIP 8.83/8 single-pass. См. `docs/plans/2026-05-20-v1.0.0-batch1-audit.md` + `docs/plans/2026-05-20-v0154-reporting-security.md`.
+>
 > **Изменения с 0.152.0 (Documents workflow Phase 5) по 0.153.11 (Phase 6 strict-90)** — 13 релизов в v0.153.x sprint + Phase 5 closure. Самое важное:
 >
 > - **Documents workflow #227 5-phase pack CLOSED end-to-end** (v0.148.0 → v0.152.1): полный lifecycle draft → review → registered → routing → execution → executed → archived/resubmitted. 11 transition endpoints за `RequireRole(AcademicSecretary, SystemAdmin)`, миграции 040-043, 5 nullable audit fields per phase, i18n × 4 для каждой dialog.
