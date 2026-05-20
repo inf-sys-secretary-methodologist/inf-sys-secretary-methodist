@@ -10,6 +10,7 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
 // MockTagRepository is a mock implementation of DocumentTagRepository
@@ -141,7 +142,7 @@ func TestTagUseCase_Create(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "уже существует")
+		assert.ErrorIs(t, err, ErrTagAlreadyExists)
 		mockTagRepo.AssertExpectations(t)
 	})
 }
@@ -291,7 +292,7 @@ func TestTagUseCase_AddTagToDocument(t *testing.T) {
 		err := usecase.AddTagToDocument(ctx, 999, 1)
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "документ не найден")
+		assert.ErrorIs(t, err, repositories.ErrDocumentNotFound)
 		mockDocRepo.AssertExpectations(t)
 	})
 }
@@ -455,7 +456,7 @@ func TestTagUseCase_GetByID(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "тег не найден")
+		assert.ErrorIs(t, err, ErrTagNotFound)
 		mockTagRepo.AssertExpectations(t)
 	})
 }
@@ -480,7 +481,7 @@ func TestTagUseCase_Update_DuplicateName(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "уже существует")
+		assert.ErrorIs(t, err, ErrTagAlreadyExists)
 		mockTagRepo.AssertExpectations(t)
 	})
 
@@ -563,7 +564,7 @@ func TestTagUseCase_AddTagToDocument_TagNotFound(t *testing.T) {
 		err := usecase.AddTagToDocument(ctx, 1, 999)
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "тег не найден")
+		assert.ErrorIs(t, err, ErrTagNotFound)
 		mockDocRepo.AssertExpectations(t)
 		mockTagRepo.AssertExpectations(t)
 	})
@@ -632,7 +633,7 @@ func TestTagUseCase_GetDocumentTags_Errors(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "документ не найден")
+		assert.ErrorIs(t, err, repositories.ErrDocumentNotFound)
 		mockDocRepo.AssertExpectations(t)
 	})
 
@@ -684,7 +685,7 @@ func TestTagUseCase_SetDocumentTags_Errors(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "тег с ID 999 не найден")
+		assert.ErrorIs(t, err, ErrTagNotFound)
 		mockDocRepo.AssertExpectations(t)
 		mockTagRepo.AssertExpectations(t)
 	})
