@@ -58,7 +58,7 @@ func TestNewUpdateSectionUseCase_PanicsOnNilCurriculumLookup(t *testing.T) {
 	NewUpdateSectionUseCase(&fakeSectionUpdateRepo{}, nil, &recordingAuditSink{}, time.Now)
 }
 
-func TestUpdateSectionUseCase_HappyPath_AuthorMethodist(t *testing.T) {
+func TestUpdateSectionUseCase_HappyPath_Author(t *testing.T) {
 	now := time.Now()
 	s := entities.ReconstituteSection(101, 7, "Старый", "old", 0, 3, now, now)
 	cur := draftCurriculum(t, 42)
@@ -106,7 +106,7 @@ func TestUpdateSectionUseCase_AdminOverride(t *testing.T) {
 	assert.Equal(t, 1, repo.updateCalls)
 }
 
-func TestUpdateSectionUseCase_NonAuthorMethodistDenied(t *testing.T) {
+func TestUpdateSectionUseCase_NonAuthorDenied(t *testing.T) {
 	now := time.Now()
 	s := entities.ReconstituteSection(101, 7, "T", "d", 0, 0, now, now)
 	cur := draftCurriculum(t, 42)

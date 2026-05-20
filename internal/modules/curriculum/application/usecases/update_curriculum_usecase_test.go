@@ -61,7 +61,7 @@ func TestNewUpdateCurriculumUseCase_PanicsOnNilRepo(t *testing.T) {
 	NewUpdateCurriculumUseCase(nil, &recordingAuditSink{}, time.Now)
 }
 
-func TestUpdateCurriculumUseCase_AuthorMethodistUpdatesOwnDraft(t *testing.T) {
+func TestUpdateCurriculumUseCase_AuthorUpdatesOwnDraft(t *testing.T) {
 	const author = int64(42)
 	repo := &fakeUpdateRepo{loaded: reconstituted(t, 7, author, entities.StatusDraft)}
 	audit := &recordingAuditSink{}
@@ -93,7 +93,7 @@ func TestUpdateCurriculumUseCase_AuthorMethodistUpdatesOwnDraft(t *testing.T) {
 	assert.Equal(t, "NEW-2026", ev.Fields["code"])
 }
 
-func TestUpdateCurriculumUseCase_StrangerMethodistOnForeignDraftRejected(t *testing.T) {
+func TestUpdateCurriculumUseCase_StrangerOnForeignDraftRejected(t *testing.T) {
 	const author = int64(42)
 	const stranger = int64(7)
 	repo := &fakeUpdateRepo{loaded: reconstituted(t, 1, author, entities.StatusDraft)}

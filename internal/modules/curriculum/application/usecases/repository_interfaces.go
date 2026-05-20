@@ -149,7 +149,8 @@ type DisciplineItemRepository interface {
 // interface, which composes tx-bound repository ports for use by the
 // usecase. Mirror к Vaughn Vernon's "Aggregate transactional consistency
 // boundary" pattern, but spans 3 ARs because bulk-edit-РПД is a single
-// editorial action в the methodist's mental model.
+// editorial action в the academic secretary's mental model (per
+// v0.158.0+ the author of curricula and their РПД is the secretary).
 type BulkDisciplineItemsUnitOfWork interface {
 	// Begin opens a fresh transaction. opts may pass an isolation level
 	// (Repeatable Read recommended per ADR-12 — phantom-prevention для

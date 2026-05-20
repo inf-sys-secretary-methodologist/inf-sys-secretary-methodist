@@ -16,9 +16,9 @@ var ErrInvalidDisciplineItem = errors.New("discipline_item: invalid item")
 
 // ErrDisciplineItemScopeForbidden indicates that a user is not
 // authorized to operate on a particular DisciplineItem — the user is
-// a methodist who did not author the parent Curriculum. Admins
-// (system_admin / academic_secretary) override via isAdmin flag.
-// Handlers map this sentinel to HTTP 403.
+// not the parent Curriculum's author (per v0.158.0+ the author role is
+// the academic secretary). Admins (system_admin) override via isAdmin
+// flag. Handlers map this sentinel to HTTP 403.
 var ErrDisciplineItemScopeForbidden = errors.New("discipline_item: caller cannot operate on this item")
 
 // ErrCannotEditDisciplineItem indicates that the parent Curriculum
@@ -311,8 +311,10 @@ func (d *DisciplineItem) UpdateBasics(
 //
 //  1. curStatus.CanEdit() — non-editable lifecycle freezes items для
 //     всех (включая admins). ErrCannotEditDisciplineItem.
-//  2. isAdmin — system_admin / academic_secretary override ownership.
-//  3. actorID > 0 && actorID == curCreatedBy — author methodist.
+//  2. isAdmin — system_admin override ownership (academic_secretary
+//     is the canonical author per v0.158.0+, not an override role).
+//  3. actorID > 0 && actorID == curCreatedBy — the curriculum's author
+//     (academic secretary per v0.158.0+).
 //  4. Otherwise → ErrDisciplineItemScopeForbidden.
 //
 // The actorID > 0 guard is defense-in-depth against a JWT subject

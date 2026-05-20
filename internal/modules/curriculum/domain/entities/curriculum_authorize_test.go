@@ -39,8 +39,8 @@ func TestCurriculum_AuthorizeEdit(t *testing.T) {
 	}{
 		// Author edits own draft — happy path.
 		{"author edits own draft", StatusDraft, author, false, nil},
-		// Stranger methodist may not edit a foreign draft.
-		{"stranger methodist on foreign draft", StatusDraft, stranger, false, ErrCurriculumScopeForbidden},
+		// Stranger non-author may not edit a foreign draft.
+		{"stranger (non-author) on foreign draft", StatusDraft, stranger, false, ErrCurriculumScopeForbidden},
 		// Admin overrides the ownership check.
 		{"admin on foreign draft", StatusDraft, stranger, true, nil},
 		// Status gate: only draft is editable. The status check fires

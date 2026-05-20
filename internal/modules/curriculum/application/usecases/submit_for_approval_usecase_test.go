@@ -76,7 +76,7 @@ func TestSubmitForApprovalUseCase_AdminSubmitsForeignDraft(t *testing.T) {
 	assert.Equal(t, admin, audit.events[0].Fields["actor_user_id"])
 }
 
-func TestSubmitForApprovalUseCase_StrangerMethodistRejected(t *testing.T) {
+func TestSubmitForApprovalUseCase_StrangerRejected(t *testing.T) {
 	const author = int64(42)
 	const stranger = int64(7)
 	c := reconstituted(t, 1, author, entities.StatusDraft)
