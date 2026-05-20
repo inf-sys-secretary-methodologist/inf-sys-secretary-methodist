@@ -785,3 +785,28 @@ func TestTagUseCase_Delete_RepoError(t *testing.T) {
 		mockTagRepo.AssertExpectations(t)
 	})
 }
+
+// --- v0.156.0 #266: tag sentinel-error tests (ADR-7) ---
+
+func TestTagUseCase_Delete_NotFound_ReturnsSentinel(t *testing.T) {
+	mockTagRepo := new(MockTagRepository)
+	mockDocRepo := new(MockDocumentRepository)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+	ctx := context.Background()
+
+	mockTagRepo.On("GetByID", ctx, int64(999)).Return(nil, assert.AnError).Once()
+	err := usecase.Delete(ctx, 999)
+	assert.ErrorIs(t, err, ErrTagNotFound)
+}
+
+func TestTagUseCase_Create_DuplicateName_ReturnsSentinel(t *testing.T) {
+	mockTagRepo := new(MockTagRepository)
+	mockDocRepo := new(MockDocumentRepository)
+	usecase := NewTagUseCase(mockTagRepo, mockDocRepo, nil)
+	ctx := context.Background()
+
+	existing := &entities.DocumentTag{ID: 1, Name: "Dup"}
+	mockTagRepo.On("GetByName", ctx, "Dup").Return(existing, nil).Once()
+	_, err := usecase.Create(ctx, dto.CreateTagInput{Name: "Dup"})
+	assert.ErrorIs(t, err, ErrTagAlreadyExists)
+}
