@@ -52,7 +52,7 @@ func TestRejectCurriculumUseCase_HappyPathRecordsReasonInAuditOnly(t *testing.T)
 	})
 	require.NoError(t, err)
 	assert.Equal(t, entities.StatusDraft, c.Status(),
-		"after Reject the curriculum returns to draft so the methodist may revise")
+		"after Reject the curriculum returns to draft so the author (academic secretary) may revise")
 	assert.Equal(t, 1, repo.updateCalls)
 
 	require.Len(t, audit.events, 1)

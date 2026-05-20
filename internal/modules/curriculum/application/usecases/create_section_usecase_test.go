@@ -182,7 +182,7 @@ func TestCreateSectionUseCase_FrozenStatusDenied(t *testing.T) {
 	audit := &recordingAuditSink{}
 
 	uc := NewCreateSectionUseCase(repo, lookup, audit, time.Now)
-	// Author methodist hits the status freeze too — gate ordering
+	// Even the author hits the status freeze — gate ordering
 	// (status before ownership) per ADR-2.
 	_, err := uc.Execute(context.Background(), 42, false, CreateSectionInput{
 		CurriculumID: 7,
