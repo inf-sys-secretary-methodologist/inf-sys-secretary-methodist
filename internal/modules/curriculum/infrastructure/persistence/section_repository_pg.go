@@ -38,9 +38,9 @@ const sectionSelectColumns = `id, curriculum_id, title, description, order_index
 
 // Save inserts a new Section row and writes the generated id back onto
 // the entity. Sections have no unique-natural-key constraint (mirror
-// of methodist working state where the same title may legitimately
-// repeat across curricula), so transport errors propagate as wrapped
-// errors without a sentinel mapping.
+// of the author's working state where the same section title may
+// legitimately repeat across curricula), so transport errors propagate
+// as wrapped errors without a sentinel mapping.
 func (r *SectionRepositoryPG) Save(ctx context.Context, s *entities.Section) error {
 	const query = `
 		INSERT INTO curriculum_sections (

@@ -97,7 +97,7 @@ func TestUpdateDisciplineItem_FrozenStatusDenied(t *testing.T) {
 }
 
 // TestUpdateDisciplineItem_NonAuthorDenied pins the forbidden
-// audit reason on the Update denial path (non-author methodist trying
+// audit reason on the Update denial path (a non-author actor trying
 // to edit someone else's curriculum's items).
 func TestUpdateDisciplineItem_NonAuthorDenied(t *testing.T) {
 	now := time.Now()
