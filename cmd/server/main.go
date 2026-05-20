@@ -2057,6 +2057,10 @@ func setupRoutes(
 			customReportHandlerInstance := reportHandler.NewCustomReportHandler(customReportUseCase)
 
 			customReportsGroup := protectedGroup.Group("/custom-reports")
+			// Students have no business with custom reports — block the
+			// entire group at the route layer. Closes the privilege-escalation
+			// surface flagged in #260; mirrors reportsGroup precedent (line 2012).
+			customReportsGroup.Use(authMiddleware.RequireNonStudent())
 			{
 				// CRUD operations
 				customReportsGroup.POST("", customReportHandlerInstance.Create)
