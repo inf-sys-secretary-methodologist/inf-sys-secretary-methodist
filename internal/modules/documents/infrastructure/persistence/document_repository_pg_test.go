@@ -416,7 +416,9 @@ func TestDocumentRepositoryPG_GetLatestVersion_NoVersions(t *testing.T) {
 	repo, mock := newDocRepoMock(t)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT dv.id")).WithArgs(int64(1)).WillReturnError(sql.ErrNoRows)
 	_, err := repo.GetLatestVersion(context.Background(), 1)
-	assert.Contains(t, err.Error(), "no versions found")
+	// v0.156.0 #266: unified к canonical ErrVersionNotFound sentinel
+	// (was string "no versions found" — legacy fmt.Errorf message).
+	assert.ErrorIs(t, err, repositories.ErrVersionNotFound)
 }
 
 func TestDocumentRepositoryPG_AddHistory(t *testing.T) {

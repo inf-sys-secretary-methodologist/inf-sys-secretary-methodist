@@ -126,7 +126,7 @@ func (r *DocumentRepositoryPG) Update(ctx context.Context, doc *entities.Documen
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("document not found")
+		return repositories.ErrDocumentNotFound
 	}
 	return nil
 }
@@ -175,7 +175,7 @@ func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities
 		&doc.AuthorName, &doc.RecipientName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("document not found")
+		return nil, repositories.ErrDocumentNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document: %w", err)
@@ -206,7 +206,7 @@ func (r *DocumentRepositoryPG) SoftDelete(ctx context.Context, id int64) error {
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("document not found")
+		return repositories.ErrDocumentNotFound
 	}
 	return nil
 }
@@ -496,7 +496,7 @@ func (r *DocumentRepositoryPG) GetVersion(ctx context.Context, documentID int64,
 		&v.ChangedByName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("version not found")
+		return nil, repositories.ErrVersionNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get version: %w", err)
@@ -531,7 +531,7 @@ func (r *DocumentRepositoryPG) GetLatestVersion(ctx context.Context, documentID 
 		&v.ChangedByName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("no versions found")
+		return nil, repositories.ErrVersionNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest version: %w", err)
@@ -598,7 +598,7 @@ func (r *DocumentRepositoryPG) RestoreVersion(ctx context.Context, documentID in
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("document not found")
+		return repositories.ErrDocumentNotFound
 	}
 
 	return nil
@@ -625,7 +625,7 @@ func (r *DocumentRepositoryPG) DeleteVersion(ctx context.Context, documentID int
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("version not found")
+		return repositories.ErrVersionNotFound
 	}
 
 	return nil
