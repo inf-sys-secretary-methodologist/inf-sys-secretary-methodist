@@ -3,6 +3,7 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -392,6 +393,19 @@ func buildSearchQuery(messages []entities.Message, currentQuery string) string {
 	}
 	context.WriteString(currentQuery)
 	return context.String()
+}
+
+// CreateConversation persists a brand-new conversation owned by userID. Per
+// issue #263 ADR-1: the previous handler-level shortcut returned the user's
+// first existing conversation as "newly created" and never called the repo —
+// API lied to clients. This method is the single source of truth; handlers
+// must delegate here.
+//
+// Stub: returns sentinel so the RED test fails on the contract assertion
+// (no Create call observed). GREEN commit wires the real entities.NewConversation
+// + repo.Create + return.
+func (uc *ChatUseCase) CreateConversation(_ context.Context, _ int64, _, _ string) (*entities.Conversation, error) {
+	return nil, errors.New("CreateConversation not implemented")
 }
 
 // GetConversations retrieves conversations for a user
