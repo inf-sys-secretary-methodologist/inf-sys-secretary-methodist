@@ -16,7 +16,7 @@ import (
 )
 
 func newSharingHandler(docRepo *MockDocumentRepository, permRepo *MockPermissionRepository, linkRepo *MockPublicLinkRepository) *handlers.SharingHandler {
-	uc := usecases.NewSharingUseCase(docRepo, permRepo, linkRepo, nil, "http://localhost", nil)
+	uc := usecases.NewSharingUseCase(docRepo, permRepo, linkRepo, nil, "http://localhost")
 	v := validation.NewValidator()
 	return handlers.NewSharingHandler(uc, v)
 }

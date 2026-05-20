@@ -32,7 +32,7 @@ func (uc *TagUseCase) Create(ctx context.Context, input dto.CreateTagInput) (*dt
 	// Check if tag with same name exists
 	existing, _ := uc.tagRepo.GetByName(ctx, input.Name)
 	if existing != nil {
-		return nil, fmt.Errorf("тег с таким именем уже существует")
+		return nil, ErrTagAlreadyExists
 	}
 
 	tag := &entities.DocumentTag{
@@ -60,14 +60,14 @@ func (uc *TagUseCase) Create(ctx context.Context, input dto.CreateTagInput) (*dt
 func (uc *TagUseCase) Update(ctx context.Context, id int64, input dto.UpdateTagInput) (*dto.TagOutput, error) {
 	tag, err := uc.tagRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("тег не найден")
+		return nil, ErrTagNotFound
 	}
 
 	if input.Name != nil {
 		// Check if another tag with same name exists
 		existing, _ := uc.tagRepo.GetByName(ctx, *input.Name)
 		if existing != nil && existing.ID != id {
-			return nil, fmt.Errorf("тег с таким именем уже существует")
+			return nil, ErrTagAlreadyExists
 		}
 		tag.Name = *input.Name
 	}
@@ -97,7 +97,7 @@ func (uc *TagUseCase) Update(ctx context.Context, id int64, input dto.UpdateTagI
 func (uc *TagUseCase) Delete(ctx context.Context, id int64) error {
 	tag, err := uc.tagRepo.GetByID(ctx, id)
 	if err != nil {
-		return fmt.Errorf("тег не найден")
+		return ErrTagNotFound
 	}
 
 	if err := uc.tagRepo.Delete(ctx, id); err != nil {
@@ -117,7 +117,7 @@ func (uc *TagUseCase) Delete(ctx context.Context, id int64) error {
 func (uc *TagUseCase) GetByID(ctx context.Context, id int64) (*dto.TagOutput, error) {
 	tag, err := uc.tagRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("тег не найден")
+		return nil, ErrTagNotFound
 	}
 
 	output := dto.TagFromEntity(tag)
@@ -168,13 +168,13 @@ func (uc *TagUseCase) AddTagToDocument(ctx context.Context, documentID, tagID in
 	// Verify document exists
 	doc, err := uc.docRepo.GetByID(ctx, documentID)
 	if err != nil || doc == nil {
-		return fmt.Errorf("документ не найден")
+		return repositories.ErrDocumentNotFound
 	}
 
 	// Verify tag exists
 	tag, err := uc.tagRepo.GetByID(ctx, tagID)
 	if err != nil || tag == nil {
-		return fmt.Errorf("тег не найден")
+		return ErrTagNotFound
 	}
 
 	if err := uc.tagRepo.AddTagToDocument(ctx, documentID, tagID); err != nil {
@@ -210,7 +210,7 @@ func (uc *TagUseCase) GetDocumentTags(ctx context.Context, documentID int64) (*d
 	// Verify document exists
 	doc, err := uc.docRepo.GetByID(ctx, documentID)
 	if err != nil || doc == nil {
-		return nil, fmt.Errorf("документ не найден")
+		return nil, repositories.ErrDocumentNotFound
 	}
 
 	tags, err := uc.tagRepo.GetTagsByDocumentID(ctx, documentID)
@@ -237,14 +237,14 @@ func (uc *TagUseCase) SetDocumentTags(ctx context.Context, documentID int64, tag
 	// Verify document exists
 	doc, err := uc.docRepo.GetByID(ctx, documentID)
 	if err != nil || doc == nil {
-		return nil, fmt.Errorf("документ не найден")
+		return nil, repositories.ErrDocumentNotFound
 	}
 
 	// Verify all tags exist
 	for _, tagID := range tagIDs {
 		tag, err := uc.tagRepo.GetByID(ctx, tagID)
 		if err != nil || tag == nil {
-			return nil, fmt.Errorf("тег с ID %d не найден", tagID)
+			return nil, fmt.Errorf("%w (tag ID %d)", ErrTagNotFound, tagID)
 		}
 	}
 
@@ -266,7 +266,7 @@ func (uc *TagUseCase) SetDocumentTags(ctx context.Context, documentID int64, tag
 func (uc *TagUseCase) GetDocumentsByTag(ctx context.Context, tagID int64, page, pageSize int) (*dto.TagWithDocumentsOutput, error) {
 	tag, err := uc.tagRepo.GetByID(ctx, tagID)
 	if err != nil {
-		return nil, fmt.Errorf("тег не найден")
+		return nil, ErrTagNotFound
 	}
 
 	if page <= 0 {

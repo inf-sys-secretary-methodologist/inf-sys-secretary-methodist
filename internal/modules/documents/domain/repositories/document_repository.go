@@ -13,6 +13,16 @@ import (
 // Guards SQL injection through the ORDER BY interpolation surface.
 var ErrInvalidOrderBy = errors.New("invalid order_by clause")
 
+// ErrDocumentNotFound is the canonical sentinel for missing documents.
+// Repository implementations MUST return this (via direct return or
+// errors.Join / fmt.Errorf("...: %w", ...)) so callers can errors.Is
+// it and map к stable 404 responses without string parsing. Issue: #266.
+var ErrDocumentNotFound = errors.New("document not found")
+
+// ErrVersionNotFound is the canonical sentinel for missing document versions.
+// Same contract as ErrDocumentNotFound. Issue: #266.
+var ErrVersionNotFound = errors.New("version not found")
+
 // DocumentRepository defines the interface for document persistence
 type DocumentRepository interface {
 	// CRUD operations

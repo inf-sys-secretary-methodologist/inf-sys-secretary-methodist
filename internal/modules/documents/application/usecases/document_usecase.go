@@ -302,10 +302,14 @@ func (uc *DocumentUseCase) UploadFile(ctx context.Context, documentID int64, fil
 	doc.SetFile(fileName, fileInfo.Key, fileInfo.ContentType, fileInfo.Size)
 	doc.Version++
 
-	// Auto-register document when file is uploaded (if still in draft)
-	if doc.Status == entities.DocumentStatusDraft {
-		doc.Status = entities.DocumentStatusRegistered
-	}
+	// v0.156.0 ADR-6 (#266): removed auto-register bypass. The previous
+	// `if Status == Draft { Status = Registered }` block mutated Status
+	// without calling Document.Register, leaving RegisteredBy /
+	// RegistrationNumber / RegistrationDate audit fields empty и
+	// skipping the entity invariant "must be Approved before Register".
+	// Status transitions are now exclusively the workflow's job
+	// (Submit → Approve → Register), preserving end-to-end audit trail
+	// established v0.148.0+ (#227).
 
 	if err := uc.documentRepo.Update(ctx, doc); err != nil {
 		// Rollback

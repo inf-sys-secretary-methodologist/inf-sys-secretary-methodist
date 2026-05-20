@@ -126,7 +126,7 @@ func (r *DocumentRepositoryPG) Update(ctx context.Context, doc *entities.Documen
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("document not found")
+		return repositories.ErrDocumentNotFound
 	}
 	return nil
 }
@@ -175,7 +175,7 @@ func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities
 		&doc.AuthorName, &doc.RecipientName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("document not found")
+		return nil, repositories.ErrDocumentNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document: %w", err)
@@ -206,7 +206,7 @@ func (r *DocumentRepositoryPG) SoftDelete(ctx context.Context, id int64) error {
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("document not found")
+		return repositories.ErrDocumentNotFound
 	}
 	return nil
 }
@@ -252,7 +252,7 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 	// 2. Document is public
 	// 3. They have explicit permission via document_permissions
 	// 4. They are admin (can see all)
-	if filter.CurrentUserID > 0 && filter.CurrentUserRole != "admin" {
+	if filter.CurrentUserID > 0 && !IsAdminRole(filter.CurrentUserRole) {
 		accessCondition := fmt.Sprintf(`(
 			d.author_id = $%d
 			OR d.is_public = true
@@ -496,7 +496,7 @@ func (r *DocumentRepositoryPG) GetVersion(ctx context.Context, documentID int64,
 		&v.ChangedByName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("version not found")
+		return nil, repositories.ErrVersionNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get version: %w", err)
@@ -531,7 +531,7 @@ func (r *DocumentRepositoryPG) GetLatestVersion(ctx context.Context, documentID 
 		&v.ChangedByName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("no versions found")
+		return nil, repositories.ErrVersionNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest version: %w", err)
@@ -598,7 +598,7 @@ func (r *DocumentRepositoryPG) RestoreVersion(ctx context.Context, documentID in
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("document not found")
+		return repositories.ErrDocumentNotFound
 	}
 
 	return nil
@@ -625,7 +625,7 @@ func (r *DocumentRepositoryPG) DeleteVersion(ctx context.Context, documentID int
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("version not found")
+		return repositories.ErrVersionNotFound
 	}
 
 	return nil
@@ -929,7 +929,7 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 	// 2. Document is public
 	// 3. They have explicit permission via document_permissions
 	// 4. They are admin (can see all)
-	if filter.CurrentUserID > 0 && filter.CurrentUserRole != "admin" {
+	if filter.CurrentUserID > 0 && !IsAdminRole(filter.CurrentUserRole) {
 		accessCondition := fmt.Sprintf(`(
 			d.author_id = $%d
 			OR d.is_public = true
