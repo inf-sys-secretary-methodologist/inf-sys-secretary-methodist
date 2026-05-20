@@ -2545,7 +2545,7 @@
       "loadFailed": "Échec du chargement de la file",
       "empty": {
         "title": "Aucun programme en attente",
-        "description": "Les programmes apparaîtront ici lorsque les méthodologistes les soumettront."
+        "description": "Les programmes apparaîtront ici lorsque les secrétaires académiques les soumettront."
       },
       "actions": {
         "approve": "Approuver",
@@ -2569,7 +2569,7 @@
     },
     "rejectDialog": {
       "title": "Rejeter le programme",
-      "description": "Indiquez une raison — le méthodologiste pourra réviser et resoumettre. La raison est conservée uniquement dans le journal d'audit.",
+      "description": "Indiquez une raison — le secrétaire académique pourra réviser et resoumettre. La raison est conservée uniquement dans le journal d'audit.",
       "reasonLabel": "Raison du rejet",
       "reasonPlaceholder": "Ce qui doit être révisé",
       "cancel": "Annuler",

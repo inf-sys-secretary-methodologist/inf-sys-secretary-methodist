@@ -113,7 +113,7 @@ describe('BulkEditPanel / Submit 409 conflict', () => {
     mockBulkEditDisciplineItems.mockResolvedValueOnce(conflictResult)
     mockFetchDisciplineItem.mockResolvedValueOnce({
       ...sampleItem,
-      title: 'Renamed by another methodist',
+      title: 'Renamed by another secretary',
       version: 7,
     })
 
@@ -125,7 +125,7 @@ describe('BulkEditPanel / Submit 409 conflict', () => {
     await waitFor(() =>
       expect(screen.getByTestId('bulk-edit-conflict-banner-202')).toBeInTheDocument()
     )
-    expect(screen.getByText('Renamed by another methodist')).toBeInTheDocument()
+    expect(screen.getByText('Renamed by another secretary')).toBeInTheDocument()
     // mutate NOT called on conflict — server snapshot gets refreshed via
     // the per-conflict fetchDisciplineItem refetch flow per ADR-12.
     expect(mockMutate).not.toHaveBeenCalled()
