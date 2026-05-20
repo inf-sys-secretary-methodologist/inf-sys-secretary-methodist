@@ -410,7 +410,7 @@ func TestChat_UnauthorizedConversation(t *testing.T) {
 
 	resp, err := f.chatUseCase.Chat(ctx, int64(1), req)
 	assert.Nil(t, resp)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 func TestChat_GetConversationError(t *testing.T) {
@@ -694,7 +694,7 @@ func TestChatStream_ExistingConversation_Unauthorized(t *testing.T) {
 
 	resp, err := f.chatUseCase.ChatStream(context.Background(), 1, req, func(string) error { return nil })
 	assert.Nil(t, resp)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 func TestChatStream_GetConversationError(t *testing.T) {
@@ -940,7 +940,7 @@ func TestGetConversation_Unauthorized(t *testing.T) {
 
 	resp, err := f.chatUseCase.GetConversation(context.Background(), 1, 5)
 	assert.Nil(t, resp)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 // ============================================================
@@ -974,7 +974,7 @@ func TestUpdateConversation_Unauthorized(t *testing.T) {
 
 	resp, err := f.chatUseCase.UpdateConversation(context.Background(), 1, 5, &dto.UpdateConversationRequest{Title: "X"})
 	assert.Nil(t, resp)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 func TestUpdateConversation_UpdateError(t *testing.T) {
@@ -1014,7 +1014,7 @@ func TestDeleteConversation_Unauthorized(t *testing.T) {
 	f.convRepo.On("GetByID", int64(5)).Return(&entities.Conversation{ID: 5, UserID: 999}, nil)
 
 	err := f.chatUseCase.DeleteConversation(context.Background(), 1, 5)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 func TestDeleteConversation_DeleteMessagesError(t *testing.T) {
@@ -1082,7 +1082,7 @@ func TestGetMessages_Unauthorized(t *testing.T) {
 
 	resp, err := f.chatUseCase.GetMessages(context.Background(), 1, 5, 50, nil)
 	assert.Nil(t, resp)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 func TestGetMessages_ConversationError(t *testing.T) {

@@ -27,6 +27,15 @@ type ChatUseCaseOptions struct {
 	MoodUseCase     *MoodUseCase
 }
 
+// ErrConversationNotFound + ErrConversationAccessDenied sentinels live in
+// the domain repositories package (ai/domain/repositories) — see
+// conversation_repository.go. Re-exported here as aliases for tests and
+// usecase-package callers that want shorter qualified names. Issue #263 ADR-8.
+var (
+	ErrConversationNotFound     = repositories.ErrConversationNotFound
+	ErrConversationAccessDenied = repositories.ErrConversationAccessDenied
+)
+
 // ChatUseCase handles AI chat interactions
 type ChatUseCase struct {
 	conversationRepo    repositories.ConversationRepository
@@ -94,7 +103,7 @@ func (uc *ChatUseCase) Chat(ctx context.Context, userID int64, req *dto.SendMess
 			return nil, fmt.Errorf("failed to get conversation: %w", err)
 		}
 		if conversation.UserID != userID {
-			return nil, fmt.Errorf("unauthorized access to conversation")
+			return nil, ErrConversationAccessDenied
 		}
 	} else {
 		// Create new conversation with truncated message as title
@@ -243,7 +252,7 @@ func (uc *ChatUseCase) ChatStream(ctx context.Context, userID int64, req *dto.Se
 			return nil, fmt.Errorf("failed to get conversation: %w", err)
 		}
 		if conversation.UserID != userID {
-			return nil, fmt.Errorf("unauthorized access to conversation")
+			return nil, ErrConversationAccessDenied
 		}
 	} else {
 		title := req.Content
@@ -459,7 +468,7 @@ func (uc *ChatUseCase) GetConversation(ctx context.Context, userID, conversation
 		return nil, fmt.Errorf("failed to get conversation: %w", err)
 	}
 	if conversation.UserID != userID {
-		return nil, fmt.Errorf("unauthorized access to conversation")
+		return nil, ErrConversationAccessDenied
 	}
 	return dto.ToConversationResponse(conversation), nil
 }
@@ -471,7 +480,7 @@ func (uc *ChatUseCase) UpdateConversation(ctx context.Context, userID, conversat
 		return nil, fmt.Errorf("failed to get conversation: %w", err)
 	}
 	if conversation.UserID != userID {
-		return nil, fmt.Errorf("unauthorized access to conversation")
+		return nil, ErrConversationAccessDenied
 	}
 
 	conversation.Title = req.Title
@@ -489,7 +498,7 @@ func (uc *ChatUseCase) DeleteConversation(ctx context.Context, userID, conversat
 		return fmt.Errorf("failed to get conversation: %w", err)
 	}
 	if conversation.UserID != userID {
-		return fmt.Errorf("unauthorized access to conversation")
+		return ErrConversationAccessDenied
 	}
 
 	if err := uc.messageRepo.DeleteByConversationID(ctx, conversationID); err != nil {
@@ -517,7 +526,7 @@ func (uc *ChatUseCase) GetMessages(ctx context.Context, userID, conversationID i
 		return nil, fmt.Errorf("failed to get conversation: %w", err)
 	}
 	if conversation.UserID != userID {
-		return nil, fmt.Errorf("unauthorized access to conversation")
+		return nil, ErrConversationAccessDenied
 	}
 
 	if limit <= 0 || limit > 100 {

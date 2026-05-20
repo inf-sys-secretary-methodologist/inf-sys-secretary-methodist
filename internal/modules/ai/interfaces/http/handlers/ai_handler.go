@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,11 +13,30 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // errorKey is the gin.H field name for error payloads. Extracted to satisfy goconst (35+ occurrences).
 const errorKey = "error"
+
+// respondChatError maps chat-flow errors to the appropriate HTTP status,
+// returning a generic message instead of raw err.Error() (no info disclosure
+// of PG error wording / query fragments). Issue #263 ADR-8.
+//
+//   - repositories.ErrConversationNotFound → 404
+//   - repositories.ErrConversationAccessDenied → 403
+//   - everything else → 500 with "internal server error"
+func respondChatError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, repositories.ErrConversationNotFound):
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "conversation not found"})
+	case errors.Is(err, repositories.ErrConversationAccessDenied):
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "access denied"})
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "internal server error"})
+	}
+}
 
 // AIHandler handles AI-related HTTP requests
 type AIHandler struct {
@@ -99,7 +119,7 @@ func (h *AIHandler) Chat(c *gin.Context) {
 	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.Chat(c.Request.Context(), uid, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
+		respondChatError(c, err)
 		return
 	}
 
@@ -299,7 +319,7 @@ func (h *AIHandler) GetConversation(c *gin.Context) {
 	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.GetConversation(c.Request.Context(), uid, conversationID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{errorKey: err.Error()})
+		respondChatError(c, err)
 		return
 	}
 
@@ -338,7 +358,7 @@ func (h *AIHandler) UpdateConversation(c *gin.Context) {
 	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.UpdateConversation(c.Request.Context(), uid, conversationID, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
+		respondChatError(c, err)
 		return
 	}
 
@@ -371,7 +391,7 @@ func (h *AIHandler) DeleteConversation(c *gin.Context) {
 	}
 
 	if err := h.chatUseCase.DeleteConversation(c.Request.Context(), userID, conversationID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
+		respondChatError(c, err)
 		return
 	}
 
@@ -417,7 +437,7 @@ func (h *AIHandler) GetMessages(c *gin.Context) {
 
 	response, err := h.chatUseCase.GetMessages(c.Request.Context(), userID, conversationID, limit, beforeID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
+		respondChatError(c, err)
 		return
 	}
 
