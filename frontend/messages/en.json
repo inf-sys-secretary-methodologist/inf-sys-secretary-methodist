@@ -2545,7 +2545,7 @@
       "loadFailed": "Failed to load the queue",
       "empty": {
         "title": "No curricula pending approval",
-        "description": "Curricula will appear here once methodists submit them for approval."
+        "description": "Curricula will appear here once academic secretaries submit them for approval."
       },
       "actions": {
         "approve": "Approve",
@@ -2569,7 +2569,7 @@
     },
     "rejectDialog": {
       "title": "Reject curriculum",
-      "description": "Provide a reason — the methodist can revise and re-submit. The reason is stored in the audit log only.",
+      "description": "Provide a reason — the academic secretary can revise and re-submit. The reason is stored in the audit log only.",
       "reasonLabel": "Rejection reason",
       "reasonPlaceholder": "What needs to be revised",
       "cancel": "Cancel",

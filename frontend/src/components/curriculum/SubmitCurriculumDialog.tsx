@@ -24,16 +24,16 @@ interface SubmitCurriculumDialogProps {
   onSubmitted?: () => void
 }
 
-// SubmitCurriculumDialog — confirmation modal for the methodist-side
-// status='draft' → 'pending_approval' transition. Mirrors ResubmitDialog
-// (no input — backend submit endpoint accepts an empty body, identifies
-// the row by path id + JWT subject). Keeping the dialog wrapper instead
-// of an inline button matches the codebase precedent (state transitions
-// use dialogs: ResubmitDialog, ReturnDialog, …) and prevents
-// methodist mis-clicks on "Submit" while a curriculum is still being
-// drafted. On success fires onSubmitted (caller refreshes SWR) and
-// onClose. On failure stays open so methodist can retry without
-// re-opening.
+// SubmitCurriculumDialog — confirmation modal for the author-side
+// status='draft' → 'pending_approval' transition (author = academic
+// secretary per v0.158.0+). Mirrors ResubmitDialog (no input — backend
+// submit endpoint accepts an empty body, identifies the row by path id
+// + JWT subject). Keeping the dialog wrapper instead of an inline button
+// matches the codebase precedent (state transitions use dialogs:
+// ResubmitDialog, ReturnDialog, …) and prevents author mis-clicks on
+// "Submit" while a curriculum is still being drafted. On success fires
+// onSubmitted (caller refreshes SWR) and onClose. On failure stays open
+// so the author can retry without re-opening.
 export function SubmitCurriculumDialog({
   curriculumId,
   open,

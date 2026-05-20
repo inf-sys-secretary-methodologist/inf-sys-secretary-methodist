@@ -35,9 +35,9 @@ interface CreateCurriculumDialogProps {
 // validation matches domain invariants, error mapping by HTTP status
 // keeps the dialog open). Diverges from Edit: starts empty (not
 // pre-filled), labels namespaced под createDialog.*, 422 maps to
-// invalidInput (not notEditable). Backend write-whitelist methodist+
-// admin v0.116.0 is enforced server-side; the page-level role check
-// gates the button that opens this dialog.
+// invalidInput (not notEditable). Backend write-whitelist
+// academic_secretary + admin (v0.158.0+) is enforced server-side;
+// the page-level role check gates the button that opens this dialog.
 export function CreateCurriculumDialog({ open, onClose, onCreated }: CreateCurriculumDialogProps) {
   const t = useTranslations('curriculum')
   const [title, setTitle] = useState('')

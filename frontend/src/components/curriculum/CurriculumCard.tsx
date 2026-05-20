@@ -15,8 +15,9 @@ interface CurriculumCardProps {
 
 // CurriculumCard — list-item summary linking to the detail / edit page
 // (v0.119.0). Pure presentation. The status pill colour-codes the
-// lifecycle stage so a methodist scanning the list can spot pending
-// items without reading the label.
+// lifecycle stage so a reader scanning the list (academic secretary
+// looking for own drafts, methodist scanning the approval queue) can
+// spot pending items without reading the label.
 export function CurriculumCard({ curriculum, className }: CurriculumCardProps) {
   const t = useTranslations('curriculum')
   const styles = STATUS_STYLES[curriculum.status]
