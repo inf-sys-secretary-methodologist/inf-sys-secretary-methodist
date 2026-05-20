@@ -76,21 +76,29 @@ func doReject(t *testing.T, r *gin.Engine, path string, body any) *httptest.Resp
 	return rec
 }
 
-func TestCurriculumHandler_Reject_HappyPath_AdminWithReason(t *testing.T) {
-	reject := &fakeRejectPort{out: builtCurriculum(t, 7)}
-	r := setupRejectRouter(reject, "system_admin", 99)
+func TestCurriculumHandler_Reject_HappyPath_AuthorizedRoles(t *testing.T) {
+	// v0.158.0: methodist + system_admin are the authorized rejectors.
+	cases := []string{"methodist", "system_admin"}
+	for _, role := range cases {
+		t.Run(role, func(t *testing.T) {
+			reject := &fakeRejectPort{out: builtCurriculum(t, 7)}
+			r := setupRejectRouter(reject, role, 99)
 
-	body := map[string]any{"reason": "Не соответствует ФГОС"}
-	rec := doReject(t, r, "/api/curriculum/7/reject", body)
-	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-	assert.True(t, reject.called)
-	assert.Equal(t, int64(99), reject.gotAdmin)
-	assert.Equal(t, int64(7), reject.gotInput.ID)
-	assert.Equal(t, "Не соответствует ФГОС", reject.gotInput.Reason)
+			body := map[string]any{"reason": "Не соответствует ФГОС"}
+			rec := doReject(t, r, "/api/curriculum/7/reject", body)
+			require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+			assert.True(t, reject.called)
+			assert.Equal(t, int64(99), reject.gotAdmin)
+			assert.Equal(t, int64(7), reject.gotInput.ID)
+			assert.Equal(t, "Не соответствует ФГОС", reject.gotInput.Reason)
+		})
+	}
 }
 
-func TestCurriculumHandler_Reject_RejectsNonAdminRoles(t *testing.T) {
-	cases := []string{"methodist", "teacher", "academic_secretary", "student", "unknown"}
+func TestCurriculumHandler_Reject_RejectsNonApproverRoles(t *testing.T) {
+	// v0.158.0: academic_secretary creates, methodist approves/rejects;
+	// methodist is now an authorized rejector (covered by HappyPath).
+	cases := []string{"teacher", "academic_secretary", "student", "unknown"}
 	for _, role := range cases {
 		t.Run(role, func(t *testing.T) {
 			reject := &fakeRejectPort{}

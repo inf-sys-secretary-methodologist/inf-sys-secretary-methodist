@@ -70,7 +70,7 @@ func TestCurriculumHandler_List_HappyPath_NoFilters(t *testing.T) {
 		Items: []*entities.Curriculum{c1, c2},
 		Total: 2,
 	}}
-	r := setupListRouter(list, "methodist", 7)
+	r := setupListRouter(list, "academic_secretary", 7)
 
 	rec := doList(t, r, "")
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
@@ -97,7 +97,7 @@ func TestCurriculumHandler_List_HappyPath_NoFilters(t *testing.T) {
 
 func TestCurriculumHandler_List_FilterParsing(t *testing.T) {
 	list := &fakeListPort{}
-	r := setupListRouter(list, "methodist", 7)
+	r := setupListRouter(list, "academic_secretary", 7)
 
 	rec := doList(t, r,
 		"status=pending_approval&year=2026&specialty=Информатика&created_by=42&limit=25&offset=100")
@@ -115,7 +115,7 @@ func TestCurriculumHandler_List_FilterParsing(t *testing.T) {
 
 func TestCurriculumHandler_List_RejectsInvalidStatus(t *testing.T) {
 	list := &fakeListPort{}
-	r := setupListRouter(list, "methodist", 7)
+	r := setupListRouter(list, "academic_secretary", 7)
 
 	rec := doList(t, r, "status=rejected")
 	assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
@@ -132,7 +132,7 @@ func TestCurriculumHandler_List_RejectsInvalidYear(t *testing.T) {
 	for _, q := range cases {
 		t.Run(q, func(t *testing.T) {
 			list := &fakeListPort{}
-			r := setupListRouter(list, "methodist", 7)
+			r := setupListRouter(list, "academic_secretary", 7)
 
 			rec := doList(t, r, q)
 			assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
@@ -150,7 +150,7 @@ func TestCurriculumHandler_List_RejectsInvalidCreatedBy(t *testing.T) {
 	for _, q := range cases {
 		t.Run(q, func(t *testing.T) {
 			list := &fakeListPort{}
-			r := setupListRouter(list, "methodist", 7)
+			r := setupListRouter(list, "academic_secretary", 7)
 
 			rec := doList(t, r, q)
 			assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
@@ -169,7 +169,7 @@ func TestCurriculumHandler_List_RejectsInvalidPagination(t *testing.T) {
 	for _, q := range cases {
 		t.Run(q, func(t *testing.T) {
 			list := &fakeListPort{}
-			r := setupListRouter(list, "methodist", 7)
+			r := setupListRouter(list, "academic_secretary", 7)
 
 			rec := doList(t, r, q)
 			assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
@@ -197,7 +197,7 @@ func TestCurriculumHandler_List_MissingContextReturns401(t *testing.T) {
 
 func TestCurriculumHandler_List_TransportErrorReturns500(t *testing.T) {
 	list := &fakeListPort{err: errors.New("conn refused")}
-	r := setupListRouter(list, "methodist", 7)
+	r := setupListRouter(list, "academic_secretary", 7)
 
 	rec := doList(t, r, "")
 	assert.Equal(t, http.StatusInternalServerError, rec.Code, rec.Body.String())

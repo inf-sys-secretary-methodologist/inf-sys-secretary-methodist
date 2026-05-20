@@ -216,10 +216,11 @@ export const navigationConfig: NavEntry[] = [
         roles: [UserRole.STUDENT],
       },
       {
-        // Curriculum module list — methodist authors / admin approves
-        // / secretary + teacher reads. Backend GET /api/curriculum is
-        // gated by RequireNonStudent (v0.116.0), so the navigation
-        // mirrors that role list to avoid a dead-link round-trip.
+        // Curriculum module list — academic_secretary authors (full
+        // cycle) / methodist approves / admin override / teacher reads
+        // (v0.158.0+). Backend GET /api/curriculum is gated by
+        // RequireNonStudent (v0.116.0), so the navigation mirrors that
+        // role list to avoid a dead-link round-trip.
         nameKey: 'curriculum',
         url: '/curriculum',
         icon: BookMarked,
@@ -294,14 +295,16 @@ export const navigationConfig: NavEntry[] = [
         roles: [UserRole.SYSTEM_ADMIN],
       },
       {
-        // Curriculum admin queue — pending_approval list с Approve / Reject
-        // dialogs. Backend endpoints (POST /api/curriculum/:id/approve и
-        // /:id/reject) gated by RequireRole(SystemAdmin); navigation mirror
-        // single-role allowlist чтобы non-admins не видели dead-link.
+        // Curriculum approver queue — pending_approval list с Approve /
+        // Reject dialogs. Backend endpoints (POST /api/curriculum/:id/approve
+        // и /:id/reject) gated by RequireRole(Methodist, SystemAdmin) per
+        // v0.158.0 role swap (academic_secretary authors; methodist approves;
+        // admin retains emergency override). Navigation mirror matches
+        // backend whitelist so methodist sees the menu link.
         nameKey: 'curriculumApprove',
         url: '/admin/curriculum/approve',
         icon: ClipboardCheck,
-        roles: [UserRole.SYSTEM_ADMIN],
+        roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST],
       },
       {
         // System settings — admin-only configuration that affects the

@@ -88,7 +88,7 @@ func doSubmit(t *testing.T, r *gin.Engine, path string) *httptest.ResponseRecord
 
 func TestCurriculumHandler_Submit_HappyPath_Methodist(t *testing.T) {
 	submit := &fakeSubmitPort{out: builtCurriculum(t, 7)}
-	r := setupSubmitRouter(submit, "methodist", 42)
+	r := setupSubmitRouter(submit, "academic_secretary", 42)
 
 	rec := doSubmit(t, r, "/api/curriculum/7/submit")
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
@@ -115,7 +115,9 @@ func TestCurriculumHandler_Submit_HappyPath_AdminPropagatesIsAdmin(t *testing.T)
 }
 
 func TestCurriculumHandler_Submit_RejectsNonWriteRoles(t *testing.T) {
-	cases := []string{"teacher", "academic_secretary", "student", "unknown"}
+	// v0.158.0: academic_secretary is the author (submits for approval);
+	// methodist is the approver — methodist cannot submit.
+	cases := []string{"teacher", "methodist", "student", "unknown"}
 	for _, role := range cases {
 		t.Run(role, func(t *testing.T) {
 			submit := &fakeSubmitPort{}
@@ -141,7 +143,7 @@ func TestCurriculumHandler_Submit_BadIDReturns400(t *testing.T) {
 	for _, raw := range cases {
 		t.Run(raw, func(t *testing.T) {
 			submit := &fakeSubmitPort{}
-			r := setupSubmitRouter(submit, "methodist", 42)
+			r := setupSubmitRouter(submit, "academic_secretary", 42)
 
 			rec := doSubmit(t, r, "/api/curriculum/"+raw+"/submit")
 			assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
@@ -164,7 +166,7 @@ func TestCurriculumHandler_Submit_DomainErrorMappings(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			submit := &fakeSubmitPort{err: tc.ucErr}
-			r := setupSubmitRouter(submit, "methodist", 42)
+			r := setupSubmitRouter(submit, "academic_secretary", 42)
 
 			rec := doSubmit(t, r, "/api/curriculum/7/submit")
 			assert.Equal(t, tc.want, rec.Code, rec.Body.String())

@@ -131,13 +131,20 @@ describe('navigationConfig', () => {
     expect(itemKeys).toContain('integration')
   })
 
-  it('adminGroup contains curriculumApprove visible only to SYSTEM_ADMIN', () => {
+  it('adminGroup contains curriculumApprove visible to methodist + SYSTEM_ADMIN', () => {
     const adminGroup = navigationConfig.find((e) => e.nameKey === 'adminGroup') as NavGroup
     const entry = adminGroup.items.find((i) => i.nameKey === 'curriculumApprove')
     expect(entry).toBeDefined()
     expect(entry!.url).toBe('/admin/curriculum/approve')
-    // Single-role allowlist — only system_admin can approve / reject.
-    expect(entry!.roles).toEqual([UserRole.SYSTEM_ADMIN])
+    // v0.158.0: methodist is the primary approver, system_admin retains
+    // emergency override. Academic_secretary excluded (author cannot
+    // approve own work).
+    expect(entry!.roles).toEqual(
+      expect.arrayContaining([UserRole.SYSTEM_ADMIN, UserRole.METHODIST])
+    )
+    expect(entry!.roles).not.toContain(UserRole.ACADEMIC_SECRETARY)
+    expect(entry!.roles).not.toContain(UserRole.TEACHER)
+    expect(entry!.roles).not.toContain(UserRole.STUDENT)
   })
 
   it('analyticsGroup contains annualReport visible only to methodist + system_admin', () => {
@@ -233,13 +240,15 @@ describe('getAvailableNavEntries', () => {
     expect(adminItemKeys).not.toContain('integration')
   })
 
-  it.each([UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY, UserRole.TEACHER, UserRole.STUDENT])(
+  // v0.158.0: curriculumApprove visible to methodist + system_admin
+  // (approvers). Hidden from academic_secretary (author) + teacher + student.
+  it.each([UserRole.ACADEMIC_SECRETARY, UserRole.TEACHER, UserRole.STUDENT])(
     'curriculumApprove entry is hidden from %s',
     (role) => {
       const entries = getAvailableNavEntries(role)
       const adminGroup = entries.find((e) => e.nameKey === 'adminGroup')
       // Either adminGroup is filtered out entirely (student) или present but
-      // without curriculumApprove (other non-admin roles).
+      // without curriculumApprove (other non-approver roles).
       if (adminGroup && isNavGroup(adminGroup)) {
         const itemKeys = adminGroup.items.map((i) => i.nameKey)
         expect(itemKeys).not.toContain('curriculumApprove')

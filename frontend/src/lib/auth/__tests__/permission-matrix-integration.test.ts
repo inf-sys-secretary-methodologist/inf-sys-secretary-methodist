@@ -75,9 +75,11 @@ describe('permission matrix — page-level scenarios', () => {
   })
 
   describe('curriculum (documents/templates)', () => {
-    it('methodist can create and edit curriculum', () => {
-      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.CREATE)).toBe(true)
-      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.UPDATE)).toBe(true)
+    // v0.158.0: academic_secretary authors curricula end-to-end; methodist
+    // approves/rejects; admin override; teacher reads + limited update.
+    it('academic_secretary can create and edit curriculum', () => {
+      expect(can(UserRole.ACADEMIC_SECRETARY, Resource.CURRICULUM, Action.CREATE)).toBe(true)
+      expect(can(UserRole.ACADEMIC_SECRETARY, Resource.CURRICULUM, Action.UPDATE)).toBe(true)
     })
 
     it('teacher can read and update curriculum (limited)', () => {
@@ -86,10 +88,11 @@ describe('permission matrix — page-level scenarios', () => {
       expect(can(UserRole.TEACHER, Resource.CURRICULUM, Action.CREATE)).toBe(false)
     })
 
-    it('secretary can only read curriculum', () => {
-      expect(can(UserRole.ACADEMIC_SECRETARY, Resource.CURRICULUM, Action.READ)).toBe(true)
-      expect(can(UserRole.ACADEMIC_SECRETARY, Resource.CURRICULUM, Action.CREATE)).toBe(false)
-      expect(can(UserRole.ACADEMIC_SECRETARY, Resource.CURRICULUM, Action.UPDATE)).toBe(false)
+    it('methodist reads + approves curriculum (cannot create or edit drafts)', () => {
+      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.READ)).toBe(true)
+      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.APPROVE)).toBe(true)
+      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.CREATE)).toBe(false)
+      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.UPDATE)).toBe(false)
     })
   })
 

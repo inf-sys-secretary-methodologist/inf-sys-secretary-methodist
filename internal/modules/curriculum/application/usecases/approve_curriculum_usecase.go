@@ -23,13 +23,15 @@ type approveCurriculumRepo interface {
 }
 
 // ApproveCurriculumUseCase moves a pending_approval curriculum into
-// the approved state, recording the admin's identity + timestamp.
+// the approved state, recording the approver's identity + timestamp.
 //
-// Admin-only by construction: the use case takes only adminID (no
-// isAdmin flag). Route-level RequireRole(SystemAdmin) middleware and
-// the handler whitelist are the access gates; the entity Approve
-// method enforces the status invariant plus a non-zero adminID
-// guard as defense in depth against a silent admin scenario.
+// Approver-only by construction: the use case takes only adminID (no
+// isAdmin flag) — the parameter name is preserved for backward compat
+// but represents the approver actor (methodist or system_admin per
+// v0.158.0+). Route-level RequireRole(Methodist, SystemAdmin) middleware
+// and the handler whitelist are the access gates; the entity Approve
+// method enforces the status invariant plus a non-zero approver-id
+// guard as defense in depth against a silent-actor scenario.
 type ApproveCurriculumUseCase struct {
 	repo  approveCurriculumRepo
 	audit AuditSink

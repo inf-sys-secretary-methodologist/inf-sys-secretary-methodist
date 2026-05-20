@@ -23,12 +23,12 @@ import { STATUS_STYLES, statusKey } from '@/components/curriculum/status'
 import type { CurriculumListFilter } from '@/types/curriculum'
 import { cn } from '@/lib/utils'
 
-// AdminCurriculumApprovePage — admin-only queue of pending curricula
+// AdminCurriculumApprovePage — approver queue of pending curricula
 // awaiting approval. Mirror к /curriculum list page-shell guard но
-// с inverse role gate (single-role allowlist: system_admin only).
-// Filter pinned to status='pending_approval' — admin focus is the
-// actionable queue. Approved/archived curricula visible через main
-// /curriculum list (admin тоже sees them там).
+// с inverse role gate: methodist + system_admin (v0.158.0+; methodist
+// is the primary approver per diploma role matrix, system_admin keeps
+// emergency override). Filter pinned to status='pending_approval'.
+// Approved/archived curricula visible через main /curriculum list.
 export default function AdminCurriculumApprovePage() {
   const router = useRouter()
   const { user, isAuthenticated, isLoading } = useAuthCheck()
@@ -42,14 +42,15 @@ export default function AdminCurriculumApprovePage() {
     []
   )
 
-  const enabled = !isLoading && isAuthenticated && user?.role === 'system_admin'
+  const isApprover = user?.role === 'methodist' || user?.role === 'system_admin'
+  const enabled = !isLoading && isAuthenticated && isApprover
   const { items, total, isLoading: listLoading, error, mutate } = useCurricula(filter, { enabled })
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user?.role !== 'system_admin') {
+    if (!isLoading && isAuthenticated && !isApprover) {
       router.replace('/forbidden')
     }
-  }, [isLoading, isAuthenticated, user, router])
+  }, [isLoading, isAuthenticated, isApprover, router])
 
   if (isLoading || !isAuthenticated) {
     return (

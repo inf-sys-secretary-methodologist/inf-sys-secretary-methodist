@@ -178,7 +178,7 @@ func (h *CurriculumHandler) Create(c *gin.Context) {
 		return
 	}
 	if !canWrite(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may create curricula"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only academic_secretary or system_admin may create curricula"))
 		return
 	}
 
@@ -260,7 +260,7 @@ func (h *CurriculumHandler) Submit(c *gin.Context) {
 		return
 	}
 	if !canWrite(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may submit curricula"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only academic_secretary or system_admin may submit curricula"))
 		return
 	}
 	id, ok := parsePositiveID(c.Param("id"))
@@ -279,10 +279,11 @@ func (h *CurriculumHandler) Submit(c *gin.Context) {
 }
 
 // Approve handles POST /api/curriculum/:id/approve.
-// Admin-only — both the route-level RequireRole(SystemAdmin) and
-// the handler-level canApprove whitelist must agree.
+// Methodist + system_admin only (v0.158.0+) — both the route-level
+// RequireRole(Methodist, SystemAdmin) and the handler-level canApprove
+// whitelist must agree.
 //
-// @Summary Approve a curriculum (admin only)
+// @Summary Approve a curriculum (methodist or system_admin)
 // @Tags curriculum
 // @Produce json
 // @Param id path int true "Curriculum ID"
@@ -301,7 +302,7 @@ func (h *CurriculumHandler) Approve(c *gin.Context) {
 		return
 	}
 	if !canApprove(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only system_admin may approve curricula"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may approve curricula"))
 		return
 	}
 	id, ok := parsePositiveID(c.Param("id"))
@@ -327,12 +328,12 @@ type RejectCurriculumRequest struct {
 }
 
 // Reject handles POST /api/curriculum/:id/reject.
-// Admin-only — the canApprove whitelist gates write access on top of
-// the route-level RequireRole(SystemAdmin) middleware (the same role
-// admits both Approve and Reject — both are admin-only lifecycle
-// transitions).
+// Methodist + system_admin only (v0.158.0+) — the canApprove whitelist
+// gates write access on top of the route-level RequireRole(Methodist,
+// SystemAdmin) middleware (the same role set admits both Approve and
+// Reject — both are approver-only lifecycle transitions).
 //
-// @Summary Reject a curriculum (admin only)
+// @Summary Reject a curriculum (methodist or system_admin)
 // @Tags curriculum
 // @Accept json
 // @Produce json
@@ -353,7 +354,7 @@ func (h *CurriculumHandler) Reject(c *gin.Context) {
 		return
 	}
 	if !canApprove(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only system_admin may reject curricula"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may reject curricula"))
 		return
 	}
 	id, ok := parsePositiveID(c.Param("id"))
@@ -381,13 +382,18 @@ func (h *CurriculumHandler) Reject(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(mapCurriculum(curriculum)))
 }
 
-// canApprove is the role whitelist for the admin-only lifecycle
-// endpoints (Approve, Reject). Defense in depth on top of the
-// route-level RequireRole(SystemAdmin) middleware — if the route
-// gate is ever stripped or relaxed, this handler still refuses
-// to dispatch the use case.
+// canApprove is the role whitelist for the curriculum approval
+// lifecycle endpoints (Approve, Reject). Per the diploma's role
+// matrix the academic secretary authors curricula and submits them
+// for approval; the methodist reviews and approves or rejects. The
+// system_admin keeps an emergency override so single-actor lockouts
+// (methodist unavailable, password reset etc.) do not freeze the
+// approval queue. Defense in depth on top of the route-level
+// RequireRole(Methodist, SystemAdmin) middleware — if the route gate
+// is ever stripped or relaxed, this handler still refuses to dispatch
+// the use case.
 func canApprove(role string) bool {
-	return role == roleSystemAdmin
+	return role == roleMethodist || role == roleSystemAdmin
 }
 
 // UpdateCurriculumRequest is the JSON body schema for PUT /api/curriculum/:id.
@@ -423,7 +429,7 @@ func (h *CurriculumHandler) Update(c *gin.Context) {
 		return
 	}
 	if !canWrite(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may edit curricula"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only academic_secretary or system_admin may edit curricula"))
 		return
 	}
 
@@ -637,12 +643,20 @@ func authContext(c *gin.Context) (userID int64, role string, ok bool) {
 	return userID, roleStr, true
 }
 
-// canWrite is the role whitelist for create / update endpoints.
+// canWrite is the role whitelist for create / update / delete
+// endpoints on the curriculum aggregate and its sub-resources
+// (sections, discipline items, bulk edits). Per the diploma's role
+// matrix the academic secretary owns the curriculum authoring
+// workflow end-to-end: she fills in plan header + sections +
+// discipline items, then submits the whole thing for methodist
+// approval. The system_admin keeps an emergency override so a
+// disabled secretary account does not block the editorial pipeline.
+//
 // Defense in depth on top of RequireNonStudent (which only excludes
-// students) — only methodist and system_admin should mutate
+// students) — only academic_secretary and system_admin should mutate
 // curricula per the PermissionMatrix.
 func canWrite(role string) bool {
-	return role == roleMethodist || role == roleSystemAdmin
+	return role == roleAcademicSecretary || role == roleSystemAdmin
 }
 
 // isAdminRole reports whether the role is system_admin — used by

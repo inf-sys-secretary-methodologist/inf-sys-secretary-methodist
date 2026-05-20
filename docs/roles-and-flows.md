@@ -1,8 +1,17 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.157.1 (см. `VERSION` в корне)
-> **Состояние на:** 20 мая 2026 — **v1.0.0 path opens** (batch 1 audit fully closed + ADR-1 polish closed: reporting #260 + ai #263 + documents #266 + curriculum #269 Tier 1 + curriculum DIP polish; next = batches 2-4 reviews → v1.0.0 Final tag), **Phase 6 #196 CLOSED** (backend coverage 90.2%, strict > 90.0% ✅), **5-phase Documents workflow pack #227 CLOSED** end-to-end, **#41 Workflow automation CLOSED**, **Phase 5 admin observability CLOSED** (audit logs + backup + sentry + integrations + composio + branding), **B-feature triad CLOSED** (curriculum + assignments + B4 annual report), **MFA полностью end-to-end UI**.
+> **Версия проекта:** 0.158.0 (см. `VERSION` в корне)
+> **Состояние на:** 20 мая 2026 — **v0.158.0 curriculum role swap shipped** (academic_secretary author / methodist approver per diploma role matrix). Batch 1 audit + ADR-1 polish closed; batch 2 reviews aggregated (5 modules — auth/users/files/messaging/announcements, hotfixes v0.159.0..v0.163.0 pending); Phase 6 #196 strict > 90% coverage ✅; 5-phase Documents workflow pack #227 closed end-to-end; #41 Workflow automation closed; Phase 5 admin observability closed; B-feature triad closed (curriculum + assignments + B4 annual report); MFA полностью end-to-end UI.
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`, история релизов в GitHub Releases.
+
+> **Изменения с 0.157.1 по 0.158.0 (curriculum role swap — business-logic correctness fix per diploma role matrix)**:
+>
+> - **v0.158.0 curriculum role swap** — academic secretary (Волкова) теперь curriculum AUTHOR end-to-end (план + sections + discipline items + submit); methodist — APPROVER (approve/reject pending_approval); system_admin сохраняет emergency override на обеих сторонах. Предыдущая wiring (methodist author, system_admin approver) была некорректна по project spec.
+>   - Backend whitelist swap: `canWrite(role)` методист→academic_secretary; `canApprove(role)` system_admin→methodist || system_admin (handler-level); route group `RequireRole(SystemAdmin)` → `RequireRole(Methodist, SystemAdmin)` (defense in depth).
+>   - Frontend `PERMISSION_MATRIX`: METHODIST.CURRICULUM FULL→LIMITED (read + approve only); ACADEMIC_SECRETARY.CURRICULUM LIMITED→FULL (full author cycle); `can()` APPROVE branch теперь methodist || system_admin; `CURRICULUM_WRITE_ROLES = [SYSTEM_ADMIN, ACADEMIC_SECRETARY]`.
+>   - Test maintenance: handler tests rewrite (`Approve_HappyPath_Admin` → `_AuthorizedRoles` table-driven covering methodist + admin); `Approve_RejectsNonAdminRoles` → `_RejectsNonApproverRoles` (drops methodist from rejection list); bulk sed `"methodist"` → `"academic_secretary"` в всех handler tests где role = author; frontend `permissions.test.ts` + `permission-matrix-integration.test.ts` + `page.test.tsx` rewrites.
+>   - Zero DB schema changes — `created_by` сохраняет historical user_id; UI отображает author by user id, не by role.
+>   - См. `docs/plans/2026-05-20-v0158-curriculum-role-swap.md`.
 
 > **Изменения с 0.157.0 по 0.157.1 (curriculum DIP polish — closes ADR-1 carry-forward от #269)**:
 >
@@ -108,7 +117,7 @@
 | **Управление n8n workflows** | 3 workflow: уведомления документов, алерты пропусков, напоминания дедлайнов | `/admin/settings/automation` |
 | **Интеграция с 1С:Университет** | Настройка соединения, маппинг, синхронизация сотрудников/студентов | `/admin/integration` |
 | **Управление пользователями (CRUD)** | Создание/редактирование/удаление, назначение ролей | `/admin/users` |
-| **Утверждение учебных планов** | `ActionApprove` — единственная роль с этой привилегией | `/admin/curriculum/approve` |
+| **Утверждение учебных планов** | `ActionApprove` — admin override; основной approver — методист (v0.158.0+) | `/admin/curriculum/approve` |
 | **Backup, логи, метрики, алерты** | Эксплуатация системы | `/admin/infra/*` |
 
 **Принцип**: всё, что является системной настройкой и влияет на работу системы для всех пользователей или на её взаимодействие с внешним миром — это исключительно admin.
@@ -118,7 +127,7 @@
 | Ресурс | system_admin | methodist | academic_secretary | teacher | student |
 |--------|:------------:|:---------:|:------------------:|:-------:|:-------:|
 | **users** (CRUD) | full | read limited | read limited | read limited | own update |
-| **curriculum** (учебные планы) | full + approve | full | read | read+limited update | read limited |
+| **curriculum** (учебные планы, v0.158.0+) | full + approve override | read + approve/reject | **full author cycle** (create / edit / submit) | read+limited update | read limited |
 | **schedule** (расписание) | full | read+limited | full | read | read |
 | **assignments** (задания) | full | full+limited | read | full+own | own read+execute |
 | **reports** (отчёты) | full | full | full | limited | denied |
@@ -254,7 +263,7 @@ Backend + Frontend + API + проверено в use-flow.
 6. **Users** — список студентов своих групп (read limited)
 7. **Reports (limited)** — по своим группам, экспорт limited
 8. **Assignments (полный grading flow с 0.110.0–0.115.0):** `/assignments` (список своих заданий с фильтрами subject/group_name) + `/assignments/[id]/submissions` (inline grade form per submission row, status-фильтр pending/graded/returned). Может вернуть работу через `ReturnDialog` (с textarea причины ≤ 4096 символов) — `Submission.Return` очищает grade triple, статус submission → returned, audit `assignment.returned` сохраняет previous_grade. Студент пересдаёт, учитель re-grade'ит.
-9. **Curriculum (read+limited update с 0.118.0+):** `/curriculum` (список с фильтрами по статусу/году/специальности) + `/curriculum/[id]` (детали с status pill). Read-only для учителя; редактирование закрыто `AuthorizeEdit` гейтом (только методист или admin).
+9. **Curriculum (read+limited update с 0.118.0+):** `/curriculum` (список с фильтрами по статусу/году/специальности) + `/curriculum/[id]` (детали с status pill). Read-only для учителя; редактирование закрыто `AuthorizeEdit` гейтом (только academic_secretary или admin — v0.158.0+).
 10. **Messages** — групповые чаты со студентами
 11. **AI Assistant** — расширенные права на RAG
 12. *(Личные настройки — стандартно)*
@@ -265,7 +274,7 @@ Backend + Frontend + API + проверено в use-flow.
 
 ### 📋 Академический секретарь (`academic_secretary`)
 
-**Видит в меню:** Dashboard, Documents (full + Templates), Analytics group (Reports + Analytics), Schedule, Calendar, Tasks, **Assignments** (read), **Curriculum** (read), Announcements, Messages, AI Assistant, Admin group (Users — read limited), Profile
+**Видит в меню:** Dashboard, Documents (full + Templates), Analytics group (Reports + Analytics), Schedule, Calendar, Tasks, **Assignments** (read), **Curriculum** (full author cycle), Announcements, Messages, AI Assistant, Admin group (Users — read limited), Profile
 
 1. Создание администратором
 2. **Dashboard** — административные виджеты
@@ -276,27 +285,32 @@ Backend + Frontend + API + проверено в use-flow.
 7. **Users** — read limited
 8. **Calendar** — управление событиями
 9. **Assignments (read с 0.110.0):** `/assignments` (список всех заданий, не только своих — caller scope unrestricted) + `/assignments/[id]/submissions` (просмотр работ студентов). Может вернуть работу через `ReturnDialog` (`AuthorizeGrader` принимает 4 non-student роли в read-only сценарии; grading закрыт за teacher's ownership).
-10. **Curriculum (read с 0.118.0+):** `/curriculum` (список с фильтрами) + `/curriculum/[id]` (детали с status pill). Read-only — `canWrite` whitelist'ит только methodist + admin.
+10. **Curriculum (полный author cycle с v0.158.0):**
+    - `/curriculum` — список всех учебных планов с фильтрами status/year/specialty + кнопка **Создать** (academic_secretary + admin) + цветной status pill
+    - `/curriculum/[id]` — детали с status-aware панелью: для status='draft' доступны **Редактировать** + **Отправить на утверждение**; для pending/approved/archived — read-only с подсказкой почему
+    - **CreateCurriculumDialog** / **EditCurriculumDialog** (Radix modal с 5 полями: title / code / specialty / year ∈ [2000, 2100] / description ≤ 4096) — client-side валидация зеркальная domain invariants, error mapping 409→codeExists / 422→notEditable / 403→forbidden
+    - **Sections + DisciplineItems (РПД)** — полный CRUD + bulk-edit таблица с UnitOfWork RepeatableRead транзакцией
+    - **SubmitCurriculumDialog** — confirmation modal для перехода draft → pending_approval. После confirm учебный план уходит к методисту на утверждение; редактирование блокируется до решения
+    - **Утверждение запрещено** — `ActionApprove` принадлежит методисту. Если методист отклоняет с reason — учебный план возвращается в draft, секретарь видит причину в audit log + UI feedback, правит и отправляет повторно
 11. **Messages, AI** — стандартно
 12. *(Личные настройки — стандартно)*
 
-**Что НЕ может:** редактировать curriculum (только read), создавать/обновлять учебные планы (только методист или admin), создавать пользователей, подписывать задания, утверждать учебные планы (admin-only), любые системные настройки.
+**Что НЕ может:** утверждать собственные учебные планы (`ActionApprove` → methodist + admin), создавать пользователей, подписывать задания, любые системные настройки.
 
 ---
 
 ### 📚 Методист (`methodist`)
 
-**Видит в меню:** Dashboard, Documents (full + Templates), Analytics group, Schedule, Calendar, Tasks, **Assignments** (read), **Curriculum** (full без approve), Announcements, Messages, AI Assistant, Users (read limited), Profile
+**Видит в меню:** Dashboard, Documents (full + Templates), Analytics group, Schedule, Calendar, Tasks, **Assignments** (read), **Curriculum** (read + approve), Announcements, Messages, AI Assistant, Users (read limited), Profile
 
 1. Создание администратором
 2. **Dashboard** — методические виджеты
 3. **Documents + Templates** — full CRUD, создание шаблонов документов
-4. **Curriculum (полный self-edit cycle с 0.118.0–0.119.0):**
-   - `/curriculum` — список всех учебных планов с фильтрами status/year/specialty + цветной status pill (черновик / на утверждении / утверждён / архив)
-   - `/curriculum/[id]` — детали с status-aware панелью: для status='draft' доступны кнопки **Редактировать** + **Отправить на утверждение**; для pending/approved/archived — read-only с подсказкой почему
-   - **EditCurriculumDialog** (Radix modal с 5 полями: title / code / specialty / year ∈ [2000, 2100] / description ≤ 4096) — client-side валидация зеркальная к domain invariants, error mapping 409→codeExists / 422→notEditable / 403→forbidden, dialog stays open on error для retry
-   - **SubmitCurriculumDialog** — confirmation modal для перехода draft → pending_approval. После confirm учебный план уходит на утверждение администратору; редактирование блокируется до решения
-   - **Утверждение запрещено** (`ActionApprove` → admin-only). Если admin отклоняет с reason — учебный план возвращается в draft, методист видит причину в audit log + UI feedback, правит и отправляет повторно
+4. **Curriculum (approver role с v0.158.0):**
+   - `/curriculum` — список всех учебных планов с фильтрами status/year/specialty + цветной status pill (черновик / на утверждении / утверждён / архив). Read-only — методист не создаёт планы, это работа академического секретаря
+   - `/curriculum/[id]` — детали без edit/submit кнопок (это author's surface)
+   - `/admin/curriculum/approve` — **очередь pending_approval** с **ApproveCurriculumDialog** + **RejectCurriculumDialog** (reason mandatory). После approve учебный план переходит в approved; после reject — возвращается в draft с reason в audit log, секретарь видит причину и правит
+   - Bulk-edit РПД доступен только для read (academic_secretary редактирует)
 5. **Reports + Analytics** — full доступ, экспорт CSV/XLSX
 6. **Schedule** — read full + limited update
 7. **Assignments (read с 0.110.0):** просмотр всех заданий и работ студентов — caller scope unrestricted для методиста
@@ -306,7 +320,8 @@ Backend + Frontend + API + проверено в use-flow.
 11. *(Личные настройки — стандартно)*
 
 **Что НЕ может:**
-- Утверждать учебные планы (`ActionApprove` → только admin)
+- Создавать или редактировать учебные планы (`canWrite` → academic_secretary + admin)
+- Отправлять учебные планы на утверждение (только автор-секретарь делает submit; методист принимает решение)
 - Управлять расписанием (создавать пары — это секретарь)
 - Подписывать ЭП (#140)
 - Создавать пользователей

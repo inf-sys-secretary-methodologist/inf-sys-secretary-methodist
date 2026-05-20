@@ -62,7 +62,7 @@ func doGet(t *testing.T, r *gin.Engine, path string) *httptest.ResponseRecorder 
 }
 
 func TestCurriculumHandler_Get_HappyPath_AllNonStudentRoles(t *testing.T) {
-	roles := []string{"methodist", "system_admin", "academic_secretary", "teacher"}
+	roles := []string{"academic_secretary", "system_admin", "academic_secretary", "teacher"}
 	for _, role := range roles {
 		t.Run(role, func(t *testing.T) {
 			get := &fakeGetPort{out: builtCurriculum(t, 7)}
@@ -115,7 +115,7 @@ func TestCurriculumHandler_Get_BadIDReturns400(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			get := &fakeGetPort{}
-			r := setupGetRouter(get, "methodist", 42)
+			r := setupGetRouter(get, "academic_secretary", 42)
 
 			rec := doGet(t, r, tc.path)
 			assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
@@ -126,7 +126,7 @@ func TestCurriculumHandler_Get_BadIDReturns400(t *testing.T) {
 
 func TestCurriculumHandler_Get_NotFoundReturns404(t *testing.T) {
 	get := &fakeGetPort{err: repositories.ErrCurriculumNotFound}
-	r := setupGetRouter(get, "methodist", 42)
+	r := setupGetRouter(get, "academic_secretary", 42)
 
 	rec := doGet(t, r, "/api/curriculum/999")
 	assert.Equal(t, http.StatusNotFound, rec.Code, rec.Body.String())
@@ -134,7 +134,7 @@ func TestCurriculumHandler_Get_NotFoundReturns404(t *testing.T) {
 
 func TestCurriculumHandler_Get_TransportErrorReturns500(t *testing.T) {
 	get := &fakeGetPort{err: errors.New("conn refused")}
-	r := setupGetRouter(get, "methodist", 42)
+	r := setupGetRouter(get, "academic_secretary", 42)
 
 	rec := doGet(t, r, "/api/curriculum/7")
 	assert.Equal(t, http.StatusInternalServerError, rec.Code, rec.Body.String())

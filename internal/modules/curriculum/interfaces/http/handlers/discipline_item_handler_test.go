@@ -143,7 +143,7 @@ func TestNewDisciplineItemHandler_PanicsOnNilPort(t *testing.T) {
 func TestDisciplineItemHandler_RoleKeyContract(t *testing.T) {
 	create, get, list, update, del := itemStubs()
 	get.out = builtItem(t, 202, 11)
-	r := setupItemRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupItemRouter(t, create, get, list, update, del, 42, "academic_secretary")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/items/202", nil)
 	rec := httptest.NewRecorder()
@@ -166,7 +166,7 @@ func TestDisciplineItemHandler_MissingAuth_Returns401(t *testing.T) {
 func TestDisciplineItemHandler_Create_HappyPath(t *testing.T) {
 	create, get, list, update, del := itemStubs()
 	create.out = builtItem(t, 202, 11)
-	r := setupItemRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupItemRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	body := map[string]any{
 		"title":          "Математический анализ",
 		"hours_lectures": 36,
@@ -180,17 +180,27 @@ func TestDisciplineItemHandler_Create_HappyPath(t *testing.T) {
 	require.Equal(t, http.StatusCreated, rec.Code, "body=%s", rec.Body.String())
 }
 
-func TestDisciplineItemHandler_Create_Student403(t *testing.T) {
-	create, get, list, update, del := itemStubs()
-	r := setupItemRouter(t, create, get, list, update, del, 42, "student")
-	rec := postJSON(t, r, "/api/sections/11/items", map[string]any{"title": "T"})
-	assert.Equal(t, http.StatusForbidden, rec.Code)
+func TestDisciplineItemHandler_Create_RejectsNonWriteRoles(t *testing.T) {
+	// v0.158.0: academic_secretary owns discipline-item authoring;
+	// methodist is approver only; teacher reads; student blocked.
+	cases := []string{"methodist", "teacher", "student", "unknown"}
+	for _, role := range cases {
+		t.Run(role, func(t *testing.T) {
+			create, get, list, update, del := itemStubs()
+			r := setupItemRouter(t, create, get, list, update, del, 42, role)
+			rec := postJSON(t, r, "/api/sections/11/items", map[string]any{"title": "T"})
+			assert.Equal(t, http.StatusForbidden, rec.Code)
+			// fakeCreateItemPort doesn't track invocation flag — assertion
+			// of 403 is sufficient (Forbidden short-circuits before
+			// usecase Execute would have any observable effect).
+		})
+	}
 }
 
 func TestDisciplineItemHandler_Get_NotFound(t *testing.T) {
 	create, get, list, update, del := itemStubs()
 	get.err = repositories.ErrDisciplineItemNotFound
-	r := setupItemRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupItemRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	req := httptest.NewRequest(http.MethodGet, "/api/items/999", nil)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
@@ -200,7 +210,7 @@ func TestDisciplineItemHandler_Get_NotFound(t *testing.T) {
 func TestDisciplineItemHandler_Update_VersionConflict409(t *testing.T) {
 	create, get, list, update, del := itemStubs()
 	update.err = repositories.ErrDisciplineItemVersionConflict
-	r := setupItemRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupItemRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := putJSON(t, r, "/api/items/202", map[string]any{
 		"title": "T", "hours_lectures": 1, "control_form": "zachet", "credits": 1, "semester": 1,
 	})
@@ -211,7 +221,7 @@ func TestDisciplineItemHandler_Update_VersionConflict409(t *testing.T) {
 func TestDisciplineItemHandler_Update_Forbidden403(t *testing.T) {
 	create, get, list, update, del := itemStubs()
 	update.err = entities.ErrDisciplineItemScopeForbidden
-	r := setupItemRouter(t, create, get, list, update, del, 99, "methodist")
+	r := setupItemRouter(t, create, get, list, update, del, 99, "academic_secretary")
 	rec := putJSON(t, r, "/api/items/202", map[string]any{"title": "T"})
 	assert.Equal(t, http.StatusForbidden, rec.Code)
 }
@@ -219,14 +229,14 @@ func TestDisciplineItemHandler_Update_Forbidden403(t *testing.T) {
 func TestDisciplineItemHandler_Update_Frozen422(t *testing.T) {
 	create, get, list, update, del := itemStubs()
 	update.err = entities.ErrCannotEditDisciplineItem
-	r := setupItemRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupItemRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := putJSON(t, r, "/api/items/202", map[string]any{"title": "T"})
 	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 }
 
 func TestDisciplineItemHandler_Delete_HappyPath(t *testing.T) {
 	create, get, list, update, del := itemStubs()
-	r := setupItemRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupItemRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	req := httptest.NewRequest(http.MethodDelete, "/api/items/202", nil)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
@@ -237,7 +247,7 @@ func TestDisciplineItemHandler_Delete_HappyPath(t *testing.T) {
 func TestDisciplineItemHandler_List_EmptyResult(t *testing.T) {
 	create, get, list, update, del := itemStubs()
 	list.out = nil
-	r := setupItemRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupItemRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	req := httptest.NewRequest(http.MethodGet, "/api/sections/11/items", nil)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
@@ -259,7 +269,7 @@ func TestDisciplineItemHandler_List_EmptyResult(t *testing.T) {
 func TestDisciplineItemHandler_List_SectionNotFound(t *testing.T) {
 	create, get, list, update, del := itemStubs()
 	list.err = repositories.ErrSectionNotFound
-	r := setupItemRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupItemRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	req := httptest.NewRequest(http.MethodGet, "/api/sections/999/items", nil)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)

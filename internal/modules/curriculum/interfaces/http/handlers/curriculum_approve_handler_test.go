@@ -61,22 +61,32 @@ func doApprove(t *testing.T, r *gin.Engine, path string) *httptest.ResponseRecor
 	return rec
 }
 
-func TestCurriculumHandler_Approve_HappyPath_Admin(t *testing.T) {
-	approve := &fakeApprovePort{out: builtCurriculum(t, 7)}
-	r := setupApproveRouter(approve, "system_admin", 99)
+func TestCurriculumHandler_Approve_HappyPath_AuthorizedRoles(t *testing.T) {
+	// v0.158.0: methodist + system_admin are the authorized approvers
+	// per the role matrix (academic_secretary authors, methodist approves,
+	// admin retains emergency override).
+	cases := []string{"methodist", "system_admin"}
+	for _, role := range cases {
+		t.Run(role, func(t *testing.T) {
+			approve := &fakeApprovePort{out: builtCurriculum(t, 7)}
+			r := setupApproveRouter(approve, role, 99)
 
-	rec := doApprove(t, r, "/api/curriculum/7/approve")
-	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-	assert.True(t, approve.called)
-	assert.Equal(t, int64(99), approve.gotAdmin)
-	assert.Equal(t, int64(7), approve.gotID)
+			rec := doApprove(t, r, "/api/curriculum/7/approve")
+			require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+			assert.True(t, approve.called)
+			assert.Equal(t, int64(99), approve.gotAdmin)
+			assert.Equal(t, int64(7), approve.gotID)
+		})
+	}
 }
 
-func TestCurriculumHandler_Approve_RejectsNonAdminRoles(t *testing.T) {
-	// Defense in depth: even if RequireRole(SystemAdmin) middleware were
-	// stripped from the route, the handler-level whitelist still rejects
-	// every non-admin role.
-	cases := []string{"methodist", "teacher", "academic_secretary", "student", "unknown"}
+func TestCurriculumHandler_Approve_RejectsNonApproverRoles(t *testing.T) {
+	// Defense in depth: even if RequireRole(Methodist, SystemAdmin)
+	// middleware were stripped from the route, the handler-level
+	// whitelist still rejects every role that is not an approver.
+	// v0.158.0: academic_secretary creates curricula, methodist approves —
+	// methodist is now an authorized approver (covered by HappyPath test).
+	cases := []string{"teacher", "academic_secretary", "student", "unknown"}
 	for _, role := range cases {
 		t.Run(role, func(t *testing.T) {
 			approve := &fakeApprovePort{}

@@ -70,21 +70,28 @@ func TestBulkDisciplineItemsHandler_MissingAuth_Returns401(t *testing.T) {
 	assert.False(t, bulk.called)
 }
 
-func TestBulkDisciplineItemsHandler_StudentRole_Returns403(t *testing.T) {
-	bulk := &fakeBulkEditPort{}
-	r := setupBulkRouter(t, bulk, 42, "student")
-	rec := postJSON(t, r, "/api/sections/11/items/bulk", handlers.BulkEditRequest{
-		Creates: []handlers.BulkCreateItemRequest{{Title: "X"}},
-	})
-	assert.Equal(t, http.StatusForbidden, rec.Code)
-	assert.False(t, bulk.called)
+func TestBulkDisciplineItemsHandler_RejectsNonWriteRoles(t *testing.T) {
+	// v0.158.0: academic_secretary owns bulk-edit; methodist is approver
+	// only; teacher reads; student blocked at outer middleware.
+	cases := []string{"methodist", "teacher", "student", "unknown"}
+	for _, role := range cases {
+		t.Run(role, func(t *testing.T) {
+			bulk := &fakeBulkEditPort{}
+			r := setupBulkRouter(t, bulk, 42, role)
+			rec := postJSON(t, r, "/api/sections/11/items/bulk", handlers.BulkEditRequest{
+				Creates: []handlers.BulkCreateItemRequest{{Title: "X"}},
+			})
+			assert.Equal(t, http.StatusForbidden, rec.Code)
+			assert.False(t, bulk.called)
+		})
+	}
 }
 
 // ===== Path validation =====
 
 func TestBulkDisciplineItemsHandler_BadSectionID_Returns400(t *testing.T) {
 	bulk := &fakeBulkEditPort{}
-	r := setupBulkRouter(t, bulk, 42, "methodist")
+	r := setupBulkRouter(t, bulk, 42, "academic_secretary")
 	rec := postJSON(t, r, "/api/sections/abc/items/bulk", handlers.BulkEditRequest{
 		Creates: []handlers.BulkCreateItemRequest{{Title: "X"}},
 	})
@@ -94,7 +101,7 @@ func TestBulkDisciplineItemsHandler_BadSectionID_Returns400(t *testing.T) {
 
 func TestBulkDisciplineItemsHandler_BadJSON_Returns400(t *testing.T) {
 	bulk := &fakeBulkEditPort{}
-	r := setupBulkRouter(t, bulk, 42, "methodist")
+	r := setupBulkRouter(t, bulk, 42, "academic_secretary")
 	req := httptest.NewRequest(http.MethodPost, "/api/sections/11/items/bulk",
 		bytes.NewReader([]byte("{not json")))
 	req.Header.Set("Content-Type", "application/json")
@@ -116,7 +123,7 @@ func TestBulkDisciplineItemsHandler_HappyPath_AllOps(t *testing.T) {
 			Deleted: []int64{203},
 		},
 	}
-	r := setupBulkRouter(t, bulk, 42, "methodist")
+	r := setupBulkRouter(t, bulk, 42, "academic_secretary")
 	rec := postJSON(t, r, "/api/sections/11/items/bulk", handlers.BulkEditRequest{
 		Creates: []handlers.BulkCreateItemRequest{{
 			Title: "Новая", HoursLectures: 36, HoursPractice: 36, HoursSelf: 72,
@@ -160,7 +167,7 @@ func TestBulkDisciplineItemsHandler_VersionConflict_Returns409WithConflicts(t *t
 		},
 		err: curUsecases.ErrBulkVersionConflict,
 	}
-	r := setupBulkRouter(t, bulk, 42, "methodist")
+	r := setupBulkRouter(t, bulk, 42, "academic_secretary")
 	rec := postJSON(t, r, "/api/sections/11/items/bulk", handlers.BulkEditRequest{
 		Updates: []handlers.BulkUpdateItemRequest{
 			{ID: 202, Title: "X"},
@@ -184,7 +191,7 @@ func TestBulkDisciplineItemsHandler_VersionConflict_Returns409WithConflicts(t *t
 
 func TestBulkDisciplineItemsHandler_EmptyInput_Returns422(t *testing.T) {
 	bulk := &fakeBulkEditPort{err: curUsecases.ErrEmptyBulkInput}
-	r := setupBulkRouter(t, bulk, 42, "methodist")
+	r := setupBulkRouter(t, bulk, 42, "academic_secretary")
 	rec := postJSON(t, r, "/api/sections/11/items/bulk", handlers.BulkEditRequest{})
 	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 	assert.Contains(t, rec.Body.String(), "EMPTY_BULK_INPUT")
@@ -192,7 +199,7 @@ func TestBulkDisciplineItemsHandler_EmptyInput_Returns422(t *testing.T) {
 
 func TestBulkDisciplineItemsHandler_CrossSection_Returns422(t *testing.T) {
 	bulk := &fakeBulkEditPort{err: curUsecases.ErrCrossSectionBulkEdit}
-	r := setupBulkRouter(t, bulk, 42, "methodist")
+	r := setupBulkRouter(t, bulk, 42, "academic_secretary")
 	rec := postJSON(t, r, "/api/sections/11/items/bulk", handlers.BulkEditRequest{
 		Updates: []handlers.BulkUpdateItemRequest{{ID: 999, Title: "X"}},
 	})
@@ -202,7 +209,7 @@ func TestBulkDisciplineItemsHandler_CrossSection_Returns422(t *testing.T) {
 
 func TestBulkDisciplineItemsHandler_SectionNotFound_Returns404(t *testing.T) {
 	bulk := &fakeBulkEditPort{err: repositories.ErrSectionNotFound}
-	r := setupBulkRouter(t, bulk, 42, "methodist")
+	r := setupBulkRouter(t, bulk, 42, "academic_secretary")
 	rec := postJSON(t, r, "/api/sections/999/items/bulk", handlers.BulkEditRequest{
 		Creates: []handlers.BulkCreateItemRequest{{Title: "X"}},
 	})
@@ -211,7 +218,7 @@ func TestBulkDisciplineItemsHandler_SectionNotFound_Returns404(t *testing.T) {
 
 func TestBulkDisciplineItemsHandler_Forbidden_Returns403(t *testing.T) {
 	bulk := &fakeBulkEditPort{err: entities.ErrDisciplineItemScopeForbidden}
-	r := setupBulkRouter(t, bulk, 99, "methodist")
+	r := setupBulkRouter(t, bulk, 99, "academic_secretary")
 	rec := postJSON(t, r, "/api/sections/11/items/bulk", handlers.BulkEditRequest{
 		Creates: []handlers.BulkCreateItemRequest{{Title: "X"}},
 	})
@@ -220,7 +227,7 @@ func TestBulkDisciplineItemsHandler_Forbidden_Returns403(t *testing.T) {
 
 func TestBulkDisciplineItemsHandler_NotEditable_Returns422(t *testing.T) {
 	bulk := &fakeBulkEditPort{err: entities.ErrCannotEditDisciplineItem}
-	r := setupBulkRouter(t, bulk, 42, "methodist")
+	r := setupBulkRouter(t, bulk, 42, "academic_secretary")
 	rec := postJSON(t, r, "/api/sections/11/items/bulk", handlers.BulkEditRequest{
 		Creates: []handlers.BulkCreateItemRequest{{Title: "X"}},
 	})
@@ -230,7 +237,7 @@ func TestBulkDisciplineItemsHandler_NotEditable_Returns422(t *testing.T) {
 
 func TestBulkDisciplineItemsHandler_InvalidInput_Returns422(t *testing.T) {
 	bulk := &fakeBulkEditPort{err: entities.ErrInvalidDisciplineItem}
-	r := setupBulkRouter(t, bulk, 42, "methodist")
+	r := setupBulkRouter(t, bulk, 42, "academic_secretary")
 	rec := postJSON(t, r, "/api/sections/11/items/bulk", handlers.BulkEditRequest{
 		Creates: []handlers.BulkCreateItemRequest{{Title: ""}},
 	})
