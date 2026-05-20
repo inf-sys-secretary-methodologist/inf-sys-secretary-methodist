@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
@@ -2473,4 +2474,59 @@ func TestSharingUseCase_ShareDocument_UpdatePermissionError(t *testing.T) {
 		mockDocRepo.AssertExpectations(t)
 		mockPermRepo.AssertExpectations(t)
 	})
+}
+
+// --- v0.156.0 #266: ShareNotifier narrow port (ADR-5) ---
+
+// fakeShareNotifier is a spy that records NotifyDocumentShared invocations.
+type fakeShareNotifier struct {
+	calls []fakeShareNotifierCall
+	err   error
+}
+
+type fakeShareNotifierCall struct {
+	recipientID   int64
+	documentID    int64
+	documentTitle string
+}
+
+func (f *fakeShareNotifier) NotifyDocumentShared(_ context.Context, recipientID int64, documentID int64, documentTitle string) error {
+	f.calls = append(f.calls, fakeShareNotifierCall{recipientID, documentID, documentTitle})
+	return f.err
+}
+
+// TestSharingUseCase_ShareDocument_NotifiesViaSink pins ADR-5:
+// ShareDocument MUST emit a notification through the narrow
+// ShareNotifier port when one is installed via WithShareNotifier
+// and the share target is a specific user.
+func TestSharingUseCase_ShareDocument_NotifiesViaSink(t *testing.T) {
+	ctx := context.Background()
+
+	mockDocRepo := new(MockDocumentRepository)
+	mockPermRepo := new(MockPermissionRepository)
+	mockLinkRepo := new(MockPublicLinkRepository)
+	spy := &fakeShareNotifier{}
+
+	usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil).
+		WithShareNotifier(spy)
+
+	doc := &entities.Document{ID: 7, Title: "Project Brief", AuthorID: 1}
+	userID := int64(42)
+
+	mockDocRepo.On("GetByID", ctx, int64(7)).Return(doc, nil)
+	mockPermRepo.On("GetByDocumentAndUser", ctx, int64(7), int64(42)).Return(nil, errors.New("not found"))
+	mockPermRepo.On("Create", ctx, mock.AnythingOfType("*entities.DocumentPermission")).Return(nil)
+	mockPermRepo.On("GetByID", ctx, mock.AnythingOfType("int64")).Return(&entities.DocumentPermission{
+		ID: 1, DocumentID: 7, UserID: &userID, Permission: entities.PermissionRead,
+	}, nil)
+
+	_, err := usecase.ShareDocument(ctx, dto.ShareDocumentInput{
+		DocumentID: 7, UserID: &userID, Permission: "read",
+	}, 1)
+	require.NoError(t, err)
+
+	require.Len(t, spy.calls, 1, "ShareNotifier должен быть вызван 1 раз")
+	assert.Equal(t, int64(42), spy.calls[0].recipientID)
+	assert.Equal(t, int64(7), spy.calls[0].documentID)
+	assert.Equal(t, "Project Brief", spy.calls[0].documentTitle)
 }

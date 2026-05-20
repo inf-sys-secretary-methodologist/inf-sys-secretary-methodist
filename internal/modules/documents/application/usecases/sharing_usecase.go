@@ -22,6 +22,20 @@ type SharingUseCase struct {
 	auditLog            *logging.AuditLogger
 	baseURL             string
 	notificationUseCase *notifUsecases.NotificationUseCase
+	// v0.156.0 ADR-5 (#266): narrow port replacing cross-module
+	// concrete dep above. Set via WithShareNotifier; nil-safe.
+	notifier ShareNotifier
+}
+
+// WithShareNotifier injects a narrow ShareNotifier port для emitting
+// document-shared notifications. Chainable setter — keeps the legacy
+// 6-arg constructor signature stable while letting main.go provide an
+// adapter that holds the cross-module concrete dependency.
+//
+// v0.156.0 ADR-5 (#266).
+func (uc *SharingUseCase) WithShareNotifier(n ShareNotifier) *SharingUseCase {
+	uc.notifier = n
+	return uc
 }
 
 // NewSharingUseCase creates a new SharingUseCase
