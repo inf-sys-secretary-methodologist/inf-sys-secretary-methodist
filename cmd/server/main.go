@@ -1167,9 +1167,14 @@ func main() {
 		// Initialize AI handler
 		aiHandlerInstance := aiHandler.NewAIHandler(aiChatUseCase, aiEmbeddingUseCase, moodUseCase, funFactUseCase, auditLogger)
 
-		// Register AI routes under protected API group
+		// Register AI routes under protected API group. Per-user rate limit
+		// applied after JWT so the bucket key is the authenticated identity
+		// (issue #263 ADR-3 — closes token-cost flood DoS surface; the
+		// outbound Anthropic sliding-window limiter in anthropic_provider.go
+		// is vendor-side and gated all users together).
 		aiAPIGroup := router.Group("/api")
 		aiAPIGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
+		mountAuthRateLimit(aiAPIGroup, redisCache)
 		aiHandlerInstance.RegisterRoutes(aiAPIGroup)
 
 		logger.Info("AI module initialized", map[string]interface{}{
@@ -3251,4 +3256,20 @@ func stopTaskReminderScheduler(scheduler *notifScheduler.TaskReminderScheduler, 
 			errorKey: err.Error(),
 		})
 	}
+}
+
+// mountAuthRateLimit attaches a Redis-backed per-user rate limiter to the
+// given group when redisCache is wired. No-op when Redis is unavailable
+// (graceful degradation — limiter is defense-in-depth on top of upstream
+// vendor throttles). Extracted helper so per-group rate-limit wiring does
+// not bloat main() cyclomatic complexity.
+func mountAuthRateLimit(group *gin.RouterGroup, redisCache *cache.RedisCache) {
+	if redisCache == nil {
+		return
+	}
+	limiter := middleware.LoadRateLimitConfig().GetAuthRateLimiter(redisCache.Client())
+	if limiter == nil {
+		return
+	}
+	group.Use(limiter.RateLimitMiddleware())
 }
