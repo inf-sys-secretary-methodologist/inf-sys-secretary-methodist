@@ -27,6 +27,15 @@ type ChatUseCaseOptions struct {
 	MoodUseCase     *MoodUseCase
 }
 
+// ErrConversationNotFound + ErrConversationAccessDenied sentinels live in
+// the domain repositories package (ai/domain/repositories) — see
+// conversation_repository.go. Re-exported here as aliases for tests and
+// usecase-package callers that want shorter qualified names. Issue #263 ADR-8.
+var (
+	ErrConversationNotFound     = repositories.ErrConversationNotFound
+	ErrConversationAccessDenied = repositories.ErrConversationAccessDenied
+)
+
 // ChatUseCase handles AI chat interactions
 type ChatUseCase struct {
 	conversationRepo    repositories.ConversationRepository
@@ -94,7 +103,7 @@ func (uc *ChatUseCase) Chat(ctx context.Context, userID int64, req *dto.SendMess
 			return nil, fmt.Errorf("failed to get conversation: %w", err)
 		}
 		if conversation.UserID != userID {
-			return nil, fmt.Errorf("unauthorized access to conversation")
+			return nil, ErrConversationAccessDenied
 		}
 	} else {
 		// Create new conversation with truncated message as title
@@ -243,7 +252,7 @@ func (uc *ChatUseCase) ChatStream(ctx context.Context, userID int64, req *dto.Se
 			return nil, fmt.Errorf("failed to get conversation: %w", err)
 		}
 		if conversation.UserID != userID {
-			return nil, fmt.Errorf("unauthorized access to conversation")
+			return nil, ErrConversationAccessDenied
 		}
 	} else {
 		title := req.Content
@@ -394,6 +403,27 @@ func buildSearchQuery(messages []entities.Message, currentQuery string) string {
 	return context.String()
 }
 
+// CreateConversation persists a brand-new conversation owned by userID. Per
+// issue #263 ADR-1: the previous handler-level shortcut returned the user's
+// first existing conversation as "newly created" and never called the repo —
+// API lied to clients. This method is the single source of truth; handlers
+// must delegate here. Empty title is replaced with a non-empty default so
+// the list view never shows a blank row. Empty model falls back to the
+// usecase's configured model name (matches Chat/ChatStream behavior).
+func (uc *ChatUseCase) CreateConversation(ctx context.Context, userID int64, title, model string) (*entities.Conversation, error) {
+	if title == "" {
+		title = "Новый чат"
+	}
+	if model == "" {
+		model = uc.modelName
+	}
+	conversation := entities.NewConversation(userID, title, model)
+	if err := uc.conversationRepo.Create(ctx, conversation); err != nil {
+		return nil, fmt.Errorf("create conversation: %w", err)
+	}
+	return conversation, nil
+}
+
 // GetConversations retrieves conversations for a user
 func (uc *ChatUseCase) GetConversations(ctx context.Context, userID int64, search string, limit, offset int) (*dto.ConversationListResponse, error) {
 	if limit <= 0 || limit > 100 {
@@ -438,7 +468,7 @@ func (uc *ChatUseCase) GetConversation(ctx context.Context, userID, conversation
 		return nil, fmt.Errorf("failed to get conversation: %w", err)
 	}
 	if conversation.UserID != userID {
-		return nil, fmt.Errorf("unauthorized access to conversation")
+		return nil, ErrConversationAccessDenied
 	}
 	return dto.ToConversationResponse(conversation), nil
 }
@@ -450,7 +480,7 @@ func (uc *ChatUseCase) UpdateConversation(ctx context.Context, userID, conversat
 		return nil, fmt.Errorf("failed to get conversation: %w", err)
 	}
 	if conversation.UserID != userID {
-		return nil, fmt.Errorf("unauthorized access to conversation")
+		return nil, ErrConversationAccessDenied
 	}
 
 	conversation.Title = req.Title
@@ -468,7 +498,7 @@ func (uc *ChatUseCase) DeleteConversation(ctx context.Context, userID, conversat
 		return fmt.Errorf("failed to get conversation: %w", err)
 	}
 	if conversation.UserID != userID {
-		return fmt.Errorf("unauthorized access to conversation")
+		return ErrConversationAccessDenied
 	}
 
 	if err := uc.messageRepo.DeleteByConversationID(ctx, conversationID); err != nil {
@@ -496,7 +526,7 @@ func (uc *ChatUseCase) GetMessages(ctx context.Context, userID, conversationID i
 		return nil, fmt.Errorf("failed to get conversation: %w", err)
 	}
 	if conversation.UserID != userID {
-		return nil, fmt.Errorf("unauthorized access to conversation")
+		return nil, ErrConversationAccessDenied
 	}
 
 	if limit <= 0 || limit > 100 {

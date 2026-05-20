@@ -18,7 +18,12 @@ import (
 const (
 	defaultOpenAIBaseURL        = "https://api.openai.com/v1"
 	defaultOpenAIEmbeddingModel = "text-embedding-3-small"
-	defaultOpenAIChatModel      = "gemini-2.5-flash"
+	// defaultOpenAIChatModel is the fallback when AI_CHAT_MODEL env var is
+	// unset. Issue #263 caught the prior "gemini-2.5-flash" value here — a
+	// Gemini model name leaked into the OpenAI provider, causing first
+	// /api/ai/chat to 4xx unless the env was set. gpt-4o-mini is the
+	// canonical OpenAI cheap/fast default at the time of this fix.
+	defaultOpenAIChatModel = "gpt-4o-mini"
 )
 
 // OpenAIConfig holds configuration for OpenAI API

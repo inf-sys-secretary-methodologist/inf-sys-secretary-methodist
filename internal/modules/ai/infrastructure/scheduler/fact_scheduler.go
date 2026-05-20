@@ -23,10 +23,16 @@ type FactScheduler struct {
 	personalityService *services.TelegramPersonalityService
 	telegramRepo       notifRepos.TelegramRepository
 	logger             *slog.Logger
+	serverCtx          context.Context
 }
 
-// NewFactScheduler creates a new FactScheduler
+// NewFactScheduler creates a new FactScheduler. serverCtx is the
+// application lifecycle context — when canceled (SIGTERM), the periodic
+// deliverDailyFact task derives its own ctx from it and short-circuits
+// rather than continuing with context.Background() (issue #263 ADR-4).
+// Pass context.Background() in tests for no-cancelation semantics.
 func NewFactScheduler(
+	serverCtx context.Context,
 	funFactUseCase *usecases.FunFactUseCase,
 	moodUseCase *usecases.MoodUseCase,
 	personalityService *services.TelegramPersonalityService,
@@ -45,6 +51,7 @@ func NewFactScheduler(
 		personalityService: personalityService,
 		telegramRepo:       telegramRepo,
 		logger:             logger,
+		serverCtx:          serverCtx,
 	}, nil
 }
 
@@ -70,7 +77,17 @@ func (fs *FactScheduler) Stop() error {
 }
 
 func (fs *FactScheduler) deliverDailyFact() {
-	ctx := context.Background()
+	// Derive task ctx from the application lifecycle ctx so a SIGTERM
+	// during a daily tick cancels in-flight work rather than running к
+	// completion on context.Background().
+	ctx := fs.serverCtx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		fs.logger.Info("fact scheduler tick skipped — server shutting down", "error", err)
+		return
+	}
 
 	// Get a random fact
 	fact, err := fs.funFactUseCase.GetRandomFact(ctx)
@@ -113,9 +130,19 @@ func (fs *FactScheduler) deliverDailyFact() {
 		}
 		sent++
 
-		// Rate limit: ~30 msg/sec (Telegram limit)
+		// Rate limit: ~30 msg/sec (Telegram limit). Use select so SIGTERM
+		// during the 1s sleep cuts the batch short instead of running к
+		// completion on a canceled ctx (issue #263 ADR-4 carry-forward).
 		if sent%25 == 0 {
-			time.Sleep(1 * time.Second)
+			select {
+			case <-time.After(time.Second):
+			case <-ctx.Done():
+				fs.logger.Info("fact batch interrupted — server shutting down",
+					"sent_so_far", sent,
+					"total_connections", len(connections),
+				)
+				return
+			}
 		}
 	}
 

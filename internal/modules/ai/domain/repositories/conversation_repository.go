@@ -3,8 +3,25 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
+)
+
+// Sentinel errors used across the conversation-flow boundary (handler →
+// usecase → repo). Issue #263 ADR-8: handlers translate ErrConversationNotFound
+// to HTTP 404 and ErrConversationAccessDenied to HTTP 403, replacing the
+// prior fmt.Errorf strings that collapsed everything to 500 (info disclosure
+// + wrong status). Sentinels live in the repository package so both the
+// persistence layer (returns NotFound) and the usecase layer (returns
+// AccessDenied after ownership check) can reference them without a circular
+// import.
+var (
+	// ErrConversationNotFound indicates the conversation ID does not exist.
+	ErrConversationNotFound = errors.New("conversation not found")
+	// ErrConversationAccessDenied indicates the caller does not own the
+	// conversation; handler translates to 403 Forbidden.
+	ErrConversationAccessDenied = errors.New("conversation access denied")
 )
 
 // ConversationRepository defines the interface for AI conversation persistence

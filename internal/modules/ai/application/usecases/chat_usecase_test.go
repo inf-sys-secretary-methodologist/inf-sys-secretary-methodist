@@ -410,7 +410,7 @@ func TestChat_UnauthorizedConversation(t *testing.T) {
 
 	resp, err := f.chatUseCase.Chat(ctx, int64(1), req)
 	assert.Nil(t, resp)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 func TestChat_GetConversationError(t *testing.T) {
@@ -694,7 +694,7 @@ func TestChatStream_ExistingConversation_Unauthorized(t *testing.T) {
 
 	resp, err := f.chatUseCase.ChatStream(context.Background(), 1, req, func(string) error { return nil })
 	assert.Nil(t, resp)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 func TestChatStream_GetConversationError(t *testing.T) {
@@ -940,7 +940,7 @@ func TestGetConversation_Unauthorized(t *testing.T) {
 
 	resp, err := f.chatUseCase.GetConversation(context.Background(), 1, 5)
 	assert.Nil(t, resp)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 // ============================================================
@@ -974,7 +974,7 @@ func TestUpdateConversation_Unauthorized(t *testing.T) {
 
 	resp, err := f.chatUseCase.UpdateConversation(context.Background(), 1, 5, &dto.UpdateConversationRequest{Title: "X"})
 	assert.Nil(t, resp)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 func TestUpdateConversation_UpdateError(t *testing.T) {
@@ -1014,7 +1014,7 @@ func TestDeleteConversation_Unauthorized(t *testing.T) {
 	f.convRepo.On("GetByID", int64(5)).Return(&entities.Conversation{ID: 5, UserID: 999}, nil)
 
 	err := f.chatUseCase.DeleteConversation(context.Background(), 1, 5)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 func TestDeleteConversation_DeleteMessagesError(t *testing.T) {
@@ -1082,7 +1082,7 @@ func TestGetMessages_Unauthorized(t *testing.T) {
 
 	resp, err := f.chatUseCase.GetMessages(context.Background(), 1, 5, 50, nil)
 	assert.Nil(t, resp)
-	assert.ErrorContains(t, err, "unauthorized access to conversation")
+	assert.ErrorIs(t, err, ErrConversationAccessDenied)
 }
 
 func TestGetMessages_ConversationError(t *testing.T) {
@@ -1550,4 +1550,69 @@ func TestChatStream_WithRAGContextInjection(t *testing.T) {
 	resp, err := f.chatUseCase.ChatStream(context.Background(), 1, req, func(string) error { return nil })
 	require.NoError(t, err)
 	assert.Equal(t, "Streamed with context", resp.Message.Content)
+}
+
+// ============================================================
+// Tests: CreateConversation (ADR-1, issue #263)
+// ============================================================
+
+// TestCreateConversation_PersistsViaRepo enforces the contract that
+// CreateConversation actually calls conversationRepo.Create with the supplied
+// title + model + userID. The previous handler-level "first existing
+// conversation as new" trick (ai_handler.go:268) had no test coverage —
+// invisible to CI. This test fixes that gap.
+func TestCreateConversation_PersistsViaRepo(t *testing.T) {
+	f := newChatTestFixture()
+	ctx := context.Background()
+	userID := int64(42)
+
+	f.convRepo.
+		On("Create", mock.MatchedBy(func(c *entities.Conversation) bool {
+			return c != nil && c.UserID == userID && c.Title == "Diploma Brainstorm" && c.Model == "gpt-4o-mini"
+		})).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			// Simulate DB-assigned ID
+			c := args.Get(0).(*entities.Conversation)
+			c.ID = 7
+		}).
+		Once()
+
+	conv, err := f.chatUseCase.CreateConversation(ctx, userID, "Diploma Brainstorm", "gpt-4o-mini")
+	require.NoError(t, err)
+	require.NotNil(t, conv)
+	assert.Equal(t, int64(7), conv.ID)
+	assert.Equal(t, userID, conv.UserID)
+	assert.Equal(t, "Diploma Brainstorm", conv.Title)
+	assert.Equal(t, "gpt-4o-mini", conv.Model)
+	f.convRepo.AssertExpectations(t)
+}
+
+func TestCreateConversation_RepoErrorPropagates(t *testing.T) {
+	f := newChatTestFixture()
+	repoErr := errors.New("db down")
+	f.convRepo.
+		On("Create", mock.AnythingOfType("*entities.Conversation")).
+		Return(repoErr).
+		Once()
+
+	_, err := f.chatUseCase.CreateConversation(context.Background(), 1, "x", "m")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, repoErr)
+}
+
+func TestCreateConversation_DefaultsTitleWhenBlank(t *testing.T) {
+	// Handler may pass empty title when client omits the field; usecase must
+	// supply a non-empty default rather than persist "" (poor UX in list view).
+	f := newChatTestFixture()
+	f.convRepo.
+		On("Create", mock.MatchedBy(func(c *entities.Conversation) bool {
+			return c.Title != ""
+		})).
+		Return(nil).
+		Once()
+
+	conv, err := f.chatUseCase.CreateConversation(context.Background(), 1, "", "m")
+	require.NoError(t, err)
+	assert.NotEmpty(t, conv.Title)
 }

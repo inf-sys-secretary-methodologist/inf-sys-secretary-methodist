@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -8,6 +9,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 )
 
 func init() {
@@ -292,4 +297,68 @@ func TestAIHandler_GetFact_ServiceUnavailable(t *testing.T) {
 
 	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 	assert.Contains(t, w.Body.String(), "fun facts not available")
+}
+
+// --- CreateConversation happy-path delegation (ADR-1 + reviewer Tier 1 #4) ---
+
+// fakeConvRepoCapture is a minimal ConversationRepository stub that captures
+// the Create call. Only Create is exercised here; other methods panic so
+// any future regression that exercises them surfaces immediately.
+type fakeConvRepoCapture struct {
+	created   *entities.Conversation
+	createErr error
+}
+
+func (f *fakeConvRepoCapture) Create(_ context.Context, c *entities.Conversation) error {
+	f.created = c
+	if f.createErr == nil {
+		c.ID = 42
+	}
+	return f.createErr
+}
+func (f *fakeConvRepoCapture) GetByID(_ context.Context, _ int64) (*entities.Conversation, error) {
+	panic("GetByID not expected in this test")
+}
+func (f *fakeConvRepoCapture) GetByUserID(_ context.Context, _ int64, _, _ int) ([]entities.Conversation, int, error) {
+	panic("GetByUserID not expected in this test")
+}
+func (f *fakeConvRepoCapture) Update(_ context.Context, _ *entities.Conversation) error {
+	panic("Update not expected in this test")
+}
+func (f *fakeConvRepoCapture) Delete(_ context.Context, _ int64) error {
+	panic("Delete not expected in this test")
+}
+func (f *fakeConvRepoCapture) Search(_ context.Context, _ int64, _ string, _, _ int) ([]entities.Conversation, int, error) {
+	panic("Search not expected in this test")
+}
+
+// TestAIHandler_CreateConversation_DelegatesToUseCase pins the contract
+// that the handler routes through ChatUseCase.CreateConversation (which
+// persists via repo.Create) rather than reproducing the v0.154-era
+// shortcut that returned the user's first existing conversation. Without
+// this test a future regression that re-introduces the shortcut goes
+// undetected — exactly the gap reviewer flagged.
+func TestAIHandler_CreateConversation_DelegatesToUseCase(t *testing.T) {
+	repo := &fakeConvRepoCapture{}
+	// Build real ChatUseCase with only the conversationRepo wired —
+	// CreateConversation does not touch the other deps.
+	uc := usecases.NewChatUseCase(repo, nil, nil, nil, nil, nil, nil)
+	handler := &AIHandler{chatUseCase: uc}
+
+	r := gin.New()
+	r.POST("/ai/conversations", func(c *gin.Context) {
+		c.Set("user_id", int64(7))
+		handler.CreateConversation(c)
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/ai/conversations", strings.NewReader(`{"title":"Diploma defense prep"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusCreated, w.Code)
+	require.NotNil(t, repo.created, "handler must delegate to usecase and repo.Create must run")
+	assert.Equal(t, int64(7), repo.created.UserID)
+	assert.Equal(t, "Diploma defense prep", repo.created.Title)
+	assert.Contains(t, w.Body.String(), `"id":42`, "response body must echo persisted conversation including DB-assigned ID")
 }

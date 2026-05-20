@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,11 +13,49 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // errorKey is the gin.H field name for error payloads. Extracted to satisfy goconst (35+ occurrences).
 const errorKey = "error"
+
+// getAuthedUserID reads the authenticated user_id from the gin context with
+// a safe type assertion. On missing key or wrong type the handler responds
+// 401 unauthorized and returns ok=false so callers can short-circuit.
+// Closes the silent-zero pattern (uid := userID.(int64) ignoring ok) across
+// all 8 chat-flow handlers — issue #263 ADR-7 acceptance criterion.
+func getAuthedUserID(c *gin.Context) (int64, bool) {
+	raw, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		return 0, false
+	}
+	uid, ok := raw.(int64)
+	if !ok || uid <= 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		return 0, false
+	}
+	return uid, true
+}
+
+// respondChatError maps chat-flow errors to the appropriate HTTP status,
+// returning a generic message instead of raw err.Error() (no info disclosure
+// of PG error wording / query fragments). Issue #263 ADR-8.
+//
+//   - repositories.ErrConversationNotFound → 404
+//   - repositories.ErrConversationAccessDenied → 403
+//   - everything else → 500 with "internal server error"
+func respondChatError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, repositories.ErrConversationNotFound):
+		c.JSON(http.StatusNotFound, gin.H{errorKey: "conversation not found"})
+	case errors.Is(err, repositories.ErrConversationAccessDenied):
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "access denied"})
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "internal server error"})
+	}
+}
 
 // AIHandler handles AI-related HTTP requests
 type AIHandler struct {
@@ -84,9 +123,8 @@ func (h *AIHandler) RegisterRoutes(rg *gin.RouterGroup) {
 // @Success 200 {object} dto.ChatResponse
 // @Router /api/ai/chat [post]
 func (h *AIHandler) Chat(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+	uid, ok := getAuthedUserID(c)
+	if !ok {
 		return
 	}
 
@@ -96,10 +134,9 @@ func (h *AIHandler) Chat(c *gin.Context) {
 		return
 	}
 
-	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.Chat(c.Request.Context(), uid, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
+		respondChatError(c, err)
 		return
 	}
 
@@ -119,9 +156,8 @@ func (h *AIHandler) Chat(c *gin.Context) {
 // @Success 200 {string} string "SSE stream"
 // @Router /api/ai/chat/stream [get]
 func (h *AIHandler) ChatStream(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+	uid, ok := getAuthedUserID(c)
+	if !ok {
 		return
 	}
 
@@ -180,7 +216,6 @@ func (h *AIHandler) ChatStream(c *gin.Context) {
 		return sendEvent(map[string]any{"type": "content", "content": chunk})
 	}
 
-	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.ChatStream(c.Request.Context(), uid, req, onChunk)
 	if err != nil {
 		_ = sendEvent(map[string]any{"type": "error", errorKey: err.Error()})
@@ -221,9 +256,8 @@ func (h *AIHandler) ChatStream(c *gin.Context) {
 // @Success 200 {object} dto.ConversationListResponse
 // @Router /api/ai/conversations [get]
 func (h *AIHandler) ListConversations(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+	uid, ok := getAuthedUserID(c)
+	if !ok {
 		return
 	}
 
@@ -231,10 +265,9 @@ func (h *AIHandler) ListConversations(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.GetConversations(c.Request.Context(), uid, search, limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "internal server error"})
 		return
 	}
 
@@ -251,33 +284,22 @@ func (h *AIHandler) ListConversations(c *gin.Context) {
 // @Success 201 {object} dto.ConversationResponse
 // @Router /api/ai/conversations [post]
 func (h *AIHandler) CreateConversation(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+	uid, ok := getAuthedUserID(c)
+	if !ok {
 		return
 	}
 
 	var req dto.CreateConversationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		// Allow empty body for auto-generated title
-		req = dto.CreateConversationRequest{Title: "New Conversation"}
-	}
+	// Empty body is allowed; usecase supplies default title.
+	_ = c.ShouldBindJSON(&req)
 
-	// Use chat use case to create via conversation repo
-	uid, _ := userID.(int64)
-	response, err := h.chatUseCase.GetConversations(c.Request.Context(), uid, "", 1, 0)
+	conversation, err := h.chatUseCase.CreateConversation(c.Request.Context(), uid, req.Title, "")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to create conversation"})
 		return
 	}
 
-	// For now, return the first conversation or create via chat
-	if len(response.Conversations) > 0 {
-		c.JSON(http.StatusCreated, gin.H{"success": true, "data": response.Conversations[0]})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": dto.ConversationResponse{Title: req.Title}})
+	c.JSON(http.StatusCreated, gin.H{"success": true, "data": dto.ToConversationResponse(conversation)})
 }
 
 // GetConversation handles getting a single conversation
@@ -289,9 +311,8 @@ func (h *AIHandler) CreateConversation(c *gin.Context) {
 // @Success 200 {object} dto.ConversationResponse
 // @Router /api/ai/conversations/{id} [get]
 func (h *AIHandler) GetConversation(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+	uid, ok := getAuthedUserID(c)
+	if !ok {
 		return
 	}
 
@@ -301,10 +322,9 @@ func (h *AIHandler) GetConversation(c *gin.Context) {
 		return
 	}
 
-	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.GetConversation(c.Request.Context(), uid, conversationID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{errorKey: err.Error()})
+		respondChatError(c, err)
 		return
 	}
 
@@ -322,9 +342,8 @@ func (h *AIHandler) GetConversation(c *gin.Context) {
 // @Success 200 {object} dto.ConversationResponse
 // @Router /api/ai/conversations/{id} [patch]
 func (h *AIHandler) UpdateConversation(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+	uid, ok := getAuthedUserID(c)
+	if !ok {
 		return
 	}
 
@@ -340,10 +359,9 @@ func (h *AIHandler) UpdateConversation(c *gin.Context) {
 		return
 	}
 
-	uid, _ := userID.(int64)
 	response, err := h.chatUseCase.UpdateConversation(c.Request.Context(), uid, conversationID, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
+		respondChatError(c, err)
 		return
 	}
 
@@ -358,9 +376,8 @@ func (h *AIHandler) UpdateConversation(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Router /api/ai/conversations/{id} [delete]
 func (h *AIHandler) DeleteConversation(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+	uid, ok := getAuthedUserID(c)
+	if !ok {
 		return
 	}
 
@@ -370,8 +387,8 @@ func (h *AIHandler) DeleteConversation(c *gin.Context) {
 		return
 	}
 
-	if err := h.chatUseCase.DeleteConversation(c.Request.Context(), userID.(int64), conversationID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
+	if err := h.chatUseCase.DeleteConversation(c.Request.Context(), uid, conversationID); err != nil {
+		respondChatError(c, err)
 		return
 	}
 
@@ -389,9 +406,8 @@ func (h *AIHandler) DeleteConversation(c *gin.Context) {
 // @Success 200 {object} dto.MessageListResponse
 // @Router /api/ai/conversations/{id}/messages [get]
 func (h *AIHandler) GetMessages(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+	uid, ok := getAuthedUserID(c)
+	if !ok {
 		return
 	}
 
@@ -410,9 +426,9 @@ func (h *AIHandler) GetMessages(c *gin.Context) {
 		}
 	}
 
-	response, err := h.chatUseCase.GetMessages(c.Request.Context(), userID.(int64), conversationID, limit, beforeID)
+	response, err := h.chatUseCase.GetMessages(c.Request.Context(), uid, conversationID, limit, beforeID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
+		respondChatError(c, err)
 		return
 	}
 

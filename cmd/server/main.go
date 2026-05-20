@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.154.0
+// @version         0.155.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -175,7 +175,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.154.0"
+const versionString = "0.155.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -220,6 +220,15 @@ func main() {
 	}
 
 	initSentry(cfg)
+
+	// serverCtx is the application lifecycle context. Background goroutines
+	// and schedulers derive their tick contexts from it so SIGTERM cancels
+	// in-flight work instead of letting it run to completion on
+	// context.Background(). Canceled explicitly in the graceful-shutdown
+	// branch before any scheduler.Stop() calls (see issue #263 ADR-4); no
+	// defer here because log.Fatalf paths above can exit before any work
+	// using the ctx kicks off.
+	serverCtx, cancelServerCtx := context.WithCancel(context.Background())
 
 	// Initialize logger
 	logger := logging.NewLogger(cfg.Log.Level)
@@ -924,6 +933,12 @@ func main() {
 	}
 
 	// Initialize AI module (RAG/Chat functionality)
+	// AI schedulers hoisted к outer scope so the graceful-shutdown branch
+	// can call Stop() on them (issue #263 ADR-4 — closes goroutine leak via
+	// gocron.Shutdown on SIGTERM). Both stay nil when cfg.AI.Enabled is false.
+	var aiFactScheduler *aiScheduler.FactScheduler
+	var aiIndexingScheduler *aiScheduler.IndexingScheduler
+
 	if cfg.AI.Enabled {
 		// Initialize AI repositories
 		aiEmbeddingRepo := aiPersistence.NewEmbeddingRepositoryPg(db)
@@ -1131,6 +1146,7 @@ func main() {
 		// Initialize fact scheduler for daily fact delivery
 		if telegramPersonalityService != nil {
 			factScheduler, err := aiScheduler.NewFactScheduler(
+				serverCtx,
 				funFactUseCase,
 				moodUseCase,
 				telegramPersonalityService,
@@ -1144,12 +1160,14 @@ func main() {
 					logger.Warn("Failed to start fact scheduler", map[string]interface{}{errorKey: err.Error()})
 				} else {
 					logger.Info("Fact scheduler started", nil)
+					aiFactScheduler = factScheduler
 				}
 			}
 		}
 
 		// Initialize indexing scheduler for automatic document indexing
 		indexingScheduler, err := aiScheduler.NewIndexingScheduler(
+			serverCtx,
 			aiEmbeddingUseCase,
 			10,
 			slog.Default(),
@@ -1161,15 +1179,21 @@ func main() {
 				logger.Warn("Failed to start indexing scheduler", map[string]interface{}{errorKey: err.Error()})
 			} else {
 				logger.Info("Indexing scheduler started", nil)
+				aiIndexingScheduler = indexingScheduler
 			}
 		}
 
 		// Initialize AI handler
 		aiHandlerInstance := aiHandler.NewAIHandler(aiChatUseCase, aiEmbeddingUseCase, moodUseCase, funFactUseCase, auditLogger)
 
-		// Register AI routes under protected API group
+		// Register AI routes under protected API group. Per-user rate limit
+		// applied after JWT so the bucket key is the authenticated identity
+		// (issue #263 ADR-3 — closes token-cost flood DoS surface; the
+		// outbound Anthropic sliding-window limiter in anthropic_provider.go
+		// is vendor-side and gated all users together).
 		aiAPIGroup := router.Group("/api")
 		aiAPIGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
+		mountPerUserRateLimit(aiAPIGroup, redisCache)
 		aiHandlerInstance.RegisterRoutes(aiAPIGroup)
 
 		logger.Info("AI module initialized", map[string]interface{}{
@@ -1209,6 +1233,14 @@ func main() {
 	<-quit
 
 	logger.Info("Server shutting down...", nil)
+
+	// Cancel the lifecycle ctx first so scheduler tick bodies that have
+	// captured it short-circuit on the next ctx.Err() check (issue #263 ADR-4).
+	cancelServerCtx()
+
+	// Stop AI schedulers (no-op when nil — cfg.AI.Enabled was false).
+	stopAIScheduler(aiFactScheduler, "fact", logger)
+	stopAIScheduler(aiIndexingScheduler, "indexing", logger)
 
 	// Stop Telegram polling if running
 	if telegramPollingService != nil {
@@ -3251,4 +3283,47 @@ func stopTaskReminderScheduler(scheduler *notifScheduler.TaskReminderScheduler, 
 			errorKey: err.Error(),
 		})
 	}
+}
+
+// aiSchedulerStopper is the narrow interface satisfied by both AI schedulers
+// (FactScheduler + IndexingScheduler). Lets stopAIScheduler accept either
+// concrete type without reflection or per-type branches.
+type aiSchedulerStopper interface {
+	Stop() error
+}
+
+// stopAIScheduler wraps the nil-safe Stop() call + error log used by both
+// AI schedulers (fact + indexing). kind is a free-form label used in the
+// log message for forensics. Issue #263 ADR-4.
+func stopAIScheduler(s aiSchedulerStopper, kind string, logger *logging.Logger) {
+	if s == nil {
+		return
+	}
+	if err := s.Stop(); err != nil {
+		logger.Error("Failed to stop AI scheduler", map[string]interface{}{
+			"kind":   kind,
+			errorKey: err.Error(),
+		})
+	} else {
+		logger.Info("AI scheduler stopped", map[string]interface{}{"kind": kind})
+	}
+}
+
+// mountPerUserRateLimit attaches a Redis-backed per-user rate limiter to
+// the given group when redisCache is wired. The bucket key is the
+// authenticated user_id ctx value (set by JWT middleware), so NAT'd
+// students do not share a bucket — important for dollar-cost endpoints
+// like /api/ai/chat where outbound LLM-provider throttling alone is
+// insufficient. No-op when Redis is unavailable (graceful degradation).
+// Must be mounted AFTER JWTMiddleware so user_id ctx value is set.
+// Issue #263 ADR-3.
+func mountPerUserRateLimit(group *gin.RouterGroup, redisCache *cache.RedisCache) {
+	if redisCache == nil {
+		return
+	}
+	limiter := middleware.LoadRateLimitConfig().GetAuthRateLimiter(redisCache.Client())
+	if limiter == nil {
+		return
+	}
+	group.Use(limiter.RateLimitByUserMiddleware())
 }

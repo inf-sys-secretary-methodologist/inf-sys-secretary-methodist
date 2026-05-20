@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"testing"
@@ -35,14 +36,14 @@ func TestNewFactScheduler_HappyPath(t *testing.T) {
 	// All use-case pointers can be nil — constructor only stores them;
 	// they're only dereferenced inside deliverDailyFact (which our cron
 	// schedule "0 9 * * *" never fires during the test window).
-	fs, err := NewFactScheduler(nil, nil, nil, nil, quietLogger())
+	fs, err := NewFactScheduler(context.Background(), nil, nil, nil, nil, quietLogger())
 	require.NoError(t, err)
 	require.NotNil(t, fs)
 	require.NotNil(t, fs.scheduler, "internal gocron scheduler must be wired")
 }
 
 func TestFactScheduler_StartStop(t *testing.T) {
-	fs, err := NewFactScheduler(nil, nil, nil, nil, quietLogger())
+	fs, err := NewFactScheduler(context.Background(), nil, nil, nil, nil, quietLogger())
 	require.NoError(t, err)
 
 	require.NoError(t, fs.Start(), "Start с valid cron must not error")
@@ -54,7 +55,7 @@ func TestFactScheduler_StartStop(t *testing.T) {
 // --- IndexingScheduler ---
 
 func TestNewIndexingScheduler_HappyPath(t *testing.T) {
-	is, err := NewIndexingScheduler(nil, 25, quietLogger())
+	is, err := NewIndexingScheduler(context.Background(), nil, 25, quietLogger())
 	require.NoError(t, err)
 	require.NotNil(t, is)
 	assert.Equal(t, 25, is.batchSize, "explicit batchSize must be preserved")
@@ -72,7 +73,7 @@ func TestNewIndexingScheduler_DefaultBatchSize(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			is, err := NewIndexingScheduler(nil, tc.inSize, quietLogger())
+			is, err := NewIndexingScheduler(context.Background(), nil, tc.inSize, quietLogger())
 			require.NoError(t, err)
 			assert.Equal(t, tc.wantBatch, is.batchSize)
 		})
@@ -80,10 +81,38 @@ func TestNewIndexingScheduler_DefaultBatchSize(t *testing.T) {
 }
 
 func TestIndexingScheduler_StartStop(t *testing.T) {
-	is, err := NewIndexingScheduler(nil, 10, quietLogger())
+	is, err := NewIndexingScheduler(context.Background(), nil, 10, quietLogger())
 	require.NoError(t, err)
 
 	require.NoError(t, is.Start())
 	time.Sleep(20 * time.Millisecond)
 	assert.NoError(t, is.Stop())
+}
+
+// TestFactScheduler_TickShortCircuitsOnCanceledCtx pins the lifecycle-ctx
+// contract from issue #263 ADR-4: when serverCtx is canceled, the next
+// scheduler tick body must short-circuit on ctx.Err() before touching any
+// nil dependency. If a future refactor drops the ctx.Err() check the
+// test will panic on the nil funFactUseCase deref instead of returning
+// cleanly.
+func TestFactScheduler_TickShortCircuitsOnCanceledCtx(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // canceled before any tick
+
+	fs, err := NewFactScheduler(ctx, nil, nil, nil, nil, quietLogger())
+	require.NoError(t, err)
+
+	// Invoke the tick directly. Without the ctx.Err() guard this would
+	// dereference the nil funFactUseCase and panic.
+	assert.NotPanics(t, func() { fs.deliverDailyFact() })
+}
+
+func TestIndexingScheduler_TickShortCircuitsOnCanceledCtx(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	is, err := NewIndexingScheduler(ctx, nil, 10, quietLogger())
+	require.NoError(t, err)
+
+	assert.NotPanics(t, func() { is.indexPendingDocuments() })
 }

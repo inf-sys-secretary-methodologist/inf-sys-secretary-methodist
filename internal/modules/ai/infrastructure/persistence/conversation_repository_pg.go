@@ -64,7 +64,7 @@ func (r *ConversationRepositoryPg) GetByID(ctx context.Context, id int64) (*enti
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("conversation not found")
+		return nil, repositories.ErrConversationNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get conversation: %w", err)
