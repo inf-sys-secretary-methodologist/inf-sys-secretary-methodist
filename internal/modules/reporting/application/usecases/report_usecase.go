@@ -23,6 +23,12 @@ var (
 	ErrUnauthorized       = errors.New("unauthorized")
 	ErrCannotModifyReport = errors.New("cannot modify report in current status")
 	ErrInvalidInput       = errors.New("invalid input")
+	// ErrGenerationNotImplemented is returned by Generate until a real
+	// document renderer is wired (post-v1.0.0). Closes the "shipped fake
+	// generation endpoint" Tier 1 finding from issue #260 — Generate
+	// previously kicked off a sleep-2s goroutine that lied to clients about
+	// a non-existent file. Handler maps this sentinel to HTTP 501.
+	ErrGenerationNotImplemented = errors.New("report generation not implemented")
 )
 
 // ReportUseCase handles report business logic

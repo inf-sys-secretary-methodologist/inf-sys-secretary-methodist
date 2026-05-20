@@ -886,6 +886,25 @@ func TestReportUseCase_Generate(t *testing.T) {
 		_, err := uc.Generate(context.Background(), 1, 1, nil)
 		assert.Error(t, err)
 	})
+
+	// New contract per issue #260: authorized owner of a draft report receives
+	// ErrGenerationNotImplemented (handler maps to HTTP 501). The previous
+	// fake-generation goroutine has been removed; auth + not-found gates still
+	// fire before this sentinel so the table tests above remain valid.
+	t.Run("authorized owner gets ErrGenerationNotImplemented", func(t *testing.T) {
+		uc, rr, _ := newReportUC()
+		r := &entities.Report{ID: 1, AuthorID: 1, Status: domain.ReportStatusDraft}
+		rr.On("GetByID", mock.Anything, int64(1)).Return(r, nil).Once()
+		// Permit the legacy code path's mock calls so the test fails on the
+		// final assertion rather than panicking on an un-mocked call.
+		rr.On("CreateGenerationLog", mock.Anything, mock.AnythingOfType("*entities.ReportGenerationLog")).Return(nil).Maybe()
+		rr.On("Save", mock.Anything, mock.AnythingOfType("*entities.Report")).Return(nil).Maybe()
+		rr.On("UpdateGenerationLog", mock.Anything, mock.AnythingOfType("*entities.ReportGenerationLog")).Return(nil).Maybe()
+		rr.On("AddHistory", mock.Anything, mock.AnythingOfType("*entities.ReportHistory")).Return(nil).Maybe()
+
+		_, err := uc.Generate(context.Background(), 1, 1, nil)
+		assert.ErrorIs(t, err, ErrGenerationNotImplemented)
+	})
 }
 
 // =============================================================================
