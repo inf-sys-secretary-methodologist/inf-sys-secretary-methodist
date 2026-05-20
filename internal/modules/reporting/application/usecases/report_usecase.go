@@ -298,8 +298,13 @@ func (uc *ReportUseCase) List(ctx context.Context, _ int64, input *dto.ReportFil
 	}, nil
 }
 
-// Generate starts report generation process
-func (uc *ReportUseCase) Generate(ctx context.Context, id, userID int64, input *dto.GenerateReportInput) (*dto.ReportOutput, error) {
+// Generate runs the not-implemented gate per issue #260 ADR-4. Authorization
+// and not-found checks fire first so callers cannot probe report ownership
+// via a 501 response, then ErrGenerationNotImplemented is returned. A real
+// document renderer (extracted from reports/annual/infrastructure/docxgen)
+// is queued for post-v1.0.0 work. The audit-log entry records the attempt
+// for forensics.
+func (uc *ReportUseCase) Generate(ctx context.Context, id, userID int64, _ *dto.GenerateReportInput) (*dto.ReportOutput, error) {
 	report, err := uc.reportRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get report: %w", err)
@@ -308,70 +313,12 @@ func (uc *ReportUseCase) Generate(ctx context.Context, id, userID int64, input *
 		return nil, ErrReportNotFound
 	}
 
-	// Check authorization
 	if report.AuthorID != userID {
 		return nil, ErrUnauthorized
 	}
 
-	// Update parameters if provided
-	if input != nil && input.Parameters != nil {
-		if err := report.SetParameters(input.Parameters); err != nil {
-			return nil, fmt.Errorf("failed to set parameters: %w", err)
-		}
-	}
-
-	// Start generation
-	if err := report.StartGeneration(); err != nil {
-		return nil, err
-	}
-
-	// Create generation log
-	genLog := entities.NewReportGenerationLog(report.ID)
-	if err := uc.reportRepo.CreateGenerationLog(ctx, genLog); err != nil {
-		return nil, fmt.Errorf("failed to create generation log: %w", err)
-	}
-
-	// Save report status
-	if err := uc.reportRepo.Save(ctx, report); err != nil {
-		return nil, fmt.Errorf("failed to save report: %w", err)
-	}
-
-	// Report generation runs asynchronously.
-	// Currently uses simulation; replace with actual generation when report templates are ready.
-	go uc.simulateGeneration(context.Background(), report, genLog, userID) // #nosec G118 -- fire-and-forget goroutine outlives request
-
-	uc.logAudit(ctx, "generate_report", userID, report.ID, nil)
-
-	return dto.ToReportOutput(report), nil
-}
-
-// simulateGeneration simulates report generation (placeholder for actual implementation)
-func (uc *ReportUseCase) simulateGeneration(ctx context.Context, report *entities.Report, genLog *entities.ReportGenerationLog, userID int64) {
-	// Simulate processing time
-	time.Sleep(2 * time.Second)
-
-	// Set sample data
-	sampleData := map[string]interface{}{
-		"generated_at": time.Now().Format(time.RFC3339),
-		"records":      100,
-		"summary":      "Report generated successfully",
-	}
-	_ = report.SetData(sampleData)
-
-	// Complete generation (without file for now)
-	// In real implementation, this would generate actual file
-	fileName := fmt.Sprintf("report_%d_%s.pdf", report.ID, time.Now().Format("20060102_150405"))
-	_ = report.CompleteGeneration(fileName, "reports/"+fileName, 0, "application/pdf")
-	_ = uc.reportRepo.Save(ctx, report)
-
-	// Update generation log
-	genLog.Complete(100)
-	_ = uc.reportRepo.UpdateGenerationLog(ctx, genLog)
-
-	// Add history
-	history := entities.NewReportHistory(report.ID, &userID, entities.ReportActionUpdated)
-	_ = history.SetDetails(map[string]string{"action": "generation_completed"})
-	_ = uc.reportRepo.AddHistory(ctx, history)
+	uc.logAudit(ctx, "generate_report_not_implemented", userID, report.ID, nil)
+	return nil, ErrGenerationNotImplemented
 }
 
 // SubmitForReview submits a report for review
