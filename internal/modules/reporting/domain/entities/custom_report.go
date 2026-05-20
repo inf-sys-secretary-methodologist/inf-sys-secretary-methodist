@@ -3,6 +3,7 @@ package entities
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"time"
 
@@ -203,13 +204,24 @@ func NewCustomReport(name string, description string, dataSource DataSourceType,
 	}
 }
 
+// validateFields runs SelectedField.Validate on every entry, wrapping the
+// returned error with the offending index for diagnostics.
+func validateFields(fields []SelectedField) error {
+	for i, f := range fields {
+		if err := f.Validate(); err != nil {
+			return fmt.Errorf("field[%d]: %w", i, err)
+		}
+	}
+	return nil
+}
+
 // SetFields sets the selected fields for the report. Returns ErrInvalidAlias
-// if any field carries an Alias that fails the safe-identifier whitelist —
-// the aggregate is left untouched on failure.
-//
-// Stub: accepts everything until GREEN commit wires the per-field validation
-// (see plan ADR-1 layer 1).
+// (wrapped with the offending index) if any field carries an Alias that fails
+// the safe-identifier whitelist — the aggregate is left untouched on failure.
 func (r *CustomReport) SetFields(fields []SelectedField) error {
+	if err := validateFields(fields); err != nil {
+		return err
+	}
 	r.Fields = fields
 	r.UpdatedAt = time.Now()
 	return nil
@@ -259,9 +271,21 @@ func (r *CustomReport) GetSortingsJSON() ([]byte, error) {
 	return json.Marshal(r.Sortings)
 }
 
-// SetFieldsFromJSON sets fields from JSON bytes
+// SetFieldsFromJSON sets fields from JSON bytes. Per ADR-1 layer 2 the
+// per-field whitelist applies on the read path too — corrupt or pre-fix DB
+// rows surface as ErrInvalidAlias rather than silently feeding the query
+// builder. UpdatedAt is intentionally not touched: this is a reconstitution
+// path, not a domain write.
 func (r *CustomReport) SetFieldsFromJSON(data []byte) error {
-	return json.Unmarshal(data, &r.Fields)
+	var parsed []SelectedField
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return err
+	}
+	if err := validateFields(parsed); err != nil {
+		return err
+	}
+	r.Fields = parsed
+	return nil
 }
 
 // SetFiltersFromJSON sets filters from JSON bytes

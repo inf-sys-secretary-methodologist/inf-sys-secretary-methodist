@@ -62,7 +62,9 @@ func (uc *CustomReportUseCase) Create(ctx context.Context, input dto.CreateCusto
 
 	// Create entity
 	report := entities.NewCustomReport(input.Name, input.Description, dataSource, userID)
-	report.SetFields(dto.ToSelectedFields(input.Fields))
+	if err := report.SetFields(dto.ToSelectedFields(input.Fields)); err != nil {
+		return dto.CustomReportOutput{}, err
+	}
 	report.SetFilters(dto.ToReportFilters(input.Filters))
 	report.SetGroupings(dto.ToReportGroupings(input.Groupings))
 	report.SetSortings(dto.ToReportSortings(input.Sortings))
@@ -127,7 +129,9 @@ func (uc *CustomReportUseCase) Update(ctx context.Context, id uuid.UUID, input d
 		if len(input.Fields) == 0 {
 			return dto.CustomReportOutput{}, ErrInvalidFields
 		}
-		report.SetFields(dto.ToSelectedFields(input.Fields))
+		if err := report.SetFields(dto.ToSelectedFields(input.Fields)); err != nil {
+			return dto.CustomReportOutput{}, err
+		}
 	}
 	if input.Filters != nil {
 		report.SetFilters(dto.ToReportFilters(input.Filters))
