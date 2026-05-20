@@ -1,8 +1,18 @@
 # Роли и пользовательские потоки
 
-> **Версия проекта:** 0.157.0 (см. `VERSION` в корне)
-> **Состояние на:** 20 мая 2026 — **v1.0.0 path opens** (batch 1 audit fully closed: reporting #260 + ai #263 + documents #266 + curriculum #269 Tier 1 shipped; next = batches 2-4 reviews → v1.0.0 Final tag), **Phase 6 #196 CLOSED** (backend coverage 90.2%, strict > 90.0% ✅), **5-phase Documents workflow pack #227 CLOSED** end-to-end, **#41 Workflow automation CLOSED**, **Phase 5 admin observability CLOSED** (audit logs + backup + sentry + integrations + composio + branding), **B-feature triad CLOSED** (curriculum + assignments + B4 annual report), **MFA полностью end-to-end UI**.
+> **Версия проекта:** 0.157.1 (см. `VERSION` в корне)
+> **Состояние на:** 20 мая 2026 — **v1.0.0 path opens** (batch 1 audit fully closed + ADR-1 polish closed: reporting #260 + ai #263 + documents #266 + curriculum #269 Tier 1 + curriculum DIP polish; next = batches 2-4 reviews → v1.0.0 Final tag), **Phase 6 #196 CLOSED** (backend coverage 90.2%, strict > 90.0% ✅), **5-phase Documents workflow pack #227 CLOSED** end-to-end, **#41 Workflow automation CLOSED**, **Phase 5 admin observability CLOSED** (audit logs + backup + sentry + integrations + composio + branding), **B-feature triad CLOSED** (curriculum + assignments + B4 annual report), **MFA полностью end-to-end UI**.
 > **Источники:** код (`internal/modules/auth/domain/`, `frontend/src/lib/auth/`, `frontend/src/config/navigation.ts`), GitHub issues, `.taskmaster/`, `CHANGELOG.md`, история релизов в GitHub Releases.
+
+> **Изменения с 0.157.0 по 0.157.1 (curriculum DIP polish — closes ADR-1 carry-forward от #269)**:
+>
+> - **v0.157.1 curriculum DIP cleanup chore release** — mechanical refactor per CLAUDE.md gate ("Repository interfaces — в пакете-потребителе (`usecase/`), НЕ в `domain/`"). Закрывает ADR-1 carry-forward от v0.157.0 hotfix #269 (deferred к polish patch по precedent v0.155 ADR-5 → v0.155.1).
+>   - **5 wide repository ports relocated**: `CurriculumRepository`, `SectionRepository`, `DisciplineItemRepository`, `BulkDisciplineItemsUnitOfWork`, `BulkDisciplineItemsTx` — из `internal/modules/curriculum/domain/repositories/` к single consolidated `internal/modules/curriculum/application/usecases/repository_interfaces.go`. Zero behavior change.
+>   - **Sentinels + query DTOs остаются в `domain/repositories/`** (intentional): sentinels `ErrCurriculumNotFound`/`ErrCurriculumCodeExists`/`ErrCurriculumVersionConflict`/`ErrSection*`/`ErrDisciplineItem*`/`ErrBulkTxFinished` — domain values; query DTOs `CurriculumListFilter`/`CurriculumListResult`/`CurriculumYearSpecialtyAgg`/`DisciplineItemHoursAgg` — потребляются cross-module `reports/annual` (producer-module DTO ownership pattern).
+>   - **13 qualified reference sites updated** (plan doc undercount 9 → refined к 13 в exec): 4 в `infrastructure/persistence/bulk_unit_of_work_pg.go` (Begin + Items/Sections/Curricula accessor returns), 1 в `application/usecases/bulk_edit_discipline_items_usecase.go` (narrow-port Begin return), 8 в `bulk_edit_discipline_items_usecase_test.go` (collapsed к unqualified, same-package).
+>   - **Tier 2 absorbs в release commit** (per `feedback_tier2_absorb_same_release`): (a) plan doc count fix; (b) docstring slip в `repository_interfaces.go` header; (c) **4 compile-time `var _ usecases.<Port> = (*XxxPG)(nil)` assertions** в `*_pg.go` files — signature drift catches at infra compile site, не at DI wiring.
+>   - Reviewer single-pass SHIP mean 8.78/10 (post-absorb ~9.0+). См. `docs/plans/2026-05-20-v0157-1-dip-cleanup.md`.
+> - **Batch 1 v1.0.0 audit line completely closed** (4 модуля Tier 1 + ADR-1 polish). Next milestone: batches 2-4 reviews для 13 remaining modules.
 
 > **Изменения с 0.156.0 по 0.157.0 (batch 1 audit hotfix #4 — curriculum module, partial)**:
 >
