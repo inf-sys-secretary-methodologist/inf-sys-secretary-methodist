@@ -922,9 +922,67 @@ func TestNewCustomReport(t *testing.T) {
 func TestCustomReport_SetFields(t *testing.T) {
 	cr := NewCustomReport("Report", "", DataSourceDocuments, 1)
 	fields := []SelectedField{{Order: 1}}
-	cr.SetFields(fields)
+	if err := cr.SetFields(fields); err != nil {
+		t.Fatalf("SetFields returned %v, want nil", err)
+	}
 	if len(cr.Fields) != 1 {
 		t.Errorf("expected 1 field, got %d", len(cr.Fields))
+	}
+}
+
+// TestCustomReport_SetFields_RejectsInvalidAlias closes ADR-1 layer 1 (domain
+// write path). Per plan #260 the aggregate must refuse to store fields whose
+// Alias would slip past dynamic_query_builder.go safety.
+func TestCustomReport_SetFields_RejectsInvalidAlias(t *testing.T) {
+	tests := []struct {
+		name   string
+		fields []SelectedField
+	}{
+		{
+			name: "single_bad_field",
+			fields: []SelectedField{
+				{Order: 1, Alias: `x"; DROP TABLE users; --`},
+			},
+		},
+		{
+			name: "second_field_bad",
+			fields: []SelectedField{
+				{Order: 1, Alias: "safe"},
+				{Order: 2, Alias: "x' OR '1'='1"},
+			},
+		},
+		{
+			name:   "leading_digit_alias",
+			fields: []SelectedField{{Order: 1, Alias: "1bad"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cr := NewCustomReport("Report", "", DataSourceDocuments, 1)
+			err := cr.SetFields(tt.fields)
+			if !errors.Is(err, ErrInvalidAlias) {
+				t.Errorf("SetFields returned %v, want errors.Is(ErrInvalidAlias)", err)
+			}
+			if len(cr.Fields) != 0 {
+				t.Errorf("fields should remain unchanged on validation failure; got %d stored", len(cr.Fields))
+			}
+		})
+	}
+}
+
+// TestCustomReport_SetFieldsFromJSON_RejectsInvalidAlias closes ADR-1 layer 2
+// (persistence reconstitution defense-in-depth). Corrupt or pre-fix DB rows
+// must surface as an explicit error, not silently feed downstream SQL gen.
+func TestCustomReport_SetFieldsFromJSON_RejectsInvalidAlias(t *testing.T) {
+	payload := []byte(`[{"field":{"id":"x","name":"id","label":"ID","type":"string","source":"documents"},"order":1,"alias":"x\"; DROP TABLE users; --"}]`)
+	cr := NewCustomReport("Report", "", DataSourceDocuments, 1)
+	err := cr.SetFieldsFromJSON(payload)
+	if !errors.Is(err, ErrInvalidAlias) {
+		t.Errorf("SetFieldsFromJSON returned %v, want errors.Is(ErrInvalidAlias)", err)
+	}
+	if len(cr.Fields) != 0 {
+		t.Errorf("fields should not be populated on validation failure; got %d stored", len(cr.Fields))
 	}
 }
 

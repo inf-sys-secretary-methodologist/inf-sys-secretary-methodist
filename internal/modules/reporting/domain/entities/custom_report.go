@@ -203,10 +203,16 @@ func NewCustomReport(name string, description string, dataSource DataSourceType,
 	}
 }
 
-// SetFields sets the selected fields for the report
-func (r *CustomReport) SetFields(fields []SelectedField) {
+// SetFields sets the selected fields for the report. Returns ErrInvalidAlias
+// if any field carries an Alias that fails the safe-identifier whitelist —
+// the aggregate is left untouched on failure.
+//
+// Stub: accepts everything until GREEN commit wires the per-field validation
+// (see plan ADR-1 layer 1).
+func (r *CustomReport) SetFields(fields []SelectedField) error {
 	r.Fields = fields
 	r.UpdatedAt = time.Now()
+	return nil
 }
 
 // SetFilters sets the filters for the report
