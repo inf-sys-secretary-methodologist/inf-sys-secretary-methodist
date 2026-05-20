@@ -15,8 +15,9 @@ var ErrInvalidCurriculum = errors.New("curriculum: invalid curriculum")
 
 // ErrCurriculumScopeForbidden indicates that a user is not authorized
 // to operate on a particular Curriculum — typically because the user
-// is a methodist who did not author it. Admins override this check
-// (see AuthorizeEdit). Handlers map this sentinel to HTTP 403.
+// is not the author (per v0.158.0+ the author role is the academic
+// secretary). Admins override this check (see AuthorizeEdit). Handlers
+// map this sentinel to HTTP 403.
 var ErrCurriculumScopeForbidden = errors.New("curriculum: caller cannot operate on this curriculum")
 
 // ErrCannotEditApproved indicates that a Curriculum is not in a state
@@ -54,11 +55,11 @@ const (
 )
 
 // Curriculum is the aggregate root for a single академический учебный
-// план: a program published by a methodist that the administrator
-// will eventually approve. Disciplines (child entities, v0.117.0)
-// belong to it. The aggregate validates its own canonical form on
-// every write; the SQL CHECKs in migration 031 are defense-in-depth
-// for the same invariants.
+// план: a program authored by the academic secretary (v0.158.0+) that
+// the methodist will eventually approve. Sections + Discipline items
+// (child aggregates, v0.117.0+ / v0.128.0+) belong to it. The aggregate
+// validates its own canonical form on every write; the SQL CHECKs in
+// migration 031 are defense-in-depth for the same invariants.
 type Curriculum struct {
 	ID          int64
 	title       string
@@ -217,7 +218,8 @@ func (c *Curriculum) Description() string { return c.description }
 // Status returns the current lifecycle state.
 func (c *Curriculum) Status() CurriculumStatus { return c.status }
 
-// CreatedBy returns the methodist user id that authored this curriculum.
+// CreatedBy returns the user id that authored this curriculum (per
+// v0.158.0+ the author is the academic secretary).
 func (c *Curriculum) CreatedBy() int64 { return c.createdBy }
 
 // ApprovedBy returns the administrator id that approved the
@@ -334,8 +336,8 @@ func (c *Curriculum) Approve(adminID int64, now time.Time) error {
 }
 
 // Reject transitions a pending_approval curriculum back to draft.
-// The methodist may revise the content (UpdateBasics is unblocked
-// by status === draft) and then re-submit.
+// The author (academic secretary per v0.158.0+) may revise the content
+// (UpdateBasics is unblocked by status === draft) and then re-submit.
 //
 // Reject reason is intentionally not part of the entity contract —
 // it lives only in the audit log (ADR-3) so a future "rework after

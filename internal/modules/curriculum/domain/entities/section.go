@@ -14,10 +14,11 @@ import (
 var ErrInvalidSection = errors.New("section: invalid section")
 
 // ErrSectionScopeForbidden indicates that a user is not authorized to
-// operate on a particular Section — typically because the user is a
-// methodist who did not author the parent Curriculum. Admins
-// (system_admin / academic_secretary) override this check via the
-// isAdmin flag in AuthorizeEdit. Handlers map this sentinel to HTTP 403.
+// operate on a particular Section — typically because the user is not
+// the parent Curriculum's author (per v0.158.0+ the author role is the
+// academic secretary). Admins (system_admin) override this check via
+// the isAdmin flag in AuthorizeEdit. Handlers map this sentinel to
+// HTTP 403.
 var ErrSectionScopeForbidden = errors.New("section: caller cannot operate on this section")
 
 // ErrCannotEditSection indicates that the parent Curriculum is in a
@@ -217,8 +218,10 @@ func (s *Section) UpdateBasics(title, description string, orderIndex int, now ti
 //
 //  1. curStatus.CanEdit() — non-editable lifecycle freezes sections
 //     for everyone, including admins. ErrCannotEditSection.
-//  2. isAdmin — system_admin / academic_secretary override ownership.
-//  3. actorID > 0 && actorID == curCreatedBy — author methodist.
+//  2. isAdmin — system_admin override ownership (academic_secretary
+//     is the canonical author per v0.158.0+, not an override role).
+//  3. actorID > 0 && actorID == curCreatedBy — the curriculum's author
+//     (academic secretary per v0.158.0+).
 //  4. Otherwise → ErrSectionScopeForbidden.
 //
 // The actorID > 0 guard is defense-in-depth against a JWT subject

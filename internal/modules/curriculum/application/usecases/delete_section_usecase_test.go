@@ -52,7 +52,7 @@ func TestNewDeleteSectionUseCase_PanicsOnNilCurriculumLookup(t *testing.T) {
 	NewDeleteSectionUseCase(&fakeSectionDeleteRepo{}, nil, &recordingAuditSink{})
 }
 
-func TestDeleteSectionUseCase_HappyPath_AuthorMethodist(t *testing.T) {
+func TestDeleteSectionUseCase_HappyPath_Author(t *testing.T) {
 	now := time.Now()
 	s := entities.ReconstituteSection(101, 7, "T", "d", 0, 0, now, now)
 	cur := draftCurriculum(t, 42)
@@ -87,7 +87,7 @@ func TestDeleteSectionUseCase_AdminOverride(t *testing.T) {
 	assert.Equal(t, 1, repo.deleteCalls)
 }
 
-func TestDeleteSectionUseCase_NonAuthorMethodistDenied(t *testing.T) {
+func TestDeleteSectionUseCase_NonAuthorDenied(t *testing.T) {
 	now := time.Now()
 	s := entities.ReconstituteSection(101, 7, "T", "d", 0, 0, now, now)
 	cur := draftCurriculum(t, 42)

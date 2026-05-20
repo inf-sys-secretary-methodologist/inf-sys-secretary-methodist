@@ -96,10 +96,10 @@ func TestUpdateDisciplineItem_FrozenStatusDenied(t *testing.T) {
 	assert.Equal(t, "not_editable", audit.events[0].Fields["reason"])
 }
 
-// TestUpdateDisciplineItem_NonAuthorMethodistDenied pins the forbidden
+// TestUpdateDisciplineItem_NonAuthorDenied pins the forbidden
 // audit reason on the Update denial path (non-author methodist trying
 // to edit someone else's curriculum's items).
-func TestUpdateDisciplineItem_NonAuthorMethodistDenied(t *testing.T) {
+func TestUpdateDisciplineItem_NonAuthorDenied(t *testing.T) {
 	now := time.Now()
 	d := entities.ReconstituteDisciplineItem(202, 11, "T", 18, 18, 0, 36,
 		entities.ControlFormZachet, 2, 1, 0, 0, now, now)

@@ -173,20 +173,20 @@ func TestSection_AuthorizeEdit_DraftAdminOverrideAllowed(t *testing.T) {
 	}
 }
 
-func TestSection_AuthorizeEdit_DraftAuthorMethodistAllowed(t *testing.T) {
+func TestSection_AuthorizeEdit_DraftAuthorAllowed(t *testing.T) {
 	now := time.Now()
 	s := freshSection(t, now)
 	if err := s.AuthorizeEdit(42, false, StatusDraft, 42); err != nil {
-		t.Errorf("AuthorizeEdit denied author methodist on draft: %v", err)
+		t.Errorf("AuthorizeEdit denied author on draft: %v", err)
 	}
 }
 
-func TestSection_AuthorizeEdit_NonAuthorMethodistDenied(t *testing.T) {
+func TestSection_AuthorizeEdit_NonAuthorDenied(t *testing.T) {
 	now := time.Now()
 	s := freshSection(t, now)
 	err := s.AuthorizeEdit(99, false, StatusDraft, 42)
 	if err == nil {
-		t.Fatal("AuthorizeEdit allowed non-author methodist")
+		t.Fatal("AuthorizeEdit allowed non-author actor")
 	}
 	if !errors.Is(err, ErrSectionScopeForbidden) {
 		t.Errorf("error %v does not wrap ErrSectionScopeForbidden", err)

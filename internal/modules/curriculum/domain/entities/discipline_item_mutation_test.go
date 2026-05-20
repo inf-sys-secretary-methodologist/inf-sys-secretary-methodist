@@ -186,16 +186,16 @@ func TestAuthorizeDisciplineItemEdit_DraftAdminOverrideAllowed(t *testing.T) {
 	}
 }
 
-func TestAuthorizeDisciplineItemEdit_DraftAuthorMethodistAllowed(t *testing.T) {
+func TestAuthorizeDisciplineItemEdit_DraftAuthorAllowed(t *testing.T) {
 	if err := AuthorizeDisciplineItemEdit(42, false, StatusDraft, 42); err != nil {
-		t.Errorf("AuthorizeDisciplineItemEdit denied author methodist on draft: %v", err)
+		t.Errorf("AuthorizeDisciplineItemEdit denied author on draft: %v", err)
 	}
 }
 
-func TestAuthorizeDisciplineItemEdit_NonAuthorMethodistDenied(t *testing.T) {
+func TestAuthorizeDisciplineItemEdit_NonAuthorDenied(t *testing.T) {
 	err := AuthorizeDisciplineItemEdit(99, false, StatusDraft, 42)
 	if err == nil {
-		t.Fatal("AuthorizeDisciplineItemEdit allowed non-author methodist")
+		t.Fatal("AuthorizeDisciplineItemEdit allowed non-author actor")
 	}
 	if !errors.Is(err, ErrDisciplineItemScopeForbidden) {
 		t.Errorf("error %v does not wrap ErrDisciplineItemScopeForbidden", err)
@@ -228,8 +228,8 @@ func TestDisciplineItem_AuthorizeEdit_MethodDelegatesToFreeFunction(t *testing.T
 		curCreatedBy int64
 	}{
 		{"admin override on draft", 99, true, StatusDraft, 42},
-		{"author methodist on draft", 42, false, StatusDraft, 42},
-		{"non-author methodist on draft", 99, false, StatusDraft, 42},
+		{"author on draft", 42, false, StatusDraft, 42},
+		{"non-author actor on draft", 99, false, StatusDraft, 42},
 		{"frozen status with admin", 99, true, StatusApproved, 99},
 	}
 	for _, tc := range cases {

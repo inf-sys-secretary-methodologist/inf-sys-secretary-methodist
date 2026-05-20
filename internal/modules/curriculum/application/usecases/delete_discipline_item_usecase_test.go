@@ -30,7 +30,7 @@ func TestDeleteDisciplineItem_HappyPath(t *testing.T) {
 	assert.Equal(t, "discipline_item.deleted", audit.events[0].Action)
 }
 
-func TestDeleteDisciplineItem_NonAuthorMethodistDenied(t *testing.T) {
+func TestDeleteDisciplineItem_NonAuthorDenied(t *testing.T) {
 	now := time.Now()
 	d := entities.ReconstituteDisciplineItem(202, 11, "T", 18, 18, 0, 36,
 		entities.ControlFormZachet, 2, 1, 0, 0, now, now)

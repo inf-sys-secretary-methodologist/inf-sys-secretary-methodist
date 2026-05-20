@@ -26,10 +26,8 @@ jest.mock('@/hooks/useCurricula', () => ({
 import CurriculumPage from '../page'
 import type { Curriculum } from '@/types/curriculum'
 
-const methodistAuth = {
-  // v0.158.0: default test actor switched to academic_secretary
-  // (curriculum author). Variable name preserved for diff minimality
-  // — semantic role moved.
+// v0.158.0+: default test actor is academic_secretary (curriculum author).
+const academicSecretaryAuth = {
   user: { id: 5, role: 'academic_secretary' as const },
   isAuthenticated: true,
   isLoading: false,
@@ -51,7 +49,7 @@ const sample = (overrides: Partial<Curriculum> = {}): Curriculum => ({
 
 beforeEach(() => {
   mockReplace.mockClear()
-  mockUseAuthCheck.mockReturnValue(methodistAuth)
+  mockUseAuthCheck.mockReturnValue(academicSecretaryAuth)
   mockUseCurricula.mockReturnValue({
     items: [],
     total: 0,

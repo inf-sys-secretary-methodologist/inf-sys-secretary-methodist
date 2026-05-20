@@ -261,7 +261,7 @@ func TestBulkEdit_FrozenStatus_RollsBack(t *testing.T) {
 	assert.Equal(t, "not_editable", audit.events[0].Fields["reason"])
 }
 
-func TestBulkEdit_NonAuthorMethodist_RollsBack(t *testing.T) {
+func TestBulkEdit_NonAuthor_RollsBack(t *testing.T) {
 	tx := builtBulkTx()
 	tx.sections.getByIDFn = func(_ context.Context, _ int64) (*entities.Section, error) {
 		return builtSectionForItemTests(t), nil

@@ -66,7 +66,7 @@ func TestCreateDisciplineItem_HappyPath(t *testing.T) {
 	assert.Equal(t, int64(7), audit.events[0].Fields["curriculum_id"])
 }
 
-func TestCreateDisciplineItem_NonAuthorMethodistDenied(t *testing.T) {
+func TestCreateDisciplineItem_NonAuthorDenied(t *testing.T) {
 	repo := &fakeDisciplineItemSaveRepo{}
 	section := &fakeSectionLookup{got: builtSectionForItemTests(t)}
 	curriculum := &fakeCurriculumLookup{got: draftCurriculumForItem(t, 42)}

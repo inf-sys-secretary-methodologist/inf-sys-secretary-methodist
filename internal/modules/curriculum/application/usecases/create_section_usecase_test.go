@@ -102,7 +102,7 @@ func TestNewCreateSectionUseCase_PanicsOnNilCurriculumLookup(t *testing.T) {
 	NewCreateSectionUseCase(&fakeSectionSaveRepo{}, nil, &recordingAuditSink{}, time.Now)
 }
 
-func TestCreateSectionUseCase_HappyPath_AuthorMethodist(t *testing.T) {
+func TestCreateSectionUseCase_HappyPath_Author(t *testing.T) {
 	cur := draftCurriculum(t, 42)
 	repo := &fakeSectionSaveRepo{idAssigned: 101}
 	lookup := &fakeCurriculumLookup{got: cur}
@@ -154,7 +154,7 @@ func TestCreateSectionUseCase_AdminOverride_NonAuthor(t *testing.T) {
 	assert.Equal(t, int64(101), s.ID)
 }
 
-func TestCreateSectionUseCase_NonAuthorMethodistDenied(t *testing.T) {
+func TestCreateSectionUseCase_NonAuthorDenied(t *testing.T) {
 	cur := draftCurriculum(t, 42)
 	repo := &fakeSectionSaveRepo{}
 	lookup := &fakeCurriculumLookup{got: cur}
