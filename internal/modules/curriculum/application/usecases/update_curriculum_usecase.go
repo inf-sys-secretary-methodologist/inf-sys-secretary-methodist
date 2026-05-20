@@ -109,6 +109,12 @@ func (uc *UpdateCurriculumUseCase) Execute(
 			// path (CreateCurriculum uses c.Code() too).
 			emitAudit(uc.audit, ctx, "curriculum.update_denied", denialFields(actorID, in.ID, "code_conflict", c.Code()))
 		}
+		// v0.157.0 #269 ADR-2: lost-update race detected at persistence
+		// layer; surface через audit и propagate sentinel for the
+		// handler к map к HTTP 409 (mirror update_section_usecase pattern).
+		if errors.Is(err, repositories.ErrCurriculumVersionConflict) {
+			emitAudit(uc.audit, ctx, "curriculum.update_denied", denialFields(actorID, in.ID, "version_conflict", c.Code()))
+		}
 		return nil, err
 	}
 

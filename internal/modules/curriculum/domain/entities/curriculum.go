@@ -183,11 +183,17 @@ func ReconstituteCurriculum(
 // v0.157.0 #269 ADR-2.
 func (c *Curriculum) Version() int { return c.version }
 
-// BumpCurriculumVersion is an internal-package helper для repository
+// BumpCurriculumVersion is the cross-package helper для repository
 // implementations к sync the entity's in-memory version after a
 // successful UPDATE. Lives в the entities package (where the field
-// is private) but is exported для cross-package access from
-// infrastructure/persistence. Mirrors bumpSectionVersion в Section.
+// is private) и is exported deliberately — Section uses a different
+// approach (rebuild via *s = *ReconstituteSection(...) inside the
+// persistence-package private helper), but Curriculum has fewer fields
+// + no curriculumID-relative invariants к re-validate on rebuild, so
+// a focused in-place increment is cleaner. Reviewers wanting к narrow
+// the surface should make the field public OR introduce a Setter
+// returning a new entity; this helper is the minimum-blast-radius
+// equivalent for now. v0.157.0 #269 ADR-2.
 func BumpCurriculumVersion(c *Curriculum) {
 	c.version++
 }

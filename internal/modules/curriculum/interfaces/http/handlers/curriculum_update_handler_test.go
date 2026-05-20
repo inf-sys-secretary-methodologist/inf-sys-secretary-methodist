@@ -169,6 +169,9 @@ func TestCurriculumHandler_Update_DomainErrorMappings(t *testing.T) {
 		{"not editable → 422", entities.ErrCannotEditApproved, http.StatusUnprocessableEntity},
 		{"invariant → 422", entities.ErrInvalidCurriculum, http.StatusUnprocessableEntity},
 		{"code conflict → 409", repositories.ErrCurriculumCodeExists, http.StatusConflict},
+		// v0.157.0 #269 ADR-2 — lost-update race surfaces as 409
+		// VERSION_CONFLICT (mirror section_handler.go precedent).
+		{"version conflict → 409", repositories.ErrCurriculumVersionConflict, http.StatusConflict},
 		{"not found → 404", repositories.ErrCurriculumNotFound, http.StatusNotFound},
 		{"transport → 500", errors.New("conn refused"), http.StatusInternalServerError},
 	}

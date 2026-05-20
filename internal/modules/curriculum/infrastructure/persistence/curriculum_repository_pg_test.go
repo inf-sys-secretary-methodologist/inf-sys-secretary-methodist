@@ -305,16 +305,40 @@ func TestCurriculumRepositoryPG_Update(t *testing.T) {
 	t.Run("stale version returns ErrCurriculumVersionConflict", func(t *testing.T) {
 		repo, mock := newCurriculumRepoMock(t)
 
+		// WithArgs pins all 11 UPDATE params so a future swap of $10/$11
+		// (id vs version) breaks the test, не leaves it falsely-green.
 		mock.ExpectExec(regexp.QuoteMeta("UPDATE curricula SET")).
+			WithArgs("ИВТ-2026", "RACE-2026", "Информатика и вычислительная техника", 2026,
+				sql.NullString{String: "desc", Valid: true},
+				"draft", sql.NullInt64{}, sql.NullTime{},
+				time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC), int64(7), 0).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		// Disambiguate: row still exists (different version)
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM curricula")).
+			WithArgs(int64(7)).
 			WillReturnRows(sqlmock.NewRows([]string{"?column?"}).AddRow(1))
 
 		c := freshDraft(t, "RACE-2026")
 		c.ID = 7
 		err := repo.Update(context.Background(), c)
 		assert.True(t, errors.Is(err, repositories.ErrCurriculumVersionConflict))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// Coverage: disambiguateAbsentUpdate non-NoRows error branch (mirror
+	// SectionRepositoryPG / DisciplineItemRepositoryPG coverage tests).
+	t.Run("disambiguate transport error wrapped", func(t *testing.T) {
+		repo, mock := newCurriculumRepoMock(t)
+		mock.ExpectExec(regexp.QuoteMeta("UPDATE curricula SET")).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM curricula")).
+			WillReturnError(fmt.Errorf("probe conn refused"))
+
+		c := freshDraft(t, "PROBE-2026")
+		c.ID = 7
+		err := repo.Update(context.Background(), c)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "disambiguate")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }

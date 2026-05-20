@@ -16,7 +16,17 @@
 ALTER TABLE curricula
     ADD COLUMN IF NOT EXISTS version INT NOT NULL DEFAULT 0;
 
-ALTER TABLE curricula
-    ADD CONSTRAINT chk_curricula_version_nonneg CHECK (version >= 0);
+-- Idempotent CHECK constraint addition: ADD CONSTRAINT itself is not
+-- IF NOT EXISTS in PG 17, so wrap в DO block + EXCEPTION на
+-- duplicate_object к support partial-prior-apply scenarios (column
+-- added but constraint missing). Drop-add via DO/EXCEPTION mirrors
+-- the safe pattern used downstream of pg_dump restores.
+DO $$
+BEGIN
+    ALTER TABLE curricula
+        ADD CONSTRAINT chk_curricula_version_nonneg CHECK (version >= 0);
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 COMMENT ON COLUMN curricula.version IS 'Optimistic-locking version (v0.157.0 #269) — repository UPDATE uses WHERE id = ? AND version = ?, increments on success';
