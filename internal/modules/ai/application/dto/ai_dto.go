@@ -65,12 +65,12 @@ type CreateConversationRequest struct {
 
 // UpdateConversationRequest represents a request to update a conversation
 type UpdateConversationRequest struct {
-	Title string `json:"title" validate:"required,min=1,max=255"`
+	Title string `json:"title" binding:"required,min=1,max=255"`
 }
 
 // SendMessageRequest represents a request to send a chat message
 type SendMessageRequest struct {
-	Content        string `json:"content" validate:"required,min=1,max=10000"`
+	Content        string `json:"content" binding:"required,min=1,max=10000"`
 	ConversationID *int64 `json:"conversation_id,omitempty"`
 	IncludeSources bool   `json:"include_sources"`
 	MaxSources     int    `json:"max_sources,omitempty"`
@@ -87,7 +87,7 @@ type ChatResponse struct {
 
 // SearchRequest represents a semantic search request
 type SearchRequest struct {
-	Query         string   `json:"query" validate:"required,min=1,max=1000"`
+	Query         string   `json:"query" binding:"required,min=1,max=1000"`
 	Limit         int      `json:"limit,omitempty"`
 	Threshold     float64  `json:"threshold,omitempty"`
 	DocumentTypes []string `json:"document_types,omitempty"`
@@ -111,7 +111,7 @@ type SearchResponse struct {
 
 // IndexDocumentRequest represents a request to index a document
 type IndexDocumentRequest struct {
-	DocumentID   int64 `json:"document_id" validate:"required"`
+	DocumentID   int64 `json:"document_id" binding:"required"`
 	ForceReindex bool  `json:"force_reindex,omitempty"`
 }
 
