@@ -129,8 +129,20 @@ func (b *DynamicQueryBuilder) configureDataSources() {
 	}
 }
 
-// Execute executes the report query and returns results
+// Execute executes the report query and returns results.
+//
+// Defense-in-depth (ADR-1 layer 3): every SelectedField is re-validated here
+// even though domain SetFields / SetFieldsFromJSON already do the same on the
+// write and read paths. Callers that bypass those (e.g. direct struct
+// literals, custom repo adapters) still cannot smuggle an unsafe Alias into
+// the AS clause built at line ~170.
 func (b *DynamicQueryBuilder) Execute(ctx context.Context, report *entities.CustomReport, page, pageSize int) (*entities.ReportExecutionResult, error) {
+	for i, field := range report.Fields {
+		if err := field.Validate(); err != nil {
+			return nil, fmt.Errorf("field[%d]: %w", i, err)
+		}
+	}
+
 	config, ok := b.sourceConfigs[report.DataSource]
 	if !ok {
 		return nil, fmt.Errorf("unsupported data source: %s", report.DataSource)
@@ -213,7 +225,7 @@ func (b *DynamicQueryBuilder) Execute(ctx context.Context, report *entities.Cust
 	}
 
 	// Build count query
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", fromClause) // #nosec G201 -- dynamic column/table names from code, not user input
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", fromClause) // #nosec G201 -- table/column expressions sourced from server-side configureDataSources map; Alias is whitelist-validated at Execute entry (ADR-1 layer 3)
 	if len(whereClauses) > 0 {
 		countQuery += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
@@ -225,7 +237,7 @@ func (b *DynamicQueryBuilder) Execute(ctx context.Context, report *entities.Cust
 	}
 
 	// Build main query
-	query := fmt.Sprintf("SELECT %s FROM %s", strings.Join(selectCols, ", "), fromClause) // #nosec G201 -- dynamic column/table names from code, not user input
+	query := fmt.Sprintf("SELECT %s FROM %s", strings.Join(selectCols, ", "), fromClause) // #nosec G201 -- table/column expressions sourced from server-side configureDataSources map; Alias is whitelist-validated at Execute entry (ADR-1 layer 3)
 	if len(whereClauses) > 0 {
 		query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
