@@ -120,7 +120,7 @@ func (h *BulkDisciplineItemsHandler) BulkEdit(c *gin.Context) {
 		return
 	}
 	if !canWrite(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may bulk-edit discipline items"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only academic_secretary or system_admin may bulk-edit discipline items"))
 		return
 	}
 	sectionID, ok := parsePositiveID(c.Param("sectionID"))

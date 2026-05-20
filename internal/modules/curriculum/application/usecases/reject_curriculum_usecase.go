@@ -26,11 +26,13 @@ type rejectCurriculumRepo interface {
 }
 
 // RejectCurriculumUseCase moves a pending_approval curriculum back
-// to draft so the methodist may revise and re-submit. The cycle
-// Reject → Edit → Submit is the rework loop; the audit log captures
-// the admin's reason for forensic and compliance purposes.
+// to draft so the author (academic_secretary per v0.158.0+) may revise
+// and re-submit. The cycle Reject → Edit → Submit is the rework loop;
+// the audit log captures the approver's reason for forensic and
+// compliance purposes.
 //
-// Admin-only by construction (mirror ApproveCurriculumUseCase).
+// Approver-only by construction — methodist + system_admin per
+// v0.158.0+ (mirror ApproveCurriculumUseCase).
 type RejectCurriculumUseCase struct {
 	repo  rejectCurriculumRepo
 	audit AuditSink

@@ -232,7 +232,7 @@ func toDeletePort(v any) handlers.DeleteSectionPort {
 func TestSectionHandler_RoleKeyContract(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	get.out = builtSection(t, 101, 7)
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 
 	rec := doJSON(t, r, http.MethodGet, "/api/sections/101", nil)
 	assert.Equal(t, http.StatusOK, rec.Code,
@@ -253,7 +253,7 @@ func TestSectionHandler_Create_HappyPath(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	create.out = builtSection(t, 101, 7)
 
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPost, "/api/curricula/7/sections", handlers.CreateSectionRequest{
 		Title:       "Базовая часть",
 		Description: "desc",
@@ -266,24 +266,33 @@ func TestSectionHandler_Create_HappyPath(t *testing.T) {
 	assert.Equal(t, int64(7), create.gotInput.CurriculumID)
 }
 
-func TestSectionHandler_Create_Student403(t *testing.T) {
-	create, get, list, update, del := stubAll()
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "student")
-	rec := doJSON(t, r, http.MethodPost, "/api/curricula/7/sections", handlers.CreateSectionRequest{Title: "T"})
-	assert.Equal(t, http.StatusForbidden, rec.Code)
-	assert.False(t, create.called)
+func TestSectionHandler_Create_RejectsNonWriteRoles(t *testing.T) {
+	// v0.158.0: academic_secretary owns section authoring; methodist
+	// is approver and must NOT write sections; teacher reads only;
+	// student blocked at outer middleware но handler defense-in-depth
+	// also denies.
+	cases := []string{"methodist", "teacher", "student", "unknown"}
+	for _, role := range cases {
+		t.Run(role, func(t *testing.T) {
+			create, get, list, update, del := stubAll()
+			r := setupSectionRouter(t, create, get, list, update, del, 42, role)
+			rec := doJSON(t, r, http.MethodPost, "/api/curricula/7/sections", handlers.CreateSectionRequest{Title: "T"})
+			assert.Equal(t, http.StatusForbidden, rec.Code)
+			assert.False(t, create.called)
+		})
+	}
 }
 
 func TestSectionHandler_Create_InvalidCurriculumID400(t *testing.T) {
 	create, get, list, update, del := stubAll()
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPost, "/api/curricula/abc/sections", handlers.CreateSectionRequest{Title: "T"})
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func TestSectionHandler_Create_InvalidJSON400(t *testing.T) {
 	create, get, list, update, del := stubAll()
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPost, "/api/curricula/7/sections", `{not-json`)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.False(t, create.called)
@@ -301,7 +310,7 @@ func TestSectionHandler_Create_AdminOverridePropagatesIsAdmin(t *testing.T) {
 func TestSectionHandler_Create_CurriculumNotFound404(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	create.err = repositories.ErrCurriculumNotFound
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPost, "/api/curricula/7/sections", handlers.CreateSectionRequest{Title: "T"})
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
@@ -309,7 +318,7 @@ func TestSectionHandler_Create_CurriculumNotFound404(t *testing.T) {
 func TestSectionHandler_Create_Forbidden_FromUseCase403(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	create.err = entities.ErrSectionScopeForbidden
-	r := setupSectionRouter(t, create, get, list, update, del, 99, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 99, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPost, "/api/curricula/7/sections", handlers.CreateSectionRequest{Title: "T"})
 	assert.Equal(t, http.StatusForbidden, rec.Code)
 }
@@ -317,7 +326,7 @@ func TestSectionHandler_Create_Forbidden_FromUseCase403(t *testing.T) {
 func TestSectionHandler_Create_Frozen422(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	create.err = entities.ErrCannotEditSection
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPost, "/api/curricula/7/sections", handlers.CreateSectionRequest{Title: "T"})
 	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 }
@@ -325,7 +334,7 @@ func TestSectionHandler_Create_Frozen422(t *testing.T) {
 func TestSectionHandler_Create_Invalid422(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	create.err = entities.ErrInvalidSection
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPost, "/api/curricula/7/sections", handlers.CreateSectionRequest{Title: ""})
 	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 }
@@ -335,7 +344,7 @@ func TestSectionHandler_Create_Invalid422(t *testing.T) {
 func TestSectionHandler_Get_HappyPath(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	get.out = builtSection(t, 101, 7)
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodGet, "/api/sections/101", nil)
 	require.Equal(t, http.StatusOK, rec.Code, "body=%s", rec.Body.String())
 	assert.Equal(t, int64(101), get.gotID)
@@ -344,7 +353,7 @@ func TestSectionHandler_Get_HappyPath(t *testing.T) {
 func TestSectionHandler_Get_NotFound(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	get.err = repositories.ErrSectionNotFound
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodGet, "/api/sections/999", nil)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
@@ -365,7 +374,7 @@ func TestSectionHandler_List_HappyPath(t *testing.T) {
 		builtSection(t, 101, 7),
 		builtSection(t, 102, 7),
 	}
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodGet, "/api/curricula/7/sections", nil)
 	require.Equal(t, http.StatusOK, rec.Code)
 	var resp struct {
@@ -378,7 +387,7 @@ func TestSectionHandler_List_HappyPath(t *testing.T) {
 func TestSectionHandler_List_EmptyResult(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	list.out = nil
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodGet, "/api/curricula/7/sections", nil)
 	require.Equal(t, http.StatusOK, rec.Code)
 	var resp struct {
@@ -394,7 +403,7 @@ func TestSectionHandler_List_EmptyResult(t *testing.T) {
 func TestSectionHandler_Update_HappyPath(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	update.out = builtSection(t, 101, 7)
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPut, "/api/sections/101", handlers.UpdateSectionRequest{
 		Title:      "Новый",
 		OrderIndex: 1,
@@ -409,7 +418,7 @@ func TestSectionHandler_Update_HappyPath(t *testing.T) {
 func TestSectionHandler_Update_NotFound(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	update.err = repositories.ErrSectionNotFound
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPut, "/api/sections/999", handlers.UpdateSectionRequest{Title: "T"})
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
@@ -417,7 +426,7 @@ func TestSectionHandler_Update_NotFound(t *testing.T) {
 func TestSectionHandler_Update_VersionConflict409(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	update.err = repositories.ErrSectionVersionConflict
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPut, "/api/sections/101", handlers.UpdateSectionRequest{Title: "T"})
 	assert.Equal(t, http.StatusConflict, rec.Code,
 		"version conflict must surface as 409 (optimistic-lock contract per ADR-3)")
@@ -426,7 +435,7 @@ func TestSectionHandler_Update_VersionConflict409(t *testing.T) {
 func TestSectionHandler_Update_Forbidden403(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	update.err = entities.ErrSectionScopeForbidden
-	r := setupSectionRouter(t, create, get, list, update, del, 99, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 99, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPut, "/api/sections/101", handlers.UpdateSectionRequest{Title: "T"})
 	assert.Equal(t, http.StatusForbidden, rec.Code)
 }
@@ -434,7 +443,7 @@ func TestSectionHandler_Update_Forbidden403(t *testing.T) {
 func TestSectionHandler_Update_Frozen422(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	update.err = entities.ErrCannotEditSection
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPut, "/api/sections/101", handlers.UpdateSectionRequest{Title: "T"})
 	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 }
@@ -442,7 +451,7 @@ func TestSectionHandler_Update_Frozen422(t *testing.T) {
 func TestSectionHandler_Update_Invalid422(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	update.err = entities.ErrInvalidSection
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodPut, "/api/sections/101", handlers.UpdateSectionRequest{Title: ""})
 	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 }
@@ -459,7 +468,7 @@ func TestSectionHandler_Update_Student403(t *testing.T) {
 
 func TestSectionHandler_Delete_HappyPath(t *testing.T) {
 	create, get, list, update, del := stubAll()
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodDelete, "/api/sections/101", nil)
 	assert.Equal(t, http.StatusNoContent, rec.Code)
 	assert.True(t, del.called)
@@ -469,7 +478,7 @@ func TestSectionHandler_Delete_HappyPath(t *testing.T) {
 func TestSectionHandler_Delete_NotFound(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	del.err = repositories.ErrSectionNotFound
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodDelete, "/api/sections/999", nil)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
@@ -477,7 +486,7 @@ func TestSectionHandler_Delete_NotFound(t *testing.T) {
 func TestSectionHandler_Delete_Forbidden403(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	del.err = entities.ErrSectionScopeForbidden
-	r := setupSectionRouter(t, create, get, list, update, del, 99, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 99, "academic_secretary")
 	rec := doJSON(t, r, http.MethodDelete, "/api/sections/101", nil)
 	assert.Equal(t, http.StatusForbidden, rec.Code)
 }
@@ -485,7 +494,7 @@ func TestSectionHandler_Delete_Forbidden403(t *testing.T) {
 func TestSectionHandler_Delete_Frozen422(t *testing.T) {
 	create, get, list, update, del := stubAll()
 	del.err = entities.ErrCannotEditSection
-	r := setupSectionRouter(t, create, get, list, update, del, 42, "methodist")
+	r := setupSectionRouter(t, create, get, list, update, del, 42, "academic_secretary")
 	rec := doJSON(t, r, http.MethodDelete, "/api/sections/101", nil)
 	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 }

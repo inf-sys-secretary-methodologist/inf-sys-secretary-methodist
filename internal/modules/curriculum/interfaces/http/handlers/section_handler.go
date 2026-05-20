@@ -142,7 +142,7 @@ func (h *SectionHandler) Create(c *gin.Context) {
 		return
 	}
 	if !canWrite(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may create sections"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only academic_secretary or system_admin may create sections"))
 		return
 	}
 	curID, ok := parsePositiveID(c.Param("curriculumID"))
@@ -266,7 +266,7 @@ func (h *SectionHandler) Update(c *gin.Context) {
 		return
 	}
 	if !canWrite(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may edit sections"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only academic_secretary or system_admin may edit sections"))
 		return
 	}
 	id, ok := parsePositiveID(c.Param("sectionID"))
@@ -313,7 +313,7 @@ func (h *SectionHandler) Delete(c *gin.Context) {
 		return
 	}
 	if !canWrite(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may delete sections"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only academic_secretary or system_admin may delete sections"))
 		return
 	}
 	id, ok := parsePositiveID(c.Param("sectionID"))

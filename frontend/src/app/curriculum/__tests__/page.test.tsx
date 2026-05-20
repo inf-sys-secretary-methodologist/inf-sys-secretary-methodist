@@ -27,7 +27,10 @@ import CurriculumPage from '../page'
 import type { Curriculum } from '@/types/curriculum'
 
 const methodistAuth = {
-  user: { id: 5, role: 'methodist' as const },
+  // v0.158.0: default test actor switched to academic_secretary
+  // (curriculum author). Variable name preserved for diff minimality
+  // — semantic role moved.
+  user: { id: 5, role: 'academic_secretary' as const },
   isAuthenticated: true,
   isLoading: false,
 }
@@ -176,10 +179,12 @@ describe('CurriculumPage', () => {
     expect(screen.queryByText('countLabel')).not.toBeInTheDocument()
   })
 
+  // v0.158.0: academic_secretary is the curriculum AUTHOR; methodist
+  // is the APPROVER. Create button visible only for authoring roles.
   it.each([
-    ['methodist', true],
+    ['academic_secretary', true],
     ['system_admin', true],
-    ['academic_secretary', false],
+    ['methodist', false],
     ['teacher', false],
   ])('Create button visibility for role %s = %s', (role, visible) => {
     mockUseAuthCheck.mockReturnValue({
@@ -199,7 +204,7 @@ describe('CurriculumPage', () => {
     }
   })
 
-  it('opens CreateCurriculumDialog when Create button is clicked (methodist)', () => {
+  it('opens CreateCurriculumDialog when Create button is clicked (academic_secretary)', () => {
     render(<CurriculumPage />)
     // The dialog is closed initially — title not rendered.
     expect(screen.queryByText('createDialog.title')).not.toBeInTheDocument()

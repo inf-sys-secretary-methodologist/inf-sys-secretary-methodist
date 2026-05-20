@@ -108,8 +108,10 @@ beforeEach(() => {
 })
 
 describe('AdminCurriculumApprovePage', () => {
-  it.each(['methodist', 'academic_secretary', 'teacher', 'student'] as const)(
-    'redirects non-admin (%s) → /forbidden',
+  // v0.158.0: methodist + system_admin are approvers; academic_secretary
+  // (curriculum author) + teacher + student are redirected.
+  it.each(['academic_secretary', 'teacher', 'student'] as const)(
+    'redirects non-approver (%s) → /forbidden',
     (role) => {
       mockUseAuthCheck.mockReturnValue({
         user: { id: 7, role },
@@ -121,15 +123,25 @@ describe('AdminCurriculumApprovePage', () => {
     }
   )
 
+  it.each(['methodist', 'system_admin'] as const)('admits approver (%s) — no redirect', (role) => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 7, role },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<AdminCurriculumApprovePage />)
+    expect(mockReplace).not.toHaveBeenCalled()
+  })
+
   it('does not redirect while auth is loading', () => {
     mockUseAuthCheck.mockReturnValue({ user: null, isAuthenticated: false, isLoading: true })
     render(<AdminCurriculumApprovePage />)
     expect(mockReplace).not.toHaveBeenCalled()
   })
 
-  it('does NOT fetch when role is non-admin (skip 401 round-trip)', () => {
+  it('does NOT fetch when role is non-approver (skip 401 round-trip)', () => {
     mockUseAuthCheck.mockReturnValue({
-      user: { id: 5, role: 'methodist' as const },
+      user: { id: 5, role: 'academic_secretary' as const },
       isAuthenticated: true,
       isLoading: false,
     })

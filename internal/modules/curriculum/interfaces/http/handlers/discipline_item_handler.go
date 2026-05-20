@@ -154,7 +154,7 @@ func (h *DisciplineItemHandler) Create(c *gin.Context) {
 		return
 	}
 	if !canWrite(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may create discipline items"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only academic_secretary or system_admin may create discipline items"))
 		return
 	}
 	sectionID, ok := parsePositiveID(c.Param("sectionID"))
@@ -264,7 +264,7 @@ func (h *DisciplineItemHandler) Update(c *gin.Context) {
 		return
 	}
 	if !canWrite(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may edit items"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only academic_secretary or system_admin may edit items"))
 		return
 	}
 	id, ok := parsePositiveID(c.Param("id"))
@@ -310,7 +310,7 @@ func (h *DisciplineItemHandler) Delete(c *gin.Context) {
 		return
 	}
 	if !canWrite(role) {
-		c.JSON(http.StatusForbidden, response.Forbidden("only methodist or system_admin may delete items"))
+		c.JSON(http.StatusForbidden, response.Forbidden("only academic_secretary or system_admin may delete items"))
 		return
 	}
 	id, ok := parsePositiveID(c.Param("id"))

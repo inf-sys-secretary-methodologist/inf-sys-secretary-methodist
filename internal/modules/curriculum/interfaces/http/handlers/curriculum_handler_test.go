@@ -158,7 +158,7 @@ func TestNewCurriculumHandler_PanicsOnNilPort(t *testing.T) {
 
 func TestCurriculumHandler_Create_HappyPath_Methodist(t *testing.T) {
 	create := &fakeCreatePort{out: builtCurriculum(t, 42)}
-	r := setupCreateRouter(create, "methodist", 7)
+	r := setupCreateRouter(create, "academic_secretary", 7)
 
 	body := map[string]any{
 		"title":       "ИВТ-2026",
@@ -206,7 +206,7 @@ func TestCurriculumHandler_Create_RejectsNonWriteRoles(t *testing.T) {
 		role string
 	}{
 		{"teacher → 403", "teacher"},
-		{"academic_secretary → 403", "academic_secretary"},
+		{"methodist → 403 (approver only, not author per v0.158.0)", "methodist"},
 		{"student → 403 (despite group middleware)", "student"},
 		{"unknown role → 403", "unknown_thing"},
 	}
@@ -235,7 +235,7 @@ func TestCurriculumHandler_Create_MissingUserContextReturns401(t *testing.T) {
 
 func TestCurriculumHandler_Create_MalformedBodyReturns400(t *testing.T) {
 	create := &fakeCreatePort{}
-	r := setupCreateRouter(create, "methodist", 7)
+	r := setupCreateRouter(create, "academic_secretary", 7)
 
 	rec := doCreate(t, r, "not-json-at-all")
 	assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
@@ -255,7 +255,7 @@ func TestCurriculumHandler_Create_DomainErrorMappings(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			create := &fakeCreatePort{err: tc.ucErr}
-			r := setupCreateRouter(create, "methodist", 7)
+			r := setupCreateRouter(create, "academic_secretary", 7)
 
 			body := map[string]any{"title": "T", "code": "C", "specialty": "S", "year": 2026}
 			rec := doCreate(t, r, body)

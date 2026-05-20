@@ -41,7 +41,10 @@ const PERMISSION_MATRIX: PermissionMatrix = {
   },
   [UserRole.METHODIST]: {
     [Resource.USERS]: AccessLevel.LIMITED,
-    [Resource.CURRICULUM]: AccessLevel.FULL,
+    // v0.158.0: methodist is the curriculum APPROVER, not author. Read +
+    // approve/reject via Action.APPROVE branch in can(); cannot create
+    // or edit drafts (those belong to academic_secretary).
+    [Resource.CURRICULUM]: AccessLevel.LIMITED,
     [Resource.SCHEDULE]: AccessLevel.OWN,
     [Resource.ASSIGNMENTS]: AccessLevel.FULL,
     [Resource.REPORTS]: AccessLevel.FULL,
@@ -51,7 +54,10 @@ const PERMISSION_MATRIX: PermissionMatrix = {
   },
   [UserRole.ACADEMIC_SECRETARY]: {
     [Resource.USERS]: AccessLevel.LIMITED,
-    [Resource.CURRICULUM]: AccessLevel.LIMITED,
+    // v0.158.0: academic_secretary is the curriculum AUTHOR. Owns the
+    // full authoring lifecycle (create / edit drafts / submit) plus
+    // sections + discipline items. Approval belongs to methodist.
+    [Resource.CURRICULUM]: AccessLevel.FULL,
     [Resource.SCHEDULE]: AccessLevel.FULL,
     [Resource.ASSIGNMENTS]: AccessLevel.LIMITED,
     [Resource.REPORTS]: AccessLevel.FULL,
@@ -105,7 +111,11 @@ export function can(
 ): boolean {
   if (!role) return false
   if (action === Action.APPROVE) {
-    return role === UserRole.SYSTEM_ADMIN && resource === Resource.CURRICULUM
+    // v0.158.0: curriculum approval/rejection — methodist + system_admin.
+    // Academic_secretary authors; methodist approves; admin retains
+    // emergency override. Mirror backend canApprove whitelist.
+    if (resource !== Resource.CURRICULUM) return false
+    return role === UserRole.METHODIST || role === UserRole.SYSTEM_ADMIN
   }
   const level = getAccessLevel(role, resource)
   return level >= ACTION_MIN_LEVEL[action as Exclude<Action, Action.APPROVE>]
@@ -124,11 +134,13 @@ export const VIEW_ONLY_ROLES: UserRole[] = [UserRole.STUDENT]
 
 // CURRICULUM_WRITE_ROLES — roles permitted to create/update/submit a
 // curriculum через UI. Mirrors the backend write-whitelist enforced by
-// the POST /api/curriculum + PUT /api/curriculum/:id handlers (v0.116.0:
-// methodist + system_admin only). Diverges from EDIT_ROLES (which
-// includes academic_secretary + teacher) — those roles read-only on
-// curriculum per PermissionMatrix.
-export const CURRICULUM_WRITE_ROLES: UserRole[] = [UserRole.SYSTEM_ADMIN, UserRole.METHODIST]
+// the POST /api/curriculum + PUT /api/curriculum/:id handlers.
+// v0.158.0: academic_secretary owns the authoring lifecycle; methodist
+// is the approver (separate canApprove path); admin retains override.
+export const CURRICULUM_WRITE_ROLES: UserRole[] = [
+  UserRole.SYSTEM_ADMIN,
+  UserRole.ACADEMIC_SECRETARY,
+]
 
 export function canWriteCurriculum(userRole?: UserRole | string): boolean {
   if (!userRole) return false

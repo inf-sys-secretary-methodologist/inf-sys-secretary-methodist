@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.157.1
+// @version         0.158.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -175,7 +175,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.157.1"
+const versionString = "0.158.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -2292,22 +2292,30 @@ func setupRoutes(
 				curriculumGroup.OPTIONS("/:id/submit", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 
-			// Admin-only sibling group for Approve / Reject. Lives in
-			// a parallel group rather than under curriculumGroup
-			// because that group is gated by RequireNonStudent — the
-			// inverse of what these admin-only endpoints require.
+			// Methodist + admin sibling group for Approve / Reject.
+			// Lives in a parallel group rather than under
+			// curriculumGroup because that group is gated by
+			// RequireNonStudent — the inverse of what these
+			// approval endpoints require. Per the diploma's role
+			// matrix, the methodist is the approver of curricula
+			// authored by the academic secretary; system_admin
+			// retains an emergency override (v0.158.0).
+			//
 			// Mirrors the assignments v0.112.0 student-sibling pattern:
 			// when a subset of routes needs an inverse middleware to
 			// its sibling, register a parallel group instead of
 			// special-casing one. The handler-level canApprove
 			// whitelist is defense in depth on top of RequireRole.
-			adminCurriculumGroup := protectedGroup.Group("/curriculum")
-			adminCurriculumGroup.Use(authMiddleware.RequireRole(string(authDomain.RoleSystemAdmin)))
+			approverCurriculumGroup := protectedGroup.Group("/curriculum")
+			approverCurriculumGroup.Use(authMiddleware.RequireRole(
+				string(authDomain.RoleMethodist),
+				string(authDomain.RoleSystemAdmin),
+			))
 			{
-				adminCurriculumGroup.POST("/:id/approve", curriculumHandler.Approve)
-				adminCurriculumGroup.OPTIONS("/:id/approve", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-				adminCurriculumGroup.POST("/:id/reject", curriculumHandler.Reject)
-				adminCurriculumGroup.OPTIONS("/:id/reject", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				approverCurriculumGroup.POST("/:id/approve", curriculumHandler.Approve)
+				approverCurriculumGroup.OPTIONS("/:id/approve", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				approverCurriculumGroup.POST("/:id/reject", curriculumHandler.Reject)
+				approverCurriculumGroup.OPTIONS("/:id/reject", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 
 			logger.Info("Curriculum module routes registered", nil)

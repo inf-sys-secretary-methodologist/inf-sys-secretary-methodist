@@ -270,11 +270,14 @@ describe('can', () => {
   })
 
   describe('methodist permissions', () => {
-    it('has full access to curriculum (except approve)', () => {
-      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.CREATE)).toBe(true)
-      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.UPDATE)).toBe(true)
+    // v0.158.0: methodist is the curriculum APPROVER, not author.
+    // Reads + approves/rejects; cannot create/edit drafts (that
+    // ownership moved to academic_secretary).
+    it('can read + approve curriculum, cannot create or edit', () => {
       expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.READ)).toBe(true)
-      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.APPROVE)).toBe(false)
+      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.APPROVE)).toBe(true)
+      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.CREATE)).toBe(false)
+      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.UPDATE)).toBe(false)
     })
 
     it('has full access to reports', () => {
@@ -304,9 +307,13 @@ describe('can', () => {
       expect(can(UserRole.ACADEMIC_SECRETARY, Resource.REPORTS, Action.CREATE)).toBe(true)
     })
 
-    it('can only read curriculum', () => {
+    // v0.158.0: academic_secretary is the curriculum AUTHOR.
+    // Owns the full authoring lifecycle; approval belongs к methodist.
+    it('has full access to curriculum (create + edit + read), cannot approve', () => {
       expect(can(UserRole.ACADEMIC_SECRETARY, Resource.CURRICULUM, Action.READ)).toBe(true)
-      expect(can(UserRole.ACADEMIC_SECRETARY, Resource.CURRICULUM, Action.CREATE)).toBe(false)
+      expect(can(UserRole.ACADEMIC_SECRETARY, Resource.CURRICULUM, Action.CREATE)).toBe(true)
+      expect(can(UserRole.ACADEMIC_SECRETARY, Resource.CURRICULUM, Action.UPDATE)).toBe(true)
+      expect(can(UserRole.ACADEMIC_SECRETARY, Resource.CURRICULUM, Action.APPROVE)).toBe(false)
     })
   })
 
@@ -339,9 +346,11 @@ describe('can', () => {
   })
 
   describe('approve action', () => {
-    it('only system_admin can approve curriculum', () => {
+    // v0.158.0: methodist + system_admin (override) approve curricula;
+    // academic_secretary authors, so cannot approve own work.
+    it('methodist + system_admin can approve curriculum, others denied', () => {
+      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.APPROVE)).toBe(true)
       expect(can(UserRole.SYSTEM_ADMIN, Resource.CURRICULUM, Action.APPROVE)).toBe(true)
-      expect(can(UserRole.METHODIST, Resource.CURRICULUM, Action.APPROVE)).toBe(false)
       expect(can(UserRole.ACADEMIC_SECRETARY, Resource.CURRICULUM, Action.APPROVE)).toBe(false)
       expect(can(UserRole.TEACHER, Resource.CURRICULUM, Action.APPROVE)).toBe(false)
       expect(can(UserRole.STUDENT, Resource.CURRICULUM, Action.APPROVE)).toBe(false)

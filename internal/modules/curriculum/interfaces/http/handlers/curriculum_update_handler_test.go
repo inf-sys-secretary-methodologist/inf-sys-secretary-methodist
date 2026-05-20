@@ -80,7 +80,7 @@ func doUpdate(t *testing.T, r *gin.Engine, path string, body any) *httptest.Resp
 
 func TestCurriculumHandler_Update_HappyPath_Methodist(t *testing.T) {
 	update := &fakeUpdatePort{out: builtCurriculum(t, 7)}
-	r := setupUpdateRouter(update, "methodist", 42)
+	r := setupUpdateRouter(update, "academic_secretary", 42)
 
 	body := map[string]any{
 		"title":       "New Title",
@@ -112,7 +112,9 @@ func TestCurriculumHandler_Update_HappyPath_AdminPassesIsAdminTrue(t *testing.T)
 }
 
 func TestCurriculumHandler_Update_RejectsNonWriteRoles(t *testing.T) {
-	cases := []string{"teacher", "academic_secretary", "student", "unknown"}
+	// v0.158.0: academic_secretary owns the authoring lifecycle;
+	// methodist is the approver and must not edit drafts.
+	cases := []string{"teacher", "methodist", "student", "unknown"}
 	for _, role := range cases {
 		t.Run(role, func(t *testing.T) {
 			update := &fakeUpdatePort{}
@@ -140,7 +142,7 @@ func TestCurriculumHandler_Update_BadPathIDReturns400(t *testing.T) {
 	for _, raw := range cases {
 		t.Run(raw, func(t *testing.T) {
 			update := &fakeUpdatePort{}
-			r := setupUpdateRouter(update, "methodist", 42)
+			r := setupUpdateRouter(update, "academic_secretary", 42)
 
 			body := map[string]any{"title": "T", "code": "C", "specialty": "S", "year": 2026}
 			rec := doUpdate(t, r, "/api/curriculum/"+raw, body)
@@ -152,7 +154,7 @@ func TestCurriculumHandler_Update_BadPathIDReturns400(t *testing.T) {
 
 func TestCurriculumHandler_Update_MalformedBodyReturns400(t *testing.T) {
 	update := &fakeUpdatePort{}
-	r := setupUpdateRouter(update, "methodist", 42)
+	r := setupUpdateRouter(update, "academic_secretary", 42)
 
 	rec := doUpdate(t, r, "/api/curriculum/7", "not-json")
 	assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
@@ -178,7 +180,7 @@ func TestCurriculumHandler_Update_DomainErrorMappings(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			update := &fakeUpdatePort{err: tc.ucErr}
-			r := setupUpdateRouter(update, "methodist", 42)
+			r := setupUpdateRouter(update, "academic_secretary", 42)
 
 			body := map[string]any{"title": "T", "code": "C", "specialty": "S", "year": 2026}
 			rec := doUpdate(t, r, "/api/curriculum/7", body)
