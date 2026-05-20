@@ -130,9 +130,19 @@ func (fs *FactScheduler) deliverDailyFact() {
 		}
 		sent++
 
-		// Rate limit: ~30 msg/sec (Telegram limit)
+		// Rate limit: ~30 msg/sec (Telegram limit). Use select so SIGTERM
+		// during the 1s sleep cuts the batch short instead of running к
+		// completion on a canceled ctx (issue #263 ADR-4 carry-forward).
 		if sent%25 == 0 {
-			time.Sleep(1 * time.Second)
+			select {
+			case <-time.After(time.Second):
+			case <-ctx.Done():
+				fs.logger.Info("fact batch interrupted — server shutting down",
+					"sent_so_far", sent,
+					"total_connections", len(connections),
+				)
+				return
+			}
 		}
 	}
 

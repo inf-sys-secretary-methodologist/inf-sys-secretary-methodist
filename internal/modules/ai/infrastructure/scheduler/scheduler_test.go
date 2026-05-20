@@ -88,3 +88,31 @@ func TestIndexingScheduler_StartStop(t *testing.T) {
 	time.Sleep(20 * time.Millisecond)
 	assert.NoError(t, is.Stop())
 }
+
+// TestFactScheduler_TickShortCircuitsOnCanceledCtx pins the lifecycle-ctx
+// contract from issue #263 ADR-4: when serverCtx is canceled, the next
+// scheduler tick body must short-circuit on ctx.Err() before touching any
+// nil dependency. If a future refactor drops the ctx.Err() check the
+// test will panic on the nil funFactUseCase deref instead of returning
+// cleanly.
+func TestFactScheduler_TickShortCircuitsOnCanceledCtx(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // canceled before any tick
+
+	fs, err := NewFactScheduler(ctx, nil, nil, nil, nil, quietLogger())
+	require.NoError(t, err)
+
+	// Invoke the tick directly. Without the ctx.Err() guard this would
+	// dereference the nil funFactUseCase and panic.
+	assert.NotPanics(t, func() { fs.deliverDailyFact() })
+}
+
+func TestIndexingScheduler_TickShortCircuitsOnCanceledCtx(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	is, err := NewIndexingScheduler(ctx, nil, 10, quietLogger())
+	require.NoError(t, err)
+
+	assert.NotPanics(t, func() { is.indexPendingDocuments() })
+}

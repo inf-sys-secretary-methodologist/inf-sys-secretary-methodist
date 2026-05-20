@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.154.0
+// @version         0.155.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -175,7 +175,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.154.0"
+const versionString = "0.155.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -1193,7 +1193,7 @@ func main() {
 		// is vendor-side and gated all users together).
 		aiAPIGroup := router.Group("/api")
 		aiAPIGroup.Use(authMiddleware.JWTMiddleware(authUseCase))
-		mountAuthRateLimit(aiAPIGroup, redisCache)
+		mountPerUserRateLimit(aiAPIGroup, redisCache)
 		aiHandlerInstance.RegisterRoutes(aiAPIGroup)
 
 		logger.Info("AI module initialized", map[string]interface{}{
@@ -3309,12 +3309,15 @@ func stopAIScheduler(s aiSchedulerStopper, kind string, logger *logging.Logger) 
 	}
 }
 
-// mountAuthRateLimit attaches a Redis-backed per-user rate limiter to the
-// given group when redisCache is wired. No-op when Redis is unavailable
-// (graceful degradation — limiter is defense-in-depth on top of upstream
-// vendor throttles). Extracted helper so per-group rate-limit wiring does
-// not bloat main() cyclomatic complexity.
-func mountAuthRateLimit(group *gin.RouterGroup, redisCache *cache.RedisCache) {
+// mountPerUserRateLimit attaches a Redis-backed per-user rate limiter to
+// the given group when redisCache is wired. The bucket key is the
+// authenticated user_id ctx value (set by JWT middleware), so NAT'd
+// students do not share a bucket — important for dollar-cost endpoints
+// like /api/ai/chat where outbound LLM-provider throttling alone is
+// insufficient. No-op when Redis is unavailable (graceful degradation).
+// Must be mounted AFTER JWTMiddleware so user_id ctx value is set.
+// Issue #263 ADR-3.
+func mountPerUserRateLimit(group *gin.RouterGroup, redisCache *cache.RedisCache) {
 	if redisCache == nil {
 		return
 	}
@@ -3322,5 +3325,5 @@ func mountAuthRateLimit(group *gin.RouterGroup, redisCache *cache.RedisCache) {
 	if limiter == nil {
 		return
 	}
-	group.Use(limiter.RateLimitMiddleware())
+	group.Use(limiter.RateLimitByUserMiddleware())
 }

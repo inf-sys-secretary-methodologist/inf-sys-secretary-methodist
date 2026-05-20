@@ -29,7 +29,11 @@ func NewRateLimiter(redisClient *redis.Client, requestsPerMinute int, burst int)
 	}
 }
 
-// RateLimitMiddleware возвращает HTTP middleware для rate limiting
+// RateLimitMiddleware returns the IP-keyed limiter middleware. Suitable for
+// pre-auth surfaces (login, public branding). Trusts X-Forwarded-For for
+// reverse-proxy deployments — known limitation: client-set header bypasses
+// the limit. Post-auth surfaces should prefer RateLimitByUserMiddleware
+// so NAT'd users do not share a bucket.
 func (rl *RateLimiter) RateLimitMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := getRealIP(c.Request)
@@ -43,6 +47,60 @@ func (rl *RateLimiter) RateLimitMiddleware() gin.HandlerFunc {
 		}
 
 		// Общий лимит = базовый лимит + burst
+		totalLimit := rl.requests + rl.burst
+
+		if count > int64(totalLimit) {
+			c.Header("Retry-After", strconv.FormatInt(retryAfter, 10))
+			c.Header("X-RateLimit-Limit", strconv.Itoa(rl.requests))
+			c.Header("X-RateLimit-Burst", strconv.Itoa(rl.burst))
+			c.Header("X-RateLimit-Remaining", "0")
+			c.Header("X-RateLimit-Reset", time.Now().Add(time.Duration(retryAfter)*time.Second).Format(time.RFC3339))
+
+			c.AbortWithStatus(http.StatusTooManyRequests)
+			return
+		}
+
+		remaining := totalLimit - int(count)
+		if remaining < 0 {
+			remaining = 0
+		}
+
+		c.Header("X-RateLimit-Limit", strconv.Itoa(rl.requests))
+		c.Header("X-RateLimit-Burst", strconv.Itoa(rl.burst))
+		c.Header("X-RateLimit-Remaining", strconv.Itoa(remaining))
+		c.Header("X-RateLimit-Reset", time.Now().Add(rl.window).Format(time.RFC3339))
+
+		c.Next()
+	}
+}
+
+// RateLimitByUserMiddleware returns a limiter middleware keyed by the
+// authenticated user_id ctx value. Must be mounted AFTER JWT middleware so
+// the key is the authenticated principal — NAT'd students no longer share
+// a bucket (which is the security goal for AI / chat endpoints where each
+// request has dollar-cost). On missing ctx (mis-wired chain) falls back к
+// IP-keyed to fail closed. Issue #263 ADR-3.
+func (rl *RateLimiter) RateLimitByUserMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var key string
+		if rawUserID, exists := c.Get("user_id"); exists {
+			if uid, ok := rawUserID.(int64); ok && uid > 0 {
+				key = fmt.Sprintf("rate_limit:user:%d", uid)
+			}
+		}
+		if key == "" {
+			// Fallback: protect against mis-wired chains by still applying
+			// IP-keyed limit (fail closed). Production deployments should
+			// never hit this branch because JWT middleware populates user_id.
+			key = fmt.Sprintf("rate_limit:ip-fallback:%s", getRealIP(c.Request))
+		}
+
+		count, retryAfter, err := rl.incrementAndCheck(key)
+		if err != nil {
+			c.Next()
+			return
+		}
+
 		totalLimit := rl.requests + rl.burst
 
 		if count > int64(totalLimit) {

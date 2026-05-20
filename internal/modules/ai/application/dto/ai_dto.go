@@ -59,8 +59,8 @@ type MessageListResponse struct {
 
 // CreateConversationRequest represents a request to create a conversation
 type CreateConversationRequest struct {
-	Title string `json:"title"`
-	Model string `json:"model,omitempty"`
+	Title string `json:"title" binding:"max=255"`
+	Model string `json:"model,omitempty" binding:"max=64"`
 }
 
 // UpdateConversationRequest represents a request to update a conversation
