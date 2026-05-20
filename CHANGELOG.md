@@ -15,6 +15,42 @@
 
 ---
 
+## [0.155.0] — 2026-05-20
+
+### Security — ai module Tier 1 hotfix (#263)
+
+Closes 7 of 8 Tier 1 audit findings from pre-v1.0.0 reviewer pass on ai module (`docs/plans/2026-05-20-v1.0.0-batch1-audit.md` → mean 5.2/10 / min 4/10 FIX-CYCLE). Cross-module imports refactor (ADR-5) deferred к v0.155.1 polish patch — purely architectural cleanup without runtime/security impact, same precedent as v0.154 publish goroutine carry-forward.
+
+**Shipped (7 ADRs)**:
+
+- **ADR-1: CreateConversation actually persists** — was a broken shortcut returning the user's first existing conversation as "newly created" and never calling `conversationRepo.Create` (handler-level лжа клиенту, invisible to CI). New `ChatUseCase.CreateConversation` calls `entities.NewConversation + conversationRepo.Create`; handler delegates; 3 sub-tests pin contract.
+- **ADR-2: `validate:` → `binding:` tags** на 4 DTOs (UpdateConversationRequest / SendMessageRequest / SearchRequest / IndexDocumentRequest). Gin reads `binding:` only — prior limits (Content max=10000 / Title max=255 / Query max=1000) were silently ignored, allowing unbounded LLM input (token-cost DoS + prompt injection surface).
+- **ADR-3: Per-user rate limiter** на aiAPIGroup. New `RateLimiter.RateLimitByUserMiddleware()` keys на authenticated `user_id` ctx value (`rate_limit:user:%d`), so NAT'd users no longer share a bucket — important для dollar-cost endpoints like `/api/ai/chat` where outbound LLM-provider throttling alone is insufficient. Falls back к `rate_limit:ip-fallback:` when ctx user_id missing (fail closed). New `mountPerUserRateLimit` helper keeps `main()` cyclomatic complexity under 70.
+- **ADR-4: Schedulers wire lifecycle ctx** — `serverCtx context.WithCancel` declared at `main()` entry, passed к `NewFactScheduler` + `NewIndexingScheduler` constructors; tick bodies check `ctx.Err()` before any work. `aiFactScheduler` + `aiIndexingScheduler` hoisted к outer scope; new `stopAIScheduler` helper registered со graceful-shutdown branch (closes goroutine leak via `gocron.Shutdown` on SIGTERM).
+- **ADR-6: `defaultOpenAIChatModel`** corrected from hardcoded `"gemini-2.5-flash"` (Gemini model leaked into OpenAI HTTP client — first `/chat` call would 4xx) к canonical `"gpt-4o-mini"`.
+- **ADR-7: Safe type assertion** на 2 handler ctx-key reads (`DeleteConversation`, `GetMessages`) — replaced unsafe `userID.(int64)` panic risk с comma-ok 401 response.
+- **ADR-8: Ownership sentinels + handler mapping** — `ErrConversationNotFound` + `ErrConversationAccessDenied` declared в `ai/domain/repositories` (both persistence и usecase reference без circular import). 6 ownership sites в `chat_usecase.go` return sentinel directly; persistence `GetByID` returns sentinel on `sql.ErrNoRows`. New `respondChatError` helper maps к 404/403/500 без `err.Error()` leak — closes info disclosure (PG error names / table names previously surfaced in 500 responses). 5 chat-flow handlers updated. 6 existing TestX_Unauthorized assertions migrated от `ErrorContains` wording к `errors.Is(ErrConversationAccessDenied)`.
+
+### Plan / cross-references
+
+- `docs/plans/2026-05-20-v0155-ai-security.md` — 8 ADRs locked upfront, TDD pair plan, acceptance criteria
+- v0.154.0 precedent (#260): `docs/plans/2026-05-20-v0154-reporting-security.md`
+
+### Tier 2 carry-forward (post v0.155)
+
+- **ADR-5 — Cross-module imports** через narrow ports + main.go DI seam: `mood_usecase` (dashboard + analytics), `telegram_personality_service` (notifications/domain/services), `fact_scheduler` (notifications/domain/repositories). Architectural cleanup; no runtime impact. Targeted к v0.155.1 polish patch.
+- ChatStream SSE error frames still emit raw `err.Error()` (different protocol from JSON responses) — generic-message treatment defer'red.
+- In-flight cancelation of long-running scheduler tasks (mid-Telegram-batch send, indexing) requires task-internal `ctx.Done()` select on top of the entry-point guard.
+- Other handlers' `uid, _ := userID.(int64)` pattern (silent-zero on type mismatch) к comma-ok rollout for full consistency.
+
+### Stats
+
+- ~16 commits: 1 plan doc + 1 RED→GREEN pair (CreateConversation) + 7 config/wiring fixes + 4 reviewer fix-cycle commits (per-user rate limiter / Title binding cap / getAuthedUserID helper / handler delegation test + scheduler cancel tests + fact_scheduler ctx-aware sleep) + bump + CHANGELOG
+- 1 RED→GREEN TDD pair plus configuration-style fixes; honest count (CLAUDE.md TDD gate requires precise self-reporting, не inflated)
+- Net diff: ~+450 / -130 LOC; full ai module + sibling tests green
+
+---
+
 ## [0.154.0] — 2026-05-20
 
 ### Security — reporting Tier 1 hotfix (#260)
