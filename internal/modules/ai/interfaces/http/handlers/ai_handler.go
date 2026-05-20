@@ -251,33 +251,28 @@ func (h *AIHandler) ListConversations(c *gin.Context) {
 // @Success 201 {object} dto.ConversationResponse
 // @Router /api/ai/conversations [post]
 func (h *AIHandler) CreateConversation(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	rawUserID, exists := c.Get("user_id")
 	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
+		return
+	}
+	userID, ok := rawUserID.(int64)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{errorKey: "unauthorized"})
 		return
 	}
 
 	var req dto.CreateConversationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		// Allow empty body for auto-generated title
-		req = dto.CreateConversationRequest{Title: "New Conversation"}
-	}
+	// Empty body is allowed; usecase supplies default title.
+	_ = c.ShouldBindJSON(&req)
 
-	// Use chat use case to create via conversation repo
-	uid, _ := userID.(int64)
-	response, err := h.chatUseCase.GetConversations(c.Request.Context(), uid, "", 1, 0)
+	conversation, err := h.chatUseCase.CreateConversation(c.Request.Context(), userID, req.Title, "")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{errorKey: err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "failed to create conversation"})
 		return
 	}
 
-	// For now, return the first conversation or create via chat
-	if len(response.Conversations) > 0 {
-		c.JSON(http.StatusCreated, gin.H{"success": true, "data": response.Conversations[0]})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"success": true, "data": dto.ConversationResponse{Title: req.Title}})
+	c.JSON(http.StatusCreated, gin.H{"success": true, "data": dto.ToConversationResponse(conversation)})
 }
 
 // GetConversation handles getting a single conversation
