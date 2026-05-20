@@ -7,9 +7,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/repositories"
 )
+
+// Compile-time assertion that the PG impl satisfies the wide port
+// declared in the consuming application/usecases layer (DIP). v0.157.1.
+var _ usecases.SectionRepository = (*SectionRepositoryPG)(nil)
 
 // SectionRepositoryPG is the SQL implementation of SectionRepository
 // (curriculum_sections table, migration 034). Optimistic locking per

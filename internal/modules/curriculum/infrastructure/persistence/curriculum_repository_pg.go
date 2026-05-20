@@ -11,9 +11,16 @@ import (
 
 	"github.com/lib/pq"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/repositories"
 )
+
+// Compile-time assertion that the PG impl satisfies the wide port
+// declared in the consuming application/usecases layer (DIP). Catches
+// signature drift at this file's compile site rather than only at DI
+// wiring in cmd/server/main.go. v0.157.1.
+var _ usecases.CurriculumRepository = (*CurriculumRepositoryPG)(nil)
 
 // CurriculumRepositoryPG is the SQL implementation of CurriculumRepository.
 //

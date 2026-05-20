@@ -4,7 +4,18 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/curriculum/domain/repositories"
+)
+
+// Compile-time assertion that the PG impls satisfy the wide ports
+// declared in the consuming application/usecases layer (DIP). The
+// bulkTxPG assertion guards the Items/Sections/Curricula accessor
+// signatures together (one Tx surface implementing three repository
+// ports plus Commit/Rollback). v0.157.1.
+var (
+	_ usecases.BulkDisciplineItemsUnitOfWork = (*BulkDisciplineItemsUnitOfWorkPG)(nil)
+	_ usecases.BulkDisciplineItemsTx         = (*bulkTxPG)(nil)
 )
 
 // BulkDisciplineItemsUnitOfWorkPG is the PostgreSQL implementation of
@@ -34,7 +45,7 @@ func NewBulkDisciplineItemsUnitOfWorkPG(db *sql.DB) *BulkDisciplineItemsUnitOfWo
 // Returned BulkDisciplineItemsTx exposes tx-bound repository ports
 // constructed from the same `*sql.Tx` (DBTX-based reuse per Pair 1a
 // refactor — no SQL duplication между tx и non-tx paths).
-func (u *BulkDisciplineItemsUnitOfWorkPG) Begin(ctx context.Context, opts *sql.TxOptions) (repositories.BulkDisciplineItemsTx, error) {
+func (u *BulkDisciplineItemsUnitOfWorkPG) Begin(ctx context.Context, opts *sql.TxOptions) (usecases.BulkDisciplineItemsTx, error) {
 	tx, err := u.db.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -62,17 +73,17 @@ type bulkTxPG struct {
 }
 
 // Items returns the tx-bound DisciplineItem repository.
-func (t *bulkTxPG) Items() repositories.DisciplineItemRepository {
+func (t *bulkTxPG) Items() usecases.DisciplineItemRepository {
 	return t.items
 }
 
 // Sections returns the tx-bound Section repository.
-func (t *bulkTxPG) Sections() repositories.SectionRepository {
+func (t *bulkTxPG) Sections() usecases.SectionRepository {
 	return t.sections
 }
 
 // Curricula returns the tx-bound Curriculum repository.
-func (t *bulkTxPG) Curricula() repositories.CurriculumRepository {
+func (t *bulkTxPG) Curricula() usecases.CurriculumRepository {
 	return t.curricula
 }
 
