@@ -1131,3 +1131,57 @@ func TestExportFormat_IsValid(t *testing.T) {
 		})
 	}
 }
+
+// TestSelectedField_Validate covers the Alias whitelist that defends
+// dynamic_query_builder.go against SQL injection through user JSON.
+// See docs/plans/2026-05-20-v0154-reporting-security.md ADR-1 + ADR-2.
+func TestSelectedField_Validate(t *testing.T) {
+	tests := []struct {
+		name      string
+		alias     string
+		wantErrIs error
+	}{
+		// Empty alias is optional — no validation, no error.
+		{name: "empty_alias_allowed", alias: "", wantErrIs: nil},
+
+		// Safe identifiers — accepted.
+		{name: "simple_letters", alias: "total", wantErrIs: nil},
+		{name: "underscore_prefix", alias: "_internal", wantErrIs: nil},
+		{name: "mixed_case", alias: "TotalCount", wantErrIs: nil},
+		{name: "alnum_underscore", alias: "report_v2_count", wantErrIs: nil},
+		{name: "max_length_63", alias: "a" + "bcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab", wantErrIs: nil},
+
+		// SQL injection payloads — rejected.
+		{name: "drop_table", alias: `x"; DROP TABLE users; --`, wantErrIs: ErrInvalidAlias},
+		{name: "union_select", alias: "x UNION SELECT password FROM users", wantErrIs: ErrInvalidAlias},
+		{name: "double_quote", alias: `x"foo`, wantErrIs: ErrInvalidAlias},
+		{name: "single_quote", alias: "x'foo", wantErrIs: ErrInvalidAlias},
+		{name: "semicolon", alias: "x; SELECT 1", wantErrIs: ErrInvalidAlias},
+		{name: "comment", alias: "x--comment", wantErrIs: ErrInvalidAlias},
+		{name: "block_comment", alias: "x/*bad*/", wantErrIs: ErrInvalidAlias},
+		{name: "space", alias: "x y", wantErrIs: ErrInvalidAlias},
+		{name: "dot_qualified", alias: "schema.table", wantErrIs: ErrInvalidAlias},
+		{name: "hyphen", alias: "x-y", wantErrIs: ErrInvalidAlias},
+		{name: "leading_digit", alias: "1foo", wantErrIs: ErrInvalidAlias},
+		{name: "unicode_cyrillic", alias: "итог", wantErrIs: ErrInvalidAlias},
+		{name: "null_byte", alias: "x\x00y", wantErrIs: ErrInvalidAlias},
+		{name: "newline", alias: "x\nDROP", wantErrIs: ErrInvalidAlias},
+		{name: "over_63_chars", alias: "a" + "bcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abc", wantErrIs: ErrInvalidAlias},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := SelectedField{Alias: tt.alias}
+			err := f.Validate()
+			if tt.wantErrIs == nil {
+				if err != nil {
+					t.Errorf("Validate(alias=%q) returned %v, want nil", tt.alias, err)
+				}
+				return
+			}
+			if !errors.Is(err, tt.wantErrIs) {
+				t.Errorf("Validate(alias=%q) returned %v, want errors.Is(%v)", tt.alias, err, tt.wantErrIs)
+			}
+		})
+	}
+}

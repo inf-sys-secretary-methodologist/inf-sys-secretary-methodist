@@ -2,10 +2,18 @@ package entities
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+// ErrInvalidAlias is returned when a SelectedField alias does not satisfy the
+// safe-identifier whitelist that protects the dynamic query builder from SQL
+// injection. The whitelist intentionally matches the PG identifier grammar so
+// values can be interpolated into "AS <alias>" clauses without quoting. See
+// docs/plans/2026-05-20-v0154-reporting-security.md ADR-2.
+var ErrInvalidAlias = errors.New("invalid alias: must match ^[A-Za-z_][A-Za-z0-9_]{0,62}$")
 
 // DataSourceType represents the data source for custom reports
 type DataSourceType string
@@ -119,6 +127,17 @@ type SelectedField struct {
 	Order       int             `json:"order"`
 	Alias       string          `json:"alias,omitempty"`
 	Aggregation AggregationType `json:"aggregation,omitempty"`
+}
+
+// Validate enforces SelectedField invariants. Returns ErrInvalidAlias when the
+// optional Alias is set but does not satisfy the safe-identifier whitelist.
+// Stub: returns sentinel for any non-empty Alias until GREEN commit wires the
+// real regex (see plan ADR-2).
+func (f SelectedField) Validate() error {
+	if f.Alias == "" {
+		return errors.New("Validate not implemented")
+	}
+	return errors.New("Validate not implemented")
 }
 
 // ReportFilterConfig represents a filter configuration
