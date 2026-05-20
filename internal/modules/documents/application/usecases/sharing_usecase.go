@@ -9,27 +9,26 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
-	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // SharingUseCase handles document sharing operations
 type SharingUseCase struct {
-	documentRepo        repositories.DocumentRepository
-	permissionRepo      repositories.PermissionRepository
-	publicLinkRepo      repositories.PublicLinkRepository
-	auditLog            *logging.AuditLogger
-	baseURL             string
-	notificationUseCase *notifUsecases.NotificationUseCase
-	// v0.156.0 ADR-5 (#266): narrow port replacing cross-module
-	// concrete dep above. Set via WithShareNotifier; nil-safe.
+	documentRepo   repositories.DocumentRepository
+	permissionRepo repositories.PermissionRepository
+	publicLinkRepo repositories.PublicLinkRepository
+	auditLog       *logging.AuditLogger
+	baseURL        string
+	// v0.156.0 ADR-5 (#266): ShareNotifier narrow port. Cross-module
+	// adapter lives в main.go DI seam. Nil-safe — skip notification
+	// when sink not installed.
 	notifier ShareNotifier
 }
 
 // WithShareNotifier injects a narrow ShareNotifier port для emitting
-// document-shared notifications. Chainable setter — keeps the legacy
-// 6-arg constructor signature stable while letting main.go provide an
+// document-shared notifications. Chainable setter — keeps the
+// constructor signature small while letting main.go provide an
 // adapter that holds the cross-module concrete dependency.
 //
 // v0.156.0 ADR-5 (#266).
@@ -45,15 +44,13 @@ func NewSharingUseCase(
 	publicLinkRepo repositories.PublicLinkRepository,
 	auditLog *logging.AuditLogger,
 	baseURL string,
-	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *SharingUseCase {
 	return &SharingUseCase{
-		documentRepo:        documentRepo,
-		permissionRepo:      permissionRepo,
-		publicLinkRepo:      publicLinkRepo,
-		auditLog:            auditLog,
-		baseURL:             baseURL,
-		notificationUseCase: notificationUseCase,
+		documentRepo:   documentRepo,
+		permissionRepo: permissionRepo,
+		publicLinkRepo: publicLinkRepo,
+		auditLog:       auditLog,
+		baseURL:        baseURL,
 	}
 }
 
@@ -125,18 +122,18 @@ func (uc *SharingUseCase) ShareDocument(ctx context.Context, input dto.ShareDocu
 		uc.auditLog.LogAuditEvent(ctx, "document_shared", "document_permission", details)
 	}
 
-	// Send notification to the user about shared document
-	if uc.notificationUseCase != nil && input.UserID != nil {
-		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
-			link := fmt.Sprintf("/documents/%d", input.DocumentID)
-			_ = uc.notificationUseCase.SendDocumentNotification(
-				context.Background(),
-				*input.UserID,
-				"Документ открыт для вас",
-				fmt.Sprintf("Вам предоставлен доступ к документу «%s»", doc.Title),
-				link,
-			)
-		}()
+	// v0.156.0 ADR-5 (#266): emit shared-notification via narrow port.
+	// Adapter в main.go DI seam holds the cross-module concrete dep,
+	// decides sync-vs-async, и owns UI strings. Use-case stays free
+	// of cross-module Go imports, context.Background() goroutines, и
+	// UI Russian strings.
+	if uc.notifier != nil && input.UserID != nil {
+		if notifyErr := uc.notifier.NotifyDocumentShared(ctx, *input.UserID, input.DocumentID, doc.Title); notifyErr != nil {
+			// Best-effort: notification failure must not block the share.
+			// Logging would be ideal but auditLog already carries the
+			// share event; the adapter is expected to log its own errors.
+			_ = notifyErr
+		}
 	}
 
 	// Get full permission with user details

@@ -436,7 +436,8 @@ func main() {
 		publicLinkRepo := docPersistence.NewPublicLinkRepositoryPG(db)
 		docTagRepo := docPersistence.NewDocumentTagRepositoryPG(db)
 		docUseCase = docUsecases.NewDocumentUseCase(docRepo, docTypeRepo, docCategoryRepo, s3Client, auditLogger)
-		sharingUseCase = docUsecases.NewSharingUseCase(docRepo, permissionRepo, publicLinkRepo, auditLogger, cfg.Server.BaseURL, notificationUseCase)
+		sharingUseCase = docUsecases.NewSharingUseCase(docRepo, permissionRepo, publicLinkRepo, auditLogger, cfg.Server.BaseURL).
+			WithShareNotifier(&documentsShareNotifier{notif: notificationUseCase})
 		docVersionUseCase = docUsecases.NewDocumentVersionUseCase(docRepo, s3Client, auditLogger)
 		tagUseCase = docUsecases.NewTagUseCase(docTagRepo, docRepo, auditLogger)
 		templateRepo := docPersistence.NewTemplateRepositoryAdapter(docTypeRepo)
@@ -3326,4 +3327,36 @@ func mountPerUserRateLimit(group *gin.RouterGroup, redisCache *cache.RedisCache)
 		return
 	}
 	group.Use(limiter.RateLimitByUserMiddleware())
+}
+
+// documentsShareNotifier adapts the platform NotificationUseCase к
+// the documents module's narrow ShareNotifier port. Same DI-seam
+// pattern as assignmentsGradeNotifier / assignmentsReturnNotifier — the
+// documents module itself stays free of cross-module Go imports.
+//
+// v0.156.0 ADR-5 (#266): closes the cross-module concrete import +
+// fire-and-forget goroutine с context.Background() + Russian UI strings
+// previously inlined в sharing_usecase.go.
+type documentsShareNotifier struct {
+	notif *notifUsecases.NotificationUseCase
+}
+
+// NotifyDocumentShared creates a "info"-typed notification for the
+// recipient telling them a document was shared. Returns nil silently
+// when the notification subsystem is disabled (notif == nil) so sharing
+// still works without notifications.
+func (n *documentsShareNotifier) NotifyDocumentShared(ctx context.Context, recipientID int64, documentID int64, documentTitle string) error {
+	if n == nil || n.notif == nil {
+		return nil
+	}
+	link := fmt.Sprintf("/documents/%d", documentID)
+	_, err := n.notif.Create(ctx, &notifDTO.CreateNotificationInput{
+		UserID:   recipientID,
+		Type:     notifEntities.NotificationTypeInfo,
+		Priority: notifEntities.PriorityNormal,
+		Title:    "Документ открыт для вас",
+		Message:  fmt.Sprintf("Вам предоставлен доступ к документу «%s»", documentTitle),
+		Link:     link,
+	})
+	return err
 }

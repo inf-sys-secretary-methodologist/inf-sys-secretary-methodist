@@ -219,7 +219,7 @@ func TestSharingUseCase_ShareDocument(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, Title: "Test Doc", AuthorID: 1}
 		userID := int64(2)
@@ -253,7 +253,7 @@ func TestSharingUseCase_ShareDocument(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, Title: "Test Doc", AuthorID: 1}
 		userID := int64(3)
@@ -288,7 +288,7 @@ func TestSharingUseCase_ShareDocument(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, Title: "Test Doc", AuthorID: 1}
 		userID := int64(3)
@@ -316,7 +316,7 @@ func TestSharingUseCase_ShareDocument(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, Title: "Test Doc", AuthorID: 1}
 		userID := int64(2)
@@ -350,7 +350,7 @@ func TestSharingUseCase_ShareDocument(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(2)
 		mockDocRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found"))
@@ -377,7 +377,7 @@ func TestSharingUseCase_RevokePermission(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(2)
 		permission := &entities.DocumentPermission{
@@ -404,7 +404,7 @@ func TestSharingUseCase_RevokePermission(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(3)
 		permission := &entities.DocumentPermission{
@@ -432,7 +432,7 @@ func TestSharingUseCase_RevokePermission(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(3)
 		permission := &entities.DocumentPermission{
@@ -460,7 +460,7 @@ func TestSharingUseCase_RevokePermission(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockPermRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found"))
 
@@ -479,7 +479,7 @@ func TestSharingUseCase_GetPermission(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(2)
 		permission := &entities.DocumentPermission{
@@ -504,7 +504,7 @@ func TestSharingUseCase_GetPermission(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockPermRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found"))
 
@@ -524,7 +524,7 @@ func TestSharingUseCase_GetDocumentPermissions(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1, IsPublic: false}
 		userID := int64(2)
@@ -548,7 +548,7 @@ func TestSharingUseCase_GetDocumentPermissions(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1, IsPublic: false}
 		userID := int64(2)
@@ -573,7 +573,7 @@ func TestSharingUseCase_GetDocumentPermissions(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1, IsPublic: false}
 
@@ -594,7 +594,7 @@ func TestSharingUseCase_GetDocumentPermissions(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1, IsPublic: true}
 		permissions := []*entities.DocumentPermission{}
@@ -620,7 +620,7 @@ func TestSharingUseCase_CheckUserPermission(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 
@@ -638,7 +638,7 @@ func TestSharingUseCase_CheckUserPermission(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1, IsPublic: true}
 
@@ -656,7 +656,7 @@ func TestSharingUseCase_CheckUserPermission(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1, IsPublic: false}
 
@@ -676,7 +676,7 @@ func TestSharingUseCase_CheckUserPermission(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1, IsPublic: false}
 
@@ -700,7 +700,7 @@ func TestSharingUseCase_CreatePublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 
@@ -725,7 +725,7 @@ func TestSharingUseCase_CreatePublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 
@@ -752,7 +752,7 @@ func TestSharingUseCase_CreatePublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 
@@ -778,7 +778,7 @@ func TestSharingUseCase_CreatePublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 		password := "secret123"
@@ -811,7 +811,7 @@ func TestSharingUseCase_DeactivatePublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -832,7 +832,7 @@ func TestSharingUseCase_DeactivatePublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -853,7 +853,7 @@ func TestSharingUseCase_DeactivatePublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -880,7 +880,7 @@ func TestSharingUseCase_DeletePublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -905,7 +905,7 @@ func TestSharingUseCase_AccessPublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{
 			ID:         1,
@@ -934,7 +934,7 @@ func TestSharingUseCase_AccessPublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		pastTime := time.Now().Add(-24 * time.Hour)
 		link := &entities.PublicLink{
@@ -961,7 +961,7 @@ func TestSharingUseCase_AccessPublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{
 			ID:         1,
@@ -986,7 +986,7 @@ func TestSharingUseCase_AccessPublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockLinkRepo.On("GetByToken", ctx, "invalid-token").Return(nil, errors.New("not found"))
 
@@ -1006,7 +1006,7 @@ func TestSharingUseCase_GetSharedDocuments(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		permissions := []*entities.DocumentPermission{
 			{ID: 1, DocumentID: 1, Permission: entities.PermissionRead},
@@ -1039,7 +1039,7 @@ func TestSharingUseCase_GetSharedDocuments(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		permissions := []*entities.DocumentPermission{
 			{ID: 1, DocumentID: 1, Permission: entities.PermissionRead},
@@ -1073,7 +1073,7 @@ func TestSharingUseCase_GetSharedDocuments(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		permissions := []*entities.DocumentPermission{
 			{ID: 1, DocumentID: 1, Permission: entities.PermissionRead},
@@ -1114,7 +1114,7 @@ func TestSharingUseCase_GetMySharedDocuments(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(2)
 		permissions := []*entities.DocumentPermission{
@@ -1139,7 +1139,7 @@ func TestSharingUseCase_GetMySharedDocuments(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockPermRepo.On("GetByGrantedBy", ctx, int64(1)).Return([]*entities.DocumentPermission{}, nil)
 
@@ -1155,7 +1155,7 @@ func TestSharingUseCase_GetMySharedDocuments(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(2)
 		permissions := []*entities.DocumentPermission{
@@ -1184,7 +1184,7 @@ func TestSharingUseCase_GetPublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -1205,7 +1205,7 @@ func TestSharingUseCase_GetPublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -1226,7 +1226,7 @@ func TestSharingUseCase_GetPublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -1249,7 +1249,7 @@ func TestSharingUseCase_GetPublicLink(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -1277,7 +1277,7 @@ func TestSharingUseCase_GetDocumentPublicLinks(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 		links := []*entities.PublicLink{
@@ -1301,7 +1301,7 @@ func TestSharingUseCase_GetDocumentPublicLinks(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 		links := []*entities.PublicLink{
@@ -1326,7 +1326,7 @@ func TestSharingUseCase_GetDocumentPublicLinks(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 
@@ -1351,7 +1351,7 @@ func TestSharingUseCase_ShareDocument_WithRole(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, Title: "Test Doc", AuthorID: 1}
 		role := "teacher"
@@ -1386,7 +1386,7 @@ func TestSharingUseCase_ShareDocument_WithRole(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, Title: "Test Doc", AuthorID: 1}
 		userID := int64(3)
@@ -1413,7 +1413,7 @@ func TestSharingUseCase_ShareDocument_WithRole(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, Title: "Test Doc", AuthorID: 1}
 		userID := int64(2)
@@ -1445,7 +1445,7 @@ func TestSharingUseCase_RevokePermission_DocumentNotFound(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(2)
 		permission := &entities.DocumentPermission{
@@ -1467,7 +1467,7 @@ func TestSharingUseCase_RevokePermission_DocumentNotFound(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(3)
 		permission := &entities.DocumentPermission{
@@ -1491,7 +1491,7 @@ func TestSharingUseCase_RevokePermission_DocumentNotFound(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(2)
 		permission := &entities.DocumentPermission{
@@ -1519,7 +1519,7 @@ func TestSharingUseCase_CheckUserPermission_DocumentNotFound(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockDocRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found"))
 
@@ -1539,7 +1539,7 @@ func TestSharingUseCase_GetDocumentPermissions_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockDocRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found"))
 
@@ -1555,7 +1555,7 @@ func TestSharingUseCase_GetDocumentPermissions_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1, IsPublic: false}
 
@@ -1579,7 +1579,7 @@ func TestSharingUseCase_CreatePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockDocRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found"))
 
@@ -1597,7 +1597,7 @@ func TestSharingUseCase_CreatePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 
@@ -1619,7 +1619,7 @@ func TestSharingUseCase_CreatePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 
@@ -1641,7 +1641,7 @@ func TestSharingUseCase_CreatePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 		maxUses := 10
@@ -1677,7 +1677,7 @@ func TestSharingUseCase_AccessPublicLink_Password(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		// Generate a bcrypt hash for "secret123"
 		// We use the actual hash that bcrypt generates
@@ -1703,7 +1703,7 @@ func TestSharingUseCase_AccessPublicLink_Password(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		hash := testFakeBcryptHash
 		link := &entities.PublicLink{
@@ -1725,7 +1725,7 @@ func TestSharingUseCase_AccessPublicLink_Password(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		hash := testFakeBcryptHash
 		link := &entities.PublicLink{
@@ -1748,7 +1748,7 @@ func TestSharingUseCase_AccessPublicLink_Password(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{
 			ID: 1, DocumentID: 1, Token: "dl-token", Permission: entities.PublicLinkDownload,
@@ -1774,7 +1774,7 @@ func TestSharingUseCase_AccessPublicLink_Password(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		maxUses := 5
 		link := &entities.PublicLink{
@@ -1797,7 +1797,7 @@ func TestSharingUseCase_AccessPublicLink_Password(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{
 			ID: 1, DocumentID: 1, Token: "inc-fail-token", Permission: entities.PublicLinkRead,
@@ -1822,7 +1822,7 @@ func TestSharingUseCase_AccessPublicLink_Password(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{
 			ID: 1, DocumentID: 1, Token: "doc-missing-token", Permission: entities.PublicLinkRead,
@@ -1849,7 +1849,7 @@ func TestSharingUseCase_DeactivatePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockLinkRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found"))
 
@@ -1864,7 +1864,7 @@ func TestSharingUseCase_DeactivatePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 
@@ -1883,7 +1883,7 @@ func TestSharingUseCase_DeactivatePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -1905,7 +1905,7 @@ func TestSharingUseCase_DeactivatePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -1926,7 +1926,7 @@ func TestSharingUseCase_DeactivatePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -1953,7 +1953,7 @@ func TestSharingUseCase_DeletePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockLinkRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found"))
 
@@ -1968,7 +1968,7 @@ func TestSharingUseCase_DeletePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -1991,7 +1991,7 @@ func TestSharingUseCase_DeletePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -2012,7 +2012,7 @@ func TestSharingUseCase_DeletePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 1, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -2033,7 +2033,7 @@ func TestSharingUseCase_DeletePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 
@@ -2052,7 +2052,7 @@ func TestSharingUseCase_DeletePublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -2078,7 +2078,7 @@ func TestSharingUseCase_GetSharedDocuments_Pagination(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		permissions := []*entities.DocumentPermission{
 			{ID: 1, DocumentID: 1, Permission: entities.PermissionRead},
@@ -2107,7 +2107,7 @@ func TestSharingUseCase_GetSharedDocuments_Pagination(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		permissions := []*entities.DocumentPermission{
 			{ID: 1, DocumentID: 1, Permission: entities.PermissionRead},
@@ -2139,7 +2139,7 @@ func TestSharingUseCase_GetSharedDocuments_Pagination(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockPermRepo.On("GetByUserIDOrRole", ctx, int64(1), "").Return(nil, errors.New("db error"))
 
@@ -2157,7 +2157,7 @@ func TestSharingUseCase_GetSharedDocuments_Pagination(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		permissions := []*entities.DocumentPermission{
 			{ID: 1, DocumentID: 1, Permission: entities.PermissionRead},
@@ -2188,7 +2188,7 @@ func TestSharingUseCase_GetMySharedDocuments_Pagination(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(2)
 		permissions := []*entities.DocumentPermission{
@@ -2212,7 +2212,7 @@ func TestSharingUseCase_GetMySharedDocuments_Pagination(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(2)
 		permissions := []*entities.DocumentPermission{
@@ -2236,7 +2236,7 @@ func TestSharingUseCase_GetMySharedDocuments_Pagination(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockPermRepo.On("GetByGrantedBy", ctx, int64(1)).Return(nil, errors.New("db error"))
 
@@ -2252,7 +2252,7 @@ func TestSharingUseCase_GetMySharedDocuments_Pagination(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		role := entities.RoleTeacher
 		permissions := []*entities.DocumentPermission{
@@ -2279,7 +2279,7 @@ func TestSharingUseCase_GetMySharedDocuments_Pagination(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		userID := int64(2)
 		permissions := []*entities.DocumentPermission{
@@ -2306,7 +2306,7 @@ func TestSharingUseCase_GetPublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockLinkRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found"))
 
@@ -2322,7 +2322,7 @@ func TestSharingUseCase_GetPublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 
@@ -2342,7 +2342,7 @@ func TestSharingUseCase_GetPublicLink_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		link := &entities.PublicLink{ID: 1, DocumentID: 1, CreatedBy: 2, Token: "token123"}
 		doc := &entities.Document{ID: 1, AuthorID: 1}
@@ -2369,7 +2369,7 @@ func TestSharingUseCase_GetDocumentPublicLinks_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		mockDocRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found"))
 
@@ -2385,7 +2385,7 @@ func TestSharingUseCase_GetDocumentPublicLinks_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 
@@ -2405,7 +2405,7 @@ func TestSharingUseCase_GetDocumentPublicLinks_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 
@@ -2425,7 +2425,7 @@ func TestSharingUseCase_GetDocumentPublicLinks_Errors(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, AuthorID: 1}
 
@@ -2449,7 +2449,7 @@ func TestSharingUseCase_ShareDocument_UpdatePermissionError(t *testing.T) {
 		mockPermRepo := new(MockPermissionRepository)
 		mockLinkRepo := new(MockPublicLinkRepository)
 
-		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil)
+		usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost")
 
 		doc := &entities.Document{ID: 1, Title: "Test Doc", AuthorID: 1}
 		userID := int64(2)
@@ -2507,7 +2507,7 @@ func TestSharingUseCase_ShareDocument_NotifiesViaSink(t *testing.T) {
 	mockLinkRepo := new(MockPublicLinkRepository)
 	spy := &fakeShareNotifier{}
 
-	usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost", nil).
+	usecase := NewSharingUseCase(mockDocRepo, mockPermRepo, mockLinkRepo, nil, "http://localhost").
 		WithShareNotifier(spy)
 
 	doc := &entities.Document{ID: 7, Title: "Project Brief", AuthorID: 1}
