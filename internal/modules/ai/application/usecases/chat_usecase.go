@@ -3,7 +3,6 @@ package usecases
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -399,13 +398,21 @@ func buildSearchQuery(messages []entities.Message, currentQuery string) string {
 // issue #263 ADR-1: the previous handler-level shortcut returned the user's
 // first existing conversation as "newly created" and never called the repo —
 // API lied to clients. This method is the single source of truth; handlers
-// must delegate here.
-//
-// Stub: returns sentinel so the RED test fails on the contract assertion
-// (no Create call observed). GREEN commit wires the real entities.NewConversation
-// + repo.Create + return.
-func (uc *ChatUseCase) CreateConversation(_ context.Context, _ int64, _, _ string) (*entities.Conversation, error) {
-	return nil, errors.New("CreateConversation not implemented")
+// must delegate here. Empty title is replaced with a non-empty default so
+// the list view never shows a blank row. Empty model falls back to the
+// usecase's configured model name (matches Chat/ChatStream behavior).
+func (uc *ChatUseCase) CreateConversation(ctx context.Context, userID int64, title, model string) (*entities.Conversation, error) {
+	if title == "" {
+		title = "Новый чат"
+	}
+	if model == "" {
+		model = uc.modelName
+	}
+	conversation := entities.NewConversation(userID, title, model)
+	if err := uc.conversationRepo.Create(ctx, conversation); err != nil {
+		return nil, fmt.Errorf("create conversation: %w", err)
+	}
+	return conversation, nil
 }
 
 // GetConversations retrieves conversations for a user

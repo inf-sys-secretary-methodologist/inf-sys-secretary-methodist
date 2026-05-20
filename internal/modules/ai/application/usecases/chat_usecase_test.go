@@ -1567,13 +1567,13 @@ func TestCreateConversation_PersistsViaRepo(t *testing.T) {
 	userID := int64(42)
 
 	f.convRepo.
-		On("Create", mock.Anything, mock.MatchedBy(func(c *entities.Conversation) bool {
+		On("Create", mock.MatchedBy(func(c *entities.Conversation) bool {
 			return c != nil && c.UserID == userID && c.Title == "Diploma Brainstorm" && c.Model == "gpt-4o-mini"
 		})).
 		Return(nil).
 		Run(func(args mock.Arguments) {
 			// Simulate DB-assigned ID
-			c := args.Get(1).(*entities.Conversation)
+			c := args.Get(0).(*entities.Conversation)
 			c.ID = 7
 		}).
 		Once()
@@ -1592,7 +1592,7 @@ func TestCreateConversation_RepoErrorPropagates(t *testing.T) {
 	f := newChatTestFixture()
 	repoErr := errors.New("db down")
 	f.convRepo.
-		On("Create", mock.Anything, mock.AnythingOfType("*entities.Conversation")).
+		On("Create", mock.AnythingOfType("*entities.Conversation")).
 		Return(repoErr).
 		Once()
 
@@ -1606,7 +1606,7 @@ func TestCreateConversation_DefaultsTitleWhenBlank(t *testing.T) {
 	// supply a non-empty default rather than persist "" (poor UX in list view).
 	f := newChatTestFixture()
 	f.convRepo.
-		On("Create", mock.Anything, mock.MatchedBy(func(c *entities.Conversation) bool {
+		On("Create", mock.MatchedBy(func(c *entities.Conversation) bool {
 			return c.Title != ""
 		})).
 		Return(nil).
