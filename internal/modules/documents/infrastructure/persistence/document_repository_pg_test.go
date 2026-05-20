@@ -566,6 +566,49 @@ func TestDocumentRepositoryPG_DeleteVersion_VersionNotFound(t *testing.T) {
 	assert.Contains(t, repo.DeleteVersion(context.Background(), 1, 1).Error(), "version not found")
 }
 
+// --- v0.156.0 #266: sentinel-error tests via errors.Is ---
+// Ensure repo not-found paths return canonical repositories.ErrDocumentNotFound
+// / ErrVersionNotFound so callers can errors.Is them и map к stable 404.
+// String-Contains assertions above remain (legacy backstop), but errors.Is
+// is the contract going forward.
+
+func TestDocumentRepositoryPG_Update_NotFound_IsSentinel(t *testing.T) {
+	repo, mock := newDocRepoMock(t)
+	doc := &entities.Document{ID: 999, Title: "Updated"}
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE documents SET")).WillReturnResult(sqlmock.NewResult(0, 0))
+	err := repo.Update(context.Background(), doc)
+	assert.ErrorIs(t, err, repositories.ErrDocumentNotFound)
+}
+
+func TestDocumentRepositoryPG_GetByID_NotFound_IsSentinel(t *testing.T) {
+	repo, mock := newDocRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT d.id")).WithArgs(int64(999)).WillReturnError(sql.ErrNoRows)
+	_, err := repo.GetByID(context.Background(), 999)
+	assert.ErrorIs(t, err, repositories.ErrDocumentNotFound)
+}
+
+func TestDocumentRepositoryPG_SoftDelete_NotFound_IsSentinel(t *testing.T) {
+	repo, mock := newDocRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE documents SET deleted_at")).WillReturnResult(sqlmock.NewResult(0, 0))
+	err := repo.SoftDelete(context.Background(), 999)
+	assert.ErrorIs(t, err, repositories.ErrDocumentNotFound)
+}
+
+func TestDocumentRepositoryPG_GetVersion_NotFound_IsVersionSentinel(t *testing.T) {
+	repo, mock := newDocRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT dv.id")).WithArgs(int64(1), 99).WillReturnError(sql.ErrNoRows)
+	_, err := repo.GetVersion(context.Background(), 1, 99)
+	assert.ErrorIs(t, err, repositories.ErrVersionNotFound)
+}
+
+func TestDocumentRepositoryPG_DeleteVersion_NotFound_IsVersionSentinel(t *testing.T) {
+	repo, mock := newDocRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT d.id")).WithArgs(int64(1)).WillReturnRows(addDocRow(newDocRows(), 1, "Test", 3, nil))
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM document_versions")).WithArgs(int64(1), 1).WillReturnResult(sqlmock.NewResult(0, 0))
+	err := repo.DeleteVersion(context.Background(), 1, 1)
+	assert.ErrorIs(t, err, repositories.ErrVersionNotFound)
+}
+
 // Test helper functions
 func TestStrPtrEqual(t *testing.T) {
 	a, b, c := testHelloStr, testHelloStr, "world"
