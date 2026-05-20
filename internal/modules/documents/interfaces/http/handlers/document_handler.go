@@ -386,7 +386,9 @@ func (h *DocumentHandler) UploadFile(c *gin.Context) {
 
 // DownloadFile handles file download from a document
 // Query params:
-//   - inline=true: display file in browser instead of downloading (for preview)
+//   - inline=true: display file in browser instead of downloading
+//     (preview only — honored для preview-safe MIME types per
+//     IsInlineSafeMime whitelist; otherwise forced attachment).
 func (h *DocumentHandler) DownloadFile(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -404,16 +406,18 @@ func (h *DocumentHandler) DownloadFile(c *gin.Context) {
 	}
 	defer func() { _ = reader.Close() }()
 
-	// Check if inline viewing is requested (for preview in browser)
-	isInline := c.Query("inline") == "true"
+	// v0.156.0 ADR-2 (#266): inline preview only для whitelisted MIMEs;
+	// non-whitelisted forced к attachment regardless of ?inline=true to
+	// avoid clickjacking via scriptable/executable downloads.
+	isInline := c.Query("inline") == "true" && IsInlineSafeMime(fileInfo.ContentType)
 	if isInline {
 		c.Header("Content-Disposition", "inline; filename=\""+fileInfo.FileName+"\"")
-		// Delete X-Frame-Options header set by security middleware to allow cross-origin iframe
-		// In development, frontend (3000) and backend (8080) are on different ports
-		c.Writer.Header().Del("X-Frame-Options")
-		c.Writer.Header().Del("Content-Security-Policy")
-		// Allow framing from any origin for preview functionality
-		c.Header("Content-Security-Policy", "frame-ancestors *")
+		// Restrict iframe embedding к same-origin (СОХРАНЯЕМ frame-ancestors
+		// 'self' вместо wildcard `*`) — previous wildcard CSP открывал
+		// clickjacking vector. Same-origin allows internal preview без
+		// cross-site framing.
+		c.Header("X-Frame-Options", "SAMEORIGIN")
+		c.Header("Content-Security-Policy", "frame-ancestors 'self'")
 	} else {
 		c.Header("Content-Disposition", "attachment; filename=\""+fileInfo.FileName+"\"")
 	}
