@@ -3,6 +3,7 @@ package entities
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -1149,7 +1150,7 @@ func TestSelectedField_Validate(t *testing.T) {
 		{name: "underscore_prefix", alias: "_internal", wantErrIs: nil},
 		{name: "mixed_case", alias: "TotalCount", wantErrIs: nil},
 		{name: "alnum_underscore", alias: "report_v2_count", wantErrIs: nil},
-		{name: "max_length_63", alias: "a" + "bcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab", wantErrIs: nil},
+		{name: "max_length_63", alias: "a" + strings.Repeat("b", 62), wantErrIs: nil},
 
 		// SQL injection payloads — rejected.
 		{name: "drop_table", alias: `x"; DROP TABLE users; --`, wantErrIs: ErrInvalidAlias},
@@ -1166,7 +1167,7 @@ func TestSelectedField_Validate(t *testing.T) {
 		{name: "unicode_cyrillic", alias: "итог", wantErrIs: ErrInvalidAlias},
 		{name: "null_byte", alias: "x\x00y", wantErrIs: ErrInvalidAlias},
 		{name: "newline", alias: "x\nDROP", wantErrIs: ErrInvalidAlias},
-		{name: "over_63_chars", alias: "a" + "bcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abc", wantErrIs: ErrInvalidAlias},
+		{name: "over_63_chars", alias: "a" + strings.Repeat("b", 63), wantErrIs: ErrInvalidAlias},
 	}
 
 	for _, tt := range tests {

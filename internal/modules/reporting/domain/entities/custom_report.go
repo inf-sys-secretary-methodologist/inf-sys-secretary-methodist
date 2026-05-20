@@ -3,10 +3,16 @@ package entities
 import (
 	"encoding/json"
 	"errors"
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+// aliasWhitelist matches the PG identifier grammar (leading letter or
+// underscore, then up to 62 more alnum/underscore characters; total ≤ 63 to
+// fit NAMEDATALEN-1). Compiled once at init for hot-path callers.
+var aliasWhitelist = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,62}$`)
 
 // ErrInvalidAlias is returned when a SelectedField alias does not satisfy the
 // safe-identifier whitelist that protects the dynamic query builder from SQL
@@ -131,13 +137,14 @@ type SelectedField struct {
 
 // Validate enforces SelectedField invariants. Returns ErrInvalidAlias when the
 // optional Alias is set but does not satisfy the safe-identifier whitelist.
-// Stub: returns sentinel for any non-empty Alias until GREEN commit wires the
-// real regex (see plan ADR-2).
 func (f SelectedField) Validate() error {
 	if f.Alias == "" {
-		return errors.New("Validate not implemented")
+		return nil
 	}
-	return errors.New("Validate not implemented")
+	if !aliasWhitelist.MatchString(f.Alias) {
+		return ErrInvalidAlias
+	}
+	return nil
 }
 
 // ReportFilterConfig represents a filter configuration
