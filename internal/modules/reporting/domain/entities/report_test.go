@@ -3,6 +3,7 @@ package entities
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -921,9 +922,67 @@ func TestNewCustomReport(t *testing.T) {
 func TestCustomReport_SetFields(t *testing.T) {
 	cr := NewCustomReport("Report", "", DataSourceDocuments, 1)
 	fields := []SelectedField{{Order: 1}}
-	cr.SetFields(fields)
+	if err := cr.SetFields(fields); err != nil {
+		t.Fatalf("SetFields returned %v, want nil", err)
+	}
 	if len(cr.Fields) != 1 {
 		t.Errorf("expected 1 field, got %d", len(cr.Fields))
+	}
+}
+
+// TestCustomReport_SetFields_RejectsInvalidAlias closes ADR-1 layer 1 (domain
+// write path). Per plan #260 the aggregate must refuse to store fields whose
+// Alias would slip past dynamic_query_builder.go safety.
+func TestCustomReport_SetFields_RejectsInvalidAlias(t *testing.T) {
+	tests := []struct {
+		name   string
+		fields []SelectedField
+	}{
+		{
+			name: "single_bad_field",
+			fields: []SelectedField{
+				{Order: 1, Alias: `x"; DROP TABLE users; --`},
+			},
+		},
+		{
+			name: "second_field_bad",
+			fields: []SelectedField{
+				{Order: 1, Alias: "safe"},
+				{Order: 2, Alias: "x' OR '1'='1"},
+			},
+		},
+		{
+			name:   "leading_digit_alias",
+			fields: []SelectedField{{Order: 1, Alias: "1bad"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cr := NewCustomReport("Report", "", DataSourceDocuments, 1)
+			err := cr.SetFields(tt.fields)
+			if !errors.Is(err, ErrInvalidAlias) {
+				t.Errorf("SetFields returned %v, want errors.Is(ErrInvalidAlias)", err)
+			}
+			if len(cr.Fields) != 0 {
+				t.Errorf("fields should remain unchanged on validation failure; got %d stored", len(cr.Fields))
+			}
+		})
+	}
+}
+
+// TestCustomReport_SetFieldsFromJSON_RejectsInvalidAlias closes ADR-1 layer 2
+// (persistence reconstitution defense-in-depth). Corrupt or pre-fix DB rows
+// must surface as an explicit error, not silently feed downstream SQL gen.
+func TestCustomReport_SetFieldsFromJSON_RejectsInvalidAlias(t *testing.T) {
+	payload := []byte(`[{"field":{"id":"x","name":"id","label":"ID","type":"string","source":"documents"},"order":1,"alias":"x\"; DROP TABLE users; --"}]`)
+	cr := NewCustomReport("Report", "", DataSourceDocuments, 1)
+	err := cr.SetFieldsFromJSON(payload)
+	if !errors.Is(err, ErrInvalidAlias) {
+		t.Errorf("SetFieldsFromJSON returned %v, want errors.Is(ErrInvalidAlias)", err)
+	}
+	if len(cr.Fields) != 0 {
+		t.Errorf("fields should not be populated on validation failure; got %d stored", len(cr.Fields))
 	}
 }
 
@@ -1127,6 +1186,60 @@ func TestExportFormat_IsValid(t *testing.T) {
 			got := tt.format.IsValid()
 			if got != tt.want {
 				t.Errorf("IsValid() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestSelectedField_Validate covers the Alias whitelist that defends
+// dynamic_query_builder.go against SQL injection through user JSON.
+// See docs/plans/2026-05-20-v0154-reporting-security.md ADR-1 + ADR-2.
+func TestSelectedField_Validate(t *testing.T) {
+	tests := []struct {
+		name      string
+		alias     string
+		wantErrIs error
+	}{
+		// Empty alias is optional — no validation, no error.
+		{name: "empty_alias_allowed", alias: "", wantErrIs: nil},
+
+		// Safe identifiers — accepted.
+		{name: "simple_letters", alias: "total", wantErrIs: nil},
+		{name: "underscore_prefix", alias: "_internal", wantErrIs: nil},
+		{name: "mixed_case", alias: "TotalCount", wantErrIs: nil},
+		{name: "alnum_underscore", alias: "report_v2_count", wantErrIs: nil},
+		{name: "max_length_63", alias: "a" + strings.Repeat("b", 62), wantErrIs: nil},
+
+		// SQL injection payloads — rejected.
+		{name: "drop_table", alias: `x"; DROP TABLE users; --`, wantErrIs: ErrInvalidAlias},
+		{name: "union_select", alias: "x UNION SELECT password FROM users", wantErrIs: ErrInvalidAlias},
+		{name: "double_quote", alias: `x"foo`, wantErrIs: ErrInvalidAlias},
+		{name: "single_quote", alias: "x'foo", wantErrIs: ErrInvalidAlias},
+		{name: "semicolon", alias: "x; SELECT 1", wantErrIs: ErrInvalidAlias},
+		{name: "comment", alias: "x--comment", wantErrIs: ErrInvalidAlias},
+		{name: "block_comment", alias: "x/*bad*/", wantErrIs: ErrInvalidAlias},
+		{name: "space", alias: "x y", wantErrIs: ErrInvalidAlias},
+		{name: "dot_qualified", alias: "schema.table", wantErrIs: ErrInvalidAlias},
+		{name: "hyphen", alias: "x-y", wantErrIs: ErrInvalidAlias},
+		{name: "leading_digit", alias: "1foo", wantErrIs: ErrInvalidAlias},
+		{name: "unicode_cyrillic", alias: "итог", wantErrIs: ErrInvalidAlias},
+		{name: "null_byte", alias: "x\x00y", wantErrIs: ErrInvalidAlias},
+		{name: "newline", alias: "x\nDROP", wantErrIs: ErrInvalidAlias},
+		{name: "over_63_chars", alias: "a" + strings.Repeat("b", 63), wantErrIs: ErrInvalidAlias},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := SelectedField{Alias: tt.alias}
+			err := f.Validate()
+			if tt.wantErrIs == nil {
+				if err != nil {
+					t.Errorf("Validate(alias=%q) returned %v, want nil", tt.alias, err)
+				}
+				return
+			}
+			if !errors.Is(err, tt.wantErrIs) {
+				t.Errorf("Validate(alias=%q) returned %v, want errors.Is(%v)", tt.alias, err, tt.wantErrIs)
 			}
 		})
 	}

@@ -15,6 +15,47 @@
 
 ---
 
+## [0.154.0] — 2026-05-20
+
+### Security — reporting Tier 1 hotfix (#260)
+
+Закрывает 4 Tier 1 находки pre-v1.0.0 reviewer audit (`docs/plans/2026-05-20-v1.0.0-batch1-audit.md` → BLOCK verdict mean 4.5/10 для reporting module).
+
+- **SQL injection через `field.Alias`** в `dynamic_query_builder.go:170`. До патча `fmt.Sprintf("%s AS %s", colExpr, alias)` интерполировал user-supplied JSON напрямую в SQL. Defense-in-depth fix (ADR-1, plan `docs/plans/2026-05-20-v0154-reporting-security.md`):
+  - **Domain layer**: `SelectedField.Validate()` + `ErrInvalidAlias` sentinel; whitelist regex `^[A-Za-z_][A-Za-z0-9_]{0,62}$` (PG identifier grammar)
+  - **Persistence layer**: `CustomReport.SetFields(...) error` + `SetFieldsFromJSON(...)` validate post-unmarshal (corrupt DB rows surface как ErrInvalidAlias)
+  - **Query builder layer**: `DynamicQueryBuilder.Execute(...)` re-validates каждый field на entry — covers struct-literal bypass
+  - 21 table-driven sub-tests на domain + 4 sub-tests на builder defense-in-depth covering injection payloads (DROP TABLE / UNION SELECT / quotes / semicolons / comments / Cyrillic / null bytes / over-length)
+
+- **Privilege escalation gap** на `/api/custom-reports` group. До патча authenticated student мог create + execute custom reports. Combined с SQL injection = anyone-authenticated path для arbitrary SQL. Fix: `customReportsGroup.Use(authMiddleware.RequireNonStudent())` в `main.go:2059`, mirrors reportsGroup precedent (line 2012).
+
+- **Production-shipped fake report generation**. `report_usecase.go simulateGeneration` спал 2s в fire-and-forget goroutine, hardcoded sample data, lied клиенту про `FileSize=0` несуществующего PDF. Fix: метод удалён целиком; `Generate` returns `ErrGenerationNotImplemented` после auth/not-found gates; handler maps к HTTP 501 со structured response body. Audit log emission `generate_report_not_implemented` для forensics. Реальный renderer extracted from reports/annual/docxgen — post-v1.0.0 work.
+
+- **Background goroutine с `context.Background()` (partial)**: simulateGeneration goroutine удалён → leak surface closed для Tier 1 #4 main case. Publish notification goroutine (line 487) ещё использует `context.Background()` — flagged Tier 2 carry-forward.
+
+### Plan/ADRs
+
+- `docs/plans/2026-05-20-v1.0.0-batch1-audit.md` — full aggregate всех 4 batch-1 reviewer verdicts
+- `docs/plans/2026-05-20-v0154-reporting-security.md` — 5 ADRs locked upfront (defense-in-depth whitelist / PG identifier regex / SetFields API breaking change / Generate=501 / role gate at routing)
+
+### Stats
+
+- 11 commits на ветке: 5 RED→GREEN TDD pairs + 1 config fix + 1 plan + bump + CHANGELOG
+- Net diff: +200 / -160 LOC (simulateGeneration removal contributes -100 LOC)
+- All reporting tests green; sibling modules не задеты
+
+### Tier 2 carry-forward (post-v0.154)
+
+- Publish notification goroutine: inject lifecycle ctx via constructor для proper graceful shutdown
+- Repository interfaces relocation `domain/repositories/` → `application/repositories/` (DIP)
+- God interface (ReportRepository, 20 methods) ISP split
+- Pagination + access filter SQL-side fix
+- `time.Now()` / `uuid.New()` в domain constructors (inject clock/id-gen ports)
+- Real document renderer wiring (extract `reports/annual/infrastructure/docxgen/render.go` pattern)
+- Route extraction `RegisterCustomReportRoutes(group, adminMW)` для proper integration test of role gate
+
+---
+
 ## [0.153.13] — 2026-05-19
 
 ### Docs — `market-analysis.md` для issue #80

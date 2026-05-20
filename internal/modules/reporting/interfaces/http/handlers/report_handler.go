@@ -613,6 +613,14 @@ func (h *ReportHandler) handleError(c *gin.Context, err error) {
 	case errors.Is(err, usecases.ErrInvalidInput):
 		resp := response.BadRequest("Invalid input")
 		c.JSON(http.StatusBadRequest, resp)
+	case errors.Is(err, usecases.ErrGenerationNotImplemented):
+		// Per issue #260: real document generation is deferred to post-v1.0.0.
+		// Authorized callers receive an honest 501 rather than the lying fake
+		// success that previously shipped via simulateGeneration.
+		c.JSON(http.StatusNotImplemented, gin.H{
+			"error":  "report_generation_not_implemented",
+			"detail": "Report generation is not available in this release.",
+		})
 	default:
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)

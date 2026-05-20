@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.153.13
+// @version         0.154.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -175,7 +175,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.153.13"
+const versionString = "0.154.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -2057,6 +2057,10 @@ func setupRoutes(
 			customReportHandlerInstance := reportHandler.NewCustomReportHandler(customReportUseCase)
 
 			customReportsGroup := protectedGroup.Group("/custom-reports")
+			// Students have no business with custom reports — block the
+			// entire group at the route layer. Closes the privilege-escalation
+			// surface flagged in #260; mirrors reportsGroup precedent (line 2012).
+			customReportsGroup.Use(authMiddleware.RequireNonStudent())
 			{
 				// CRUD operations
 				customReportsGroup.POST("", customReportHandlerInstance.Create)

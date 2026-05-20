@@ -2,10 +2,25 @@ package entities
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+// aliasWhitelist matches the PG identifier grammar (leading letter or
+// underscore, then up to 62 more alnum/underscore characters; total ≤ 63 to
+// fit NAMEDATALEN-1). Compiled once at init for hot-path callers.
+var aliasWhitelist = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,62}$`)
+
+// ErrInvalidAlias is returned when a SelectedField alias does not satisfy the
+// safe-identifier whitelist that protects the dynamic query builder from SQL
+// injection. The whitelist intentionally matches the PG identifier grammar so
+// values can be interpolated into "AS <alias>" clauses without quoting. See
+// docs/plans/2026-05-20-v0154-reporting-security.md ADR-2.
+var ErrInvalidAlias = errors.New("invalid alias: must match ^[A-Za-z_][A-Za-z0-9_]{0,62}$")
 
 // DataSourceType represents the data source for custom reports
 type DataSourceType string
@@ -121,6 +136,18 @@ type SelectedField struct {
 	Aggregation AggregationType `json:"aggregation,omitempty"`
 }
 
+// Validate enforces SelectedField invariants. Returns ErrInvalidAlias when the
+// optional Alias is set but does not satisfy the safe-identifier whitelist.
+func (f SelectedField) Validate() error {
+	if f.Alias == "" {
+		return nil
+	}
+	if !aliasWhitelist.MatchString(f.Alias) {
+		return ErrInvalidAlias
+	}
+	return nil
+}
+
 // ReportFilterConfig represents a filter configuration
 type ReportFilterConfig struct {
 	ID       string         `json:"id"`
@@ -177,10 +204,27 @@ func NewCustomReport(name string, description string, dataSource DataSourceType,
 	}
 }
 
-// SetFields sets the selected fields for the report
-func (r *CustomReport) SetFields(fields []SelectedField) {
+// validateFields runs SelectedField.Validate on every entry, wrapping the
+// returned error with the offending index for diagnostics.
+func validateFields(fields []SelectedField) error {
+	for i, f := range fields {
+		if err := f.Validate(); err != nil {
+			return fmt.Errorf("field[%d]: %w", i, err)
+		}
+	}
+	return nil
+}
+
+// SetFields sets the selected fields for the report. Returns ErrInvalidAlias
+// (wrapped with the offending index) if any field carries an Alias that fails
+// the safe-identifier whitelist — the aggregate is left untouched on failure.
+func (r *CustomReport) SetFields(fields []SelectedField) error {
+	if err := validateFields(fields); err != nil {
+		return err
+	}
 	r.Fields = fields
 	r.UpdatedAt = time.Now()
+	return nil
 }
 
 // SetFilters sets the filters for the report
@@ -227,9 +271,21 @@ func (r *CustomReport) GetSortingsJSON() ([]byte, error) {
 	return json.Marshal(r.Sortings)
 }
 
-// SetFieldsFromJSON sets fields from JSON bytes
+// SetFieldsFromJSON sets fields from JSON bytes. Per ADR-1 layer 2 the
+// per-field whitelist applies on the read path too — corrupt or pre-fix DB
+// rows surface as ErrInvalidAlias rather than silently feeding the query
+// builder. UpdatedAt is intentionally not touched: this is a reconstitution
+// path, not a domain write.
 func (r *CustomReport) SetFieldsFromJSON(data []byte) error {
-	return json.Unmarshal(data, &r.Fields)
+	var parsed []SelectedField
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return err
+	}
+	if err := validateFields(parsed); err != nil {
+		return err
+	}
+	r.Fields = parsed
+	return nil
 }
 
 // SetFiltersFromJSON sets filters from JSON bytes

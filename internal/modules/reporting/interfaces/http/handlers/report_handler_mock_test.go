@@ -448,24 +448,25 @@ func TestReportHandler_List_Error(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
-func TestReportHandler_Generate_Success(t *testing.T) {
+// Generate now returns HTTP 501 to authorized owners per issue #260 ADR-4
+// — the legacy 202 Accepted response masked a fire-and-forget goroutine
+// that lied to clients about a non-existent PDF file. Auth + not-found
+// gates still fire first so 401/403/404 paths remain unchanged.
+func TestReportHandler_Generate_AuthorizedOwnerGets501(t *testing.T) {
 	reportRepo := new(mockReportRepo)
 	typeRepo := new(mockReportTypeRepo)
 
 	now := time.Now()
 	report := &entities.Report{ID: 1, AuthorID: 1, Status: domain.ReportStatusDraft, CreatedAt: now, UpdatedAt: now}
 	reportRepo.On("GetByID", mock.Anything, int64(1)).Return(report, nil)
-	reportRepo.On("HasAccess", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
-	reportRepo.On("Save", mock.Anything, mock.Anything).Return(nil)
-	reportRepo.On("CreateGenerationLog", mock.Anything, mock.Anything).Return(nil)
-	reportRepo.On("AddHistory", mock.Anything, mock.Anything).Return(nil)
 
 	h := newReportHandlerWithMocks(reportRepo, typeRepo)
 	router := newRouter()
 	router.POST("/reports/:id/generate", withAuthUser(1, "methodist"), h.Generate)
 
 	w := doRequest(router, http.MethodPost, "/reports/1/generate", nil)
-	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Equal(t, http.StatusNotImplemented, w.Code)
+	assert.Contains(t, w.Body.String(), "report_generation_not_implemented")
 }
 
 func TestReportHandler_SubmitForReview_Success(t *testing.T) {
