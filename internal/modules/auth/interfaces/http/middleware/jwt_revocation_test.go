@@ -29,6 +29,20 @@ func (f *fakeRevokedRepo) IsRevoked(ctx context.Context, jti string) (bool, erro
 	return args.Bool(0), args.Error(1)
 }
 
+func (f *fakeRevokedRepo) RevokeIfAbsent(ctx context.Context, jti string, ttl time.Duration) (bool, error) {
+	args := f.Called(ctx, jti, ttl)
+	return args.Bool(0), args.Error(1)
+}
+
+func (f *fakeRevokedRepo) RevokeAllForUser(ctx context.Context, userID int64, issuedAtUnix int64, ttl time.Duration) error {
+	return f.Called(ctx, userID, issuedAtUnix, ttl).Error(0)
+}
+
+func (f *fakeRevokedRepo) IsRevokedForUser(ctx context.Context, userID int64, issuedAtUnix int64) (bool, error) {
+	args := f.Called(ctx, userID, issuedAtUnix)
+	return args.Bool(0), args.Error(1)
+}
+
 func signValidToken(t *testing.T, secret []byte, jti string) string {
 	t.Helper()
 	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{

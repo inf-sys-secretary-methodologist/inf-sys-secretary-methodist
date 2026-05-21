@@ -1533,9 +1533,14 @@ func setupRoutes(
 	if redisCache != nil {
 		revokedTokenRepo = persistence.NewRedisRevokedTokenRepository(redisCache.Client())
 		logoutUseCase = usecases.NewLogoutUseCase(revokedTokenRepo, jwtSecret)
-		// MFA verify-login replay guard piggybacks on the same revoked-token
-		// store. ±1 step (~30 s) drift mirrors MFAUseCase enrollment verify.
+		// Two independent concerns share the same revoked-token store:
+		//   - MFA verify-login replay guard (±1 step ≈ 30 s drift)
+		//   - Refresh-token rotation + RFC 6749 §10.4 reuse-detection
+		//     cascade (v0.159.0 ADR-2)
+		// Setters are commutative; either alone enables the receiver-
+		// side field, both make the wiring intent explicit.
 		authUseCase.WithMFAVerification(revokedTokenRepo, 1, time.Now)
+		authUseCase.WithRefreshRotation(revokedTokenRepo)
 	}
 
 	// Global middleware stack (order matters!)
@@ -1765,7 +1770,9 @@ func setupRoutes(
 		}
 	}
 
-	// Protected routes (require JWT) with auth rate limiting (60 req/min + burst 10)
+	// Protected routes (require JWT) with auth rate limiting
+	// (configured via RATE_LIMIT_AUTH_RPM / RATE_LIMIT_AUTH_BURST env
+	// vars; defaults 1000 RPM + 200 burst — see LoadRateLimitConfig).
 	protectedGroup := router.Group("/api")
 	protectedGroup.Use(authMiddleware.JWTMiddlewareWithRevocation(authUseCase, revokedTokenRepo))
 	if authRateLimiter != nil {

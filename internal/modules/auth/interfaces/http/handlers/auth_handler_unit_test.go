@@ -871,6 +871,25 @@ func (s *stubRevokedTokenRepoHandler) IsRevoked(_ context.Context, jti string) (
 	return s.revoked[jti], nil
 }
 
+func (s *stubRevokedTokenRepoHandler) RevokeIfAbsent(_ context.Context, jti string, _ time.Duration) (bool, error) {
+	if s.revoked == nil {
+		s.revoked = make(map[string]bool)
+	}
+	if s.revoked[jti] {
+		return false, nil
+	}
+	s.revoked[jti] = true
+	return true, nil
+}
+
+func (s *stubRevokedTokenRepoHandler) RevokeAllForUser(_ context.Context, _ int64, _ int64, _ time.Duration) error {
+	return nil
+}
+
+func (s *stubRevokedTokenRepoHandler) IsRevokedForUser(_ context.Context, _ int64, _ int64) (bool, error) {
+	return false, nil
+}
+
 const testMFAIntermediateSecret = "mfa-intermediate-secret-handler-test"
 const testEnrolledSecret = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
 

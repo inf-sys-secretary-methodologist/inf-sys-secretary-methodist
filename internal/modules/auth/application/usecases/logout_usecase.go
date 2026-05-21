@@ -22,9 +22,10 @@ var (
 
 // LogoutUseCase invalidates an access token by adding its JTI to the
 // revoked-token set with TTL bounded by the token's own remaining lifetime.
-// Refresh tokens are not handled here — the client is expected to discard
-// them; revocation of refresh tokens belongs to SessionRepository (separate
-// concern).
+// Refresh tokens are rotated separately by RefreshToken's atomic
+// RevokeIfAbsent claim (v0.159.0 ADR-2); the logout endpoint does not
+// receive the refresh token and so cannot revoke it directly. Clients
+// MUST discard the refresh token client-side on logout.
 type LogoutUseCase struct {
 	revokedRepo RevokedTokenRepository
 	jwtSecret   []byte
