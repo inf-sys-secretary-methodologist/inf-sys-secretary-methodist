@@ -99,3 +99,14 @@ func (r *RedisPasswordResetTokenRepository) Delete(ctx context.Context, token st
 	}
 	return nil
 }
+
+// LookupUserAndConsume atomically reads the user ID and removes the
+// token via Redis GETDEL (single round-trip, atomic from Redis's
+// perspective). v0.159.0 ADR-6 — eliminates the Save-then-Delete
+// replay window: after this call the token is gone, so a subsequent
+// Save failure cannot leave a usable token behind for a replay. RED
+// stub returns domain.ErrPasswordResetTokenNotFound — semantics in
+// the GREEN pair.
+func (r *RedisPasswordResetTokenRepository) LookupUserAndConsume(_ context.Context, _ string) (int64, error) {
+	return 0, domain.ErrPasswordResetTokenNotFound
+}

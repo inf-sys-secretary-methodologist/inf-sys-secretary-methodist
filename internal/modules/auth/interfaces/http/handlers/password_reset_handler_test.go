@@ -39,6 +39,11 @@ func (f *fakeResetTokenRepo) Delete(ctx context.Context, token string) error {
 	return f.Called(ctx, token).Error(0)
 }
 
+func (f *fakeResetTokenRepo) LookupUserAndConsume(ctx context.Context, token string) (int64, error) {
+	args := f.Called(ctx, token)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 type fakeUserRepoForResetHandler struct {
 	mock.Mock
 }

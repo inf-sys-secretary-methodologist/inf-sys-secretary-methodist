@@ -132,6 +132,46 @@ func TestRedisPasswordResetTokenRepository_StoresHashedKey(t *testing.T) {
 	assert.Equal(t, int64(101), uid)
 }
 
+// TestRedisPasswordResetTokenRepository_LookupUserAndConsume pins
+// v0.159.0 ADR-6: a single round-trip reads + deletes the token via
+// Redis GETDEL. The first call returns (userID, nil); the second
+// returns ErrPasswordResetTokenNotFound because the token has been
+// consumed. This eliminates the Save-then-Delete replay window where
+// a Delete failure after Save could leave a usable token alive.
+// Issue #279.
+func TestRedisPasswordResetTokenRepository_LookupUserAndConsume(t *testing.T) {
+	mr, repo := setupResetTokenRedis(t)
+	ctx := context.Background()
+
+	rawToken := "tok-consume-159"
+	require.NoError(t, repo.Store(ctx, rawToken, int64(303), time.Minute))
+
+	uid, err := repo.LookupUserAndConsume(ctx, rawToken)
+	require.NoError(t, err)
+	assert.Equal(t, int64(303), uid)
+
+	// Token must be gone immediately after the first consume — second
+	// call sees nothing, replay is structurally impossible.
+	uid2, err := repo.LookupUserAndConsume(ctx, rawToken)
+	assert.ErrorIs(t, err, domain.ErrPasswordResetTokenNotFound)
+	assert.Equal(t, int64(0), uid2)
+
+	// Defensive: the underlying Redis key must also be gone, not just
+	// the higher-level repo response.
+	digest := sha256.Sum256([]byte(rawToken))
+	hashedKey := "pwreset:" + hex.EncodeToString(digest[:])
+	assert.False(t, mr.Exists(hashedKey), "GETDEL must remove the underlying Redis key")
+}
+
+// TestRedisPasswordResetTokenRepository_LookupUserAndConsumeMissing —
+// consuming a token that was never stored must surface the domain
+// sentinel cleanly, same as plain LookupUser. Issue #279 ADR-6.
+func TestRedisPasswordResetTokenRepository_LookupUserAndConsumeMissing(t *testing.T) {
+	_, repo := setupResetTokenRedis(t)
+	_, err := repo.LookupUserAndConsume(context.Background(), "never-existed")
+	assert.ErrorIs(t, err, domain.ErrPasswordResetTokenNotFound)
+}
+
 // TestRedisPasswordResetTokenRepository_LookupHashesIncoming pins the
 // symmetric read-path transform: looking up by the pre-hashed digest
 // must NOT find the entry (it is hashed again on lookup, double-hash

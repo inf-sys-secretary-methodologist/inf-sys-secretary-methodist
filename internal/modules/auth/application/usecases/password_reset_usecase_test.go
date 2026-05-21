@@ -37,6 +37,11 @@ func (m *mockPasswordResetTokenRepo) Delete(ctx context.Context, token string) e
 	return args.Error(0)
 }
 
+func (m *mockPasswordResetTokenRepo) LookupUserAndConsume(ctx context.Context, token string) (int64, error) {
+	args := m.Called(ctx, token)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 // mockEmailSender is a tiny stand-in for the notifications EmailService —
 // PasswordResetUseCase only needs SendPasswordResetEmail, so the
 // dependency stays narrow (Interface Segregation).
