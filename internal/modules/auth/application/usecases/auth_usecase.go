@@ -50,6 +50,13 @@ var (
 	// WithMFAVerification. Deployment misconfiguration; main.go must wire
 	// this in production.
 	ErrMFAVerificationNotConfigured = errors.New("mfa verification dependencies not configured")
+	// ErrRefreshTokenReused is returned by RefreshToken when the supplied
+	// refresh token's JTI has already been blacklisted — either by a
+	// successful prior rotation or by a logout. Surfaces RFC 6749 §10.4
+	// reuse-detection: a stolen token presented after the legitimate
+	// owner already rotated triggers this sentinel; the handler maps it
+	// to 401 and an audit emit so SOC can investigate. Issue #279 ADR-2.
+	ErrRefreshTokenReused = errors.New("refresh token has already been used")
 )
 
 // AuthUseCase handles authentication business logic.

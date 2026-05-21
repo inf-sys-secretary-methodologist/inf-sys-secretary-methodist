@@ -810,6 +810,86 @@ func TestRefreshToken(t *testing.T) {
 	})
 }
 
+// TestRefreshToken_RotatesAndDetectsReuse pins v0.159.0 ADR-2 behavior:
+// each successful refresh blacklists the old refresh-token JTI, and a
+// replay of an already-blacklisted JTI surfaces ErrRefreshTokenReused
+// (RFC 6749 §10.4). When the use case has no revoked-token repo wired
+// the rotation step is skipped (backward-compat for tests that don't
+// exercise logout / rotation). Issue #279.
+func TestRefreshToken_RotatesAndDetectsReuse(t *testing.T) {
+	setupUC := func(withRevoked bool) (*usecases.AuthUseCase, *stubRevokedTokenRepo) {
+		repo := newMockUserRepository()
+		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
+		var revoked *stubRevokedTokenRepo
+		if withRevoked {
+			revoked = newStubRevokedTokenRepo()
+			uc = uc.WithMFAVerification(revoked, 1, time.Now)
+		}
+		return uc, revoked
+	}
+
+	extractJTI := func(t *testing.T, refreshToken string) string {
+		t.Helper()
+		parser := jwt.NewParser()
+		claims := jwt.MapClaims{}
+		_, _, err := parser.ParseUnverified(refreshToken, claims)
+		if err != nil {
+			t.Fatalf("parse unverified: %v", err)
+		}
+		jti, _ := claims["jti"].(string)
+		if jti == "" {
+			t.Fatal("refresh token missing jti claim")
+		}
+		return jti
+	}
+
+	loginInput := dto.LoginInput{Email: "test@example.com", Password: "Admin123456!"}
+
+	t.Run("legitimate refresh blacklists old refresh JTI", func(t *testing.T) {
+		uc, revoked := setupUC(true)
+		_, refresh, err := uc.Login(context.Background(), loginInput)
+		assert.NoError(t, err)
+		oldJTI := extractJTI(t, refresh)
+
+		newAccess, newRefresh, err := uc.RefreshToken(context.Background(), refresh)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, newAccess)
+		assert.NotEmpty(t, newRefresh)
+
+		wasRevoked, err := revoked.IsRevoked(context.Background(), oldJTI)
+		assert.NoError(t, err)
+		assert.True(t, wasRevoked, "old refresh JTI must be blacklisted after rotation")
+	})
+
+	t.Run("replay of pre-revoked refresh JTI returns ErrRefreshTokenReused", func(t *testing.T) {
+		uc, revoked := setupUC(true)
+		_, refresh, err := uc.Login(context.Background(), loginInput)
+		assert.NoError(t, err)
+		oldJTI := extractJTI(t, refresh)
+		// Simulate that this refresh token was already rotated once —
+		// the legitimate-owner path is supposed to blacklist it; we
+		// fast-forward by manually blacklisting here. The replay must
+		// surface as ErrRefreshTokenReused, never as a new token pair.
+		assert.NoError(t, revoked.Revoke(context.Background(), oldJTI, time.Hour))
+
+		newAccess, newRefresh, err := uc.RefreshToken(context.Background(), refresh)
+		assert.ErrorIs(t, err, usecases.ErrRefreshTokenReused)
+		assert.Empty(t, newAccess)
+		assert.Empty(t, newRefresh)
+	})
+
+	t.Run("no revoked repo wired keeps backward compatibility", func(t *testing.T) {
+		uc, _ := setupUC(false)
+		_, refresh, err := uc.Login(context.Background(), loginInput)
+		assert.NoError(t, err)
+
+		newAccess, newRefresh, err := uc.RefreshToken(context.Background(), refresh)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, newAccess)
+		assert.NotEmpty(t, newRefresh)
+	})
+}
+
 func TestValidateAccessToken_Invalid(t *testing.T) {
 	repo := newMockUserRepository()
 	useCase := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
