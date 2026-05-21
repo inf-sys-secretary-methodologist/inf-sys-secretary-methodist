@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"fmt"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/crypto"
 )
 
 func newUserRepoMock(t *testing.T) (*UserRepositoryPG, sqlmock.Sqlmock) {
@@ -338,4 +340,130 @@ func TestUserRepo_List_InvalidPersistedMFASecret(t *testing.T) {
 	_, err := repo.List(context.Background(), 10, 0)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid persisted MFA secret")
+}
+
+// userColsV0159 mirrors userCols but appends the mfa_secret_encrypted
+// boolean column introduced by migration 045 (v0.159.0 ADR-4). The
+// GREEN pair updates all production SELECT statements to include the
+// column so this slice is the canonical row shape going forward.
+var userColsV0159 = []string{
+	"id", "email", "password", "name", "role", "status",
+	"mfa_secret", "mfa_enabled", "mfa_secret_encrypted",
+	"created_at", "updated_at",
+}
+
+// genTestKEK returns a deterministic-looking but random 32-byte KEK
+// for use across the ADR-4b sqlmock tests.
+func genTestKEK(t *testing.T) []byte {
+	t.Helper()
+	key := make([]byte, 32)
+	_, err := rand.Read(key)
+	require.NoError(t, err)
+	return key
+}
+
+// TestUserRepo_MFASecretEncryptedAtRest pins v0.159.0 ADR-4b: when a
+// KEK is wired via WithMFASecretKEK, Save encrypts the MFA secret
+// before INSERT/UPDATE and marks mfa_secret_encrypted=TRUE; scan paths
+// decrypt rows whose encrypted flag is TRUE and treat rows with FALSE
+// as legacy plaintext (lazy migration). Issue #279.
+func TestUserRepo_MFASecretEncryptedAtRest(t *testing.T) {
+	const plaintextSecret = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
+	key := genTestKEK(t)
+
+	t.Run("Save with KEK writes ciphertext + encrypted=true", func(t *testing.T) {
+		repo, mock := newUserRepoMock(t)
+		repo = repo.WithMFASecretKEK(key)
+
+		secret, err := entities.NewMFASecret(plaintextSecret)
+		require.NoError(t, err)
+		now := time.Now()
+		user := &entities.User{
+			ID: 1, Email: "x@x", Password: "h", Name: "X",
+			Role: domain.RoleTeacher, Status: entities.UserStatusActive,
+			MFASecret: &secret, MFAEnabled: true,
+			UpdatedAt: now,
+		}
+
+		mock.ExpectExec(regexp.QuoteMeta("UPDATE users")).
+			WithArgs(
+				user.Email, user.Password, user.Name, user.Role, user.Status,
+				sqlmock.AnyArg(), // ciphertext (non-deterministic nonce)
+				true,             // mfa_enabled
+				true,             // mfa_secret_encrypted = TRUE
+				user.UpdatedAt, user.ID,
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err = repo.Save(context.Background(), user)
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet(), "Save with KEK must include mfa_secret_encrypted=true and ciphertext arg")
+	})
+
+	t.Run("Scan with KEK + encrypted=true row returns decrypted plaintext", func(t *testing.T) {
+		repo, mock := newUserRepoMock(t)
+		repo = repo.WithMFASecretKEK(key)
+
+		// Seed the row with a ciphertext produced by the same KEK so
+		// the scan path must decrypt it back to the canonical plaintext.
+		ct, err := crypto.EncryptString(plaintextSecret, key)
+		require.NoError(t, err)
+		now := time.Now()
+		rows := sqlmock.NewRows(userColsV0159).
+			AddRow(int64(42), "x@x", "h", "X", domain.RoleTeacher, entities.UserStatusActive,
+				ct, true, true, now, now)
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
+			WithArgs(int64(42)).WillReturnRows(rows)
+
+		got, err := repo.GetByID(context.Background(), 42)
+		require.NoError(t, err)
+		require.NotNil(t, got.MFASecret)
+		assert.Equal(t, plaintextSecret, got.MFASecret.String(), "MFA secret on the entity must be the decrypted plaintext")
+	})
+
+	t.Run("Scan with KEK + encrypted=false row preserves legacy plaintext (lazy migration)", func(t *testing.T) {
+		repo, mock := newUserRepoMock(t)
+		repo = repo.WithMFASecretKEK(key)
+
+		now := time.Now()
+		rows := sqlmock.NewRows(userColsV0159).
+			AddRow(int64(7), "y@y", "h", "Y", domain.RoleTeacher, entities.UserStatusActive,
+				plaintextSecret, true, false, now, now)
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
+			WithArgs(int64(7)).WillReturnRows(rows)
+
+		got, err := repo.GetByID(context.Background(), 7)
+		require.NoError(t, err)
+		require.NotNil(t, got.MFASecret)
+		assert.Equal(t, plaintextSecret, got.MFASecret.String(), "legacy plaintext row must scan through unchanged")
+	})
+
+	t.Run("Save without KEK falls back to plaintext + encrypted=false", func(t *testing.T) {
+		repo, mock := newUserRepoMock(t)
+		// No WithMFASecretKEK call — KEK stays nil
+
+		secret, err := entities.NewMFASecret(plaintextSecret)
+		require.NoError(t, err)
+		now := time.Now()
+		user := &entities.User{
+			ID: 1, Email: "x@x", Password: "h", Name: "X",
+			Role: domain.RoleTeacher, Status: entities.UserStatusActive,
+			MFASecret: &secret, MFAEnabled: true,
+			UpdatedAt: now,
+		}
+
+		mock.ExpectExec(regexp.QuoteMeta("UPDATE users")).
+			WithArgs(
+				user.Email, user.Password, user.Name, user.Role, user.Status,
+				sql.NullString{String: plaintextSecret, Valid: true},
+				true,  // mfa_enabled
+				false, // mfa_secret_encrypted = FALSE (no KEK)
+				user.UpdatedAt, user.ID,
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err = repo.Save(context.Background(), user)
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet(), "Save without KEK must store plaintext and encrypted=false")
+	})
 }

@@ -12,12 +12,27 @@ import (
 
 // UserRepositoryPG implements PostgreSQL user repository
 type UserRepositoryPG struct {
-	db *sql.DB
+	db           *sql.DB
+	mfaSecretKEK []byte // nil → no at-rest encryption (legacy / dev fallback)
 }
 
 // NewUserRepositoryPG creates a new PostgreSQL user repository
 func NewUserRepositoryPG(db *sql.DB) usecases.UserRepository {
 	return &UserRepositoryPG{db: db}
+}
+
+// WithMFASecretKEK wires the at-rest KEK (32-byte AES-256 key) used to
+// encrypt users.mfa_secret on write and decrypt on read. Without a KEK,
+// the repository preserves the legacy plaintext behavior (dev / test
+// convenience); production deployments MUST attach a KEK so DB dumps do
+// not expose TOTP shared secrets. Returns the receiver so callers can
+// chain after NewUserRepositoryPG. Issue #279 ADR-4.
+//
+// RED stub — the KEK is stored but Save / scan paths do not yet honor
+// it; encryption semantics land in the GREEN pair.
+func (r *UserRepositoryPG) WithMFASecretKEK(key []byte) *UserRepositoryPG {
+	r.mfaSecretKEK = key
+	return r
 }
 
 // Create creates a new user in the database
