@@ -2,6 +2,8 @@ package persistence
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"testing"
 	"time"
 
@@ -99,4 +101,53 @@ func TestRedisPasswordResetTokenRepository_RejectsEmptyOrNonPositiveInputs(t *te
 			assert.Error(t, err)
 		})
 	}
+}
+
+// TestRedisPasswordResetTokenRepository_StoresHashedKey pins v0.159.0
+// ADR-5: the raw token must never appear in Redis as a key. Storage
+// hashes the token with sha256 before SET; lookup hashes the incoming
+// token before GET. A Redis read-access attacker holding the dump
+// sees only opaque digests and cannot forge a reset link. Issue #279.
+func TestRedisPasswordResetTokenRepository_StoresHashedKey(t *testing.T) {
+	mr, repo := setupResetTokenRedis(t)
+	ctx := context.Background()
+
+	rawToken := "tok-secret-159"
+	require.NoError(t, repo.Store(ctx, rawToken, int64(101), time.Minute))
+
+	// The raw token MUST NOT appear as a Redis key — it is the secret
+	// being protected. The hashed form (hex sha256) IS what Redis sees.
+	rawKey := "pwreset:" + rawToken
+	assert.False(t, mr.Exists(rawKey), "raw token must not be stored as a Redis key — sha256 first")
+
+	digest := sha256.Sum256([]byte(rawToken))
+	hashedKey := "pwreset:" + hex.EncodeToString(digest[:])
+	assert.True(t, mr.Exists(hashedKey), "Redis must store the sha256(token) hex digest as the key")
+
+	// Lookup with the raw token must transparently find the entry by
+	// hashing on the read path — callers (handler / use case) must not
+	// have to know about the hashing transform.
+	uid, err := repo.LookupUser(ctx, rawToken)
+	require.NoError(t, err)
+	assert.Equal(t, int64(101), uid)
+}
+
+// TestRedisPasswordResetTokenRepository_LookupHashesIncoming pins the
+// symmetric read-path transform: looking up by the pre-hashed digest
+// must NOT find the entry (it is hashed again on lookup, double-hash
+// mismatch). Defensive — guards against accidentally bypassing the
+// transform from a caller that already has the hash in hand. Issue #279.
+func TestRedisPasswordResetTokenRepository_LookupHashesIncoming(t *testing.T) {
+	_, repo := setupResetTokenRedis(t)
+	ctx := context.Background()
+
+	rawToken := "raw-tok-159"
+	require.NoError(t, repo.Store(ctx, rawToken, int64(202), time.Minute))
+
+	digest := sha256.Sum256([]byte(rawToken))
+	hashedToken := hex.EncodeToString(digest[:])
+
+	_, err := repo.LookupUser(ctx, hashedToken)
+	assert.ErrorIs(t, err, domain.ErrPasswordResetTokenNotFound,
+		"lookup by pre-hashed token must be a miss — the read path hashes again, defensive")
 }
