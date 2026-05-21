@@ -343,7 +343,14 @@ func (u *AuthUseCase) Register(ctx context.Context, input dto.RegisterInput) err
 	return nil
 }
 
-// RefreshToken validates refresh token and returns new tokens
+// RefreshToken validates refresh token and returns new tokens.
+//
+// v0.159.0 ADR-2: when a revoked-token repository is wired (production
+// path) the old refresh JTI is added to the blacklist before issuing
+// the new pair (rotation), and a replay of an already-blacklisted JTI
+// returns ErrRefreshTokenReused (RFC 6749 §10.4 reuse detection). When
+// no repo is wired (legacy / test setups) the rotation step is skipped
+// — the legacy single-issue behavior is preserved.
 func (u *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString string) (string, string, error) {
 	// Parse and validate refresh token
 	token, err := jwt.Parse(refreshTokenString, func(token *jwt.Token) (interface{}, error) {
@@ -373,6 +380,31 @@ func (u *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString strin
 	}
 	userID := int64(userIDFloat)
 
+	// Reuse-detection branch: presented JTI already blacklisted → replay.
+	// Reads (claims["jti"], claims["exp"]) up-front so we can both detect
+	// reuse and compute the blacklist TTL for the rotation step below.
+	oldJTI, _ := claims["jti"].(string)
+	var refreshTTL time.Duration
+	if expFloat, ok := claims["exp"].(float64); ok {
+		refreshTTL = time.Until(time.Unix(int64(expFloat), 0))
+	}
+	if u.revokedTokenRepo != nil && oldJTI != "" {
+		revoked, checkErr := u.revokedTokenRepo.IsRevoked(ctx, oldJTI)
+		if checkErr == nil && revoked {
+			u.logTokenOperation(ctx, "refresh", false, userID)
+			u.logAudit(ctx, "refresh_token_reuse_detected", "auth", map[string]interface{}{
+				"user_id": userID,
+				"jti":     oldJTI,
+			})
+			return "", "", ErrRefreshTokenReused
+		}
+		// A storage error here intentionally does NOT block the refresh.
+		// Locking users out of their session because Redis is unreachable
+		// would be a worse failure mode than letting a refresh proceed
+		// without reuse detection; the per-request blast radius is one
+		// refresh window. checkErr is left unhandled by design.
+	}
+
 	// Get user from database
 	user, err := u.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -391,6 +423,24 @@ func (u *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString strin
 	if err != nil {
 		u.logTokenOperation(ctx, "refresh", false, userID)
 		return "", "", fmt.Errorf("failed to generate tokens: %w", err)
+	}
+
+	// Rotation: blacklist the old refresh JTI so this exact refresh
+	// token cannot be presented again. Bounded by the remaining lifetime
+	// of the token (TTL beyond that adds nothing — the token expires
+	// naturally and JWT validation rejects it).
+	if u.revokedTokenRepo != nil && oldJTI != "" && refreshTTL > 0 {
+		if revokeErr := u.revokedTokenRepo.Revoke(ctx, oldJTI, refreshTTL); revokeErr != nil {
+			// Audit but do not fail the request — the new pair is already
+			// minted; failing now would force the user to re-login while
+			// silently leaving the new tokens usable. Audit lets ops detect
+			// chronic blacklist-write failures.
+			u.logAudit(ctx, "refresh_token_blacklist_failed", "auth", map[string]interface{}{
+				"user_id": userID,
+				"jti":     oldJTI,
+				"error":   revokeErr.Error(),
+			})
+		}
 	}
 
 	// Log successful token refresh
