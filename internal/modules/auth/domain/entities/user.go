@@ -1,7 +1,7 @@
 package entities
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
@@ -112,9 +112,9 @@ func (u *User) CanLogin() error {
 
 var (
 	// ErrAccountNotActive is returned when attempting to log in with an inactive account.
-	ErrAccountNotActive = fmt.Errorf("account is not active")
+	ErrAccountNotActive = errors.New("account is not active")
 	// ErrAccountBlocked is returned when attempting to log in with a blocked account.
-	ErrAccountBlocked = fmt.Errorf("account is blocked")
+	ErrAccountBlocked = errors.New("account is blocked")
 )
 
 // IsActive checks if user is active

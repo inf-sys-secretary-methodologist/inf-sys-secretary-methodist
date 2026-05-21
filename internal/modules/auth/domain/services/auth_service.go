@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
@@ -184,13 +183,8 @@ func (s *AuthorizationServiceImpl) canApproveReport(userCtx *entities.UserContex
 	return userCtx.HasPermission(domain.ResourceReports, domain.ActionApprove)
 }
 
-// HashPassword hashes a password using bcrypt.
-func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(bytes), err
-}
-
-// CheckPasswordHash checks if password matches the hash.
-func CheckPasswordHash(password, hash string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-}
+// HashPassword / CheckPasswordHash removed in v0.159.0 ADR-3 Tier 2:
+// both helpers used bcrypt.DefaultCost (10) which is below the
+// project-wide bcryptCost = 14 set in the auth use case. They were
+// dead code (no production caller); removing them eliminates the
+// foot-gun of accidentally hashing at the weaker cost.

@@ -142,22 +142,10 @@ func TestAuthorizationServiceImpl_CanApproveDocument(t *testing.T) {
 	}
 }
 
-func TestHashPassword(t *testing.T) {
-	hash, err := HashPassword("password123")
-	assert.NoError(t, err)
-	assert.NotEmpty(t, hash)
-	assert.NotEqual(t, "password123", hash)
-}
-
-func TestCheckPasswordHash(t *testing.T) {
-	hash, _ := HashPassword("password123")
-
-	err := CheckPasswordHash("password123", hash)
-	assert.NoError(t, err)
-
-	err = CheckPasswordHash("wrongpassword", hash)
-	assert.Error(t, err)
-}
+// TestHashPassword / TestCheckPasswordHash removed in v0.159.0 ADR-3
+// Tier 2: the helpers under test were dead code that hashed at the
+// default bcrypt cost (10), below the project-wide bcryptCost = 14
+// used by the real auth use case.
 
 func strPtr(s string) *string {
 	return &s

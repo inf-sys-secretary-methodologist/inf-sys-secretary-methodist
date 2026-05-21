@@ -59,6 +59,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -162,6 +163,7 @@ import (
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
+	authCrypto "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/crypto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/metrics"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/middleware"
@@ -1362,11 +1364,21 @@ func initAuthModule(
 	refreshSecret := []byte(cfg.JWT.RefreshSecret)
 	mfaIntermediateSecret := []byte(cfg.JWT.MFAIntermediateSecret)
 
-	// Initialize base user repository
+	// Initialize base user repository.
+	// v0.159.0 ADR-4: when MFA_SECRET_ENC_KEY is configured (64 hex chars
+	// = 32-byte AES-256 KEK), wire the KEK so users.mfa_secret is
+	// AES-GCM-encrypted at rest. Missing / malformed KEK degrades to the
+	// legacy plaintext path with a warning — production deployments
+	// MUST set the env var.
 	baseUserRepo := persistence.NewUserRepositoryPG(db)
-
-	// Initialize session repository (will be used in future for refresh token management)
-	_ = persistence.NewSessionRepositoryPG(db)
+	if kek, err := authCrypto.ParseKEKHex(os.Getenv("MFA_SECRET_ENC_KEY")); err == nil {
+		baseUserRepo = baseUserRepo.WithMFASecretKEK(kek)
+		log.Println("[auth] MFA secret KEK configured — at-rest encryption ENABLED")
+	} else if !errors.Is(err, authCrypto.ErrEmptyKEK) {
+		log.Printf("[auth] MFA_SECRET_ENC_KEY malformed — at-rest encryption DISABLED (deploy fix required): %v", err)
+	} else {
+		log.Println("[auth] MFA_SECRET_ENC_KEY not configured — at-rest encryption DISABLED (legacy plaintext path)")
+	}
 
 	// Wrap with caching if Redis is available
 	var userRepo interface{} = baseUserRepo
@@ -1386,7 +1398,45 @@ func initAuthModule(
 		notificationUseCase,
 	)
 
+	// v0.159.0 ADR-3: wire the per-account brute-force lockout when
+	// Redis is available. Threshold + window are env-driven so ops can
+	// tune without a redeploy. Without Redis the legacy IP-keyed rate
+	// limiter remains the only floor (insufficient for production —
+	// the deploy must include Redis).
+	if redisCache != nil {
+		threshold := envInt("LOGIN_LOCKOUT_THRESHOLD", 5)
+		window := envDuration("LOGIN_LOCKOUT_WINDOW", 15*time.Minute)
+		tracker := persistence.NewRedisLoginAttemptTracker(redisCache.Client(), threshold, window)
+		authUseCase = authUseCase.WithLoginAttemptTracking(tracker)
+		log.Printf("[auth] Login lockout wired: %d failures / %s window", threshold, window)
+	} else {
+		log.Println("[auth] Redis unavailable — per-account lockout DISABLED (legacy IP-only rate limit)")
+	}
+
 	return authUseCase, userRepo.(usecases.UserRepository)
+}
+
+// envInt reads an integer from env with a fallback default — used by
+// the lockout / encryption wiring for ops-tunable knobs.
+func envInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return fallback
+}
+
+// envDuration reads a Go-syntax duration (e.g. "15m", "1h") from env
+// with a fallback default. Invalid input falls back rather than aborts
+// startup — diploma scope prefers liveness over strict validation.
+func envDuration(key string, fallback time.Duration) time.Duration {
+	if v := os.Getenv(key); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
+	}
+	return fallback
 }
 
 func setupRoutes(
@@ -1528,13 +1578,26 @@ func setupRoutes(
 	// Swagger documentation endpoint
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Загрузка конфигурации rate limiting
+	// Загрузка конфигурации rate limiting + trusted-proxy CIDR
+	// allowlist (v0.159.0 ADR-3b). With no TRUSTED_PROXY_CIDRS env
+	// configured the limiter ignores X-Forwarded-For entirely — secure
+	// default for direct-internet deployments. Behind a reverse proxy
+	// set TRUSTED_PROXY_CIDRS to the proxy's egress CIDR(s) so XFF
+	// from those hops is honored.
 	rateLimitConfig := middleware.LoadRateLimitConfig()
+	trustedProxyCIDRs := middleware.ParseTrustedProxyCIDRs(os.Getenv("TRUSTED_PROXY_CIDRS"))
+	if len(trustedProxyCIDRs) == 0 {
+		logger.Info("Trusted-proxy CIDRs not configured — X-Forwarded-For will be ignored (secure default for direct-internet deployments)", nil)
+	} else {
+		logger.Info("Trusted-proxy CIDRs configured", map[string]interface{}{
+			"count": len(trustedProxyCIDRs),
+		})
+	}
 
 	var publicRateLimiter, authRateLimiter *middleware.RateLimiter
 	if redisCache != nil {
-		publicRateLimiter = rateLimitConfig.GetPublicRateLimiter(redisCache.Client())
-		authRateLimiter = rateLimitConfig.GetAuthRateLimiter(redisCache.Client())
+		publicRateLimiter = rateLimitConfig.GetPublicRateLimiter(redisCache.Client()).WithTrustedProxies(trustedProxyCIDRs)
+		authRateLimiter = rateLimitConfig.GetAuthRateLimiter(redisCache.Client()).WithTrustedProxies(trustedProxyCIDRs)
 	}
 
 	// Initialize email service
@@ -1559,7 +1622,11 @@ func setupRoutes(
 	// Initialize auth handler with email service
 	authHandlerInstance := authHandler.NewAuthHandler(authUseCase, emailService)
 
-	// Public auth routes with rate limiting (10 req/min + burst 5)
+	// Public auth routes with rate limiting (configured via
+	// RATE_LIMIT_PUBLIC_RPM / RATE_LIMIT_PUBLIC_BURST env vars; defaults
+	// 300 RPM + 100 burst — see middleware.LoadRateLimitConfig). Per-
+	// account brute-force lockout is layered on top inside AuthUseCase
+	// (v0.159.0 ADR-3).
 	authGroup := router.Group("/api/auth")
 	if publicRateLimiter != nil {
 		authGroup.Use(publicRateLimiter.RateLimitMiddleware())

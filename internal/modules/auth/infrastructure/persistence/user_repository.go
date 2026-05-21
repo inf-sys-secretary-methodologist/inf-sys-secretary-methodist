@@ -17,10 +17,19 @@ type UserRepositoryPG struct {
 	mfaSecretKEK []byte // nil → no at-rest encryption (legacy / dev fallback)
 }
 
-// NewUserRepositoryPG creates a new PostgreSQL user repository
-func NewUserRepositoryPG(db *sql.DB) usecases.UserRepository {
+// NewUserRepositoryPG creates a new PostgreSQL user repository.
+// Returns the concrete *UserRepositoryPG so callers can chain
+// the WithMFASecretKEK setter for at-rest encryption (v0.159.0
+// ADR-4). The concrete type satisfies usecases.UserRepository
+// structurally.
+func NewUserRepositoryPG(db *sql.DB) *UserRepositoryPG {
 	return &UserRepositoryPG{db: db}
 }
+
+// Compile-time guard that the concrete type still satisfies the
+// usecase-facing interface — drift would break callers that take
+// usecases.UserRepository (cmd/server/main.go, tests).
+var _ usecases.UserRepository = (*UserRepositoryPG)(nil)
 
 // WithMFASecretKEK wires the at-rest KEK (32-byte AES-256 key) used to
 // encrypt users.mfa_secret on write and decrypt on read. Without a KEK,

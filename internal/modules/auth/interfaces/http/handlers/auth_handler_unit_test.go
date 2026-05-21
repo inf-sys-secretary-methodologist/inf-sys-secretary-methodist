@@ -320,7 +320,13 @@ func TestRegister(t *testing.T) {
 		assert.True(t, w.Code >= 400)
 	})
 
-	t.Run("returns 403 for privileged role", func(t *testing.T) {
+	t.Run("returns 400 for privileged role (v0.159.0 ADR-3 Tier 2)", func(t *testing.T) {
+		// v0.159.0 ADR-3 Tier 2 tightened RegisterInput.Role binding tag
+		// to `oneof=student teacher`, shifting privileged-role rejection
+		// from the domain guard (403) to the Gin binding layer (400) —
+		// requests never reach the use case, no audit row, no DB hit.
+		// IsAllowedForSelfRegistration remains the authoritative guard
+		// for defense in depth (covered by the use-case unit tests).
 		privilegedRoles := []string{
 			string(domain.RoleSystemAdmin),
 			string(domain.RoleMethodist),
@@ -347,8 +353,8 @@ func TestRegister(t *testing.T) {
 
 				router.ServeHTTP(w, req)
 
-				assert.Equal(t, http.StatusForbidden, w.Code,
-					"privileged role %s must be rejected with 403", role)
+				assert.Equal(t, http.StatusBadRequest, w.Code,
+					"privileged role %s must be rejected at the binding boundary with 400", role)
 				mockRepo.AssertNotCalled(t, "Create")
 			})
 		}

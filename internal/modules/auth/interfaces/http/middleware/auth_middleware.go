@@ -5,8 +5,6 @@ import (
 	"context"
 	"net/http"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -169,87 +167,10 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 	}
 }
 
-// RateLimiter implements simple in-memory rate limiting
-type RateLimiter struct {
-	mu       sync.Mutex
-	requests map[string]*rateLimitEntry
-	max      int
-	window   time.Duration
-}
-
-type rateLimitEntry struct {
-	count     int
-	resetTime time.Time
-}
-
-// NewRateLimiter creates a new rate limiter instance.
-func NewRateLimiter(maxRequests int, window time.Duration) *RateLimiter {
-	rl := &RateLimiter{
-		requests: make(map[string]*rateLimitEntry),
-		max:      maxRequests,
-		window:   window,
-	}
-
-	// Cleanup goroutine
-	go rl.cleanup()
-
-	return rl
-}
-
-// Allow checks if a request is allowed based on the rate limit.
-func (rl *RateLimiter) Allow(key string) bool {
-	rl.mu.Lock()
-	defer rl.mu.Unlock()
-
-	now := time.Now()
-
-	entry, exists := rl.requests[key]
-	if !exists || now.After(entry.resetTime) {
-		rl.requests[key] = &rateLimitEntry{
-			count:     1,
-			resetTime: now.Add(rl.window),
-		}
-		return true
-	}
-
-	if entry.count >= rl.max {
-		return false
-	}
-
-	entry.count++
-	return true
-}
-
-func (rl *RateLimiter) cleanup() {
-	ticker := time.NewTicker(time.Minute)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		rl.mu.Lock()
-		now := time.Now()
-		for key, entry := range rl.requests {
-			if now.After(entry.resetTime) {
-				delete(rl.requests, key)
-			}
-		}
-		rl.mu.Unlock()
-	}
-}
-
-// RateLimitMiddleware applies rate limiting per IP address
-func RateLimitMiddleware(maxRequests int, window time.Duration) gin.HandlerFunc {
-	limiter := NewRateLimiter(maxRequests, window)
-
-	return func(c *gin.Context) {
-		key := c.ClientIP()
-
-		if !limiter.Allow(key) {
-			resp := response.ErrorResponse("RATE_LIMIT_EXCEEDED", "Слишком много запросов. Пожалуйста, попробуйте позже.")
-			c.JSON(http.StatusTooManyRequests, resp)
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
-}
+// In-memory RateLimiter + RateLimitMiddleware were removed in v0.159.0
+// ADR-3 Tier 2: the production rate limiter is the Redis-backed
+// shared/infrastructure/middleware/rate_limiting.go implementation,
+// which supports burst, per-user keying, and trusted-proxy CIDR
+// validation. The in-memory version was dead code (no production
+// caller) and would have silently bypassed the new CIDR allowlist if
+// someone wired it.
