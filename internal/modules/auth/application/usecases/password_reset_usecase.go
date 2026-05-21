@@ -130,26 +130,29 @@ func (u *PasswordResetUseCase) VerifyToken(ctx context.Context, token string) er
 // ConfirmReset consumes a previously issued reset token and replaces
 // the target user's password.
 //
-// Order matters: the password is validated first, before any I/O, so a
-// leaked token cannot be used to set a trivially weak password (the
-// invalid attempt is rejected without burning the token). On success
-// the token is deleted to enforce single use; failure to delete is
-// treated as fatal because a re-usable token would defeat the bound.
+// v0.159.0 ADR-6: the token is consumed atomically via GETDEL before
+// the password is rotated. If the subsequent Save fails, the token
+// is already gone — no replay window in which an attacker could use
+// the same link to overwrite the victim's password.
 //
-// ErrInvalidResetToken collapses "token unknown/expired" and "user
-// vanished" into one shape so callers cannot use the response to probe
-// the user table.
+// Password validation runs FIRST so a trivially weak password is
+// rejected without burning the token (the consume only happens after
+// the length check passes).
+//
+// ErrInvalidResetToken collapses "token unknown/expired/consumed" and
+// "user vanished" into one shape so callers cannot use the response to
+// probe the user table.
 func (u *PasswordResetUseCase) ConfirmReset(ctx context.Context, token, newPassword string) error {
 	if len(newPassword) < passwordResetMinLength {
 		return ErrWeakResetPassword
 	}
 
-	userID, err := u.tokenRepo.LookupUser(ctx, token)
+	userID, err := u.tokenRepo.LookupUserAndConsume(ctx, token)
 	if err != nil {
 		if errors.Is(err, domain.ErrPasswordResetTokenNotFound) {
 			return ErrInvalidResetToken
 		}
-		return fmt.Errorf("lookup reset token: %w", err)
+		return fmt.Errorf("lookup-and-consume reset token: %w", err)
 	}
 
 	user, err := u.userRepo.GetByID(ctx, userID)
@@ -165,9 +168,6 @@ func (u *PasswordResetUseCase) ConfirmReset(ctx context.Context, token, newPassw
 
 	if err := u.userRepo.Save(ctx, user); err != nil {
 		return fmt.Errorf("save user: %w", err)
-	}
-	if err := u.tokenRepo.Delete(ctx, token); err != nil {
-		return fmt.Errorf("delete reset token: %w", err)
 	}
 	return nil
 }

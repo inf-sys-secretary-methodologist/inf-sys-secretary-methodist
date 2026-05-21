@@ -248,11 +248,13 @@ func TestPasswordResetHandler_Confirm(t *testing.T) {
 			name: "valid token + strong password -> 204, password rotated",
 			body: `{"token":"good-tok","password":"NewStrongPass1!"}`,
 			setup: func(u *fakeUserRepoForResetHandler, tr *fakeResetTokenRepo) {
-				tr.On("LookupUser", mock.Anything, "good-tok").Return(int64(1), nil)
+				// v0.159.0 ADR-6: ConfirmReset now consumes the token
+				// atomically via LookupUserAndConsume (GETDEL); no
+				// separate Delete call afterwards.
+				tr.On("LookupUserAndConsume", mock.Anything, "good-tok").Return(int64(1), nil)
 				u.On("GetByID", mock.Anything, int64(1)).
 					Return(mkUser(1, "alice@example.com", entities.UserStatusActive), nil)
 				u.On("Save", mock.Anything, mock.AnythingOfType("*entities.User")).Return(nil)
-				tr.On("Delete", mock.Anything, "good-tok").Return(nil)
 			},
 			wantStatus: http.StatusNoContent,
 		},
@@ -268,7 +270,7 @@ func TestPasswordResetHandler_Confirm(t *testing.T) {
 			name: "invalid token -> 410 Gone",
 			body: `{"token":"bad-tok","password":"NewStrongPass1!"}`,
 			setup: func(u *fakeUserRepoForResetHandler, tr *fakeResetTokenRepo) {
-				tr.On("LookupUser", mock.Anything, "bad-tok").
+				tr.On("LookupUserAndConsume", mock.Anything, "bad-tok").
 					Return(int64(0), domain.ErrPasswordResetTokenNotFound)
 			},
 			wantStatus: http.StatusGone,
@@ -315,13 +317,14 @@ func TestPasswordResetHandler_Confirm_RotatedPasswordIsBcrypt(t *testing.T) {
 	h, userRepo, tokenRepo, _ := buildResetHandler(t)
 
 	user := mkUser(1, "alice@example.com", entities.UserStatusActive)
-	tokenRepo.On("LookupUser", mock.Anything, "tok").Return(int64(1), nil)
+	// v0.159.0 ADR-6: atomic GETDEL via LookupUserAndConsume — no
+	// separate Delete after Save.
+	tokenRepo.On("LookupUserAndConsume", mock.Anything, "tok").Return(int64(1), nil)
 	userRepo.On("GetByID", mock.Anything, int64(1)).Return(user, nil)
 	var saved *entities.User
 	userRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.User")).
 		Run(func(args mock.Arguments) { saved = args.Get(1).(*entities.User) }).
 		Return(nil)
-	tokenRepo.On("Delete", mock.Anything, "tok").Return(nil)
 
 	router := gin.New()
 	router.POST("/api/auth/password-reset/confirm", h.ConfirmReset)

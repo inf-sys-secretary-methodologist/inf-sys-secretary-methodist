@@ -104,9 +104,22 @@ func (r *RedisPasswordResetTokenRepository) Delete(ctx context.Context, token st
 // token via Redis GETDEL (single round-trip, atomic from Redis's
 // perspective). v0.159.0 ADR-6 — eliminates the Save-then-Delete
 // replay window: after this call the token is gone, so a subsequent
-// Save failure cannot leave a usable token behind for a replay. RED
-// stub returns domain.ErrPasswordResetTokenNotFound — semantics in
-// the GREEN pair.
-func (r *RedisPasswordResetTokenRepository) LookupUserAndConsume(_ context.Context, _ string) (int64, error) {
-	return 0, domain.ErrPasswordResetTokenNotFound
+// Save failure cannot leave a usable token behind for a replay.
+func (r *RedisPasswordResetTokenRepository) LookupUserAndConsume(ctx context.Context, token string) (int64, error) {
+	if token == "" {
+		return 0, domain.ErrPasswordResetTokenNotFound
+	}
+	key := hashResetToken(token)
+	raw, err := r.client.GetDel(ctx, key).Result()
+	if errors.Is(err, redis.Nil) {
+		return 0, domain.ErrPasswordResetTokenNotFound
+	}
+	if err != nil {
+		return 0, fmt.Errorf("redis GETDEL %s: %w", key, err)
+	}
+	uid, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse userID from %s: %w", key, err)
+	}
+	return uid, nil
 }
