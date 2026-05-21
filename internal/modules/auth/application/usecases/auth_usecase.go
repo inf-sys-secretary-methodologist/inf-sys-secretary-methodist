@@ -50,7 +50,45 @@ var (
 	// WithMFAVerification. Deployment misconfiguration; main.go must wire
 	// this in production.
 	ErrMFAVerificationNotConfigured = errors.New("mfa verification dependencies not configured")
+	// ErrRefreshTokenReused is returned by RefreshToken when the supplied
+	// refresh token's JTI has already been blacklisted — either by a
+	// successful prior rotation or by a logout. Surfaces RFC 6749 §10.4
+	// reuse-detection: a stolen token presented after the legitimate
+	// owner already rotated triggers this sentinel; the handler maps it
+	// to 401 and an audit emit so SOC can investigate. Issue #279 ADR-2.
+	ErrRefreshTokenReused = errors.New("refresh token has already been used")
+	// ErrAccountLocked is returned by Login / LoginWithUser when the
+	// per-account failure counter has crossed the lockout threshold.
+	// The lock is time-bounded (the tracker auto-expires the counter)
+	// so a legitimate user can retry after the cooldown without admin
+	// intervention. Mapped to HTTP 429 by the handler. Issue #279 ADR-3.
+	ErrAccountLocked = errors.New("account temporarily locked due to repeated failed login attempts")
 )
+
+// LoginAttemptTracker bounds password-guessing attempts on a per-account
+// basis. The Login use case consults IsLocked before bcrypt (so a locked
+// account stays locked regardless of password correctness), registers a
+// failure on wrong-password, and resets the counter on success. The
+// concrete Redis implementation lives in infrastructure/persistence; the
+// interface lives here per DIP. nil-safe: when unset, lockout enforcement
+// is skipped and the legacy IP-keyed rate limiter remains the only floor
+// (sufficient for tests, insufficient for production). Issue #279 ADR-3.
+type LoginAttemptTracker interface {
+	// RegisterFailure atomically increments the failure counter for the
+	// given identifier (typically lowercased email) and reports the new
+	// count. Implementations are expected to set / refresh a TTL on
+	// every write so abandoned counters self-clean.
+	RegisterFailure(ctx context.Context, identifier string) (int, error)
+
+	// IsLocked reports whether the identifier currently exceeds the
+	// lockout threshold. Storage errors map to (false, err) — the use
+	// case treats unreachable tracker as "do not lock" rather than fail
+	// closed (mirrors the refresh-rotation tolerance).
+	IsLocked(ctx context.Context, identifier string) (bool, error)
+
+	// Reset clears the failure counter. Called on successful login.
+	Reset(ctx context.Context, identifier string) error
+}
 
 // AuthUseCase handles authentication business logic.
 type AuthUseCase struct {
@@ -72,6 +110,21 @@ type AuthUseCase struct {
 	revokedTokenRepo RevokedTokenRepository
 	totpDriftWindow  int
 	now              func() time.Time
+
+	// Login lockout (configured separately via WithLoginAttemptTracking).
+	// nil-safe: when unset, Login skips lockout enforcement; the legacy
+	// IP-keyed rate limiter remains the only floor. Issue #279 ADR-3.
+	loginAttemptTracker LoginAttemptTracker
+}
+
+// WithLoginAttemptTracking wires the per-account brute-force tracker
+// onto the use case. Production callers MUST attach this (the Redis
+// implementation in infrastructure/persistence) so locked-out accounts
+// surface ErrAccountLocked → HTTP 429 from the handler. Returns the
+// receiver so callers can chain after NewAuthUseCase. Issue #279 ADR-3.
+func (u *AuthUseCase) WithLoginAttemptTracking(tracker LoginAttemptTracker) *AuthUseCase {
+	u.loginAttemptTracker = tracker
+	return u
 }
 
 // NewAuthUseCase creates a new auth use case. mfaIntermediateSecret signs
@@ -101,7 +154,12 @@ func NewAuthUseCase(
 	}
 }
 
-// Login authenticates user and returns JWT tokens
+// Login authenticates user and returns JWT tokens.
+//
+// v0.159.0 ADR-3: when a LoginAttemptTracker is wired, this checks the
+// per-account lockout BEFORE bcrypt — a locked account stays locked
+// regardless of password correctness. Wrong-password attempts increment
+// the failure counter; successful logins reset it.
 func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessToken string, refreshToken string, err error) {
 	ctx, span := otel.Tracer("auth").Start(ctx, "AuthUseCase.Login")
 	defer func() {
@@ -114,6 +172,21 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 	span.SetAttributes(attribute.String("user.email", input.Email))
 
 	startTime := time.Now()
+
+	// Per-account lockout takes precedence: even with the correct
+	// password, a locked account stays locked until the tracker's TTL
+	// elapses. Storage errors map to "do not lock" — losing Redis must
+	// not lock out users; the IP-keyed rate limiter remains the floor.
+	if u.loginAttemptTracker != nil {
+		locked, lockErr := u.loginAttemptTracker.IsLocked(ctx, input.Email)
+		if lockErr == nil && locked {
+			u.logLoginAttempt(ctx, input.Email, false, "account locked")
+			u.logAudit(ctx, "login_account_locked", "auth", map[string]interface{}{
+				"email": input.Email,
+			})
+			return "", "", ErrAccountLocked
+		}
+	}
 
 	// Use GetByEmailForAuth to bypass cache and ensure password field is populated
 	user, err := u.userRepo.GetByEmailForAuth(ctx, input.Email)
@@ -134,8 +207,21 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 
 	// Check password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		// Log failed login - invalid password
+		// Log failed login - invalid password. Register the per-account
+		// failure so the next attempt steps closer to lockout. The
+		// tracker is fail-open (ADR-3): storage errors here are
+		// audited but do not block the response — losing Redis must
+		// not lock legitimate users out, and the IP-keyed rate
+		// limiter remains the surviving floor.
 		u.logLoginAttempt(ctx, input.Email, false, "invalid password")
+		if u.loginAttemptTracker != nil {
+			if _, trackErr := u.loginAttemptTracker.RegisterFailure(ctx, input.Email); trackErr != nil {
+				u.logAudit(ctx, "login_attempt_register_failed", "auth", map[string]interface{}{
+					"email": input.Email,
+					"error": trackErr.Error(),
+				})
+			}
+		}
 
 		return "", "", fmt.Errorf("authentication failed: %w", domainErrors.ErrUnauthorized)
 	}
@@ -157,6 +243,12 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 	if err != nil {
 		u.logLoginAttempt(ctx, input.Email, false, "token generation failed")
 		return "", "", fmt.Errorf("failed to generate tokens: %w", err)
+	}
+
+	// Reset the failure counter on successful login so a user with
+	// stale failures (under threshold) starts fresh.
+	if u.loginAttemptTracker != nil {
+		_ = u.loginAttemptTracker.Reset(ctx, input.Email)
 	}
 
 	// Log successful login
@@ -336,7 +428,21 @@ func (u *AuthUseCase) Register(ctx context.Context, input dto.RegisterInput) err
 	return nil
 }
 
-// RefreshToken validates refresh token and returns new tokens
+// RefreshToken validates refresh token and returns new tokens.
+//
+// v0.159.0 ADR-2: when a revoked-token repository is wired (production
+// path):
+//   - The old refresh JTI is atomically claimed via RevokeIfAbsent
+//     BEFORE generating the new pair. SET NX semantics close the
+//     IsRevoked → Revoke race: two concurrent legitimate refresh
+//     attempts can never both mint new pairs.
+//   - A replay (claim returns claimed=false) triggers RFC 6749 §10.4
+//     token-family revocation: RevokeAllForUser invalidates every
+//     still-valid token issued for this user and the call returns
+//     ErrRefreshTokenReused.
+//
+// When no repo is wired (legacy / test setups) the rotation step is
+// skipped — the legacy single-issue behavior is preserved.
 func (u *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString string) (string, string, error) {
 	// Parse and validate refresh token
 	token, err := jwt.Parse(refreshTokenString, func(token *jwt.Token) (interface{}, error) {
@@ -366,6 +472,70 @@ func (u *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString strin
 	}
 	userID := int64(userIDFloat)
 
+	// Read (jti, iat, exp) — needed for atomic rotation, reuse
+	// detection, and the user-revocation epoch check below.
+	oldJTI, _ := claims["jti"].(string)
+	var refreshTTL time.Duration
+	if expFloat, ok := claims["exp"].(float64); ok {
+		refreshTTL = time.Until(time.Unix(int64(expFloat), 0))
+	}
+	var issuedAtUnix int64
+	if iatFloat, ok := claims["iat"].(float64); ok {
+		issuedAtUnix = int64(iatFloat)
+	}
+
+	// Atomic rotation: claim the JTI BEFORE generating new tokens.
+	// SET NX semantics close the legitimate-concurrent-refresh race
+	// — only one caller wins the claim; the loser surfaces
+	// ErrRefreshTokenReused. A claim-failure also triggers RFC 6749
+	// §10.4 token-family revocation (this is what reuse-detection
+	// looks like from the server's perspective: the JTI was already
+	// in the revocation set).
+	if u.revokedTokenRepo != nil && oldJTI != "" && refreshTTL > 0 {
+		claimed, claimErr := u.revokedTokenRepo.RevokeIfAbsent(ctx, oldJTI, refreshTTL)
+		if claimErr == nil && !claimed {
+			// Reuse detected — cascade revoke per RFC 6749 §10.4.
+			// Storage errors on the cascade are audited but do not
+			// suppress the reuse-detected outcome (the caller still
+			// sees ErrRefreshTokenReused; failing the call would
+			// only help the attacker).
+			if cascadeErr := u.revokedTokenRepo.RevokeAllForUser(ctx, userID, time.Now().Unix(), refreshTTL); cascadeErr != nil {
+				u.logAudit(ctx, "refresh_token_cascade_failed", "auth", map[string]interface{}{
+					"user_id": userID,
+					"error":   cascadeErr.Error(),
+				})
+			}
+			u.logTokenOperation(ctx, "refresh", false, userID)
+			u.logAudit(ctx, "refresh_token_reuse_detected", "auth", map[string]interface{}{
+				"user_id": userID,
+				"jti":     oldJTI,
+			})
+			return "", "", ErrRefreshTokenReused
+		}
+		// claimErr != nil → storage fault; do NOT block the refresh.
+		// Locking users out of their session because Redis is
+		// unreachable would be a worse failure mode than letting one
+		// refresh through without reuse detection. The per-request
+		// blast radius is one refresh window; chronic failures show
+		// up as fewer audit emits on the success path. The error is
+		// intentionally swallowed (see ADR-3 fail-open precedent).
+		_ = claimErr
+
+		// Cascade check: if a prior reuse-detection or admin action
+		// has invalidated this user's tokens, refuse even if the JTI
+		// itself was not previously revoked.
+		if issuedAtUnix > 0 {
+			if revoked, _ := u.revokedTokenRepo.IsRevokedForUser(ctx, userID, issuedAtUnix); revoked {
+				u.logTokenOperation(ctx, "refresh", false, userID)
+				u.logAudit(ctx, "refresh_token_revoked_by_cascade", "auth", map[string]interface{}{
+					"user_id": userID,
+					"jti":     oldJTI,
+				})
+				return "", "", ErrRefreshTokenReused
+			}
+		}
+	}
+
 	// Get user from database
 	user, err := u.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -379,7 +549,8 @@ func (u *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString strin
 		return "", "", fmt.Errorf("cannot refresh token: %w", err)
 	}
 
-	// Generate new tokens
+	// Generate new tokens — the old JTI was already atomically
+	// revoked above (no double-spend race).
 	accessToken, newRefreshToken, err := u.generateTokens(ctx, user)
 	if err != nil {
 		u.logTokenOperation(ctx, "refresh", false, userID)
@@ -474,6 +645,12 @@ const (
 // so callers can chain after NewAuthUseCase. Test cases that never enroll
 // an MFA user may skip this call — the LoginWithUser MFA branch still
 // generates intermediate tokens, but VerifyLoginMFA refuses to run.
+//
+// Note (v0.159.0 ADR-2): refresh-token rotation also reads
+// u.revokedTokenRepo. Production wiring may call WithMFAVerification
+// + WithRefreshRotation with the SAME repo, or only WithRefreshRotation
+// when MFA is disabled. Calling either setter is sufficient to enable
+// rotation; the two are independent concerns sharing the same store.
 func (u *AuthUseCase) WithMFAVerification(
 	revokedRepo RevokedTokenRepository,
 	driftWindow int,
@@ -484,6 +661,17 @@ func (u *AuthUseCase) WithMFAVerification(
 	if now != nil {
 		u.now = now
 	}
+	return u
+}
+
+// WithRefreshRotation wires the revoked-token repository used by
+// RefreshToken's atomic rotation + RFC 6749 §10.4 reuse-detection
+// cascade. Independent of WithMFAVerification so MFA-disabled
+// deployments can still enable refresh rotation. Calling both setters
+// with the same repo is idempotent — they read / write the same field.
+// Issue #279 ADR-2.
+func (u *AuthUseCase) WithRefreshRotation(revokedRepo RevokedTokenRepository) *AuthUseCase {
+	u.revokedTokenRepo = revokedRepo
 	return u
 }
 

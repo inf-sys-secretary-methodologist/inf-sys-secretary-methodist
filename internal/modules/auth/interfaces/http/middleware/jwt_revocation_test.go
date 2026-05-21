@@ -29,6 +29,20 @@ func (f *fakeRevokedRepo) IsRevoked(ctx context.Context, jti string) (bool, erro
 	return args.Bool(0), args.Error(1)
 }
 
+func (f *fakeRevokedRepo) RevokeIfAbsent(ctx context.Context, jti string, ttl time.Duration) (bool, error) {
+	args := f.Called(ctx, jti, ttl)
+	return args.Bool(0), args.Error(1)
+}
+
+func (f *fakeRevokedRepo) RevokeAllForUser(ctx context.Context, userID int64, issuedAtUnix int64, ttl time.Duration) error {
+	return f.Called(ctx, userID, issuedAtUnix, ttl).Error(0)
+}
+
+func (f *fakeRevokedRepo) IsRevokedForUser(ctx context.Context, userID int64, issuedAtUnix int64) (bool, error) {
+	args := f.Called(ctx, userID, issuedAtUnix)
+	return args.Bool(0), args.Error(1)
+}
+
 func signValidToken(t *testing.T, secret []byte, jti string) string {
 	t.Helper()
 	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -111,4 +125,42 @@ func TestJWTMiddlewareWithRevocation_NilRepoSkipsCheck(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// TestJWTMiddlewareWithRevocation_RevokedTokenDoesNotExecuteHandler pins
+// the v0.159.0 ADR-1 fix: when a JTI is revoked, the protected handler
+// must NEVER be invoked. The pre-fix middleware called `base(c)` which
+// advanced `c.Next()` BEFORE the revocation lookup ran — the handler
+// executed (committing side effects: DB writes, audit emits, uploads)
+// and only afterwards did the middleware write 401 over the result.
+// Asserting `w.Code == 401` alone does NOT prove the bug is closed (the
+// status code response can be overridden), so this test fails the handler
+// directly via a side-effect spy. Issue #279.
+func TestJWTMiddlewareWithRevocation_RevokedTokenDoesNotExecuteHandler(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	secret := []byte("test-secret-revocation")
+
+	repo := new(fakeRevokedRepo)
+	repo.On("IsRevoked", mock.Anything, "revoked-side-effect-jti").Return(true, nil)
+
+	handlerInvocations := 0
+	router := gin.New()
+	router.Use(JWTMiddlewareWithRevocation(buildAuthUC(secret), repo))
+	router.POST("/sensitive", func(c *gin.Context) {
+		// Simulate a write endpoint side-effect — bumping a counter
+		// stands in for DB writes, audit emits, file uploads etc.
+		handlerInvocations++
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/sensitive", nil)
+	req.Header.Set("Authorization", "Bearer "+signValidToken(t, secret, "revoked-side-effect-jti"))
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, 0, handlerInvocations,
+		"protected handler must NOT execute when JTI is revoked — "+
+			"side effects (DB / audit / uploads) leak through if it does")
+	repo.AssertExpectations(t)
 }

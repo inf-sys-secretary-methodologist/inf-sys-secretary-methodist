@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -236,30 +237,118 @@ func TestRateLimiter_HeadersPresent(t *testing.T) {
 	assert.NotEmpty(t, w.Header().Get("X-RateLimit-Reset"))
 }
 
-func TestGetRealIP_XForwardedFor(t *testing.T) {
-	req := httptest.NewRequest("GET", "/test", nil)
-	req.Header.Set("X-Forwarded-For", "1.2.3.4")
-	req.RemoteAddr = "5.6.7.8:1234"
+// Legacy TestGetRealIP_* tests removed in v0.159.0 ADR-3b: the bare
+// getRealIP wrapper that unconditionally trusted X-Forwarded-For was
+// the bug the audit flagged. Its replacement getRealIPWithTrustedProxies
+// is covered by TestGetRealIPWithTrustedProxies above. Issue #279.
 
-	ip := getRealIP(req)
-	assert.Equal(t, "1.2.3.4", ip)
+// TestGetRealIPWithTrustedProxies pins v0.159.0 ADR-3b: X-Forwarded-For
+// is honored only when r.RemoteAddr falls inside the supplied trusted-
+// proxy CIDR allowlist. With an empty CIDR list (secure default) the
+// header is ignored — an internet-facing client cannot spoof its source
+// IP through X-Forwarded-For. The TCP peer is used as the source of
+// truth, stripped of the port for stable bucket keys. Issue #279.
+func TestGetRealIPWithTrustedProxies(t *testing.T) {
+	parseCIDRs := func(t *testing.T, specs ...string) []*net.IPNet {
+		t.Helper()
+		out := make([]*net.IPNet, 0, len(specs))
+		for _, s := range specs {
+			_, cidr, err := net.ParseCIDR(s)
+			require.NoError(t, err, "test setup: parse CIDR %q", s)
+			out = append(out, cidr)
+		}
+		return out
+	}
+
+	cases := []struct {
+		name          string
+		remoteAddr    string
+		xForwardedFor string
+		xRealIP       string
+		trustedCIDRs  []*net.IPNet
+		want          string
+	}{
+		{
+			name:          "X-Forwarded-For trusted when RemoteAddr inside CIDR",
+			remoteAddr:    "10.0.0.5:54321",
+			xForwardedFor: "1.2.3.4",
+			trustedCIDRs:  parseCIDRs(t, "10.0.0.0/8"),
+			want:          "1.2.3.4",
+		},
+		{
+			name:          "X-Forwarded-For IGNORED when RemoteAddr outside CIDR (spoof attempt)",
+			remoteAddr:    "8.8.8.8:54321",
+			xForwardedFor: "1.2.3.4",
+			trustedCIDRs:  parseCIDRs(t, "10.0.0.0/8"),
+			want:          "8.8.8.8",
+		},
+		{
+			name:          "Empty trusted-CIDR list — secure default ignores X-Forwarded-For",
+			remoteAddr:    "10.0.0.5:54321",
+			xForwardedFor: "1.2.3.4",
+			trustedCIDRs:  nil,
+			want:          "10.0.0.5",
+		},
+		{
+			name:          "First IP in X-Forwarded-For chain is taken when proxy trusted",
+			remoteAddr:    "10.0.0.5:54321",
+			xForwardedFor: "1.2.3.4, 5.6.7.8, 9.10.11.12",
+			trustedCIDRs:  parseCIDRs(t, "10.0.0.0/8"),
+			want:          "1.2.3.4",
+		},
+		{
+			name:         "No proxy headers — peer IP returned without port",
+			remoteAddr:   "13.14.15.16:5678",
+			trustedCIDRs: parseCIDRs(t, "10.0.0.0/8"),
+			want:         "13.14.15.16",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/test", nil)
+			req.RemoteAddr = tc.remoteAddr
+			if tc.xForwardedFor != "" {
+				req.Header.Set("X-Forwarded-For", tc.xForwardedFor)
+			}
+			if tc.xRealIP != "" {
+				req.Header.Set("X-Real-IP", tc.xRealIP)
+			}
+
+			got := getRealIPWithTrustedProxies(req, tc.trustedCIDRs)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }
 
-func TestGetRealIP_XRealIP(t *testing.T) {
-	req := httptest.NewRequest("GET", "/test", nil)
-	req.Header.Set("X-Real-IP", "9.10.11.12")
-	req.RemoteAddr = "5.6.7.8:1234"
+// TestParseTrustedProxyCIDRs pins the env-spec parser: comma-separated
+// list of CIDRs, malformed / blank entries silently skipped (logging
+// is the caller's concern). Issue #279 ADR-3b.
+func TestParseTrustedProxyCIDRs(t *testing.T) {
+	cases := []struct {
+		name   string
+		spec   string
+		wantN  int
+		wantOK []string // CIDR strings that must successfully parse
+	}{
+		{"empty spec returns nil", "", 0, nil},
+		{"single CIDR", "10.0.0.0/8", 1, []string{"10.0.0.0/8"}},
+		{"multiple CIDRs", "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16", 3, []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}},
+		{"malformed entries skipped", "10.0.0.0/8, not-a-cidr, 192.168.0.0/16", 2, []string{"10.0.0.0/8", "192.168.0.0/16"}},
+		{"IPv6 CIDR accepted", "fc00::/7", 1, []string{"fc00::/7"}},
+	}
 
-	ip := getRealIP(req)
-	assert.Equal(t, "9.10.11.12", ip)
-}
-
-func TestGetRealIP_RemoteAddr(t *testing.T) {
-	req := httptest.NewRequest("GET", "/test", nil)
-	req.RemoteAddr = "13.14.15.16:5678"
-
-	ip := getRealIP(req)
-	assert.Equal(t, "13.14.15.16:5678", ip)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ParseTrustedProxyCIDRs(tc.spec)
+			require.Len(t, got, tc.wantN)
+			for i, want := range tc.wantOK {
+				_, expected, err := net.ParseCIDR(want)
+				require.NoError(t, err)
+				assert.Equal(t, expected.String(), got[i].String())
+			}
+		})
+	}
 }
 
 func TestRateLimitConfig_LoadFromEnv(t *testing.T) {

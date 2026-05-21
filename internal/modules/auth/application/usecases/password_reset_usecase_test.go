@@ -37,6 +37,11 @@ func (m *mockPasswordResetTokenRepo) Delete(ctx context.Context, token string) e
 	return args.Error(0)
 }
 
+func (m *mockPasswordResetTokenRepo) LookupUserAndConsume(ctx context.Context, token string) (int64, error) {
+	args := m.Called(ctx, token)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 // mockEmailSender is a tiny stand-in for the notifications EmailService —
 // PasswordResetUseCase only needs SendPasswordResetEmail, so the
 // dependency stays narrow (Interface Segregation).
@@ -230,21 +235,22 @@ func TestPasswordResetUseCase_ConfirmReset(t *testing.T) {
 		assertSaved func(t *testing.T, saved *entities.User)
 	}{
 		{
-			name:     "valid token + strong password -> Save + Delete, hash validates",
+			name:     "valid token + strong password -> Save (atomic consume), hash validates",
 			token:    "valid-token",
 			password: goodPassword,
 			setup: func(userRepo *mockUserLookupRepo, tokenRepo *mockPasswordResetTokenRepo, slot *savedSlot) {
 				user := mkUser(42, "alice@example.com", entities.UserStatusActive)
-				tokenRepo.On("LookupUser", mock.Anything, "valid-token").Return(int64(42), nil)
+				// v0.159.0 ADR-6: GETDEL consumes the token atomically;
+				// the legacy LookupUser + Delete sequence is gone.
+				tokenRepo.On("LookupUserAndConsume", mock.Anything, "valid-token").Return(int64(42), nil)
 				userRepo.On("GetByID", mock.Anything, int64(42)).Return(user, nil)
 				userRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.User")).
 					Run(func(args mock.Arguments) {
 						slot.user = args.Get(1).(*entities.User)
 					}).Return(nil)
-				tokenRepo.On("Delete", mock.Anything, "valid-token").Return(nil)
 			},
 			wantSave:   true,
-			wantDelete: true,
+			wantDelete: false,
 			assertSaved: func(t *testing.T, saved *entities.User) {
 				require.NotNil(t, saved)
 				assert.NotEqual(t, "old-bcrypt-hash", saved.Password)
@@ -258,7 +264,7 @@ func TestPasswordResetUseCase_ConfirmReset(t *testing.T) {
 			token:    "bad-token",
 			password: goodPassword,
 			setup: func(_ *mockUserLookupRepo, tokenRepo *mockPasswordResetTokenRepo, _ *savedSlot) {
-				tokenRepo.On("LookupUser", mock.Anything, "bad-token").
+				tokenRepo.On("LookupUserAndConsume", mock.Anything, "bad-token").
 					Return(int64(0), domain.ErrPasswordResetTokenNotFound)
 			},
 			wantErrIs: ErrInvalidResetToken,
@@ -275,7 +281,7 @@ func TestPasswordResetUseCase_ConfirmReset(t *testing.T) {
 			token:    "ghost-token",
 			password: goodPassword,
 			setup: func(userRepo *mockUserLookupRepo, tokenRepo *mockPasswordResetTokenRepo, _ *savedSlot) {
-				tokenRepo.On("LookupUser", mock.Anything, "ghost-token").Return(int64(99), nil)
+				tokenRepo.On("LookupUserAndConsume", mock.Anything, "ghost-token").Return(int64(99), nil)
 				userRepo.On("GetByID", mock.Anything, int64(99)).
 					Return((*entities.User)(nil), errors.New("user not found"))
 			},
@@ -411,31 +417,38 @@ func TestPasswordResetUseCase_VerifyToken_StorageError(t *testing.T) {
 }
 
 // TestPasswordResetUseCase_ConfirmReset_LookupStorageError covers the
-// non-NotFound storage fault wrap on confirm (line 152).
+// non-NotFound storage fault wrap on confirm — the GETDEL round-trip
+// failing for reasons other than "token missing" must surface as a
+// wrapped error (not the ErrInvalidResetToken sentinel) so operators
+// can tell apart "Redis broken" from "user supplied a dead link".
 func TestPasswordResetUseCase_ConfirmReset_LookupStorageError(t *testing.T) {
 	userRepo := new(mockUserLookupRepo)
 	tokenRepo := new(mockPasswordResetTokenRepo)
 	emailer := new(mockEmailSender)
 
-	tokenRepo.On("LookupUser", mock.Anything, "valid-but-redis-broke").
+	tokenRepo.On("LookupUserAndConsume", mock.Anything, "valid-but-redis-broke").
 		Return(int64(0), errors.New("redis down"))
 
 	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)
 	err := uc.ConfirmReset(context.Background(), "valid-but-redis-broke", "strong-password-here")
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "lookup reset token")
+	assert.Contains(t, err.Error(), "lookup-and-consume reset token")
 }
 
 // TestPasswordResetUseCase_ConfirmReset_SaveUserError covers the
-// "save user" fmt.Errorf wrap branch (line 167).
+// "save user" fmt.Errorf wrap branch. v0.159.0 ADR-6: after the
+// atomic consume the token is already gone, so a Save failure leaves
+// the user with their old password and no usable reset link — the
+// only recourse is to request a fresh reset, which is the correct
+// fail-closed behavior.
 func TestPasswordResetUseCase_ConfirmReset_SaveUserError(t *testing.T) {
 	userRepo := new(mockUserLookupRepo)
 	tokenRepo := new(mockPasswordResetTokenRepo)
 	emailer := new(mockEmailSender)
 
 	user := mkUser(42, "alice@example.com", entities.UserStatusActive)
-	tokenRepo.On("LookupUser", mock.Anything, "valid-token").Return(int64(42), nil)
+	tokenRepo.On("LookupUserAndConsume", mock.Anything, "valid-token").Return(int64(42), nil)
 	userRepo.On("GetByID", mock.Anything, int64(42)).Return(user, nil)
 	userRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.User")).
 		Return(errors.New("postgres write failed"))
@@ -445,28 +458,31 @@ func TestPasswordResetUseCase_ConfirmReset_SaveUserError(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "save user")
+	// No separate Delete call exists post-ADR-6 — the token is
+	// consumed atomically by the prior LookupUserAndConsume.
 	tokenRepo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
 }
 
-// TestPasswordResetUseCase_ConfirmReset_DeleteTokenError covers the
-// "delete reset token" fmt.Errorf wrap branch (line 170).
-func TestPasswordResetUseCase_ConfirmReset_DeleteTokenError(t *testing.T) {
+// TestPasswordResetUseCase_ConfirmReset_LegacyDeleteRemoved confirms
+// the v0.159.0 ADR-6 contract: ConfirmReset no longer issues a
+// separate Delete call. The old "delete reset token" wrap branch is
+// gone because the GETDEL consume removes the token in the same
+// round-trip as the lookup.
+func TestPasswordResetUseCase_ConfirmReset_LegacyDeleteRemoved(t *testing.T) {
 	userRepo := new(mockUserLookupRepo)
 	tokenRepo := new(mockPasswordResetTokenRepo)
 	emailer := new(mockEmailSender)
 
 	user := mkUser(42, "alice@example.com", entities.UserStatusActive)
-	tokenRepo.On("LookupUser", mock.Anything, "valid-token").Return(int64(42), nil)
+	tokenRepo.On("LookupUserAndConsume", mock.Anything, "valid-token").Return(int64(42), nil)
 	userRepo.On("GetByID", mock.Anything, int64(42)).Return(user, nil)
 	userRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.User")).Return(nil)
-	tokenRepo.On("Delete", mock.Anything, "valid-token").
-		Return(errors.New("redis del failed"))
 
 	uc := NewPasswordResetUseCase(userRepo, tokenRepo, emailer)
 	err := uc.ConfirmReset(context.Background(), "valid-token", "strong-password-here")
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "delete reset token")
+	require.NoError(t, err)
+	tokenRepo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
 }
 
 // TestGenerateResetToken_Determinism — generateResetToken is a private helper

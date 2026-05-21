@@ -27,6 +27,21 @@ func (m *mockRevokedTokenRepo) IsRevoked(ctx context.Context, jti string) (bool,
 	return args.Bool(0), args.Error(1)
 }
 
+func (m *mockRevokedTokenRepo) RevokeIfAbsent(ctx context.Context, jti string, ttl time.Duration) (bool, error) {
+	args := m.Called(ctx, jti, ttl)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *mockRevokedTokenRepo) RevokeAllForUser(ctx context.Context, userID int64, issuedAtUnix int64, ttl time.Duration) error {
+	args := m.Called(ctx, userID, issuedAtUnix, ttl)
+	return args.Error(0)
+}
+
+func (m *mockRevokedTokenRepo) IsRevokedForUser(ctx context.Context, userID int64, issuedAtUnix int64) (bool, error) {
+	args := m.Called(ctx, userID, issuedAtUnix)
+	return args.Bool(0), args.Error(1)
+}
+
 // signTokenWithJTI builds a minimal valid JWT signed with secret. Used to
 // give the logout use case something it can parse and look at exp / jti.
 func signTokenWithJTI(t *testing.T, secret []byte, jti string, expiresAt time.Time) string {

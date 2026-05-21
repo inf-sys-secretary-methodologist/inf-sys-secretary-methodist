@@ -3,11 +3,13 @@ package usecases_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
@@ -457,24 +459,107 @@ func TestLoginWithUser_MFAEnabled_ReturnsIntermediateToken(t *testing.T) {
 	assert.Less(t, delta, 6*time.Minute, "intermediate token should expire ~5 minutes from now")
 }
 
+// stubLoginAttemptTracker — minimal in-memory LoginAttemptTracker for
+// Login lockout tests. Tracks per-identifier failure counts and supports
+// pre-seeding a "locked" state so the lockout-overrides-credentials
+// branch can be exercised independently of the increment path.
+type stubLoginAttemptTracker struct {
+	failures   map[string]int
+	lockedSeed map[string]bool
+}
+
+func newStubLoginAttemptTracker() *stubLoginAttemptTracker {
+	return &stubLoginAttemptTracker{
+		failures:   make(map[string]int),
+		lockedSeed: make(map[string]bool),
+	}
+}
+
+func (s *stubLoginAttemptTracker) RegisterFailure(_ context.Context, identifier string) (int, error) {
+	s.failures[identifier]++
+	return s.failures[identifier], nil
+}
+
+func (s *stubLoginAttemptTracker) IsLocked(_ context.Context, identifier string) (bool, error) {
+	return s.lockedSeed[identifier], nil
+}
+
+func (s *stubLoginAttemptTracker) Reset(_ context.Context, identifier string) error {
+	delete(s.failures, identifier)
+	delete(s.lockedSeed, identifier)
+	return nil
+}
+
 // stubRevokedTokenRepo — minimal in-memory RevokedTokenRepository for
-// VerifyLoginMFA tests. Tracks JTIs that the use case marks revoked so
-// the replay-guard branch can be exercised.
+// VerifyLoginMFA + refresh-rotation + reuse-detection tests. Tracks
+// per-JTI revocation flags AND per-user revocation epochs so the
+// v0.159.0 ADR-2 RFC 6749 §10.4 path is exercisable end-to-end.
+// The mutex protects against concurrent map writes from the
+// concurrent-refresh race-condition test — the real Redis backend
+// is atomic at the storage layer.
 type stubRevokedTokenRepo struct {
-	revoked map[string]bool
+	mu        sync.Mutex
+	revoked   map[string]bool
+	userEpoch map[int64]int64
 }
 
 func newStubRevokedTokenRepo() *stubRevokedTokenRepo {
-	return &stubRevokedTokenRepo{revoked: make(map[string]bool)}
+	return &stubRevokedTokenRepo{
+		revoked:   make(map[string]bool),
+		userEpoch: make(map[int64]int64),
+	}
 }
 
 func (s *stubRevokedTokenRepo) Revoke(_ context.Context, jti string, _ time.Duration) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.revoked[jti] = true
 	return nil
 }
 
 func (s *stubRevokedTokenRepo) IsRevoked(_ context.Context, jti string) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.revoked[jti], nil
+}
+
+// RevokeIfAbsent atomically claims the JTI: returns claimed=true on
+// first revocation, claimed=false on subsequent calls. Mirrors the
+// Redis SET NX semantics so tests see the same contract as production.
+func (s *stubRevokedTokenRepo) RevokeIfAbsent(_ context.Context, jti string, _ time.Duration) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.revoked[jti] {
+		return false, nil
+	}
+	s.revoked[jti] = true
+	return true, nil
+}
+
+// RevokeAllForUser records a per-user revocation epoch — every token
+// issued at or before issuedAtUnix is considered revoked. Used by
+// refresh-token reuse-detection (RFC 6749 §10.4).
+func (s *stubRevokedTokenRepo) RevokeAllForUser(_ context.Context, userID int64, issuedAtUnix int64, _ time.Duration) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.userEpoch == nil {
+		s.userEpoch = make(map[int64]int64)
+	}
+	if cur := s.userEpoch[userID]; issuedAtUnix > cur {
+		s.userEpoch[userID] = issuedAtUnix
+	}
+	return nil
+}
+
+// IsRevokedForUser reports whether the recorded epoch covers a token
+// issued at issuedAtUnix.
+func (s *stubRevokedTokenRepo) IsRevokedForUser(_ context.Context, userID int64, issuedAtUnix int64) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.userEpoch == nil {
+		return false, nil
+	}
+	return s.userEpoch[userID] >= issuedAtUnix, nil
 }
 
 // signMFAIntermediateToken builds a JWT with the given claims signed by the
@@ -807,6 +892,217 @@ func TestRefreshToken(t *testing.T) {
 		assert.Contains(t, err.Error(), "cannot refresh token")
 		assert.Empty(t, newAccessToken)
 		assert.Empty(t, newRefreshToken)
+	})
+}
+
+// TestRefreshToken_RotatesAndDetectsReuse pins v0.159.0 ADR-2 behavior:
+// each successful refresh blacklists the old refresh-token JTI, and a
+// replay of an already-blacklisted JTI surfaces ErrRefreshTokenReused
+// (RFC 6749 §10.4). When the use case has no revoked-token repo wired
+// the rotation step is skipped (backward-compat for tests that don't
+// exercise logout / rotation). Issue #279.
+func TestRefreshToken_RotatesAndDetectsReuse(t *testing.T) {
+	setupUC := func(withRevoked bool) (*usecases.AuthUseCase, *stubRevokedTokenRepo) {
+		repo := newMockUserRepository()
+		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
+		var revoked *stubRevokedTokenRepo
+		if withRevoked {
+			revoked = newStubRevokedTokenRepo()
+			uc = uc.WithMFAVerification(revoked, 1, time.Now)
+		}
+		return uc, revoked
+	}
+
+	extractJTI := func(t *testing.T, refreshToken string) string {
+		t.Helper()
+		parser := jwt.NewParser()
+		claims := jwt.MapClaims{}
+		_, _, err := parser.ParseUnverified(refreshToken, claims)
+		if err != nil {
+			t.Fatalf("parse unverified: %v", err)
+		}
+		jti, _ := claims["jti"].(string)
+		if jti == "" {
+			t.Fatal("refresh token missing jti claim")
+		}
+		return jti
+	}
+
+	loginInput := dto.LoginInput{Email: "test@example.com", Password: "Admin123456!"}
+
+	t.Run("legitimate refresh blacklists old refresh JTI", func(t *testing.T) {
+		uc, revoked := setupUC(true)
+		_, refresh, err := uc.Login(context.Background(), loginInput)
+		assert.NoError(t, err)
+		oldJTI := extractJTI(t, refresh)
+
+		newAccess, newRefresh, err := uc.RefreshToken(context.Background(), refresh)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, newAccess)
+		assert.NotEmpty(t, newRefresh)
+
+		wasRevoked, err := revoked.IsRevoked(context.Background(), oldJTI)
+		assert.NoError(t, err)
+		assert.True(t, wasRevoked, "old refresh JTI must be blacklisted after rotation")
+	})
+
+	t.Run("replay of pre-revoked refresh JTI returns ErrRefreshTokenReused", func(t *testing.T) {
+		uc, revoked := setupUC(true)
+		_, refresh, err := uc.Login(context.Background(), loginInput)
+		assert.NoError(t, err)
+		oldJTI := extractJTI(t, refresh)
+		// Simulate that this refresh token was already rotated once —
+		// the legitimate-owner path is supposed to blacklist it; we
+		// fast-forward by manually blacklisting here. The replay must
+		// surface as ErrRefreshTokenReused, never as a new token pair.
+		assert.NoError(t, revoked.Revoke(context.Background(), oldJTI, time.Hour))
+
+		newAccess, newRefresh, err := uc.RefreshToken(context.Background(), refresh)
+		assert.ErrorIs(t, err, usecases.ErrRefreshTokenReused)
+		assert.Empty(t, newAccess)
+		assert.Empty(t, newRefresh)
+	})
+
+	t.Run("no revoked repo wired keeps backward compatibility", func(t *testing.T) {
+		uc, _ := setupUC(false)
+		_, refresh, err := uc.Login(context.Background(), loginInput)
+		assert.NoError(t, err)
+
+		newAccess, newRefresh, err := uc.RefreshToken(context.Background(), refresh)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, newAccess)
+		assert.NotEmpty(t, newRefresh)
+	})
+
+	// v0.159.0 ADR-2: a detected reuse must cascade-revoke the user's
+	// token family per RFC 6749 §10.4. After the replay attempt, a
+	// subsequent refresh with what would otherwise be a legitimate
+	// (unblacklisted) refresh token must also fail because the
+	// user-level revocation epoch was advanced.
+	t.Run("reuse detection cascades to RevokeAllForUser (RFC 6749 §10.4)", func(t *testing.T) {
+		uc, revoked := setupUC(true)
+		_, refresh, err := uc.Login(context.Background(), loginInput)
+		require.NoError(t, err)
+		oldJTI := extractJTI(t, refresh)
+
+		// Pre-revoke the JTI to simulate "the legitimate owner already
+		// rotated"; the next presentation of the same token is the
+		// attacker's replay.
+		require.NoError(t, revoked.Revoke(context.Background(), oldJTI, time.Hour))
+
+		// Replay → reuse detected → cascade must run.
+		_, _, err = uc.RefreshToken(context.Background(), refresh)
+		require.ErrorIs(t, err, usecases.ErrRefreshTokenReused)
+
+		// Cascade epoch must be set for the user — any token issued
+		// before this moment is now invalid family-wide.
+		assert.NotZero(t, revoked.userEpoch[1], "RevokeAllForUser must record an epoch on reuse detection")
+		assert.GreaterOrEqual(t, revoked.userEpoch[1], time.Now().Unix()-5, "epoch must be near the current time")
+	})
+
+	// Atomic claim must close the legitimate-concurrent-refresh race:
+	// two parallel callers each presenting the same valid refresh
+	// token must yield exactly one new pair, with the loser surfacing
+	// ErrRefreshTokenReused. Tests the SET NX semantics end-to-end.
+	t.Run("concurrent refresh — atomic claim yields exactly one new pair", func(t *testing.T) {
+		uc, _ := setupUC(true)
+		_, refresh, err := uc.Login(context.Background(), loginInput)
+		require.NoError(t, err)
+
+		const callers = 8
+		results := make(chan error, callers)
+		newPairs := make(chan struct{}, callers)
+		start := make(chan struct{})
+
+		for i := 0; i < callers; i++ {
+			go func() {
+				<-start
+				_, newRefresh, callErr := uc.RefreshToken(context.Background(), refresh)
+				if callErr != nil {
+					results <- callErr
+					return
+				}
+				if newRefresh != "" {
+					newPairs <- struct{}{}
+				}
+				results <- nil
+			}()
+		}
+		close(start) // release all goroutines simultaneously
+
+		successCount := 0
+		reuseCount := 0
+		for i := 0; i < callers; i++ {
+			if err := <-results; err == nil {
+				successCount++
+			} else if errors.Is(err, usecases.ErrRefreshTokenReused) {
+				reuseCount++
+			} else {
+				t.Errorf("unexpected error from concurrent refresh: %v", err)
+			}
+		}
+		close(newPairs)
+
+		assert.Equal(t, 1, successCount,
+			"exactly one concurrent caller must succeed (SET NX semantics)")
+		assert.Equal(t, callers-1, reuseCount,
+			"all other callers must observe ErrRefreshTokenReused")
+	})
+}
+
+// TestLogin_PerAccountLockout pins v0.159.0 ADR-3 behavior: a per-account
+// failure tracker enforces a lockout that supersedes credential
+// correctness. The wiring is via the WithLoginAttemptTracking setter so
+// callers without a tracker keep the legacy single-floor (IP-keyed) flow.
+// Issue #279.
+func TestLogin_PerAccountLockout(t *testing.T) {
+	setupUC := func(withTracker bool) (*usecases.AuthUseCase, *stubLoginAttemptTracker) {
+		repo := newMockUserRepository()
+		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
+		var tracker *stubLoginAttemptTracker
+		if withTracker {
+			tracker = newStubLoginAttemptTracker()
+			uc = uc.WithLoginAttemptTracking(tracker)
+		}
+		return uc, tracker
+	}
+
+	const email = "test@example.com"
+	correct := dto.LoginInput{Email: email, Password: "Admin123456!"}
+	wrong := dto.LoginInput{Email: email, Password: "WrongPassword!"}
+
+	t.Run("locked account rejected even with correct password", func(t *testing.T) {
+		uc, tracker := setupUC(true)
+		tracker.lockedSeed[email] = true
+
+		access, refresh, err := uc.Login(context.Background(), correct)
+		assert.ErrorIs(t, err, usecases.ErrAccountLocked)
+		assert.Empty(t, access)
+		assert.Empty(t, refresh)
+	})
+
+	t.Run("wrong password registers failure", func(t *testing.T) {
+		uc, tracker := setupUC(true)
+		_, _, err := uc.Login(context.Background(), wrong)
+		assert.Error(t, err)
+		assert.Equal(t, 1, tracker.failures[email], "wrong password must increment per-account failure counter")
+	})
+
+	t.Run("successful login resets failure counter", func(t *testing.T) {
+		uc, tracker := setupUC(true)
+		tracker.failures[email] = 3 // pre-existing failures from earlier attempts
+
+		_, _, err := uc.Login(context.Background(), correct)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, tracker.failures[email], "successful login must clear the per-account counter")
+	})
+
+	t.Run("no tracker wired keeps legacy single-floor behavior", func(t *testing.T) {
+		uc, _ := setupUC(false)
+		access, refresh, err := uc.Login(context.Background(), correct)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, access)
+		assert.NotEmpty(t, refresh)
 	})
 }
 

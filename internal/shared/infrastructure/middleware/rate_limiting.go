@@ -3,8 +3,10 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,10 +15,11 @@ import (
 
 // RateLimiter — структура для Redis-based rate limiting с поддержкой burst
 type RateLimiter struct {
-	redisClient *redis.Client
-	requests    int           // Количество запросов в минуту
-	burst       int           // Дополнительные запросы для кратковременных всплесков
-	window      time.Duration // Временное окно (обычно 1 минута)
+	redisClient    *redis.Client
+	requests       int           // Количество запросов в минуту
+	burst          int           // Дополнительные запросы для кратковременных всплесков
+	window         time.Duration // Временное окно (обычно 1 минута)
+	trustedProxies []*net.IPNet  // CIDRs whose X-Forwarded-For is trusted; nil = secure default (header ignored)
 }
 
 // NewRateLimiter создаёт новый rate limiter с Redis и поддержкой burst
@@ -29,6 +32,19 @@ func NewRateLimiter(redisClient *redis.Client, requestsPerMinute int, burst int)
 	}
 }
 
+// WithTrustedProxies wires a trusted-proxy CIDR allowlist onto the
+// limiter. X-Forwarded-For / X-Real-IP headers are honored ONLY when
+// the request's TCP peer (r.RemoteAddr) falls inside one of these
+// CIDRs. Production deployments behind a reverse proxy must call this
+// with the proxy's egress CIDR(s); deployments accepting direct
+// internet traffic must leave it nil so spoofed proxy headers cannot
+// bypass the IP-keyed rate limit. Returns the receiver for chaining.
+// Issue #279 ADR-3.
+func (rl *RateLimiter) WithTrustedProxies(cidrs []*net.IPNet) *RateLimiter {
+	rl.trustedProxies = cidrs
+	return rl
+}
+
 // RateLimitMiddleware returns the IP-keyed limiter middleware. Suitable for
 // pre-auth surfaces (login, public branding). Trusts X-Forwarded-For for
 // reverse-proxy deployments — known limitation: client-set header bypasses
@@ -36,7 +52,7 @@ func NewRateLimiter(redisClient *redis.Client, requestsPerMinute int, burst int)
 // so NAT'd users do not share a bucket.
 func (rl *RateLimiter) RateLimitMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ip := getRealIP(c.Request)
+		ip := getRealIPWithTrustedProxies(c.Request, rl.trustedProxies)
 
 		key := fmt.Sprintf("rate_limit:%s", ip)
 
@@ -92,7 +108,7 @@ func (rl *RateLimiter) RateLimitByUserMiddleware() gin.HandlerFunc {
 			// Fallback: protect against mis-wired chains by still applying
 			// IP-keyed limit (fail closed). Production deployments should
 			// never hit this branch because JWT middleware populates user_id.
-			key = fmt.Sprintf("rate_limit:ip-fallback:%s", getRealIP(c.Request))
+			key = fmt.Sprintf("rate_limit:ip-fallback:%s", getRealIPWithTrustedProxies(c.Request, rl.trustedProxies))
 		}
 
 		count, retryAfter, err := rl.incrementAndCheck(key)
@@ -163,20 +179,65 @@ func (rl *RateLimiter) incrementAndCheck(key string) (int64, int64, error) {
 	return count, ttl, nil
 }
 
-// getRealIP — получает реальный IP клиента (учитывает X-Forwarded-For, X-Real-IP)
-func getRealIP(r *http.Request) string {
-	// Check X-Forwarded-For header
-	forwarded := r.Header.Get("X-Forwarded-For")
-	if forwarded != "" {
-		return forwarded
+// getRealIPWithTrustedProxies returns the client IP for rate-limiting,
+// honoring X-Forwarded-For / X-Real-IP ONLY when r.RemoteAddr falls
+// inside the supplied trusted-proxy CIDR allowlist. With no trusted
+// CIDRs (the secure default) the proxy headers are ignored entirely
+// and the TCP peer (r.RemoteAddr without port) is used directly — an
+// internet-facing client cannot spoof its source IP through proxy
+// headers. With a trusted CIDR matching the reverse proxy's egress IP,
+// the first IP of the X-Forwarded-For chain (closest to the client) is
+// returned, falling back to X-Real-IP. Issue #279 ADR-3.
+func getRealIPWithTrustedProxies(r *http.Request, trustedProxies []*net.IPNet) string {
+	remoteHost, _, splitErr := net.SplitHostPort(r.RemoteAddr)
+	if splitErr != nil {
+		remoteHost = r.RemoteAddr
 	}
 
-	// Check X-Real-IP header
-	realIP := r.Header.Get("X-Real-IP")
-	if realIP != "" {
-		return realIP
+	if len(trustedProxies) > 0 {
+		if peerIP := net.ParseIP(remoteHost); peerIP != nil {
+			for _, cidr := range trustedProxies {
+				if cidr.Contains(peerIP) {
+					if xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); xff != "" {
+						if comma := strings.Index(xff, ","); comma >= 0 {
+							return strings.TrimSpace(xff[:comma])
+						}
+						return xff
+					}
+					if xri := strings.TrimSpace(r.Header.Get("X-Real-IP")); xri != "" {
+						return xri
+					}
+				}
+			}
+		}
 	}
 
-	// Fallback to RemoteAddr
+	if remoteHost != "" {
+		return remoteHost
+	}
 	return r.RemoteAddr
+}
+
+// ParseTrustedProxyCIDRs parses a comma-separated list of CIDR notations
+// into *net.IPNet entries. Empty / malformed entries are silently
+// skipped (the call site can log the parse skip if desired). Intended
+// to be called once at startup with the TRUSTED_PROXY_CIDRS env value.
+// Issue #279 ADR-3.
+func ParseTrustedProxyCIDRs(spec string) []*net.IPNet {
+	if spec == "" {
+		return nil
+	}
+	out := make([]*net.IPNet, 0)
+	for _, raw := range strings.Split(spec, ",") {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" {
+			continue
+		}
+		_, cidr, err := net.ParseCIDR(trimmed)
+		if err != nil {
+			continue
+		}
+		out = append(out, cidr)
+	}
+	return out
 }
