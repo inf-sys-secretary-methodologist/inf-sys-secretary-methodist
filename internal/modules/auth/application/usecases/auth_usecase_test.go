@@ -457,6 +457,37 @@ func TestLoginWithUser_MFAEnabled_ReturnsIntermediateToken(t *testing.T) {
 	assert.Less(t, delta, 6*time.Minute, "intermediate token should expire ~5 minutes from now")
 }
 
+// stubLoginAttemptTracker — minimal in-memory LoginAttemptTracker for
+// Login lockout tests. Tracks per-identifier failure counts and supports
+// pre-seeding a "locked" state so the lockout-overrides-credentials
+// branch can be exercised independently of the increment path.
+type stubLoginAttemptTracker struct {
+	failures   map[string]int
+	lockedSeed map[string]bool
+}
+
+func newStubLoginAttemptTracker() *stubLoginAttemptTracker {
+	return &stubLoginAttemptTracker{
+		failures:   make(map[string]int),
+		lockedSeed: make(map[string]bool),
+	}
+}
+
+func (s *stubLoginAttemptTracker) RegisterFailure(_ context.Context, identifier string) (int, error) {
+	s.failures[identifier]++
+	return s.failures[identifier], nil
+}
+
+func (s *stubLoginAttemptTracker) IsLocked(_ context.Context, identifier string) (bool, error) {
+	return s.lockedSeed[identifier], nil
+}
+
+func (s *stubLoginAttemptTracker) Reset(_ context.Context, identifier string) error {
+	delete(s.failures, identifier)
+	delete(s.lockedSeed, identifier)
+	return nil
+}
+
 // stubRevokedTokenRepo — minimal in-memory RevokedTokenRepository for
 // VerifyLoginMFA tests. Tracks JTIs that the use case marks revoked so
 // the replay-guard branch can be exercised.
@@ -887,6 +918,62 @@ func TestRefreshToken_RotatesAndDetectsReuse(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, newAccess)
 		assert.NotEmpty(t, newRefresh)
+	})
+}
+
+// TestLogin_PerAccountLockout pins v0.159.0 ADR-3 behavior: a per-account
+// failure tracker enforces a lockout that supersedes credential
+// correctness. The wiring is via the WithLoginAttemptTracking setter so
+// callers without a tracker keep the legacy single-floor (IP-keyed) flow.
+// Issue #279.
+func TestLogin_PerAccountLockout(t *testing.T) {
+	setupUC := func(withTracker bool) (*usecases.AuthUseCase, *stubLoginAttemptTracker) {
+		repo := newMockUserRepository()
+		uc := usecases.NewAuthUseCase(repo, []byte("secret"), []byte("refresh"), []byte("mfa-intermediate"), nil, nil, nil)
+		var tracker *stubLoginAttemptTracker
+		if withTracker {
+			tracker = newStubLoginAttemptTracker()
+			uc = uc.WithLoginAttemptTracking(tracker)
+		}
+		return uc, tracker
+	}
+
+	const email = "test@example.com"
+	correct := dto.LoginInput{Email: email, Password: "Admin123456!"}
+	wrong := dto.LoginInput{Email: email, Password: "WrongPassword!"}
+
+	t.Run("locked account rejected even with correct password", func(t *testing.T) {
+		uc, tracker := setupUC(true)
+		tracker.lockedSeed[email] = true
+
+		access, refresh, err := uc.Login(context.Background(), correct)
+		assert.ErrorIs(t, err, usecases.ErrAccountLocked)
+		assert.Empty(t, access)
+		assert.Empty(t, refresh)
+	})
+
+	t.Run("wrong password registers failure", func(t *testing.T) {
+		uc, tracker := setupUC(true)
+		_, _, err := uc.Login(context.Background(), wrong)
+		assert.Error(t, err)
+		assert.Equal(t, 1, tracker.failures[email], "wrong password must increment per-account failure counter")
+	})
+
+	t.Run("successful login resets failure counter", func(t *testing.T) {
+		uc, tracker := setupUC(true)
+		tracker.failures[email] = 3 // pre-existing failures from earlier attempts
+
+		_, _, err := uc.Login(context.Background(), correct)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, tracker.failures[email], "successful login must clear the per-account counter")
+	})
+
+	t.Run("no tracker wired keeps legacy single-floor behavior", func(t *testing.T) {
+		uc, _ := setupUC(false)
+		access, refresh, err := uc.Login(context.Background(), correct)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, access)
+		assert.NotEmpty(t, refresh)
 	})
 }
 

@@ -57,7 +57,38 @@ var (
 	// owner already rotated triggers this sentinel; the handler maps it
 	// to 401 and an audit emit so SOC can investigate. Issue #279 ADR-2.
 	ErrRefreshTokenReused = errors.New("refresh token has already been used")
+	// ErrAccountLocked is returned by Login / LoginWithUser when the
+	// per-account failure counter has crossed the lockout threshold.
+	// The lock is time-bounded (the tracker auto-expires the counter)
+	// so a legitimate user can retry after the cooldown without admin
+	// intervention. Mapped to HTTP 429 by the handler. Issue #279 ADR-3.
+	ErrAccountLocked = errors.New("account temporarily locked due to repeated failed login attempts")
 )
+
+// LoginAttemptTracker bounds password-guessing attempts on a per-account
+// basis. The Login use case consults IsLocked before bcrypt (so a locked
+// account stays locked regardless of password correctness), registers a
+// failure on wrong-password, and resets the counter on success. The
+// concrete Redis implementation lives in infrastructure/persistence; the
+// interface lives here per DIP. nil-safe: when unset, lockout enforcement
+// is skipped and the legacy IP-keyed rate limiter remains the only floor
+// (sufficient for tests, insufficient for production). Issue #279 ADR-3.
+type LoginAttemptTracker interface {
+	// RegisterFailure atomically increments the failure counter for the
+	// given identifier (typically lowercased email) and reports the new
+	// count. Implementations are expected to set / refresh a TTL on
+	// every write so abandoned counters self-clean.
+	RegisterFailure(ctx context.Context, identifier string) (int, error)
+
+	// IsLocked reports whether the identifier currently exceeds the
+	// lockout threshold. Storage errors map to (false, err) — the use
+	// case treats unreachable tracker as "do not lock" rather than fail
+	// closed (mirrors the refresh-rotation tolerance).
+	IsLocked(ctx context.Context, identifier string) (bool, error)
+
+	// Reset clears the failure counter. Called on successful login.
+	Reset(ctx context.Context, identifier string) error
+}
 
 // AuthUseCase handles authentication business logic.
 type AuthUseCase struct {
@@ -79,6 +110,21 @@ type AuthUseCase struct {
 	revokedTokenRepo RevokedTokenRepository
 	totpDriftWindow  int
 	now              func() time.Time
+
+	// Login lockout (configured separately via WithLoginAttemptTracking).
+	// nil-safe: when unset, Login skips lockout enforcement; the legacy
+	// IP-keyed rate limiter remains the only floor. Issue #279 ADR-3.
+	loginAttemptTracker LoginAttemptTracker
+}
+
+// WithLoginAttemptTracking wires the per-account brute-force tracker
+// onto the use case. Production callers MUST attach this (the Redis
+// implementation in infrastructure/persistence) so locked-out accounts
+// surface ErrAccountLocked → HTTP 429 from the handler. Returns the
+// receiver so callers can chain after NewAuthUseCase. Issue #279 ADR-3.
+func (u *AuthUseCase) WithLoginAttemptTracking(tracker LoginAttemptTracker) *AuthUseCase {
+	u.loginAttemptTracker = tracker
+	return u
 }
 
 // NewAuthUseCase creates a new auth use case. mfaIntermediateSecret signs
