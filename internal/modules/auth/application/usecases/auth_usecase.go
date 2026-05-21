@@ -154,7 +154,12 @@ func NewAuthUseCase(
 	}
 }
 
-// Login authenticates user and returns JWT tokens
+// Login authenticates user and returns JWT tokens.
+//
+// v0.159.0 ADR-3: when a LoginAttemptTracker is wired, this checks the
+// per-account lockout BEFORE bcrypt — a locked account stays locked
+// regardless of password correctness. Wrong-password attempts increment
+// the failure counter; successful logins reset it.
 func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessToken string, refreshToken string, err error) {
 	ctx, span := otel.Tracer("auth").Start(ctx, "AuthUseCase.Login")
 	defer func() {
@@ -167,6 +172,21 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 	span.SetAttributes(attribute.String("user.email", input.Email))
 
 	startTime := time.Now()
+
+	// Per-account lockout takes precedence: even with the correct
+	// password, a locked account stays locked until the tracker's TTL
+	// elapses. Storage errors map to "do not lock" — losing Redis must
+	// not lock out users; the IP-keyed rate limiter remains the floor.
+	if u.loginAttemptTracker != nil {
+		locked, lockErr := u.loginAttemptTracker.IsLocked(ctx, input.Email)
+		if lockErr == nil && locked {
+			u.logLoginAttempt(ctx, input.Email, false, "account locked")
+			u.logAudit(ctx, "login_account_locked", "auth", map[string]interface{}{
+				"email": input.Email,
+			})
+			return "", "", ErrAccountLocked
+		}
+	}
 
 	// Use GetByEmailForAuth to bypass cache and ensure password field is populated
 	user, err := u.userRepo.GetByEmailForAuth(ctx, input.Email)
@@ -187,8 +207,12 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 
 	// Check password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		// Log failed login - invalid password
+		// Log failed login - invalid password. Register the per-account
+		// failure so the next attempt steps closer to lockout.
 		u.logLoginAttempt(ctx, input.Email, false, "invalid password")
+		if u.loginAttemptTracker != nil {
+			_, _ = u.loginAttemptTracker.RegisterFailure(ctx, input.Email)
+		}
 
 		return "", "", fmt.Errorf("authentication failed: %w", domainErrors.ErrUnauthorized)
 	}
@@ -210,6 +234,12 @@ func (u *AuthUseCase) Login(ctx context.Context, input dto.LoginInput) (accessTo
 	if err != nil {
 		u.logLoginAttempt(ctx, input.Email, false, "token generation failed")
 		return "", "", fmt.Errorf("failed to generate tokens: %w", err)
+	}
+
+	// Reset the failure counter on successful login so a user with
+	// stale failures (under threshold) starts fresh.
+	if u.loginAttemptTracker != nil {
+		_ = u.loginAttemptTracker.Reset(ctx, input.Email)
 	}
 
 	// Log successful login
