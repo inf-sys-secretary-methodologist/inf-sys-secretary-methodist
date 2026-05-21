@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -164,19 +165,41 @@ func (rl *RateLimiter) incrementAndCheck(key string) (int64, int64, error) {
 }
 
 // getRealIP — получает реальный IP клиента (учитывает X-Forwarded-For, X-Real-IP)
+// Deprecated by getRealIPWithTrustedProxies (v0.159.0 ADR-3b). Kept as a thin
+// shim so legacy call sites keep compiling; new code must pass the trusted-
+// proxy CIDR slice so spoofed X-Forwarded-For headers do not bypass the
+// rate limit. Issue #279.
 func getRealIP(r *http.Request) string {
-	// Check X-Forwarded-For header
-	forwarded := r.Header.Get("X-Forwarded-For")
-	if forwarded != "" {
-		return forwarded
-	}
+	return getRealIPWithTrustedProxies(r, nil)
+}
 
-	// Check X-Real-IP header
-	realIP := r.Header.Get("X-Real-IP")
-	if realIP != "" {
-		return realIP
+// getRealIPWithTrustedProxies returns the client IP for rate-limiting,
+// honoring X-Forwarded-For / X-Real-IP ONLY when r.RemoteAddr falls
+// inside the supplied trusted-proxy CIDR allowlist. With no trusted
+// CIDRs (the secure default) the proxy headers must be ignored
+// entirely and the TCP peer used directly. Issue #279 ADR-3.
+//
+// RED stub — currently delegates to the legacy unconditional logic
+// (X-Forwarded-For trumps RemoteAddr); proper trusted-CIDR enforcement
+// lands in the GREEN pair.
+func getRealIPWithTrustedProxies(r *http.Request, _ []*net.IPNet) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		return xff
 	}
-
-	// Fallback to RemoteAddr
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return xri
+	}
 	return r.RemoteAddr
+}
+
+// ParseTrustedProxyCIDRs parses a comma-separated list of CIDR notations
+// into *net.IPNet entries. Empty / malformed entries are silently
+// skipped (the call site can log the parse skip if desired). Intended
+// to be called once at startup with the TRUSTED_PROXY_CIDRS env value.
+// Issue #279 ADR-3.
+//
+// RED stub — returns nil regardless of input. Real parsing lands in
+// the GREEN pair.
+func ParseTrustedProxyCIDRs(_ string) []*net.IPNet {
+	return nil
 }
