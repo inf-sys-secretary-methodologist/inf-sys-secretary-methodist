@@ -237,31 +237,10 @@ func TestRateLimiter_HeadersPresent(t *testing.T) {
 	assert.NotEmpty(t, w.Header().Get("X-RateLimit-Reset"))
 }
 
-func TestGetRealIP_XForwardedFor(t *testing.T) {
-	req := httptest.NewRequest("GET", "/test", nil)
-	req.Header.Set("X-Forwarded-For", "1.2.3.4")
-	req.RemoteAddr = "5.6.7.8:1234"
-
-	ip := getRealIP(req)
-	assert.Equal(t, "1.2.3.4", ip)
-}
-
-func TestGetRealIP_XRealIP(t *testing.T) {
-	req := httptest.NewRequest("GET", "/test", nil)
-	req.Header.Set("X-Real-IP", "9.10.11.12")
-	req.RemoteAddr = "5.6.7.8:1234"
-
-	ip := getRealIP(req)
-	assert.Equal(t, "9.10.11.12", ip)
-}
-
-func TestGetRealIP_RemoteAddr(t *testing.T) {
-	req := httptest.NewRequest("GET", "/test", nil)
-	req.RemoteAddr = "13.14.15.16:5678"
-
-	ip := getRealIP(req)
-	assert.Equal(t, "13.14.15.16:5678", ip)
-}
+// Legacy TestGetRealIP_* tests removed in v0.159.0 ADR-3b: the bare
+// getRealIP wrapper that unconditionally trusted X-Forwarded-For was
+// the bug the audit flagged. Its replacement getRealIPWithTrustedProxies
+// is covered by TestGetRealIPWithTrustedProxies above. Issue #279.
 
 // TestGetRealIPWithTrustedProxies pins v0.159.0 ADR-3b: X-Forwarded-For
 // is honored only when r.RemoteAddr falls inside the supplied trusted-
