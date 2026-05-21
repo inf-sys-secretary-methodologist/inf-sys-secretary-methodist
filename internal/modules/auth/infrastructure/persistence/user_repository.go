@@ -7,6 +7,7 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/crypto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
 )
 
@@ -27,12 +28,54 @@ func NewUserRepositoryPG(db *sql.DB) usecases.UserRepository {
 // convenience); production deployments MUST attach a KEK so DB dumps do
 // not expose TOTP shared secrets. Returns the receiver so callers can
 // chain after NewUserRepositoryPG. Issue #279 ADR-4.
-//
-// RED stub — the KEK is stored but Save / scan paths do not yet honor
-// it; encryption semantics land in the GREEN pair.
 func (r *UserRepositoryPG) WithMFASecretKEK(key []byte) *UserRepositoryPG {
 	r.mfaSecretKEK = key
 	return r
+}
+
+// wrapMFASecret encodes the MFA secret for persistence: when a KEK is
+// wired, returns (ciphertext, encrypted=true); otherwise pass-through
+// (plaintext, encrypted=false). NULL when the user has no MFA secret.
+func (r *UserRepositoryPG) wrapMFASecret(user *entities.User) (sql.NullString, bool, error) {
+	if user.MFASecret == nil {
+		return sql.NullString{}, false, nil
+	}
+	plaintext := user.MFASecret.String()
+	if len(r.mfaSecretKEK) == 0 {
+		return sql.NullString{String: plaintext, Valid: true}, false, nil
+	}
+	ct, err := crypto.EncryptString(plaintext, r.mfaSecretKEK)
+	if err != nil {
+		return sql.NullString{}, false, fmt.Errorf("repository: encrypt MFA secret for user %d: %w", user.ID, err)
+	}
+	return sql.NullString{String: ct, Valid: true}, true, nil
+}
+
+// unwrapMFASecret decodes a persisted (mfa_secret, encrypted) pair back
+// to the typed VO. When encrypted=true, decrypts via the wired KEK;
+// when encrypted=false (legacy plaintext rows), passes the value
+// through so a deployment can migrate lazily by rewrapping on the next
+// Save under the KEK.
+func (r *UserRepositoryPG) unwrapMFASecret(stored sql.NullString, encrypted bool, userID int64) (*entities.MFASecret, error) {
+	if !stored.Valid || stored.String == "" {
+		return nil, nil
+	}
+	raw := stored.String
+	if encrypted {
+		if len(r.mfaSecretKEK) == 0 {
+			return nil, fmt.Errorf("repository: user %d row marked encrypted but no KEK configured", userID)
+		}
+		plaintext, err := crypto.DecryptString(raw, r.mfaSecretKEK)
+		if err != nil {
+			return nil, fmt.Errorf("repository: decrypt MFA secret for user %d: %w", userID, err)
+		}
+		raw = plaintext
+	}
+	secret, err := entities.NewMFASecret(raw)
+	if err != nil {
+		return nil, fmt.Errorf("repository: invalid persisted MFA secret for user %d: %w", userID, err)
+	}
+	return &secret, nil
 }
 
 // Create creates a new user in the database
@@ -59,16 +102,21 @@ func (r *UserRepositoryPG) Create(ctx context.Context, user *entities.User) erro
 }
 
 // Save updates an existing user, including MFA enrollment fields.
+// v0.159.0 ADR-4: when WithMFASecretKEK is wired, the MFA secret is
+// AES-256-GCM encrypted before writing and the mfa_secret_encrypted
+// column is set to TRUE. Without a KEK the legacy plaintext shape is
+// preserved (encrypted=FALSE) so dev / test deployments stay
+// compatible.
 func (r *UserRepositoryPG) Save(ctx context.Context, user *entities.User) error {
 	query := `
 		UPDATE users
 		SET email = $1, password = $2, name = $3, role = $4, status = $5,
-		    mfa_secret = $6, mfa_enabled = $7, updated_at = $8
-		WHERE id = $9
+		    mfa_secret = $6, mfa_enabled = $7, mfa_secret_encrypted = $8, updated_at = $9
+		WHERE id = $10
 	`
-	var mfaSecret sql.NullString
-	if user.MFASecret != nil {
-		mfaSecret = sql.NullString{String: user.MFASecret.String(), Valid: true}
+	mfaSecret, encrypted, err := r.wrapMFASecret(user)
+	if err != nil {
+		return err
 	}
 	result, err := r.db.ExecContext(ctx, query,
 		user.Email,
@@ -78,6 +126,7 @@ func (r *UserRepositoryPG) Save(ctx context.Context, user *entities.User) error 
 		user.Status,
 		mfaSecret,
 		user.MFAEnabled,
+		encrypted,
 		user.UpdatedAt,
 		user.ID,
 	)
@@ -101,7 +150,7 @@ func (r *UserRepositoryPG) Save(ctx context.Context, user *entities.User) error 
 func (r *UserRepositoryPG) GetByID(ctx context.Context, userID int64) (*entities.User, error) {
 	return r.scanUserByQuery(ctx, `
 		SELECT id, email, password, name, role, status,
-		       mfa_secret, mfa_enabled, created_at, updated_at
+		       mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`, userID)
@@ -111,7 +160,7 @@ func (r *UserRepositoryPG) GetByID(ctx context.Context, userID int64) (*entities
 func (r *UserRepositoryPG) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
 	return r.scanUserByQuery(ctx, `
 		SELECT id, email, password, name, role, status,
-		       mfa_secret, mfa_enabled, created_at, updated_at
+		       mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`, email)
@@ -134,6 +183,7 @@ func (r *UserRepositoryPG) GetByIDForAuth(ctx context.Context, id int64) (*entit
 func (r *UserRepositoryPG) scanUserByQuery(ctx context.Context, query string, arg any) (*entities.User, error) {
 	user := &entities.User{}
 	var mfaSecret sql.NullString
+	var mfaEncrypted bool
 	err := r.db.QueryRowContext(ctx, query, arg).Scan(
 		&user.ID,
 		&user.Email,
@@ -143,19 +193,18 @@ func (r *UserRepositoryPG) scanUserByQuery(ctx context.Context, query string, ar
 		&user.Status,
 		&mfaSecret,
 		&user.MFAEnabled,
+		&mfaEncrypted,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, database.MapPostgresError(err)
 	}
-	if mfaSecret.Valid && mfaSecret.String != "" {
-		secret, err := entities.NewMFASecret(mfaSecret.String)
-		if err != nil {
-			return nil, fmt.Errorf("repository: invalid persisted MFA secret for user %d: %w", user.ID, err)
-		}
-		user.MFASecret = &secret
+	secret, err := r.unwrapMFASecret(mfaSecret, mfaEncrypted, user.ID)
+	if err != nil {
+		return nil, err
 	}
+	user.MFASecret = secret
 	return user, nil
 }
 
@@ -193,7 +242,7 @@ func (r *UserRepositoryPG) List(ctx context.Context, limit, offset int) ([]*enti
 
 	query := `
 		SELECT id, email, password, name, role, status,
-		       mfa_secret, mfa_enabled, created_at, updated_at
+		       mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at
 		FROM users
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
@@ -213,6 +262,7 @@ func (r *UserRepositoryPG) List(ctx context.Context, limit, offset int) ([]*enti
 	for rows.Next() {
 		user := &entities.User{}
 		var mfaSecret sql.NullString
+		var mfaEncrypted bool
 		if err := rows.Scan(
 			&user.ID,
 			&user.Email,
@@ -222,18 +272,17 @@ func (r *UserRepositoryPG) List(ctx context.Context, limit, offset int) ([]*enti
 			&user.Status,
 			&mfaSecret,
 			&user.MFAEnabled,
+			&mfaEncrypted,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		); err != nil {
 			return nil, database.MapPostgresError(err)
 		}
-		if mfaSecret.Valid && mfaSecret.String != "" {
-			secret, err := entities.NewMFASecret(mfaSecret.String)
-			if err != nil {
-				return nil, fmt.Errorf("repository: invalid persisted MFA secret for user %d: %w", user.ID, err)
-			}
-			user.MFASecret = &secret
+		secret, err := r.unwrapMFASecret(mfaSecret, mfaEncrypted, user.ID)
+		if err != nil {
+			return nil, err
 		}
+		user.MFASecret = secret
 		users = append(users, user)
 	}
 

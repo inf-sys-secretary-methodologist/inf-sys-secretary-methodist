@@ -25,7 +25,7 @@ func newUserRepoMock(t *testing.T) (*UserRepositoryPG, sqlmock.Sqlmock) {
 	return &UserRepositoryPG{db: db}, mock
 }
 
-var userCols = []string{"id", "email", "password", "name", "role", "status", "mfa_secret", "mfa_enabled", "created_at", "updated_at"}
+var userCols = []string{"id", "email", "password", "name", "role", "status", "mfa_secret", "mfa_enabled", "mfa_secret_encrypted", "created_at", "updated_at"}
 
 func TestNewUserRepositoryPG(t *testing.T) {
 	db, _, _ := sqlmock.New()
@@ -62,7 +62,7 @@ func TestUserRepo_Save_Success(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	user := &entities.User{ID: 1, Email: "test@test.com", Password: "hash", Name: "Test", Role: domain.RoleTeacher, Status: entities.UserStatusActive, UpdatedAt: time.Now()}
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE users")).
-		WithArgs(user.Email, user.Password, user.Name, user.Role, user.Status, sql.NullString{}, false, user.UpdatedAt, user.ID).
+		WithArgs(user.Email, user.Password, user.Name, user.Role, user.Status, sql.NullString{}, false, false, user.UpdatedAt, user.ID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	err := repo.Save(context.Background(), user)
 	require.NoError(t, err)
@@ -100,8 +100,8 @@ func TestUserRepo_Save_RowsAffectedError(t *testing.T) {
 func TestUserRepo_GetByID_Success(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	now := time.Now()
-	rows := sqlmock.NewRows(userCols).AddRow(int64(1), "test@test.com", "hash", "Test", domain.RoleTeacher, entities.UserStatusActive, nil, false, now, now)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	rows := sqlmock.NewRows(userCols).AddRow(int64(1), "test@test.com", "hash", "Test", domain.RoleTeacher, entities.UserStatusActive, nil, false, false, now, now)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(int64(1)).WillReturnRows(rows)
 	user, err := repo.GetByID(context.Background(), 1)
 	require.NoError(t, err)
@@ -111,7 +111,7 @@ func TestUserRepo_GetByID_Success(t *testing.T) {
 
 func TestUserRepo_GetByID_NotFound(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(int64(999)).WillReturnError(sql.ErrNoRows)
 	_, err := repo.GetByID(context.Background(), 999)
 	assert.Error(t, err)
@@ -119,7 +119,7 @@ func TestUserRepo_GetByID_NotFound(t *testing.T) {
 
 func TestUserRepo_GetByID_DBError(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(int64(1)).WillReturnError(fmt.Errorf("connection error"))
 	_, err := repo.GetByID(context.Background(), 1)
 	assert.Error(t, err)
@@ -130,8 +130,8 @@ func TestUserRepo_GetByID_DBError(t *testing.T) {
 func TestUserRepo_GetByEmail_Success(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	now := time.Now()
-	rows := sqlmock.NewRows(userCols).AddRow(int64(1), "test@test.com", "hash", "Test", domain.RoleTeacher, entities.UserStatusActive, nil, false, now, now)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	rows := sqlmock.NewRows(userCols).AddRow(int64(1), "test@test.com", "hash", "Test", domain.RoleTeacher, entities.UserStatusActive, nil, false, false, now, now)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs("test@test.com").WillReturnRows(rows)
 	user, err := repo.GetByEmail(context.Background(), "test@test.com")
 	require.NoError(t, err)
@@ -140,7 +140,7 @@ func TestUserRepo_GetByEmail_Success(t *testing.T) {
 
 func TestUserRepo_GetByEmail_NotFound(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs("nonexistent@test.com").WillReturnError(sql.ErrNoRows)
 	_, err := repo.GetByEmail(context.Background(), "nonexistent@test.com")
 	assert.Error(t, err)
@@ -151,8 +151,8 @@ func TestUserRepo_GetByEmail_NotFound(t *testing.T) {
 func TestUserRepo_GetByEmailForAuth_Success(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	now := time.Now()
-	rows := sqlmock.NewRows(userCols).AddRow(int64(1), "test@test.com", "hash", "Test", domain.RoleTeacher, entities.UserStatusActive, nil, false, now, now)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	rows := sqlmock.NewRows(userCols).AddRow(int64(1), "test@test.com", "hash", "Test", domain.RoleTeacher, entities.UserStatusActive, nil, false, false, now, now)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs("test@test.com").WillReturnRows(rows)
 	user, err := repo.GetByEmailForAuth(context.Background(), "test@test.com")
 	require.NoError(t, err)
@@ -199,9 +199,9 @@ func TestUserRepo_List_Success(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	now := time.Now()
 	rows := sqlmock.NewRows(userCols).
-		AddRow(int64(1), "a@test.com", "hash", "A", domain.RoleTeacher, entities.UserStatusActive, nil, false, now, now).
-		AddRow(int64(2), "b@test.com", "hash", "B", domain.RoleStudent, entities.UserStatusActive, nil, false, now, now)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+		AddRow(int64(1), "a@test.com", "hash", "A", domain.RoleTeacher, entities.UserStatusActive, nil, false, false, now, now).
+		AddRow(int64(2), "b@test.com", "hash", "B", domain.RoleStudent, entities.UserStatusActive, nil, false, false, now, now)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(10, 0).WillReturnRows(rows)
 	users, err := repo.List(context.Background(), 10, 0)
 	require.NoError(t, err)
@@ -211,7 +211,7 @@ func TestUserRepo_List_Success(t *testing.T) {
 func TestUserRepo_List_Empty(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	rows := sqlmock.NewRows(userCols)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(10, 0).WillReturnRows(rows)
 	users, err := repo.List(context.Background(), 10, 0)
 	require.NoError(t, err)
@@ -220,7 +220,7 @@ func TestUserRepo_List_Empty(t *testing.T) {
 
 func TestUserRepo_List_DBError(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WillReturnError(fmt.Errorf("db error"))
 	_, err := repo.List(context.Background(), 10, 0)
 	assert.Error(t, err)
@@ -230,7 +230,7 @@ func TestUserRepo_List_DefaultLimit(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	rows := sqlmock.NewRows(userCols)
 	// limit <= 0 should be set to 10
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(10, 0).WillReturnRows(rows)
 	_, err := repo.List(context.Background(), 0, 0)
 	require.NoError(t, err)
@@ -240,7 +240,7 @@ func TestUserRepo_List_MaxLimit(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	rows := sqlmock.NewRows(userCols)
 	// limit > 100 should be clamped to 100
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(100, 0).WillReturnRows(rows)
 	_, err := repo.List(context.Background(), 200, 0)
 	require.NoError(t, err)
@@ -250,7 +250,7 @@ func TestUserRepo_List_NegativeOffset(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	rows := sqlmock.NewRows(userCols)
 	// negative offset should be set to 0
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(10, 0).WillReturnRows(rows)
 	_, err := repo.List(context.Background(), 10, -5)
 	require.NoError(t, err)
@@ -260,7 +260,7 @@ func TestUserRepo_List_ScanError(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	// Return row with wrong number of columns to trigger scan error
 	rows := sqlmock.NewRows([]string{"id"}).AddRow(int64(1))
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(10, 0).WillReturnRows(rows)
 	_, err := repo.List(context.Background(), 10, 0)
 	assert.Error(t, err)
@@ -271,8 +271,8 @@ func TestUserRepo_List_ScanError(t *testing.T) {
 func TestUserRepo_GetByIDForAuth_Success(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	now := time.Now()
-	rows := sqlmock.NewRows(userCols).AddRow(int64(7), "auth@test.com", "hash", "Auth User", domain.RoleAcademicSecretary, entities.UserStatusActive, nil, false, now, now)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	rows := sqlmock.NewRows(userCols).AddRow(int64(7), "auth@test.com", "hash", "Auth User", domain.RoleAcademicSecretary, entities.UserStatusActive, nil, false, false, now, now)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(int64(7)).WillReturnRows(rows)
 	user, err := repo.GetByIDForAuth(context.Background(), 7)
 	require.NoError(t, err)
@@ -282,7 +282,7 @@ func TestUserRepo_GetByIDForAuth_Success(t *testing.T) {
 
 func TestUserRepo_GetByIDForAuth_NotFound(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(int64(999)).WillReturnError(sql.ErrNoRows)
 	_, err := repo.GetByIDForAuth(context.Background(), 999)
 	assert.Error(t, err)
@@ -292,7 +292,7 @@ func TestUserRepo_GetByIDForAuth_NotFound(t *testing.T) {
 
 func TestUserRepo_GetByEmailForAuth_NotFound(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs("missing@test.com").WillReturnError(sql.ErrNoRows)
 	_, err := repo.GetByEmailForAuth(context.Background(), "missing@test.com")
 	assert.Error(t, err)
@@ -306,8 +306,8 @@ func TestUserRepo_GetByID_InvalidPersistedMFASecret(t *testing.T) {
 	// Persisted MFA secret with wrong length triggers entities.NewMFASecret error
 	// inside scanUserByQuery, which wraps with "invalid persisted MFA secret".
 	rows := sqlmock.NewRows(userCols).
-		AddRow(int64(1), "test@test.com", "hash", "T", domain.RoleTeacher, entities.UserStatusActive, "TOOSHORT", false, now, now)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+		AddRow(int64(1), "test@test.com", "hash", "T", domain.RoleTeacher, entities.UserStatusActive, "TOOSHORT", false, false, now, now)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(int64(1)).WillReturnRows(rows)
 	_, err := repo.GetByID(context.Background(), 1)
 	require.Error(t, err)
@@ -321,9 +321,9 @@ func TestUserRepo_List_RowsErrAfterIteration(t *testing.T) {
 	now := time.Now()
 	// First row scans OK, then rows.Err() returns failure (driver-level).
 	rows := sqlmock.NewRows(userCols).
-		AddRow(int64(1), "a@test.com", "hash", "A", domain.RoleTeacher, entities.UserStatusActive, nil, false, now, now).
+		AddRow(int64(1), "a@test.com", "hash", "A", domain.RoleTeacher, entities.UserStatusActive, nil, false, false, now, now).
 		RowError(0, fmt.Errorf("connection reset during iteration"))
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(10, 0).WillReturnRows(rows)
 	_, err := repo.List(context.Background(), 10, 0)
 	require.Error(t, err)
@@ -334,23 +334,18 @@ func TestUserRepo_List_InvalidPersistedMFASecret(t *testing.T) {
 	repo, mock := newUserRepoMock(t)
 	now := time.Now()
 	rows := sqlmock.NewRows(userCols).
-		AddRow(int64(1), "a@test.com", "hash", "A", domain.RoleTeacher, entities.UserStatusActive, "BROKEN", false, now, now)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, created_at, updated_at")).
+		AddRow(int64(1), "a@test.com", "hash", "A", domain.RoleTeacher, entities.UserStatusActive, "BROKEN", false, false, now, now)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
 		WithArgs(10, 0).WillReturnRows(rows)
 	_, err := repo.List(context.Background(), 10, 0)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid persisted MFA secret")
 }
 
-// userColsV0159 mirrors userCols but appends the mfa_secret_encrypted
-// boolean column introduced by migration 045 (v0.159.0 ADR-4). The
-// GREEN pair updates all production SELECT statements to include the
-// column so this slice is the canonical row shape going forward.
-var userColsV0159 = []string{
-	"id", "email", "password", "name", "role", "status",
-	"mfa_secret", "mfa_enabled", "mfa_secret_encrypted",
-	"created_at", "updated_at",
-}
+// v0.159.0 ADR-4b: userCols above already carries the mfa_secret_encrypted
+// column added by migration 045 — no separate userColsV0159 variant
+// needed once GREEN landed. AddRow callers pass `false` for legacy
+// plaintext rows and `true` for v0.159+ ciphertext rows.
 
 // genTestKEK returns a deterministic-looking but random 32-byte KEK
 // for use across the ADR-4b sqlmock tests.
@@ -409,7 +404,7 @@ func TestUserRepo_MFASecretEncryptedAtRest(t *testing.T) {
 		ct, err := crypto.EncryptString(plaintextSecret, key)
 		require.NoError(t, err)
 		now := time.Now()
-		rows := sqlmock.NewRows(userColsV0159).
+		rows := sqlmock.NewRows(userCols).
 			AddRow(int64(42), "x@x", "h", "X", domain.RoleTeacher, entities.UserStatusActive,
 				ct, true, true, now, now)
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
@@ -426,7 +421,7 @@ func TestUserRepo_MFASecretEncryptedAtRest(t *testing.T) {
 		repo = repo.WithMFASecretKEK(key)
 
 		now := time.Now()
-		rows := sqlmock.NewRows(userColsV0159).
+		rows := sqlmock.NewRows(userCols).
 			AddRow(int64(7), "y@y", "h", "Y", domain.RoleTeacher, entities.UserStatusActive,
 				plaintextSecret, true, false, now, now)
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email, password, name, role, status, mfa_secret, mfa_enabled, mfa_secret_encrypted, created_at, updated_at")).
