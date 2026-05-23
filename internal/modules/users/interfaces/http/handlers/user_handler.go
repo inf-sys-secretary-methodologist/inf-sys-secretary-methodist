@@ -7,12 +7,27 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
+
+// asString safely coerces an interface{} into a string, returning ""
+// if the value is nil or not a string. Used for reading role-like
+// claims from the gin context without a panic on absent/mistyped
+// values.
+func asString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return ""
+}
 
 // UserHandler handles HTTP requests for user management.
 type UserHandler struct {
@@ -100,8 +115,23 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
+	// Authorization: actor must be the target user (self-edit) OR
+	// system_admin (override). The usecase enforces the rule via the
+	// domain free function; the handler just supplies the inputs from
+	// the JWT-bound gin context. Closes #283 ADR-1 (TIER 0 profile
+	// takeover).
+	actorID, exists := c.Get("user_id")
+	if !exists {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+	actorIDInt, _ := actorID.(int64)
+	actorRoleStr, _ := c.Get("role")
+	actorRole := authDomain.RoleType(asString(actorRoleStr))
+
 	ctx := c.Request.Context()
-	if err := h.usecase.UpdateUserProfile(ctx, id, &input); err != nil {
+	if err := h.usecase.UpdateUserProfile(ctx, actorIDInt, actorRole, id, &input); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return
@@ -168,8 +198,17 @@ func (h *UserHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
+	// Actor identity required by usecase last-admin guard (#283 ADR-4).
+	actorIDRaw, exists := c.Get("user_id")
+	if !exists {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+	actorID, _ := actorIDRaw.(int64)
+
 	ctx := c.Request.Context()
-	if err := h.usecase.UpdateUserStatus(ctx, id, &input); err != nil {
+	if err := h.usecase.UpdateUserStatus(ctx, actorID, id, &input); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return
@@ -179,6 +218,11 @@ func (h *UserHandler) UpdateStatus(c *gin.Context) {
 }
 
 // Delete handles DELETE /api/users/:id - deletes a user.
+//
+// The route group already enforces RequireRole(system_admin), so any
+// caller reaching this handler is an admin. The usecase still runs
+// the #283 ADR-4 guards: actor must not delete itself, and removing
+// the last system_admin is rejected to keep the recovery path open.
 func (h *UserHandler) Delete(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -187,8 +231,16 @@ func (h *UserHandler) Delete(c *gin.Context) {
 		return
 	}
 
+	actorIDRaw, exists := c.Get("user_id")
+	if !exists {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+	actorID, _ := actorIDRaw.(int64)
+
 	ctx := c.Request.Context()
-	if err := h.usecase.DeleteUser(ctx, id); err != nil {
+	if err := h.usecase.DeleteUser(ctx, actorID, id); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return

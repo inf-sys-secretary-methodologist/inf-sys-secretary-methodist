@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.159.0
+// @version         0.160.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -177,7 +177,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.159.0"
+const versionString = "0.160.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -754,7 +754,22 @@ func main() {
 	departmentRepo := usersPersistence.NewDepartmentRepositoryPG(db)
 	positionRepo := usersPersistence.NewPositionRepositoryPG(db)
 	userProfileRepo := usersPersistence.NewUserProfileRepositoryPG(db)
-	userUseCase := usersUsecases.NewUserUseCase(userRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger, notificationUseCase)
+	// userRepo is the auth-side narrow port; the users module needs
+	// the wider UserAccountRepository (includes CountByRole for the
+	// #283 ADR-4 last-admin guard). Both concrete implementations
+	// (*UserRepositoryPG, *CachedUserRepository) satisfy the wider
+	// port — type-assert at the seam rather than coupling auth's
+	// port to a users-only concern.
+	usersUserAccountRepo, ok := userRepo.(usersUsecases.UserAccountRepository)
+	if !ok {
+		// Panic instead of log.Fatalf — log.Fatalf calls os.Exit which
+		// skips deferred db.Close() etc. The wider port is a static DI
+		// contract, never a runtime branch in production, so a panic
+		// here is a boot-time invariant violation, not a user-facing
+		// error. gocritic: exitAfterDefer.
+		panic("auth user repository does not satisfy users.UserAccountRepository — CountByRole required for #283 ADR-4 last-admin guard")
+	}
+	userUseCase := usersUsecases.NewUserUseCase(usersUserAccountRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger, notificationUseCase)
 	departmentUseCase := usersUsecases.NewDepartmentUseCase(departmentRepo, auditLogger)
 	positionUseCase := usersUsecases.NewPositionUseCase(positionRepo, auditLogger)
 	logger.Info("Users module initialized", nil)
@@ -2729,35 +2744,25 @@ func setupRoutes(
 				usersGroup.OPTIONS("/by-position/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 
-			// Departments routes
+			// Departments routes — RegisterDepartmentRoutes gates
+			// writes (POST/PUT/DELETE) behind usersAdminMW
+			// (RequireRole(system_admin)) to close #283 ADR-2 TIER 0
+			// (pre-fix, v0.133.0 admin-gate split skipped this group).
+			// Read endpoints stay permissive for cross-module
+			// resolvers and frontend dropdowns.
 			departmentsGroup := protectedGroup.Group("/departments")
-			{
-				departmentsGroup.POST("", departmentHandlerInstance.Create)
-				departmentsGroup.GET("", departmentHandlerInstance.List)
-				departmentsGroup.GET("/:id", departmentHandlerInstance.GetByID)
-				departmentsGroup.PUT("/:id", departmentHandlerInstance.Update)
-				departmentsGroup.DELETE("/:id", departmentHandlerInstance.Delete)
-				departmentsGroup.GET("/:id/children", departmentHandlerInstance.GetChildren)
+			usersRoutes.RegisterDepartmentRoutes(departmentsGroup, usersAdminMW, departmentHandlerInstance)
+			// CORS preflight handlers — registered on the parent
+			// group so they sit outside the admin gate.
+			departmentsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			departmentsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			departmentsGroup.OPTIONS("/:id/children", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 
-				// CORS preflight handlers
-				departmentsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-				departmentsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-				departmentsGroup.OPTIONS("/:id/children", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-			}
-
-			// Positions routes
+			// Positions routes — same shape as departments.
 			positionsGroup := protectedGroup.Group("/positions")
-			{
-				positionsGroup.POST("", positionHandlerInstance.Create)
-				positionsGroup.GET("", positionHandlerInstance.List)
-				positionsGroup.GET("/:id", positionHandlerInstance.GetByID)
-				positionsGroup.PUT("/:id", positionHandlerInstance.Update)
-				positionsGroup.DELETE("/:id", positionHandlerInstance.Delete)
-
-				// CORS preflight handlers
-				positionsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-				positionsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-			}
+			usersRoutes.RegisterPositionRoutes(positionsGroup, usersAdminMW, positionHandlerInstance)
+			positionsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			positionsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 
 			logger.Info("Users module routes registered", nil)
 		}

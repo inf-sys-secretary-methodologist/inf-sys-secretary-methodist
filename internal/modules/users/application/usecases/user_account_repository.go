@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 )
 
@@ -20,4 +21,8 @@ type UserAccountRepository interface {
 	GetByID(ctx context.Context, id int64) (*authEntities.User, error)
 	Save(ctx context.Context, user *authEntities.User) error
 	Delete(ctx context.Context, id int64) error
+	// CountByRole returns the number of users with the given role.
+	// Required by AuthorizeUserDelete to enforce the "last
+	// system_admin protection" guard (#283 ADR-4 Tier 1).
+	CountByRole(ctx context.Context, role authDomain.RoleType) (int, error)
 }

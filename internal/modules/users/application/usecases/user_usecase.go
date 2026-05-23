@@ -3,6 +3,7 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
+	usersDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -99,9 +101,51 @@ func (uc *UserUseCase) ListUsers(ctx context.Context, filter *dto.UserListFilter
 }
 
 // UpdateUserProfile updates user's organizational profile.
-func (uc *UserUseCase) UpdateUserProfile(ctx context.Context, userID int64, input *dto.UpdateUserProfileInput) error {
+//
+// Authorization: actor must be the target user (self-edit) OR
+// system_admin (override). Closes #283 ADR-1 (TIER 0 profile
+// takeover) — see [usersDomain.AuthorizeProfileEdit] for the rule.
+//
+// Audit row records both actor_user_id and target_user_id so attackers
+// remain traceable across legitimate admin override flows.
+func (uc *UserUseCase) UpdateUserProfile(
+	ctx context.Context,
+	actorID int64,
+	actorRole authDomain.RoleType,
+	targetID int64,
+	input *dto.UpdateUserProfileInput,
+) error {
+	if err := usersDomain.AuthorizeProfileEdit(actorID, targetID, actorRole); err != nil {
+		// Audit emit denial: failed cross-edit attempts must NOT
+		// vanish from the trail (reviewer T1-3 / #283 ADR-1
+		// denial-path audit).
+		if uc.auditLogger != nil {
+			uc.auditLogger.LogAuditEvent(ctx, "update_denied", "user_profile", map[string]interface{}{
+				"actor_user_id":  actorID,
+				"target_user_id": targetID,
+				"reason":         "profile_edit_forbidden",
+			})
+		}
+		return err
+	}
+
+	// Verify avatar key belongs to the target user's prefix (#283 ADR-3).
+	// Empty key clears the avatar — always allowed.
+	if input.Avatar != "" {
+		if err := usersDomain.ValidateAvatarKey(input.Avatar, targetID); err != nil {
+			if uc.auditLogger != nil {
+				uc.auditLogger.LogAuditEvent(ctx, "update_denied", "user_profile", map[string]interface{}{
+					"actor_user_id":  actorID,
+					"target_user_id": targetID,
+					"reason":         "invalid_avatar_key",
+				})
+			}
+			return err
+		}
+	}
+
 	// Verify user exists
-	_, err := uc.userRepo.GetByID(ctx, userID)
+	_, err := uc.userRepo.GetByID(ctx, targetID)
 	if err != nil {
 		return err
 	}
@@ -122,16 +166,17 @@ func (uc *UserUseCase) UpdateUserProfile(ctx context.Context, userID int64, inpu
 		}
 	}
 
-	err = uc.userProfileRepo.UpdateProfile(ctx, userID, input.DepartmentID, input.PositionID, input.Phone, input.Avatar, input.Bio)
+	err = uc.userProfileRepo.UpdateProfile(ctx, targetID, input.DepartmentID, input.PositionID, input.Phone, input.Avatar, input.Bio)
 	if err != nil {
 		return err
 	}
 
 	if uc.auditLogger != nil {
 		uc.auditLogger.LogAuditEvent(ctx, "update", "user_profile", map[string]interface{}{
-			"user_id":       userID,
-			"department_id": input.DepartmentID,
-			"position_id":   input.PositionID,
+			"actor_user_id":  actorID,
+			"target_user_id": targetID,
+			"department_id":  input.DepartmentID,
+			"position_id":    input.PositionID,
 		})
 	}
 
@@ -178,33 +223,70 @@ func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *
 }
 
 // UpdateUserStatus updates a user's status.
-func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, userID int64, input *dto.UpdateUserStatusInput) error {
-	user, err := uc.userRepo.GetByID(ctx, userID)
+//
+// Carries the same #283 ADR-4 Tier 1 guards as DeleteUser when the
+// new status is "inactive" or "blocked", because deactivating or
+// blocking the last system_admin produces the identical
+// administrative-recovery lockout as deleting them. Activating a
+// user (the "active" branch) is non-destructive and skips the
+// guards.
+//
+// Self-status-change to "inactive"/"blocked" is always rejected via
+// ErrCannotDeleteSelf — the actor would brick their own session
+// the moment the next request hits.
+func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID int64, input *dto.UpdateUserStatusInput) error {
+	target, err := uc.userRepo.GetByID(ctx, targetID)
 	if err != nil {
 		return err
 	}
 
-	oldStatus := user.Status
+	if input.Status == "inactive" || input.Status == "blocked" {
+		adminHeadcount := 0
+		if target.Role == authDomain.RoleSystemAdmin {
+			adminHeadcount, err = uc.userRepo.CountByRole(ctx, authDomain.RoleSystemAdmin)
+			if err != nil {
+				return err
+			}
+		}
+		if guardErr := usersDomain.AuthorizeUserDelete(actorID, targetID, target.Role, adminHeadcount); guardErr != nil {
+			if uc.auditLogger != nil {
+				reason := "cannot_delete_self"
+				if errors.Is(guardErr, usersDomain.ErrLastAdminProtected) {
+					reason = "last_admin_protected"
+				}
+				uc.auditLogger.LogAuditEvent(ctx, "status_change_denied", "user", map[string]interface{}{
+					"actor_user_id":  actorID,
+					"target_user_id": targetID,
+					"new_status":     input.Status,
+					"reason":         reason,
+				})
+			}
+			return guardErr
+		}
+	}
+
+	oldStatus := target.Status
 
 	switch input.Status {
 	case "active":
-		user.Activate()
+		target.Activate()
 	case "inactive":
-		user.Deactivate()
+		target.Deactivate()
 	case "blocked":
-		user.Block()
+		target.Block()
 	}
 
-	err = uc.userRepo.Save(ctx, user)
+	err = uc.userRepo.Save(ctx, target)
 	if err != nil {
 		return err
 	}
 
 	if uc.auditLogger != nil {
 		uc.auditLogger.LogAuditEvent(ctx, "status_change", "user", map[string]interface{}{
-			"user_id":    userID,
-			"old_status": oldStatus,
-			"new_status": user.Status,
+			"actor_user_id":  actorID,
+			"target_user_id": targetID,
+			"old_status":     oldStatus,
+			"new_status":     target.Status,
 		})
 	}
 
@@ -222,7 +304,7 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, userID int64, input
 			}
 			_ = uc.notificationUseCase.SendSystemNotification(
 				context.Background(),
-				userID,
+				targetID,
 				"Изменение статуса",
 				fmt.Sprintf("Ваш статус изменён на «%s»", statusName),
 			)
@@ -233,21 +315,55 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, userID int64, input
 }
 
 // DeleteUser deletes a user.
-func (uc *UserUseCase) DeleteUser(ctx context.Context, userID int64) error {
-	// Verify user exists
-	_, err := uc.userRepo.GetByID(ctx, userID)
+//
+// Two guards (#283 ADR-4 Tier 1):
+//  1. Self-delete (actorID == targetID) is unconditionally forbidden —
+//     no role gets to remove its own account, which would brick the
+//     actor's session and leave the system in an inconsistent state.
+//  2. Removing the last remaining system_admin is forbidden. The
+//     headcount query is conditional: only fired when the target is
+//     a system_admin (rare path, no perf hit on the common case).
+//
+// Audit row records both actor_user_id and target_user_id so deletes
+// remain traceable.
+func (uc *UserUseCase) DeleteUser(ctx context.Context, actorID, targetID int64) error {
+	target, err := uc.userRepo.GetByID(ctx, targetID)
 	if err != nil {
 		return err
 	}
 
-	err = uc.userRepo.Delete(ctx, userID)
-	if err != nil {
+	adminHeadcount := 0
+	if target.Role == authDomain.RoleSystemAdmin {
+		adminHeadcount, err = uc.userRepo.CountByRole(ctx, authDomain.RoleSystemAdmin)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := usersDomain.AuthorizeUserDelete(actorID, targetID, target.Role, adminHeadcount); err != nil {
+		// Audit emit denial (reviewer T1-3).
+		if uc.auditLogger != nil {
+			reason := "cannot_delete_self"
+			if errors.Is(err, usersDomain.ErrLastAdminProtected) {
+				reason = "last_admin_protected"
+			}
+			uc.auditLogger.LogAuditEvent(ctx, "delete_denied", "user", map[string]interface{}{
+				"actor_user_id":  actorID,
+				"target_user_id": targetID,
+				"reason":         reason,
+			})
+		}
+		return err
+	}
+
+	if err := uc.userRepo.Delete(ctx, targetID); err != nil {
 		return err
 	}
 
 	if uc.auditLogger != nil {
 		uc.auditLogger.LogAuditEvent(ctx, "delete", "user", map[string]interface{}{
-			"user_id": userID,
+			"actor_user_id":  actorID,
+			"target_user_id": targetID,
 		})
 	}
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -19,12 +20,25 @@ type CachedUserRepository struct {
 	perfLog   *logging.PerformanceLogger
 }
 
-// NewCachedUserRepository creates a new cached repository
+// NewCachedUserRepository creates a new cached repository.
+//
+// The wrapped repo MUST also implement CountByRole — the users module
+// last-admin guard (#283 ADR-4) calls it through the same wrapper
+// instance. Checking at wrapper-time fails fast at boot rather than
+// at the first admin-deletes-admin request, closing reviewer T1-4
+// (the previous runtime type-assert deferred the crash к request
+// time and leaked a raw fmt.Errorf string).
 func NewCachedUserRepository(
 	repo usecases.UserRepository,
 	userCache *cache.UserCache,
 	perfLog *logging.PerformanceLogger,
 ) usecases.UserRepository {
+	type roleCounter interface {
+		CountByRole(ctx context.Context, role domain.RoleType) (int, error)
+	}
+	if _, ok := repo.(roleCounter); !ok {
+		panic("CachedUserRepository: wrapped repo must implement CountByRole(ctx, role) for #283 ADR-4 last-admin guard")
+	}
 	return &CachedUserRepository{
 		repo:      repo,
 		userCache: userCache,
@@ -172,4 +186,19 @@ func (r *CachedUserRepository) List(ctx context.Context, limit, offset int) ([]*
 	r.perfLog.LogDatabaseQuery(ctx, "SELECT users LIST", duration, int64(len(users)))
 
 	return users, err
+}
+
+// CountByRole forwards к the underlying repo. No cache layer —
+// admin headcount changes too rarely to benefit from caching and a
+// stale read would defeat the last-admin guard's purpose
+// (#283 ADR-4 Tier 1). Implemented as a type-asserted call so the
+// auth-side narrow port stays free of the users-side concern.
+func (r *CachedUserRepository) CountByRole(ctx context.Context, role domain.RoleType) (int, error) {
+	type roleCounter interface {
+		CountByRole(ctx context.Context, role domain.RoleType) (int, error)
+	}
+	if counter, ok := r.repo.(roleCounter); ok {
+		return counter.CountByRole(ctx, role)
+	}
+	return 0, fmt.Errorf("CachedUserRepository: wrapped repo does not implement CountByRole")
 }

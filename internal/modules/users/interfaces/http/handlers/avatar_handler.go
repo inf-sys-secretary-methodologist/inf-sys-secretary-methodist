@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
@@ -162,12 +163,15 @@ func (h *AvatarHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	// Update user profile with the storage key (not the presigned URL)
-	// We store the key and generate fresh URLs when needed
+	// Update user profile with the storage key (not the presigned URL).
+	// We store the key and generate fresh URLs when needed.
+	// Actor identity is required by the usecase-level authz gate
+	// (#283 ADR-1); reuse the handler-extracted currentUID and role.
+	actorRole, _ := c.Get("role")
 	input := &dto.UpdateUserProfileInput{
 		Avatar: filename,
 	}
-	if err := h.userUseCase.UpdateUserProfile(ctx, userID, input); err != nil {
+	if err := h.userUseCase.UpdateUserProfile(ctx, currentUID, authDomain.RoleType(asString(actorRole)), userID, input); err != nil {
 		// Try to delete uploaded file on error
 		_ = h.s3Client.Delete(ctx, filename)
 		httpErr := response.MapDomainError(err)
@@ -234,11 +238,14 @@ func (h *AvatarHandler) Delete(c *gin.Context) {
 		}
 	}
 
-	// Clear avatar in profile
+	// Clear avatar in profile. Actor identity required by usecase
+	// authz gate (#283 ADR-1).
+	currentUID, _ := currentUserID.(int64)
+	actorRole, _ := c.Get("role")
 	input := &dto.UpdateUserProfileInput{
 		Avatar: "",
 	}
-	if err := h.userUseCase.UpdateUserProfile(ctx, userID, input); err != nil {
+	if err := h.userUseCase.UpdateUserProfile(ctx, currentUID, authDomain.RoleType(asString(actorRole)), userID, input); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return

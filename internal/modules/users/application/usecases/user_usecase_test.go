@@ -3,12 +3,14 @@ package usecases
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
+	usersDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -27,10 +29,11 @@ var _ UserAccountRepository = (*MockUserRepository)(nil)
 // beyond the narrow port persist from the legacy wide-mock shape — Go
 // structural typing accepts the over-satisfaction.
 type MockUserRepository struct {
-	users     map[int64]*authEntities.User
-	nextID    int64
-	saveErr   error
-	deleteErr error
+	users          map[int64]*authEntities.User
+	nextID         int64
+	saveErr        error
+	deleteErr      error
+	countByRoleErr error
 }
 
 func NewMockUserRepository() *MockUserRepository {
@@ -86,6 +89,21 @@ func (m *MockUserRepository) Delete(_ context.Context, id int64) error {
 	}
 	delete(m.users, id)
 	return nil
+}
+
+// CountByRole returns the number of in-memory users carrying the
+// given role. Used by the ADR-4 last-admin guard test scenarios.
+func (m *MockUserRepository) CountByRole(_ context.Context, role authDomain.RoleType) (int, error) {
+	if m.countByRoleErr != nil {
+		return 0, m.countByRoleErr
+	}
+	n := 0
+	for _, u := range m.users {
+		if u.Role == role {
+			n++
+		}
+	}
+	return n, nil
 }
 
 func (m *MockUserRepository) List(_ context.Context, limit, offset int) ([]*authEntities.User, error) {
@@ -408,7 +426,7 @@ func TestUserUseCase_UpdateUserProfile(t *testing.T) {
 		Bio:          "Test bio",
 	}
 
-	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	err := uc.UpdateUserProfile(ctx, user.ID, authDomain.RoleStudent, user.ID, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -431,7 +449,7 @@ func TestUserUseCase_UpdateUserProfile_WithAuditLogger(t *testing.T) {
 		Bio:   "Test bio",
 	}
 
-	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	err := uc.UpdateUserProfile(ctx, user.ID, authDomain.RoleStudent, user.ID, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -451,7 +469,7 @@ func TestUserUseCase_UpdateUserProfile_UpdateError(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 
 	input := &dto.UpdateUserProfileInput{Phone: "123"}
-	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	err := uc.UpdateUserProfile(ctx, user.ID, authDomain.RoleStudent, user.ID, input)
 	if err == nil {
 		t.Error("expected error from update")
 	}
@@ -467,7 +485,7 @@ func TestUserUseCase_UpdateUserProfile_UserNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	input := &dto.UpdateUserProfileInput{Phone: "123"}
-	err := uc.UpdateUserProfile(ctx, 999, input)
+	err := uc.UpdateUserProfile(ctx, 999, authDomain.RoleStudent, 999, input)
 	if err == nil {
 		t.Error("expected error for non-existent user")
 	}
@@ -490,9 +508,148 @@ func TestUserUseCase_UpdateUserProfile_DepartmentNotFound(t *testing.T) {
 	deptID := int64(999)
 	input := &dto.UpdateUserProfileInput{DepartmentID: &deptID}
 
-	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	err := uc.UpdateUserProfile(ctx, user.ID, authDomain.RoleStudent, user.ID, input)
 	if err == nil {
 		t.Error("expected error for non-existent department")
+	}
+}
+
+// TestUserUseCase_UpdateUserProfile_NonAdminCrossEdit_Forbidden pins the
+// TIER 0 profile-takeover gate from #283 ADR-1: a non-admin actor
+// editing another user's profile must be rejected with
+// ErrProfileEditForbidden BEFORE any repository call. Closes the
+// "PUT /api/users/:id/profile accepts any caller" finding.
+func TestUserUseCase_UpdateUserProfile_NonAdminCrossEdit_Forbidden(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	// Create target user (the victim).
+	target := authEntities.NewUser("target@example.com", "password", "Target User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, target)
+
+	// Actor is a different student trying to edit target's profile.
+	const attackerID int64 = 9999
+	if attackerID == target.ID {
+		t.Fatalf("test invariant: attackerID must differ from target.ID, got both = %d", target.ID)
+	}
+
+	input := &dto.UpdateUserProfileInput{Phone: "+0000000000"}
+	err := uc.UpdateUserProfile(ctx, attackerID, authDomain.RoleStudent, target.ID, input)
+
+	if !errors.Is(err, usersDomain.ErrProfileEditForbidden) {
+		t.Fatalf("expected ErrProfileEditForbidden for non-admin cross-edit, got %v", err)
+	}
+}
+
+// TestUserUseCase_UpdateUserProfile_ForeignAvatarKey_Rejected pins the
+// TIER 0 avatar-bypass gate from #283 ADR-3: UpdateProfile must
+// reject avatar storage keys that do not belong to the target user's
+// avatar prefix. Pre-fix, the Avatar field accepted ANY string —
+// users could point their avatar at HR records or exam reports
+// stored in the same bucket. The avatar handler's own prefix check
+// (avatar_handler.go) covered Upload/Delete but UpdateProfile
+// bypassed it entirely.
+func TestUserUseCase_UpdateUserProfile_ForeignAvatarKey_Rejected(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	target := authEntities.NewUser("target@example.com", "password", "Target User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, target)
+
+	// Self-edit (actor==target) so the ADR-1 gate does not short-circuit.
+	// Avatar key points at ANOTHER user's prefix — must be rejected.
+	input := &dto.UpdateUserProfileInput{
+		Avatar: "avatars/999_evil.png",
+	}
+	err := uc.UpdateUserProfile(ctx, target.ID, authDomain.RoleStudent, target.ID, input)
+
+	if !errors.Is(err, usersDomain.ErrInvalidAvatarKey) {
+		t.Fatalf("expected ErrInvalidAvatarKey for foreign avatar prefix, got %v", err)
+	}
+}
+
+// TestUserUseCase_UpdateUserProfile_OwnAvatarKey_Accepted pins the
+// happy path: an avatar key with the target user's own prefix passes
+// validation.
+func TestUserUseCase_UpdateUserProfile_OwnAvatarKey_Accepted(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	target := authEntities.NewUser("target@example.com", "password", "Target User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, target)
+
+	input := &dto.UpdateUserProfileInput{
+		Avatar: fmt.Sprintf("avatars/%d_legit.png", target.ID),
+	}
+	err := uc.UpdateUserProfile(ctx, target.ID, authDomain.RoleStudent, target.ID, input)
+
+	if err != nil {
+		t.Fatalf("expected own-prefix avatar key to pass, got %v", err)
+	}
+}
+
+// TestUserUseCase_UpdateUserProfile_EmptyAvatar_Accepted pins that
+// clearing the avatar (empty key) bypasses the prefix check.
+func TestUserUseCase_UpdateUserProfile_EmptyAvatar_Accepted(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	target := authEntities.NewUser("target@example.com", "password", "Target User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, target)
+
+	input := &dto.UpdateUserProfileInput{
+		Avatar: "",
+		Phone:  "+1234567890",
+	}
+	err := uc.UpdateUserProfile(ctx, target.ID, authDomain.RoleStudent, target.ID, input)
+
+	if err != nil {
+		t.Fatalf("expected empty avatar to be accepted (clear), got %v", err)
+	}
+}
+
+// TestUserUseCase_UpdateUserProfile_AdminCrossEdit_Allowed pins the
+// system_admin override branch: an admin acting on behalf of another
+// user must pass the authz gate. Mirrors the avatar handler's
+// existing self-or-admin pattern but at the usecase layer.
+func TestUserUseCase_UpdateUserProfile_AdminCrossEdit_Allowed(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	target := authEntities.NewUser("target@example.com", "password", "Target User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, target)
+
+	const adminID int64 = 1
+	input := &dto.UpdateUserProfileInput{Phone: "+0000000000"}
+	err := uc.UpdateUserProfile(ctx, adminID, authDomain.RoleSystemAdmin, target.ID, input)
+
+	if err != nil {
+		t.Fatalf("expected admin cross-edit to succeed, got %v", err)
 	}
 }
 
@@ -513,7 +670,7 @@ func TestUserUseCase_UpdateUserProfile_PositionNotFound(t *testing.T) {
 	posID := int64(999)
 	input := &dto.UpdateUserProfileInput{PositionID: &posID}
 
-	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	err := uc.UpdateUserProfile(ctx, user.ID, authDomain.RoleStudent, user.ID, input)
 	if err == nil {
 		t.Error("expected error for non-existent position")
 	}
@@ -616,7 +773,7 @@ func TestUserUseCase_UpdateUserStatus(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 
 	// Test activate
-	err := uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
+	err := uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
 	if err != nil {
 		t.Fatalf("activate error: %v", err)
 	}
@@ -627,7 +784,7 @@ func TestUserUseCase_UpdateUserStatus(t *testing.T) {
 	}
 
 	// Test deactivate
-	err = uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "inactive"})
+	err = uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "inactive"})
 	if err != nil {
 		t.Fatalf("deactivate error: %v", err)
 	}
@@ -638,7 +795,7 @@ func TestUserUseCase_UpdateUserStatus(t *testing.T) {
 	}
 
 	// Test block
-	err = uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "blocked"})
+	err = uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "blocked"})
 	if err != nil {
 		t.Fatalf("block error: %v", err)
 	}
@@ -662,19 +819,19 @@ func TestUserUseCase_UpdateUserStatus_WithAuditLogger(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 
 	// Activate with logger
-	err := uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
+	err := uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
 	// Deactivate with logger
-	err = uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "inactive"})
+	err = uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "inactive"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
 	// Block with logger
-	err = uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "blocked"})
+	err = uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "blocked"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -693,7 +850,7 @@ func TestUserUseCase_UpdateUserStatus_SaveError(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 	userRepo.saveErr = errors.New("save error")
 
-	err := uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
+	err := uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
 	if err == nil {
 		t.Error("expected error from save")
 	}
@@ -708,7 +865,7 @@ func TestUserUseCase_UpdateUserStatus_NotFound(t *testing.T) {
 
 	ctx := context.Background()
 
-	err := uc.UpdateUserStatus(ctx, 999, &dto.UpdateUserStatusInput{Status: "active"})
+	err := uc.UpdateUserStatus(ctx, 9999, 999, &dto.UpdateUserStatusInput{Status: "active"})
 	if err == nil {
 		t.Error("expected error for non-existent user")
 	}
@@ -728,7 +885,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 
 	// Delete
-	err := uc.DeleteUser(ctx, user.ID)
+	err := uc.DeleteUser(ctx, 9999, user.ID)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -752,7 +909,7 @@ func TestUserUseCase_DeleteUser_WithAuditLogger(t *testing.T) {
 	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
 	_ = userRepo.Create(ctx, user)
 
-	err := uc.DeleteUser(ctx, user.ID)
+	err := uc.DeleteUser(ctx, 9999, user.ID)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -771,9 +928,241 @@ func TestUserUseCase_DeleteUser_DeleteError(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 	userRepo.deleteErr = errors.New("delete error")
 
-	err := uc.DeleteUser(ctx, user.ID)
+	err := uc.DeleteUser(ctx, 9999, user.ID)
 	if err == nil {
 		t.Error("expected error from delete")
+	}
+}
+
+// TestUserUseCase_UpdateUserStatus_Guards pins the #283 ADR-4 Tier 1
+// guards as they extend к UpdateUserStatus (reviewer round-2
+// follow-up). Block/deactivate of the last system_admin carries the
+// same lockout risk as DeleteUser; self-block/deactivate bricks the
+// actor's session identically к self-delete. The "active" branch
+// is non-destructive and must bypass the guards.
+func TestUserUseCase_UpdateUserStatus_Guards(t *testing.T) {
+	tests := []struct {
+		name         string
+		actorID      int64
+		targetRole   authDomain.RoleType
+		extraAdmins  int
+		newStatus    string
+		expectedErr  error
+		expectChange bool
+	}{
+		{
+			name:         "self-block forbidden — admin",
+			actorID:      0, // resolved к target.ID inside
+			targetRole:   authDomain.RoleSystemAdmin,
+			extraAdmins:  3,
+			newStatus:    "blocked",
+			expectedErr:  usersDomain.ErrCannotDeleteSelf,
+			expectChange: false,
+		},
+		{
+			name:         "self-deactivate forbidden — student",
+			actorID:      0,
+			targetRole:   authDomain.RoleStudent,
+			extraAdmins:  1,
+			newStatus:    "inactive",
+			expectedErr:  usersDomain.ErrCannotDeleteSelf,
+			expectChange: false,
+		},
+		{
+			name:         "last-admin block protected",
+			actorID:      9999,
+			targetRole:   authDomain.RoleSystemAdmin,
+			extraAdmins:  0,
+			newStatus:    "blocked",
+			expectedErr:  usersDomain.ErrLastAdminProtected,
+			expectChange: false,
+		},
+		{
+			name:         "last-admin deactivate protected",
+			actorID:      9999,
+			targetRole:   authDomain.RoleSystemAdmin,
+			extraAdmins:  0,
+			newStatus:    "inactive",
+			expectedErr:  usersDomain.ErrLastAdminProtected,
+			expectChange: false,
+		},
+		{
+			name:         "active bypasses guards even on self",
+			actorID:      0, // self-activate must be allowed
+			targetRole:   authDomain.RoleSystemAdmin,
+			extraAdmins:  0,
+			newStatus:    "active",
+			expectedErr:  nil,
+			expectChange: true,
+		},
+		{
+			name:         "admin blocks other admin with extras — allowed",
+			actorID:      9999,
+			targetRole:   authDomain.RoleSystemAdmin,
+			extraAdmins:  2,
+			newStatus:    "blocked",
+			expectedErr:  nil,
+			expectChange: true,
+		},
+		{
+			name:         "admin deactivates student — allowed",
+			actorID:      9999,
+			targetRole:   authDomain.RoleStudent,
+			extraAdmins:  1,
+			newStatus:    "inactive",
+			expectedErr:  nil,
+			expectChange: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			userRepo := NewMockUserRepository()
+			profileRepo := NewMockUserProfileRepository()
+			deptRepo := NewMockDepartmentRepository()
+			posRepo := NewMockPositionRepository()
+			uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+			ctx := context.Background()
+
+			target := authEntities.NewUser("target@example.com", "password", "Target", tc.targetRole)
+			target.Activate()
+			_ = userRepo.Create(ctx, target)
+			for i := 0; i < tc.extraAdmins; i++ {
+				extra := authEntities.NewUser(
+					fmt.Sprintf("admin%d@example.com", i),
+					"password",
+					fmt.Sprintf("Admin %d", i),
+					authDomain.RoleSystemAdmin,
+				)
+				_ = userRepo.Create(ctx, extra)
+			}
+
+			actorID := tc.actorID
+			if actorID == 0 {
+				actorID = target.ID
+			}
+
+			err := uc.UpdateUserStatus(ctx, actorID, target.ID, &dto.UpdateUserStatusInput{Status: tc.newStatus})
+			if tc.expectedErr != nil {
+				if !errors.Is(err, tc.expectedErr) {
+					t.Fatalf("expected %v, got %v", tc.expectedErr, err)
+				}
+			} else if err != nil {
+				t.Fatalf("expected success, got %v", err)
+			}
+
+			// Verify mutation actually occurred when expected.
+			fresh, _ := userRepo.GetByID(ctx, target.ID)
+			changed := fresh != nil && string(fresh.Status) != "active"
+			if tc.newStatus == "active" {
+				// status==active is a no-op transition from already-active target;
+				// expectChange=true here means "the call succeeded".
+				if (err == nil) != tc.expectChange {
+					t.Fatalf("expected expectChange=%v for status=active path, got err=%v", tc.expectChange, err)
+				}
+			} else if changed != tc.expectChange {
+				t.Fatalf("expected status changed=%v, got %v (fresh.Status=%q)", tc.expectChange, changed, fresh.Status)
+			}
+		})
+	}
+}
+
+// TestUserUseCase_DeleteUser_Guards pins the #283 ADR-4 Tier 1
+// guards: actors must not delete themselves; the last system_admin
+// must not be removed. Table-driven across both refusal paths and
+// the happy-path admin-deletes-other-admin scenario.
+func TestUserUseCase_DeleteUser_Guards(t *testing.T) {
+	tests := []struct {
+		name           string
+		actorID        int64
+		targetRole     authDomain.RoleType
+		extraAdmins    int // additional admin users created beyond the target
+		expectedErr    error
+		expectDeletion bool
+	}{
+		{
+			name:           "self-delete forbidden — admin",
+			actorID:        0, // will be set to target.ID inside the test (self)
+			targetRole:     authDomain.RoleSystemAdmin,
+			extraAdmins:    5, // plenty of other admins; guard 1 still fires
+			expectedErr:    usersDomain.ErrCannotDeleteSelf,
+			expectDeletion: false,
+		},
+		{
+			name:           "self-delete forbidden — student",
+			actorID:        0, // self
+			targetRole:     authDomain.RoleStudent,
+			extraAdmins:    1,
+			expectedErr:    usersDomain.ErrCannotDeleteSelf,
+			expectDeletion: false,
+		},
+		{
+			name:           "last-admin protected",
+			actorID:        9999, // distinct actor
+			targetRole:     authDomain.RoleSystemAdmin,
+			extraAdmins:    0, // target is the sole admin
+			expectedErr:    usersDomain.ErrLastAdminProtected,
+			expectDeletion: false,
+		},
+		{
+			name:           "admin deletes other admin — allowed when more than one admin remains",
+			actorID:        9999,
+			targetRole:     authDomain.RoleSystemAdmin,
+			extraAdmins:    2,
+			expectedErr:    nil,
+			expectDeletion: true,
+		},
+		{
+			name:           "admin deletes student — allowed",
+			actorID:        9999,
+			targetRole:     authDomain.RoleStudent,
+			extraAdmins:    1,
+			expectedErr:    nil,
+			expectDeletion: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			userRepo := NewMockUserRepository()
+			profileRepo := NewMockUserProfileRepository()
+			deptRepo := NewMockDepartmentRepository()
+			posRepo := NewMockPositionRepository()
+			uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+			ctx := context.Background()
+
+			target := authEntities.NewUser("target@example.com", "password", "Target", tc.targetRole)
+			_ = userRepo.Create(ctx, target)
+			for i := 0; i < tc.extraAdmins; i++ {
+				extra := authEntities.NewUser(
+					fmt.Sprintf("admin%d@example.com", i),
+					"password",
+					fmt.Sprintf("Admin %d", i),
+					authDomain.RoleSystemAdmin,
+				)
+				_ = userRepo.Create(ctx, extra)
+			}
+
+			actorID := tc.actorID
+			if actorID == 0 {
+				actorID = target.ID
+			}
+
+			err := uc.DeleteUser(ctx, actorID, target.ID)
+			if tc.expectedErr != nil {
+				if !errors.Is(err, tc.expectedErr) {
+					t.Fatalf("expected %v, got %v", tc.expectedErr, err)
+				}
+			} else if err != nil {
+				t.Fatalf("expected delete to succeed, got %v", err)
+			}
+
+			_, lookupErr := userRepo.GetByID(ctx, target.ID)
+			deleted := lookupErr != nil
+			if deleted != tc.expectDeletion {
+				t.Fatalf("expected deletion=%v, got deletion=%v (lookup err: %v)", tc.expectDeletion, deleted, lookupErr)
+			}
+		})
 	}
 }
 
@@ -786,7 +1175,7 @@ func TestUserUseCase_DeleteUser_NotFound(t *testing.T) {
 
 	ctx := context.Background()
 
-	err := uc.DeleteUser(ctx, 999)
+	err := uc.DeleteUser(ctx, 9999, 999)
 	if err == nil {
 		t.Error("expected error for non-existent user")
 	}

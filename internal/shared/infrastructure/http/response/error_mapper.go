@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	usersDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain"
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 )
 
@@ -77,6 +78,33 @@ func MapDomainError(err error) HTTPError {
 		return HTTPError{
 			Status:   http.StatusBadRequest,
 			Response: BadRequest("Неверная длина"),
+		}
+
+	// users module sentinels — closes #283 reviewer T0-1 (sentinel→HTTP
+	// status mapping). Without these arms все four landed как 500
+	// despite ADR-1..4 contracts promising 403/400/409/409.
+	case errors.Is(err, usersDomain.ErrProfileEditForbidden):
+		return HTTPError{
+			Status:   http.StatusForbidden,
+			Response: ErrorResponse("PROFILE_EDIT_FORBIDDEN", "Редактирование чужого профиля запрещено"),
+		}
+
+	case errors.Is(err, usersDomain.ErrInvalidAvatarKey):
+		return HTTPError{
+			Status:   http.StatusBadRequest,
+			Response: ErrorResponse("INVALID_AVATAR_KEY", "Недопустимый ключ аватара"),
+		}
+
+	case errors.Is(err, usersDomain.ErrCannotDeleteSelf):
+		return HTTPError{
+			Status:   http.StatusConflict,
+			Response: ErrorResponse("CANNOT_DELETE_SELF", "Нельзя удалить собственный аккаунт"),
+		}
+
+	case errors.Is(err, usersDomain.ErrLastAdminProtected):
+		return HTTPError{
+			Status:   http.StatusConflict,
+			Response: ErrorResponse("LAST_ADMIN_PROTECTED", "Нельзя удалить или заблокировать последнего администратора"),
 		}
 	}
 
