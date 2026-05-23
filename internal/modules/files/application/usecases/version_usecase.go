@@ -9,10 +9,13 @@ import (
 	"io"
 	"time"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
+	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
 
@@ -45,6 +48,11 @@ func NewVersionUseCase(
 }
 
 // CreateVersion создаёт новую версию файла.
+//
+// Closes #290 ADR-2 (CreateVersion ownership hijack): only the
+// original uploader may push a new version. No admin write-override.
+// Comment is sanitised — closes Tier 1 stored XSS finding (was
+// persisted raw to version history + audit log).
 func (uc *VersionUseCase) CreateVersion(ctx context.Context, reader io.Reader, size int64, input *dto.CreateVersionInput) (*dto.FileVersionResponse, error) {
 	// Получаем метаданные файла
 	file, err := uc.fileRepo.GetByID(ctx, input.FileID)
@@ -52,10 +60,22 @@ func (uc *VersionUseCase) CreateVersion(ctx context.Context, reader io.Reader, s
 		return nil, err
 	}
 
+	// Ownership gate (#290 ADR-2)
+	if err := filesDomain.AuthorizeFileAccess(input.UserID, input.UserRole, file, filesDomain.FileActionCreateVersion); err != nil {
+		uc.emitAccessDenied(ctx, input.UserID, file.ID, filesDomain.FileActionCreateVersion, "create_version")
+		return nil, err
+	}
+
 	// Файл должен быть прикреплён
 	if file.IsTemporary {
 		return nil, &ValidationError{Message: "нельзя создать версию временного файла"}
 	}
+
+	// Sanitize free-text comment — prevents stored XSS in version
+	// history rendering + audit log surfacing (#290 Tier 1 §8).
+	// SanitizeHTML strips <script>/<style>/<iframe>/event-handlers AND
+	// escapes any remaining HTML; SanitizeString only handles whitespace.
+	safeComment := sanitization.SanitizeHTML(input.Comment)
 
 	// Получаем следующий номер версии
 	nextVersion, err := uc.versionRepo.GetNextVersionNumber(ctx, input.FileID)
@@ -83,7 +103,7 @@ func (uc *VersionUseCase) CreateVersion(ctx context.Context, reader io.Reader, s
 		nextVersion,
 		storageKey,
 		checksum,
-		input.Comment,
+		safeComment,
 		fileInfo.Size,
 		input.UserID,
 	)
@@ -100,11 +120,25 @@ func (uc *VersionUseCase) CreateVersion(ctx context.Context, reader io.Reader, s
 			"file_id":        input.FileID,
 			"version_number": nextVersion,
 			"created_by":     input.UserID,
-			"comment":        input.Comment,
+			"comment":        safeComment,
 		})
 	}
 
 	return uc.toVersionResponse(version), nil
+}
+
+// emitAccessDenied mirrors FileUseCase.emitAccessDenied — small
+// duplication for module-local consistency. Both could move к a
+// shared denial-helper later (Tier 2).
+func (uc *VersionUseCase) emitAccessDenied(ctx context.Context, actorID, fileID int64, action filesDomain.FileAction, reasonSuffix string) {
+	if uc.auditLogger == nil {
+		return
+	}
+	uc.auditLogger.LogAuditEvent(ctx, fmt.Sprintf("file_%s_denied", action), "file", map[string]interface{}{
+		"actor_user_id":  actorID,
+		"target_file_id": fileID,
+		"reason":         reasonSuffix,
+	})
 }
 
 // GetVersions получает все версии файла.
@@ -143,10 +177,20 @@ func (uc *VersionUseCase) GetLatestVersion(ctx context.Context, fileID int64) (*
 }
 
 // DownloadVersion возвращает данные для скачивания версии файла.
-func (uc *VersionUseCase) DownloadVersion(ctx context.Context, fileID int64, versionNumber int) (*dto.DownloadResponse, error) {
+//
+// Closes #290 ADR-1 leak: previously took only (fileID, versionNumber)
+// so any authenticated user could enumerate version URLs across files.
+// Now gates through AuthorizeFileAccess(FileActionRead) — uploader или
+// system_admin only.
+func (uc *VersionUseCase) DownloadVersion(ctx context.Context, fileID int64, versionNumber int, actorID int64, actorRole authDomain.RoleType) (*dto.DownloadResponse, error) {
 	// Получаем метаданные файла
 	file, err := uc.fileRepo.GetByID(ctx, fileID)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionRead); err != nil {
+		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionRead, "download_version")
 		return nil, err
 	}
 
@@ -171,7 +215,15 @@ func (uc *VersionUseCase) DownloadVersion(ctx context.Context, fileID int64, ver
 }
 
 // DeleteVersion удаляет версию файла.
-func (uc *VersionUseCase) DeleteVersion(ctx context.Context, versionID int64, userID int64) error {
+//
+// Two-path authorisation: either the file's owner (mirrors broader
+// file-write gate) OR the version's own creator (legitimate
+// "remove my contribution" path — kept for backwards compatibility
+// with previous behaviour). Both paths funnel denial through the
+// sentinel + audit emit pattern so the surface stays uniform.
+// Closes #290 ADR-2 audit-emit gap (was silently returning struct
+// PermissionError before).
+func (uc *VersionUseCase) DeleteVersion(ctx context.Context, versionID int64, actorID int64, actorRole authDomain.RoleType) error {
 	version, err := uc.versionRepo.GetByID(ctx, versionID)
 	if err != nil {
 		return err
@@ -183,9 +235,11 @@ func (uc *VersionUseCase) DeleteVersion(ctx context.Context, versionID int64, us
 		return err
 	}
 
-	// Проверяем права (только загрузивший может удалить)
-	if file.UploadedBy != userID && version.CreatedBy != userID {
-		return &PermissionError{Message: "нет прав на удаление версии"}
+	fileOwnerOk := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionDelete) == nil
+	versionAuthorOk := version.CreatedBy == actorID
+	if !fileOwnerOk && !versionAuthorOk {
+		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionDelete, "delete_version")
+		return filesDomain.ErrFileAccessDenied
 	}
 
 	// Удаляем файл из хранилища
@@ -205,7 +259,7 @@ func (uc *VersionUseCase) DeleteVersion(ctx context.Context, versionID int64, us
 			"version_id":     versionID,
 			"file_id":        version.FileMetadataID,
 			"version_number": version.VersionNumber,
-			"deleted_by":     userID,
+			"deleted_by":     actorID,
 		})
 	}
 
