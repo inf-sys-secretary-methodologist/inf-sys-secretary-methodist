@@ -61,12 +61,20 @@ func (h *AnnouncementHandler) UploadAttachment(c *gin.Context) {
 }
 
 // DeleteAttachment handles DELETE /announcements/:id/attachments/:attachmentID.
+//
+// v0.163.0 ADR-3 (#303 TIER 0): now passes the URL's announcement_id +
+// caller identity к the usecase so ownership and path-match can be
+// enforced. Pre-fix the handler discarded userID + announcement_id and
+// invoked uc.RemoveAttachment(ctx, attachmentID), leaving the
+// destructive op fully open.
 func (h *AnnouncementHandler) DeleteAttachment(c *gin.Context) {
-	if _, ok := h.getUserID(c); !ok {
+	userID, ok := h.getUserID(c)
+	if !ok {
 		return
 	}
 
-	if _, ok := h.getIDParam(c, "id"); !ok {
+	announcementID, ok := h.getIDParam(c, "id")
+	if !ok {
 		return
 	}
 
@@ -75,7 +83,16 @@ func (h *AnnouncementHandler) DeleteAttachment(c *gin.Context) {
 		return
 	}
 
-	if err := h.useCase.RemoveAttachment(c.Request.Context(), attachmentID); err != nil {
+	role, _ := c.Get("role")
+	roleStr, _ := role.(string)
+
+	if err := h.useCase.RemoveAttachment(
+		c.Request.Context(),
+		attachmentID,
+		announcementID,
+		userID,
+		roleStr,
+	); err != nil {
 		h.handleAttachmentError(c, err)
 		return
 	}
@@ -89,6 +106,8 @@ func (h *AnnouncementHandler) handleAttachmentError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, usecases.ErrAttachmentNotFound):
 		c.JSON(http.StatusNotFound, gin.H{errorKey: "attachment not found"})
+	case errors.Is(err, usecases.ErrAttachmentForbidden):
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "attachment access forbidden"})
 	case errors.Is(err, usecases.ErrStorageNotConfigured):
 		c.JSON(http.StatusServiceUnavailable, gin.H{errorKey: "attachment storage is not configured"})
 	default:
