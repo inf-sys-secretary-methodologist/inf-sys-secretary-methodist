@@ -40,7 +40,38 @@ var (
 	// announcement_id does not match the attachment's). v0.163.0
 	// ADR-3 (#303 TIER 0).
 	ErrAttachmentForbidden = errors.New("attachment access forbidden")
+
+	// ErrAttachmentTooLarge is returned when an upload exceeds the
+	// configured size cap. v0.163.0 ADR-5 (#303 TIER 1).
+	ErrAttachmentTooLarge = errors.New("attachment exceeds maximum allowed size")
+
+	// ErrAttachmentMimeRejected is returned when an upload's content
+	// type is not in the allowlist. v0.163.0 ADR-5 (#303 TIER 1).
+	ErrAttachmentMimeRejected = errors.New("attachment content type is not allowed")
 )
+
+// Maximum attachment size in bytes (10 MiB). v0.163.0 ADR-5 default.
+// Conservative cap suitable for academic announcements — heavier
+// documents should live в the documents module which has its own
+// 50 MiB ceiling.
+const attachmentMaxSize int64 = 10 * 1024 * 1024
+
+// allowedAttachmentMimeTypes is the announcement-attachment MIME
+// allowlist. v0.163.0 ADR-5 (#303 TIER 1). Trim-set focused on the
+// formats academic secretaries actually attach (PDFs, Office docs,
+// images for visual context). NO executable / archive types — those
+// are documents-module territory.
+var allowedAttachmentMimeTypes = map[string]bool{
+	"application/pdf":   true,
+	"application/msword": true,
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+	"application/vnd.ms-excel": true,
+	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+	"image/jpeg": true,
+	"image/png":  true,
+	"image/webp": true,
+	"text/plain": true,
+}
 
 // attachmentStorageKey computes the object-storage key for an attachment.
 //

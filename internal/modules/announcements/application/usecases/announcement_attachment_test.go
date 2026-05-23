@@ -221,3 +221,63 @@ func TestRemoveAttachment_AuthzGate(t *testing.T) {
 		})
 	}
 }
+
+// TestAddAttachment_RejectsOversizedAndBadMime pins v0.163.0 ADR-5
+// (#303 TIER 1): pre-fix AddAttachment trusted the client-supplied
+// Content-Type and had no size cap. After fix uploads above 10 MiB
+// or with disallowed MIME types are rejected before reaching object
+// storage.
+func TestAddAttachment_RejectsOversizedAndBadMime(t *testing.T) {
+	tests := []struct {
+		name     string
+		size     int64
+		mimeType string
+		wantErr  error
+	}{
+		{
+			name:     "oversized payload",
+			size:     attachmentMaxSize + 1,
+			mimeType: "application/pdf",
+			wantErr:  ErrAttachmentTooLarge,
+		},
+		{
+			name:     "disallowed MIME (executable)",
+			size:     1024,
+			mimeType: "application/x-msdownload",
+			wantErr:  ErrAttachmentMimeRejected,
+		},
+		{
+			name:     "octet-stream loophole closed",
+			size:     1024,
+			mimeType: "application/octet-stream",
+			wantErr:  ErrAttachmentMimeRejected,
+		},
+		{
+			name:     "legitimate pdf within cap accepted",
+			size:     2048,
+			mimeType: "application/pdf",
+			wantErr:  nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := NewMockAnnouncementRepository()
+			stor := newMockAttachmentStorage()
+			uc := NewAnnouncementUseCase(repo, createTestAuditLogger(), nil, nil)
+			uc.SetAttachmentStorage(stor)
+
+			ctx := context.Background()
+			ann, err := uc.Create(ctx, 1, createDefaultRequest())
+			require.NoError(t, err)
+
+			_, err = uc.AddAttachment(ctx, ann.ID, "x.bin", strings.NewReader("body"),
+				tc.size, tc.mimeType, 1)
+			if tc.wantErr == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, tc.wantErr)
+			}
+		})
+	}
+}
