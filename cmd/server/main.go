@@ -762,7 +762,12 @@ func main() {
 	// port to a users-only concern.
 	usersUserAccountRepo, ok := userRepo.(usersUsecases.UserAccountRepository)
 	if !ok {
-		log.Fatalf("auth user repository does not satisfy users.UserAccountRepository — CountByRole is required for the last-admin guard")
+		// Panic instead of log.Fatalf — log.Fatalf calls os.Exit which
+		// skips deferred db.Close() etc. The wider port is a static DI
+		// contract, never a runtime branch in production, so a panic
+		// here is a boot-time invariant violation, not a user-facing
+		// error. gocritic: exitAfterDefer.
+		panic("auth user repository does not satisfy users.UserAccountRepository — CountByRole required for #283 ADR-4 last-admin guard")
 	}
 	userUseCase := usersUsecases.NewUserUseCase(usersUserAccountRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger, notificationUseCase)
 	departmentUseCase := usersUsecases.NewDepartmentUseCase(departmentRepo, auditLogger)

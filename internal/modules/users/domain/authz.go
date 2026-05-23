@@ -104,7 +104,6 @@ func AuthorizeProfileEdit(actorID, targetID int64, actorRole authDomain.RoleType
 //     the target is a system_admin AND the current admin headcount is
 //     1 (the actor must look up the count via the repository — this
 //     function takes it as an argument to stay pure and testable).
-//
 func AuthorizeUserDelete(
 	actorID, targetID int64,
 	targetRole authDomain.RoleType,
