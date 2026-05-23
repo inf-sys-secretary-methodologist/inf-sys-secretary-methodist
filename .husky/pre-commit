@@ -22,7 +22,11 @@ cd "$REPO_ROOT"
 
 # Resolve staged files (Added / Copied / Modified) — skip Deleted so
 # linters don't see paths that no longer exist.
-mapfile -t STAGED < <(git diff --cached --name-only --diff-filter=ACM)
+# NB: `while read` instead of `mapfile` (bash 4+) — macOS ships bash 3.2.
+STAGED=()
+while IFS= read -r line; do
+    STAGED+=("$line")
+done < <(git diff --cached --name-only --diff-filter=ACM)
 [[ ${#STAGED[@]} -eq 0 ]] && exit 0
 
 STAGED_GO=()
