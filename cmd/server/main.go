@@ -2739,35 +2739,25 @@ func setupRoutes(
 				usersGroup.OPTIONS("/by-position/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 
-			// Departments routes
+			// Departments routes — RegisterDepartmentRoutes gates
+			// writes (POST/PUT/DELETE) behind usersAdminMW
+			// (RequireRole(system_admin)) to close #283 ADR-2 TIER 0
+			// (pre-fix, v0.133.0 admin-gate split skipped this group).
+			// Read endpoints stay permissive for cross-module
+			// resolvers and frontend dropdowns.
 			departmentsGroup := protectedGroup.Group("/departments")
-			{
-				departmentsGroup.POST("", departmentHandlerInstance.Create)
-				departmentsGroup.GET("", departmentHandlerInstance.List)
-				departmentsGroup.GET("/:id", departmentHandlerInstance.GetByID)
-				departmentsGroup.PUT("/:id", departmentHandlerInstance.Update)
-				departmentsGroup.DELETE("/:id", departmentHandlerInstance.Delete)
-				departmentsGroup.GET("/:id/children", departmentHandlerInstance.GetChildren)
+			usersRoutes.RegisterDepartmentRoutes(departmentsGroup, usersAdminMW, departmentHandlerInstance)
+			// CORS preflight handlers — registered on the parent
+			// group so they sit outside the admin gate.
+			departmentsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			departmentsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			departmentsGroup.OPTIONS("/:id/children", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 
-				// CORS preflight handlers
-				departmentsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-				departmentsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-				departmentsGroup.OPTIONS("/:id/children", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-			}
-
-			// Positions routes
+			// Positions routes — same shape as departments.
 			positionsGroup := protectedGroup.Group("/positions")
-			{
-				positionsGroup.POST("", positionHandlerInstance.Create)
-				positionsGroup.GET("", positionHandlerInstance.List)
-				positionsGroup.GET("/:id", positionHandlerInstance.GetByID)
-				positionsGroup.PUT("/:id", positionHandlerInstance.Update)
-				positionsGroup.DELETE("/:id", positionHandlerInstance.Delete)
-
-				// CORS preflight handlers
-				positionsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-				positionsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
-			}
+			usersRoutes.RegisterPositionRoutes(positionsGroup, usersAdminMW, positionHandlerInstance)
+			positionsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+			positionsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 
 			logger.Info("Users module routes registered", nil)
 		}
