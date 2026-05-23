@@ -122,6 +122,7 @@ import (
 	integration "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration"
 	messagingServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/services"
 	messagingUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/usecases"
+	messagingRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/repositories"
 	messagingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/persistence"
 	messagingWebsocket "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
 	messagingHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http"
@@ -161,6 +162,7 @@ import (
 	adminIntegrations "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/integrations"
 	adminSentry "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/sentry"
 	appMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/application/middleware"
+	sharedDomainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
 	authCrypto "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/crypto"
@@ -209,6 +211,50 @@ func initSentry(cfg *config.Config) {
 		return
 	}
 	log.Println("Sentry initialized successfully")
+}
+
+// messagingAccessCheckerFunc adapts a closure to the messaging
+// ConversationAccessChecker port. v0.162.0 ADR-1 (#297) wiring.
+type messagingAccessCheckerFunc func(ctx context.Context, userID, conversationID int64) (bool, error)
+
+func (f messagingAccessCheckerFunc) IsParticipant(ctx context.Context, userID, conversationID int64) (bool, error) {
+	return f(ctx, userID, conversationID)
+}
+
+// messagingUserExistenceFunc adapts a closure to the messaging
+// UserExistenceChecker port. v0.162.0 ADR-3 (#297) wiring.
+type messagingUserExistenceFunc func(ctx context.Context, userID int64) (bool, error)
+
+func (f messagingUserExistenceFunc) UserExists(ctx context.Context, userID int64) (bool, error) {
+	return f(ctx, userID)
+}
+
+// newMessagingAccessChecker builds the ADR-1 conversation participant
+// gate. Extracted from main() to keep gocyclo below the project gate.
+func newMessagingAccessChecker(conversationRepo messagingRepositories.ConversationRepository) messagingAccessCheckerFunc {
+	return func(ctx context.Context, userID, conversationID int64) (bool, error) {
+		conv, err := conversationRepo.GetByID(ctx, conversationID)
+		if err != nil {
+			return false, err
+		}
+		return conv.HasParticipant(userID), nil
+	}
+}
+
+// newMessagingUserExistenceChecker builds the ADR-3 recipient existence
+// gate. Returns (false, nil) for missing users (oracle closure), and
+// (false, err) for transport-level repo failures.
+func newMessagingUserExistenceChecker(userRepo usecases.UserRepository) messagingUserExistenceFunc {
+	return func(ctx context.Context, userID int64) (bool, error) {
+		_, err := userRepo.GetByID(ctx, userID)
+		if err != nil {
+			if errors.Is(err, sharedDomainErrors.ErrNotFound) {
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	}
 }
 
 func main() {
@@ -774,15 +820,18 @@ func main() {
 	positionUseCase := usersUsecases.NewPositionUseCase(positionRepo, auditLogger)
 	logger.Info("Users module initialized", nil)
 
-	// Initialize messaging module
+	// Initialize messaging module.
+	// v0.162.0 ADR-1/ADR-3 (#297): participant gate for WS subscribe/typing
+	// and recipient existence gate for CreateDirect/Group are wired here.
 	conversationRepo := messagingPersistence.NewConversationRepositoryPG(db)
 	messageRepo := messagingPersistence.NewMessageRepositoryPG(db)
-	messagingHub := messagingWebsocket.NewHub(logger)
+	messagingHub := messagingWebsocket.NewHub(logger).
+		WithAccessChecker(newMessagingAccessChecker(conversationRepo))
 	go messagingHub.Run() // Start WebSocket hub in background
-	// Create message notifier for sending notifications about new messages
 	messageNotifier := messagingServices.NewNotificationNotifier(notificationUseCase)
 	messagingUseCase := messagingUsecases.NewMessagingUseCase(conversationRepo, messageRepo, messagingHub, logger, messageNotifier, s3Client).
-		WithAuditSink(auditLogger)
+		WithAuditSink(auditLogger).
+		WithUserExistenceChecker(newMessagingUserExistenceChecker(userRepo))
 	logger.Info("Messaging module initialized", nil)
 
 	// Initialize files module

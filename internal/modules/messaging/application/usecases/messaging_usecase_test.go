@@ -2890,10 +2890,10 @@ func TestCreateConversation_RecipientValidation(t *testing.T) {
 	tests := []struct {
 		name       string
 		setup      func(*MockUserExistenceChecker, *MockConversationRepository)
-		callDirect bool          // true = CreateDirect; false = CreateGroup
+		callDirect bool // true = CreateDirect; false = CreateGroup
 		creatorID  int64
-		recipient  int64         // direct only
-		groupParts []int64       // group only
+		recipient  int64   // direct only
+		groupParts []int64 // group only
 		expectErr  error
 	}{
 		{
