@@ -2,17 +2,20 @@
 package usecases
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"hash"
 	"io"
+	"strings"
 	"time"
 
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
-	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
+	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -55,13 +58,35 @@ func NewFileUseCase(
 }
 
 // UploadFile загружает файл в хранилище.
+//
+// Closes #290 ADR-3: previously only ValidateFileName was called,
+// leaving the magic-byte / MIME-whitelist / size-cap pipeline dead
+// code. UploadFile now calls the FULL ValidateFile, sniffing the
+// first 512 bytes through bufio.Reader.Peek so the reader stream
+// stays intact for the subsequent storage upload.
 func (uc *FileUseCase) UploadFile(ctx context.Context, reader io.Reader, input *dto.UploadFileInput) (*dto.UploadResponse, error) {
-	// Валидируем имя файла
+	// Валидируем имя файла + содержимое файла (полный pipeline)
 	if uc.fileValidator != nil {
 		_, err := uc.fileValidator.ValidateFileName(input.OriginalName)
 		if err != nil {
 			return nil, &ValidationError{Message: err.Error()}
 		}
+
+		// Sniff first 512 bytes for magic-byte detection without
+		// consuming the reader — bufio.Reader.Peek keeps the bytes
+		// available for downstream Upload.
+		buffered := bufio.NewReaderSize(reader, 8*1024)
+		sniff, _ := buffered.Peek(512)
+		validation, err := uc.fileValidator.ValidateFile(input.OriginalName, input.Size, input.MimeType, bytes.NewReader(sniff))
+		if err != nil {
+			return nil, fmt.Errorf("ошибка валидации файла: %w", err)
+		}
+		if validation != nil && !validation.Valid {
+			return nil, &ValidationError{Message: strings.Join(validation.Errors, "; ")}
+		}
+		// Re-route reader так чтобы upload получил complete content
+		// (peeked bytes + everything else).
+		reader = buffered
 	}
 
 	// Генерируем ключ для хранилища

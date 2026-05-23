@@ -228,12 +228,37 @@ func TestValidateFile_MagicBytes(t *testing.T) {
 			wantType:    "image/png",
 		},
 		{
+			// #290 ADR-3 loophole closed: octet-stream + unknown magic
+			// bytes used to slip through, letting evil.exe (declared
+			// octet-stream) upload freely. ValidateFile now requires the
+			// detected type to be whitelisted when MIME declares
+			// octet-stream — unknown bytes here yield Valid=false.
 			name:        "unknown magic bytes with octet-stream",
 			fileName:    "data.txt",
 			contentType: "application/octet-stream",
 			magicBytes:  []byte{0x00, 0x01, 0x02, 0x03},
-			wantValid:   true,
+			wantValid:   false,
 			wantType:    "",
+		},
+		{
+			// #290 ADR-3 explicit coverage for the evil.exe case: PE
+			// magic (4D 5A) declared octet-stream → reject.
+			name:        "evil.exe declared as octet-stream",
+			fileName:    "evil.exe",
+			contentType: "application/octet-stream",
+			magicBytes:  []byte{0x4D, 0x5A, 0x00, 0x00},
+			wantValid:   false,
+			wantType:    "",
+		},
+		{
+			// #290 ADR-3 positive path: octet-stream + whitelisted
+			// magic (PDF here) → accept (detected type lookup succeeds).
+			name:        "PDF declared as octet-stream → accepted via magic",
+			fileName:    "report.pdf",
+			contentType: "application/octet-stream",
+			magicBytes:  []byte{0x25, 0x50, 0x44, 0x46, 0x2D},
+			wantValid:   true,
+			wantType:    "application/pdf",
 		},
 		{
 			name:        "docx detected as zip related type",
