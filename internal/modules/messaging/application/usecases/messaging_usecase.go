@@ -24,6 +24,17 @@ type MessageNotifier interface {
 	NotifyNewMessage(ctx context.Context, userID int64, senderName, content string, conversationID, messageID int64) error
 }
 
+// UserExistenceChecker is a narrow port over the users module used to
+// validate recipients / participants before a conversation is created.
+// v0.162.0 ADR-3 (#297): without this check, sequential RecipientID
+// enumeration leaked account existence through the 201 vs 500 outcome
+// (FK violation on missing user). Defined here so the messaging module
+// does not depend on the concrete users repository; main.go wires a
+// thin adapter.
+type UserExistenceChecker interface {
+	UserExists(ctx context.Context, userID int64) (bool, error)
+}
+
 // AvatarURLExpiration is how long presigned URLs for avatars are valid
 const AvatarURLExpiration = 7 * 24 * time.Hour // 7 days
 
@@ -36,6 +47,7 @@ type MessagingUseCase struct {
 	notifier         MessageNotifier
 	s3Client         *storage.S3Client
 	auditSink        AuditSink
+	userExistence    UserExistenceChecker
 }
 
 // NewMessagingUseCase creates a new messaging use case.
@@ -73,6 +85,18 @@ func (uc *MessagingUseCase) WithAuditSink(sink AuditSink) *MessagingUseCase {
 	return uc
 }
 
+// WithUserExistenceChecker wires recipient/participant existence
+// validation for CreateDirect/GroupConversation. v0.162.0 ADR-3 (#297).
+// Nil checker (the default) keeps legacy behavior — pre-fix CreateDirect
+// returned 201 for existing users and 500 (FK violation) for missing
+// users; that distinction was an account enumeration oracle. With
+// checker wired, both outcomes collapse to a uniform
+// entities.ErrInvalidParticipants response.
+func (uc *MessagingUseCase) WithUserExistenceChecker(checker UserExistenceChecker) *MessagingUseCase {
+	uc.userExistence = checker
+	return uc
+}
+
 // resolveAvatarURL converts a storage path to a presigned URL.
 // If the path is empty or already a URL, it returns it as-is.
 func (uc *MessagingUseCase) resolveAvatarURL(ctx context.Context, avatarPath *string) *string {
@@ -101,6 +125,24 @@ func (uc *MessagingUseCase) resolveAvatarURL(ctx context.Context, avatarPath *st
 
 // CreateDirectConversation creates a new direct conversation between two users.
 func (uc *MessagingUseCase) CreateDirectConversation(ctx context.Context, creatorID int64, input dto.CreateDirectConversationInput) (*entities.Conversation, error) {
+	// v0.162.0 ADR-3 (#297): self-DM is meaningless and was previously
+	// allowed to reach persistence — reject before any repo call.
+	if creatorID == input.RecipientID {
+		return nil, entities.ErrSelfDMNotAllowed
+	}
+	// Validate recipient existence to close the 201-vs-500 account
+	// enumeration oracle. Only enforced when the existence checker is
+	// wired (production); legacy test setups without the checker keep
+	// the previous behavior.
+	if uc.userExistence != nil {
+		ok, err := uc.userExistence.UserExists(ctx, input.RecipientID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify recipient: %w", err)
+		}
+		if !ok {
+			return nil, entities.ErrInvalidParticipants
+		}
+	}
 	// Check if direct conversation already exists
 	existing, err := uc.conversationRepo.GetDirectConversation(ctx, creatorID, input.RecipientID)
 	if err != nil {
@@ -133,6 +175,20 @@ func (uc *MessagingUseCase) CreateDirectConversation(ctx context.Context, creato
 
 // CreateGroupConversation creates a new group conversation.
 func (uc *MessagingUseCase) CreateGroupConversation(ctx context.Context, creatorID int64, input dto.CreateGroupConversationInput) (*entities.Conversation, error) {
+	// v0.162.0 ADR-3 (#297): validate every requested participant before
+	// persistence — pre-fix any missing user triggered an FK violation at
+	// Create-time, leaking account existence through the 201 vs 500 outcome.
+	if uc.userExistence != nil {
+		for _, pid := range input.ParticipantIDs {
+			ok, err := uc.userExistence.UserExists(ctx, pid)
+			if err != nil {
+				return nil, fmt.Errorf("failed to verify participant %d: %w", pid, err)
+			}
+			if !ok {
+				return nil, entities.ErrInvalidParticipants
+			}
+		}
+	}
 	conv := entities.NewGroupConversation(creatorID, input.Title, input.ParticipantIDs)
 	if input.Description != nil {
 		conv.Description = input.Description
@@ -259,7 +315,15 @@ func (uc *MessagingUseCase) UpdateConversation(ctx context.Context, userID, conv
 		return nil, err
 	}
 
-	// Only admins can update group conversations
+	// Caller must be a participant for all conversation types.
+	// v0.162.0 ADR-2 (#297): pre-fix this check existed only inside the
+	// IsAdmin branch below, so direct conversations had no gate and any
+	// authenticated user could PATCH any DM. Group strangers were also
+	// vacuously denied by the admin check but for the wrong reason.
+	if !conv.HasParticipant(userID) {
+		return nil, entities.ErrNotParticipant
+	}
+	// Only admins can update group conversations.
 	if conv.IsGroupConversation() && !conv.IsAdmin(userID) {
 		return nil, entities.ErrNotParticipant
 	}

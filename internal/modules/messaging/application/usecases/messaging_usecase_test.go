@@ -21,6 +21,18 @@ const (
 	testAvatarURL    = "https://example.com/avatar.png"
 )
 
+// MockUserExistenceChecker is a stub implementation of
+// UserExistenceChecker driven by an explicit existing-set, used by the
+// v0.162.0 ADR-3 tests (#297) to validate recipient/participant guards.
+type MockUserExistenceChecker struct {
+	mock.Mock
+}
+
+func (m *MockUserExistenceChecker) UserExists(ctx context.Context, userID int64) (bool, error) {
+	args := m.Called(ctx, userID)
+	return args.Bool(0), args.Error(1)
+}
+
 // MockConversationRepository is a mock implementation of ConversationRepository
 type MockConversationRepository struct {
 	mock.Mock
@@ -2790,4 +2802,157 @@ func TestSendMessage_ShortMimeType(t *testing.T) {
 	assert.Equal(t, entities.MessageTypeFile, msg.Type)
 	mockConvRepo.AssertExpectations(t)
 	mockMsgRepo.AssertExpectations(t)
+}
+
+// TestUpdateConversation_StrangerRejectedForDirect pins v0.162.0 ADR-2:
+// for direct conversations, UpdateConversation must reject a caller who is
+// not a participant. Before fix: line 263 checked admin role ONLY for group
+// conversations and skipped direct entirely, letting any authenticated user
+// PATCH /api/conversations/:id to overwrite title/description/avatar_url
+// of any DM in the system. Issue #297.
+func TestUpdateConversation_StrangerRejectedForDirect(t *testing.T) {
+	ctx := context.Background()
+	mockConvRepo := new(MockConversationRepository)
+	mockMsgRepo := new(MockMessageRepository)
+	logger := createTestLogger()
+	hub := websocket.NewHub(logger)
+
+	uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+	// Direct conversation between user 1 and user 2; stranger is user 3.
+	conv := &entities.Conversation{
+		ID:   1,
+		Type: entities.ConversationTypeDirect,
+		Participants: []entities.Participant{
+			{UserID: 1, Role: entities.ParticipantRoleMember},
+			{UserID: 2, Role: entities.ParticipantRoleMember},
+		},
+	}
+
+	evilTitle := "pwned"
+	input := dto.UpdateConversationInput{Title: &evilTitle}
+
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	// NOTE: no Update expectation — fix must short-circuit before persistence.
+
+	result, err := uc.UpdateConversation(ctx, 3, 1, input)
+
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, entities.ErrNotParticipant)
+	mockConvRepo.AssertExpectations(t)
+	mockConvRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
+}
+
+// TestUpdateConversation_StrangerRejectedForGroup pins ADR-2 parity for
+// group conversations: non-participant must be rejected with the same
+// sentinel as direct (defense in depth — pre-fix line 263 returned
+// ErrNotParticipant only when caller was a participant but not admin;
+// for total strangers the IsAdmin check was vacuously false, but the
+// error message was misleading). After fix, all non-participants are
+// rejected uniformly. Issue #297.
+func TestUpdateConversation_StrangerRejectedForGroup(t *testing.T) {
+	ctx := context.Background()
+	mockConvRepo := new(MockConversationRepository)
+	mockMsgRepo := new(MockMessageRepository)
+	logger := createTestLogger()
+	hub := websocket.NewHub(logger)
+
+	uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+	conv := &entities.Conversation{
+		ID:   2,
+		Type: entities.ConversationTypeGroup,
+		Participants: []entities.Participant{
+			{UserID: 1, Role: entities.ParticipantRoleAdmin},
+			{UserID: 2, Role: entities.ParticipantRoleMember},
+		},
+	}
+
+	evilTitle := "pwned"
+	input := dto.UpdateConversationInput{Title: &evilTitle}
+
+	mockConvRepo.On("GetByID", mock.Anything, int64(2)).Return(conv, nil)
+
+	// Stranger user 3 attempts update.
+	result, err := uc.UpdateConversation(ctx, 3, 2, input)
+
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, entities.ErrNotParticipant)
+	mockConvRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
+}
+
+// TestCreateConversation_RecipientValidation pins v0.162.0 ADR-3 (#297):
+// CreateDirect/Group must reject (a) self-DM, (b) missing recipient, and
+// (c) missing group participant with a single uniform sentinel
+// (ErrInvalidParticipants / ErrSelfDMNotAllowed) so the pre-fix 201-vs-500
+// account-enumeration oracle disappears.
+func TestCreateConversation_RecipientValidation(t *testing.T) {
+	tests := []struct {
+		name       string
+		setup      func(*MockUserExistenceChecker, *MockConversationRepository)
+		callDirect bool // true = CreateDirect; false = CreateGroup
+		creatorID  int64
+		recipient  int64   // direct only
+		groupParts []int64 // group only
+		expectErr  error
+	}{
+		{
+			name:       "direct self-DM rejected",
+			setup:      func(_ *MockUserExistenceChecker, _ *MockConversationRepository) {},
+			callDirect: true,
+			creatorID:  5,
+			recipient:  5,
+			expectErr:  entities.ErrSelfDMNotAllowed,
+		},
+		{
+			name: "direct recipient does not exist",
+			setup: func(uec *MockUserExistenceChecker, _ *MockConversationRepository) {
+				uec.On("UserExists", mock.Anything, int64(999)).Return(false, nil)
+			},
+			callDirect: true,
+			creatorID:  5,
+			recipient:  999,
+			expectErr:  entities.ErrInvalidParticipants,
+		},
+		{
+			name: "group with missing participant rejected",
+			setup: func(uec *MockUserExistenceChecker, _ *MockConversationRepository) {
+				uec.On("UserExists", mock.Anything, int64(10)).Return(true, nil)
+				uec.On("UserExists", mock.Anything, int64(999)).Return(false, nil)
+			},
+			callDirect: false,
+			creatorID:  5,
+			groupParts: []int64{10, 999},
+			expectErr:  entities.ErrInvalidParticipants,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			mockConvRepo := new(MockConversationRepository)
+			mockMsgRepo := new(MockMessageRepository)
+			mockUserExist := new(MockUserExistenceChecker)
+			logger := createTestLogger()
+			hub := websocket.NewHub(logger)
+
+			uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil).
+				WithUserExistenceChecker(mockUserExist)
+
+			tc.setup(mockUserExist, mockConvRepo)
+
+			var err error
+			if tc.callDirect {
+				_, err = uc.CreateDirectConversation(ctx, tc.creatorID,
+					dto.CreateDirectConversationInput{RecipientID: tc.recipient})
+			} else {
+				_, err = uc.CreateGroupConversation(ctx, tc.creatorID,
+					dto.CreateGroupConversationInput{Title: "g", ParticipantIDs: tc.groupParts})
+			}
+
+			assert.ErrorIs(t, err, tc.expectErr)
+			// Persistence must not be reached on rejection.
+			mockConvRepo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+		})
+	}
 }

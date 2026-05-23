@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -25,6 +26,11 @@ const (
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 4096
+
+	// Bounded timeout for the participant-gate lookup. The DB call is
+	// a single indexed query; 2s leaves ample headroom while keeping
+	// the WS read loop responsive.
+	accessCheckTimeout = 2 * time.Second
 )
 
 // checkOrigin validates the Origin header against allowed origins from config.
@@ -188,16 +194,32 @@ func (c *Client) WritePump() {
 }
 
 // handleMessage handles incoming client messages.
+//
+// v0.162.0 ADR-1 (#297): conversation-targeted message types
+// (subscribe / typing / stop_typing) consult hub.canAccessConversation
+// before touching shared state. Pre-fix any authenticated client could
+// subscribe to a sequential conversation_id and eavesdrop the entire
+// system. Unsubscribe is unconditional — removing yourself from a
+// conversation you are not subscribed to is a no-op and not gated.
 func (c *Client) handleMessage(msg *ClientMessage) {
 	switch msg.Type {
 	case "subscribe":
 		// Subscribe to a conversation
 		if msg.ConversationID > 0 {
+			ctx, cancel := context.WithTimeout(context.Background(), accessCheckTimeout)
+			defer cancel()
+			if !c.hub.canAccessConversation(ctx, c.userID, msg.ConversationID) {
+				c.logger.Warn("subscribe denied: not a participant", map[string]interface{}{
+					"user_id":         c.userID,
+					"conversation_id": msg.ConversationID,
+				})
+				return
+			}
 			c.hub.Subscribe(c, msg.ConversationID)
 		}
 
 	case "unsubscribe":
-		// Unsubscribe from a conversation
+		// Unsubscribe from a conversation (always allowed — symmetric cleanup)
 		if msg.ConversationID > 0 {
 			c.hub.Unsubscribe(c, msg.ConversationID)
 		}
@@ -205,6 +227,11 @@ func (c *Client) handleMessage(msg *ClientMessage) {
 	case "typing":
 		// Broadcast typing indicator
 		if msg.ConversationID > 0 {
+			ctx, cancel := context.WithTimeout(context.Background(), accessCheckTimeout)
+			defer cancel()
+			if !c.hub.canAccessConversation(ctx, c.userID, msg.ConversationID) {
+				return
+			}
 			c.hub.BroadcastToConversation(msg.ConversationID, &Event{
 				Type:           EventTypeTyping,
 				ConversationID: msg.ConversationID,
@@ -215,6 +242,11 @@ func (c *Client) handleMessage(msg *ClientMessage) {
 	case "stop_typing":
 		// Broadcast stop typing
 		if msg.ConversationID > 0 {
+			ctx, cancel := context.WithTimeout(context.Background(), accessCheckTimeout)
+			defer cancel()
+			if !c.hub.canAccessConversation(ctx, c.userID, msg.ConversationID) {
+				return
+			}
 			c.hub.BroadcastToConversation(msg.ConversationID, &Event{
 				Type:           EventTypeStopTyping,
 				ConversationID: msg.ConversationID,

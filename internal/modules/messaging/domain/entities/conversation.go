@@ -24,6 +24,14 @@ var (
 	ErrInvalidConversationType  = errors.New("invalid conversation type")
 	ErrCannotAddToDirectChat    = errors.New("cannot add participants to direct chat")
 	ErrCannotLeaveDirectChat    = errors.New("cannot leave direct chat")
+	// ErrSelfDMNotAllowed rejects CreateDirectConversation when the
+	// creator and recipient are the same user. v0.162.0 ADR-3 (#297).
+	ErrSelfDMNotAllowed = errors.New("cannot start a direct conversation with yourself")
+	// ErrInvalidParticipants is returned when one or more requested
+	// participants/recipients do not exist or are not eligible. Uniform
+	// across direct and group creation so the 201 vs 500 outcome no
+	// longer leaks account enumeration. v0.162.0 ADR-3 (#297).
+	ErrInvalidParticipants = errors.New("invalid conversation participants")
 )
 
 // Conversation represents a chat conversation (direct or group).
