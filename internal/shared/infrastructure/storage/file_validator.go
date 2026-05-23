@@ -158,6 +158,26 @@ func (v *FileValidator) ValidateFile(fileName string, fileSize int64, contentTyp
 				}
 			}
 		}
+
+		// Closes #290 ADR-3 octet-stream loophole: when content-type is
+		// application/octet-stream (the generic "I don't know" value
+		// sent by curl и by clients that strip MIME), require magic-
+		// byte detection to yield a whitelisted type. Otherwise evil.exe
+		// (PE: 0x4D 0x5A) sent с octet-stream slips через the MIME
+		// check entirely.
+		if contentType == "" || contentType == "application/octet-stream" {
+			if result.DetectedType == "" || !v.allowedMimeTypes[result.DetectedType] {
+				result.Valid = false
+				detectedLabel := result.DetectedType
+				if detectedLabel == "" {
+					detectedLabel = "неизвестный"
+				}
+				result.Errors = append(result.Errors, fmt.Sprintf(
+					"Тип файла не определён или не разрешён (обнаружено: %s)",
+					detectedLabel,
+				))
+			}
+		}
 	}
 
 	return result, nil

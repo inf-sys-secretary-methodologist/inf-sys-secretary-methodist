@@ -130,7 +130,9 @@ var _ repositories.FileMetadataRepository = (*fakeFileMetaRepo)(nil)
 //
 // role mirrors auth/middleware behavior — defaults to student if caller
 // omits it (most tests want the uploader case where role doesn't matter
-// for the rule, only id-match does).
+// for the rule, only id-match does). Role is stored as plain string
+// (matching JWTMiddleware behavior), so downstream middleware like
+// RequireRole (which type-asserts to string) recognizes it.
 func authMW(userID int64, roles ...authDomain.RoleType) gin.HandlerFunc {
 	role := authDomain.RoleStudent
 	if len(roles) > 0 {
@@ -138,7 +140,7 @@ func authMW(userID int64, roles ...authDomain.RoleType) gin.HandlerFunc {
 	}
 	return func(c *gin.Context) {
 		c.Set("user_id", userID)
-		c.Set("role", role)
+		c.Set("role", string(role))
 		c.Next()
 	}
 }
@@ -388,4 +390,64 @@ func TestFileHandler_GetByID_HappyPath(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
+}
+
+// ----- ADR-5 cleanup admin gate (#290) -----
+
+// setupCleanupRouter wires authMW + RequireRole("system_admin") in front
+// of the cleanup handler — mirrors production main.go route assembly.
+func setupCleanupRouter(h *FileHandler, role authDomain.RoleType) *gin.Engine {
+	r := gin.New()
+	r.Use(authMW(defaultFixtureUploader, role))
+	cleanupGroup := r.Group("")
+	cleanupGroup.Use(authMiddlewareRequireSystemAdmin())
+	cleanupGroup.POST("/files/cleanup", h.CleanupExpired)
+	return r
+}
+
+// authMiddlewareRequireSystemAdmin returns a gin.HandlerFunc enforcing
+// role == "system_admin" — mirrors auth_middleware.RequireRole inline
+// so tests don't need the auth package as a dependency.
+func authMiddlewareRequireSystemAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userRole, exists := c.Get("role")
+		if !exists {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+		roleStr, ok := userRole.(string)
+		if !ok || roleStr != string(authDomain.RoleSystemAdmin) {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+		c.Next()
+	}
+}
+
+func TestFileHandler_CleanupExpired_StudentDenied(t *testing.T) {
+	repo := &fakeFileMetaRepo{}
+	h := newHandlerWithUC(repo)
+	r := setupCleanupRouter(h, authDomain.RoleStudent)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/files/cleanup", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code,
+		"student must be rejected by RequireRole(system_admin) middleware")
+	assert.False(t, repo.cleanupCalled, "cleanup handler must not run for non-admin")
+}
+
+func TestFileHandler_CleanupExpired_AdminAllowed(t *testing.T) {
+	repo := &fakeFileMetaRepo{count: 0}
+	h := newHandlerWithUC(repo)
+	r := setupCleanupRouter(h, authDomain.RoleSystemAdmin)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/files/cleanup", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code,
+		"system_admin must pass RequireRole gate and reach the handler")
+	assert.True(t, repo.cleanupCalled, "cleanup handler should have run")
 }

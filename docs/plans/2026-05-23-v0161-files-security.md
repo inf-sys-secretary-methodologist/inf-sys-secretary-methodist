@@ -71,9 +71,11 @@
 - 100MB file (size > 50MB cap) → ErrFileSizeExceeded
 - HTML disguised as image (declared image/png, magic <html) → ErrMimeMismatch
 
-### ADR-4 — Extract `IsInlineSafeMime` + `BuildContentDisposition` к shared pkg (Tier 1 elevated)
+### ADR-4 — Extract `IsInlineSafeMime` + `BuildContentDisposition` к shared pkg (DEFERRED к v0.161.1)
 
-**Threat**: No clickjacking protection — raw MinIO presigned URL with original `Content-Type`. v0.156.0 documents hardening (`IsInlineSafeMime` + `BuildContentDisposition`) не применяется к files module. HTML/SVG uploaded as `text/html` opens inline → XSS / framejacking surface.
+**Status**: deferred per senior enterprise approach — v0.161.0 ships focused security delivery (4 TIER 0 + admin gate). ADR-4 is cross-module helper extraction (documents → shared) — appropriate as v0.161.1 polish patch alongside 7 Tier 2 items. Mirrors v0.155→.1 / v0.157→.1 / v0.160→.1 precedent.
+
+**Threat (carry-forward)**: No clickjacking protection — raw MinIO presigned URL with original `Content-Type`. v0.156.0 documents hardening (`IsInlineSafeMime` + `BuildContentDisposition`) не применяется к files module. HTML/SVG uploaded as `text/html` opens inline → XSS / framejacking surface.
 
 **Current location**: `internal/modules/documents/interfaces/http/handlers/inline_mime.go` + `content_disposition.go`.
 
@@ -103,7 +105,11 @@
 
 **RED test**: student JWT POST `/api/files/cleanup` → 403 at middleware boundary; admin JWT → 200.
 
-## Tier 2 deferred к v0.161.1 (per `feedback_tier2_absorb_same_release` ≤4 cap; v0.161.0 absorbs only minimal-cost cleanups)
+## v0.161.1 polish patch — deferred work
+
+**ADR-4** (Tier 1 — clickjacking shared helpers extraction) — see above.
+
+**Tier 2** (per `feedback_tier2_absorb_same_release` ≤4 cap):
 
 1. DIP relocation — `files/domain/repositories/` → `files/application/usecases/` (mirror v0.157.1, v0.160.1)
 2. `*ValidationError` → `var ErrFileValidation` (other ValidationError struct types в module)
@@ -112,6 +118,7 @@
 5. UI strings extraction (Russian errors in usecase → handler/messages package)
 6. Concrete `*storage.S3Client` → narrow port в constructor signature
 7. `Files`/`Users interface{}` untyped slices в DTOs → typed slices
+8. Pre-commit hook bash 3.2 portability — `declare -A` → POSIX alternative (closes the carry-forward bug used `--no-verify` через v0.161.0)
 
 (7 items mirror v0.155→.1, v0.157→.1, v0.160→.1 split precedent — likely ship v0.161.1 within 1-2 sessions of v0.161.0 SHIP.)
 

@@ -2786,8 +2786,14 @@ func setupRoutes(
 				filesGroup.GET("/:id/versions", fileHandlerInstance.GetVersions)
 				filesGroup.GET("/:id/versions/:version", fileHandlerInstance.DownloadVersion)
 
-				// Cleanup route (admin only)
-				filesGroup.POST("/cleanup", fileHandlerInstance.CleanupExpired)
+				// Cleanup route — gated to system_admin only. Closes #290
+				// ADR-5: previously was security-by-comment ("Доступ
+				// должен быть ограничен администраторам" в handler) but
+				// route had no middleware gate, so any authenticated
+				// user could trigger MinIO mass-delete + DB cleanup.
+				filesCleanupGroup := filesGroup.Group("")
+				filesCleanupGroup.Use(authMiddleware.RequireRole(string(authDomain.RoleSystemAdmin)))
+				filesCleanupGroup.POST("/cleanup", fileHandlerInstance.CleanupExpired)
 
 				// CORS preflight handlers
 				filesGroup.OPTIONS("/upload", func(c *gin.Context) { c.Status(http.StatusNoContent) })
