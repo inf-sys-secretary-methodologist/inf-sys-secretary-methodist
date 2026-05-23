@@ -1599,44 +1599,27 @@ func TestFileUseCase_DeleteFile_OtherUserDenied(t *testing.T) {
 	mockAudit.AssertExpectations(t)
 }
 
-func TestFileUseCase_GetFilesByDocument_FiltersForeignFiles(t *testing.T) {
-	// #290 reviewer T0-1 round 1: non-admin list calls must filter
-	// out files the actor cannot read. Document attaches могут
-	// идти от разных uploaders (e.g. teacher attaches notes,
-	// student attaches drafts). Student must see only own files.
+func TestFileUseCase_GetFilesByDocument_CrossUploaderVisibility(t *testing.T) {
+	// Round 2 reviewer T1-A: file-level filter dropped — shared
+	// document workflow требует cross-uploader visibility
+	// (methodist + student attach к same doc). IDOR mitigation
+	// relies on parent document route's ACL, не file-level filter.
+	// Carry-forward к v0.161.1: verify documents handler gates the
+	// parent route correctly.
 	mockFileRepo := new(MockFileMetadataRepository)
 	uc := newTestFileUseCase(mockFileRepo, nil, nil, nil, nil)
 	ctx := context.Background()
 
 	files := []*entities.FileMetadata{
-		{ID: 1, OriginalName: "mine.pdf", UploadedBy: 10},
+		{ID: 1, OriginalName: "student_draft.pdf", UploadedBy: 10},
 		{ID: 2, OriginalName: "teacher_note.pdf", UploadedBy: 20},
-		{ID: 3, OriginalName: "another_mine.pdf", UploadedBy: 10},
+		{ID: 3, OriginalName: "methodist_review.pdf", UploadedBy: 30},
 	}
 	mockFileRepo.On("GetByDocumentID", ctx, int64(42)).Return(files, nil).Once()
 
+	// Student (id=10) calls — sees all 3 files because parent ACL gates.
 	result, err := uc.GetFilesByDocument(ctx, 42, 10, authDomain.RoleStudent)
 
 	require.NoError(t, err)
-	assert.Len(t, result, 2, "non-admin sees only files they uploaded (2 of 3)")
-	for _, r := range result {
-		assert.NotEqual(t, "teacher_note.pdf", r.OriginalName)
-	}
-}
-
-func TestFileUseCase_GetFilesByDocument_AdminSeesAll(t *testing.T) {
-	mockFileRepo := new(MockFileMetadataRepository)
-	uc := newTestFileUseCase(mockFileRepo, nil, nil, nil, nil)
-	ctx := context.Background()
-
-	files := []*entities.FileMetadata{
-		{ID: 1, UploadedBy: 10},
-		{ID: 2, UploadedBy: 20},
-	}
-	mockFileRepo.On("GetByDocumentID", ctx, int64(42)).Return(files, nil).Once()
-
-	result, err := uc.GetFilesByDocument(ctx, 42, 99, authDomain.RoleSystemAdmin)
-
-	require.NoError(t, err)
-	assert.Len(t, result, 2, "admin sees все файлы документа (read override)")
+	assert.Len(t, result, 3, "all participants на shared document видят все attached files")
 }

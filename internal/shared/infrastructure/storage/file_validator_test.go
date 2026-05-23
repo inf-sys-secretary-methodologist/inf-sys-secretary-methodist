@@ -287,12 +287,18 @@ func TestValidateFile_MagicBytes_ReaderError(t *testing.T) {
 	cfg := DefaultFileValidatorConfig()
 	v := NewFileValidator(cfg)
 
-	// Use a reader that returns an error
+	// Use a reader that returns an error.
+	//
+	// Round 2 reviewer T0-A: rolled back round-1 strict rejection on
+	// unknown detected type для declared-whitelist MIMEs. Declared
+	// application/pdf + read error → Valid=true (cannot verify, but
+	// declared MIME is on whitelist so we trust client). Octet-stream
+	// path still rejects unknown — see "unknown magic bytes with
+	// octet-stream" в TestValidateFile_MagicBytes.
 	errReader := &errorReader{}
 	result, err := v.ValidateFile("test.pdf", 100, "application/pdf", errReader)
-	assert.NoError(t, err)        // ValidateFile itself doesn't return error from detectFileType
-	assert.False(t, result.Valid) // #290 reviewer T1-1 round 1: cannot verify content → reject
-	assert.Empty(t, result.DetectedType)
+	assert.NoError(t, err)
+	assert.True(t, result.Valid)
 }
 
 type errorReader struct{}
@@ -308,9 +314,10 @@ func TestValidateFile_EmptyReader(t *testing.T) {
 	reader := bytes.NewReader([]byte{})
 	result, err := v.ValidateFile("test.pdf", 100, "application/pdf", reader)
 	assert.NoError(t, err)
-	// #290 reviewer T1-1 round 1: empty content → cannot verify type
-	// → reject (was Valid=true в pre-hotfix permissive baseline).
-	assert.False(t, result.Valid)
+	// Round 2 reviewer T0-A: declared whitelist MIME + empty content
+	// → trust declaration. Octet-stream + empty would reject (see
+	// "unknown magic bytes with octet-stream" case).
+	assert.True(t, result.Valid)
 }
 
 func TestValidateFile_MultipleErrors(t *testing.T) {
@@ -606,4 +613,39 @@ func TestValidateFile_SanitizedName(t *testing.T) {
 	result, err := v.ValidateFile("../../../etc/test.txt", 100, "text/plain", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, "test.txt", result.SanitizedName)
+}
+
+// TestValidateFile_WhitelistMIMEsWithoutMagic — regression-prevention для
+// reviewer T0-A round 2: validator must accept legitimate uploads of
+// whitelisted MIMEs that have no magic-byte entry in initMagicBytes.
+// Round 1 hardening rejected all 7 of these in production until rolled
+// back в round 2. Table-driven so adding a new MIME к whitelist
+// surfaces missing positive coverage immediately.
+func TestValidateFile_WhitelistMIMEsWithoutMagic(t *testing.T) {
+	cfg := DefaultFileValidatorConfig()
+	v := NewFileValidator(cfg)
+
+	tests := []struct {
+		name        string
+		fileName    string
+		contentType string
+		bytes       []byte
+	}{
+		{"text/plain (.txt)", "doc.txt", "text/plain", []byte("hello world")},
+		{"text/csv (.csv)", "data.csv", "text/csv", []byte("a,b,c\n1,2,3")},
+		{"image/webp (.webp)", "img.webp", "image/webp", []byte{0x52, 0x49, 0x46, 0x46}},
+		{"application/msword (.doc)", "old.doc", "application/msword", []byte{0xD0, 0xCF, 0x11, 0xE0}},
+		{"application/vnd.ms-excel (.xls)", "old.xls", "application/vnd.ms-excel", []byte{0xD0, 0xCF, 0x11, 0xE0}},
+		{"application/vnd.ms-powerpoint (.ppt)", "old.ppt", "application/vnd.ms-powerpoint", []byte{0xD0, 0xCF, 0x11, 0xE0}},
+		{"application/x-7z-compressed (.7z)", "arch.7z", "application/x-7z-compressed", []byte{0x37, 0x7A, 0xBC, 0xAF}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := bytes.NewReader(tt.bytes)
+			result, err := v.ValidateFile(tt.fileName, int64(len(tt.bytes)), tt.contentType, reader)
+			assert.NoError(t, err)
+			assert.True(t, result.Valid, "legitimate %s upload must succeed; errors=%v", tt.name, result.Errors)
+		})
+	}
 }

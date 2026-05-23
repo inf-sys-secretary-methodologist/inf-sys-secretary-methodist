@@ -302,12 +302,16 @@ func (r *FileMetadataRepositoryPG) GetByUploadedBy(ctx context.Context, userID i
 // загруженных пользователем. Closes #290 reviewer T0-1 round 1:
 // ListFiles теперь дисмбачит pagination по actor role, и для
 // non-admin path этот метод даёт корректный total.
+//
+// Round 2 reviewer T1-B: errors mapped через database.MapPostgresError
+// для consistency с остальными методами PG repo (was returning raw
+// pq errors, leaking schema details).
 func (r *FileMetadataRepositoryPG) CountByUploadedBy(ctx context.Context, userID int64) (int64, error) {
 	query := `SELECT COUNT(*) FROM file_metadata WHERE uploaded_by = $1 AND deleted_at IS NULL`
 	var count int64
 	err := r.db.QueryRowContext(ctx, query, userID).Scan(&count)
 	if err != nil {
-		return 0, err
+		return 0, database.MapPostgresError(err)
 	}
 	return count, nil
 }

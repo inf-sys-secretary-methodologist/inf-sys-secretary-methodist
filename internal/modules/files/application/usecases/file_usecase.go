@@ -377,62 +377,58 @@ func (uc *FileUseCase) ListFiles(ctx context.Context, page, limit int, actorID i
 	}, nil
 }
 
-// filterAccessibleFiles returns only the files actor may read.
-// Post-filter via AuthorizeFileAccess(FileActionRead) — drops denied
-// entries silently (no per-file 403, list endpoints просто не отдают
-// чужие файлы). Closes #290 reviewer T0-1 для group-list endpoints.
-func (uc *FileUseCase) filterAccessibleFiles(files []*entities.FileMetadata, actorID int64, actorRole authDomain.RoleType) []*entities.FileMetadata {
-	accessible := make([]*entities.FileMetadata, 0, len(files))
-	for _, f := range files {
-		if filesDomain.AuthorizeFileAccess(actorID, actorRole, f, filesDomain.FileActionRead) == nil {
-			accessible = append(accessible, f)
-		}
-	}
-	return accessible
-}
-
 // GetFilesByDocument получает все файлы документа.
-func (uc *FileUseCase) GetFilesByDocument(ctx context.Context, documentID int64, actorID int64, actorRole authDomain.RoleType) ([]*dto.FileResponse, error) {
+//
+// Round 2 reviewer T1-A: file-level filter dropped — shared document
+// workflow (methodist + student attach files) requires cross-uploader
+// visibility. IDOR mitigation для этого endpoint relies on parent
+// route ACL: GET /api/documents/:id/files должен gating'ить access
+// к документу на documents/handler уровне. Sub-resource visibility
+// inherits parent ACL. Carry-forward к v0.161.1: verify documents
+// handler действительно gates the parent (audit doc finding).
+//
+// Signature keeps (actorID, role) for future per-file overrides
+// и для consistent handler-side context propagation.
+func (uc *FileUseCase) GetFilesByDocument(ctx context.Context, documentID int64, _ int64, _ authDomain.RoleType) ([]*dto.FileResponse, error) {
 	files, err := uc.fileRepo.GetByDocumentID(ctx, documentID)
 	if err != nil {
 		return nil, err
 	}
 
-	accessible := uc.filterAccessibleFiles(files, actorID, actorRole)
-	responses := make([]*dto.FileResponse, len(accessible))
-	for i, file := range accessible {
+	responses := make([]*dto.FileResponse, len(files))
+	for i, file := range files {
 		responses[i] = uc.toFileResponse(file)
 	}
 
 	return responses, nil
 }
 
-// GetFilesByTask получает все файлы задачи.
-func (uc *FileUseCase) GetFilesByTask(ctx context.Context, taskID int64, actorID int64, actorRole authDomain.RoleType) ([]*dto.FileResponse, error) {
+// GetFilesByTask получает все файлы задачи. See GetFilesByDocument
+// для ACL inheritance reasoning.
+func (uc *FileUseCase) GetFilesByTask(ctx context.Context, taskID int64, _ int64, _ authDomain.RoleType) ([]*dto.FileResponse, error) {
 	files, err := uc.fileRepo.GetByTaskID(ctx, taskID)
 	if err != nil {
 		return nil, err
 	}
 
-	accessible := uc.filterAccessibleFiles(files, actorID, actorRole)
-	responses := make([]*dto.FileResponse, len(accessible))
-	for i, file := range accessible {
+	responses := make([]*dto.FileResponse, len(files))
+	for i, file := range files {
 		responses[i] = uc.toFileResponse(file)
 	}
 
 	return responses, nil
 }
 
-// GetFilesByAnnouncement получает все файлы объявления.
-func (uc *FileUseCase) GetFilesByAnnouncement(ctx context.Context, announcementID int64, actorID int64, actorRole authDomain.RoleType) ([]*dto.FileResponse, error) {
+// GetFilesByAnnouncement получает все файлы объявления. See
+// GetFilesByDocument для ACL inheritance reasoning.
+func (uc *FileUseCase) GetFilesByAnnouncement(ctx context.Context, announcementID int64, _ int64, _ authDomain.RoleType) ([]*dto.FileResponse, error) {
 	files, err := uc.fileRepo.GetByAnnouncementID(ctx, announcementID)
 	if err != nil {
 		return nil, err
 	}
 
-	accessible := uc.filterAccessibleFiles(files, actorID, actorRole)
-	responses := make([]*dto.FileResponse, len(accessible))
-	for i, file := range accessible {
+	responses := make([]*dto.FileResponse, len(files))
+	for i, file := range files {
 		responses[i] = uc.toFileResponse(file)
 	}
 
