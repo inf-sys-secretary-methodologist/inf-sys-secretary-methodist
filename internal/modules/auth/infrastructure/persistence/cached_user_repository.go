@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -172,4 +173,19 @@ func (r *CachedUserRepository) List(ctx context.Context, limit, offset int) ([]*
 	r.perfLog.LogDatabaseQuery(ctx, "SELECT users LIST", duration, int64(len(users)))
 
 	return users, err
+}
+
+// CountByRole forwards к the underlying repo. No cache layer —
+// admin headcount changes too rarely to benefit from caching and a
+// stale read would defeat the last-admin guard's purpose
+// (#283 ADR-4 Tier 1). Implemented as a type-asserted call so the
+// auth-side narrow port stays free of the users-side concern.
+func (r *CachedUserRepository) CountByRole(ctx context.Context, role domain.RoleType) (int, error) {
+	type roleCounter interface {
+		CountByRole(ctx context.Context, role domain.RoleType) (int, error)
+	}
+	if counter, ok := r.repo.(roleCounter); ok {
+		return counter.CountByRole(ctx, role)
+	}
+	return 0, fmt.Errorf("CachedUserRepository: wrapped repo does not implement CountByRole")
 }

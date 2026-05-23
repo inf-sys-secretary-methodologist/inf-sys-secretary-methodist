@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/crypto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
@@ -215,6 +216,18 @@ func (r *UserRepositoryPG) scanUserByQuery(ctx context.Context, query string, ar
 	}
 	user.MFASecret = secret
 	return user, nil
+}
+
+// CountByRole returns the number of users carrying the given role.
+// Used by the users module to enforce the last-system_admin guard
+// before a destructive admin delete (#283 ADR-4 Tier 1).
+func (r *UserRepositoryPG) CountByRole(ctx context.Context, role domain.RoleType) (int, error) {
+	var count int
+	err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM users WHERE role = $1 AND deleted_at IS NULL`, string(role)).Scan(&count)
+	if err != nil {
+		return 0, database.MapPostgresError(err)
+	}
+	return count, nil
 }
 
 // Delete removes a user by ID

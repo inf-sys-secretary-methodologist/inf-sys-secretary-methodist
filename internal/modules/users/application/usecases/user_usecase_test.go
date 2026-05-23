@@ -29,10 +29,11 @@ var _ UserAccountRepository = (*MockUserRepository)(nil)
 // beyond the narrow port persist from the legacy wide-mock shape — Go
 // structural typing accepts the over-satisfaction.
 type MockUserRepository struct {
-	users     map[int64]*authEntities.User
-	nextID    int64
-	saveErr   error
-	deleteErr error
+	users          map[int64]*authEntities.User
+	nextID         int64
+	saveErr        error
+	deleteErr      error
+	countByRoleErr error
 }
 
 func NewMockUserRepository() *MockUserRepository {
@@ -88,6 +89,21 @@ func (m *MockUserRepository) Delete(_ context.Context, id int64) error {
 	}
 	delete(m.users, id)
 	return nil
+}
+
+// CountByRole returns the number of in-memory users carrying the
+// given role. Used by the ADR-4 last-admin guard test scenarios.
+func (m *MockUserRepository) CountByRole(_ context.Context, role authDomain.RoleType) (int, error) {
+	if m.countByRoleErr != nil {
+		return 0, m.countByRoleErr
+	}
+	n := 0
+	for _, u := range m.users {
+		if u.Role == role {
+			n++
+		}
+	}
+	return n, nil
 }
 
 func (m *MockUserRepository) List(_ context.Context, limit, offset int) ([]*authEntities.User, error) {
@@ -869,7 +885,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 
 	// Delete
-	err := uc.DeleteUser(ctx, user.ID)
+	err := uc.DeleteUser(ctx, 1, user.ID)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -893,7 +909,7 @@ func TestUserUseCase_DeleteUser_WithAuditLogger(t *testing.T) {
 	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
 	_ = userRepo.Create(ctx, user)
 
-	err := uc.DeleteUser(ctx, user.ID)
+	err := uc.DeleteUser(ctx, 1, user.ID)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -912,9 +928,108 @@ func TestUserUseCase_DeleteUser_DeleteError(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 	userRepo.deleteErr = errors.New("delete error")
 
-	err := uc.DeleteUser(ctx, user.ID)
+	err := uc.DeleteUser(ctx, 1, user.ID)
 	if err == nil {
 		t.Error("expected error from delete")
+	}
+}
+
+// TestUserUseCase_DeleteUser_Guards pins the #283 ADR-4 Tier 1
+// guards: actors must not delete themselves; the last system_admin
+// must not be removed. Table-driven across both refusal paths and
+// the happy-path admin-deletes-other-admin scenario.
+func TestUserUseCase_DeleteUser_Guards(t *testing.T) {
+	tests := []struct {
+		name           string
+		actorID        int64
+		targetRole     authDomain.RoleType
+		extraAdmins    int // additional admin users created beyond the target
+		expectedErr    error
+		expectDeletion bool
+	}{
+		{
+			name:           "self-delete forbidden — admin",
+			actorID:        0, // will be set to target.ID inside the test (self)
+			targetRole:     authDomain.RoleSystemAdmin,
+			extraAdmins:    5, // plenty of other admins; guard 1 still fires
+			expectedErr:    usersDomain.ErrCannotDeleteSelf,
+			expectDeletion: false,
+		},
+		{
+			name:           "self-delete forbidden — student",
+			actorID:        0, // self
+			targetRole:     authDomain.RoleStudent,
+			extraAdmins:    1,
+			expectedErr:    usersDomain.ErrCannotDeleteSelf,
+			expectDeletion: false,
+		},
+		{
+			name:           "last-admin protected",
+			actorID:        9999, // distinct actor
+			targetRole:     authDomain.RoleSystemAdmin,
+			extraAdmins:    0, // target is the sole admin
+			expectedErr:    usersDomain.ErrLastAdminProtected,
+			expectDeletion: false,
+		},
+		{
+			name:           "admin deletes other admin — allowed when more than one admin remains",
+			actorID:        9999,
+			targetRole:     authDomain.RoleSystemAdmin,
+			extraAdmins:    2,
+			expectedErr:    nil,
+			expectDeletion: true,
+		},
+		{
+			name:           "admin deletes student — allowed",
+			actorID:        9999,
+			targetRole:     authDomain.RoleStudent,
+			extraAdmins:    1,
+			expectedErr:    nil,
+			expectDeletion: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			userRepo := NewMockUserRepository()
+			profileRepo := NewMockUserProfileRepository()
+			deptRepo := NewMockDepartmentRepository()
+			posRepo := NewMockPositionRepository()
+			uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+			ctx := context.Background()
+
+			target := authEntities.NewUser("target@example.com", "password", "Target", tc.targetRole)
+			_ = userRepo.Create(ctx, target)
+			for i := 0; i < tc.extraAdmins; i++ {
+				extra := authEntities.NewUser(
+					fmt.Sprintf("admin%d@example.com", i),
+					"password",
+					fmt.Sprintf("Admin %d", i),
+					authDomain.RoleSystemAdmin,
+				)
+				_ = userRepo.Create(ctx, extra)
+			}
+
+			actorID := tc.actorID
+			if actorID == 0 {
+				actorID = target.ID
+			}
+
+			err := uc.DeleteUser(ctx, actorID, target.ID)
+			if tc.expectedErr != nil {
+				if !errors.Is(err, tc.expectedErr) {
+					t.Fatalf("expected %v, got %v", tc.expectedErr, err)
+				}
+			} else if err != nil {
+				t.Fatalf("expected delete to succeed, got %v", err)
+			}
+
+			_, lookupErr := userRepo.GetByID(ctx, target.ID)
+			deleted := lookupErr != nil
+			if deleted != tc.expectDeletion {
+				t.Fatalf("expected deletion=%v, got deletion=%v (lookup err: %v)", tc.expectDeletion, deleted, lookupErr)
+			}
+		})
 	}
 }
 
@@ -927,7 +1042,7 @@ func TestUserUseCase_DeleteUser_NotFound(t *testing.T) {
 
 	ctx := context.Background()
 
-	err := uc.DeleteUser(ctx, 999)
+	err := uc.DeleteUser(ctx, 1, 999)
 	if err == nil {
 		t.Error("expected error for non-existent user")
 	}

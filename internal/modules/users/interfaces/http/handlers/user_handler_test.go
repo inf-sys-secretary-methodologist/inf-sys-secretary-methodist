@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
@@ -55,6 +56,11 @@ func (m *mockAuthUserRepo) GetByEmail(ctx context.Context, email string) (*authE
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*authEntities.User), args.Error(1)
+}
+
+func (m *mockAuthUserRepo) CountByRole(ctx context.Context, role authDomain.RoleType) (int, error) {
+	args := m.Called(ctx, role)
+	return args.Int(0), args.Error(1)
 }
 
 func (m *mockAuthUserRepo) GetByEmailForAuth(ctx context.Context, email string) (*authEntities.User, error) {

@@ -29,6 +29,17 @@ const AvatarPrefixFormat = "avatars/%d_"
 // untraceable.
 var ErrProfileEditForbidden = errors.New("profile edit forbidden: actor is not target user and lacks system_admin override")
 
+// ErrCannotDeleteSelf is returned when an actor attempts to delete
+// their own account. Closes #283 ADR-4 (Tier 1): self-deletion is
+// unrecoverable and bricks the actor's session — guarded
+// unconditionally regardless of role.
+var ErrCannotDeleteSelf = errors.New("user cannot delete their own account")
+
+// ErrLastAdminProtected is returned when deleting the target user
+// would leave the system with zero system_admin accounts, locking
+// nobody out of administrative recovery. Closes #283 ADR-4 (Tier 1).
+var ErrLastAdminProtected = errors.New("cannot delete the last remaining system_admin")
+
 // ErrInvalidAvatarKey is returned when an avatar storage key does not
 // belong to the target user's avatar prefix.
 //
@@ -80,4 +91,30 @@ func AuthorizeProfileEdit(actorID, targetID int64, actorRole authDomain.RoleType
 		return nil
 	}
 	return ErrProfileEditForbidden
+}
+
+// AuthorizeUserDelete returns nil if the actor may delete the target
+// user, an explanatory sentinel otherwise.
+//
+// Two guards:
+//  1. Self-delete (actorID == targetID) is unconditionally forbidden:
+//     no role gets to remove its own account. Returns ErrCannotDeleteSelf.
+//  2. Removing the last remaining system_admin would brick the
+//     administrative recovery path. Returns ErrLastAdminProtected when
+//     the target is a system_admin AND the current admin headcount is
+//     1 (the actor must look up the count via the repository — this
+//     function takes it as an argument to stay pure and testable).
+//
+// RED-commit stub: returns nil unconditionally. The GREEN commit
+// implements both guards.
+func AuthorizeUserDelete(
+	actorID, targetID int64,
+	targetRole authDomain.RoleType,
+	adminHeadcount int,
+) error {
+	_ = actorID
+	_ = targetID
+	_ = targetRole
+	_ = adminHeadcount
+	return nil
 }

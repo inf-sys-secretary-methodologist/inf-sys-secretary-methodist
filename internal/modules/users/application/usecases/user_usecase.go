@@ -260,21 +260,43 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, userID int64, input
 }
 
 // DeleteUser deletes a user.
-func (uc *UserUseCase) DeleteUser(ctx context.Context, userID int64) error {
-	// Verify user exists
-	_, err := uc.userRepo.GetByID(ctx, userID)
+//
+// Two guards (#283 ADR-4 Tier 1):
+//  1. Self-delete (actorID == targetID) is unconditionally forbidden —
+//     no role gets to remove its own account, which would brick the
+//     actor's session and leave the system in an inconsistent state.
+//  2. Removing the last remaining system_admin is forbidden. The
+//     headcount query is conditional: only fired when the target is
+//     a system_admin (rare path, no perf hit on the common case).
+//
+// Audit row records both actor_user_id and target_user_id so deletes
+// remain traceable.
+func (uc *UserUseCase) DeleteUser(ctx context.Context, actorID, targetID int64) error {
+	target, err := uc.userRepo.GetByID(ctx, targetID)
 	if err != nil {
 		return err
 	}
 
-	err = uc.userRepo.Delete(ctx, userID)
-	if err != nil {
+	adminHeadcount := 0
+	if target.Role == authDomain.RoleSystemAdmin {
+		adminHeadcount, err = uc.userRepo.CountByRole(ctx, authDomain.RoleSystemAdmin)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := usersDomain.AuthorizeUserDelete(actorID, targetID, target.Role, adminHeadcount); err != nil {
+		return err
+	}
+
+	if err := uc.userRepo.Delete(ctx, targetID); err != nil {
 		return err
 	}
 
 	if uc.auditLogger != nil {
 		uc.auditLogger.LogAuditEvent(ctx, "delete", "user", map[string]interface{}{
-			"user_id": userID,
+			"actor_user_id":  actorID,
+			"target_user_id": targetID,
 		})
 	}
 

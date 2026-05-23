@@ -754,7 +754,17 @@ func main() {
 	departmentRepo := usersPersistence.NewDepartmentRepositoryPG(db)
 	positionRepo := usersPersistence.NewPositionRepositoryPG(db)
 	userProfileRepo := usersPersistence.NewUserProfileRepositoryPG(db)
-	userUseCase := usersUsecases.NewUserUseCase(userRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger, notificationUseCase)
+	// userRepo is the auth-side narrow port; the users module needs
+	// the wider UserAccountRepository (includes CountByRole for the
+	// #283 ADR-4 last-admin guard). Both concrete implementations
+	// (*UserRepositoryPG, *CachedUserRepository) satisfy the wider
+	// port — type-assert at the seam rather than coupling auth's
+	// port to a users-only concern.
+	usersUserAccountRepo, ok := userRepo.(usersUsecases.UserAccountRepository)
+	if !ok {
+		log.Fatalf("auth user repository does not satisfy users.UserAccountRepository — CountByRole is required for the last-admin guard")
+	}
+	userUseCase := usersUsecases.NewUserUseCase(usersUserAccountRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger, notificationUseCase)
 	departmentUseCase := usersUsecases.NewDepartmentUseCase(departmentRepo, auditLogger)
 	positionUseCase := usersUsecases.NewPositionUseCase(positionRepo, auditLogger)
 	logger.Info("Users module initialized", nil)
