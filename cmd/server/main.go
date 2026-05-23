@@ -2662,7 +2662,6 @@ func setupRoutes(
 				announcementHandlerInstance,
 			)
 			{
-
 				// CORS preflight handlers
 				announcementsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				announcementsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })

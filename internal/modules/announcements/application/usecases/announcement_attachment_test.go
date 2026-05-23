@@ -166,9 +166,9 @@ func TestRemoveAttachment_NotFound(t *testing.T) {
 // (b) the actor is either the announcement author or a system_admin.
 func TestRemoveAttachment_AuthzGate(t *testing.T) {
 	type setup struct {
-		authorID, attachmentID, actorID, urlAnnouncementID int64
-		actorRole                                          string
-		wantErr                                            error
+		authorID, actorID, urlAnnouncementID int64
+		actorRole                            string
+		wantErr                              error
 	}
 
 	tests := []struct {

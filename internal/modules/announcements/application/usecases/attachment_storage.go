@@ -62,7 +62,7 @@ const attachmentMaxSize int64 = 10 * 1024 * 1024
 // images for visual context). NO executable / archive types — those
 // are documents-module territory.
 var allowedAttachmentMimeTypes = map[string]bool{
-	"application/pdf":   true,
+	"application/pdf":    true,
 	"application/msword": true,
 	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
 	"application/vnd.ms-excel": true,
