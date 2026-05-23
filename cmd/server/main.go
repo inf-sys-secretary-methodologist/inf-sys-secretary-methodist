@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.162.0
+// @version         0.163.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -94,6 +94,7 @@ import (
 	announcementUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
 	announcementPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/infrastructure/persistence"
 	announcementHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/handlers"
+	announcementRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/routes"
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	assignPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/infrastructure/persistence"
 	assignHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/interfaces/http/handlers"
@@ -179,7 +180,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.162.0"
+const versionString = "0.163.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -2653,28 +2654,14 @@ func setupRoutes(
 			announcementHandlerInstance := announcementHandler.NewAnnouncementHandler(announcementUseCase)
 
 			announcementsGroup := protectedGroup.Group("/announcements")
+			// v0.163.0 ADR-1 (#303 TIER 0): mutation routes wrapped в
+			// RequireNonStudent; reads stay on the parent group.
+			announcementRoutes.RegisterAnnouncementRoutes(
+				announcementsGroup,
+				authMiddleware.RequireNonStudent(),
+				announcementHandlerInstance,
+			)
 			{
-				// CRUD operations
-				announcementsGroup.POST("", announcementHandlerInstance.Create)
-				announcementsGroup.GET("", announcementHandlerInstance.List)
-				announcementsGroup.GET("/:id", announcementHandlerInstance.GetByID)
-				announcementsGroup.PUT("/:id", announcementHandlerInstance.Update)
-				announcementsGroup.DELETE("/:id", announcementHandlerInstance.Delete)
-
-				// Special queries
-				announcementsGroup.GET("/published", announcementHandlerInstance.GetPublished)
-				announcementsGroup.GET("/pinned", announcementHandlerInstance.GetPinned)
-				announcementsGroup.GET("/recent", announcementHandlerInstance.GetRecent)
-
-				// Announcement actions
-				announcementsGroup.POST("/:id/publish", announcementHandlerInstance.Publish)
-				announcementsGroup.POST("/:id/unpublish", announcementHandlerInstance.Unpublish)
-				announcementsGroup.POST("/:id/archive", announcementHandlerInstance.Archive)
-
-				// Attachments
-				announcementsGroup.POST("/:id/attachments", announcementHandlerInstance.UploadAttachment)
-				announcementsGroup.DELETE("/:id/attachments/:attachmentID", announcementHandlerInstance.DeleteAttachment)
-
 				// CORS preflight handlers
 				announcementsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				announcementsGroup.OPTIONS("/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })

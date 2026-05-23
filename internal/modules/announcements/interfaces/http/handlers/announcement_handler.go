@@ -210,6 +210,19 @@ func (h *AnnouncementHandler) List(c *gin.Context) {
 	if audience := c.Query("target_audience"); audience != "" {
 		a := domain.TargetAudience(audience)
 		if a.IsValid() {
+			// v0.163.0 ADR-2 (#303 TIER 0): server clamps the audience
+			// filter к the caller's role. Pre-fix the param was trusted
+			// verbatim — a student could request target_audience=admins
+			// to read admin-broadcasts. If the role cannot see the
+			// requested audience we return 403 instead of silently
+			// dropping the filter (preserves response semantics for
+			// legitimate callers).
+			role, _ := c.Get("role")
+			roleStr, _ := role.(string)
+			if !domain.CanAccessAudience(roleStr, a) {
+				c.JSON(http.StatusForbidden, gin.H{errorKey: "target audience not accessible"})
+				return
+			}
 			req.TargetAudience = &a
 		}
 	}
@@ -251,6 +264,11 @@ func (h *AnnouncementHandler) List(c *gin.Context) {
 }
 
 // GetPublished retrieves published announcements.
+//
+// v0.163.0 ADR-2 (#303 TIER 0): server clamps the audience filter к
+// the caller's role before dispatching к the usecase. Pre-fix the
+// `?audience=` param was taken verbatim from the client — a student
+// could request `?audience=admins` to read admin-broadcasts.
 func (h *AnnouncementHandler) GetPublished(c *gin.Context) {
 	audience := domain.TargetAudienceAll
 	if a := c.Query("audience"); a != "" {
@@ -258,6 +276,12 @@ func (h *AnnouncementHandler) GetPublished(c *gin.Context) {
 		if !audience.IsValid() {
 			audience = domain.TargetAudienceAll
 		}
+	}
+	role, _ := c.Get("role")
+	roleStr, _ := role.(string)
+	if !domain.CanAccessAudience(roleStr, audience) {
+		c.JSON(http.StatusForbidden, gin.H{errorKey: "target audience not accessible"})
+		return
 	}
 
 	limit := 20

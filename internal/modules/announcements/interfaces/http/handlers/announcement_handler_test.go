@@ -212,3 +212,40 @@ func TestAnnouncementHandler_IsAdmin(t *testing.T) {
 		})
 	}
 }
+
+// TestAnnouncementHandler_Create_BindingValidationRejectsBadInput pins
+// v0.163.0 ADR-6 (#303): pre-fix the DTOs used `validate:` tags which
+// Gin's ShouldBindJSON ignores (it reads only `binding:` tags). After
+// the tag rename Gin enforces the schema BEFORE the usecase runs.
+// Issue #303.
+func TestAnnouncementHandler_Create_BindingValidationRejectsBadInput(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+	}{
+		{"empty title", `{"title":"","content":"x","priority":"normal","target_audience":"all"}`},
+		{"empty content", `{"title":"t","content":"","priority":"normal","target_audience":"all"}`},
+		{"missing priority", `{"title":"t","content":"c","target_audience":"all"}`},
+		{"missing target_audience", `{"title":"t","content":"c","priority":"normal"}`},
+		{"summary over 1000 chars", `{"title":"t","content":"c","priority":"normal","target_audience":"all","summary":"` + strings.Repeat("x", 1001) + `"}`},
+	}
+
+	handler := NewAnnouncementHandler(nil)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			r := gin.New()
+			r.POST("/announcements", func(c *gin.Context) {
+				c.Set("user_id", int64(42))
+				handler.Create(c)
+			})
+
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/announcements", strings.NewReader(tc.body))
+			req.Header.Set("Content-Type", "application/json")
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code,
+				"Gin must reject invalid input at the binding layer, not pass it to the usecase")
+		})
+	}
+}

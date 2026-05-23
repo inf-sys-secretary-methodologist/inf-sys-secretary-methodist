@@ -37,6 +37,18 @@ func (uc *AnnouncementUseCase) AddAttachment(
 		return nil, ErrStorageNotConfigured
 	}
 
+	// v0.163.0 ADR-5 (#303 TIER 1): validate size + MIME BEFORE the
+	// announcement lookup so attackers cannot waste DB queries on
+	// rejected uploads. Pre-fix the handler trusted the client-supplied
+	// Content-Type and had no size cap; `evil.exe` with
+	// `Content-Type: application/octet-stream` succeeded.
+	if size > attachmentMaxSize {
+		return nil, ErrAttachmentTooLarge
+	}
+	if !allowedAttachmentMimeTypes[mimeType] {
+		return nil, ErrAttachmentMimeRejected
+	}
+
 	// 1. Announcement must exist.
 	ann, err := uc.repo.GetByID(ctx, announcementID)
 	if err != nil {
@@ -82,7 +94,23 @@ func (uc *AnnouncementUseCase) AddAttachment(
 }
 
 // RemoveAttachment removes the storage blob and the metadata row.
-func (uc *AnnouncementUseCase) RemoveAttachment(ctx context.Context, attachmentID int64) error {
+//
+// v0.163.0 ADR-3 (#303 TIER 0): the signature now requires the URL's
+// announcement_id plus the actor's identity + role. Pre-fix the method
+// took only (ctx, attachmentID) — anyone could delete anyone's
+// attachment system-wide. The new gates:
+//
+//  1. attachment.AnnouncementID must equal urlAnnouncementID
+//     (defends against /announcements/A/attachments/B paths where
+//     attachment B actually belongs к announcement C).
+//  2. actor must be system_admin OR the announcement's author.
+//
+// Returns ErrAttachmentForbidden when either check fails.
+func (uc *AnnouncementUseCase) RemoveAttachment(
+	ctx context.Context,
+	attachmentID, urlAnnouncementID, actorID int64,
+	actorRole string,
+) error {
 	if uc.attachmentStorage == nil {
 		return ErrStorageNotConfigured
 	}
@@ -93,6 +121,22 @@ func (uc *AnnouncementUseCase) RemoveAttachment(ctx context.Context, attachmentI
 	}
 	if att == nil {
 		return ErrAttachmentNotFound
+	}
+
+	// ADR-3 gate 1: URL path must match the stored row.
+	if att.AnnouncementID != urlAnnouncementID {
+		return ErrAttachmentForbidden
+	}
+
+	// ADR-3 gate 2: actor must be admin OR announcement author.
+	if actorRole != "system_admin" {
+		ann, lookupErr := uc.repo.GetByID(ctx, att.AnnouncementID)
+		if lookupErr != nil {
+			return fmt.Errorf("failed to lookup announcement for authz: %w", lookupErr)
+		}
+		if ann == nil || ann.AuthorID != actorID {
+			return ErrAttachmentForbidden
+		}
 	}
 
 	if err := uc.attachmentStorage.Delete(ctx, att.FilePath); err != nil {
@@ -107,6 +151,7 @@ func (uc *AnnouncementUseCase) RemoveAttachment(ctx context.Context, attachmentI
 		uc.auditLogger.LogAuditEvent(ctx, "announcement.attachment.removed", "announcement_attachment", map[string]interface{}{
 			"announcement_id": att.AnnouncementID,
 			"attachment_id":   attachmentID,
+			"actor_id":        actorID,
 		})
 	}
 

@@ -138,7 +138,7 @@ func TestRemoveAttachment_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, att.ID)
 
-	err = uc.RemoveAttachment(ctx, att.ID)
+	err = uc.RemoveAttachment(ctx, att.ID, ann.ID, 1, "methodist")
 	require.NoError(t, err)
 
 	// Storage object deleted
@@ -154,6 +154,130 @@ func TestRemoveAttachment_NotFound(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, createTestAuditLogger(), nil, nil)
 	uc.SetAttachmentStorage(stor)
 
-	err := uc.RemoveAttachment(context.Background(), 9999)
+	err := uc.RemoveAttachment(context.Background(), 9999, 1, 1, "methodist")
 	assert.ErrorIs(t, err, ErrAttachmentNotFound)
+}
+
+// TestRemoveAttachment_AuthzGate pins v0.163.0 ADR-3 (#303 TIER 0):
+// pre-fix RemoveAttachment took only (ctx, attachmentID) and never
+// checked who was calling — anyone could delete any attachment
+// system-wide. After fix the method verifies (a) the URL's
+// announcement_id matches the stored attachment's announcement_id,
+// (b) the actor is either the announcement author or a system_admin.
+func TestRemoveAttachment_AuthzGate(t *testing.T) {
+	type setup struct {
+		authorID, actorID, urlAnnouncementID int64
+		actorRole                            string
+		wantErr                              error
+	}
+
+	tests := []struct {
+		name string
+		s    setup
+	}{
+		{
+			name: "author removes their own attachment",
+			s:    setup{authorID: 1, actorID: 1, actorRole: "methodist", wantErr: nil},
+		},
+		{
+			name: "system_admin removes another author's attachment",
+			s:    setup{authorID: 1, actorID: 99, actorRole: "system_admin", wantErr: nil},
+		},
+		{
+			name: "stranger (non-author non-admin) blocked",
+			s:    setup{authorID: 1, actorID: 2, actorRole: "methodist", wantErr: ErrAttachmentForbidden},
+		},
+		{
+			name: "URL announcement_id mismatch blocked",
+			s:    setup{authorID: 1, actorID: 1, actorRole: "methodist", urlAnnouncementID: 999, wantErr: ErrAttachmentForbidden},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := NewMockAnnouncementRepository()
+			stor := newMockAttachmentStorage()
+			uc := NewAnnouncementUseCase(repo, createTestAuditLogger(), nil, nil)
+			uc.SetAttachmentStorage(stor)
+
+			ctx := context.Background()
+			ann, err := uc.Create(ctx, tc.s.authorID, createDefaultRequest())
+			require.NoError(t, err)
+
+			att, err := uc.AddAttachment(ctx, ann.ID, "x.pdf", strings.NewReader("body"), 4, "application/pdf", tc.s.authorID)
+			require.NoError(t, err)
+
+			urlID := tc.s.urlAnnouncementID
+			if urlID == 0 {
+				urlID = ann.ID
+			}
+
+			err = uc.RemoveAttachment(ctx, att.ID, urlID, tc.s.actorID, tc.s.actorRole)
+			if tc.s.wantErr == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, tc.s.wantErr)
+			}
+		})
+	}
+}
+
+// TestAddAttachment_RejectsOversizedAndBadMime pins v0.163.0 ADR-5
+// (#303 TIER 1): pre-fix AddAttachment trusted the client-supplied
+// Content-Type and had no size cap. After fix uploads above 10 MiB
+// or with disallowed MIME types are rejected before reaching object
+// storage.
+func TestAddAttachment_RejectsOversizedAndBadMime(t *testing.T) {
+	tests := []struct {
+		name     string
+		size     int64
+		mimeType string
+		wantErr  error
+	}{
+		{
+			name:     "oversized payload",
+			size:     attachmentMaxSize + 1,
+			mimeType: "application/pdf",
+			wantErr:  ErrAttachmentTooLarge,
+		},
+		{
+			name:     "disallowed MIME (executable)",
+			size:     1024,
+			mimeType: "application/x-msdownload",
+			wantErr:  ErrAttachmentMimeRejected,
+		},
+		{
+			name:     "octet-stream loophole closed",
+			size:     1024,
+			mimeType: "application/octet-stream",
+			wantErr:  ErrAttachmentMimeRejected,
+		},
+		{
+			name:     "legitimate pdf within cap accepted",
+			size:     2048,
+			mimeType: "application/pdf",
+			wantErr:  nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := NewMockAnnouncementRepository()
+			stor := newMockAttachmentStorage()
+			uc := NewAnnouncementUseCase(repo, createTestAuditLogger(), nil, nil)
+			uc.SetAttachmentStorage(stor)
+
+			ctx := context.Background()
+			ann, err := uc.Create(ctx, 1, createDefaultRequest())
+			require.NoError(t, err)
+
+			_, err = uc.AddAttachment(ctx, ann.ID, "x.bin", strings.NewReader("body"),
+				tc.size, tc.mimeType, 1)
+			if tc.wantErr == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, tc.wantErr)
+			}
+		})
+	}
 }

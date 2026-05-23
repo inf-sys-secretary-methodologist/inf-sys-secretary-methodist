@@ -60,3 +60,31 @@ func (t TargetAudience) IsValid() bool {
 	}
 	return false
 }
+
+// CanAccessAudience reports whether a caller of the given role is
+// allowed to receive announcements addressed к the given audience.
+//
+// v0.163.0 ADR-2 (#303 TIER 0): pre-fix the handler derived audience
+// from the client (?audience=admins) and trusted it. A student could
+// request `?audience=admins` to read admin-broadcasts. This function
+// is the canonical access matrix consulted at the handler boundary
+// before any repo query runs.
+//
+//   - student   → all, students
+//   - teacher   → all, teachers
+//   - methodist / academic_secretary → all, staff
+//   - system_admin → all five audiences
+func CanAccessAudience(role string, audience TargetAudience) bool {
+	switch role {
+	case "system_admin":
+		return audience.IsValid()
+	case "methodist", "academic_secretary":
+		return audience == TargetAudienceAll || audience == TargetAudienceStaff
+	case "teacher":
+		return audience == TargetAudienceAll || audience == TargetAudienceTeachers
+	case "student":
+		return audience == TargetAudienceAll || audience == TargetAudienceStudents
+	default:
+		return audience == TargetAudienceAll
+	}
+}
