@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -259,4 +260,110 @@ func TestNewClient(t *testing.T) {
 	assert.NotNil(t, c)
 	assert.Equal(t, int64(42), c.userID)
 	assert.NotNil(t, c.send)
+}
+
+// stubAccessChecker is a minimal ConversationAccessChecker for ADR-1
+// tests: returns the configured `allow` value regardless of input.
+type stubAccessChecker struct {
+	allow bool
+	err   error
+	calls int
+}
+
+func (s *stubAccessChecker) IsParticipant(_ context.Context, _, _ int64) (bool, error) {
+	s.calls++
+	return s.allow, s.err
+}
+
+// TestHandleMessage_SubscribeGatedByAccessChecker pins v0.162.0 ADR-1
+// (#297): subscribe / typing / stop_typing must be rejected by the Hub
+// when the wired ConversationAccessChecker reports the client is not a
+// participant. Pre-fix, the WS layer accepted any conversation_id which
+// allowed sequential enumeration to eavesdrop every conversation.
+func TestHandleMessage_SubscribeGatedByAccessChecker(t *testing.T) {
+	checker := &stubAccessChecker{allow: false}
+	hub := NewHub(testLogger()).WithAccessChecker(checker)
+	go hub.Run()
+
+	client := &Client{hub: hub, send: make(chan []byte, 256), userID: 1, logger: testLogger()}
+	hub.Register(client)
+	time.Sleep(50 * time.Millisecond)
+
+	// Non-participant attempts to subscribe to conversation 100.
+	client.handleMessage(&ClientMessage{Type: "subscribe", ConversationID: 100})
+	time.Sleep(50 * time.Millisecond)
+
+	hub.mu.RLock()
+	clients, exists := hub.conversations[100]
+	_, registered := clients[client]
+	hub.mu.RUnlock()
+
+	assert.False(t, exists || registered,
+		"non-participant must not be registered in hub.conversations")
+	assert.GreaterOrEqual(t, checker.calls, 1,
+		"access checker must be consulted for subscribe")
+
+	hub.Unregister(client)
+	time.Sleep(50 * time.Millisecond)
+}
+
+// TestHandleMessage_TypingGatedByAccessChecker pins ADR-1 parity for
+// typing/stop_typing — pre-fix these broadcast events leaked the user's
+// activity to every subscriber of the target conversation regardless
+// of caller membership.
+func TestHandleMessage_TypingGatedByAccessChecker(t *testing.T) {
+	checker := &stubAccessChecker{allow: false}
+	hub := NewHub(testLogger()).WithAccessChecker(checker)
+	go hub.Run()
+
+	subscriber := &Client{hub: hub, send: make(chan []byte, 256), userID: 2, logger: testLogger()}
+	hub.Register(subscriber)
+	// Subscriber is added to conversation 100 directly so we can observe
+	// whether a stranger's "typing" event leaks through.
+	hub.mu.Lock()
+	if hub.conversations[100] == nil {
+		hub.conversations[100] = make(map[*Client]bool)
+	}
+	hub.conversations[100][subscriber] = true
+	hub.mu.Unlock()
+
+	stranger := &Client{hub: hub, send: make(chan []byte, 256), userID: 99, logger: testLogger()}
+	hub.Register(stranger)
+	time.Sleep(50 * time.Millisecond)
+
+	stranger.handleMessage(&ClientMessage{Type: "typing", ConversationID: 100})
+
+	// Give the broadcast pipeline a tick — but expect nothing to arrive.
+	select {
+	case msg := <-subscriber.send:
+		t.Fatalf("typing event leaked through gate: %s", string(msg))
+	case <-time.After(150 * time.Millisecond):
+		// expected: no broadcast
+	}
+
+	assert.GreaterOrEqual(t, checker.calls, 1,
+		"access checker must be consulted for typing")
+}
+
+// TestHandleMessage_SubscribeAllowedForParticipant verifies the happy
+// path: participant subscribe succeeds when checker returns true.
+func TestHandleMessage_SubscribeAllowedForParticipant(t *testing.T) {
+	checker := &stubAccessChecker{allow: true}
+	hub := NewHub(testLogger()).WithAccessChecker(checker)
+	go hub.Run()
+
+	client := &Client{hub: hub, send: make(chan []byte, 256), userID: 1, logger: testLogger()}
+	hub.Register(client)
+	time.Sleep(50 * time.Millisecond)
+
+	client.handleMessage(&ClientMessage{Type: "subscribe", ConversationID: 100})
+	time.Sleep(50 * time.Millisecond)
+
+	hub.mu.RLock()
+	_, exists := hub.conversations[100]
+	hub.mu.RUnlock()
+	assert.True(t, exists, "participant must be registered in hub.conversations")
+
+	hub.Unregister(client)
+	time.Sleep(50 * time.Millisecond)
 }

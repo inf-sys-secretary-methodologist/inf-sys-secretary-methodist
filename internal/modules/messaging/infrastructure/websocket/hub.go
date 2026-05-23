@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"context"
 	"encoding/json"
 	"sync"
 
@@ -31,6 +32,15 @@ type Event struct {
 	Payload        interface{} `json:"payload,omitempty"`
 }
 
+// ConversationAccessChecker is a narrow port used by the Hub to verify
+// that a websocket client is allowed to subscribe / type in a given
+// conversation. v0.162.0 ADR-1 (#297): pre-fix, "subscribe" with any
+// conversation_id was accepted, allowing sequential enumeration to
+// eavesdrop every conversation in the system.
+type ConversationAccessChecker interface {
+	IsParticipant(ctx context.Context, userID, conversationID int64) (bool, error)
+}
+
 // Hub maintains the set of active clients and broadcasts messages to the clients.
 type Hub struct {
 	// Registered clients by user ID
@@ -59,6 +69,13 @@ type Hub struct {
 
 	// Logger
 	logger *logging.Logger
+
+	// Optional access checker for ADR-1 participant gate. When nil
+	// (default), Hub allows all subscribe/typing operations — kept for
+	// backward compatibility with the ~30 existing unit-test setups
+	// that construct the Hub directly. Production wires a real checker
+	// in main.go.
+	accessChecker ConversationAccessChecker
 }
 
 // BroadcastMessage represents a message to broadcast.
@@ -86,6 +103,34 @@ func NewHub(logger *logging.Logger) *Hub {
 		unsubscribe:   make(chan *Subscription),
 		logger:        logger,
 	}
+}
+
+// WithAccessChecker wires the participant gate used by handleMessage for
+// "subscribe" / "typing" / "stop_typing" operations. Chainable so wiring
+// stays one line in main.go. v0.162.0 ADR-1 (#297).
+func (h *Hub) WithAccessChecker(checker ConversationAccessChecker) *Hub {
+	h.accessChecker = checker
+	return h
+}
+
+// canAccessConversation returns true when the caller is a participant
+// of the conversation or when no access checker is wired (legacy test
+// setups). On checker error we fail closed (deny) so a transient repo
+// outage cannot be used to bypass the gate.
+func (h *Hub) canAccessConversation(ctx context.Context, userID, conversationID int64) bool {
+	if h.accessChecker == nil {
+		return true
+	}
+	ok, err := h.accessChecker.IsParticipant(ctx, userID, conversationID)
+	if err != nil {
+		h.logger.Warn("conversation access check failed; denying", map[string]interface{}{
+			"user_id":         userID,
+			"conversation_id": conversationID,
+			"error":           err.Error(),
+		})
+		return false
+	}
+	return ok
 }
 
 // Run starts the hub's main loop.
