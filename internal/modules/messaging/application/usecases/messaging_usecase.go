@@ -125,6 +125,24 @@ func (uc *MessagingUseCase) resolveAvatarURL(ctx context.Context, avatarPath *st
 
 // CreateDirectConversation creates a new direct conversation between two users.
 func (uc *MessagingUseCase) CreateDirectConversation(ctx context.Context, creatorID int64, input dto.CreateDirectConversationInput) (*entities.Conversation, error) {
+	// v0.162.0 ADR-3 (#297): self-DM is meaningless and was previously
+	// allowed to reach persistence — reject before any repo call.
+	if creatorID == input.RecipientID {
+		return nil, entities.ErrSelfDMNotAllowed
+	}
+	// Validate recipient existence to close the 201-vs-500 account
+	// enumeration oracle. Only enforced when the existence checker is
+	// wired (production); legacy test setups without the checker keep
+	// the previous behavior.
+	if uc.userExistence != nil {
+		ok, err := uc.userExistence.UserExists(ctx, input.RecipientID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify recipient: %w", err)
+		}
+		if !ok {
+			return nil, entities.ErrInvalidParticipants
+		}
+	}
 	// Check if direct conversation already exists
 	existing, err := uc.conversationRepo.GetDirectConversation(ctx, creatorID, input.RecipientID)
 	if err != nil {
@@ -157,6 +175,20 @@ func (uc *MessagingUseCase) CreateDirectConversation(ctx context.Context, creato
 
 // CreateGroupConversation creates a new group conversation.
 func (uc *MessagingUseCase) CreateGroupConversation(ctx context.Context, creatorID int64, input dto.CreateGroupConversationInput) (*entities.Conversation, error) {
+	// v0.162.0 ADR-3 (#297): validate every requested participant before
+	// persistence — pre-fix any missing user triggered an FK violation at
+	// Create-time, leaking account existence through the 201 vs 500 outcome.
+	if uc.userExistence != nil {
+		for _, pid := range input.ParticipantIDs {
+			ok, err := uc.userExistence.UserExists(ctx, pid)
+			if err != nil {
+				return nil, fmt.Errorf("failed to verify participant %d: %w", pid, err)
+			}
+			if !ok {
+				return nil, entities.ErrInvalidParticipants
+			}
+		}
+	}
 	conv := entities.NewGroupConversation(creatorID, input.Title, input.ParticipantIDs)
 	if input.Description != nil {
 		conv.Description = input.Description
