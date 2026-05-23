@@ -21,6 +21,32 @@ import (
 // untraceable.
 var ErrProfileEditForbidden = errors.New("profile edit forbidden: actor is not target user and lacks system_admin override")
 
+// ErrInvalidAvatarKey is returned when an avatar storage key does not
+// belong to the target user's avatar prefix.
+//
+// Closes v1.0.0 batch 2 TIER 0 finding (#283 ADR-3): UpdateProfile
+// accepted any string in the Avatar field, persisting an arbitrary
+// MinIO object key that the avatar GET endpoint later signed as a
+// presigned URL — letting any user point their avatar at HR records
+// or exam reports stored in the same bucket.
+var ErrInvalidAvatarKey = errors.New("invalid avatar storage key: must belong to target user's avatar prefix")
+
+// ValidateAvatarKey checks that an avatar storage key belongs to the
+// target user's avatar prefix.
+//
+// Rule: empty key (clearing the avatar) is always accepted; non-empty
+// keys must start with "avatars/{targetID}_" — the same prefix the
+// avatar Upload handler emits (avatar_handler.go AvatarFolder + user
+// id + "_" + uuid + ext).
+//
+// RED-commit stub: returns nil unconditionally. The GREEN commit
+// implements the prefix check and flips the failing pin.
+func ValidateAvatarKey(key string, targetID int64) error {
+	_ = key
+	_ = targetID
+	return nil
+}
+
 // AuthorizeProfileEdit returns nil if the actor may edit the target
 // user's profile, ErrProfileEditForbidden otherwise.
 //

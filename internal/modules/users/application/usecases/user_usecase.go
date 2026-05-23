@@ -118,6 +118,14 @@ func (uc *UserUseCase) UpdateUserProfile(
 		return err
 	}
 
+	// Verify avatar key belongs to the target user's prefix (#283 ADR-3).
+	// Empty key clears the avatar — always allowed.
+	if input.Avatar != "" {
+		if err := usersDomain.ValidateAvatarKey(input.Avatar, targetID); err != nil {
+			return err
+		}
+	}
+
 	// Verify user exists
 	_, err := uc.userRepo.GetByID(ctx, targetID)
 	if err != nil {

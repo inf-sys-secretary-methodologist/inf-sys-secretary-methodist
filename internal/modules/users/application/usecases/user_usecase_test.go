@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -526,6 +527,88 @@ func TestUserUseCase_UpdateUserProfile_NonAdminCrossEdit_Forbidden(t *testing.T)
 
 	if !errors.Is(err, usersDomain.ErrProfileEditForbidden) {
 		t.Fatalf("expected ErrProfileEditForbidden for non-admin cross-edit, got %v", err)
+	}
+}
+
+// TestUserUseCase_UpdateUserProfile_ForeignAvatarKey_Rejected pins the
+// TIER 0 avatar-bypass gate from #283 ADR-3: UpdateProfile must
+// reject avatar storage keys that do not belong to the target user's
+// avatar prefix. Pre-fix, the Avatar field accepted ANY string —
+// users could point their avatar at HR records or exam reports
+// stored in the same bucket. The avatar handler's own prefix check
+// (avatar_handler.go) covered Upload/Delete but UpdateProfile
+// bypassed it entirely.
+func TestUserUseCase_UpdateUserProfile_ForeignAvatarKey_Rejected(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	target := authEntities.NewUser("target@example.com", "password", "Target User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, target)
+
+	// Self-edit (actor==target) so the ADR-1 gate does not short-circuit.
+	// Avatar key points at ANOTHER user's prefix — must be rejected.
+	input := &dto.UpdateUserProfileInput{
+		Avatar: "avatars/999_evil.png",
+	}
+	err := uc.UpdateUserProfile(ctx, target.ID, authDomain.RoleStudent, target.ID, input)
+
+	if !errors.Is(err, usersDomain.ErrInvalidAvatarKey) {
+		t.Fatalf("expected ErrInvalidAvatarKey for foreign avatar prefix, got %v", err)
+	}
+}
+
+// TestUserUseCase_UpdateUserProfile_OwnAvatarKey_Accepted pins the
+// happy path: an avatar key with the target user's own prefix passes
+// validation.
+func TestUserUseCase_UpdateUserProfile_OwnAvatarKey_Accepted(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	target := authEntities.NewUser("target@example.com", "password", "Target User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, target)
+
+	input := &dto.UpdateUserProfileInput{
+		Avatar: fmt.Sprintf("avatars/%d_legit.png", target.ID),
+	}
+	err := uc.UpdateUserProfile(ctx, target.ID, authDomain.RoleStudent, target.ID, input)
+
+	if err != nil {
+		t.Fatalf("expected own-prefix avatar key to pass, got %v", err)
+	}
+}
+
+// TestUserUseCase_UpdateUserProfile_EmptyAvatar_Accepted pins that
+// clearing the avatar (empty key) bypasses the prefix check.
+func TestUserUseCase_UpdateUserProfile_EmptyAvatar_Accepted(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	target := authEntities.NewUser("target@example.com", "password", "Target User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, target)
+
+	input := &dto.UpdateUserProfileInput{
+		Avatar: "",
+		Phone:  "+1234567890",
+	}
+	err := uc.UpdateUserProfile(ctx, target.ID, authDomain.RoleStudent, target.ID, input)
+
+	if err != nil {
+		t.Fatalf("expected empty avatar to be accepted (clear), got %v", err)
 	}
 }
 
