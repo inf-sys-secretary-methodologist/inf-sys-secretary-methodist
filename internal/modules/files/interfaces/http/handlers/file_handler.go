@@ -9,11 +9,35 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
+
+// readActor extracts the authenticated actor (userID + role) from the
+// gin context. Returns ok=false if either is missing or wrong-typed,
+// so the caller can emit 401 once and bail out.
+func readActor(c *gin.Context) (int64, authDomain.RoleType, bool) {
+	uidVal, exists := c.Get("user_id")
+	if !exists {
+		return 0, "", false
+	}
+	uid, ok := uidVal.(int64)
+	if !ok {
+		return 0, "", false
+	}
+	roleVal, _ := c.Get("role")
+	role, _ := roleVal.(authDomain.RoleType)
+	if role == "" {
+		// Some middleware paths set role as a plain string.
+		if rs, ok := roleVal.(string); ok {
+			role = authDomain.RoleType(rs)
+		}
+	}
+	return uid, role, true
+}
 
 // FileHandler обрабатывает HTTP запросы для управления файлами.
 type FileHandler struct {
@@ -92,8 +116,15 @@ func (h *FileHandler) GetByID(c *gin.Context) {
 		return
 	}
 
+	actorID, actorRole, ok := readActor(c)
+	if !ok {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+
 	ctx := c.Request.Context()
-	result, err := h.fileUseCase.GetFile(ctx, id)
+	result, err := h.fileUseCase.GetFile(ctx, id, actorID, actorRole)
 	if err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
@@ -112,8 +143,15 @@ func (h *FileHandler) Download(c *gin.Context) {
 		return
 	}
 
+	actorID, actorRole, ok := readActor(c)
+	if !ok {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+
 	ctx := c.Request.Context()
-	result, err := h.fileUseCase.DownloadFile(ctx, id)
+	result, err := h.fileUseCase.DownloadFile(ctx, id, actorID, actorRole)
 	if err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
@@ -132,6 +170,13 @@ func (h *FileHandler) Attach(c *gin.Context) {
 		return
 	}
 
+	actorID, actorRole, ok := readActor(c)
+	if !ok {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+
 	var input dto.AttachFileInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		resp := response.BadRequest("Неверный формат запроса")
@@ -139,6 +184,8 @@ func (h *FileHandler) Attach(c *gin.Context) {
 		return
 	}
 	input.FileID = id
+	input.UserID = actorID
+	input.UserRole = actorRole
 
 	ctx := c.Request.Context()
 	if err := h.fileUseCase.AttachFile(ctx, &input); err != nil {
@@ -165,17 +212,15 @@ func (h *FileHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	// Получаем user_id из контекста
-	userIDVal, exists := c.Get("user_id")
-	if !exists {
+	actorID, actorRole, ok := readActor(c)
+	if !ok {
 		resp := response.Unauthorized("Требуется авторизация")
 		c.JSON(http.StatusUnauthorized, resp)
 		return
 	}
-	userID, _ := userIDVal.(int64)
 
 	ctx := c.Request.Context()
-	if err := h.fileUseCase.DeleteFile(ctx, id, userID); err != nil {
+	if err := h.fileUseCase.DeleteFile(ctx, id, actorID, actorRole); err != nil {
 		var permErr *usecases.PermissionError
 		if errors.As(err, &permErr) {
 			resp := response.Forbidden(permErr.Message)

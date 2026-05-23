@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
@@ -125,10 +126,19 @@ func (r *fakeFileMetaRepo) CleanupExpired(_ context.Context) (int64, error) {
 // satisfy compile-time interface check
 var _ repositories.FileMetadataRepository = (*fakeFileMetaRepo)(nil)
 
-// authMW устанавливает user_id в Gin context, как production middleware.
-func authMW(userID int64) gin.HandlerFunc {
+// authMW устанавливает user_id + role в Gin context, как production middleware.
+//
+// role mirrors auth/middleware behaviour — defaults to student if caller
+// omits it (most tests want the uploader case where role doesn't matter
+// for the rule, only id-match does).
+func authMW(userID int64, roles ...authDomain.RoleType) gin.HandlerFunc {
+	role := authDomain.RoleStudent
+	if len(roles) > 0 {
+		role = roles[0]
+	}
 	return func(c *gin.Context) {
 		c.Set("user_id", userID)
+		c.Set("role", role)
 		c.Next()
 	}
 }

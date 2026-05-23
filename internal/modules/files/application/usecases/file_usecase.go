@@ -10,6 +10,8 @@ import (
 	"io"
 	"time"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
+	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
@@ -115,9 +117,18 @@ func (uc *FileUseCase) UploadFile(ctx context.Context, reader io.Reader, input *
 }
 
 // GetFile получает информацию о файле по ID.
-func (uc *FileUseCase) GetFile(ctx context.Context, id int64) (*dto.FileResponse, error) {
+//
+// actorID/actorRole identify the caller for ownership gating
+// (AuthorizeFileAccess). Non-uploader callers без system_admin
+// override receive ErrFileAccessDenied — closes #290 ADR-1 IDOR.
+func (uc *FileUseCase) GetFile(ctx context.Context, id int64, actorID int64, actorRole authDomain.RoleType) (*dto.FileResponse, error) {
 	file, err := uc.fileRepo.GetByID(ctx, id)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionRead); err != nil {
+		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionRead, "read")
 		return nil, err
 	}
 
@@ -125,9 +136,16 @@ func (uc *FileUseCase) GetFile(ctx context.Context, id int64) (*dto.FileResponse
 }
 
 // GetFileWithDownloadURL получает информацию о файле с URL для скачивания.
-func (uc *FileUseCase) GetFileWithDownloadURL(ctx context.Context, id int64, urlExpiration time.Duration) (*dto.FileResponse, error) {
+//
+// See GetFile docs for actorID/actorRole semantics.
+func (uc *FileUseCase) GetFileWithDownloadURL(ctx context.Context, id int64, urlExpiration time.Duration, actorID int64, actorRole authDomain.RoleType) (*dto.FileResponse, error) {
 	file, err := uc.fileRepo.GetByID(ctx, id)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionRead); err != nil {
+		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionRead, "read_with_url")
 		return nil, err
 	}
 
@@ -144,9 +162,16 @@ func (uc *FileUseCase) GetFileWithDownloadURL(ctx context.Context, id int64, url
 }
 
 // DownloadFile возвращает данные для скачивания файла.
-func (uc *FileUseCase) DownloadFile(ctx context.Context, id int64) (*dto.DownloadResponse, error) {
+//
+// See GetFile docs for actorID/actorRole semantics.
+func (uc *FileUseCase) DownloadFile(ctx context.Context, id int64, actorID int64, actorRole authDomain.RoleType) (*dto.DownloadResponse, error) {
 	file, err := uc.fileRepo.GetByID(ctx, id)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionRead); err != nil {
+		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionRead, "download")
 		return nil, err
 	}
 
@@ -165,9 +190,18 @@ func (uc *FileUseCase) DownloadFile(ctx context.Context, id int64) (*dto.Downloa
 }
 
 // AttachFile прикрепляет файл к документу, задаче или объявлению.
+//
+// input.UserID / input.UserRole identify the caller; only the uploader
+// may attach. No admin override (admins can read for forensics but
+// not impersonate the uploader). Closes #290 ADR-1 (Attach hijack).
 func (uc *FileUseCase) AttachFile(ctx context.Context, input *dto.AttachFileInput) error {
 	file, err := uc.fileRepo.GetByID(ctx, input.FileID)
 	if err != nil {
+		return err
+	}
+
+	if err := filesDomain.AuthorizeFileAccess(input.UserID, input.UserRole, file, filesDomain.FileActionAttach); err != nil {
+		uc.emitAccessDenied(ctx, input.UserID, file.ID, filesDomain.FileActionAttach, "attach")
 		return err
 	}
 
@@ -199,22 +233,42 @@ func (uc *FileUseCase) AttachFile(ctx context.Context, input *dto.AttachFileInpu
 			"document_id":     input.DocumentID,
 			"task_id":         input.TaskID,
 			"announcement_id": input.AnnouncementID,
+			"actor_user_id":   input.UserID,
 		})
 	}
 
 	return nil
 }
 
+// emitAccessDenied is a small helper for emitting standardised
+// access-denied audit events. Mirrors the v0.160.0 users denial
+// pattern: stable action names (`file_<action>_denied`) so analytics
+// can pivot consistently across modules.
+func (uc *FileUseCase) emitAccessDenied(ctx context.Context, actorID, fileID int64, action filesDomain.FileAction, reasonSuffix string) {
+	if uc.auditLogger == nil {
+		return
+	}
+	uc.auditLogger.LogAuditEvent(ctx, fmt.Sprintf("file_%s_denied", action), "file", map[string]interface{}{
+		"actor_user_id":  actorID,
+		"target_file_id": fileID,
+		"reason":         reasonSuffix,
+	})
+}
+
 // DeleteFile удаляет файл (мягкое удаление).
-func (uc *FileUseCase) DeleteFile(ctx context.Context, id int64, userID int64) error {
+//
+// Only the uploader may delete. The role parameter mirrors the other
+// usecases for symmetry but the rule rejects admin override на write
+// (closes #290 ADR-1).
+func (uc *FileUseCase) DeleteFile(ctx context.Context, id int64, actorID int64, actorRole authDomain.RoleType) error {
 	file, err := uc.fileRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	// Проверяем права (только загрузивший может удалить)
-	if file.UploadedBy != userID {
-		return &PermissionError{Message: "нет прав на удаление файла"}
+	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionDelete); err != nil {
+		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionDelete, "delete")
+		return err
 	}
 
 	err = uc.fileRepo.Delete(ctx, id)
@@ -226,7 +280,7 @@ func (uc *FileUseCase) DeleteFile(ctx context.Context, id int64, userID int64) e
 		uc.auditLogger.LogAuditEvent(ctx, "delete", "file", map[string]interface{}{
 			"file_id":       id,
 			"original_name": file.OriginalName,
-			"deleted_by":    userID,
+			"deleted_by":    actorID,
 		})
 	}
 

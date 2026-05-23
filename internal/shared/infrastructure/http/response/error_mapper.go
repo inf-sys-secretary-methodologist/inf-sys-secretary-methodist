@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	usersDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain"
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 )
@@ -105,6 +106,15 @@ func MapDomainError(err error) HTTPError {
 		return HTTPError{
 			Status:   http.StatusConflict,
 			Response: ErrorResponse("LAST_ADMIN_PROTECTED", "Нельзя удалить или заблокировать последнего администратора"),
+		}
+
+	// files module sentinel — closes #290 ADR-1+ADR-2: cross-user
+	// IDOR / Attach hijack / CreateVersion hijack all surface as
+	// ErrFileAccessDenied and must map to 403 (not 500).
+	case errors.Is(err, filesDomain.ErrFileAccessDenied):
+		return HTTPError{
+			Status:   http.StatusForbidden,
+			Response: ErrorResponse("FILE_ACCESS_DENIED", "Доступ к файлу запрещён"),
 		}
 	}
 

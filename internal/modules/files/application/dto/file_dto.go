@@ -1,7 +1,11 @@
 // Package dto содержит объекты передачи данных модуля files.
 package dto
 
-import "time"
+import (
+	"time"
+
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
+)
 
 // UploadFileInput представляет входные данные для загрузки файла.
 type UploadFileInput struct {
@@ -12,18 +16,25 @@ type UploadFileInput struct {
 }
 
 // AttachFileInput представляет входные данные для прикрепления файла.
+//
+// UserID and UserRole are populated from auth middleware context and are
+// required for the ownership guard in AttachFile — they intentionally
+// have `json:"-"` so they cannot be overridden by request payload.
 type AttachFileInput struct {
-	FileID         int64  `json:"file_id" validate:"required"`
-	DocumentID     *int64 `json:"document_id"`
-	TaskID         *int64 `json:"task_id"`
-	AnnouncementID *int64 `json:"announcement_id"`
+	FileID         int64               `json:"file_id" validate:"required"`
+	DocumentID     *int64              `json:"document_id"`
+	TaskID         *int64              `json:"task_id"`
+	AnnouncementID *int64              `json:"announcement_id"`
+	UserID         int64               `json:"-"` // Заполняется из контекста авторизации
+	UserRole       authDomain.RoleType `json:"-"` // Заполняется из контекста авторизации
 }
 
 // CreateVersionInput представляет входные данные для создания версии файла.
 type CreateVersionInput struct {
-	FileID  int64  `json:"file_id" validate:"required"`
-	Comment string `json:"comment" validate:"omitempty,max=500"`
-	UserID  int64  `json:"-"` // Заполняется из контекста авторизации
+	FileID   int64               `json:"file_id" validate:"required"`
+	Comment  string              `json:"comment" validate:"omitempty,max=500"`
+	UserID   int64               `json:"-"` // Заполняется из контекста авторизации
+	UserRole authDomain.RoleType `json:"-"` // Заполняется из контекста авторизации
 }
 
 // FileResponse представляет ответ с информацией о файле.
