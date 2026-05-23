@@ -9,6 +9,7 @@ import (
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
+	usersDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -408,7 +409,7 @@ func TestUserUseCase_UpdateUserProfile(t *testing.T) {
 		Bio:          "Test bio",
 	}
 
-	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	err := uc.UpdateUserProfile(ctx, user.ID, authDomain.RoleStudent, user.ID, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -431,7 +432,7 @@ func TestUserUseCase_UpdateUserProfile_WithAuditLogger(t *testing.T) {
 		Bio:   "Test bio",
 	}
 
-	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	err := uc.UpdateUserProfile(ctx, user.ID, authDomain.RoleStudent, user.ID, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -451,7 +452,7 @@ func TestUserUseCase_UpdateUserProfile_UpdateError(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 
 	input := &dto.UpdateUserProfileInput{Phone: "123"}
-	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	err := uc.UpdateUserProfile(ctx, user.ID, authDomain.RoleStudent, user.ID, input)
 	if err == nil {
 		t.Error("expected error from update")
 	}
@@ -467,7 +468,7 @@ func TestUserUseCase_UpdateUserProfile_UserNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	input := &dto.UpdateUserProfileInput{Phone: "123"}
-	err := uc.UpdateUserProfile(ctx, 999, input)
+	err := uc.UpdateUserProfile(ctx, 999, authDomain.RoleStudent, 999, input)
 	if err == nil {
 		t.Error("expected error for non-existent user")
 	}
@@ -490,9 +491,66 @@ func TestUserUseCase_UpdateUserProfile_DepartmentNotFound(t *testing.T) {
 	deptID := int64(999)
 	input := &dto.UpdateUserProfileInput{DepartmentID: &deptID}
 
-	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	err := uc.UpdateUserProfile(ctx, user.ID, authDomain.RoleStudent, user.ID, input)
 	if err == nil {
 		t.Error("expected error for non-existent department")
+	}
+}
+
+// TestUserUseCase_UpdateUserProfile_NonAdminCrossEdit_Forbidden pins the
+// TIER 0 profile-takeover gate from #283 ADR-1: a non-admin actor
+// editing another user's profile must be rejected with
+// ErrProfileEditForbidden BEFORE any repository call. Closes the
+// "PUT /api/users/:id/profile accepts any caller" finding.
+func TestUserUseCase_UpdateUserProfile_NonAdminCrossEdit_Forbidden(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	// Create target user (the victim).
+	target := authEntities.NewUser("target@example.com", "password", "Target User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, target)
+
+	// Actor is a different student trying to edit target's profile.
+	const attackerID int64 = 9999
+	if attackerID == target.ID {
+		t.Fatalf("test invariant: attackerID must differ from target.ID, got both = %d", target.ID)
+	}
+
+	input := &dto.UpdateUserProfileInput{Phone: "+0000000000"}
+	err := uc.UpdateUserProfile(ctx, attackerID, authDomain.RoleStudent, target.ID, input)
+
+	if !errors.Is(err, usersDomain.ErrProfileEditForbidden) {
+		t.Fatalf("expected ErrProfileEditForbidden for non-admin cross-edit, got %v", err)
+	}
+}
+
+// TestUserUseCase_UpdateUserProfile_AdminCrossEdit_Allowed pins the
+// system_admin override branch: an admin acting on behalf of another
+// user must pass the authz gate. Mirrors the avatar handler's
+// existing self-or-admin pattern but at the usecase layer.
+func TestUserUseCase_UpdateUserProfile_AdminCrossEdit_Allowed(t *testing.T) {
+	userRepo := NewMockUserRepository()
+	profileRepo := NewMockUserProfileRepository()
+	deptRepo := NewMockDepartmentRepository()
+	posRepo := NewMockPositionRepository()
+	uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+
+	ctx := context.Background()
+
+	target := authEntities.NewUser("target@example.com", "password", "Target User", authDomain.RoleStudent)
+	_ = userRepo.Create(ctx, target)
+
+	const adminID int64 = 1
+	input := &dto.UpdateUserProfileInput{Phone: "+0000000000"}
+	err := uc.UpdateUserProfile(ctx, adminID, authDomain.RoleSystemAdmin, target.ID, input)
+
+	if err != nil {
+		t.Fatalf("expected admin cross-edit to succeed, got %v", err)
 	}
 }
 
@@ -513,7 +571,7 @@ func TestUserUseCase_UpdateUserProfile_PositionNotFound(t *testing.T) {
 	posID := int64(999)
 	input := &dto.UpdateUserProfileInput{PositionID: &posID}
 
-	err := uc.UpdateUserProfile(ctx, user.ID, input)
+	err := uc.UpdateUserProfile(ctx, user.ID, authDomain.RoleStudent, user.ID, input)
 	if err == nil {
 		t.Error("expected error for non-existent position")
 	}

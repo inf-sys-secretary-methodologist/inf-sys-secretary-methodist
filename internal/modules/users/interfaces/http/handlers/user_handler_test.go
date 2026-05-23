@@ -256,7 +256,13 @@ func newUserUseCase(authRepo *mockAuthUserRepo, profileRepo *mockUserProfileRepo
 }
 
 func setupUserRouter(handler *UserHandler) *gin.Engine {
+	// withAuth(1, "system_admin") mirrors production JWTMiddleware
+	// contract (user_id=int64, role=string). System_admin is chosen as
+	// the default actor so admin-gated handler tests still pass; tests
+	// that exercise non-admin paths (e.g. profile cross-edit) must
+	// shadow via their own router setup with a different actor.
 	r := gin.New()
+	r.Use(withAuth(1, "system_admin"))
 	r.GET("/users", handler.List)
 	r.GET("/users/:id", handler.GetByID)
 	r.PUT("/users/:id/profile", handler.UpdateProfile)

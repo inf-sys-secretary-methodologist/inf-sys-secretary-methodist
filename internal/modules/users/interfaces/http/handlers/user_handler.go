@@ -7,12 +7,27 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
+
+// asString safely coerces an interface{} into a string, returning ""
+// if the value is nil or not a string. Used for reading role-like
+// claims from the gin context without a panic on absent/mistyped
+// values.
+func asString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return ""
+}
 
 // UserHandler handles HTTP requests for user management.
 type UserHandler struct {
@@ -100,8 +115,23 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
+	// Authorization: actor must be the target user (self-edit) OR
+	// system_admin (override). The usecase enforces the rule via the
+	// domain free function; the handler just supplies the inputs from
+	// the JWT-bound gin context. Closes #283 ADR-1 (TIER 0 profile
+	// takeover).
+	actorID, exists := c.Get("user_id")
+	if !exists {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+	actorIDInt, _ := actorID.(int64)
+	actorRoleStr, _ := c.Get("role")
+	actorRole := authDomain.RoleType(asString(actorRoleStr))
+
 	ctx := c.Request.Context()
-	if err := h.usecase.UpdateUserProfile(ctx, id, &input); err != nil {
+	if err := h.usecase.UpdateUserProfile(ctx, actorIDInt, actorRole, id, &input); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return

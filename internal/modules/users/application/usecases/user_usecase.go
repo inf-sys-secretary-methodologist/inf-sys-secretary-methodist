@@ -10,6 +10,7 @@ import (
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
+	usersDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -99,9 +100,26 @@ func (uc *UserUseCase) ListUsers(ctx context.Context, filter *dto.UserListFilter
 }
 
 // UpdateUserProfile updates user's organizational profile.
-func (uc *UserUseCase) UpdateUserProfile(ctx context.Context, userID int64, input *dto.UpdateUserProfileInput) error {
+//
+// Authorization: actor must be the target user (self-edit) OR
+// system_admin (override). Closes #283 ADR-1 (TIER 0 profile
+// takeover) — see [usersDomain.AuthorizeProfileEdit] for the rule.
+//
+// Audit row records both actor_user_id and target_user_id so attackers
+// remain traceable across legitimate admin override flows.
+func (uc *UserUseCase) UpdateUserProfile(
+	ctx context.Context,
+	actorID int64,
+	actorRole authDomain.RoleType,
+	targetID int64,
+	input *dto.UpdateUserProfileInput,
+) error {
+	if err := usersDomain.AuthorizeProfileEdit(actorID, targetID, actorRole); err != nil {
+		return err
+	}
+
 	// Verify user exists
-	_, err := uc.userRepo.GetByID(ctx, userID)
+	_, err := uc.userRepo.GetByID(ctx, targetID)
 	if err != nil {
 		return err
 	}
@@ -122,16 +140,17 @@ func (uc *UserUseCase) UpdateUserProfile(ctx context.Context, userID int64, inpu
 		}
 	}
 
-	err = uc.userProfileRepo.UpdateProfile(ctx, userID, input.DepartmentID, input.PositionID, input.Phone, input.Avatar, input.Bio)
+	err = uc.userProfileRepo.UpdateProfile(ctx, targetID, input.DepartmentID, input.PositionID, input.Phone, input.Avatar, input.Bio)
 	if err != nil {
 		return err
 	}
 
 	if uc.auditLogger != nil {
 		uc.auditLogger.LogAuditEvent(ctx, "update", "user_profile", map[string]interface{}{
-			"user_id":       userID,
-			"department_id": input.DepartmentID,
-			"position_id":   input.PositionID,
+			"actor_user_id":  actorID,
+			"target_user_id": targetID,
+			"department_id":  input.DepartmentID,
+			"position_id":    input.PositionID,
 		})
 	}
 
