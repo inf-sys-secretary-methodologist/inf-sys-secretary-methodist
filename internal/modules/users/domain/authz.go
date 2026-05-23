@@ -105,16 +105,16 @@ func AuthorizeProfileEdit(actorID, targetID int64, actorRole authDomain.RoleType
 //     1 (the actor must look up the count via the repository — this
 //     function takes it as an argument to stay pure and testable).
 //
-// RED-commit stub: returns nil unconditionally. The GREEN commit
-// implements both guards.
 func AuthorizeUserDelete(
 	actorID, targetID int64,
 	targetRole authDomain.RoleType,
 	adminHeadcount int,
 ) error {
-	_ = actorID
-	_ = targetID
-	_ = targetRole
-	_ = adminHeadcount
+	if actorID == targetID {
+		return ErrCannotDeleteSelf
+	}
+	if targetRole == authDomain.RoleSystemAdmin && adminHeadcount <= 1 {
+		return ErrLastAdminProtected
+	}
 	return nil
 }

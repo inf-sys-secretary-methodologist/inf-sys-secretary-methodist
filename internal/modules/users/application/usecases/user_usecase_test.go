@@ -885,7 +885,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 
 	// Delete
-	err := uc.DeleteUser(ctx, 1, user.ID)
+	err := uc.DeleteUser(ctx, 9999, user.ID)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -909,7 +909,7 @@ func TestUserUseCase_DeleteUser_WithAuditLogger(t *testing.T) {
 	user := authEntities.NewUser(testEmail, "password", "Test User", authDomain.RoleStudent)
 	_ = userRepo.Create(ctx, user)
 
-	err := uc.DeleteUser(ctx, 1, user.ID)
+	err := uc.DeleteUser(ctx, 9999, user.ID)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -928,7 +928,7 @@ func TestUserUseCase_DeleteUser_DeleteError(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 	userRepo.deleteErr = errors.New("delete error")
 
-	err := uc.DeleteUser(ctx, 1, user.ID)
+	err := uc.DeleteUser(ctx, 9999, user.ID)
 	if err == nil {
 		t.Error("expected error from delete")
 	}
@@ -1042,7 +1042,7 @@ func TestUserUseCase_DeleteUser_NotFound(t *testing.T) {
 
 	ctx := context.Background()
 
-	err := uc.DeleteUser(ctx, 1, 999)
+	err := uc.DeleteUser(ctx, 9999, 999)
 	if err == nil {
 		t.Error("expected error for non-existent user")
 	}

@@ -643,15 +643,18 @@ func TestUserHandler_UpdateStatus_UsecaseError(t *testing.T) {
 }
 
 func TestUserHandler_Delete_Success(t *testing.T) {
+	// Target id 2 ensures actor != target — setupUserRouter injects
+	// withAuth(1, "system_admin") so the actor is user 1.
+	// (#283 ADR-4 — DeleteUser now refuses self-delete.)
 	authRepo := new(mockAuthUserRepo)
-	authRepo.On("GetByID", mock.Anything, int64(1)).Return(&authEntities.User{ID: 1}, nil)
-	authRepo.On("Delete", mock.Anything, int64(1)).Return(nil)
+	authRepo.On("GetByID", mock.Anything, int64(2)).Return(&authEntities.User{ID: 2}, nil)
+	authRepo.On("Delete", mock.Anything, int64(2)).Return(nil)
 
 	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
 	handler := NewUserHandler(uc)
 	router := setupUserRouter(handler)
 
-	req := httptest.NewRequest(http.MethodDelete, "/users/1", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/users/2", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
