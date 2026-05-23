@@ -31,9 +31,8 @@
 **Files**: `main.go:2651-2678` (route registration), `department_handler.go:35-63`, `position_handler.go` (analog)
 
 **Fix**:
-- Apply `RequireRole(SystemAdmin, AcademicSecretary)` middleware (per "edit roles" project pattern) к `departmentsGroup` и `positionsGroup`.
-- Defense-in-depth: usecase-level role check via existing `IsAdminRole` helper before mutation.
-- Read endpoints (`GET`) остаются за `RequireAuth()` (любой authenticated user может видеть list).
+- Apply `RequireRole(SystemAdmin)` middleware к `departmentsGroup` и `positionsGroup` — mirror v0.133.0 `usersAdminMW` exactly. **Tightened from the plan's original "SystemAdmin + AcademicSecretary"** per reviewer T1-5 callout: academic_secretary as curriculum author has no canonical need to mutate organizational structure in v0.160.0 scope. If a future flow needs that (e.g. dean delegation), expand the whitelist in a follow-up.
+- Read endpoints (`GET`) остаются за `RequireAuth()` (любой authenticated user может видеть list) — cross-module resolvers and frontend dropdowns depend on the open read surface.
 
 **RED test**: student JWT POST `/api/departments` → expect 403 at middleware boundary; admin JWT same → 201.
 
@@ -75,14 +74,19 @@ Actually — guard 1 covers self-delete (more strict, even non-admin). Guard 2 c
 5. delete other admin (count=2 after): passes guards → 200/204
 6. delete student: passes guards → 200/204
 
-## Tier 2 absorbs (в release commit per `feedback_tier2_absorb_same_release`)
+## Tier 2 absorbs — **DEFERRED к v0.160.1 polish patch**
+
+Reviewer round-1 surfaced that the original plan committed к absorb 6 Tier 2 items in this release commit but none of them landed. To keep v0.160.0 focused on security primitives + reviewer Tier 0/1 fixes and avoid review-cycle thrash, the Tier 2 sweep is split off:
 
 1. **DIP relocation × 3** — `domain/repositories/{user,department,position}_repository.go` interfaces → `application/usecases/repository_interfaces.go` (consolidated). Sentinels + DTOs stay в domain. Mirror v0.157.1 curriculum.
 2. **AuditSink narrow port** — `*logging.AuditLogger` concrete → narrow `AuditSink interface { Emit(ctx, event) }` in usecase pkg. Adapter в main.go. Mirror v0.143 + 9 sibling modules.
-3. **Cross-module impl import** — users imports `notifications/application/usecases` directly (если existing). Replace with narrow `NotifyChannel` port + adapter в main.go.
+3. **Cross-module impl import** — users imports `notifications/application/usecases` directly. Replace with narrow `NotifyChannel` port + adapter в main.go.
 4. **validate→binding tag rename** — sweep all DTOs in `application/dto/*.go`. Gin reads `binding:` only.
-5. **2 fire-and-forget without ctx** — find `context.Background()` goroutines in users module, replace with `lifecycleCtx` per shutdown pattern (mirror v0.155 ai scheduler fix).
-6. **DeleteUser audit emission** — if DeleteUser swallows errors silently (per audit Tier 2 hint), audit-emit on failure (T1-1 pattern from v0.159.0).
+5. **2 fire-and-forget без graceful shutdown ctx** — `context.Background()` goroutines in `UpdateUserRole` + `UpdateUserStatus` notification paths; replace with `lifecycleCtx`.
+6. **Audit consistency** — `UpdateUserRole`, `BulkUpdateDepartment`, `BulkUpdatePosition` still record `user_id`/`user_ids` instead of `actor_user_id` + `target_user_id`(s). Surface attackers across all admin paths uniformly.
+7. **Direct unit tests for free functions** (reviewer T2-7) — `domain/authz_test.go` table-driven for `AuthorizeProfileEdit`, `AuthorizeUserDelete`, `ValidateAvatarKey` per CLAUDE.md ≥3-variant gate.
+
+**Justification for split**: the original §"absorb cap ≤4 items <1h" guideline (`feedback_tier2_absorb_same_release`) — this list is 7 items including cross-module refactor + handler signature changes for 3 more methods + cross-module wiring. Each is small but together they exceed the cap; spinning a focused patch release preserves the security narrative in v0.160.0's release notes.
 
 ## main.go wiring
 
