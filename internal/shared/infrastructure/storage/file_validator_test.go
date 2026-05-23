@@ -290,8 +290,9 @@ func TestValidateFile_MagicBytes_ReaderError(t *testing.T) {
 	// Use a reader that returns an error
 	errReader := &errorReader{}
 	result, err := v.ValidateFile("test.pdf", 100, "application/pdf", errReader)
-	assert.NoError(t, err) // ValidateFile itself doesn't return error from detectFileType
-	assert.True(t, result.Valid)
+	assert.NoError(t, err)        // ValidateFile itself doesn't return error from detectFileType
+	assert.False(t, result.Valid) // #290 reviewer T1-1 round 1: cannot verify content → reject
+	assert.Empty(t, result.DetectedType)
 }
 
 type errorReader struct{}
@@ -307,7 +308,9 @@ func TestValidateFile_EmptyReader(t *testing.T) {
 	reader := bytes.NewReader([]byte{})
 	result, err := v.ValidateFile("test.pdf", 100, "application/pdf", reader)
 	assert.NoError(t, err)
-	assert.True(t, result.Valid) // No magic bytes to detect, so no mismatch
+	// #290 reviewer T1-1 round 1: empty content → cannot verify type
+	// → reject (was Valid=true в pre-hotfix permissive baseline).
+	assert.False(t, result.Valid)
 }
 
 func TestValidateFile_MultipleErrors(t *testing.T) {

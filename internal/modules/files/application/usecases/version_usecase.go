@@ -142,7 +142,21 @@ func (uc *VersionUseCase) emitAccessDenied(ctx context.Context, actorID, fileID 
 }
 
 // GetVersions получает все версии файла.
-func (uc *VersionUseCase) GetVersions(ctx context.Context, fileID int64) ([]*dto.FileVersionResponse, error) {
+//
+// Closes #290 reviewer T0-1 round 1: requires actor ownership of the
+// parent file (or system_admin read override). Без этого гейта ответ
+// leaked version metadata + comment trail чужого файла.
+func (uc *VersionUseCase) GetVersions(ctx context.Context, fileID int64, actorID int64, actorRole authDomain.RoleType) ([]*dto.FileVersionResponse, error) {
+	file, err := uc.fileRepo.GetByID(ctx, fileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionRead); err != nil {
+		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionRead, "list_versions")
+		return nil, err
+	}
+
 	versions, err := uc.versionRepo.GetByFileMetadataID(ctx, fileID)
 	if err != nil {
 		return nil, err
