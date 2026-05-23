@@ -259,7 +259,15 @@ func (uc *MessagingUseCase) UpdateConversation(ctx context.Context, userID, conv
 		return nil, err
 	}
 
-	// Only admins can update group conversations
+	// Caller must be a participant for all conversation types.
+	// v0.162.0 ADR-2 (#297): pre-fix this check existed only inside the
+	// IsAdmin branch below, so direct conversations had no gate and any
+	// authenticated user could PATCH any DM. Group strangers were also
+	// vacuously denied by the admin check but for the wrong reason.
+	if !conv.HasParticipant(userID) {
+		return nil, entities.ErrNotParticipant
+	}
+	// Only admins can update group conversations.
 	if conv.IsGroupConversation() && !conv.IsAdmin(userID) {
 		return nil, entities.ErrNotParticipant
 	}
