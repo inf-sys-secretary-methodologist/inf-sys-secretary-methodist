@@ -9,12 +9,17 @@ import (
 )
 
 // CreateAnnouncementRequest represents a request to create an announcement.
+//
+// v0.163.0 ADR-6 (#303): tags renamed from `validate:` to `binding:`
+// so Gin's ShouldBindJSON actually enforces the schema. Pre-fix Gin
+// ignored these tags entirely and empty/oversized payloads reached
+// the usecase unchecked.
 type CreateAnnouncementRequest struct {
-	Title          string                      `json:"title" validate:"required,min=1,max=500"`
-	Content        string                      `json:"content" validate:"required,min=1"`
-	Summary        *string                     `json:"summary,omitempty" validate:"omitempty,max=1000"`
-	Priority       domain.AnnouncementPriority `json:"priority" validate:"required"`
-	TargetAudience domain.TargetAudience       `json:"target_audience" validate:"required"`
+	Title          string                      `json:"title" binding:"required,min=1,max=500"`
+	Content        string                      `json:"content" binding:"required,min=1"`
+	Summary        *string                     `json:"summary,omitempty" binding:"omitempty,max=1000"`
+	Priority       domain.AnnouncementPriority `json:"priority" binding:"required"`
+	TargetAudience domain.TargetAudience       `json:"target_audience" binding:"required"`
 	PublishAt      *time.Time                  `json:"publish_at,omitempty"`
 	ExpireAt       *time.Time                  `json:"expire_at,omitempty"`
 	IsPinned       bool                        `json:"is_pinned"`
@@ -22,10 +27,12 @@ type CreateAnnouncementRequest struct {
 }
 
 // UpdateAnnouncementRequest represents a request to update an announcement.
+//
+// v0.163.0 ADR-6 (#303): tags renamed from `validate:` to `binding:`.
 type UpdateAnnouncementRequest struct {
-	Title          *string                      `json:"title,omitempty" validate:"omitempty,min=1,max=500"`
-	Content        *string                      `json:"content,omitempty" validate:"omitempty,min=1"`
-	Summary        *string                      `json:"summary,omitempty" validate:"omitempty,max=1000"`
+	Title          *string                      `json:"title,omitempty" binding:"omitempty,min=1,max=500"`
+	Content        *string                      `json:"content,omitempty" binding:"omitempty,min=1"`
+	Summary        *string                      `json:"summary,omitempty" binding:"omitempty,max=1000"`
 	Priority       *domain.AnnouncementPriority `json:"priority,omitempty"`
 	TargetAudience *domain.TargetAudience       `json:"target_audience,omitempty"`
 	PublishAt      *time.Time                   `json:"publish_at,omitempty"`
