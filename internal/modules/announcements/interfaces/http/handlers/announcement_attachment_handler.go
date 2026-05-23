@@ -108,6 +108,10 @@ func (h *AnnouncementHandler) handleAttachmentError(c *gin.Context, err error) {
 		c.JSON(http.StatusNotFound, gin.H{errorKey: "attachment not found"})
 	case errors.Is(err, usecases.ErrAttachmentForbidden):
 		c.JSON(http.StatusForbidden, gin.H{errorKey: "attachment access forbidden"})
+	case errors.Is(err, usecases.ErrAttachmentTooLarge):
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{errorKey: "attachment too large"})
+	case errors.Is(err, usecases.ErrAttachmentMimeRejected):
+		c.JSON(http.StatusUnsupportedMediaType, gin.H{errorKey: "attachment content type not allowed"})
 	case errors.Is(err, usecases.ErrStorageNotConfigured):
 		c.JSON(http.StatusServiceUnavailable, gin.H{errorKey: "attachment storage is not configured"})
 	default:

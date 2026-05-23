@@ -37,6 +37,18 @@ func (uc *AnnouncementUseCase) AddAttachment(
 		return nil, ErrStorageNotConfigured
 	}
 
+	// v0.163.0 ADR-5 (#303 TIER 1): validate size + MIME BEFORE the
+	// announcement lookup so attackers cannot waste DB queries on
+	// rejected uploads. Pre-fix the handler trusted the client-supplied
+	// Content-Type and had no size cap; `evil.exe` with
+	// `Content-Type: application/octet-stream` succeeded.
+	if size > attachmentMaxSize {
+		return nil, ErrAttachmentTooLarge
+	}
+	if !allowedAttachmentMimeTypes[mimeType] {
+		return nil, ErrAttachmentMimeRejected
+	}
+
 	// 1. Announcement must exist.
 	ann, err := uc.repo.GetByID(ctx, announcementID)
 	if err != nil {

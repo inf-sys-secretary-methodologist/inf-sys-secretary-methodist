@@ -13,10 +13,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"testing"
 	"time"
 
@@ -113,9 +115,18 @@ func newMultipartFile(t *testing.T, fieldName, fileName, content string) (*bytes
 	t.Helper()
 	body := &bytes.Buffer{}
 	mw := multipart.NewWriter(body)
-	part, err := mw.CreateFormFile(fieldName, fileName)
+	// v0.163.0 ADR-5 (#303): explicit text/plain Content-Type per-part —
+	// the legacy CreateFormFile defaults к application/octet-stream which
+	// the validator now rejects (octet-stream loophole closed). Tests
+	// using .txt fixtures expect to traverse the validator into deeper
+	// error paths, so we mirror what browsers actually send.
+	h := textproto.MIMEHeader{}
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name=%q; filename=%q`, fieldName, fileName))
+	h.Set("Content-Type", "text/plain")
+	part, err := mw.CreatePart(h)
 	if err != nil {
-		t.Fatalf("create form file: %v", err)
+		t.Fatalf("create part: %v", err)
 	}
 	if _, err := part.Write([]byte(content)); err != nil {
 		t.Fatalf("write part: %v", err)
