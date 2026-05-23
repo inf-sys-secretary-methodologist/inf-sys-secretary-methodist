@@ -41,16 +41,38 @@ var ErrFileAccessDenied = errors.New("file access denied")
 // AuthorizeFileAccess returns nil if `actor` is permitted to perform
 // `action` against `file`, ErrFileAccessDenied otherwise.
 //
-// STUB — replace with real rule in GREEN commit.
+// Rules:
+//
+//  1. Nil file is always denied (defensive — caller bug, fail closed).
+//  2. The uploader (actorID == file.UploadedBy) is allowed every action.
+//  3. For FileActionRead, system_admin is allowed on any file (broad
+//     read access for support/forensics). No other role overrides
+//     read — methodist/academic_secretary/teacher all fall through.
+//  4. For write actions (Attach / CreateVersion / Delete), NO role
+//     override exists. Only the uploader may mutate. Admins can read
+//     for inspection but cannot impersonate the uploader (attach под
+//     someone else's identity, push a malicious version, or remove
+//     someone else's audit-trail file).
+//  5. Unknown actions default-deny.
 func AuthorizeFileAccess(
 	actorID int64,
 	actorRole authDomain.RoleType,
 	file *entities.FileMetadata,
 	action FileAction,
 ) error {
-	_ = actorID
-	_ = actorRole
-	_ = file
-	_ = action
-	return nil
+	if file == nil {
+		return ErrFileAccessDenied
+	}
+	if file.UploadedBy == actorID {
+		switch action {
+		case FileActionRead, FileActionAttach, FileActionCreateVersion, FileActionDelete:
+			return nil
+		default:
+			return ErrFileAccessDenied
+		}
+	}
+	if action == FileActionRead && actorRole == authDomain.RoleSystemAdmin {
+		return nil
+	}
+	return ErrFileAccessDenied
 }
