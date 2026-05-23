@@ -21,6 +21,18 @@ const (
 	testAvatarURL    = "https://example.com/avatar.png"
 )
 
+// MockUserExistenceChecker is a stub implementation of
+// UserExistenceChecker driven by an explicit existing-set, used by the
+// v0.162.0 ADR-3 tests (#297) to validate recipient/participant guards.
+type MockUserExistenceChecker struct {
+	mock.Mock
+}
+
+func (m *MockUserExistenceChecker) UserExists(ctx context.Context, userID int64) (bool, error) {
+	args := m.Called(ctx, userID)
+	return args.Bool(0), args.Error(1)
+}
+
 // MockConversationRepository is a mock implementation of ConversationRepository
 type MockConversationRepository struct {
 	mock.Mock
@@ -2867,4 +2879,80 @@ func TestUpdateConversation_StrangerRejectedForGroup(t *testing.T) {
 	assert.Nil(t, result)
 	assert.ErrorIs(t, err, entities.ErrNotParticipant)
 	mockConvRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
+}
+
+// TestCreateConversation_RecipientValidation pins v0.162.0 ADR-3 (#297):
+// CreateDirect/Group must reject (a) self-DM, (b) missing recipient, and
+// (c) missing group participant with a single uniform sentinel
+// (ErrInvalidParticipants / ErrSelfDMNotAllowed) so the pre-fix 201-vs-500
+// account-enumeration oracle disappears.
+func TestCreateConversation_RecipientValidation(t *testing.T) {
+	tests := []struct {
+		name       string
+		setup      func(*MockUserExistenceChecker, *MockConversationRepository)
+		callDirect bool          // true = CreateDirect; false = CreateGroup
+		creatorID  int64
+		recipient  int64         // direct only
+		groupParts []int64       // group only
+		expectErr  error
+	}{
+		{
+			name:       "direct self-DM rejected",
+			setup:      func(_ *MockUserExistenceChecker, _ *MockConversationRepository) {},
+			callDirect: true,
+			creatorID:  5,
+			recipient:  5,
+			expectErr:  entities.ErrSelfDMNotAllowed,
+		},
+		{
+			name: "direct recipient does not exist",
+			setup: func(uec *MockUserExistenceChecker, _ *MockConversationRepository) {
+				uec.On("UserExists", mock.Anything, int64(999)).Return(false, nil)
+			},
+			callDirect: true,
+			creatorID:  5,
+			recipient:  999,
+			expectErr:  entities.ErrInvalidParticipants,
+		},
+		{
+			name: "group with missing participant rejected",
+			setup: func(uec *MockUserExistenceChecker, _ *MockConversationRepository) {
+				uec.On("UserExists", mock.Anything, int64(10)).Return(true, nil)
+				uec.On("UserExists", mock.Anything, int64(999)).Return(false, nil)
+			},
+			callDirect: false,
+			creatorID:  5,
+			groupParts: []int64{10, 999},
+			expectErr:  entities.ErrInvalidParticipants,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			mockConvRepo := new(MockConversationRepository)
+			mockMsgRepo := new(MockMessageRepository)
+			mockUserExist := new(MockUserExistenceChecker)
+			logger := createTestLogger()
+			hub := websocket.NewHub(logger)
+
+			uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil).
+				WithUserExistenceChecker(mockUserExist)
+
+			tc.setup(mockUserExist, mockConvRepo)
+
+			var err error
+			if tc.callDirect {
+				_, err = uc.CreateDirectConversation(ctx, tc.creatorID,
+					dto.CreateDirectConversationInput{RecipientID: tc.recipient})
+			} else {
+				_, err = uc.CreateGroupConversation(ctx, tc.creatorID,
+					dto.CreateGroupConversationInput{Title: "g", ParticipantIDs: tc.groupParts})
+			}
+
+			assert.ErrorIs(t, err, tc.expectErr)
+			// Persistence must not be reached on rejection.
+			mockConvRepo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+		})
+	}
 }

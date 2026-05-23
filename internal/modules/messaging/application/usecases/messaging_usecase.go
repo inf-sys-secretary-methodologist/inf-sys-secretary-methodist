@@ -24,6 +24,17 @@ type MessageNotifier interface {
 	NotifyNewMessage(ctx context.Context, userID int64, senderName, content string, conversationID, messageID int64) error
 }
 
+// UserExistenceChecker is a narrow port over the users module used to
+// validate recipients / participants before a conversation is created.
+// v0.162.0 ADR-3 (#297): without this check, sequential RecipientID
+// enumeration leaked account existence through the 201 vs 500 outcome
+// (FK violation on missing user). Defined here so the messaging module
+// does not depend on the concrete users repository; main.go wires a
+// thin adapter.
+type UserExistenceChecker interface {
+	UserExists(ctx context.Context, userID int64) (bool, error)
+}
+
 // AvatarURLExpiration is how long presigned URLs for avatars are valid
 const AvatarURLExpiration = 7 * 24 * time.Hour // 7 days
 
@@ -36,6 +47,7 @@ type MessagingUseCase struct {
 	notifier         MessageNotifier
 	s3Client         *storage.S3Client
 	auditSink        AuditSink
+	userExistence    UserExistenceChecker
 }
 
 // NewMessagingUseCase creates a new messaging use case.
@@ -70,6 +82,18 @@ func NewMessagingUseCase(
 // existing test setups.
 func (uc *MessagingUseCase) WithAuditSink(sink AuditSink) *MessagingUseCase {
 	uc.auditSink = sink
+	return uc
+}
+
+// WithUserExistenceChecker wires recipient/participant existence
+// validation for CreateDirect/GroupConversation. v0.162.0 ADR-3 (#297).
+// Nil checker (the default) keeps legacy behavior — pre-fix CreateDirect
+// returned 201 for existing users and 500 (FK violation) for missing
+// users; that distinction was an account enumeration oracle. With
+// checker wired, both outcomes collapse to a uniform
+// entities.ErrInvalidParticipants response.
+func (uc *MessagingUseCase) WithUserExistenceChecker(checker UserExistenceChecker) *MessagingUseCase {
+	uc.userExistence = checker
 	return uc
 }
 
