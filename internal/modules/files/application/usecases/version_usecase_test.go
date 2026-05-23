@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
+	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
@@ -132,6 +134,7 @@ func TestVersionUseCase_CreateVersion_TemporaryFileError(t *testing.T) {
 	file := &entities.FileMetadata{
 		ID:          1,
 		IsTemporary: true,
+		UploadedBy:  1,
 	}
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
@@ -156,6 +159,7 @@ func TestVersionUseCase_CreateVersion_GetNextVersionError(t *testing.T) {
 	file := &entities.FileMetadata{
 		ID:          1,
 		IsTemporary: false,
+		UploadedBy:  1,
 	}
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
@@ -182,6 +186,7 @@ func TestVersionUseCase_CreateVersion_UploadError(t *testing.T) {
 		StorageKey:  "documents/1/file.pdf",
 		MimeType:    "application/pdf",
 		IsTemporary: false,
+		UploadedBy:  1,
 	}
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
@@ -210,6 +215,7 @@ func TestVersionUseCase_CreateVersion_RepoCreateError_CleansUpStorage(t *testing
 		StorageKey:  "documents/1/file.pdf",
 		MimeType:    "application/pdf",
 		IsTemporary: false,
+		UploadedBy:  1,
 	}
 
 	storageKey := "documents/1/file.pdf/v2"
@@ -244,6 +250,7 @@ func TestVersionUseCase_CreateVersion_WithoutAuditLogger(t *testing.T) {
 		StorageKey:  "documents/1/file.pdf",
 		MimeType:    "application/pdf",
 		IsTemporary: false,
+		UploadedBy:  1,
 	}
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
@@ -406,6 +413,7 @@ func TestVersionUseCase_DownloadVersion_Success(t *testing.T) {
 		ID:           1,
 		OriginalName: "document.pdf",
 		MimeType:     "application/pdf",
+		UploadedBy:   testUploaderID,
 	}
 
 	version := &entities.FileVersion{
@@ -420,7 +428,7 @@ func TestVersionUseCase_DownloadVersion_Success(t *testing.T) {
 	mockStorage.On("GetPresignedURL", ctx, "documents/1/file.pdf/v2", time.Hour).
 		Return("https://example.com/presigned/v2", nil).Once()
 
-	result, err := uc.DownloadVersion(ctx, 1, 2)
+	result, err := uc.DownloadVersion(ctx, 1, 2, testUploaderID, testActorRole)
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -439,7 +447,7 @@ func TestVersionUseCase_DownloadVersion_FileNotFound(t *testing.T) {
 
 	mockFileRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found")).Once()
 
-	result, err := uc.DownloadVersion(ctx, 999, 1)
+	result, err := uc.DownloadVersion(ctx, 999, 1, testUploaderID, testActorRole)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -456,12 +464,13 @@ func TestVersionUseCase_DownloadVersion_VersionNotFound(t *testing.T) {
 		ID:           1,
 		OriginalName: "document.pdf",
 		MimeType:     "application/pdf",
+		UploadedBy:   testUploaderID,
 	}
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
 	mockVersionRepo.On("GetByVersionNumber", ctx, int64(1), 999).Return(nil, errors.New("not found")).Once()
 
-	result, err := uc.DownloadVersion(ctx, 1, 999)
+	result, err := uc.DownloadVersion(ctx, 1, 999, testUploaderID, testActorRole)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -476,8 +485,9 @@ func TestVersionUseCase_DownloadVersion_PresignError(t *testing.T) {
 	ctx := context.Background()
 
 	file := &entities.FileMetadata{
-		ID:       1,
-		MimeType: "application/pdf",
+		ID:         1,
+		MimeType:   "application/pdf",
+		UploadedBy: testUploaderID,
 	}
 	version := &entities.FileVersion{
 		ID:         1,
@@ -489,7 +499,7 @@ func TestVersionUseCase_DownloadVersion_PresignError(t *testing.T) {
 	mockStorage.On("GetPresignedURL", ctx, "key/v1", time.Hour).
 		Return("", errors.New("presign error")).Once()
 
-	result, err := uc.DownloadVersion(ctx, 1, 1)
+	result, err := uc.DownloadVersion(ctx, 1, 1, testUploaderID, testActorRole)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -526,7 +536,7 @@ func TestVersionUseCase_DeleteVersion_SuccessAsFileOwner(t *testing.T) {
 	mockVersionRepo.On("Delete", ctx, int64(1)).Return(nil).Once()
 	mockAudit.On("LogAuditEvent", ctx, "delete_version", "file", mock.Anything).Once()
 
-	err := uc.DeleteVersion(ctx, 1, 10) // user is file owner
+	err := uc.DeleteVersion(ctx, 1, 10, testActorRole) // user is file owner
 
 	require.NoError(t, err)
 	mockVersionRepo.AssertExpectations(t)
@@ -561,7 +571,7 @@ func TestVersionUseCase_DeleteVersion_SuccessAsVersionCreator(t *testing.T) {
 	mockStorage.On("Delete", ctx, "documents/1/file.pdf/v2").Return(nil).Once()
 	mockVersionRepo.On("Delete", ctx, int64(1)).Return(nil).Once()
 
-	err := uc.DeleteVersion(ctx, 1, 5) // user is version creator
+	err := uc.DeleteVersion(ctx, 1, 5, testActorRole) // user is version creator (kept legitimate)
 
 	require.NoError(t, err)
 }
@@ -586,11 +596,10 @@ func TestVersionUseCase_DeleteVersion_NoPermission(t *testing.T) {
 	mockVersionRepo.On("GetByID", ctx, int64(1)).Return(version, nil).Once()
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
 
-	err := uc.DeleteVersion(ctx, 1, 99) // user is neither owner nor creator
+	err := uc.DeleteVersion(ctx, 1, 99, testActorRole) // user is neither owner nor creator
 
 	require.Error(t, err)
-	var permErr *PermissionError
-	assert.True(t, errors.As(err, &permErr))
+	assert.True(t, errors.Is(err, filesDomain.ErrFileAccessDenied))
 }
 
 func TestVersionUseCase_DeleteVersion_VersionNotFound(t *testing.T) {
@@ -601,7 +610,7 @@ func TestVersionUseCase_DeleteVersion_VersionNotFound(t *testing.T) {
 
 	mockVersionRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found")).Once()
 
-	err := uc.DeleteVersion(ctx, 999, 1)
+	err := uc.DeleteVersion(ctx, 999, 1, testActorRole)
 
 	require.Error(t, err)
 }
@@ -622,7 +631,7 @@ func TestVersionUseCase_DeleteVersion_FileGetByIDError(t *testing.T) {
 	mockVersionRepo.On("GetByID", ctx, int64(1)).Return(version, nil).Once()
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(nil, errors.New("file not found")).Once()
 
-	err := uc.DeleteVersion(ctx, 1, 1)
+	err := uc.DeleteVersion(ctx, 1, 1, testActorRole)
 
 	require.Error(t, err)
 }
@@ -650,7 +659,7 @@ func TestVersionUseCase_DeleteVersion_StorageDeleteError(t *testing.T) {
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
 	mockStorage.On("Delete", ctx, "key/v1").Return(errors.New("s3 error")).Once()
 
-	err := uc.DeleteVersion(ctx, 1, 1)
+	err := uc.DeleteVersion(ctx, 1, 1, testActorRole)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "ошибка удаления версии из хранилища")
@@ -680,7 +689,7 @@ func TestVersionUseCase_DeleteVersion_RepoDeleteError(t *testing.T) {
 	mockStorage.On("Delete", ctx, "key/v1").Return(nil).Once()
 	mockVersionRepo.On("Delete", ctx, int64(1)).Return(errors.New("db error")).Once()
 
-	err := uc.DeleteVersion(ctx, 1, 1)
+	err := uc.DeleteVersion(ctx, 1, 1, testActorRole)
 
 	require.Error(t, err)
 }
@@ -755,4 +764,89 @@ func TestVersionUseCase_toVersionResponse(t *testing.T) {
 	assert.Equal(t, "Final version", response.Comment)
 	assert.Equal(t, int64(42), response.CreatedBy)
 	assert.Equal(t, now, response.CreatedAt)
+}
+
+// --- ADR-2 CreateVersion ownership + comment sanitize coverage (#290) ---
+
+func TestVersionUseCase_CreateVersion_OtherUserDenied(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
+	mockVersionRepo := new(MockFileVersionRepository)
+	mockAudit := new(MockAuditLogger)
+	uc := newTestVersionUseCase(mockFileRepo, mockVersionRepo, nil, mockAudit)
+	ctx := context.Background()
+
+	file := &entities.FileMetadata{ID: 1, IsTemporary: false, UploadedBy: 10}
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
+	mockAudit.On("LogAuditEvent", ctx, "file_create_version_denied", "file", mock.MatchedBy(func(f map[string]interface{}) bool {
+		return f["actor_user_id"] == int64(99) && f["target_file_id"] == int64(1)
+	})).Once()
+
+	input := &dto.CreateVersionInput{FileID: 1, UserID: 99, UserRole: testActorRole}
+	resp, err := uc.CreateVersion(ctx, bytes.NewReader([]byte("x")), 1, input)
+
+	assert.Nil(t, resp)
+	assert.True(t, errors.Is(err, filesDomain.ErrFileAccessDenied))
+	mockAudit.AssertExpectations(t)
+}
+
+func TestVersionUseCase_CreateVersion_CommentSanitizedAgainstXSS(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
+	mockVersionRepo := new(MockFileVersionRepository)
+	mockStorage := new(MockStorageClient)
+	mockAudit := new(MockAuditLogger)
+	uc := newTestVersionUseCase(mockFileRepo, mockVersionRepo, mockStorage, mockAudit)
+	ctx := context.Background()
+
+	file := &entities.FileMetadata{
+		ID:          1,
+		StorageKey:  "documents/1/file.pdf",
+		MimeType:    "application/pdf",
+		IsTemporary: false,
+		UploadedBy:  1,
+	}
+
+	var capturedVersion *entities.FileVersion
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
+	mockVersionRepo.On("GetNextVersionNumber", ctx, int64(1)).Return(1, nil).Once()
+	mockStorage.On("Upload", ctx, "documents/1/file.pdf/v1", mock.Anything, int64(4), "application/pdf").
+		Return(&storage.FileInfo{Size: 4}, nil).Once()
+	mockVersionRepo.On("Create", ctx, mock.AnythingOfType("*entities.FileVersion")).
+		Run(func(args mock.Arguments) {
+			capturedVersion = args.Get(1).(*entities.FileVersion)
+		}).
+		Return(nil).Once()
+	mockAudit.On("LogAuditEvent", ctx, "create_version", "file", mock.MatchedBy(func(f map[string]interface{}) bool {
+		comment, _ := f["comment"].(string)
+		return !strings.Contains(comment, "<script>")
+	})).Once()
+
+	input := &dto.CreateVersionInput{
+		FileID:   1,
+		Comment:  "<script>alert('xss')</script>legit comment",
+		UserID:   1,
+		UserRole: testActorRole,
+	}
+	resp, err := uc.CreateVersion(ctx, bytes.NewReader([]byte("data")), 4, input)
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, capturedVersion)
+	assert.NotContains(t, capturedVersion.Comment, "<script>", "stored comment must be sanitized")
+}
+
+func TestVersionUseCase_DownloadVersion_OtherUserDenied(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
+	mockAudit := new(MockAuditLogger)
+	uc := newTestVersionUseCase(mockFileRepo, nil, nil, mockAudit)
+	ctx := context.Background()
+
+	file := &entities.FileMetadata{ID: 1, UploadedBy: testUploaderID}
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
+	mockAudit.On("LogAuditEvent", ctx, "file_read_denied", "file", mock.Anything).Once()
+
+	result, err := uc.DownloadVersion(ctx, 1, 2, 99, testActorRole)
+
+	assert.Nil(t, result)
+	assert.True(t, errors.Is(err, filesDomain.ErrFileAccessDenied))
+	mockAudit.AssertExpectations(t)
 }

@@ -329,21 +329,20 @@ func (h *FileHandler) CreateVersion(c *gin.Context) {
 	}
 	defer func() { _ = file.Close() }()
 
-	// Получаем user_id из контекста
-	userIDVal, exists := c.Get("user_id")
-	if !exists {
+	actorID, actorRole, ok := readActor(c)
+	if !ok {
 		resp := response.Unauthorized("Требуется авторизация")
 		c.JSON(http.StatusUnauthorized, resp)
 		return
 	}
-	userID, _ := userIDVal.(int64)
 
 	comment := c.PostForm("comment")
 
 	input := &dto.CreateVersionInput{
-		FileID:  id,
-		Comment: comment,
-		UserID:  userID,
+		FileID:   id,
+		Comment:  comment,
+		UserID:   actorID,
+		UserRole: actorRole,
 	}
 
 	ctx := c.Request.Context()
@@ -399,8 +398,15 @@ func (h *FileHandler) DownloadVersion(c *gin.Context) {
 		return
 	}
 
+	actorID, actorRole, ok := readActor(c)
+	if !ok {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+
 	ctx := c.Request.Context()
-	result, err := h.versionUseCase.DownloadVersion(ctx, id, versionNumber)
+	result, err := h.versionUseCase.DownloadVersion(ctx, id, versionNumber, actorID, actorRole)
 	if err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
