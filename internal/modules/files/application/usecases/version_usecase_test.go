@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
 	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
@@ -270,19 +271,22 @@ func TestVersionUseCase_CreateVersion_WithoutAuditLogger(t *testing.T) {
 // --- GetVersions ---
 
 func TestVersionUseCase_GetVersions_Success(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
 	mockVersionRepo := new(MockFileVersionRepository)
 
-	uc := newTestVersionUseCase(nil, mockVersionRepo, nil, nil)
+	uc := newTestVersionUseCase(mockFileRepo, mockVersionRepo, nil, nil)
 	ctx := context.Background()
 
+	file := &entities.FileMetadata{ID: 1, UploadedBy: testUploaderID}
 	versions := []*entities.FileVersion{
 		{ID: 1, FileMetadataID: 1, VersionNumber: 1, Size: 1024, Checksum: "abc"},
 		{ID: 2, FileMetadataID: 1, VersionNumber: 2, Size: 2048, Checksum: "def"},
 	}
 
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
 	mockVersionRepo.On("GetByFileMetadataID", ctx, int64(1)).Return(versions, nil).Once()
 
-	result, err := uc.GetVersions(ctx, 1)
+	result, err := uc.GetVersions(ctx, 1, testUploaderID, testActorRole)
 
 	require.NoError(t, err)
 	assert.Len(t, result, 2)
@@ -291,31 +295,55 @@ func TestVersionUseCase_GetVersions_Success(t *testing.T) {
 }
 
 func TestVersionUseCase_GetVersions_Empty(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
 	mockVersionRepo := new(MockFileVersionRepository)
 
-	uc := newTestVersionUseCase(nil, mockVersionRepo, nil, nil)
+	uc := newTestVersionUseCase(mockFileRepo, mockVersionRepo, nil, nil)
 	ctx := context.Background()
 
+	file := &entities.FileMetadata{ID: 999, UploadedBy: testUploaderID}
+	mockFileRepo.On("GetByID", ctx, int64(999)).Return(file, nil).Once()
 	mockVersionRepo.On("GetByFileMetadataID", ctx, int64(999)).Return([]*entities.FileVersion{}, nil).Once()
 
-	result, err := uc.GetVersions(ctx, 999)
+	result, err := uc.GetVersions(ctx, 999, testUploaderID, testActorRole)
 
 	require.NoError(t, err)
 	assert.Len(t, result, 0)
 }
 
 func TestVersionUseCase_GetVersions_Error(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
 	mockVersionRepo := new(MockFileVersionRepository)
 
-	uc := newTestVersionUseCase(nil, mockVersionRepo, nil, nil)
+	uc := newTestVersionUseCase(mockFileRepo, mockVersionRepo, nil, nil)
 	ctx := context.Background()
 
+	file := &entities.FileMetadata{ID: 1, UploadedBy: testUploaderID}
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
 	mockVersionRepo.On("GetByFileMetadataID", ctx, int64(1)).Return(nil, errors.New("db error")).Once()
 
-	result, err := uc.GetVersions(ctx, 1)
+	result, err := uc.GetVersions(ctx, 1, testUploaderID, testActorRole)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
+}
+
+func TestVersionUseCase_GetVersions_OtherUserDenied(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
+	mockVersionRepo := new(MockFileVersionRepository)
+	mockAudit := new(MockAuditLogger)
+	uc := newTestVersionUseCase(mockFileRepo, mockVersionRepo, nil, mockAudit)
+	ctx := context.Background()
+
+	file := &entities.FileMetadata{ID: 1, UploadedBy: testUploaderID}
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
+	mockAudit.On("LogAuditEvent", ctx, "file_read_denied", "file", mock.Anything).Once()
+
+	result, err := uc.GetVersions(ctx, 1, 99, authDomain.RoleStudent)
+
+	assert.Nil(t, result)
+	assert.True(t, errors.Is(err, filesDomain.ErrFileAccessDenied))
+	mockAudit.AssertExpectations(t)
 }
 
 // --- GetVersion ---

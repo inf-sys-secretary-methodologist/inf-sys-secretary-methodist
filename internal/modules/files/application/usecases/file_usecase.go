@@ -313,7 +313,14 @@ func (uc *FileUseCase) DeleteFile(ctx context.Context, id int64, actorID int64, 
 }
 
 // ListFiles получает список файлов с пагинацией.
-func (uc *FileUseCase) ListFiles(ctx context.Context, page, limit int) (*dto.FileListResponse, error) {
+//
+// Closes #290 reviewer T0-1 round 1: previously returned full system-
+// wide file list to any authenticated user (HR records, exam reports,
+// diploma drafts leaked through pagination + metadata in FileResponse).
+// Now branches by actor role: system_admin sees все файлы (existing
+// behavior kept for support/forensics); non-admin sees только файлы,
+// которые сам загрузил, через GetByUploadedBy + CountByUploadedBy.
+func (uc *FileUseCase) ListFiles(ctx context.Context, page, limit int, actorID int64, actorRole authDomain.RoleType) (*dto.FileListResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -325,14 +332,30 @@ func (uc *FileUseCase) ListFiles(ctx context.Context, page, limit int) (*dto.Fil
 	}
 	offset := (page - 1) * limit
 
-	files, err := uc.fileRepo.List(ctx, limit, offset)
-	if err != nil {
-		return nil, err
-	}
+	var (
+		files []*entities.FileMetadata
+		total int64
+		err   error
+	)
 
-	total, err := uc.fileRepo.Count(ctx)
-	if err != nil {
-		return nil, err
+	if actorRole == authDomain.RoleSystemAdmin {
+		files, err = uc.fileRepo.List(ctx, limit, offset)
+		if err != nil {
+			return nil, err
+		}
+		total, err = uc.fileRepo.Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		files, err = uc.fileRepo.GetByUploadedBy(ctx, actorID, limit, offset)
+		if err != nil {
+			return nil, err
+		}
+		total, err = uc.fileRepo.CountByUploadedBy(ctx, actorID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	totalPages := int(total) / limit
@@ -354,15 +377,30 @@ func (uc *FileUseCase) ListFiles(ctx context.Context, page, limit int) (*dto.Fil
 	}, nil
 }
 
+// filterAccessibleFiles returns only the files actor may read.
+// Post-filter via AuthorizeFileAccess(FileActionRead) — drops denied
+// entries silently (no per-file 403, list endpoints просто не отдают
+// чужие файлы). Closes #290 reviewer T0-1 для group-list endpoints.
+func (uc *FileUseCase) filterAccessibleFiles(files []*entities.FileMetadata, actorID int64, actorRole authDomain.RoleType) []*entities.FileMetadata {
+	accessible := make([]*entities.FileMetadata, 0, len(files))
+	for _, f := range files {
+		if filesDomain.AuthorizeFileAccess(actorID, actorRole, f, filesDomain.FileActionRead) == nil {
+			accessible = append(accessible, f)
+		}
+	}
+	return accessible
+}
+
 // GetFilesByDocument получает все файлы документа.
-func (uc *FileUseCase) GetFilesByDocument(ctx context.Context, documentID int64) ([]*dto.FileResponse, error) {
+func (uc *FileUseCase) GetFilesByDocument(ctx context.Context, documentID int64, actorID int64, actorRole authDomain.RoleType) ([]*dto.FileResponse, error) {
 	files, err := uc.fileRepo.GetByDocumentID(ctx, documentID)
 	if err != nil {
 		return nil, err
 	}
 
-	responses := make([]*dto.FileResponse, len(files))
-	for i, file := range files {
+	accessible := uc.filterAccessibleFiles(files, actorID, actorRole)
+	responses := make([]*dto.FileResponse, len(accessible))
+	for i, file := range accessible {
 		responses[i] = uc.toFileResponse(file)
 	}
 
@@ -370,14 +408,15 @@ func (uc *FileUseCase) GetFilesByDocument(ctx context.Context, documentID int64)
 }
 
 // GetFilesByTask получает все файлы задачи.
-func (uc *FileUseCase) GetFilesByTask(ctx context.Context, taskID int64) ([]*dto.FileResponse, error) {
+func (uc *FileUseCase) GetFilesByTask(ctx context.Context, taskID int64, actorID int64, actorRole authDomain.RoleType) ([]*dto.FileResponse, error) {
 	files, err := uc.fileRepo.GetByTaskID(ctx, taskID)
 	if err != nil {
 		return nil, err
 	}
 
-	responses := make([]*dto.FileResponse, len(files))
-	for i, file := range files {
+	accessible := uc.filterAccessibleFiles(files, actorID, actorRole)
+	responses := make([]*dto.FileResponse, len(accessible))
+	for i, file := range accessible {
 		responses[i] = uc.toFileResponse(file)
 	}
 
@@ -385,14 +424,15 @@ func (uc *FileUseCase) GetFilesByTask(ctx context.Context, taskID int64) ([]*dto
 }
 
 // GetFilesByAnnouncement получает все файлы объявления.
-func (uc *FileUseCase) GetFilesByAnnouncement(ctx context.Context, announcementID int64) ([]*dto.FileResponse, error) {
+func (uc *FileUseCase) GetFilesByAnnouncement(ctx context.Context, announcementID int64, actorID int64, actorRole authDomain.RoleType) ([]*dto.FileResponse, error) {
 	files, err := uc.fileRepo.GetByAnnouncementID(ctx, announcementID)
 	if err != nil {
 		return nil, err
 	}
 
-	responses := make([]*dto.FileResponse, len(files))
-	for i, file := range files {
+	accessible := uc.filterAccessibleFiles(files, actorID, actorRole)
+	responses := make([]*dto.FileResponse, len(accessible))
+	for i, file := range accessible {
 		responses[i] = uc.toFileResponse(file)
 	}
 

@@ -69,20 +69,18 @@ func (h *FileHandler) Upload(c *gin.Context) {
 	}
 	defer func() { _ = file.Close() }()
 
-	// Получаем user_id из контекста (должен быть установлен middleware авторизации)
-	userIDVal, exists := c.Get("user_id")
-	if !exists {
+	actorID, _, ok := readActor(c)
+	if !ok {
 		resp := response.Unauthorized("Требуется авторизация")
 		c.JSON(http.StatusUnauthorized, resp)
 		return
 	}
-	userID, _ := userIDVal.(int64)
 
 	input := &dto.UploadFileInput{
 		OriginalName: header.Filename,
 		MimeType:     header.Header.Get("Content-Type"),
 		Size:         header.Size,
-		UserID:       userID,
+		UserID:       actorID,
 	}
 
 	// Если MIME не определён, используем default
@@ -221,12 +219,9 @@ func (h *FileHandler) Delete(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	if err := h.fileUseCase.DeleteFile(ctx, id, actorID, actorRole); err != nil {
-		var permErr *usecases.PermissionError
-		if errors.As(err, &permErr) {
-			resp := response.Forbidden(permErr.Message)
-			c.JSON(http.StatusForbidden, resp)
-			return
-		}
+		// ErrFileAccessDenied → 403 через error_mapper. Old
+		// *PermissionError struct branch removed после миграции
+		// на sentinel (closes reviewer T1-4 dead-branch).
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return
@@ -240,8 +235,15 @@ func (h *FileHandler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
+	actorID, actorRole, ok := readActor(c)
+	if !ok {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+
 	ctx := c.Request.Context()
-	result, err := h.fileUseCase.ListFiles(ctx, page, limit)
+	result, err := h.fileUseCase.ListFiles(ctx, page, limit, actorID, actorRole)
 	if err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
@@ -260,8 +262,15 @@ func (h *FileHandler) GetByDocument(c *gin.Context) {
 		return
 	}
 
+	actorID, actorRole, ok := readActor(c)
+	if !ok {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+
 	ctx := c.Request.Context()
-	result, err := h.fileUseCase.GetFilesByDocument(ctx, documentID)
+	result, err := h.fileUseCase.GetFilesByDocument(ctx, documentID, actorID, actorRole)
 	if err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
@@ -280,8 +289,15 @@ func (h *FileHandler) GetByTask(c *gin.Context) {
 		return
 	}
 
+	actorID, actorRole, ok := readActor(c)
+	if !ok {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+
 	ctx := c.Request.Context()
-	result, err := h.fileUseCase.GetFilesByTask(ctx, taskID)
+	result, err := h.fileUseCase.GetFilesByTask(ctx, taskID, actorID, actorRole)
 	if err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
@@ -300,8 +316,15 @@ func (h *FileHandler) GetByAnnouncement(c *gin.Context) {
 		return
 	}
 
+	actorID, actorRole, ok := readActor(c)
+	if !ok {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+
 	ctx := c.Request.Context()
-	result, err := h.fileUseCase.GetFilesByAnnouncement(ctx, announcementID)
+	result, err := h.fileUseCase.GetFilesByAnnouncement(ctx, announcementID, actorID, actorRole)
 	if err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
@@ -371,8 +394,15 @@ func (h *FileHandler) GetVersions(c *gin.Context) {
 		return
 	}
 
+	actorID, actorRole, ok := readActor(c)
+	if !ok {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+
 	ctx := c.Request.Context()
-	result, err := h.versionUseCase.GetVersions(ctx, id)
+	result, err := h.versionUseCase.GetVersions(ctx, id, actorID, actorRole)
 	if err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)

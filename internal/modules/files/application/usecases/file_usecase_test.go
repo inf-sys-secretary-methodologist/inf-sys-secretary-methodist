@@ -109,6 +109,11 @@ func (m *MockFileMetadataRepository) GetByAnnouncementID(ctx context.Context, an
 	return args.Get(0).([]*entities.FileMetadata), args.Error(1)
 }
 
+func (m *MockFileMetadataRepository) CountByUploadedBy(ctx context.Context, userID int64) (int64, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 func (m *MockFileMetadataRepository) GetByUploadedBy(ctx context.Context, userID int64, limit, offset int) ([]*entities.FileMetadata, error) {
 	args := m.Called(ctx, userID, limit, offset)
 	if args.Get(0) == nil {
@@ -1030,7 +1035,7 @@ func TestFileUseCase_ListFiles_Success(t *testing.T) {
 	mockFileRepo.On("List", ctx, 10, 0).Return(files, nil).Once()
 	mockFileRepo.On("Count", ctx).Return(int64(2), nil).Once()
 
-	result, err := uc.ListFiles(ctx, 1, 10)
+	result, err := uc.ListFiles(ctx, 1, 10, testUploaderID, authDomain.RoleSystemAdmin)
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -1055,7 +1060,7 @@ func TestFileUseCase_ListFiles_Pagination(t *testing.T) {
 	mockFileRepo.On("List", ctx, 2, 2).Return(files, nil).Once()
 	mockFileRepo.On("Count", ctx).Return(int64(5), nil).Once()
 
-	result, err := uc.ListFiles(ctx, 2, 2)
+	result, err := uc.ListFiles(ctx, 2, 2, testUploaderID, authDomain.RoleSystemAdmin)
 
 	require.NoError(t, err)
 	assert.Equal(t, 2, result.Page)
@@ -1073,7 +1078,7 @@ func TestFileUseCase_ListFiles_DefaultsForInvalidInput(t *testing.T) {
 	mockFileRepo.On("List", ctx, 10, 0).Return([]*entities.FileMetadata{}, nil).Once()
 	mockFileRepo.On("Count", ctx).Return(int64(0), nil).Once()
 
-	result, err := uc.ListFiles(ctx, 0, -5)
+	result, err := uc.ListFiles(ctx, 0, -5, testUploaderID, authDomain.RoleSystemAdmin)
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, result.Page)
@@ -1089,7 +1094,7 @@ func TestFileUseCase_ListFiles_LimitCappedAt100(t *testing.T) {
 	mockFileRepo.On("List", ctx, 100, 0).Return([]*entities.FileMetadata{}, nil).Once()
 	mockFileRepo.On("Count", ctx).Return(int64(0), nil).Once()
 
-	result, err := uc.ListFiles(ctx, 1, 500)
+	result, err := uc.ListFiles(ctx, 1, 500, testUploaderID, authDomain.RoleSystemAdmin)
 
 	require.NoError(t, err)
 	assert.Equal(t, 100, result.Limit)
@@ -1103,7 +1108,7 @@ func TestFileUseCase_ListFiles_ListError(t *testing.T) {
 
 	mockFileRepo.On("List", ctx, 10, 0).Return(nil, errors.New("db error")).Once()
 
-	result, err := uc.ListFiles(ctx, 1, 10)
+	result, err := uc.ListFiles(ctx, 1, 10, testUploaderID, authDomain.RoleSystemAdmin)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -1118,7 +1123,7 @@ func TestFileUseCase_ListFiles_CountError(t *testing.T) {
 	mockFileRepo.On("List", ctx, 10, 0).Return([]*entities.FileMetadata{}, nil).Once()
 	mockFileRepo.On("Count", ctx).Return(int64(0), errors.New("count error")).Once()
 
-	result, err := uc.ListFiles(ctx, 1, 10)
+	result, err := uc.ListFiles(ctx, 1, 10, testUploaderID, authDomain.RoleSystemAdmin)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -1133,7 +1138,7 @@ func TestFileUseCase_ListFiles_TotalPagesExact(t *testing.T) {
 	mockFileRepo.On("List", ctx, 5, 0).Return([]*entities.FileMetadata{}, nil).Once()
 	mockFileRepo.On("Count", ctx).Return(int64(10), nil).Once()
 
-	result, err := uc.ListFiles(ctx, 1, 5)
+	result, err := uc.ListFiles(ctx, 1, 5, testUploaderID, authDomain.RoleSystemAdmin)
 
 	require.NoError(t, err)
 	assert.Equal(t, 2, result.TotalPages) // 10/5 = 2, no remainder
@@ -1155,7 +1160,7 @@ func TestFileUseCase_GetFilesByDocument_Success(t *testing.T) {
 
 	mockFileRepo.On("GetByDocumentID", ctx, int64(1)).Return(files, nil).Once()
 
-	result, err := uc.GetFilesByDocument(ctx, 1)
+	result, err := uc.GetFilesByDocument(ctx, 1, testUploaderID, authDomain.RoleSystemAdmin)
 
 	require.NoError(t, err)
 	assert.Len(t, result, 2)
@@ -1169,7 +1174,7 @@ func TestFileUseCase_GetFilesByDocument_Error(t *testing.T) {
 
 	mockFileRepo.On("GetByDocumentID", ctx, int64(1)).Return(nil, errors.New("db error")).Once()
 
-	result, err := uc.GetFilesByDocument(ctx, 1)
+	result, err := uc.GetFilesByDocument(ctx, 1, testUploaderID, authDomain.RoleSystemAdmin)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -1190,7 +1195,7 @@ func TestFileUseCase_GetFilesByTask_Success(t *testing.T) {
 
 	mockFileRepo.On("GetByTaskID", ctx, int64(1)).Return(files, nil).Once()
 
-	result, err := uc.GetFilesByTask(ctx, 1)
+	result, err := uc.GetFilesByTask(ctx, 1, testUploaderID, authDomain.RoleSystemAdmin)
 
 	require.NoError(t, err)
 	assert.Len(t, result, 1)
@@ -1204,7 +1209,7 @@ func TestFileUseCase_GetFilesByTask_Error(t *testing.T) {
 
 	mockFileRepo.On("GetByTaskID", ctx, int64(1)).Return(nil, errors.New("db error")).Once()
 
-	result, err := uc.GetFilesByTask(ctx, 1)
+	result, err := uc.GetFilesByTask(ctx, 1, testUploaderID, authDomain.RoleSystemAdmin)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -1225,7 +1230,7 @@ func TestFileUseCase_GetFilesByAnnouncement_Success(t *testing.T) {
 
 	mockFileRepo.On("GetByAnnouncementID", ctx, int64(1)).Return(files, nil).Once()
 
-	result, err := uc.GetFilesByAnnouncement(ctx, 1)
+	result, err := uc.GetFilesByAnnouncement(ctx, 1, testUploaderID, authDomain.RoleSystemAdmin)
 
 	require.NoError(t, err)
 	assert.Len(t, result, 1)
@@ -1239,7 +1244,7 @@ func TestFileUseCase_GetFilesByAnnouncement_Error(t *testing.T) {
 
 	mockFileRepo.On("GetByAnnouncementID", ctx, int64(1)).Return(nil, errors.New("db error")).Once()
 
-	result, err := uc.GetFilesByAnnouncement(ctx, 1)
+	result, err := uc.GetFilesByAnnouncement(ctx, 1, testUploaderID, authDomain.RoleSystemAdmin)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -1592,4 +1597,46 @@ func TestFileUseCase_DeleteFile_OtherUserDenied(t *testing.T) {
 
 	assert.True(t, errors.Is(err, filesDomain.ErrFileAccessDenied))
 	mockAudit.AssertExpectations(t)
+}
+
+func TestFileUseCase_GetFilesByDocument_FiltersForeignFiles(t *testing.T) {
+	// #290 reviewer T0-1 round 1: non-admin list calls must filter
+	// out files the actor cannot read. Document attaches могут
+	// идти от разных uploaders (e.g. teacher attaches notes,
+	// student attaches drafts). Student must see only own files.
+	mockFileRepo := new(MockFileMetadataRepository)
+	uc := newTestFileUseCase(mockFileRepo, nil, nil, nil, nil)
+	ctx := context.Background()
+
+	files := []*entities.FileMetadata{
+		{ID: 1, OriginalName: "mine.pdf", UploadedBy: 10},
+		{ID: 2, OriginalName: "teacher_note.pdf", UploadedBy: 20},
+		{ID: 3, OriginalName: "another_mine.pdf", UploadedBy: 10},
+	}
+	mockFileRepo.On("GetByDocumentID", ctx, int64(42)).Return(files, nil).Once()
+
+	result, err := uc.GetFilesByDocument(ctx, 42, 10, authDomain.RoleStudent)
+
+	require.NoError(t, err)
+	assert.Len(t, result, 2, "non-admin sees only files they uploaded (2 of 3)")
+	for _, r := range result {
+		assert.NotEqual(t, "teacher_note.pdf", r.OriginalName)
+	}
+}
+
+func TestFileUseCase_GetFilesByDocument_AdminSeesAll(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
+	uc := newTestFileUseCase(mockFileRepo, nil, nil, nil, nil)
+	ctx := context.Background()
+
+	files := []*entities.FileMetadata{
+		{ID: 1, UploadedBy: 10},
+		{ID: 2, UploadedBy: 20},
+	}
+	mockFileRepo.On("GetByDocumentID", ctx, int64(42)).Return(files, nil).Once()
+
+	result, err := uc.GetFilesByDocument(ctx, 42, 99, authDomain.RoleSystemAdmin)
+
+	require.NoError(t, err)
+	assert.Len(t, result, 2, "admin sees все файлы документа (read override)")
 }

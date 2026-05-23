@@ -298,6 +298,20 @@ func (r *FileMetadataRepositoryPG) GetByUploadedBy(ctx context.Context, userID i
 	return r.queryFiles(ctx, query, userID, limit, offset)
 }
 
+// CountByUploadedBy возвращает количество неудалённых файлов,
+// загруженных пользователем. Closes #290 reviewer T0-1 round 1:
+// ListFiles теперь дисмбачит pagination по actor role, и для
+// non-admin path этот метод даёт корректный total.
+func (r *FileMetadataRepositoryPG) CountByUploadedBy(ctx context.Context, userID int64) (int64, error) {
+	query := `SELECT COUNT(*) FROM file_metadata WHERE uploaded_by = $1 AND deleted_at IS NULL`
+	var count int64
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // GetExpiredTemporaryFiles получает временные файлы с истёкшим сроком.
 func (r *FileMetadataRepositoryPG) GetExpiredTemporaryFiles(ctx context.Context, limit int) ([]*entities.FileMetadata, error) {
 	if limit <= 0 {

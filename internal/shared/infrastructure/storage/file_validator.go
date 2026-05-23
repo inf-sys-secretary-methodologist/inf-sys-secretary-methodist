@@ -159,14 +159,20 @@ func (v *FileValidator) ValidateFile(fileName string, fileSize int64, contentTyp
 			}
 		}
 
-		// Closes #290 ADR-3 octet-stream loophole: when content-type is
-		// application/octet-stream (the generic "I don't know" value
-		// sent by curl и by clients that strip MIME), require magic-
-		// byte detection to yield a whitelisted type. Otherwise evil.exe
-		// (PE: 0x4D 0x5A) sent с octet-stream slips через the MIME
-		// check entirely.
-		if contentType == "" || contentType == "application/octet-stream" {
-			if result.DetectedType == "" || !v.allowedMimeTypes[result.DetectedType] {
+		// Closes #290 ADR-3 octet-stream loophole + reviewer T1-1 round 1
+		// MIME-without-magic-byte bypass: ALWAYS require magic-byte
+		// detection to yield a whitelisted type when a reader был
+		// предоставлен. Previously octet-stream was the only path
+		// requiring detected-type validation; other whitelisted MIMEs
+		// (e.g. image/png declared, opaque/unknown magic bytes)
+		// слипали через без detection check. Now: detected type must
+		// resolve to whitelist regardless of declared MIME. Related
+		// types still flexed по areRelatedTypes (e.g. docx-as-zip).
+		if result.DetectedType == "" || !v.allowedMimeTypes[result.DetectedType] {
+			// Allow legacy related-type fallback: if declared MIME
+			// is whitelisted и areRelatedTypes confirms detected ~=
+			// declared, accept. Otherwise reject.
+			if !v.allowedMimeTypes[contentType] || !v.areRelatedTypes(contentType, result.DetectedType) {
 				result.Valid = false
 				detectedLabel := result.DetectedType
 				if detectedLabel == "" {
