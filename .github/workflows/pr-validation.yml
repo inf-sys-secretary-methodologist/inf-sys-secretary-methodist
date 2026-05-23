@@ -124,18 +124,6 @@ jobs:
         fetch-depth: 0
 
     - name: Check PR size
-      env:
-        # Exempt security hotfixes and hotfix/* branches from the
-        # hard-fail at 1000 lines. Closes v0.160.0 carry-forward
-        # finding ("Worth checking the policy threshold and considering
-        # exemption for hotfix/ branches") — security batches (e.g.
-        # batch 2 v1.0.0 audit) routinely exceed 1000 lines because they
-        # ship multiple TDD-paired ADRs in a single atomic release.
-        # Splitting per-ADR breaks the release surface and creates
-        # interim insecure states (some endpoints gated, some not).
-        # Warning at 500 lines still fires так everyone sees the size.
-        PR_BRANCH: ${{ github.head_ref }}
-        PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
       run: |
         # Get changed lines (additions + deletions)
         CHANGED_LINES=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD | \
@@ -143,31 +131,16 @@ jobs:
           awk '{s+=$1} END {print s}')
 
         echo "Total changed lines: ${CHANGED_LINES:-0}"
-        echo "Branch: ${PR_BRANCH}"
-        echo "Labels: ${PR_LABELS}"
 
         # Warn if PR is very large (>500 lines)
         if [ "${CHANGED_LINES:-0}" -gt 500 ]; then
           echo "::warning::This PR is quite large (${CHANGED_LINES} lines). Consider splitting it into smaller PRs."
         fi
 
-        # Exempt security hotfixes from the hard-fail.
-        IS_SECURITY_HOTFIX=0
-        if [[ "${PR_BRANCH}" == hotfix/* ]]; then
-          IS_SECURITY_HOTFIX=1
-        fi
-        if [[ ",${PR_LABELS}," == *",security,"* ]]; then
-          IS_SECURITY_HOTFIX=1
-        fi
-
-        # Fail if PR is extremely large (>1000 lines) — UNLESS security hotfix.
+        # Fail if PR is extremely large (>1000 lines)
         if [ "${CHANGED_LINES:-0}" -gt 1000 ]; then
-          if [ "${IS_SECURITY_HOTFIX}" = "1" ]; then
-            echo "::warning::PR exceeds 1000 lines (${CHANGED_LINES}) but security-hotfix exemption applies."
-          else
-            echo "::error::This PR is too large (${CHANGED_LINES} lines). Please split it into smaller PRs."
-            exit 1
-          fi
+          echo "::error::This PR is too large (${CHANGED_LINES} lines). Please split it into smaller PRs."
+          exit 1
         fi
 
   # Check for required labels
