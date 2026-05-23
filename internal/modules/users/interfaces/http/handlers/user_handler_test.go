@@ -469,6 +469,97 @@ func TestUserHandler_UpdateProfile_ValidationError(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
+// TestUserHandler_UpdateProfile_NonAdminCrossEdit_403 pins
+// reviewer T0-1 + #283 ADR-1 at the handler layer: the new
+// ErrProfileEditForbidden sentinel must surface as HTTP 403
+// through MapDomainError. Without the mapper arms the response
+// stays 500 — security still holds, but contract diverges.
+func TestUserHandler_UpdateProfile_NonAdminCrossEdit_403(t *testing.T) {
+	authRepo := new(mockAuthUserRepo)
+	// No GetByID expectation — the authz gate must short-circuit
+	// before any repository call.
+	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+
+	// Build a router with withAuth(10, "student") — actor is a
+	// student attempting cross-edit. Target path /users/2 is a
+	// different user.
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(withAuth(10, "student"))
+	r.PUT("/users/:id/profile", handler.UpdateProfile)
+
+	body := map[string]interface{}{"bio": "tampered"}
+	req := httptest.NewRequest(http.MethodPut, "/users/2/profile", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code, "ErrProfileEditForbidden must map to 403")
+}
+
+// TestUserHandler_UpdateProfile_ForeignAvatarKey_400 pins
+// reviewer T0-1 + #283 ADR-3: ErrInvalidAvatarKey must surface
+// as HTTP 400.
+func TestUserHandler_UpdateProfile_ForeignAvatarKey_400(t *testing.T) {
+	authRepo := new(mockAuthUserRepo)
+	authRepo.On("GetByID", mock.Anything, int64(1)).Return(&authEntities.User{ID: 1}, nil)
+
+	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler) // withAuth(1, "system_admin") — self-edit
+
+	// Foreign prefix — owner id is 999, target is 1.
+	body := map[string]interface{}{"avatar": "avatars/999_evil.png"}
+	req := httptest.NewRequest(http.MethodPut, "/users/1/profile", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code, "ErrInvalidAvatarKey must map to 400")
+}
+
+// TestUserHandler_Delete_Self_409 pins reviewer T0-1 + #283 ADR-4:
+// ErrCannotDeleteSelf must surface as HTTP 409 (admin attempting
+// to delete their own account).
+func TestUserHandler_Delete_Self_409(t *testing.T) {
+	authRepo := new(mockAuthUserRepo)
+	authRepo.On("GetByID", mock.Anything, int64(1)).Return(&authEntities.User{ID: 1, Role: authDomain.RoleSystemAdmin}, nil)
+	// CountByRole may or may not be called (target IS admin, so it
+	// might be queried before the self-guard if guards reorder).
+	// Make it return 5 to avoid the last-admin trigger.
+	authRepo.On("CountByRole", mock.Anything, authDomain.RoleSystemAdmin).Return(5, nil).Maybe()
+
+	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler) // withAuth(1, "system_admin")
+
+	req := httptest.NewRequest(http.MethodDelete, "/users/1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusConflict, w.Code, "ErrCannotDeleteSelf must map to 409")
+}
+
+// TestUserHandler_Delete_LastAdmin_409 pins reviewer T0-1 + #283
+// ADR-4: ErrLastAdminProtected must surface as HTTP 409 (admin
+// attempting to delete another admin when only one admin remains).
+func TestUserHandler_Delete_LastAdmin_409(t *testing.T) {
+	authRepo := new(mockAuthUserRepo)
+	authRepo.On("GetByID", mock.Anything, int64(2)).Return(&authEntities.User{ID: 2, Role: authDomain.RoleSystemAdmin}, nil)
+	authRepo.On("CountByRole", mock.Anything, authDomain.RoleSystemAdmin).Return(1, nil)
+
+	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
+	handler := NewUserHandler(uc)
+	router := setupUserRouter(handler) // withAuth(1, "system_admin")
+
+	req := httptest.NewRequest(http.MethodDelete, "/users/2", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusConflict, w.Code, "ErrLastAdminProtected must map to 409")
+}
+
 func TestUserHandler_UpdateProfile_UsecaseError(t *testing.T) {
 	profileRepo := new(mockUserProfileRepo)
 	authRepo := new(mockAuthUserRepo)
@@ -567,8 +658,10 @@ func TestUserHandler_UpdateRole_UsecaseError(t *testing.T) {
 }
 
 func TestUserHandler_UpdateStatus_Success(t *testing.T) {
+	// Target id 2 — withAuth actor is user 1, so this is admin
+	// deactivating a non-self student. Avoids #283 ADR-4 self-guard.
 	authRepo := new(mockAuthUserRepo)
-	authRepo.On("GetByID", mock.Anything, int64(1)).Return(&authEntities.User{ID: 1, Status: "active"}, nil)
+	authRepo.On("GetByID", mock.Anything, int64(2)).Return(&authEntities.User{ID: 2, Status: "active", Role: authDomain.RoleStudent}, nil)
 	authRepo.On("Save", mock.Anything, mock.Anything).Return(nil)
 
 	uc := newUserUseCase(authRepo, new(mockUserProfileRepo), new(mockDepartmentRepo), new(mockPositionRepo))
@@ -576,7 +669,7 @@ func TestUserHandler_UpdateStatus_Success(t *testing.T) {
 	router := setupUserRouter(handler)
 
 	body := map[string]interface{}{"status": "inactive"}
-	req := httptest.NewRequest(http.MethodPut, "/users/1/status", jsonBody(t, body))
+	req := httptest.NewRequest(http.MethodPut, "/users/2/status", jsonBody(t, body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

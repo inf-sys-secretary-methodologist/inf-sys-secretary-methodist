@@ -205,33 +205,58 @@ func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *
 }
 
 // UpdateUserStatus updates a user's status.
-func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, userID int64, input *dto.UpdateUserStatusInput) error {
-	user, err := uc.userRepo.GetByID(ctx, userID)
+//
+// Carries the same #283 ADR-4 Tier 1 guards as DeleteUser when the
+// new status is "inactive" or "blocked", because deactivating or
+// blocking the last system_admin produces the identical
+// administrative-recovery lockout as deleting them. Activating a
+// user (the "active" branch) is non-destructive and skips the
+// guards.
+//
+// Self-status-change to "inactive"/"blocked" is always rejected via
+// ErrCannotDeleteSelf — the actor would brick their own session
+// the moment the next request hits.
+func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID int64, input *dto.UpdateUserStatusInput) error {
+	target, err := uc.userRepo.GetByID(ctx, targetID)
 	if err != nil {
 		return err
 	}
 
-	oldStatus := user.Status
+	if input.Status == "inactive" || input.Status == "blocked" {
+		adminHeadcount := 0
+		if target.Role == authDomain.RoleSystemAdmin {
+			adminHeadcount, err = uc.userRepo.CountByRole(ctx, authDomain.RoleSystemAdmin)
+			if err != nil {
+				return err
+			}
+		}
+		if guardErr := usersDomain.AuthorizeUserDelete(actorID, targetID, target.Role, adminHeadcount); guardErr != nil {
+			return guardErr
+		}
+	}
+
+	oldStatus := target.Status
 
 	switch input.Status {
 	case "active":
-		user.Activate()
+		target.Activate()
 	case "inactive":
-		user.Deactivate()
+		target.Deactivate()
 	case "blocked":
-		user.Block()
+		target.Block()
 	}
 
-	err = uc.userRepo.Save(ctx, user)
+	err = uc.userRepo.Save(ctx, target)
 	if err != nil {
 		return err
 	}
 
 	if uc.auditLogger != nil {
 		uc.auditLogger.LogAuditEvent(ctx, "status_change", "user", map[string]interface{}{
-			"user_id":    userID,
-			"old_status": oldStatus,
-			"new_status": user.Status,
+			"actor_user_id":  actorID,
+			"target_user_id": targetID,
+			"old_status":     oldStatus,
+			"new_status":     target.Status,
 		})
 	}
 
@@ -249,7 +274,7 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, userID int64, input
 			}
 			_ = uc.notificationUseCase.SendSystemNotification(
 				context.Background(),
-				userID,
+				targetID,
 				"Изменение статуса",
 				fmt.Sprintf("Ваш статус изменён на «%s»", statusName),
 			)

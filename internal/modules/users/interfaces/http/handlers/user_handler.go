@@ -198,8 +198,17 @@ func (h *UserHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
+	// Actor identity required by usecase last-admin guard (#283 ADR-4).
+	actorIDRaw, exists := c.Get("user_id")
+	if !exists {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+	actorID, _ := actorIDRaw.(int64)
+
 	ctx := c.Request.Context()
-	if err := h.usecase.UpdateUserStatus(ctx, id, &input); err != nil {
+	if err := h.usecase.UpdateUserStatus(ctx, actorID, id, &input); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return

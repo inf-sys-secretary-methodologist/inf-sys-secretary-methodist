@@ -773,7 +773,7 @@ func TestUserUseCase_UpdateUserStatus(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 
 	// Test activate
-	err := uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
+	err := uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
 	if err != nil {
 		t.Fatalf("activate error: %v", err)
 	}
@@ -784,7 +784,7 @@ func TestUserUseCase_UpdateUserStatus(t *testing.T) {
 	}
 
 	// Test deactivate
-	err = uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "inactive"})
+	err = uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "inactive"})
 	if err != nil {
 		t.Fatalf("deactivate error: %v", err)
 	}
@@ -795,7 +795,7 @@ func TestUserUseCase_UpdateUserStatus(t *testing.T) {
 	}
 
 	// Test block
-	err = uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "blocked"})
+	err = uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "blocked"})
 	if err != nil {
 		t.Fatalf("block error: %v", err)
 	}
@@ -819,19 +819,19 @@ func TestUserUseCase_UpdateUserStatus_WithAuditLogger(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 
 	// Activate with logger
-	err := uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
+	err := uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
 	// Deactivate with logger
-	err = uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "inactive"})
+	err = uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "inactive"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
 	// Block with logger
-	err = uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "blocked"})
+	err = uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "blocked"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -850,7 +850,7 @@ func TestUserUseCase_UpdateUserStatus_SaveError(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 	userRepo.saveErr = errors.New("save error")
 
-	err := uc.UpdateUserStatus(ctx, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
+	err := uc.UpdateUserStatus(ctx, 9999, user.ID, &dto.UpdateUserStatusInput{Status: "active"})
 	if err == nil {
 		t.Error("expected error from save")
 	}
@@ -865,7 +865,7 @@ func TestUserUseCase_UpdateUserStatus_NotFound(t *testing.T) {
 
 	ctx := context.Background()
 
-	err := uc.UpdateUserStatus(ctx, 999, &dto.UpdateUserStatusInput{Status: "active"})
+	err := uc.UpdateUserStatus(ctx, 9999, 999, &dto.UpdateUserStatusInput{Status: "active"})
 	if err == nil {
 		t.Error("expected error for non-existent user")
 	}
