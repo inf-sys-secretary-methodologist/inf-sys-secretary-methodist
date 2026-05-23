@@ -8,20 +8,25 @@ import (
 
 // RegisterPositionRoutes mounts the /positions routes under the given
 // protected group. Identical shape to [RegisterDepartmentRoutes] —
-// writes should be gated by adminMW, reads stay permissive.
+// writes gated by adminMW, reads permissive.
 //
-// #283 ADR-2 RED stub: gate not yet applied; companion failing tests
-// pin the missing gate; GREEN commit wires adminMW.
+// Closes #283 ADR-2 (TIER 0): pre-v0.160.0, all writes were exposed
+// to any authenticated caller — same root cause as departments
+// (v0.133.0 admin-gate split skipped this group).
 func RegisterPositionRoutes(
 	group *gin.RouterGroup,
 	adminMW gin.HandlerFunc,
 	positionHandler *handlers.PositionHandler,
 ) {
-	_ = adminMW // RED stub: gate wired in GREEN commit.
-
+	// Permissive subgroup — read access for cross-module consumers
+	// and frontend dropdowns.
 	group.GET("", positionHandler.List)
 	group.GET("/:id", positionHandler.GetByID)
-	group.POST("", positionHandler.Create)
-	group.PUT("/:id", positionHandler.Update)
-	group.DELETE("/:id", positionHandler.Delete)
+
+	// Admin-write subgroup — only system_admin can mutate.
+	admin := group.Group("")
+	admin.Use(adminMW)
+	admin.POST("", positionHandler.Create)
+	admin.PUT("/:id", positionHandler.Update)
+	admin.DELETE("/:id", positionHandler.Delete)
 }
