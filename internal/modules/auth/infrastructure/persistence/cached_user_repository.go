@@ -20,12 +20,25 @@ type CachedUserRepository struct {
 	perfLog   *logging.PerformanceLogger
 }
 
-// NewCachedUserRepository creates a new cached repository
+// NewCachedUserRepository creates a new cached repository.
+//
+// The wrapped repo MUST also implement CountByRole — the users module
+// last-admin guard (#283 ADR-4) calls it through the same wrapper
+// instance. Checking at wrapper-time fails fast at boot rather than
+// at the first admin-deletes-admin request, closing reviewer T1-4
+// (the previous runtime type-assert deferred the crash к request
+// time and leaked a raw fmt.Errorf string).
 func NewCachedUserRepository(
 	repo usecases.UserRepository,
 	userCache *cache.UserCache,
 	perfLog *logging.PerformanceLogger,
 ) usecases.UserRepository {
+	type roleCounter interface {
+		CountByRole(ctx context.Context, role domain.RoleType) (int, error)
+	}
+	if _, ok := repo.(roleCounter); !ok {
+		panic("CachedUserRepository: wrapped repo must implement CountByRole(ctx, role) for #283 ADR-4 last-admin guard")
+	}
 	return &CachedUserRepository{
 		repo:      repo,
 		userCache: userCache,

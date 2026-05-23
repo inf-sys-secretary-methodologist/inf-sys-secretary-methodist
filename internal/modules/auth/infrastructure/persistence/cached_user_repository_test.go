@@ -78,6 +78,14 @@ func (m *mockUserRepo) List(ctx context.Context, limit, offset int) ([]*entities
 	return []*entities.User{}, nil
 }
 
+// CountByRole satisfies the wrapper-time check in
+// NewCachedUserRepository (#283 ADR-4). Real callers wire через the
+// PG concrete; this stub returns 0 unconditionally so the
+// CachedUserRepository forwarding tests can compile.
+func (m *mockUserRepo) CountByRole(_ context.Context, _ domain.RoleType) (int, error) {
+	return 0, nil
+}
+
 func newTestCachedRepo(t *testing.T, repo usecases.UserRepository) *CachedUserRepository {
 	t.Helper()
 	mr := miniredis.RunT(t)
