@@ -7,9 +7,17 @@ package domain
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 )
+
+// AvatarPrefixFormat is the storage-key prefix per user, parameterised
+// by the user id. Mirrors the format emitted by the avatar Upload
+// handler (avatar_handler.go: "avatars/%d_%s%s") so the validator
+// stays in sync with the writer.
+const AvatarPrefixFormat = "avatars/%d_"
 
 // ErrProfileEditForbidden is returned when an actor attempts to edit
 // another user's profile without being a system_admin override.
@@ -39,11 +47,19 @@ var ErrInvalidAvatarKey = errors.New("invalid avatar storage key: must belong to
 // avatar Upload handler emits (avatar_handler.go AvatarFolder + user
 // id + "_" + uuid + ext).
 //
-// RED-commit stub: returns nil unconditionally. The GREEN commit
-// implements the prefix check and flips the failing pin.
+// Empty key is accepted (clearing the avatar is a legitimate self-edit).
+// Non-empty keys must start with the avatar prefix of the target user
+// — any other key signals a write attempt against another user's
+// avatar storage area, or a write at an arbitrary S3 object outside
+// the avatars folder.
 func ValidateAvatarKey(key string, targetID int64) error {
-	_ = key
-	_ = targetID
+	if key == "" {
+		return nil
+	}
+	prefix := fmt.Sprintf(AvatarPrefixFormat, targetID)
+	if !strings.HasPrefix(key, prefix) {
+		return ErrInvalidAvatarKey
+	}
 	return nil
 }
 
