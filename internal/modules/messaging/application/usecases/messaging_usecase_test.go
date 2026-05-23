@@ -2791,3 +2791,80 @@ func TestSendMessage_ShortMimeType(t *testing.T) {
 	mockConvRepo.AssertExpectations(t)
 	mockMsgRepo.AssertExpectations(t)
 }
+
+// TestUpdateConversation_StrangerRejectedForDirect pins v0.162.0 ADR-2:
+// for direct conversations, UpdateConversation must reject a caller who is
+// not a participant. Before fix: line 263 checked admin role ONLY for group
+// conversations and skipped direct entirely, letting any authenticated user
+// PATCH /api/conversations/:id to overwrite title/description/avatar_url
+// of any DM in the system. Issue #297.
+func TestUpdateConversation_StrangerRejectedForDirect(t *testing.T) {
+	ctx := context.Background()
+	mockConvRepo := new(MockConversationRepository)
+	mockMsgRepo := new(MockMessageRepository)
+	logger := createTestLogger()
+	hub := websocket.NewHub(logger)
+
+	uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+	// Direct conversation between user 1 and user 2; stranger is user 3.
+	conv := &entities.Conversation{
+		ID:   1,
+		Type: entities.ConversationTypeDirect,
+		Participants: []entities.Participant{
+			{UserID: 1, Role: entities.ParticipantRoleMember},
+			{UserID: 2, Role: entities.ParticipantRoleMember},
+		},
+	}
+
+	evilTitle := "pwned"
+	input := dto.UpdateConversationInput{Title: &evilTitle}
+
+	mockConvRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+	// NOTE: no Update expectation — fix must short-circuit before persistence.
+
+	result, err := uc.UpdateConversation(ctx, 3, 1, input)
+
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, entities.ErrNotParticipant)
+	mockConvRepo.AssertExpectations(t)
+	mockConvRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
+}
+
+// TestUpdateConversation_StrangerRejectedForGroup pins ADR-2 parity for
+// group conversations: non-participant must be rejected with the same
+// sentinel as direct (defense in depth — pre-fix line 263 returned
+// ErrNotParticipant only when caller was a participant but not admin;
+// for total strangers the IsAdmin check was vacuously false, but the
+// error message was misleading). After fix, all non-participants are
+// rejected uniformly. Issue #297.
+func TestUpdateConversation_StrangerRejectedForGroup(t *testing.T) {
+	ctx := context.Background()
+	mockConvRepo := new(MockConversationRepository)
+	mockMsgRepo := new(MockMessageRepository)
+	logger := createTestLogger()
+	hub := websocket.NewHub(logger)
+
+	uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil)
+
+	conv := &entities.Conversation{
+		ID:   2,
+		Type: entities.ConversationTypeGroup,
+		Participants: []entities.Participant{
+			{UserID: 1, Role: entities.ParticipantRoleAdmin},
+			{UserID: 2, Role: entities.ParticipantRoleMember},
+		},
+	}
+
+	evilTitle := "pwned"
+	input := dto.UpdateConversationInput{Title: &evilTitle}
+
+	mockConvRepo.On("GetByID", mock.Anything, int64(2)).Return(conv, nil)
+
+	// Stranger user 3 attempts update.
+	result, err := uc.UpdateConversation(ctx, 3, 2, input)
+
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, entities.ErrNotParticipant)
+	mockConvRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
+}
