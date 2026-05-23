@@ -56,6 +56,18 @@ jobs:
           notifications
           files
           integration
+          messaging
+          announcements
+          ai
+          branding
+          curriculum
+          assignments
+          analytics
+          dashboard
+          reports
+          gitignore
+          deps
+          husky
         requireScope: false
 
     - name: Checkout code
