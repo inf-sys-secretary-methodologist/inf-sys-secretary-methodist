@@ -28,7 +28,7 @@ const (
 	FileActionDelete FileAction = "delete"
 )
 
-// ErrFileAccessDenied is returned when an actor is not authorised for
+// ErrFileAccessDenied is returned when an actor is not authorized for
 // the requested action against a file.
 //
 // Closes v1.0.0 batch 2 TIER 0 findings (#290 ADR-1 + ADR-2): files

@@ -265,7 +265,7 @@ func (uc *FileUseCase) AttachFile(ctx context.Context, input *dto.AttachFileInpu
 	return nil
 }
 
-// emitAccessDenied is a small helper for emitting standardised
+// emitAccessDenied is a small helper for emitting standardized
 // access-denied audit events. Mirrors the v0.160.0 users denial
 // pattern: stable action names (`file_<action>_denied`) so analytics
 // can pivot consistently across modules.

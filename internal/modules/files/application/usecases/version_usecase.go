@@ -51,7 +51,7 @@ func NewVersionUseCase(
 //
 // Closes #290 ADR-2 (CreateVersion ownership hijack): only the
 // original uploader may push a new version. No admin write-override.
-// Comment is sanitised — closes Tier 1 stored XSS finding (was
+// Comment is sanitized — closes Tier 1 stored XSS finding (was
 // persisted raw to version history + audit log).
 func (uc *VersionUseCase) CreateVersion(ctx context.Context, reader io.Reader, size int64, input *dto.CreateVersionInput) (*dto.FileVersionResponse, error) {
 	// Получаем метаданные файла
@@ -219,7 +219,7 @@ func (uc *VersionUseCase) DownloadVersion(ctx context.Context, fileID int64, ver
 // Two-path authorisation: either the file's owner (mirrors broader
 // file-write gate) OR the version's own creator (legitimate
 // "remove my contribution" path — kept for backwards compatibility
-// with previous behaviour). Both paths funnel denial through the
+// with previous behavior). Both paths funnel denial through the
 // sentinel + audit emit pattern so the surface stays uniform.
 // Closes #290 ADR-2 audit-emit gap (was silently returning struct
 // PermissionError before).
