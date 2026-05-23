@@ -313,7 +313,14 @@ func (uc *FileUseCase) DeleteFile(ctx context.Context, id int64, actorID int64, 
 }
 
 // ListFiles получает список файлов с пагинацией.
-func (uc *FileUseCase) ListFiles(ctx context.Context, page, limit int) (*dto.FileListResponse, error) {
+//
+// Closes #290 reviewer T0-1 round 1: previously returned full system-
+// wide file list to any authenticated user (HR records, exam reports,
+// diploma drafts leaked through pagination + metadata in FileResponse).
+// Now branches by actor role: system_admin sees все файлы (existing
+// behavior kept for support/forensics); non-admin sees только файлы,
+// которые сам загрузил, через GetByUploadedBy + CountByUploadedBy.
+func (uc *FileUseCase) ListFiles(ctx context.Context, page, limit int, actorID int64, actorRole authDomain.RoleType) (*dto.FileListResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -325,14 +332,30 @@ func (uc *FileUseCase) ListFiles(ctx context.Context, page, limit int) (*dto.Fil
 	}
 	offset := (page - 1) * limit
 
-	files, err := uc.fileRepo.List(ctx, limit, offset)
-	if err != nil {
-		return nil, err
-	}
+	var (
+		files []*entities.FileMetadata
+		total int64
+		err   error
+	)
 
-	total, err := uc.fileRepo.Count(ctx)
-	if err != nil {
-		return nil, err
+	if actorRole == authDomain.RoleSystemAdmin {
+		files, err = uc.fileRepo.List(ctx, limit, offset)
+		if err != nil {
+			return nil, err
+		}
+		total, err = uc.fileRepo.Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		files, err = uc.fileRepo.GetByUploadedBy(ctx, actorID, limit, offset)
+		if err != nil {
+			return nil, err
+		}
+		total, err = uc.fileRepo.CountByUploadedBy(ctx, actorID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	totalPages := int(total) / limit
@@ -355,7 +378,18 @@ func (uc *FileUseCase) ListFiles(ctx context.Context, page, limit int) (*dto.Fil
 }
 
 // GetFilesByDocument получает все файлы документа.
-func (uc *FileUseCase) GetFilesByDocument(ctx context.Context, documentID int64) ([]*dto.FileResponse, error) {
+//
+// Round 2 reviewer T1-A: file-level filter dropped — shared document
+// workflow (methodist + student attach files) requires cross-uploader
+// visibility. IDOR mitigation для этого endpoint relies on parent
+// route ACL: GET /api/documents/:id/files должен gating'ить access
+// к документу на documents/handler уровне. Sub-resource visibility
+// inherits parent ACL. Carry-forward к v0.161.1: verify documents
+// handler действительно gates the parent (audit doc finding).
+//
+// Signature keeps (actorID, role) for future per-file overrides
+// и для consistent handler-side context propagation.
+func (uc *FileUseCase) GetFilesByDocument(ctx context.Context, documentID int64, _ int64, _ authDomain.RoleType) ([]*dto.FileResponse, error) {
 	files, err := uc.fileRepo.GetByDocumentID(ctx, documentID)
 	if err != nil {
 		return nil, err
@@ -369,8 +403,9 @@ func (uc *FileUseCase) GetFilesByDocument(ctx context.Context, documentID int64)
 	return responses, nil
 }
 
-// GetFilesByTask получает все файлы задачи.
-func (uc *FileUseCase) GetFilesByTask(ctx context.Context, taskID int64) ([]*dto.FileResponse, error) {
+// GetFilesByTask получает все файлы задачи. See GetFilesByDocument
+// для ACL inheritance reasoning.
+func (uc *FileUseCase) GetFilesByTask(ctx context.Context, taskID int64, _ int64, _ authDomain.RoleType) ([]*dto.FileResponse, error) {
 	files, err := uc.fileRepo.GetByTaskID(ctx, taskID)
 	if err != nil {
 		return nil, err
@@ -384,8 +419,9 @@ func (uc *FileUseCase) GetFilesByTask(ctx context.Context, taskID int64) ([]*dto
 	return responses, nil
 }
 
-// GetFilesByAnnouncement получает все файлы объявления.
-func (uc *FileUseCase) GetFilesByAnnouncement(ctx context.Context, announcementID int64) ([]*dto.FileResponse, error) {
+// GetFilesByAnnouncement получает все файлы объявления. See
+// GetFilesByDocument для ACL inheritance reasoning.
+func (uc *FileUseCase) GetFilesByAnnouncement(ctx context.Context, announcementID int64, _ int64, _ authDomain.RoleType) ([]*dto.FileResponse, error) {
 	files, err := uc.fileRepo.GetByAnnouncementID(ctx, announcementID)
 	if err != nil {
 		return nil, err

@@ -45,6 +45,13 @@ type FileMetadataRepository interface {
 	// GetByUploadedBy получает все файлы, загруженные пользователем.
 	GetByUploadedBy(ctx context.Context, userID int64, limit, offset int) ([]*entities.FileMetadata, error)
 
+	// CountByUploadedBy возвращает количество неудалённых файлов,
+	// загруженных конкретным пользователем. Используется ListFiles
+	// для пагинации non-admin actor'ов после #290 ADR-1 fix-cycle:
+	// non-admin actor видит только свои файлы и нуждается в
+	// точном total count для UI.
+	CountByUploadedBy(ctx context.Context, userID int64) (int64, error)
+
 	// GetExpiredTemporaryFiles получает временные файлы с истёкшим сроком.
 	GetExpiredTemporaryFiles(ctx context.Context, limit int) ([]*entities.FileMetadata, error)
 

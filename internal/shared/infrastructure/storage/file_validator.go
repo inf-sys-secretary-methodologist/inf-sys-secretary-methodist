@@ -163,8 +163,15 @@ func (v *FileValidator) ValidateFile(fileName string, fileSize int64, contentTyp
 		// application/octet-stream (the generic "I don't know" value
 		// sent by curl и by clients that strip MIME), require magic-
 		// byte detection to yield a whitelisted type. Otherwise evil.exe
-		// (PE: 0x4D 0x5A) sent с octet-stream slips через the MIME
-		// check entirely.
+		// (PE: 0x4D 0x5A) sent с octet-stream slips через MIME check
+		// entirely.
+		//
+		// Round 2 reviewer T0-A: original round-1 hardening overshot
+		// и rejected legitimate uploads of whitelisted MIMEs that
+		// have no magic-byte signature registered (.txt, .csv, .webp,
+		// .doc/.xls/.ppt OLE2, .7z). Narrowed back to the original
+		// loophole scope — declared MIME on the whitelist is trusted
+		// when detector returns unknown, same as pre-hotfix baseline.
 		if contentType == "" || contentType == "application/octet-stream" {
 			if result.DetectedType == "" || !v.allowedMimeTypes[result.DetectedType] {
 				result.Valid = false

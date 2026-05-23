@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
+	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
@@ -112,8 +113,23 @@ func (r *fakeFileMetaRepo) GetByAnnouncementID(_ context.Context, annID int64) (
 	}
 	return r.byAnnouncement[annID], nil
 }
-func (r *fakeFileMetaRepo) GetByUploadedBy(_ context.Context, _ int64, _, _ int) ([]*entities.FileMetadata, error) {
-	return nil, nil
+func (r *fakeFileMetaRepo) GetByUploadedBy(_ context.Context, userID int64, _, _ int) ([]*entities.FileMetadata, error) {
+	out := []*entities.FileMetadata{}
+	for _, f := range r.files {
+		if f.UploadedBy == userID {
+			out = append(out, f)
+		}
+	}
+	return out, nil
+}
+func (r *fakeFileMetaRepo) CountByUploadedBy(_ context.Context, userID int64) (int64, error) {
+	var c int64
+	for _, f := range r.files {
+		if f.UploadedBy == userID {
+			c++
+		}
+	}
+	return c, nil
 }
 func (r *fakeFileMetaRepo) GetExpiredTemporaryFiles(_ context.Context, _ int) ([]*entities.FileMetadata, error) {
 	return r.expired, r.getExpiredErr
@@ -187,15 +203,74 @@ func TestFileHandler_List_DefaultsAppliedForBadQuery(t *testing.T) {
 }
 
 func TestFileHandler_List_RepoError(t *testing.T) {
+	// Use admin route so we hit the List path (closes #290 reviewer T0-1
+	// changed non-admin to GetByUploadedBy; List error specifically
+	// exercises the admin branch). For non-admin path see
+	// TestFileHandler_List_NonAdminSeesOnlyOwnFiles.
 	repo := &fakeFileMetaRepo{listErr: errors.New("db down")}
 	h := newHandlerWithUC(repo)
-	r := setupFileRouter(h)
+	r := gin.New()
+	r.Use(authMW(defaultFixtureUploader, authDomain.RoleSystemAdmin))
+	r.GET("/files", h.List)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/files", nil)
 	r.ServeHTTP(w, req)
 
-	assert.GreaterOrEqual(t, w.Code, 400, "repo error must surface non-2xx")
+	assert.GreaterOrEqual(t, w.Code, 400, "repo error must surface non-2xx (admin path uses List)")
+}
+
+func TestFileHandler_List_NonAdminSeesOnlyOwnFiles(t *testing.T) {
+	// Closes #290 reviewer T0-1 round 1: non-admin caller must
+	// receive ТОЛЬКО свои файлы из ListFiles (was: full system list).
+	repo := &fakeFileMetaRepo{
+		files: map[int64]*entities.FileMetadata{
+			1: entities.NewFileMetadata("mine.pdf", "k1", "application/pdf", "h1", 10, defaultFixtureUploader),
+			2: entities.NewFileMetadata("not_mine.pdf", "k2", "application/pdf", "h2", 20, 999),
+		},
+		count: 2,
+	}
+	h := newHandlerWithUC(repo)
+	r := setupFileRouter(h) // default authMW = student role + defaultFixtureUploader id
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/files?page=1&limit=10", nil)
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	data, _ := resp["data"].(map[string]any)
+	files, _ := data["files"].([]any)
+	assert.Len(t, files, 1, "non-admin sees only own files (defaultFixtureUploader's), not other's")
+	assert.EqualValues(t, 1, data["total"], "total count reflects only own files via CountByUploadedBy")
+}
+
+func TestFileHandler_List_AdminSeesAll(t *testing.T) {
+	// Counterpart: system_admin sees full system file list (existing
+	// behavior preserved for support/forensics).
+	repo := &fakeFileMetaRepo{
+		files: map[int64]*entities.FileMetadata{
+			1: entities.NewFileMetadata("a.pdf", "k1", "application/pdf", "h1", 10, defaultFixtureUploader),
+			2: entities.NewFileMetadata("b.pdf", "k2", "application/pdf", "h2", 20, 999),
+		},
+		count: 2,
+	}
+	h := newHandlerWithUC(repo)
+	r := gin.New()
+	r.Use(authMW(defaultFixtureUploader, authDomain.RoleSystemAdmin))
+	r.GET("/files", h.List)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/files?page=1&limit=10", nil)
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	data, _ := resp["data"].(map[string]any)
+	files, _ := data["files"].([]any)
+	assert.Len(t, files, 2, "admin sees full system file list")
 }
 
 // ----- CleanupExpired -----
@@ -394,34 +469,19 @@ func TestFileHandler_GetByID_HappyPath(t *testing.T) {
 
 // ----- ADR-5 cleanup admin gate (#290) -----
 
-// setupCleanupRouter wires authMW + RequireRole("system_admin") in front
-// of the cleanup handler — mirrors production main.go route assembly.
+// setupCleanupRouter wires authMW + the REAL authMiddleware.RequireRole
+// в front of the cleanup handler — mirrors production main.go route
+// assembly exactly. Closes #290 reviewer T0-2: previous inline copy
+// of RequireRole drifted from production silently — test passed for
+// wrong reason. Import the production middleware so changes к
+// RequireRole behavior propagate здесь.
 func setupCleanupRouter(h *FileHandler, role authDomain.RoleType) *gin.Engine {
 	r := gin.New()
 	r.Use(authMW(defaultFixtureUploader, role))
 	cleanupGroup := r.Group("")
-	cleanupGroup.Use(authMiddlewareRequireSystemAdmin())
+	cleanupGroup.Use(authMiddleware.RequireRole(string(authDomain.RoleSystemAdmin)))
 	cleanupGroup.POST("/files/cleanup", h.CleanupExpired)
 	return r
-}
-
-// authMiddlewareRequireSystemAdmin returns a gin.HandlerFunc enforcing
-// role == "system_admin" — mirrors auth_middleware.RequireRole inline
-// so tests don't need the auth package as a dependency.
-func authMiddlewareRequireSystemAdmin() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userRole, exists := c.Get("role")
-		if !exists {
-			c.AbortWithStatus(http.StatusForbidden)
-			return
-		}
-		roleStr, ok := userRole.(string)
-		if !ok || roleStr != string(authDomain.RoleSystemAdmin) {
-			c.AbortWithStatus(http.StatusForbidden)
-			return
-		}
-		c.Next()
-	}
 }
 
 func TestFileHandler_CleanupExpired_StudentDenied(t *testing.T) {
