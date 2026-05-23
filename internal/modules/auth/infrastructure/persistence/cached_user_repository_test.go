@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -84,6 +85,61 @@ func (m *mockUserRepo) List(ctx context.Context, limit, offset int) ([]*entities
 // CachedUserRepository forwarding tests can compile.
 func (m *mockUserRepo) CountByRole(_ context.Context, _ domain.RoleType) (int, error) {
 	return 0, nil
+}
+
+// missingCountByRoleRepo deliberately omits the CountByRole method —
+// it implements every method of usecases.UserRepository except the
+// one #283 ADR-4 wrapper-time check requires.
+type missingCountByRoleRepo struct{}
+
+func (m *missingCountByRoleRepo) Create(_ context.Context, _ *entities.User) error {
+	return nil
+}
+func (m *missingCountByRoleRepo) Save(_ context.Context, _ *entities.User) error {
+	return nil
+}
+func (m *missingCountByRoleRepo) GetByID(_ context.Context, _ int64) (*entities.User, error) {
+	return nil, nil
+}
+func (m *missingCountByRoleRepo) GetByEmail(_ context.Context, _ string) (*entities.User, error) {
+	return nil, nil
+}
+func (m *missingCountByRoleRepo) GetByEmailForAuth(_ context.Context, _ string) (*entities.User, error) {
+	return nil, nil
+}
+func (m *missingCountByRoleRepo) GetByIDForAuth(_ context.Context, _ int64) (*entities.User, error) {
+	return nil, nil
+}
+func (m *missingCountByRoleRepo) Delete(_ context.Context, _ int64) error {
+	return nil
+}
+func (m *missingCountByRoleRepo) List(_ context.Context, _, _ int) ([]*entities.User, error) {
+	return nil, nil
+}
+
+// TestNewCachedUserRepository_PanicsOnMissingCountByRole pins the
+// reviewer T1-4 wrapper-time defense: if a future DI wiring passes a
+// repo that doesn't satisfy CountByRole, the panic fires at boot,
+// not at the first admin-deletes-admin request. Closes the
+// "deferred crash" finding.
+func TestNewCachedUserRepository_PanicsOnMissingCountByRole(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected NewCachedUserRepository к panic when wrapped repo lacks CountByRole, got no panic")
+		}
+		msg, ok := r.(string)
+		if !ok {
+			t.Fatalf("expected string panic value, got %T: %v", r, r)
+		}
+		if !strings.Contains(msg, "CountByRole") {
+			t.Fatalf("expected panic message к mention CountByRole, got %q", msg)
+		}
+	}()
+
+	// userCache + perfLog are zero-valued — they don't matter; the
+	// panic fires at the wrapper-time check before either is read.
+	_ = NewCachedUserRepository(&missingCountByRoleRepo{}, nil, nil)
 }
 
 func newTestCachedRepo(t *testing.T, repo usecases.UserRepository) *CachedUserRepository {

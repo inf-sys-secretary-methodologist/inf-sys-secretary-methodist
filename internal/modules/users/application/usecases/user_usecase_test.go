@@ -934,6 +934,139 @@ func TestUserUseCase_DeleteUser_DeleteError(t *testing.T) {
 	}
 }
 
+// TestUserUseCase_UpdateUserStatus_Guards pins the #283 ADR-4 Tier 1
+// guards as they extend к UpdateUserStatus (reviewer round-2
+// follow-up). Block/deactivate of the last system_admin carries the
+// same lockout risk as DeleteUser; self-block/deactivate bricks the
+// actor's session identically к self-delete. The "active" branch
+// is non-destructive and must bypass the guards.
+func TestUserUseCase_UpdateUserStatus_Guards(t *testing.T) {
+	tests := []struct {
+		name         string
+		actorID      int64
+		targetRole   authDomain.RoleType
+		extraAdmins  int
+		newStatus    string
+		expectedErr  error
+		expectChange bool
+	}{
+		{
+			name:         "self-block forbidden — admin",
+			actorID:      0, // resolved к target.ID inside
+			targetRole:   authDomain.RoleSystemAdmin,
+			extraAdmins:  3,
+			newStatus:    "blocked",
+			expectedErr:  usersDomain.ErrCannotDeleteSelf,
+			expectChange: false,
+		},
+		{
+			name:         "self-deactivate forbidden — student",
+			actorID:      0,
+			targetRole:   authDomain.RoleStudent,
+			extraAdmins:  1,
+			newStatus:    "inactive",
+			expectedErr:  usersDomain.ErrCannotDeleteSelf,
+			expectChange: false,
+		},
+		{
+			name:         "last-admin block protected",
+			actorID:      9999,
+			targetRole:   authDomain.RoleSystemAdmin,
+			extraAdmins:  0,
+			newStatus:    "blocked",
+			expectedErr:  usersDomain.ErrLastAdminProtected,
+			expectChange: false,
+		},
+		{
+			name:         "last-admin deactivate protected",
+			actorID:      9999,
+			targetRole:   authDomain.RoleSystemAdmin,
+			extraAdmins:  0,
+			newStatus:    "inactive",
+			expectedErr:  usersDomain.ErrLastAdminProtected,
+			expectChange: false,
+		},
+		{
+			name:         "active bypasses guards even on self",
+			actorID:      0, // self-activate must be allowed
+			targetRole:   authDomain.RoleSystemAdmin,
+			extraAdmins:  0,
+			newStatus:    "active",
+			expectedErr:  nil,
+			expectChange: true,
+		},
+		{
+			name:         "admin blocks other admin with extras — allowed",
+			actorID:      9999,
+			targetRole:   authDomain.RoleSystemAdmin,
+			extraAdmins:  2,
+			newStatus:    "blocked",
+			expectedErr:  nil,
+			expectChange: true,
+		},
+		{
+			name:         "admin deactivates student — allowed",
+			actorID:      9999,
+			targetRole:   authDomain.RoleStudent,
+			extraAdmins:  1,
+			newStatus:    "inactive",
+			expectedErr:  nil,
+			expectChange: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			userRepo := NewMockUserRepository()
+			profileRepo := NewMockUserProfileRepository()
+			deptRepo := NewMockDepartmentRepository()
+			posRepo := NewMockPositionRepository()
+			uc := NewUserUseCase(userRepo, profileRepo, deptRepo, posRepo, nil, nil)
+			ctx := context.Background()
+
+			target := authEntities.NewUser("target@example.com", "password", "Target", tc.targetRole)
+			target.Activate()
+			_ = userRepo.Create(ctx, target)
+			for i := 0; i < tc.extraAdmins; i++ {
+				extra := authEntities.NewUser(
+					fmt.Sprintf("admin%d@example.com", i),
+					"password",
+					fmt.Sprintf("Admin %d", i),
+					authDomain.RoleSystemAdmin,
+				)
+				_ = userRepo.Create(ctx, extra)
+			}
+
+			actorID := tc.actorID
+			if actorID == 0 {
+				actorID = target.ID
+			}
+
+			err := uc.UpdateUserStatus(ctx, actorID, target.ID, &dto.UpdateUserStatusInput{Status: tc.newStatus})
+			if tc.expectedErr != nil {
+				if !errors.Is(err, tc.expectedErr) {
+					t.Fatalf("expected %v, got %v", tc.expectedErr, err)
+				}
+			} else if err != nil {
+				t.Fatalf("expected success, got %v", err)
+			}
+
+			// Verify mutation actually occurred when expected.
+			fresh, _ := userRepo.GetByID(ctx, target.ID)
+			changed := fresh != nil && string(fresh.Status) != "active"
+			if tc.newStatus == "active" {
+				// status==active is a no-op transition from already-active target;
+				// expectChange=true here means "the call succeeded".
+				if (err == nil) != tc.expectChange {
+					t.Fatalf("expected expectChange=%v for status=active path, got err=%v", tc.expectChange, err)
+				}
+			} else if changed != tc.expectChange {
+				t.Fatalf("expected status changed=%v, got %v (fresh.Status=%q)", tc.expectChange, changed, fresh.Status)
+			}
+		})
+	}
+}
+
 // TestUserUseCase_DeleteUser_Guards pins the #283 ADR-4 Tier 1
 // guards: actors must not delete themselves; the last system_admin
 // must not be removed. Table-driven across both refusal paths and
