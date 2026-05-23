@@ -25,14 +25,17 @@ var ErrProfileEditForbidden = errors.New("profile edit forbidden: actor is not t
 // user's profile, ErrProfileEditForbidden otherwise.
 //
 // Rule: actor must be the target user (self-edit) OR system_admin
-// (override).
-//
-// RED-commit stub: returns nil unconditionally. The GREEN commit
-// implements the actor==target / role==system_admin branches and
-// flips the new failing test to passing.
+// (override). All other actor/target combinations — including admins
+// of other kinds (methodist, academic_secretary, teacher) editing
+// somebody else — are rejected. Cross-user profile mutation is a
+// privileged operation that audit-tracks via actor_user_id and must
+// not fall through silently.
 func AuthorizeProfileEdit(actorID, targetID int64, actorRole authDomain.RoleType) error {
-	_ = actorID
-	_ = targetID
-	_ = actorRole
-	return nil
+	if actorID == targetID {
+		return nil
+	}
+	if actorRole == authDomain.RoleSystemAdmin {
+		return nil
+	}
+	return ErrProfileEditForbidden
 }
