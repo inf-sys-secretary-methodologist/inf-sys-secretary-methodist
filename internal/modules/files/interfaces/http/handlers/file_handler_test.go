@@ -14,8 +14,15 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
+// defaultFixtureUploader matches the UploadedBy value used by
+// entities.NewFileMetadata(..., 7) fixtures throughout the tests. The
+// shared router wires a stub authMW with this id so authenticated
+// handlers receive matching actor context.
+const defaultFixtureUploader = int64(7)
+
 func setupFileRouter(handler *FileHandler) *gin.Engine {
 	r := gin.New()
+	r.Use(authMW(defaultFixtureUploader))
 	r.POST("/files/upload", handler.Upload)
 	r.GET("/files/:id", handler.GetByID)
 	r.GET("/files/:id/download", handler.Download)

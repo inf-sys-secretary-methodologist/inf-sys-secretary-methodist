@@ -15,9 +15,18 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
+	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
+)
+
+// testActorMatching returns (actorID, role) that match an uploader.
+// Default fixture uploader is 1.
+const (
+	testUploaderID = int64(1)
+	testActorRole  = authDomain.RoleStudent
 )
 
 // --- Mock implementations ---
@@ -482,7 +491,7 @@ func TestFileUseCase_GetFile_Success(t *testing.T) {
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(expectedFile, nil).Once()
 
-	result, err := uc.GetFile(ctx, 1)
+	result, err := uc.GetFile(ctx, 1, testUploaderID, testActorRole)
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -506,7 +515,7 @@ func TestFileUseCase_GetFile_NotFound(t *testing.T) {
 
 	mockFileRepo.On("GetByID", ctx, int64(999)).Return(nil, errors.New("not found")).Once()
 
-	result, err := uc.GetFile(ctx, 999)
+	result, err := uc.GetFile(ctx, 999, testUploaderID, testActorRole)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -536,7 +545,7 @@ func TestFileUseCase_GetFileWithDownloadURL_Success(t *testing.T) {
 	mockStorage.On("GetPresignedURL", ctx, "temp/1/test.pdf", 5*time.Minute).
 		Return("https://storage.example.com/presigned/test.pdf", nil).Once()
 
-	result, err := uc.GetFileWithDownloadURL(ctx, 1, 5*time.Minute)
+	result, err := uc.GetFileWithDownloadURL(ctx, 1, 5*time.Minute, testUploaderID, testActorRole)
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -554,7 +563,7 @@ func TestFileUseCase_GetFileWithDownloadURL_FileNotFound(t *testing.T) {
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(nil, errors.New("not found")).Once()
 
-	result, err := uc.GetFileWithDownloadURL(ctx, 1, 5*time.Minute)
+	result, err := uc.GetFileWithDownloadURL(ctx, 1, 5*time.Minute, testUploaderID, testActorRole)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -570,13 +579,14 @@ func TestFileUseCase_GetFileWithDownloadURL_PresignError(t *testing.T) {
 	file := &entities.FileMetadata{
 		ID:         1,
 		StorageKey: "temp/1/test.pdf",
+		UploadedBy: testUploaderID,
 	}
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
 	mockStorage.On("GetPresignedURL", ctx, "temp/1/test.pdf", 5*time.Minute).
 		Return("", errors.New("presign failed")).Once()
 
-	result, err := uc.GetFileWithDownloadURL(ctx, 1, 5*time.Minute)
+	result, err := uc.GetFileWithDownloadURL(ctx, 1, 5*time.Minute, testUploaderID, testActorRole)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -598,13 +608,14 @@ func TestFileUseCase_DownloadFile_Success(t *testing.T) {
 		StorageKey:   "temp/1/doc.pdf",
 		MimeType:     "application/pdf",
 		Size:         2048,
+		UploadedBy:   testUploaderID,
 	}
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
 	mockStorage.On("GetPresignedURL", ctx, "temp/1/doc.pdf", time.Hour).
 		Return("https://example.com/presigned", nil).Once()
 
-	result, err := uc.DownloadFile(ctx, 1)
+	result, err := uc.DownloadFile(ctx, 1, testUploaderID, testActorRole)
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -622,7 +633,7 @@ func TestFileUseCase_DownloadFile_FileNotFound(t *testing.T) {
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(nil, errors.New("not found")).Once()
 
-	result, err := uc.DownloadFile(ctx, 1)
+	result, err := uc.DownloadFile(ctx, 1, testUploaderID, testActorRole)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -638,13 +649,14 @@ func TestFileUseCase_DownloadFile_PresignError(t *testing.T) {
 	file := &entities.FileMetadata{
 		ID:         1,
 		StorageKey: "key",
+		UploadedBy: testUploaderID,
 	}
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
 	mockStorage.On("GetPresignedURL", ctx, "key", time.Hour).
 		Return("", errors.New("s3 error")).Once()
 
-	result, err := uc.DownloadFile(ctx, 1)
+	result, err := uc.DownloadFile(ctx, 1, testUploaderID, testActorRole)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -674,6 +686,8 @@ func TestFileUseCase_AttachFile_ToDocument(t *testing.T) {
 	input := &dto.AttachFileInput{
 		FileID:     1,
 		DocumentID: &docID,
+		UserID:     1, // matches tempFile.UploadedBy
+		UserRole:   testActorRole,
 	}
 
 	err := uc.AttachFile(ctx, input)
@@ -852,7 +866,7 @@ func TestFileUseCase_DeleteFile_Success(t *testing.T) {
 	mockFileRepo.On("Delete", ctx, int64(1)).Return(nil).Once()
 	mockAudit.On("LogAuditEvent", ctx, "delete", "file", mock.Anything).Once()
 
-	err := uc.DeleteFile(ctx, 1, 1)
+	err := uc.DeleteFile(ctx, 1, 1, testActorRole)
 
 	require.NoError(t, err)
 	mockFileRepo.AssertExpectations(t)
@@ -872,11 +886,10 @@ func TestFileUseCase_DeleteFile_NoPermission(t *testing.T) {
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
 
-	err := uc.DeleteFile(ctx, 1, 2)
+	err := uc.DeleteFile(ctx, 1, 2, testActorRole)
 
 	require.Error(t, err)
-	var permErr *PermissionError
-	assert.True(t, errors.As(err, &permErr))
+	assert.True(t, errors.Is(err, filesDomain.ErrFileAccessDenied))
 }
 
 func TestFileUseCase_DeleteFile_GetByIDError(t *testing.T) {
@@ -887,7 +900,7 @@ func TestFileUseCase_DeleteFile_GetByIDError(t *testing.T) {
 
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(nil, errors.New("not found")).Once()
 
-	err := uc.DeleteFile(ctx, 1, 1)
+	err := uc.DeleteFile(ctx, 1, 1, testActorRole)
 
 	require.Error(t, err)
 }
@@ -906,7 +919,7 @@ func TestFileUseCase_DeleteFile_RepoDeleteError(t *testing.T) {
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
 	mockFileRepo.On("Delete", ctx, int64(1)).Return(errors.New("db error")).Once()
 
-	err := uc.DeleteFile(ctx, 1, 1)
+	err := uc.DeleteFile(ctx, 1, 1, testActorRole)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "db error")
@@ -926,7 +939,7 @@ func TestFileUseCase_DeleteFile_WithoutAuditLogger(t *testing.T) {
 	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
 	mockFileRepo.On("Delete", ctx, int64(1)).Return(nil).Once()
 
-	err := uc.DeleteFile(ctx, 1, 1)
+	err := uc.DeleteFile(ctx, 1, 1, testActorRole)
 
 	require.NoError(t, err)
 }
@@ -1393,4 +1406,120 @@ func TestPermissionError(t *testing.T) {
 	err := &PermissionError{Message: "тестовая ошибка доступа"}
 	assert.Equal(t, "тестовая ошибка доступа", err.Error())
 	assert.Implements(t, (*error)(nil), err)
+}
+
+// --- ADR-1 cross-user IDOR coverage (#290) ---
+
+func TestFileUseCase_GetFile_OtherUserDenied(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
+	mockAudit := new(MockAuditLogger)
+	uc := newTestFileUseCase(mockFileRepo, nil, nil, nil, mockAudit)
+	ctx := context.Background()
+
+	file := &entities.FileMetadata{ID: 1, UploadedBy: testUploaderID}
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
+	mockAudit.On("LogAuditEvent", ctx, "file_read_denied", "file", mock.MatchedBy(func(f map[string]interface{}) bool {
+		return f["actor_user_id"] == int64(99) && f["target_file_id"] == int64(1) && f["reason"] == "read"
+	})).Once()
+
+	result, err := uc.GetFile(ctx, 1, 99, authDomain.RoleStudent)
+
+	assert.Nil(t, result)
+	assert.True(t, errors.Is(err, filesDomain.ErrFileAccessDenied))
+	mockAudit.AssertExpectations(t)
+}
+
+func TestFileUseCase_GetFile_SystemAdminAllowedOnOthersFile(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
+	uc := newTestFileUseCase(mockFileRepo, nil, nil, nil, nil)
+	ctx := context.Background()
+
+	file := &entities.FileMetadata{ID: 1, UploadedBy: testUploaderID, OriginalName: "x.pdf"}
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
+
+	result, err := uc.GetFile(ctx, 1, 99, authDomain.RoleSystemAdmin)
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "x.pdf", result.OriginalName)
+}
+
+func TestFileUseCase_DownloadFile_OtherUserDenied(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
+	mockAudit := new(MockAuditLogger)
+	uc := newTestFileUseCase(mockFileRepo, nil, nil, nil, mockAudit)
+	ctx := context.Background()
+
+	file := &entities.FileMetadata{ID: 1, UploadedBy: testUploaderID, StorageKey: "k"}
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
+	mockAudit.On("LogAuditEvent", ctx, "file_read_denied", "file", mock.Anything).Once()
+
+	result, err := uc.DownloadFile(ctx, 1, 99, authDomain.RoleStudent)
+
+	assert.Nil(t, result)
+	assert.True(t, errors.Is(err, filesDomain.ErrFileAccessDenied))
+	mockAudit.AssertExpectations(t)
+}
+
+func TestFileUseCase_AttachFile_OtherUserDenied(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
+	mockAudit := new(MockAuditLogger)
+	uc := newTestFileUseCase(mockFileRepo, nil, nil, nil, mockAudit)
+	ctx := context.Background()
+
+	file := &entities.FileMetadata{ID: 1, UploadedBy: testUploaderID, IsTemporary: true}
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
+	mockAudit.On("LogAuditEvent", ctx, "file_attach_denied", "file", mock.Anything).Once()
+
+	docID := int64(50)
+	input := &dto.AttachFileInput{
+		FileID:     1,
+		DocumentID: &docID,
+		UserID:     99, // not the uploader
+		UserRole:   authDomain.RoleStudent,
+	}
+
+	err := uc.AttachFile(ctx, input)
+
+	assert.True(t, errors.Is(err, filesDomain.ErrFileAccessDenied))
+	mockAudit.AssertExpectations(t)
+}
+
+func TestFileUseCase_AttachFile_SystemAdminDeniedOnOthersFile(t *testing.T) {
+	// Admin override does NOT apply to write actions — only the uploader
+	// may attach.
+	mockFileRepo := new(MockFileMetadataRepository)
+	uc := newTestFileUseCase(mockFileRepo, nil, nil, nil, nil)
+	ctx := context.Background()
+
+	file := &entities.FileMetadata{ID: 1, UploadedBy: testUploaderID, IsTemporary: true}
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
+
+	docID := int64(50)
+	input := &dto.AttachFileInput{
+		FileID:     1,
+		DocumentID: &docID,
+		UserID:     99,
+		UserRole:   authDomain.RoleSystemAdmin,
+	}
+
+	err := uc.AttachFile(ctx, input)
+
+	assert.True(t, errors.Is(err, filesDomain.ErrFileAccessDenied))
+}
+
+func TestFileUseCase_DeleteFile_OtherUserDenied(t *testing.T) {
+	mockFileRepo := new(MockFileMetadataRepository)
+	mockAudit := new(MockAuditLogger)
+	uc := newTestFileUseCase(mockFileRepo, nil, nil, nil, mockAudit)
+	ctx := context.Background()
+
+	file := &entities.FileMetadata{ID: 1, UploadedBy: testUploaderID}
+	mockFileRepo.On("GetByID", ctx, int64(1)).Return(file, nil).Once()
+	mockAudit.On("LogAuditEvent", ctx, "file_delete_denied", "file", mock.Anything).Once()
+
+	err := uc.DeleteFile(ctx, 1, 99, authDomain.RoleStudent)
+
+	assert.True(t, errors.Is(err, filesDomain.ErrFileAccessDenied))
+	mockAudit.AssertExpectations(t)
 }
