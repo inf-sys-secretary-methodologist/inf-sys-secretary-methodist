@@ -34,6 +34,12 @@ var (
 
 	// ErrAttachmentNotFound is returned when an attachment lookup fails.
 	ErrAttachmentNotFound = errors.New("attachment not found")
+
+	// ErrAttachmentForbidden is returned when the caller is not allowed
+	// to mutate an attachment (not the author, not an admin, OR URL
+	// announcement_id does not match the attachment's). v0.163.0
+	// ADR-3 (#303 TIER 0).
+	ErrAttachmentForbidden = errors.New("attachment access forbidden")
 )
 
 // attachmentStorageKey computes the object-storage key for an attachment.
