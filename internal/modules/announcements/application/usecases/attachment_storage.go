@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -50,6 +51,33 @@ func attachmentStorageKey(announcementID int64, fileName string) string {
 	return path.Join(
 		"announcements",
 		fmt.Sprintf("%d", announcementID),
-		uuid.NewString()+"-"+fileName,
+		uuid.NewString()+"-"+sanitizeAttachmentFileName(fileName),
 	)
+}
+
+// sanitizeAttachmentFileName strips directory components and parent-dir
+// segments so the result is safe to embed in a storage key.
+//
+// v0.163.0 ADR-4 (#303 TIER 1): pre-fix path.Join called path.Clean
+// which collapsed `..` and could escape the per-announcement prefix
+// (`evil/../../escape.bin` → `escape.bin` placed outside the
+// `announcements/{id}/` namespace).
+func sanitizeAttachmentFileName(name string) string {
+	// Collapse path separators (both POSIX and Windows) to underscore.
+	name = strings.ReplaceAll(name, "/", "_")
+	name = strings.ReplaceAll(name, "\\", "_")
+	// Replace `..` substrings so path.Clean (in path.Join downstream)
+	// cannot reinterpret them as parent-dir segments. Single dots are
+	// fine — `report.pdf` must survive.
+	name = strings.ReplaceAll(name, "..", "__")
+	// Strip leading dots so `.foo` cannot resolve to hidden-file
+	// semantics in some storage backends.
+	name = strings.TrimLeft(name, ".")
+	// Collapse remaining whitespace-only / empty input к a stable
+	// default so the key is never `{uuid}-`.
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "unnamed"
+	}
+	return name
 }
