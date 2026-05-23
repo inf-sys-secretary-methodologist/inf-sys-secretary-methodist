@@ -128,7 +128,7 @@ var _ repositories.FileMetadataRepository = (*fakeFileMetaRepo)(nil)
 
 // authMW устанавливает user_id + role в Gin context, как production middleware.
 //
-// role mirrors auth/middleware behaviour — defaults to student if caller
+// role mirrors auth/middleware behavior — defaults to student if caller
 // omits it (most tests want the uploader case where role doesn't matter
 // for the rule, only id-match does).
 func authMW(userID int64, roles ...authDomain.RoleType) gin.HandlerFunc {

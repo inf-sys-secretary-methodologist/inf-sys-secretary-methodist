@@ -11,8 +11,8 @@ import (
 	"time"
 
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
-	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
+	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
@@ -240,7 +240,7 @@ func (uc *FileUseCase) AttachFile(ctx context.Context, input *dto.AttachFileInpu
 	return nil
 }
 
-// emitAccessDenied is a small helper for emitting standardised
+// emitAccessDenied is a small helper for emitting standardized
 // access-denied audit events. Mirrors the v0.160.0 users denial
 // pattern: stable action names (`file_<action>_denied`) so analytics
 // can pivot consistently across modules.
