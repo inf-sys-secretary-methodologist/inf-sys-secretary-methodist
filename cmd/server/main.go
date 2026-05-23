@@ -94,6 +94,7 @@ import (
 	announcementUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
 	announcementPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/infrastructure/persistence"
 	announcementHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/handlers"
+	announcementRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/routes"
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	assignPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/infrastructure/persistence"
 	assignHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/interfaces/http/handlers"
@@ -2653,27 +2654,14 @@ func setupRoutes(
 			announcementHandlerInstance := announcementHandler.NewAnnouncementHandler(announcementUseCase)
 
 			announcementsGroup := protectedGroup.Group("/announcements")
+			// v0.163.0 ADR-1 (#303 TIER 0): mutation routes wrapped в
+			// RequireNonStudent; reads stay on the parent group.
+			announcementRoutes.RegisterAnnouncementRoutes(
+				announcementsGroup,
+				authMiddleware.RequireNonStudent(),
+				announcementHandlerInstance,
+			)
 			{
-				// CRUD operations
-				announcementsGroup.POST("", announcementHandlerInstance.Create)
-				announcementsGroup.GET("", announcementHandlerInstance.List)
-				announcementsGroup.GET("/:id", announcementHandlerInstance.GetByID)
-				announcementsGroup.PUT("/:id", announcementHandlerInstance.Update)
-				announcementsGroup.DELETE("/:id", announcementHandlerInstance.Delete)
-
-				// Special queries
-				announcementsGroup.GET("/published", announcementHandlerInstance.GetPublished)
-				announcementsGroup.GET("/pinned", announcementHandlerInstance.GetPinned)
-				announcementsGroup.GET("/recent", announcementHandlerInstance.GetRecent)
-
-				// Announcement actions
-				announcementsGroup.POST("/:id/publish", announcementHandlerInstance.Publish)
-				announcementsGroup.POST("/:id/unpublish", announcementHandlerInstance.Unpublish)
-				announcementsGroup.POST("/:id/archive", announcementHandlerInstance.Archive)
-
-				// Attachments
-				announcementsGroup.POST("/:id/attachments", announcementHandlerInstance.UploadAttachment)
-				announcementsGroup.DELETE("/:id/attachments/:attachmentID", announcementHandlerInstance.DeleteAttachment)
 
 				// CORS preflight handlers
 				announcementsGroup.OPTIONS("", func(c *gin.Context) { c.Status(http.StatusNoContent) })
