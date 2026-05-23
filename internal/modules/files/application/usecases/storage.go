@@ -17,10 +17,18 @@ type StorageClient interface {
 	GetPresignedURL(ctx context.Context, key string, expires time.Duration) (string, error)
 }
 
-// FileNameValidator определяет интерфейс для валидации имён файлов.
-// *storage.FileValidator реализует этот интерфейс.
+// FileNameValidator определяет интерфейс для валидации имён файлов и
+// содержимого файлов.
+//
+// Closes #290 ADR-3 dead-validator wire-in: prior to v0.161.0 only
+// ValidateFileName was reached from the usecase, so the magic-byte /
+// MIME-whitelist / size-cap pipeline в *storage.FileValidator was
+// dead code. Narrow port now exposes both methods so UploadFile can
+// call the full pipeline. *storage.FileValidator реализует этот
+// интерфейс.
 type FileNameValidator interface {
 	ValidateFileName(fileName string) (string, error)
+	ValidateFile(fileName string, fileSize int64, contentType string, reader io.Reader) (*storage.ValidationResult, error)
 }
 
 // AuditEventLogger определяет интерфейс для логирования аудит-событий.

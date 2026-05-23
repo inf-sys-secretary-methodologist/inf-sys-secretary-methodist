@@ -225,6 +225,14 @@ func (m *MockFileNameValidator) ValidateFileName(fileName string) (string, error
 	return args.String(0), args.Error(1)
 }
 
+func (m *MockFileNameValidator) ValidateFile(fileName string, fileSize int64, contentType string, reader io.Reader) (*storage.ValidationResult, error) {
+	args := m.Called(fileName, fileSize, contentType, reader)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*storage.ValidationResult), args.Error(1)
+}
+
 // MockAuditLogger — мок аудит-логгера.
 type MockAuditLogger struct {
 	mock.Mock
@@ -456,6 +464,8 @@ func TestFileUseCase_UploadFile_WithValidatorSuccess(t *testing.T) {
 	}
 
 	mockValidator.On("ValidateFileName", "valid_file.pdf").Return("valid_file.pdf", nil).Once()
+	mockValidator.On("ValidateFile", "valid_file.pdf", int64(4), "application/pdf", mock.Anything).
+		Return(&storage.ValidationResult{Valid: true}, nil).Once()
 	mockStorage.On("Upload", ctx, mock.AnythingOfType("string"), mock.Anything, int64(4), "application/pdf").
 		Return(&storage.FileInfo{Size: 4}, nil).Once()
 	mockFileRepo.On("Create", ctx, mock.AnythingOfType("*entities.FileMetadata")).Return(nil).Once()
@@ -464,6 +474,66 @@ func TestFileUseCase_UploadFile_WithValidatorSuccess(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
+	mockValidator.AssertExpectations(t)
+}
+
+// --- ADR-3 dead-validator wire-in coverage (#290) ---
+
+func TestFileUseCase_UploadFile_RejectsMagicByteMismatch(t *testing.T) {
+	// Declared content type application/pdf but bytes are HTML → mismatch.
+	mockValidator := new(MockFileNameValidator)
+	uc := newTestFileUseCase(nil, nil, nil, mockValidator, nil)
+	ctx := context.Background()
+
+	input := &dto.UploadFileInput{
+		OriginalName: "trojan.pdf",
+		MimeType:     "application/pdf",
+		Size:         4,
+		UserID:       1,
+	}
+
+	mockValidator.On("ValidateFileName", "trojan.pdf").Return("trojan.pdf", nil).Once()
+	mockValidator.On("ValidateFile", "trojan.pdf", int64(4), "application/pdf", mock.Anything).
+		Return(&storage.ValidationResult{
+			Valid:  false,
+			Errors: []string{"Содержимое файла не соответствует заявленному типу"},
+		}, nil).Once()
+
+	resp, err := uc.UploadFile(ctx, bytes.NewReader([]byte("data")), input)
+
+	assert.Nil(t, resp)
+	require.Error(t, err)
+	var valErr *ValidationError
+	assert.True(t, errors.As(err, &valErr))
+	assert.Contains(t, valErr.Message, "не соответствует заявленному типу")
+	mockValidator.AssertExpectations(t)
+}
+
+func TestFileUseCase_UploadFile_RejectsOctetStreamWithoutDetectableType(t *testing.T) {
+	// evil.exe-style: declared application/octet-stream + bytes that don't
+	// match any whitelisted magic-byte sequence → loophole closed.
+	mockValidator := new(MockFileNameValidator)
+	uc := newTestFileUseCase(nil, nil, nil, mockValidator, nil)
+	ctx := context.Background()
+
+	input := &dto.UploadFileInput{
+		OriginalName: "evil.exe",
+		MimeType:     "application/octet-stream",
+		Size:         4,
+		UserID:       1,
+	}
+
+	mockValidator.On("ValidateFileName", "evil.exe").Return("evil.exe", nil).Once()
+	mockValidator.On("ValidateFile", "evil.exe", int64(4), "application/octet-stream", mock.Anything).
+		Return(&storage.ValidationResult{
+			Valid:  false,
+			Errors: []string{"Тип файла не определён или не разрешён"},
+		}, nil).Once()
+
+	resp, err := uc.UploadFile(ctx, bytes.NewReader([]byte{0x4D, 0x5A, 0x00, 0x00}), input)
+
+	assert.Nil(t, resp)
+	require.Error(t, err)
 	mockValidator.AssertExpectations(t)
 }
 
