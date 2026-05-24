@@ -2694,7 +2694,7 @@ func setupRoutes(
 			logger.Info("Bulk DisciplineItem route registered", nil)
 		}
 
-		// Extracurricular module routes (B3, v0.162.0) — внеучебные мероприятия.
+		// Extracurricular module routes (B3, v0.164.0) — внеучебные мероприятия.
 		// Greenfield bounded context per plan docs/plans/2026-05-24-b3-extracurricular.md.
 		// Audience-aware list/get + organizer-only edit/delete + self-register.
 		{

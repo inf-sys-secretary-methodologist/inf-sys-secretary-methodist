@@ -38,7 +38,7 @@ type UpdateEventUseCase struct {
 }
 
 // NewUpdateEventUseCase wires the use case. Nil notifier defaults
-// к noopNotifier (production wiring lands в v0.163.0 frontend slice).
+// к noopNotifier (production wiring lands в v0.165.0 frontend slice).
 func NewUpdateEventUseCase(repo updateEventRepo, audit AuditSink, notifier EventNotifier, clock func() time.Time) *UpdateEventUseCase {
 	if repo == nil {
 		panic("extracurricular: NewUpdateEventUseCase requires non-nil repo")
