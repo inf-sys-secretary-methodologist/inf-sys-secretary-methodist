@@ -14,7 +14,6 @@ import (
 	usersDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // UserUseCase handles user management business logic.
@@ -23,7 +22,7 @@ type UserUseCase struct {
 	userProfileRepo     UserProfileRepository
 	departmentRepo      DepartmentRepository
 	positionRepo        PositionRepository
-	auditLogger         *logging.AuditLogger
+	auditSink           AuditSink
 	notificationUseCase *notifUsecases.NotificationUseCase
 }
 
@@ -33,7 +32,7 @@ func NewUserUseCase(
 	userProfileRepo UserProfileRepository,
 	departmentRepo DepartmentRepository,
 	positionRepo PositionRepository,
-	auditLogger *logging.AuditLogger,
+	auditSink AuditSink,
 	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *UserUseCase {
 	return &UserUseCase{
@@ -41,7 +40,7 @@ func NewUserUseCase(
 		userProfileRepo:     userProfileRepo,
 		departmentRepo:      departmentRepo,
 		positionRepo:        positionRepo,
-		auditLogger:         auditLogger,
+		auditSink:           auditSink,
 		notificationUseCase: notificationUseCase,
 	}
 }
@@ -119,8 +118,8 @@ func (uc *UserUseCase) UpdateUserProfile(
 		// Audit emit denial: failed cross-edit attempts must NOT
 		// vanish from the trail (reviewer T1-3 / #283 ADR-1
 		// denial-path audit).
-		if uc.auditLogger != nil {
-			uc.auditLogger.LogAuditEvent(ctx, "update_denied", "user_profile", map[string]interface{}{
+		if uc.auditSink != nil {
+			uc.auditSink.LogAuditEvent(ctx, "update_denied", "user_profile", map[string]interface{}{
 				"actor_user_id":  actorID,
 				"target_user_id": targetID,
 				"reason":         "profile_edit_forbidden",
@@ -133,8 +132,8 @@ func (uc *UserUseCase) UpdateUserProfile(
 	// Empty key clears the avatar — always allowed.
 	if input.Avatar != "" {
 		if err := usersDomain.ValidateAvatarKey(input.Avatar, targetID); err != nil {
-			if uc.auditLogger != nil {
-				uc.auditLogger.LogAuditEvent(ctx, "update_denied", "user_profile", map[string]interface{}{
+			if uc.auditSink != nil {
+				uc.auditSink.LogAuditEvent(ctx, "update_denied", "user_profile", map[string]interface{}{
 					"actor_user_id":  actorID,
 					"target_user_id": targetID,
 					"reason":         "invalid_avatar_key",
@@ -171,8 +170,8 @@ func (uc *UserUseCase) UpdateUserProfile(
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "update", "user_profile", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "update", "user_profile", map[string]interface{}{
 			"actor_user_id":  actorID,
 			"target_user_id": targetID,
 			"department_id":  input.DepartmentID,
@@ -199,8 +198,8 @@ func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "role_change", "user", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "role_change", "user", map[string]interface{}{
 			"user_id":  userID,
 			"old_role": oldRole,
 			"new_role": user.Role,
@@ -249,12 +248,12 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID i
 			}
 		}
 		if guardErr := usersDomain.AuthorizeUserDelete(actorID, targetID, target.Role, adminHeadcount); guardErr != nil {
-			if uc.auditLogger != nil {
+			if uc.auditSink != nil {
 				reason := "cannot_delete_self"
 				if errors.Is(guardErr, usersDomain.ErrLastAdminProtected) {
 					reason = "last_admin_protected"
 				}
-				uc.auditLogger.LogAuditEvent(ctx, "status_change_denied", "user", map[string]interface{}{
+				uc.auditSink.LogAuditEvent(ctx, "status_change_denied", "user", map[string]interface{}{
 					"actor_user_id":  actorID,
 					"target_user_id": targetID,
 					"new_status":     input.Status,
@@ -281,8 +280,8 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID i
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "status_change", "user", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "status_change", "user", map[string]interface{}{
 			"actor_user_id":  actorID,
 			"target_user_id": targetID,
 			"old_status":     oldStatus,
@@ -342,12 +341,12 @@ func (uc *UserUseCase) DeleteUser(ctx context.Context, actorID, targetID int64) 
 
 	if err := usersDomain.AuthorizeUserDelete(actorID, targetID, target.Role, adminHeadcount); err != nil {
 		// Audit emit denial (reviewer T1-3).
-		if uc.auditLogger != nil {
+		if uc.auditSink != nil {
 			reason := "cannot_delete_self"
 			if errors.Is(err, usersDomain.ErrLastAdminProtected) {
 				reason = "last_admin_protected"
 			}
-			uc.auditLogger.LogAuditEvent(ctx, "delete_denied", "user", map[string]interface{}{
+			uc.auditSink.LogAuditEvent(ctx, "delete_denied", "user", map[string]interface{}{
 				"actor_user_id":  actorID,
 				"target_user_id": targetID,
 				"reason":         reason,
@@ -360,8 +359,8 @@ func (uc *UserUseCase) DeleteUser(ctx context.Context, actorID, targetID int64) 
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "delete", "user", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "delete", "user", map[string]interface{}{
 			"actor_user_id":  actorID,
 			"target_user_id": targetID,
 		})
@@ -385,8 +384,8 @@ func (uc *UserUseCase) BulkUpdateDepartment(ctx context.Context, input *dto.Bulk
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "bulk_department_update", "user_profile", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "bulk_department_update", "user_profile", map[string]interface{}{
 			"user_ids":      input.UserIDs,
 			"department_id": input.DepartmentID,
 		})
@@ -410,8 +409,8 @@ func (uc *UserUseCase) BulkUpdatePosition(ctx context.Context, input *dto.BulkUp
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "bulk_position_update", "user_profile", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "bulk_position_update", "user_profile", map[string]interface{}{
 			"user_ids":    input.UserIDs,
 			"position_id": input.PositionID,
 		})

@@ -7,23 +7,22 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // DepartmentUseCase handles department management business logic.
 type DepartmentUseCase struct {
 	departmentRepo DepartmentRepository
-	auditLogger    *logging.AuditLogger
+	auditSink      AuditSink
 }
 
 // NewDepartmentUseCase creates a new department use case.
 func NewDepartmentUseCase(
 	departmentRepo DepartmentRepository,
-	auditLogger *logging.AuditLogger,
+	auditSink AuditSink,
 ) *DepartmentUseCase {
 	return &DepartmentUseCase{
 		departmentRepo: departmentRepo,
-		auditLogger:    auditLogger,
+		auditSink:      auditSink,
 	}
 }
 
@@ -49,8 +48,8 @@ func (uc *DepartmentUseCase) CreateDepartment(ctx context.Context, input *dto.Cr
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "create", "department", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "create", "department", map[string]interface{}{
 			"department_id": department.ID,
 			"name":          department.Name,
 			"code":          department.Code,
@@ -137,8 +136,8 @@ func (uc *DepartmentUseCase) UpdateDepartment(ctx context.Context, id int64, inp
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "update", "department", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "update", "department", map[string]interface{}{
 			"department_id": id,
 			"name":          department.Name,
 			"code":          department.Code,
@@ -171,8 +170,8 @@ func (uc *DepartmentUseCase) DeleteDepartment(ctx context.Context, id int64) err
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "delete", "department", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "delete", "department", map[string]interface{}{
 			"department_id": id,
 			"name":          department.Name,
 		})

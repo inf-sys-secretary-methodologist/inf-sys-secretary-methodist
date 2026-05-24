@@ -7,23 +7,22 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // PositionUseCase handles position management business logic.
 type PositionUseCase struct {
 	positionRepo PositionRepository
-	auditLogger  *logging.AuditLogger
+	auditSink    AuditSink
 }
 
 // NewPositionUseCase creates a new position use case.
 func NewPositionUseCase(
 	positionRepo PositionRepository,
-	auditLogger *logging.AuditLogger,
+	auditSink AuditSink,
 ) *PositionUseCase {
 	return &PositionUseCase{
 		positionRepo: positionRepo,
-		auditLogger:  auditLogger,
+		auditSink:    auditSink,
 	}
 }
 
@@ -41,8 +40,8 @@ func (uc *PositionUseCase) CreatePosition(ctx context.Context, input *dto.Create
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "create", "position", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "create", "position", map[string]interface{}{
 			"position_id": position.ID,
 			"name":        position.Name,
 			"code":        position.Code,
@@ -120,8 +119,8 @@ func (uc *PositionUseCase) UpdatePosition(ctx context.Context, id int64, input *
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "update", "position", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "update", "position", map[string]interface{}{
 			"position_id": id,
 			"name":        position.Name,
 			"code":        position.Code,
@@ -144,8 +143,8 @@ func (uc *PositionUseCase) DeletePosition(ctx context.Context, id int64) error {
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "delete", "position", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "delete", "position", map[string]interface{}{
 			"position_id": id,
 			"name":        position.Name,
 		})
