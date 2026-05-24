@@ -920,7 +920,8 @@ func main() {
 	messageNotifier := messagingServices.NewNotificationNotifier(notificationUseCase)
 	messagingUseCase := messagingUsecases.NewMessagingUseCase(conversationRepo, messageRepo, messagingHub, logger, messageNotifier, s3Client).
 		WithAuditSink(auditLogger).
-		WithUserExistenceChecker(newMessagingUserExistenceChecker(userRepo))
+		WithUserExistenceChecker(newMessagingUserExistenceChecker(userRepo)).
+		WithLifecycleContext(serverCtx)
 	logger.Info("Messaging module initialized", nil)
 
 	// Initialize files module

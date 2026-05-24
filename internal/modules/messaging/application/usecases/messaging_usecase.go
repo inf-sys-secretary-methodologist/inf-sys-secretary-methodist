@@ -47,6 +47,12 @@ type MessagingUseCase struct {
 	s3Client         *storage.S3Client
 	auditSink        AuditSink
 	userExistence    UserExistenceChecker
+	// lifecycleCtx replaces context.Background() in the SendMessage
+	// fan-out goroutine. main.go passes a server-lifecycle ctx through
+	// WithLifecycleContext so graceful shutdown cancels in-flight
+	// notifications instead of leaking goroutines past server stop.
+	// Mirrors к announcement usecase pattern (v0.163.1).
+	lifecycleCtx context.Context
 }
 
 // NewMessagingUseCase creates a new messaging use case.
@@ -71,6 +77,7 @@ func NewMessagingUseCase(
 		logger:           logger,
 		notifier:         notifier,
 		s3Client:         s3Client,
+		lifecycleCtx:     context.Background(),
 	}
 }
 
@@ -102,11 +109,13 @@ func (uc *MessagingUseCase) WithUserExistenceChecker(checker UserExistenceChecke
 // usecase setter shape and к the optional-deps setter pattern
 // elsewhere (memory: feedback_setter_pattern_optional_deps).
 //
-// RED stub for v0.162.1 polish Item 2: the receiver-only no-op below
-// makes the new test compile but still fail because the goroutine
-// continues к use context.Background(). GREEN follows.
+// Nil ctx (the default) is treated as no-op so existing test setups
+// без the setter wired keep the constructor's
+// context.Background() default.
 func (uc *MessagingUseCase) WithLifecycleContext(ctx context.Context) *MessagingUseCase {
-	_ = ctx
+	if ctx != nil {
+		uc.lifecycleCtx = ctx
+	}
 	return uc
 }
 
@@ -542,10 +551,12 @@ func (uc *MessagingUseCase) SendMessage(ctx context.Context, userID, conversatio
 		Payload:        dto.ToMessageOutput(msg),
 	}, 0) // Don't exclude sender - they should see their own message
 
-	// Send notifications to participants who are not online in the conversation
-	// Use background context because HTTP request context may be canceled by the time goroutine runs
+	// Send notifications to participants who are not online in the conversation.
+	// Use the lifecycle ctx so graceful shutdown can cancel in-flight sends
+	// instead of leaking the goroutine past server stop (v0.162.1 Item 2,
+	// mirror к v0.163.1 announcement broadcast goroutine).
 	if uc.notifier != nil {
-		go uc.notifyParticipants(context.Background(), conversationID, userID, msg) // #nosec G118 -- fire-and-forget goroutine outlives request
+		go uc.notifyParticipants(uc.lifecycleCtx, conversationID, userID, msg) // #nosec G118 -- fire-and-forget goroutine; cancellable via uc.lifecycleCtx
 	}
 
 	uc.logger.Debug("message sent", map[string]any{
