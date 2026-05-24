@@ -23,6 +23,14 @@ type UserUseCase struct {
 	positionRepo    PositionRepository
 	auditSink       AuditSink
 	notifier        SystemNotifier
+	// lifecycleCtx replaces context.Background() in the
+	// UpdateUserRole + UpdateUserStatus fire-and-forget notification
+	// goroutines. main.go passes a server-lifecycle ctx through
+	// WithLifecycleContext so graceful shutdown cancels in-flight
+	// SendSystemNotification calls instead of leaking goroutines past
+	// server stop. Mirror к v0.162.1 messaging + v0.163.1 announcements
+	// pattern.
+	lifecycleCtx context.Context
 }
 
 // NewUserUseCase creates a new user use case.
@@ -41,7 +49,21 @@ func NewUserUseCase(
 		positionRepo:    positionRepo,
 		auditSink:       auditSink,
 		notifier:        notifier,
+		lifecycleCtx:    context.Background(),
 	}
+}
+
+// WithLifecycleContext registers the server-lifecycle ctx the
+// UpdateUserRole + UpdateUserStatus fire-and-forget goroutines should
+// use instead of context.Background(). Chainable; mirror к
+// v0.162.1 messaging + v0.163.1 announcement usecase setter shape.
+// Nil ctx is treated as no-op so existing test setups keep working
+// with the constructor's context.Background() default.
+func (uc *UserUseCase) WithLifecycleContext(ctx context.Context) *UserUseCase {
+	if ctx != nil {
+		uc.lifecycleCtx = ctx
+	}
+	return uc
 }
 
 // GetUser retrieves a user by ID with organizational info.
@@ -205,11 +227,14 @@ func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *
 		})
 	}
 
-	// Notify user about role change
+	// Notify user about role change.
+	// Uses uc.lifecycleCtx so graceful shutdown can cancel in-flight
+	// sends instead of leaking the goroutine past server stop
+	// (v0.160.1 Item 5, mirror к v0.162.1 messaging + v0.163.1).
 	if uc.notifier != nil {
-		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
+		go func() { // #nosec G118 -- fire-and-forget goroutine; cancellable via uc.lifecycleCtx
 			_ = uc.notifier.SendSystemNotification(
-				context.Background(),
+				uc.lifecycleCtx,
 				userID,
 				"Изменение роли",
 				fmt.Sprintf("Ваша роль изменена на «%s»", input.Role),
@@ -288,9 +313,12 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID i
 		})
 	}
 
-	// Notify user about status change
+	// Notify user about status change.
+	// Uses uc.lifecycleCtx so graceful shutdown can cancel in-flight
+	// sends instead of leaking the goroutine past server stop
+	// (v0.160.1 Item 5, mirror к v0.162.1 messaging + v0.163.1).
 	if uc.notifier != nil {
-		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
+		go func() { // #nosec G118 -- fire-and-forget goroutine; cancellable via uc.lifecycleCtx
 			statusNames := map[string]string{
 				"active":   "активен",
 				"inactive": "неактивен",
@@ -301,7 +329,7 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID i
 				statusName = input.Status
 			}
 			_ = uc.notifier.SendSystemNotification(
-				context.Background(),
+				uc.lifecycleCtx,
 				targetID,
 				"Изменение статуса",
 				fmt.Sprintf("Ваш статус изменён на «%s»", statusName),

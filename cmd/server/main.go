@@ -931,7 +931,8 @@ func main() {
 	// SendSystemNotification). The compile-time assertion below pins
 	// the contract — drift в either signature fails build, not request.
 	var _ usersUsecases.SystemNotifier = (*notifUsecases.NotificationUseCase)(nil)
-	userUseCase := usersUsecases.NewUserUseCase(usersUserAccountRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger, notificationUseCase)
+	userUseCase := usersUsecases.NewUserUseCase(usersUserAccountRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger, notificationUseCase).
+		WithLifecycleContext(serverCtx)
 	departmentUseCase := usersUsecases.NewDepartmentUseCase(departmentRepo, auditLogger)
 	positionUseCase := usersUsecases.NewPositionUseCase(positionRepo, auditLogger)
 	logger.Info("Users module initialized", nil)
