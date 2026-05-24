@@ -131,5 +131,12 @@ func (r *RedisRevokedTokenRepository) IsRevokedForUser(ctx context.Context, user
 	if err != nil {
 		return false, fmt.Errorf("parse epoch from %s: %w", key, err)
 	}
-	return epoch >= issuedAtUnix, nil
+	// Strict greater-than (not >=): tokens with iat == epoch survive.
+	// This matters for concurrent-refresh races where multiple callers
+	// share the same iat — the loser's cascade sets epoch = iat, but
+	// the winner who already claimed the JTI atomically must not be
+	// caught by their own peer's cascade. The reused token's JTI is
+	// already in the per-JTI blacklist independently, so per-token
+	// safety is unaffected.
+	return epoch > issuedAtUnix, nil
 }
