@@ -692,7 +692,7 @@ func TestUserUseCase_UpdateUserRole(t *testing.T) {
 
 	// Update role
 	input := &dto.UpdateUserRoleInput{Role: "teacher"}
-	err := uc.UpdateUserRole(ctx, user.ID, input)
+	err := uc.UpdateUserRole(ctx, 1, user.ID, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -717,7 +717,7 @@ func TestUserUseCase_UpdateUserRole_WithAuditLogger(t *testing.T) {
 	_ = userRepo.Create(ctx, user)
 
 	input := &dto.UpdateUserRoleInput{Role: "teacher"}
-	err := uc.UpdateUserRole(ctx, user.ID, input)
+	err := uc.UpdateUserRole(ctx, 1, user.ID, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -737,7 +737,7 @@ func TestUserUseCase_UpdateUserRole_SaveError(t *testing.T) {
 	userRepo.saveErr = errors.New("save error")
 
 	input := &dto.UpdateUserRoleInput{Role: "teacher"}
-	err := uc.UpdateUserRole(ctx, user.ID, input)
+	err := uc.UpdateUserRole(ctx, 1, user.ID, input)
 	if err == nil {
 		t.Error("expected error from save")
 	}
@@ -753,7 +753,7 @@ func TestUserUseCase_UpdateUserRole_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	input := &dto.UpdateUserRoleInput{Role: "teacher"}
-	err := uc.UpdateUserRole(ctx, 999, input)
+	err := uc.UpdateUserRole(ctx, 1, 999, input)
 	if err == nil {
 		t.Error("expected error for non-existent user")
 	}
@@ -1204,7 +1204,7 @@ func TestUserUseCase_BulkUpdateDepartment(t *testing.T) {
 		DepartmentID: &deptID,
 	}
 
-	err := uc.BulkUpdateDepartment(ctx, input)
+	err := uc.BulkUpdateDepartment(ctx, 1, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1234,7 +1234,7 @@ func TestUserUseCase_BulkUpdateDepartment_WithAuditLogger(t *testing.T) {
 		DepartmentID: &deptID,
 	}
 
-	err := uc.BulkUpdateDepartment(ctx, input)
+	err := uc.BulkUpdateDepartment(ctx, 1, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1255,7 +1255,7 @@ func TestUserUseCase_BulkUpdateDepartment_BulkError(t *testing.T) {
 		DepartmentID: nil,
 	}
 
-	err := uc.BulkUpdateDepartment(ctx, input)
+	err := uc.BulkUpdateDepartment(ctx, 1, input)
 	if err == nil {
 		t.Error("expected error from bulk update")
 	}
@@ -1276,7 +1276,7 @@ func TestUserUseCase_BulkUpdateDepartment_NotFound(t *testing.T) {
 		DepartmentID: &deptID,
 	}
 
-	err := uc.BulkUpdateDepartment(ctx, input)
+	err := uc.BulkUpdateDepartment(ctx, 1, input)
 	if err == nil {
 		t.Error("expected error for non-existent department")
 	}
@@ -1301,7 +1301,7 @@ func TestUserUseCase_BulkUpdateDepartment_NilDepartment(t *testing.T) {
 		DepartmentID: nil,
 	}
 
-	err := uc.BulkUpdateDepartment(ctx, input)
+	err := uc.BulkUpdateDepartment(ctx, 1, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1336,7 +1336,7 @@ func TestUserUseCase_BulkUpdatePosition(t *testing.T) {
 		PositionID: &posID,
 	}
 
-	err := uc.BulkUpdatePosition(ctx, input)
+	err := uc.BulkUpdatePosition(ctx, 1, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1366,7 +1366,7 @@ func TestUserUseCase_BulkUpdatePosition_WithAuditLogger(t *testing.T) {
 		PositionID: &posID,
 	}
 
-	err := uc.BulkUpdatePosition(ctx, input)
+	err := uc.BulkUpdatePosition(ctx, 1, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1387,7 +1387,7 @@ func TestUserUseCase_BulkUpdatePosition_BulkError(t *testing.T) {
 		PositionID: nil,
 	}
 
-	err := uc.BulkUpdatePosition(ctx, input)
+	err := uc.BulkUpdatePosition(ctx, 1, input)
 	if err == nil {
 		t.Error("expected error from bulk update")
 	}
@@ -1408,7 +1408,7 @@ func TestUserUseCase_BulkUpdatePosition_NotFound(t *testing.T) {
 		PositionID: &posID,
 	}
 
-	err := uc.BulkUpdatePosition(ctx, input)
+	err := uc.BulkUpdatePosition(ctx, 1, input)
 	if err == nil {
 		t.Error("expected error for non-existent position")
 	}
@@ -1431,7 +1431,7 @@ func TestUserUseCase_BulkUpdatePosition_NilPosition(t *testing.T) {
 		PositionID: nil,
 	}
 
-	err := uc.BulkUpdatePosition(ctx, input)
+	err := uc.BulkUpdatePosition(ctx, 1, input)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

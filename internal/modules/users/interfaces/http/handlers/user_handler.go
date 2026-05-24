@@ -164,8 +164,18 @@ func (h *UserHandler) UpdateRole(c *gin.Context) {
 		return
 	}
 
+	// Actor identity required for audit forensic invariant (v0.160.1
+	// Item 6 — role change must record who triggered it).
+	actorIDRaw, exists := c.Get("user_id")
+	if !exists {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+	actorID, _ := actorIDRaw.(int64)
+
 	ctx := c.Request.Context()
-	if err := h.usecase.UpdateUserRole(ctx, id, &input); err != nil {
+	if err := h.usecase.UpdateUserRole(ctx, actorID, id, &input); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return
@@ -264,8 +274,17 @@ func (h *UserHandler) BulkUpdateDepartment(c *gin.Context) {
 		return
 	}
 
+	// Actor identity for audit forensic invariant (v0.160.1 Item 6).
+	actorIDRaw, exists := c.Get("user_id")
+	if !exists {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+	actorID, _ := actorIDRaw.(int64)
+
 	ctx := c.Request.Context()
-	if err := h.usecase.BulkUpdateDepartment(ctx, &input); err != nil {
+	if err := h.usecase.BulkUpdateDepartment(ctx, actorID, &input); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return
@@ -289,8 +308,17 @@ func (h *UserHandler) BulkUpdatePosition(c *gin.Context) {
 		return
 	}
 
+	// Actor identity for audit forensic invariant (v0.160.1 Item 6).
+	actorIDRaw, exists := c.Get("user_id")
+	if !exists {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+	actorID, _ := actorIDRaw.(int64)
+
 	ctx := c.Request.Context()
-	if err := h.usecase.BulkUpdatePosition(ctx, &input); err != nil {
+	if err := h.usecase.BulkUpdatePosition(ctx, actorID, &input); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return

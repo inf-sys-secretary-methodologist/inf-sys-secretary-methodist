@@ -204,8 +204,13 @@ func (uc *UserUseCase) UpdateUserProfile(
 }
 
 // UpdateUserRole updates a user's role.
-func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *dto.UpdateUserRoleInput) error {
-	user, err := uc.userRepo.GetByID(ctx, userID)
+//
+// actorID is the calling user — recorded в the audit row alongside
+// target_user_id so role changes carry the same actor_user_id forensic
+// invariant as UpdateUserStatus/DeleteUser (v0.160.0 #283 ADR-4).
+// v0.160.1 polish Item 6.
+func (uc *UserUseCase) UpdateUserRole(ctx context.Context, actorID, targetID int64, input *dto.UpdateUserRoleInput) error {
+	user, err := uc.userRepo.GetByID(ctx, targetID)
 	if err != nil {
 		return err
 	}
@@ -221,9 +226,10 @@ func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *
 
 	if uc.auditSink != nil {
 		uc.auditSink.LogAuditEvent(ctx, "role_change", "user", map[string]interface{}{
-			"user_id":  userID,
-			"old_role": oldRole,
-			"new_role": user.Role,
+			"actor_user_id":  actorID,
+			"target_user_id": targetID,
+			"old_role":       oldRole,
+			"new_role":       user.Role,
 		})
 	}
 
@@ -235,7 +241,7 @@ func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *
 		go func() { // #nosec G118 -- fire-and-forget goroutine; cancellable via uc.lifecycleCtx
 			_ = uc.notifier.SendSystemNotification(
 				uc.lifecycleCtx,
-				userID,
+				targetID,
 				"Изменение роли",
 				fmt.Sprintf("Ваша роль изменена на «%s»", input.Role),
 			)
@@ -397,7 +403,10 @@ func (uc *UserUseCase) DeleteUser(ctx context.Context, actorID, targetID int64) 
 }
 
 // BulkUpdateDepartment assigns multiple users to a department.
-func (uc *UserUseCase) BulkUpdateDepartment(ctx context.Context, input *dto.BulkUpdateDepartmentInput) error {
+//
+// actorID is the calling user — recorded в the audit row для forensic
+// parity с UpdateUserStatus/DeleteUser shape (v0.160.1 polish Item 6).
+func (uc *UserUseCase) BulkUpdateDepartment(ctx context.Context, actorID int64, input *dto.BulkUpdateDepartmentInput) error {
 	// Verify department exists if provided
 	if input.DepartmentID != nil {
 		_, err := uc.departmentRepo.GetByID(ctx, *input.DepartmentID)
@@ -413,8 +422,9 @@ func (uc *UserUseCase) BulkUpdateDepartment(ctx context.Context, input *dto.Bulk
 
 	if uc.auditSink != nil {
 		uc.auditSink.LogAuditEvent(ctx, "bulk_department_update", "user_profile", map[string]interface{}{
-			"user_ids":      input.UserIDs,
-			"department_id": input.DepartmentID,
+			"actor_user_id":   actorID,
+			"target_user_ids": input.UserIDs,
+			"department_id":   input.DepartmentID,
 		})
 	}
 
@@ -422,7 +432,10 @@ func (uc *UserUseCase) BulkUpdateDepartment(ctx context.Context, input *dto.Bulk
 }
 
 // BulkUpdatePosition assigns multiple users to a position.
-func (uc *UserUseCase) BulkUpdatePosition(ctx context.Context, input *dto.BulkUpdatePositionInput) error {
+//
+// actorID is the calling user — recorded в the audit row для forensic
+// parity с UpdateUserStatus/DeleteUser shape (v0.160.1 polish Item 6).
+func (uc *UserUseCase) BulkUpdatePosition(ctx context.Context, actorID int64, input *dto.BulkUpdatePositionInput) error {
 	// Verify position exists if provided
 	if input.PositionID != nil {
 		_, err := uc.positionRepo.GetByID(ctx, *input.PositionID)
@@ -438,8 +451,9 @@ func (uc *UserUseCase) BulkUpdatePosition(ctx context.Context, input *dto.BulkUp
 
 	if uc.auditSink != nil {
 		uc.auditSink.LogAuditEvent(ctx, "bulk_position_update", "user_profile", map[string]interface{}{
-			"user_ids":    input.UserIDs,
-			"position_id": input.PositionID,
+			"actor_user_id":   actorID,
+			"target_user_ids": input.UserIDs,
+			"position_id":     input.PositionID,
 		})
 	}
 
