@@ -85,9 +85,15 @@ func (uc *AnnouncementUseCase) Create(ctx context.Context, userID int64, req *dt
 	return announcement, nil
 }
 
-// GetByID retrieves an announcement by ID.
-func (uc *AnnouncementUseCase) GetByID(ctx context.Context, id int64, incrementView bool) (*entities.Announcement, error) {
-	announcement, err := uc.repo.GetByID(ctx, id)
+// GetByID retrieves an announcement by ID, filtered к the caller's
+// audience set. The handler computes `audiences` via
+// domain.VisibleAudiences(role) — this method is the public read path,
+// so the repo refuses anything outside the audience list (v0.163.1
+// ADR-2 polish, defense-in-depth поверх handler-layer clamp from
+// v0.163.0). Admin/author paths (Update / Delete / Publish / Archive)
+// keep using uc.repo.GetByID directly without the audience filter.
+func (uc *AnnouncementUseCase) GetByID(ctx context.Context, id int64, incrementView bool, audiences []domain.TargetAudience) (*entities.Announcement, error) {
+	announcement, err := uc.repo.GetByIDForAudience(ctx, id, audiences)
 	if err != nil {
 		return nil, err
 	}
@@ -264,8 +270,11 @@ func (uc *AnnouncementUseCase) GetPublished(ctx context.Context, audience domain
 	return uc.repo.GetPublished(ctx, audience, limit, offset)
 }
 
-// GetPinned retrieves pinned announcements.
-func (uc *AnnouncementUseCase) GetPinned(ctx context.Context, limit int) ([]*entities.Announcement, error) {
+// GetPinned retrieves pinned announcements visible к the caller's
+// audience set. Handler passes audiences derived via
+// domain.VisibleAudiences(role); the repo enforces SQL
+// `target_audience = ANY($1)`.
+func (uc *AnnouncementUseCase) GetPinned(ctx context.Context, audiences []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
 	if limit <= 0 {
 		limit = 5
 	}
@@ -273,11 +282,12 @@ func (uc *AnnouncementUseCase) GetPinned(ctx context.Context, limit int) ([]*ent
 		limit = 20
 	}
 
-	return uc.repo.GetPinned(ctx, limit)
+	return uc.repo.GetPinned(ctx, audiences, limit)
 }
 
-// GetRecent retrieves recent announcements.
-func (uc *AnnouncementUseCase) GetRecent(ctx context.Context, limit int) ([]*entities.Announcement, error) {
+// GetRecent retrieves recent announcements visible к the caller's
+// audience set. Same audience contract as GetPinned.
+func (uc *AnnouncementUseCase) GetRecent(ctx context.Context, audiences []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -285,7 +295,7 @@ func (uc *AnnouncementUseCase) GetRecent(ctx context.Context, limit int) ([]*ent
 		limit = 50
 	}
 
-	return uc.repo.GetRecent(ctx, limit)
+	return uc.repo.GetRecent(ctx, audiences, limit)
 }
 
 // Publish publishes an announcement.

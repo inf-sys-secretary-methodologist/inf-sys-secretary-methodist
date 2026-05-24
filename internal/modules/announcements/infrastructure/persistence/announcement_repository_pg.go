@@ -160,8 +160,17 @@ func (r *AnnouncementRepositoryPG) GetPublished(ctx context.Context, audience do
 	return r.scanAnnouncements(rows)
 }
 
-// GetPinned retrieves pinned announcements.
-func (r *AnnouncementRepositoryPG) GetPinned(ctx context.Context, limit int) ([]*entities.Announcement, error) {
+// GetByIDForAudience is the audience-filtered companion of GetByID.
+// Stub for v0.163.1 ADR-2 polish RED commit — SQL filter лежит в next
+// GREEN pair.
+func (r *AnnouncementRepositoryPG) GetByIDForAudience(_ context.Context, _ int64, _ []domain.TargetAudience) (*entities.Announcement, error) {
+	return nil, nil
+}
+
+// GetPinned retrieves pinned announcements. Audiences ignored in stub
+// (matches pre-polish behavior); GREEN commit adds `target_audience =
+// ANY($1)` к the SQL.
+func (r *AnnouncementRepositoryPG) GetPinned(ctx context.Context, _ []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
 	query := `
 		SELECT id, title, content, summary, author_id, status, priority,
 			target_audience, publish_at, expire_at, is_pinned, view_count,
@@ -183,8 +192,8 @@ func (r *AnnouncementRepositoryPG) GetPinned(ctx context.Context, limit int) ([]
 	return r.scanAnnouncements(rows)
 }
 
-// GetRecent retrieves recent announcements.
-func (r *AnnouncementRepositoryPG) GetRecent(ctx context.Context, limit int) ([]*entities.Announcement, error) {
+// GetRecent — same stub pattern as GetPinned for the RED commit.
+func (r *AnnouncementRepositoryPG) GetRecent(ctx context.Context, _ []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
 	query := `
 		SELECT id, title, content, summary, author_id, status, priority,
 			target_audience, publish_at, expire_at, is_pinned, view_count,

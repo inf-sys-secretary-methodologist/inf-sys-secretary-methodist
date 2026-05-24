@@ -396,16 +396,18 @@ func TestAnnouncementRepositoryPG_GetPublished_QueryError(t *testing.T) {
 func TestAnnouncementRepositoryPG_GetPinned_Success(t *testing.T) {
 	repo, mock := newAnnouncementRepoMock(t)
 	now := time.Now()
+	audiences := []domain.TargetAudience{domain.TargetAudienceAll, domain.TargetAudienceStudents}
 
 	mock.ExpectQuery(regexp.QuoteMeta(
-		"WHERE is_pinned = true AND status = 'published' " +
-			"AND (publish_at IS NULL OR publish_at <= NOW()) AND (expire_at IS NULL OR expire_at > NOW()) " +
-			"ORDER BY priority DESC, created_at DESC LIMIT $1",
+		"WHERE is_pinned = true AND status = 'published' "+
+			"AND target_audience = ANY($1) "+
+			"AND (publish_at IS NULL OR publish_at <= NOW()) AND (expire_at IS NULL OR expire_at > NOW()) "+
+			"ORDER BY priority DESC, created_at DESC LIMIT $2",
 	)).
-		WithArgs(5).
+		WithArgs(pq.StringArray{"all", "students"}, 5).
 		WillReturnRows(sampleAnnouncementRow(1, now))
 
-	result, err := repo.GetPinned(context.Background(), 5)
+	result, err := repo.GetPinned(context.Background(), audiences, 5)
 	require.NoError(t, err)
 	assert.Len(t, result, 1)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -416,9 +418,21 @@ func TestAnnouncementRepositoryPG_GetPinned_QueryError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("WHERE is_pinned = true")).
 		WillReturnError(errors.New("timeout"))
 
-	result, err := repo.GetPinned(context.Background(), 5)
+	result, err := repo.GetPinned(context.Background(), []domain.TargetAudience{domain.TargetAudienceAll}, 5)
 	require.Error(t, err)
 	assert.Nil(t, result)
+}
+
+func TestAnnouncementRepositoryPG_GetPinned_EmptyAudiences(t *testing.T) {
+	repo, mock := newAnnouncementRepoMock(t)
+	// Empty audiences slice → zero rows without touching the DB.
+	// The repo refuses к build the query, defending against a caller
+	// that passed an empty list (e.g. unknown role mishandled upstream).
+
+	result, err := repo.GetPinned(context.Background(), nil, 5)
+	require.NoError(t, err)
+	assert.Nil(t, result)
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 // --- GetRecent ---
@@ -426,16 +440,18 @@ func TestAnnouncementRepositoryPG_GetPinned_QueryError(t *testing.T) {
 func TestAnnouncementRepositoryPG_GetRecent_Success(t *testing.T) {
 	repo, mock := newAnnouncementRepoMock(t)
 	now := time.Now()
+	audiences := []domain.TargetAudience{domain.TargetAudienceAll, domain.TargetAudienceTeachers}
 
 	mock.ExpectQuery(regexp.QuoteMeta(
-		"WHERE status = 'published' " +
-			"AND (publish_at IS NULL OR publish_at <= NOW()) AND (expire_at IS NULL OR expire_at > NOW()) " +
-			"ORDER BY publish_at DESC NULLS LAST, created_at DESC LIMIT $1",
+		"WHERE status = 'published' "+
+			"AND target_audience = ANY($1) "+
+			"AND (publish_at IS NULL OR publish_at <= NOW()) AND (expire_at IS NULL OR expire_at > NOW()) "+
+			"ORDER BY publish_at DESC NULLS LAST, created_at DESC LIMIT $2",
 	)).
-		WithArgs(20).
+		WithArgs(pq.StringArray{"all", "teachers"}, 20).
 		WillReturnRows(sampleAnnouncementRow(1, now))
 
-	result, err := repo.GetRecent(context.Background(), 20)
+	result, err := repo.GetRecent(context.Background(), audiences, 20)
 	require.NoError(t, err)
 	assert.Len(t, result, 1)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -446,7 +462,72 @@ func TestAnnouncementRepositoryPG_GetRecent_QueryError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("WHERE status = 'published'")).
 		WillReturnError(errors.New("dead"))
 
-	result, err := repo.GetRecent(context.Background(), 20)
+	result, err := repo.GetRecent(context.Background(), []domain.TargetAudience{domain.TargetAudienceAll}, 20)
+	require.Error(t, err)
+	assert.Nil(t, result)
+}
+
+func TestAnnouncementRepositoryPG_GetRecent_EmptyAudiences(t *testing.T) {
+	repo, mock := newAnnouncementRepoMock(t)
+
+	result, err := repo.GetRecent(context.Background(), nil, 20)
+	require.NoError(t, err)
+	assert.Nil(t, result)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// --- GetByIDForAudience ---
+
+func TestAnnouncementRepositoryPG_GetByIDForAudience_Found(t *testing.T) {
+	repo, mock := newAnnouncementRepoMock(t)
+	now := time.Now()
+	audiences := []domain.TargetAudience{domain.TargetAudienceAll, domain.TargetAudienceStudents}
+
+	mock.ExpectQuery(regexp.QuoteMeta(
+		"FROM announcements WHERE id = $1 AND target_audience = ANY($2)",
+	)).
+		WithArgs(int64(42), pq.StringArray{"all", "students"}).
+		WillReturnRows(sampleAnnouncementRow(42, now))
+
+	result, err := repo.GetByIDForAudience(context.Background(), 42, audiences)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, int64(42), result.ID)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnnouncementRepositoryPG_GetByIDForAudience_OutsideAudience(t *testing.T) {
+	repo, mock := newAnnouncementRepoMock(t)
+	audiences := []domain.TargetAudience{domain.TargetAudienceStudents}
+
+	mock.ExpectQuery(regexp.QuoteMeta(
+		"FROM announcements WHERE id = $1 AND target_audience = ANY($2)",
+	)).
+		WithArgs(int64(42), pq.StringArray{"students"}).
+		WillReturnError(sql.ErrNoRows)
+
+	result, err := repo.GetByIDForAudience(context.Background(), 42, audiences)
+	require.NoError(t, err)
+	assert.Nil(t, result)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnnouncementRepositoryPG_GetByIDForAudience_EmptyAudiences(t *testing.T) {
+	repo, mock := newAnnouncementRepoMock(t)
+
+	result, err := repo.GetByIDForAudience(context.Background(), 42, nil)
+	require.NoError(t, err)
+	assert.Nil(t, result)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnnouncementRepositoryPG_GetByIDForAudience_QueryError(t *testing.T) {
+	repo, mock := newAnnouncementRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("FROM announcements WHERE id = $1")).
+		WithArgs(int64(42), pq.StringArray{"all"}).
+		WillReturnError(errors.New("db down"))
+
+	result, err := repo.GetByIDForAudience(context.Background(), 42, []domain.TargetAudience{domain.TargetAudienceAll})
 	require.Error(t, err)
 	assert.Nil(t, result)
 }
