@@ -236,10 +236,10 @@ func (uc *VersionUseCase) DeleteVersion(ctx context.Context, versionID int64, ac
 		return err
 	}
 
-	fileOwnerOk := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionDelete) == nil
+	fileOwnerOk := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionDeleteVersion) == nil
 	versionAuthorOk := version.CreatedBy == actorID
 	if !fileOwnerOk && !versionAuthorOk {
-		emitAccessDenied(ctx, uc.auditLogger, actorID, file.ID, filesDomain.FileActionDelete, "delete_version")
+		emitAccessDenied(ctx, uc.auditLogger, actorID, file.ID, filesDomain.FileActionDeleteVersion, "delete_version")
 		return filesDomain.ErrFileAccessDenied
 	}
 

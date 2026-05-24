@@ -26,6 +26,12 @@ const (
 	FileActionCreateVersion FileAction = "create_version"
 	// FileActionDelete covers soft-deleting a file.
 	FileActionDelete FileAction = "delete"
+	// FileActionDeleteVersion covers deleting a single historical version
+	// of a file (the file itself stays). Kept distinct from FileActionDelete
+	// so audit events (`file_delete_denied` vs `file_delete_version_denied`)
+	// and any future per-action policy split (e.g. preserve last-N versions)
+	// can target the version case без affecting whole-file delete.
+	FileActionDeleteVersion FileAction = "delete_version"
 )
 
 // ErrFileAccessDenied is returned when an actor is not authorized for
@@ -65,7 +71,7 @@ func AuthorizeFileAccess(
 	}
 	if file.UploadedBy == actorID {
 		switch action {
-		case FileActionRead, FileActionAttach, FileActionCreateVersion, FileActionDelete:
+		case FileActionRead, FileActionAttach, FileActionCreateVersion, FileActionDelete, FileActionDeleteVersion:
 			return nil
 		default:
 			return ErrFileAccessDenied
