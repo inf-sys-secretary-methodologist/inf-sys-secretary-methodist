@@ -118,6 +118,9 @@ import (
 	docEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	docPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/infrastructure/persistence"
 	docHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
+	extUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/application/usecases"
+	extPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/infrastructure/persistence"
+	extHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/interfaces/http/handlers"
 	filesUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
 	filesPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/infrastructure/persistence"
 	filesHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/interfaces/http/handlers"
@@ -2689,6 +2692,27 @@ func setupRoutes(
 				bulkDisciplineItemsGroup.OPTIONS("/sections/:sectionID/items/bulk", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 			logger.Info("Bulk DisciplineItem route registered", nil)
+		}
+
+		// Extracurricular module routes (B3, v0.162.0) — внеучебные мероприятия.
+		// Greenfield bounded context per plan docs/plans/2026-05-24-b3-extracurricular.md.
+		// Audience-aware list/get + organizer-only edit/delete + self-register.
+		{
+			extEventRepo := extPersistence.NewEventRepositoryPG(db)
+			createEventUC := extUsecases.NewCreateEventUseCase(extEventRepo, auditLogger, nil)
+			updateEventUC := extUsecases.NewUpdateEventUseCase(extEventRepo, auditLogger, nil, nil)
+			deleteEventUC := extUsecases.NewDeleteEventUseCase(extEventRepo, auditLogger)
+			getEventUC := extUsecases.NewGetEventUseCase(extEventRepo)
+			listEventsUC := extUsecases.NewListEventsUseCase(extEventRepo)
+			registerParticipantUC := extUsecases.NewRegisterParticipantUseCase(extEventRepo, auditLogger, nil)
+			unregisterParticipantUC := extUsecases.NewUnregisterParticipantUseCase(extEventRepo, auditLogger)
+
+			extracurricularHandler := extHandler.NewEventHandler(
+				createEventUC, updateEventUC, deleteEventUC, getEventUC,
+				listEventsUC, registerParticipantUC, unregisterParticipantUC,
+			)
+			extHandler.RegisterExtracurricularRoutes(protectedGroup, extracurricularHandler)
+			logger.Info("Extracurricular module routes registered", nil)
 		}
 
 		// Schedule/Events module routes
