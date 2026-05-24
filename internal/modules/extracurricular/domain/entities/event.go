@@ -256,3 +256,157 @@ func (e *ExtracurricularEvent) CreatedAt() time.Time { return e.createdAt }
 
 // UpdatedAt returns the last-mutation timestamp.
 func (e *ExtracurricularEvent) UpdatedAt() time.Time { return e.updatedAt }
+
+// Register adds a participant to the event. Invariants:
+//   - userID > 0
+//   - event.Status().CanRegister() (only published)
+//   - userID not already registered (ErrParticipantExists)
+//   - len(participants) < maxCapacity если cap is set (ErrEventFull)
+//
+// On success appends new Participant{UserID, RegisteredAt: at}.
+func (e *ExtracurricularEvent) Register(userID int64, at time.Time) error {
+	if userID <= 0 {
+		return fmt.Errorf("%w: user_id must be positive, got %d", ErrInvalidEvent, userID)
+	}
+	if !e.status.CanRegister() {
+		return fmt.Errorf("%w: status=%q", ErrEventNotOpenForRegistration, e.status)
+	}
+	for _, p := range e.participants {
+		if p.UserID == userID {
+			return fmt.Errorf("%w: user_id=%d", ErrParticipantExists, userID)
+		}
+	}
+	if e.maxCapacity != nil && len(e.participants) >= *e.maxCapacity {
+		return fmt.Errorf("%w: capacity=%d", ErrEventFull, *e.maxCapacity)
+	}
+	e.participants = append(e.participants, Participant{UserID: userID, RegisteredAt: at})
+	return nil
+}
+
+// Unregister removes the participant entry for userID. Returns
+// ErrParticipantNotFound if no such registration exists.
+func (e *ExtracurricularEvent) Unregister(userID int64) error {
+	for i, p := range e.participants {
+		if p.UserID == userID {
+			e.participants = append(e.participants[:i], e.participants[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("%w: user_id=%d", ErrParticipantNotFound, userID)
+}
+
+// HasParticipant reports whether userID is currently registered.
+func (e *ExtracurricularEvent) HasParticipant(userID int64) bool {
+	for _, p := range e.participants {
+		if p.UserID == userID {
+			return true
+		}
+	}
+	return false
+}
+
+// Publish transitions draft → published. Only legal transition source
+// is draft; calling on any other status returns ErrCannotEditEvent.
+func (e *ExtracurricularEvent) Publish(now time.Time) error {
+	if e.status != StatusDraft {
+		return fmt.Errorf("%w: cannot publish from status=%q", ErrCannotEditEvent, e.status)
+	}
+	e.status = StatusPublished
+	e.updatedAt = now
+	return nil
+}
+
+// Cancel transitions draft|published → canceled. Terminal statuses
+// (canceled, completed) return ErrCannotEditEvent.
+func (e *ExtracurricularEvent) Cancel(now time.Time) error {
+	if e.status != StatusDraft && e.status != StatusPublished {
+		return fmt.Errorf("%w: cannot cancel from status=%q", ErrCannotEditEvent, e.status)
+	}
+	e.status = StatusCanceled
+	e.updatedAt = now
+	return nil
+}
+
+// Complete transitions published → completed. Only published may be
+// completed (draft must be published first; canceled is terminal).
+func (e *ExtracurricularEvent) Complete(now time.Time) error {
+	if e.status != StatusPublished {
+		return fmt.Errorf("%w: cannot complete from status=%q", ErrCannotEditEvent, e.status)
+	}
+	e.status = StatusCompleted
+	e.updatedAt = now
+	return nil
+}
+
+// UpdateEventBasicsParams bundles inputs к UpdateBasics. Mirror к
+// NewExtracurricularEventParams shape — same fields except identity
+// (ID, organizerID) and timeline (createdAt) are non-mutable post-
+// creation, and status transitions go through dedicated methods.
+type UpdateEventBasicsParams struct {
+	Title          string
+	Description    string
+	Category       Category
+	TargetAudience TargetAudience
+	Location       string
+	StartAt        time.Time
+	EndAt          time.Time
+	MaxCapacity    *int
+	Now            time.Time
+}
+
+// UpdateBasics applies a content edit to the event. Status gate (only
+// draft + published editable per ADR-2) is enforced via CanEdit.
+// Invariants mirror NewExtracurricularEvent. Atomic: if any invariant
+// fails, entity stays unmutated.
+func (e *ExtracurricularEvent) UpdateBasics(p UpdateEventBasicsParams) error {
+	if !e.status.CanEdit() {
+		return fmt.Errorf("%w: status=%q", ErrCannotEditEvent, e.status)
+	}
+	title := strings.TrimSpace(p.Title)
+	if title == "" {
+		return fmt.Errorf("%w: title must not be empty", ErrInvalidEvent)
+	}
+	if len([]rune(title)) > maxEventTitleLen {
+		return fmt.Errorf("%w: title length %d exceeds max %d",
+			ErrInvalidEvent, len([]rune(title)), maxEventTitleLen)
+	}
+	description := strings.TrimSpace(p.Description)
+	if len([]rune(description)) > maxEventDescriptionLen {
+		return fmt.Errorf("%w: description length %d exceeds max %d",
+			ErrInvalidEvent, len([]rune(description)), maxEventDescriptionLen)
+	}
+	location := strings.TrimSpace(p.Location)
+	if len([]rune(location)) > maxEventLocationLen {
+		return fmt.Errorf("%w: location length %d exceeds max %d",
+			ErrInvalidEvent, len([]rune(location)), maxEventLocationLen)
+	}
+	if !p.Category.IsValid() {
+		return fmt.Errorf("%w: invalid category %q", ErrInvalidEvent, p.Category)
+	}
+	if !p.TargetAudience.IsValid() {
+		return fmt.Errorf("%w: invalid target_audience %q", ErrInvalidEvent, p.TargetAudience)
+	}
+	if !p.StartAt.Before(p.EndAt) {
+		return fmt.Errorf("%w: start_at (%v) must be before end_at (%v)",
+			ErrInvalidEvent, p.StartAt, p.EndAt)
+	}
+	if p.MaxCapacity != nil && *p.MaxCapacity < 0 {
+		return fmt.Errorf("%w: max_capacity must be non-negative, got %d",
+			ErrInvalidEvent, *p.MaxCapacity)
+	}
+	if p.MaxCapacity != nil && len(e.participants) > *p.MaxCapacity {
+		return fmt.Errorf("%w: max_capacity %d below current participant count %d",
+			ErrInvalidEvent, *p.MaxCapacity, len(e.participants))
+	}
+	// All validation passed — apply mutations atomically.
+	e.title = title
+	e.description = description
+	e.category = p.Category
+	e.targetAudience = p.TargetAudience
+	e.location = location
+	e.startAt = p.StartAt
+	e.endAt = p.EndAt
+	e.maxCapacity = p.MaxCapacity
+	e.updatedAt = p.Now
+	return nil
+}
