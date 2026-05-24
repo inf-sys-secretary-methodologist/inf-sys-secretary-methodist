@@ -256,3 +256,36 @@ func (e *ExtracurricularEvent) CreatedAt() time.Time { return e.createdAt }
 
 // UpdatedAt returns the last-mutation timestamp.
 func (e *ExtracurricularEvent) UpdatedAt() time.Time { return e.updatedAt }
+
+// Register adds a participant to the event aggregate. Pair 3 RED stub —
+// always returns "not implemented"; Pair 3 GREEN implements capacity +
+// status + duplicate guards.
+func (e *ExtracurricularEvent) Register(userID int64, at time.Time) error {
+	return errors.New("not implemented (Pair 3 RED stub)")
+}
+
+// Unregister removes a participant from the event. Pair 3 RED stub.
+func (e *ExtracurricularEvent) Unregister(userID int64) error {
+	return errors.New("not implemented (Pair 3 RED stub)")
+}
+
+// HasParticipant reports whether userID is currently registered.
+// Pair 3 RED stub always returns false.
+func (e *ExtracurricularEvent) HasParticipant(userID int64) bool {
+	return false
+}
+
+// Publish transitions draft → published. Pair 3 RED stub.
+func (e *ExtracurricularEvent) Publish(now time.Time) error {
+	return errors.New("not implemented (Pair 3 RED stub)")
+}
+
+// Cancel transitions draft|published → canceled. Pair 3 RED stub.
+func (e *ExtracurricularEvent) Cancel(now time.Time) error {
+	return errors.New("not implemented (Pair 3 RED stub)")
+}
+
+// Complete transitions published → completed. Pair 3 RED stub.
+func (e *ExtracurricularEvent) Complete(now time.Time) error {
+	return errors.New("not implemented (Pair 3 RED stub)")
+}
