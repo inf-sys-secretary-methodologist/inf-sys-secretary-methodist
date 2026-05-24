@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +19,19 @@ import (
 const testUpdatedTitle = "Updated"
 
 // --- Helpers ---
+
+// allAudiences enumerates every TargetAudience constant — the permissive
+// "system_admin can see everything" set. Existing usecase tests use it
+// for the GetByID / GetPinned / GetRecent audiences arg so they describe
+// behavior independent of the v0.163.1 ADR-2 filter (which has its own
+// dedicated tests).
+var allAudiences = []domain.TargetAudience{
+	domain.TargetAudienceAll,
+	domain.TargetAudienceStudents,
+	domain.TargetAudienceTeachers,
+	domain.TargetAudienceStaff,
+	domain.TargetAudienceAdmins,
+}
 
 func createTestAuditLogger() *logging.AuditLogger {
 	logger := logging.NewLogger("error")
@@ -116,10 +130,22 @@ func (m *MockAnnouncementRepository) GetPublished(_ context.Context, audience do
 	return result, nil
 }
 
-func (m *MockAnnouncementRepository) GetPinned(_ context.Context, limit int) ([]*entities.Announcement, error) {
+func (m *MockAnnouncementRepository) GetByIDForAudience(_ context.Context, id int64, audiences []domain.TargetAudience) (*entities.Announcement, error) {
+	a, exists := m.announcements[id]
+	if !exists {
+		return nil, nil
+	}
+	if !audienceInSet(a.TargetAudience, audiences) {
+		return nil, nil
+	}
+	copied := *a
+	return &copied, nil
+}
+
+func (m *MockAnnouncementRepository) GetPinned(_ context.Context, audiences []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
 	var result []*entities.Announcement
 	for _, a := range m.announcements {
-		if a.IsPinned && a.Status == domain.AnnouncementStatusPublished {
+		if a.IsPinned && a.Status == domain.AnnouncementStatusPublished && audienceInSet(a.TargetAudience, audiences) {
 			result = append(result, a)
 			if len(result) >= limit {
 				break
@@ -129,10 +155,10 @@ func (m *MockAnnouncementRepository) GetPinned(_ context.Context, limit int) ([]
 	return result, nil
 }
 
-func (m *MockAnnouncementRepository) GetRecent(_ context.Context, limit int) ([]*entities.Announcement, error) {
+func (m *MockAnnouncementRepository) GetRecent(_ context.Context, audiences []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
 	var result []*entities.Announcement
 	for _, a := range m.announcements {
-		if a.Status == domain.AnnouncementStatusPublished {
+		if a.Status == domain.AnnouncementStatusPublished && audienceInSet(a.TargetAudience, audiences) {
 			result = append(result, a)
 			if len(result) >= limit {
 				break
@@ -140,6 +166,18 @@ func (m *MockAnnouncementRepository) GetRecent(_ context.Context, limit int) ([]
 		}
 	}
 	return result, nil
+}
+
+// audienceInSet reports whether `target` is one of `allowed`. Empty
+// `allowed` returns false — explicit zero, matching the PG repo
+// contract for an empty audience slice.
+func audienceInSet(target domain.TargetAudience, allowed []domain.TargetAudience) bool {
+	for _, a := range allowed {
+		if a == target {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *MockAnnouncementRepository) IncrementViewCount(_ context.Context, id int64) error {
@@ -248,18 +286,25 @@ func (m *ErrorMockAnnouncementRepository) GetPublished(ctx context.Context, audi
 	return m.MockAnnouncementRepository.GetPublished(ctx, audience, limit, offset)
 }
 
-func (m *ErrorMockAnnouncementRepository) GetPinned(ctx context.Context, limit int) ([]*entities.Announcement, error) {
+func (m *ErrorMockAnnouncementRepository) GetByIDForAudience(ctx context.Context, id int64, audiences []domain.TargetAudience) (*entities.Announcement, error) {
+	if m.getByIDErr != nil {
+		return nil, m.getByIDErr
+	}
+	return m.MockAnnouncementRepository.GetByIDForAudience(ctx, id, audiences)
+}
+
+func (m *ErrorMockAnnouncementRepository) GetPinned(ctx context.Context, audiences []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
 	if m.getPinnedErr != nil {
 		return nil, m.getPinnedErr
 	}
-	return m.MockAnnouncementRepository.GetPinned(ctx, limit)
+	return m.MockAnnouncementRepository.GetPinned(ctx, audiences, limit)
 }
 
-func (m *ErrorMockAnnouncementRepository) GetRecent(ctx context.Context, limit int) ([]*entities.Announcement, error) {
+func (m *ErrorMockAnnouncementRepository) GetRecent(ctx context.Context, audiences []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
 	if m.getRecentErr != nil {
 		return nil, m.getRecentErr
 	}
-	return m.MockAnnouncementRepository.GetRecent(ctx, limit)
+	return m.MockAnnouncementRepository.GetRecent(ctx, audiences, limit)
 }
 
 func (m *ErrorMockAnnouncementRepository) GetAttachments(ctx context.Context, announcementID int64) ([]*entities.AnnouncementAttachment, error) {
@@ -269,15 +314,65 @@ func (m *ErrorMockAnnouncementRepository) GetAttachments(ctx context.Context, an
 	return m.MockAnnouncementRepository.GetAttachments(ctx, announcementID)
 }
 
+// --- MockSystemNotifier ---
+
+// MockSystemNotifier records every SendSystemNotification call so tests
+// can assert audience-scoped fan-out hit each expected user with the
+// expected title / summary.
+type MockSystemNotifier struct {
+	mu    sync.Mutex
+	calls []notifierCall
+	err   error
+}
+
+type notifierCall struct {
+	ctx     context.Context
+	userID  int64
+	title   string
+	summary string
+}
+
+func (m *MockSystemNotifier) SendSystemNotification(ctx context.Context, userID int64, title, summary string) error {
+	m.mu.Lock()
+	m.calls = append(m.calls, notifierCall{ctx: ctx, userID: userID, title: title, summary: summary})
+	m.mu.Unlock()
+	return m.err
+}
+
+func (m *MockSystemNotifier) callsSnapshot() []notifierCall {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]notifierCall, len(m.calls))
+	copy(out, m.calls)
+	return out
+}
+
 // --- MockUserIDsProvider ---
 
 type MockUserIDsProvider struct {
 	userIDs []int64
 	err     error
+	// Recorded args from the most recent call. Tests inspect these к
+	// pin v0.163.1 polish guarantees: audience scoping (no
+	// cross-audience push leak) and lifecycle-ctx propagation.
+	lastAudience domain.TargetAudience
+	lastCtx      context.Context
+	mu           sync.Mutex
 }
 
-func (m *MockUserIDsProvider) GetActiveUserIDs(_ context.Context) ([]int64, error) {
+func (m *MockUserIDsProvider) GetUserIDsForAudience(ctx context.Context, audience domain.TargetAudience) ([]int64, error) {
+	m.mu.Lock()
+	m.lastAudience = audience
+	m.lastCtx = ctx
+	m.mu.Unlock()
 	return m.userIDs, m.err
+}
+
+// snapshot returns the recorded last call args under the mutex.
+func (m *MockUserIDsProvider) snapshot() (domain.TargetAudience, context.Context) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.lastAudience, m.lastCtx
 }
 
 // ============================
@@ -402,9 +497,64 @@ func TestAnnouncementUseCase_GetByID(t *testing.T) {
 
 	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
-	announcement, err := uc.GetByID(ctx, created.ID, false)
+	announcement, err := uc.GetByID(ctx, created.ID, false, 1, allAudiences)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, announcement.ID)
+}
+
+// TestAnnouncementUseCase_GetByID_AuthorOverride_OutsideAudience pins
+// the v0.163.1 polish UX defense: an author must be able to read back
+// their own announcement even when its target_audience is outside the
+// author's role-derived VisibleAudiences set.
+//
+// Example: methodist (VisibleAudiences = {all, staff}) creates a
+// student-targeted announcement, then opens the edit dialog
+// (GET /api/announcements/:id). Without the author override, the repo
+// audience filter would return 404 and break edit/view UX. Closes the
+// "Item 1 ADR-2 over-restriction" gap caught by reviewing the frontend
+// useAnnouncement(editingId) flow.
+func TestAnnouncementUseCase_GetByID_AuthorOverride_OutsideAudience(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	authorID := int64(42)
+	req := createDefaultRequest()
+	req.TargetAudience = domain.TargetAudienceStudents
+	created, err := uc.Create(ctx, authorID, req)
+	require.NoError(t, err)
+
+	// Methodist's VisibleAudiences would NOT include "students" —
+	// but they're the author, so they MUST get the announcement back.
+	methodistAudiences := []domain.TargetAudience{
+		domain.TargetAudienceAll, domain.TargetAudienceStaff,
+	}
+	announcement, err := uc.GetByID(ctx, created.ID, false, authorID, methodistAudiences)
+	require.NoError(t, err, "author must read own announcement regardless of audience")
+	assert.Equal(t, created.ID, announcement.ID)
+}
+
+// TestAnnouncementUseCase_GetByID_NonAuthor_OutsideAudience pins the
+// other side: a caller who is NEITHER the author NOR has the audience
+// в their visible set must get ErrAnnouncementNotFound (defense-in-depth
+// still applies для non-authors).
+func TestAnnouncementUseCase_GetByID_NonAuthor_OutsideAudience(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	authorID := int64(42)
+	req := createDefaultRequest()
+	req.TargetAudience = domain.TargetAudienceStudents
+	created, _ := uc.Create(ctx, authorID, req)
+
+	otherUserID := int64(99) // not the author
+	methodistAudiences := []domain.TargetAudience{
+		domain.TargetAudienceAll, domain.TargetAudienceStaff,
+	}
+	_, err := uc.GetByID(ctx, created.ID, false, otherUserID, methodistAudiences)
+	assert.ErrorIs(t, err, ErrAnnouncementNotFound,
+		"non-author с no audience access must get 404")
 }
 
 func TestAnnouncementUseCase_GetByID_NotFound(t *testing.T) {
@@ -412,7 +562,7 @@ func TestAnnouncementUseCase_GetByID_NotFound(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
 	ctx := context.Background()
 
-	_, err := uc.GetByID(ctx, 999, false)
+	_, err := uc.GetByID(ctx, 999, false, 1, allAudiences)
 	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 
@@ -424,7 +574,7 @@ func TestAnnouncementUseCase_GetByID_IncrementView(t *testing.T) {
 	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 	_, _ = uc.Publish(ctx, 1, created.ID, false)
 
-	announcement, err := uc.GetByID(ctx, created.ID, true)
+	announcement, err := uc.GetByID(ctx, created.ID, true, 1, allAudiences)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), announcement.ViewCount)
 }
@@ -437,7 +587,7 @@ func TestAnnouncementUseCase_GetByID_NoIncrementForDraft(t *testing.T) {
 	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
 	// Draft is not visible, so view should not increment even with incrementView=true
-	announcement, err := uc.GetByID(ctx, created.ID, true)
+	announcement, err := uc.GetByID(ctx, created.ID, true, 1, allAudiences)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), announcement.ViewCount)
 }
@@ -450,7 +600,7 @@ func TestAnnouncementUseCase_GetByID_RepoError(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
 	ctx := context.Background()
 
-	_, err := uc.GetByID(ctx, 1, false)
+	_, err := uc.GetByID(ctx, 1, false, 1, allAudiences)
 	assert.Error(t, err)
 	assert.Equal(t, "db error", err.Error())
 }
@@ -469,7 +619,7 @@ func TestAnnouncementUseCase_GetByID_GetAttachmentsError(t *testing.T) {
 	// Now set the error so GetAttachments fails
 	repo.getAttachmentsErr = errors.New("attachments error")
 
-	_, err = uc.GetByID(ctx, created.ID, false)
+	_, err = uc.GetByID(ctx, created.ID, false, 1, allAudiences)
 	assert.Error(t, err)
 	assert.Equal(t, "attachments error", err.Error())
 }
@@ -490,7 +640,7 @@ func TestAnnouncementUseCase_GetByID_WithAttachments(t *testing.T) {
 		MimeType:       "application/pdf",
 	})
 
-	announcement, err := uc.GetByID(ctx, created.ID, false)
+	announcement, err := uc.GetByID(ctx, created.ID, false, 1, allAudiences)
 	require.NoError(t, err)
 	assert.Len(t, announcement.Attachments, 1)
 	assert.Equal(t, "test.pdf", announcement.Attachments[0].FileName)
@@ -800,7 +950,7 @@ func TestAnnouncementUseCase_Delete(t *testing.T) {
 	err := uc.Delete(ctx, 1, created.ID, false)
 	require.NoError(t, err)
 
-	_, err = uc.GetByID(ctx, created.ID, false)
+	_, err = uc.GetByID(ctx, created.ID, false, 1, allAudiences)
 	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 
@@ -834,7 +984,7 @@ func TestAnnouncementUseCase_Delete_AdminCanDelete(t *testing.T) {
 	err := uc.Delete(ctx, 2, created.ID, true)
 	require.NoError(t, err)
 
-	_, err = uc.GetByID(ctx, created.ID, false)
+	_, err = uc.GetByID(ctx, created.ID, false, 1, allAudiences)
 	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 
@@ -1046,7 +1196,7 @@ func TestAnnouncementUseCase_GetPinned(t *testing.T) {
 	})
 	_, _ = uc.Publish(ctx, 1, a1.ID, false)
 
-	pinned, err := uc.GetPinned(ctx, 10)
+	pinned, err := uc.GetPinned(ctx, allAudiences, 10)
 	require.NoError(t, err)
 	assert.Len(t, pinned, 1)
 }
@@ -1056,7 +1206,7 @@ func TestAnnouncementUseCase_GetPinned_DefaultLimit(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
 	ctx := context.Background()
 
-	_, err := uc.GetPinned(ctx, 0)
+	_, err := uc.GetPinned(ctx, allAudiences, 0)
 	require.NoError(t, err)
 }
 
@@ -1065,7 +1215,7 @@ func TestAnnouncementUseCase_GetPinned_MaxLimit(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
 	ctx := context.Background()
 
-	_, err := uc.GetPinned(ctx, 50)
+	_, err := uc.GetPinned(ctx, allAudiences, 50)
 	require.NoError(t, err)
 }
 
@@ -1077,7 +1227,7 @@ func TestAnnouncementUseCase_GetPinned_RepoError(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
 	ctx := context.Background()
 
-	_, err := uc.GetPinned(ctx, 5)
+	_, err := uc.GetPinned(ctx, allAudiences, 5)
 	assert.Error(t, err)
 }
 
@@ -1091,7 +1241,7 @@ func TestAnnouncementUseCase_GetRecent(t *testing.T) {
 	a1, _ := uc.Create(ctx, 1, &dto.CreateAnnouncementRequest{Title: "Test 1", Content: "C1", Priority: domain.AnnouncementPriorityNormal, TargetAudience: domain.TargetAudienceAll})
 	_, _ = uc.Publish(ctx, 1, a1.ID, false)
 
-	recent, err := uc.GetRecent(ctx, 10)
+	recent, err := uc.GetRecent(ctx, allAudiences, 10)
 	require.NoError(t, err)
 	assert.Len(t, recent, 1)
 }
@@ -1101,7 +1251,7 @@ func TestAnnouncementUseCase_GetRecent_DefaultLimit(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
 	ctx := context.Background()
 
-	_, err := uc.GetRecent(ctx, 0)
+	_, err := uc.GetRecent(ctx, allAudiences, 0)
 	require.NoError(t, err)
 }
 
@@ -1110,7 +1260,7 @@ func TestAnnouncementUseCase_GetRecent_MaxLimit(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
 	ctx := context.Background()
 
-	_, err := uc.GetRecent(ctx, 100)
+	_, err := uc.GetRecent(ctx, allAudiences, 100)
 	require.NoError(t, err)
 }
 
@@ -1122,7 +1272,7 @@ func TestAnnouncementUseCase_GetRecent_RepoError(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
 	ctx := context.Background()
 
-	_, err := uc.GetRecent(ctx, 10)
+	_, err := uc.GetRecent(ctx, allAudiences, 10)
 	assert.Error(t, err)
 }
 
@@ -1245,6 +1395,103 @@ func TestAnnouncementUseCase_Publish_NilUserIDsProvider(t *testing.T) {
 	published, err := uc.Publish(ctx, 1, created.ID, false)
 	require.NoError(t, err)
 	assert.Equal(t, domain.AnnouncementStatusPublished, published.Status)
+}
+
+// TestAnnouncementUseCase_Publish_FanOutScopedToTargetAudience pins
+// v0.163.1 polish guarantee #1: the broadcast fan-out provider is
+// called with the announcement's target_audience (not "all users")
+// so a student-targeted announcement only pushes к students. Closes
+// v0.163.0 audit T1-7 cross-audience push leak.
+func TestAnnouncementUseCase_Publish_FanOutScopedToTargetAudience(t *testing.T) {
+	tests := []struct {
+		name     string
+		audience domain.TargetAudience
+	}{
+		{"students-only", domain.TargetAudienceStudents},
+		{"teachers-only", domain.TargetAudienceTeachers},
+		{"admins-only", domain.TargetAudienceAdmins},
+		{"staff-only", domain.TargetAudienceStaff},
+		{"broadcast-all", domain.TargetAudienceAll},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := NewMockAnnouncementRepository()
+			provider := &MockUserIDsProvider{userIDs: []int64{10}}
+			notifier := &MockSystemNotifier{}
+			uc := NewAnnouncementUseCase(repo, nil, notifier, provider)
+			ctx := context.Background()
+
+			req := createDefaultRequest()
+			req.TargetAudience = tc.audience
+			created, err := uc.Create(ctx, 1, req)
+			require.NoError(t, err)
+
+			_, err = uc.Publish(ctx, 1, created.ID, false)
+			require.NoError(t, err)
+
+			waitForFanOut(t, provider)
+			gotAudience, _ := provider.snapshot()
+			assert.Equalf(t, tc.audience, gotAudience,
+				"expected provider к receive audience=%s, got %s",
+				tc.audience, gotAudience)
+		})
+	}
+}
+
+// TestAnnouncementUseCase_Publish_FanOutUsesLifecycleContext pins
+// v0.163.1 polish guarantee #2: the broadcast goroutine runs on the
+// ctx registered via WithLifecycleContext, not context.Background().
+// Graceful shutdown can therefore cancel in-flight sends rather than
+// leak goroutines past server stop.
+func TestAnnouncementUseCase_Publish_FanOutUsesLifecycleContext(t *testing.T) {
+	type ctxKey struct{}
+	sentinel := "v0.163.1-lifecycle-ctx"
+	lifecycleCtx := context.WithValue(context.Background(), ctxKey{}, sentinel)
+
+	repo := NewMockAnnouncementRepository()
+	provider := &MockUserIDsProvider{userIDs: []int64{10}}
+	notifier := &MockSystemNotifier{}
+	uc := NewAnnouncementUseCase(repo, nil, notifier, provider).
+		WithLifecycleContext(lifecycleCtx)
+	ctx := context.Background()
+
+	created, err := uc.Create(ctx, 1, createDefaultRequest())
+	require.NoError(t, err)
+
+	_, err = uc.Publish(ctx, 1, created.ID, false)
+	require.NoError(t, err)
+
+	waitForFanOut(t, provider)
+	_, gotCtx := provider.snapshot()
+	require.NotNil(t, gotCtx)
+	got, ok := gotCtx.Value(ctxKey{}).(string)
+	assert.True(t, ok, "ctx must carry sentinel value")
+	assert.Equal(t, sentinel, got)
+
+	// Notifier should also have received the lifecycle ctx for each
+	// fanned-out recipient.
+	calls := notifier.callsSnapshot()
+	require.Len(t, calls, 1)
+	notifGot, ok := calls[0].ctx.Value(ctxKey{}).(string)
+	assert.True(t, ok, "notifier ctx must carry sentinel value")
+	assert.Equal(t, sentinel, notifGot)
+}
+
+// waitForFanOut polls until the spy provider records a call or fails
+// the test on timeout. Fan-out is fire-and-forget goroutine so the
+// assertions need к wait briefly.
+func waitForFanOut(t *testing.T, p *MockUserIDsProvider) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		_, ctx := p.snapshot()
+		if ctx != nil {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("timeout waiting for broadcast fan-out goroutine к call provider")
 }
 
 func TestAnnouncementUseCase_Publish_AdminCanPublish(t *testing.T) {

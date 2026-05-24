@@ -80,8 +80,8 @@ func (uc *AnnouncementUseCase) AddAttachment(
 		return nil, fmt.Errorf("failed to persist attachment: %w", err)
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.attachment.added", "announcement_attachment", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.attachment.added", "announcement_attachment", map[string]interface{}{
 			"announcement_id": announcementID,
 			"attachment_id":   att.ID,
 			"file_name":       fileName,
@@ -147,8 +147,8 @@ func (uc *AnnouncementUseCase) RemoveAttachment(
 		return fmt.Errorf("failed to remove attachment row: %w", err)
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.attachment.removed", "announcement_attachment", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.attachment.removed", "announcement_attachment", map[string]interface{}{
 			"announcement_id": att.AnnouncementID,
 			"attachment_id":   attachmentID,
 			"actor_id":        actorID,

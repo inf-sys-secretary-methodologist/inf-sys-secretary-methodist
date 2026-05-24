@@ -53,15 +53,21 @@ func (h *AnnouncementHandler) getUserID(c *gin.Context) (int64, bool) {
 // in production isAdmin always returned false and admin overrides
 // silently degraded to author-self only.
 func (h *AnnouncementHandler) isAdmin(c *gin.Context) bool {
-	role, exists := c.Get("role")
+	return h.role(c) == "system_admin"
+}
+
+// role extracts the caller's role string from gin.Context. Returns "" if
+// the JWTMiddleware did not set the "role" key (anonymous caller — the
+// announcements scope already RequireNonStudent's at the router, so
+// public reads still go through middleware). Centralized here so callers
+// don't repeat the c.Get + type-assert dance.
+func (h *AnnouncementHandler) role(c *gin.Context) string {
+	v, exists := c.Get("role")
 	if !exists {
-		return false
+		return ""
 	}
-	roleStr, ok := role.(string)
-	if !ok {
-		return false
-	}
-	return roleStr == "system_admin"
+	s, _ := v.(string)
+	return s
 }
 
 // getIDParam extracts ID parameter from URL.
@@ -118,15 +124,25 @@ func (h *AnnouncementHandler) Create(c *gin.Context) {
 }
 
 // GetByID retrieves an announcement by ID.
+//
+// v0.163.1 ADR-2 polish (defense-in-depth поверх v0.163.0 handler clamp):
+// the caller's role is converted к domain.VisibleAudiences(role) and
+// passed through к the usecase / repo so SQL refuses any announcement
+// whose target_audience falls outside the caller's set.
 func (h *AnnouncementHandler) GetByID(c *gin.Context) {
 	id, ok := h.getIDParam(c, "id")
 	if !ok {
 		return
 	}
 
-	// Increment view count for public views
-	incrementView := true
-	announcement, err := h.useCase.GetByID(c.Request.Context(), id, incrementView)
+	audiences := domain.VisibleAudiences(h.role(c))
+	// userID = 0 for anonymous callers (no JWT). h.getUserID writes 401
+	// directly when user_id key is missing — here we tolerate 0 because
+	// the route group already requires JWT, and 0 simply never matches
+	// any AuthorID so the author override no-ops.
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(int64)
+	announcement, err := h.useCase.GetByID(c.Request.Context(), id, true, userID, audiences)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -318,7 +334,8 @@ func (h *AnnouncementHandler) GetPinned(c *gin.Context) {
 		}
 	}
 
-	announcements, err := h.useCase.GetPinned(c.Request.Context(), limit)
+	audiences := domain.VisibleAudiences(h.role(c))
+	announcements, err := h.useCase.GetPinned(c.Request.Context(), audiences, limit)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -338,7 +355,8 @@ func (h *AnnouncementHandler) GetRecent(c *gin.Context) {
 		}
 	}
 
-	announcements, err := h.useCase.GetRecent(c.Request.Context(), limit)
+	audiences := domain.VisibleAudiences(h.role(c))
+	announcements, err := h.useCase.GetRecent(c.Request.Context(), audiences, limit)
 	if err != nil {
 		h.handleError(c, err)
 		return

@@ -88,3 +88,30 @@ func CanAccessAudience(role string, audience TargetAudience) bool {
 		return audience == TargetAudienceAll
 	}
 }
+
+// VisibleAudiences returns the list of target audiences a caller of the
+// given role can see. Companion of CanAccessAudience — instead of asking
+// "can role X see audience Y?" one at a time, returns the full set so a
+// repo SQL query can do `target_audience = ANY($1)` in one shot.
+//
+// v0.163.1 ADR-2 polish (defense-in-depth поверх handler-layer clamp from
+// v0.163.0): repo-layer SQL filter feeds from this matrix, so even a
+// usecase caller that forgot to clamp at the handler boundary won't leak
+// announcements addressed к audiences the role can't see.
+func VisibleAudiences(role string) []TargetAudience {
+	switch role {
+	case "system_admin":
+		return []TargetAudience{
+			TargetAudienceAll, TargetAudienceStudents, TargetAudienceTeachers,
+			TargetAudienceStaff, TargetAudienceAdmins,
+		}
+	case "methodist", "academic_secretary":
+		return []TargetAudience{TargetAudienceAll, TargetAudienceStaff}
+	case "teacher":
+		return []TargetAudience{TargetAudienceAll, TargetAudienceTeachers}
+	case "student":
+		return []TargetAudience{TargetAudienceAll, TargetAudienceStudents}
+	default:
+		return []TargetAudience{TargetAudienceAll}
+	}
+}

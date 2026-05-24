@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.163.0
+// @version         0.163.1
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -92,6 +92,7 @@ import (
 	analyticsScheduler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/infrastructure/scheduler"
 	analyticsHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/interfaces/http/handlers"
 	announcementUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/usecases"
+	announcementsDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain"
 	announcementPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/infrastructure/persistence"
 	announcementHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/handlers"
 	announcementRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/interfaces/http/routes"
@@ -180,7 +181,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.163.0"
+const versionString = "0.163.1"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -255,6 +256,78 @@ func newMessagingUserExistenceChecker(userRepo usecases.UserRepository) messagin
 			return false, err
 		}
 		return true, nil
+	}
+}
+
+// announcementUserIDsProvider adapts the users module's
+// UserProfileRepository к the announcements module's UserIDsProvider
+// port. v0.163.1 polish: wires the previously-nil broadcast fan-out
+// with audience-scoped recipient lookup so a student-targeted
+// announcement only pushes к students (no cross-audience push leak,
+// closes v0.163.0 Tier 1 audit #7).
+//
+// Cross-module DI adapter pattern from v0.155.1 — announcements/
+// application stays free of direct users/application imports.
+type announcementUserIDsProvider struct {
+	repo usersRepositories.UserProfileRepository
+}
+
+// announcementFanOutPageLimit caps the per-role page so a single
+// announcement broadcast doesn't fan-out к more than this many users
+// per matching role. Polish-grade default; scale-out via a dedicated
+// "active IDs by role" repo method when fan-out exceeds this floor.
+const announcementFanOutPageLimit = 500
+
+// GetUserIDsForAudience returns the active user IDs whose role matches
+// the announcement's target_audience. The audience-to-roles map mirrors
+// the announcements/domain.VisibleAudiences matrix in reverse: which
+// roles can see audience X.
+func (p *announcementUserIDsProvider) GetUserIDsForAudience(ctx context.Context, audience announcementsDomain.TargetAudience) ([]int64, error) {
+	roles := rolesForAudience(audience)
+	if roles == nil {
+		return nil, nil
+	}
+	seen := make(map[int64]struct{})
+	out := make([]int64, 0, announcementFanOutPageLimit)
+	for _, role := range roles {
+		filter := &usersRepositories.UserFilter{
+			Role:   role,
+			Status: "active",
+		}
+		users, err := p.repo.ListUsersWithOrg(ctx, filter, announcementFanOutPageLimit, 0)
+		if err != nil {
+			return nil, err
+		}
+		for _, u := range users {
+			if _, dup := seen[u.ID]; dup {
+				continue
+			}
+			seen[u.ID] = struct{}{}
+			out = append(out, u.ID)
+		}
+	}
+	return out, nil
+}
+
+// rolesForAudience inverts the announcements visibility matrix: which
+// roles are recipients of an announcement addressed к the given
+// audience. Empty role ("") means "any" — used for the broadcast
+// audience.
+func rolesForAudience(audience announcementsDomain.TargetAudience) []string {
+	switch audience {
+	case announcementsDomain.TargetAudienceAll:
+		// Empty role filter passes every active user through.
+		return []string{""}
+	case announcementsDomain.TargetAudienceStudents:
+		return []string{"student"}
+	case announcementsDomain.TargetAudienceTeachers:
+		return []string{"teacher"}
+	case announcementsDomain.TargetAudienceStaff:
+		return []string{"methodist", "academic_secretary"}
+	case announcementsDomain.TargetAudienceAdmins:
+		return []string{"system_admin"}
+	default:
+		return nil
 	}
 }
 
@@ -716,14 +789,13 @@ func main() {
 		webpushService,
 	)
 
-	// Initialize announcements module
+	// Initialize announcements module — repo only. The usecase wires
+	// after the users module is up so the broadcast fan-out can use
+	// the user profile repo via a cross-module DI adapter.
 	announcementRepo := announcementPersistence.NewAnnouncementRepositoryPG(db)
-	announcementUseCase := announcementUsecases.NewAnnouncementUseCase(announcementRepo, auditLogger, notificationUseCase, nil)
-	if s3Client != nil {
-		announcementUseCase.SetAttachmentStorage(s3Client)
-		logger.Info("Announcement attachment storage wired (S3)", nil)
-	}
-	logger.Info("Announcements module initialized", nil)
+	var announcementUseCase *announcementUsecases.AnnouncementUseCase
+	_ = announcementRepo
+	logger.Info("Announcements module initialized (usecase deferred)", nil)
 
 	// Initialize dashboard module
 	dashboardRepo := dashboardPersistence.NewDashboardRepositoryPG(db)
@@ -820,6 +892,23 @@ func main() {
 	departmentUseCase := usersUsecases.NewDepartmentUseCase(departmentRepo, auditLogger)
 	positionUseCase := usersUsecases.NewPositionUseCase(positionRepo, auditLogger)
 	logger.Info("Users module initialized", nil)
+
+	// v0.163.1 polish: wire announcement broadcast fan-out provider via
+	// cross-module DI adapter (no direct users/application import from
+	// announcements/application — mirror к v0.155.1 ai pattern).
+	// announcementUserIDsAdapter maps announcement target_audience к
+	// role(s) and pages users via UserProfileRepository. The deferred
+	// usecase init avoids upward dependency on the users module from
+	// the announcements repo block above.
+	announcementUserIDsAdapter := &announcementUserIDsProvider{repo: userProfileRepo}
+	announcementUseCase = announcementUsecases.
+		NewAnnouncementUseCase(announcementRepo, auditLogger, notificationUseCase, announcementUserIDsAdapter).
+		WithLifecycleContext(serverCtx)
+	if s3Client != nil {
+		announcementUseCase.SetAttachmentStorage(s3Client)
+		logger.Info("Announcement attachment storage wired (S3)", nil)
+	}
+	logger.Info("Announcements broadcast fan-out wired (audience-scoped + lifecycle ctx)", nil)
 
 	// Initialize messaging module.
 	// v0.162.0 ADR-1/ADR-3 (#297): participant gate for WS subscribe/typing

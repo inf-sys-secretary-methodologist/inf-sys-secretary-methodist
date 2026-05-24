@@ -61,10 +61,13 @@ func (r *fakeAnnRepo) GetByAuthor(_ context.Context, _ int64, _, _ int) ([]*enti
 func (r *fakeAnnRepo) GetPublished(_ context.Context, _ domain.TargetAudience, _, _ int) ([]*entities.Announcement, error) {
 	return nil, nil
 }
-func (r *fakeAnnRepo) GetPinned(_ context.Context, _ int) ([]*entities.Announcement, error) {
+func (r *fakeAnnRepo) GetByIDForAudience(_ context.Context, _ int64, _ []domain.TargetAudience) (*entities.Announcement, error) {
+	return r.getByIDResult, r.getByIDErr
+}
+func (r *fakeAnnRepo) GetPinned(_ context.Context, _ []domain.TargetAudience, _ int) ([]*entities.Announcement, error) {
 	return nil, nil
 }
-func (r *fakeAnnRepo) GetRecent(_ context.Context, _ int) ([]*entities.Announcement, error) {
+func (r *fakeAnnRepo) GetRecent(_ context.Context, _ []domain.TargetAudience, _ int) ([]*entities.Announcement, error) {
 	return nil, nil
 }
 func (r *fakeAnnRepo) IncrementViewCount(_ context.Context, _ int64) error { return nil }

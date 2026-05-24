@@ -113,3 +113,93 @@ func TestCanAccessAudience_RoleMatrix(t *testing.T) {
 		})
 	}
 }
+
+// TestVisibleAudiences_RoleMatrix pins v0.163.1 ADR-2 polish (defense-in-depth):
+// repo-layer SQL filter receives the precomputed list of audiences a caller
+// of the given role can see. Companion of CanAccessAudience (boolean check
+// for one audience) — VisibleAudiences returns the full set.
+func TestVisibleAudiences_RoleMatrix(t *testing.T) {
+	tests := []struct {
+		role string
+		want []TargetAudience
+	}{
+		{
+			role: "student",
+			want: []TargetAudience{TargetAudienceAll, TargetAudienceStudents},
+		},
+		{
+			role: "teacher",
+			want: []TargetAudience{TargetAudienceAll, TargetAudienceTeachers},
+		},
+		{
+			role: "methodist",
+			want: []TargetAudience{TargetAudienceAll, TargetAudienceStaff},
+		},
+		{
+			role: "academic_secretary",
+			want: []TargetAudience{TargetAudienceAll, TargetAudienceStaff},
+		},
+		{
+			role: "system_admin",
+			want: []TargetAudience{
+				TargetAudienceAll, TargetAudienceStudents, TargetAudienceTeachers,
+				TargetAudienceStaff, TargetAudienceAdmins,
+			},
+		},
+		{
+			role: "",
+			want: []TargetAudience{TargetAudienceAll},
+		},
+		{
+			role: "unknown_role",
+			want: []TargetAudience{TargetAudienceAll},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.role, func(t *testing.T) {
+			got := VisibleAudiences(tc.role)
+			if len(got) != len(tc.want) {
+				t.Fatalf("VisibleAudiences(%q) length = %d, want %d (got=%v)",
+					tc.role, len(got), len(tc.want), got)
+			}
+			gotSet := make(map[TargetAudience]bool, len(got))
+			for _, a := range got {
+				gotSet[a] = true
+			}
+			for _, a := range tc.want {
+				if !gotSet[a] {
+					t.Errorf("VisibleAudiences(%q) missing %q (got=%v)",
+						tc.role, a, got)
+				}
+			}
+		})
+	}
+}
+
+// TestVisibleAudiences_ConsistentWithCanAccess pins the invariant
+// that VisibleAudiences and CanAccessAudience agree pairwise. Defends
+// against drift if one matrix is updated without the other.
+func TestVisibleAudiences_ConsistentWithCanAccess(t *testing.T) {
+	roles := []string{"student", "teacher", "methodist", "academic_secretary", "system_admin", "", "unknown_role"}
+	allAudiences := []TargetAudience{
+		TargetAudienceAll, TargetAudienceStudents, TargetAudienceTeachers,
+		TargetAudienceStaff, TargetAudienceAdmins,
+	}
+
+	for _, role := range roles {
+		visible := VisibleAudiences(role)
+		visibleSet := make(map[TargetAudience]bool, len(visible))
+		for _, a := range visible {
+			visibleSet[a] = true
+		}
+		for _, audience := range allAudiences {
+			canAccess := CanAccessAudience(role, audience)
+			inVisible := visibleSet[audience]
+			if canAccess != inVisible {
+				t.Errorf("drift role=%q audience=%q: CanAccessAudience=%v but VisibleAudiences includes=%v",
+					role, audience, canAccess, inVisible)
+			}
+		}
+	}
+}

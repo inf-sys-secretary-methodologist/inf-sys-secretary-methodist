@@ -10,8 +10,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
-	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 var (
@@ -23,33 +21,70 @@ var (
 	ErrInvalidInput = errors.New("invalid input")
 )
 
-// UserIDsProvider provides a list of user IDs for broadcast notifications.
+// UserIDsProvider returns the active user IDs whose role makes them
+// recipients for an announcement targeted к the given audience. The
+// announcement broadcast fan-out scopes notifications к the audience —
+// a student-targeted announcement only pushes к students, etc. — so
+// the v0.163.0 Tier 1 cross-audience push leak doesn't reappear when
+// the fan-out is wired (main.go).
 type UserIDsProvider interface {
-	GetActiveUserIDs(ctx context.Context) ([]int64, error)
+	GetUserIDsForAudience(ctx context.Context, audience domain.TargetAudience) ([]int64, error)
+}
+
+// SystemNotifier is the narrow port for sending a single system-
+// originated notification к one user. Replaces the prior dependency
+// on the concrete `*notifUsecases.NotificationUseCase` — the announcement
+// usecase only ever calls SendSystemNotification, so the wide
+// interface was leaking unused surface. The real
+// notifications.NotificationUseCase satisfies it structurally; tests
+// substitute a recording fake.
+type SystemNotifier interface {
+	SendSystemNotification(ctx context.Context, userID int64, title, summary string) error
 }
 
 // AnnouncementUseCase handles announcement business logic.
 type AnnouncementUseCase struct {
-	repo                AnnouncementRepository
-	auditLogger         *logging.AuditLogger
-	notificationUseCase *notifUsecases.NotificationUseCase
-	userIDsProvider     UserIDsProvider
-	attachmentStorage   AttachmentStorage // optional; wired via SetAttachmentStorage
+	repo              AnnouncementRepository
+	audit             AuditSink
+	notifier          SystemNotifier
+	userIDsProvider   UserIDsProvider
+	attachmentStorage AttachmentStorage // optional; wired via SetAttachmentStorage
+	// lifecycleCtx replaces context.Background() in the broadcast
+	// fan-out goroutine. main.go passes a server-lifecycle ctx through
+	// WithLifecycleContext so graceful shutdown cancels in-flight
+	// notifications instead of leaking goroutines past server stop.
+	lifecycleCtx context.Context
 }
 
-// NewAnnouncementUseCase creates a new AnnouncementUseCase.
+// NewAnnouncementUseCase creates a new AnnouncementUseCase. The audit
+// arg is the narrow AuditSink port — pass *logging.AuditLogger in
+// production, a recording fake in tests. Nil sink is treated as a
+// silent no-op at every call site.
 func NewAnnouncementUseCase(
 	repo AnnouncementRepository,
-	auditLogger *logging.AuditLogger,
-	notificationUseCase *notifUsecases.NotificationUseCase,
+	audit AuditSink,
+	notifier SystemNotifier,
 	userIDsProvider UserIDsProvider,
 ) *AnnouncementUseCase {
 	return &AnnouncementUseCase{
-		repo:                repo,
-		auditLogger:         auditLogger,
-		notificationUseCase: notificationUseCase,
-		userIDsProvider:     userIDsProvider,
+		repo:            repo,
+		audit:           audit,
+		notifier:        notifier,
+		userIDsProvider: userIDsProvider,
+		lifecycleCtx:    context.Background(),
 	}
+}
+
+// WithLifecycleContext registers the server-lifecycle ctx the broadcast
+// fan-out should use instead of context.Background(). Chainable —
+// returns the receiver. Pattern matches the optional-deps setter
+// shape used elsewhere in the codebase (e.g. MFA verification wiring
+// in auth usecase).
+func (uc *AnnouncementUseCase) WithLifecycleContext(ctx context.Context) *AnnouncementUseCase {
+	if ctx != nil {
+		uc.lifecycleCtx = ctx
+	}
+	return uc
 }
 
 // Create creates a new announcement.
@@ -74,8 +109,8 @@ func (uc *AnnouncementUseCase) Create(ctx context.Context, userID int64, req *dt
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.created", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.created", "announcement", map[string]interface{}{
 			"announcement_id": announcement.ID,
 			"title":           announcement.Title,
 			"author_id":       userID,
@@ -85,14 +120,44 @@ func (uc *AnnouncementUseCase) Create(ctx context.Context, userID int64, req *dt
 	return announcement, nil
 }
 
-// GetByID retrieves an announcement by ID.
-func (uc *AnnouncementUseCase) GetByID(ctx context.Context, id int64, incrementView bool) (*entities.Announcement, error) {
-	announcement, err := uc.repo.GetByID(ctx, id)
+// GetByID retrieves an announcement by ID, filtered к the caller's
+// audience set. The handler computes `audiences` via
+// domain.VisibleAudiences(role) — public callers see only announcements
+// within their visible audience set (v0.163.1 ADR-2 polish,
+// defense-in-depth поверх handler-layer clamp from v0.163.0).
+//
+// **Author override**: an author MUST be able to read back their own
+// announcement even when its target_audience is outside the
+// role-derived VisibleAudiences set. Example: methodist
+// (visible={all,staff}) creates a student-targeted announcement and
+// then opens the edit dialog via GET /api/announcements/:id. Without
+// this override the repo audience filter would return 404 and break
+// edit/view UX. The override is keyed on userID == AuthorID — any role
+// satisfies it on their own work.
+//
+// Admin/author paths that mutate (Update / Delete / Publish / Archive)
+// still use uc.repo.GetByID directly without any filter — they have
+// their own ownership checks (CanEdit).
+func (uc *AnnouncementUseCase) GetByID(ctx context.Context, id int64, incrementView bool, userID int64, audiences []domain.TargetAudience) (*entities.Announcement, error) {
+	announcement, err := uc.repo.GetByIDForAudience(ctx, id, audiences)
 	if err != nil {
 		return nil, err
 	}
 	if announcement == nil {
-		return nil, ErrAnnouncementNotFound
+		// Repo SQL filter rejected the row because its target_audience
+		// is outside the caller's visible set. Fall back to the
+		// unfiltered repo lookup и authorize via author identity —
+		// authors must read back their own work regardless of
+		// audience. userID == 0 is the absent-actor sentinel from the
+		// handler; never matches any AuthorID, so the fallback
+		// naturally no-ops for anonymous / unauth callers.
+		announcement, err = uc.repo.GetByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		if announcement == nil || announcement.AuthorID != userID {
+			return nil, ErrAnnouncementNotFound
+		}
 	}
 
 	// Load attachments
@@ -177,8 +242,8 @@ func (uc *AnnouncementUseCase) Update(ctx context.Context, userID int64, id int6
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.updated", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.updated", "announcement", map[string]interface{}{
 			"announcement_id": announcement.ID,
 			"updated_by":      userID,
 		})
@@ -205,8 +270,8 @@ func (uc *AnnouncementUseCase) Delete(ctx context.Context, userID int64, id int6
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.deleted", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.deleted", "announcement", map[string]interface{}{
 			"announcement_id": id,
 			"deleted_by":      userID,
 		})
@@ -264,8 +329,11 @@ func (uc *AnnouncementUseCase) GetPublished(ctx context.Context, audience domain
 	return uc.repo.GetPublished(ctx, audience, limit, offset)
 }
 
-// GetPinned retrieves pinned announcements.
-func (uc *AnnouncementUseCase) GetPinned(ctx context.Context, limit int) ([]*entities.Announcement, error) {
+// GetPinned retrieves pinned announcements visible к the caller's
+// audience set. Handler passes audiences derived via
+// domain.VisibleAudiences(role); the repo enforces SQL
+// `target_audience = ANY($1)`.
+func (uc *AnnouncementUseCase) GetPinned(ctx context.Context, audiences []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
 	if limit <= 0 {
 		limit = 5
 	}
@@ -273,11 +341,12 @@ func (uc *AnnouncementUseCase) GetPinned(ctx context.Context, limit int) ([]*ent
 		limit = 20
 	}
 
-	return uc.repo.GetPinned(ctx, limit)
+	return uc.repo.GetPinned(ctx, audiences, limit)
 }
 
-// GetRecent retrieves recent announcements.
-func (uc *AnnouncementUseCase) GetRecent(ctx context.Context, limit int) ([]*entities.Announcement, error) {
+// GetRecent retrieves recent announcements visible к the caller's
+// audience set. Same audience contract as GetPinned.
+func (uc *AnnouncementUseCase) GetRecent(ctx context.Context, audiences []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -285,7 +354,7 @@ func (uc *AnnouncementUseCase) GetRecent(ctx context.Context, limit int) ([]*ent
 		limit = 50
 	}
 
-	return uc.repo.GetRecent(ctx, limit)
+	return uc.repo.GetRecent(ctx, audiences, limit)
 }
 
 // Publish publishes an announcement.
@@ -310,17 +379,22 @@ func (uc *AnnouncementUseCase) Publish(ctx context.Context, userID int64, id int
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.published", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.published", "announcement", map[string]interface{}{
 			"announcement_id": announcement.ID,
 			"published_by":    userID,
 		})
 	}
 
-	// Send broadcast notification to all users
-	if uc.notificationUseCase != nil && uc.userIDsProvider != nil {
-		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
-			userIDs, err := uc.userIDsProvider.GetActiveUserIDs(context.Background())
+	// Broadcast push notification к users whose role matches the
+	// announcement's target_audience. v0.163.1 polish: audience-scoped
+	// (no cross-audience leak, closes v0.163.0 audit T1-7) and runs on
+	// the server-lifecycle ctx so graceful shutdown can cancel
+	// in-flight sends instead of orphaning the goroutine.
+	if uc.notifier != nil && uc.userIDsProvider != nil {
+		audience := announcement.TargetAudience
+		go func() { // #nosec G118 -- fire-and-forget goroutine; cancellable via uc.lifecycleCtx
+			userIDs, err := uc.userIDsProvider.GetUserIDsForAudience(uc.lifecycleCtx, audience)
 			if err != nil {
 				return
 			}
@@ -329,8 +403,8 @@ func (uc *AnnouncementUseCase) Publish(ctx context.Context, userID int64, id int
 				if announcement.Summary != nil {
 					summary = *announcement.Summary
 				}
-				_ = uc.notificationUseCase.SendSystemNotification(
-					context.Background(),
+				_ = uc.notifier.SendSystemNotification(
+					uc.lifecycleCtx,
 					uid,
 					fmt.Sprintf("Объявление: %s", announcement.Title),
 					summary,
@@ -364,8 +438,8 @@ func (uc *AnnouncementUseCase) Unpublish(ctx context.Context, userID int64, id i
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.unpublished", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.unpublished", "announcement", map[string]interface{}{
 			"announcement_id": announcement.ID,
 			"unpublished_by":  userID,
 		})
@@ -396,8 +470,8 @@ func (uc *AnnouncementUseCase) Archive(ctx context.Context, userID int64, id int
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.archived", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.archived", "announcement", map[string]interface{}{
 			"announcement_id": announcement.ID,
 			"archived_by":     userID,
 		})
