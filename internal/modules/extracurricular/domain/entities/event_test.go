@@ -173,10 +173,26 @@ func TestNewExtracurricularEvent_InvariantViolations(t *testing.T) {
 			},
 			wantErr: ErrInvalidEvent,
 		},
-		// invalid_category + invalid_target_audience deferred к Pair 2
-		// (VO IsValid() restrictive impl). Pair 1 GREEN still calls
-		// IsValid() on both fields, but the stub returns always-true so
-		// Pair 1 cannot fail those cases.
+		{
+			name:    "invalid category",
+			mutate:  func(p *NewExtracurricularEventParams) { p.Category = Category("bogus") },
+			wantErr: ErrInvalidEvent,
+		},
+		{
+			name:    "invalid target_audience",
+			mutate:  func(p *NewExtracurricularEventParams) { p.TargetAudience = TargetAudience("bogus") },
+			wantErr: ErrInvalidEvent,
+		},
+		{
+			name:    "empty category rejected",
+			mutate:  func(p *NewExtracurricularEventParams) { p.Category = Category("") },
+			wantErr: ErrInvalidEvent,
+		},
+		{
+			name:    "empty target_audience rejected",
+			mutate:  func(p *NewExtracurricularEventParams) { p.TargetAudience = TargetAudience("") },
+			wantErr: ErrInvalidEvent,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
