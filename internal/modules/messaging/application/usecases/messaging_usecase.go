@@ -96,6 +96,20 @@ func (uc *MessagingUseCase) WithUserExistenceChecker(checker UserExistenceChecke
 	return uc
 }
 
+// WithLifecycleContext registers the server-lifecycle ctx the
+// SendMessage broadcast goroutine should use instead of
+// context.Background(). Chainable; mirror к v0.163.1 announcement
+// usecase setter shape and к the optional-deps setter pattern
+// elsewhere (memory: feedback_setter_pattern_optional_deps).
+//
+// RED stub for v0.162.1 polish Item 2: the receiver-only no-op below
+// makes the new test compile but still fail because the goroutine
+// continues к use context.Background(). GREEN follows.
+func (uc *MessagingUseCase) WithLifecycleContext(ctx context.Context) *MessagingUseCase {
+	_ = ctx
+	return uc
+}
+
 // resolveAvatarURL converts a storage path to a presigned URL.
 // If the path is empty or already a URL, it returns it as-is.
 func (uc *MessagingUseCase) resolveAvatarURL(ctx context.Context, avatarPath *string) *string {
