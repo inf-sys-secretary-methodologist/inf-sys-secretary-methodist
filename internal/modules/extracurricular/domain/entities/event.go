@@ -358,8 +358,55 @@ type UpdateEventBasicsParams struct {
 // draft + published editable per ADR-2) is enforced via CanEdit.
 // Invariants mirror NewExtracurricularEvent. Atomic: if any invariant
 // fails, entity stays unmutated.
-//
-// Pair 4 RED stub — Pair 4 GREEN implements.
 func (e *ExtracurricularEvent) UpdateBasics(p UpdateEventBasicsParams) error {
-	return errors.New("not implemented (Pair 4 RED stub)")
+	if !e.status.CanEdit() {
+		return fmt.Errorf("%w: status=%q", ErrCannotEditEvent, e.status)
+	}
+	title := strings.TrimSpace(p.Title)
+	if title == "" {
+		return fmt.Errorf("%w: title must not be empty", ErrInvalidEvent)
+	}
+	if len([]rune(title)) > maxEventTitleLen {
+		return fmt.Errorf("%w: title length %d exceeds max %d",
+			ErrInvalidEvent, len([]rune(title)), maxEventTitleLen)
+	}
+	description := strings.TrimSpace(p.Description)
+	if len([]rune(description)) > maxEventDescriptionLen {
+		return fmt.Errorf("%w: description length %d exceeds max %d",
+			ErrInvalidEvent, len([]rune(description)), maxEventDescriptionLen)
+	}
+	location := strings.TrimSpace(p.Location)
+	if len([]rune(location)) > maxEventLocationLen {
+		return fmt.Errorf("%w: location length %d exceeds max %d",
+			ErrInvalidEvent, len([]rune(location)), maxEventLocationLen)
+	}
+	if !p.Category.IsValid() {
+		return fmt.Errorf("%w: invalid category %q", ErrInvalidEvent, p.Category)
+	}
+	if !p.TargetAudience.IsValid() {
+		return fmt.Errorf("%w: invalid target_audience %q", ErrInvalidEvent, p.TargetAudience)
+	}
+	if !p.StartAt.Before(p.EndAt) {
+		return fmt.Errorf("%w: start_at (%v) must be before end_at (%v)",
+			ErrInvalidEvent, p.StartAt, p.EndAt)
+	}
+	if p.MaxCapacity != nil && *p.MaxCapacity < 0 {
+		return fmt.Errorf("%w: max_capacity must be non-negative, got %d",
+			ErrInvalidEvent, *p.MaxCapacity)
+	}
+	if p.MaxCapacity != nil && len(e.participants) > *p.MaxCapacity {
+		return fmt.Errorf("%w: max_capacity %d below current participant count %d",
+			ErrInvalidEvent, *p.MaxCapacity, len(e.participants))
+	}
+	// All validation passed — apply mutations atomically.
+	e.title = title
+	e.description = description
+	e.category = p.Category
+	e.targetAudience = p.TargetAudience
+	e.location = location
+	e.startAt = p.StartAt
+	e.endAt = p.EndAt
+	e.maxCapacity = p.MaxCapacity
+	e.updatedAt = p.Now
+	return nil
 }

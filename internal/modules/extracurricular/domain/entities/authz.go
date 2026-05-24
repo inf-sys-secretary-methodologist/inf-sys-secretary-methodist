@@ -1,9 +1,6 @@
 package entities
 
-import (
-	"errors"
-	"fmt"
-)
+import "fmt"
 
 // Role constants matching the project-wide role matrix
 // (per docs/roles-and-flows.md). Declared locally to keep
@@ -16,32 +13,61 @@ const (
 	roleStudent           = "student"
 )
 
-// Stub anchors keeping role constants + scopeForbidden referenced
-// during Pair 4 RED so the unused-linter stays quiet. Pair 4 GREEN
-// switches on these directly and removes the var.
-//
-//nolint:gochecknoglobals // anchor only
-var _ = []string{roleSystemAdmin, roleMethodist, roleAcademicSecretary, roleTeacher, roleStudent}
-
 // AuthorizeEventCreate gates POST /api/v1/extracurricular/events.
-// Pair 4 RED stub — always returns "not implemented"; GREEN restricts
-// to system_admin / methodist / academic_secretary.
+// Allowed roles per ADR-6: system_admin (via isAdmin flag) + methodist +
+// academic_secretary. Teacher / student / unknown denied.
 func AuthorizeEventCreate(actorRole string, isAdmin bool) error {
-	_ = scopeForbidden("")
-	return errors.New("not implemented (Pair 4 RED stub)")
+	if isAdmin {
+		return nil
+	}
+	switch actorRole {
+	case roleMethodist, roleAcademicSecretary:
+		return nil
+	}
+	return scopeForbidden(fmt.Sprintf("role %q not allowed to create events", actorRole))
 }
 
 // AuthorizeEventEdit gates PUT/DELETE /api/v1/extracurricular/events/:id.
-// Pair 4 RED stub.
+// Allowed: admin (any event); methodist|academic_secretary self-edit
+// (actorID == organizerID). Teacher / student denied even для own
+// events (they can't create, so own-event scenario is hypothetical).
 func AuthorizeEventEdit(actorID, organizerID int64, actorRole string, isAdmin bool) error {
-	return errors.New("not implemented (Pair 4 RED stub)")
+	if isAdmin {
+		return nil
+	}
+	switch actorRole {
+	case roleMethodist, roleAcademicSecretary:
+		if actorID == organizerID {
+			return nil
+		}
+		return scopeForbidden(fmt.Sprintf("actor %d is not organizer %d", actorID, organizerID))
+	}
+	return scopeForbidden(fmt.Sprintf("role %q not allowed to edit events", actorRole))
 }
 
 // CanViewEvent reports whether a caller in actorRole может see an event
-// targeted at the given audience. Used by repository List query +
-// GetByID handler 404. Pair 4 RED stub always returns true.
+// targeted at the given audience per ADR-6 matrix:
+//
+//	TargetAudienceAll      → any role
+//	TargetAudienceStudents → student only
+//	TargetAudienceTeachers → teacher only
+//	TargetAudienceStaff    → methodist | academic_secretary | system_admin
+//
+// Admins are not "target" но have read-everything via separate isAdmin
+// flag in handler; this function is the audience-aware filter applied
+// после the admin override.
 func CanViewEvent(actorRole string, audience TargetAudience) bool {
-	return true
+	switch audience {
+	case TargetAudienceAll:
+		return true
+	case TargetAudienceStudents:
+		return actorRole == roleStudent
+	case TargetAudienceTeachers:
+		return actorRole == roleTeacher
+	case TargetAudienceStaff:
+		return actorRole == roleMethodist || actorRole == roleAcademicSecretary || actorRole == roleSystemAdmin
+	}
+	return false
 }
 
 // scopeForbidden wraps ErrEventScopeForbidden с context for handlers'
