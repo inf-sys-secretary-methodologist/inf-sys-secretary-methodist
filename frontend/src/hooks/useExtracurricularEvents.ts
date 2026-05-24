@@ -111,3 +111,9 @@ export async function unregisterFromExtracurricularEvent(_id: number): Promise<v
   void _id
   throw NOT_IMPL
 }
+
+// Pair 2 stub — table-driven mapping in next GREEN.
+export function pickExtracurricularErrorKey(_err: unknown): string {
+  void _err
+  return 'unstubbed'
+}
