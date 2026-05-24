@@ -63,7 +63,7 @@ func (uc *VersionUseCase) CreateVersion(ctx context.Context, reader io.Reader, s
 
 	// Ownership gate (#290 ADR-2)
 	if err := filesDomain.AuthorizeFileAccess(input.UserID, input.UserRole, file, filesDomain.FileActionCreateVersion); err != nil {
-		uc.emitAccessDenied(ctx, input.UserID, file.ID, filesDomain.FileActionCreateVersion, "create_version")
+		emitAccessDenied(ctx, uc.auditLogger, input.UserID, file.ID, filesDomain.FileActionCreateVersion, "create_version")
 		return nil, err
 	}
 
@@ -128,20 +128,6 @@ func (uc *VersionUseCase) CreateVersion(ctx context.Context, reader io.Reader, s
 	return uc.toVersionResponse(version), nil
 }
 
-// emitAccessDenied mirrors FileUseCase.emitAccessDenied — small
-// duplication for module-local consistency. Both could move к a
-// shared denial-helper later (Tier 2).
-func (uc *VersionUseCase) emitAccessDenied(ctx context.Context, actorID, fileID int64, action filesDomain.FileAction, reasonSuffix string) {
-	if uc.auditLogger == nil {
-		return
-	}
-	uc.auditLogger.LogAuditEvent(ctx, fmt.Sprintf("file_%s_denied", action), "file", map[string]interface{}{
-		"actor_user_id":  actorID,
-		"target_file_id": fileID,
-		"reason":         reasonSuffix,
-	})
-}
-
 // GetVersions получает все версии файла.
 //
 // Closes #290 reviewer T0-1 round 1: requires actor ownership of the
@@ -154,7 +140,7 @@ func (uc *VersionUseCase) GetVersions(ctx context.Context, fileID int64, actorID
 	}
 
 	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionRead); err != nil {
-		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionRead, "list_versions")
+		emitAccessDenied(ctx, uc.auditLogger, actorID, file.ID, filesDomain.FileActionRead, "list_versions")
 		return nil, err
 	}
 
@@ -205,7 +191,7 @@ func (uc *VersionUseCase) DownloadVersion(ctx context.Context, fileID int64, ver
 	}
 
 	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionRead); err != nil {
-		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionRead, "download_version")
+		emitAccessDenied(ctx, uc.auditLogger, actorID, file.ID, filesDomain.FileActionRead, "download_version")
 		return nil, err
 	}
 
@@ -253,7 +239,7 @@ func (uc *VersionUseCase) DeleteVersion(ctx context.Context, versionID int64, ac
 	fileOwnerOk := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionDelete) == nil
 	versionAuthorOk := version.CreatedBy == actorID
 	if !fileOwnerOk && !versionAuthorOk {
-		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionDelete, "delete_version")
+		emitAccessDenied(ctx, uc.auditLogger, actorID, file.ID, filesDomain.FileActionDelete, "delete_version")
 		return filesDomain.ErrFileAccessDenied
 	}
 
