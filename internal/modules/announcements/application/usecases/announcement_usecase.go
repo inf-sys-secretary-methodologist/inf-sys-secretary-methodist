@@ -138,18 +138,27 @@ func (uc *AnnouncementUseCase) Create(ctx context.Context, userID int64, req *dt
 // Admin/author paths that mutate (Update / Delete / Publish / Archive)
 // still use uc.repo.GetByID directly without any filter — they have
 // their own ownership checks (CanEdit).
-//
-// Stub for v0.163.1 polish RED: only filters by audience, no author
-// override. GREEN restores the override.
 func (uc *AnnouncementUseCase) GetByID(ctx context.Context, id int64, incrementView bool, userID int64, audiences []domain.TargetAudience) (*entities.Announcement, error) {
 	announcement, err := uc.repo.GetByIDForAudience(ctx, id, audiences)
 	if err != nil {
 		return nil, err
 	}
 	if announcement == nil {
-		return nil, ErrAnnouncementNotFound
+		// Repo SQL filter rejected the row because its target_audience
+		// is outside the caller's visible set. Fall back to the
+		// unfiltered repo lookup и authorize via author identity —
+		// authors must read back their own work regardless of
+		// audience. userID == 0 is the absent-actor sentinel from the
+		// handler; never matches any AuthorID, so the fallback
+		// naturally no-ops for anonymous / unauth callers.
+		announcement, err = uc.repo.GetByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		if announcement == nil || announcement.AuthorID != userID {
+			return nil, ErrAnnouncementNotFound
+		}
 	}
-	_ = userID // RED: userID ignored; GREEN uses for author override
 
 	// Load attachments
 	attachments, err := uc.repo.GetAttachments(ctx, id)
