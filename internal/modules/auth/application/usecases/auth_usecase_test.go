@@ -552,14 +552,16 @@ func (s *stubRevokedTokenRepo) RevokeAllForUser(_ context.Context, userID int64,
 }
 
 // IsRevokedForUser reports whether the recorded epoch covers a token
-// issued at issuedAtUnix.
+// issued at issuedAtUnix. Strict greater-than mirrors the production
+// Redis adapter — tokens with iat == epoch survive so concurrent-
+// refresh winners aren't caught by peer-loser cascades.
 func (s *stubRevokedTokenRepo) IsRevokedForUser(_ context.Context, userID int64, issuedAtUnix int64) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.userEpoch == nil {
 		return false, nil
 	}
-	return s.userEpoch[userID] >= issuedAtUnix, nil
+	return s.userEpoch[userID] > issuedAtUnix, nil
 }
 
 // signMFAIntermediateToken builds a JWT with the given claims signed by the

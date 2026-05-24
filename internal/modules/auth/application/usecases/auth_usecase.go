@@ -499,7 +499,20 @@ func (u *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString strin
 			// suppress the reuse-detected outcome (the caller still
 			// sees ErrRefreshTokenReused; failing the call would
 			// only help the attacker).
-			if cascadeErr := u.revokedTokenRepo.RevokeAllForUser(ctx, userID, time.Now().Unix(), refreshTTL); cascadeErr != nil {
+			// Cascade epoch is the reused token's iat, NOT time.Now() —
+			// this matters for concurrent-refresh races. Two legitimate
+			// callers presenting the SAME refresh token (iat=T) reach
+			// RevokeIfAbsent simultaneously: one wins the claim, the
+			// other(s) cascade. If the cascade epoch were time.Now()
+			// (>= T), the winner's IsRevokedForUser(userID, T) check
+			// later in this function would ALSO trip and the whole race
+			// would yield 0 successes. Using issuedAtUnix anchors the
+			// cascade к "everything strictly before the reused token's
+			// iat" — siblings with the same iat survive (the JTI
+			// blacklist already handles those individually). RFC 6749
+			// §10.4 semantics preserved: the reused token's grant
+			// family is invalidated.
+			if cascadeErr := u.revokedTokenRepo.RevokeAllForUser(ctx, userID, issuedAtUnix, refreshTTL); cascadeErr != nil {
 				u.logAudit(ctx, "refresh_token_cascade_failed", "auth", map[string]interface{}{
 					"user_id": userID,
 					"error":   cascadeErr.Error(),

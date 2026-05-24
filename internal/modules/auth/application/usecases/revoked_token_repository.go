@@ -39,8 +39,11 @@ type RevokedTokenRepository interface {
 	RevokeAllForUser(ctx context.Context, userID int64, issuedAtUnix int64, ttl time.Duration) error
 
 	// IsRevokedForUser reports whether a token issued at issuedAtUnix
-	// for userID falls under an outstanding user-level revocation
-	// (RevokeAllForUser entry whose epoch >= issuedAtUnix). Used by
-	// RefreshToken / access-token validators to honor cascade revokes.
+	// for userID falls under an outstanding user-level revocation —
+	// an outstanding RevokeAllForUser entry whose epoch > issuedAtUnix
+	// (STRICT greater-than; tokens with iat == epoch survive so a
+	// concurrent-refresh winner isn't caught by peer-loser cascades on
+	// the SAME source token's iat). Used by RefreshToken / access-token
+	// validators to honor cascade revokes.
 	IsRevokedForUser(ctx context.Context, userID int64, issuedAtUnix int64) (bool, error)
 }
