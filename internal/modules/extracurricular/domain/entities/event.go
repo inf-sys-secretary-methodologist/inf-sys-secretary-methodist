@@ -257,35 +257,83 @@ func (e *ExtracurricularEvent) CreatedAt() time.Time { return e.createdAt }
 // UpdatedAt returns the last-mutation timestamp.
 func (e *ExtracurricularEvent) UpdatedAt() time.Time { return e.updatedAt }
 
-// Register adds a participant to the event aggregate. Pair 3 RED stub —
-// always returns "not implemented"; Pair 3 GREEN implements capacity +
-// status + duplicate guards.
+// Register adds a participant to the event. Invariants:
+//   - userID > 0
+//   - event.Status().CanRegister() (only published)
+//   - userID not already registered (ErrParticipantExists)
+//   - len(participants) < maxCapacity если cap is set (ErrEventFull)
+//
+// On success appends new Participant{UserID, RegisteredAt: at}.
 func (e *ExtracurricularEvent) Register(userID int64, at time.Time) error {
-	return errors.New("not implemented (Pair 3 RED stub)")
+	if userID <= 0 {
+		return fmt.Errorf("%w: user_id must be positive, got %d", ErrInvalidEvent, userID)
+	}
+	if !e.status.CanRegister() {
+		return fmt.Errorf("%w: status=%q", ErrEventNotOpenForRegistration, e.status)
+	}
+	for _, p := range e.participants {
+		if p.UserID == userID {
+			return fmt.Errorf("%w: user_id=%d", ErrParticipantExists, userID)
+		}
+	}
+	if e.maxCapacity != nil && len(e.participants) >= *e.maxCapacity {
+		return fmt.Errorf("%w: capacity=%d", ErrEventFull, *e.maxCapacity)
+	}
+	e.participants = append(e.participants, Participant{UserID: userID, RegisteredAt: at})
+	return nil
 }
 
-// Unregister removes a participant from the event. Pair 3 RED stub.
+// Unregister removes the participant entry for userID. Returns
+// ErrParticipantNotFound if no such registration exists.
 func (e *ExtracurricularEvent) Unregister(userID int64) error {
-	return errors.New("not implemented (Pair 3 RED stub)")
+	for i, p := range e.participants {
+		if p.UserID == userID {
+			e.participants = append(e.participants[:i], e.participants[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("%w: user_id=%d", ErrParticipantNotFound, userID)
 }
 
 // HasParticipant reports whether userID is currently registered.
-// Pair 3 RED stub always returns false.
 func (e *ExtracurricularEvent) HasParticipant(userID int64) bool {
+	for _, p := range e.participants {
+		if p.UserID == userID {
+			return true
+		}
+	}
 	return false
 }
 
-// Publish transitions draft → published. Pair 3 RED stub.
+// Publish transitions draft → published. Only legal transition source
+// is draft; calling on any other status returns ErrCannotEditEvent.
 func (e *ExtracurricularEvent) Publish(now time.Time) error {
-	return errors.New("not implemented (Pair 3 RED stub)")
+	if e.status != StatusDraft {
+		return fmt.Errorf("%w: cannot publish from status=%q", ErrCannotEditEvent, e.status)
+	}
+	e.status = StatusPublished
+	e.updatedAt = now
+	return nil
 }
 
-// Cancel transitions draft|published → canceled. Pair 3 RED stub.
+// Cancel transitions draft|published → canceled. Terminal statuses
+// (canceled, completed) return ErrCannotEditEvent.
 func (e *ExtracurricularEvent) Cancel(now time.Time) error {
-	return errors.New("not implemented (Pair 3 RED stub)")
+	if e.status != StatusDraft && e.status != StatusPublished {
+		return fmt.Errorf("%w: cannot cancel from status=%q", ErrCannotEditEvent, e.status)
+	}
+	e.status = StatusCanceled
+	e.updatedAt = now
+	return nil
 }
 
-// Complete transitions published → completed. Pair 3 RED stub.
+// Complete transitions published → completed. Only published may be
+// completed (draft must be published first; canceled is terminal).
 func (e *ExtracurricularEvent) Complete(now time.Time) error {
-	return errors.New("not implemented (Pair 3 RED stub)")
+	if e.status != StatusPublished {
+		return fmt.Errorf("%w: cannot complete from status=%q", ErrCannotEditEvent, e.status)
+	}
+	e.status = StatusCompleted
+	e.updatedAt = now
+	return nil
 }
