@@ -132,7 +132,7 @@ func TestUserUseCase_AuditConsistency_ActorUserID(t *testing.T) {
 
 			rec := sink.find(tc.action)
 			if rec == nil {
-				t.Fatalf("expected audit event %q к be emitted; got %+v", tc.action, sink.events)
+				t.Fatalf("expected audit event %q to be emitted; got %+v", tc.action, sink.events)
 			}
 			if rec.resource != tc.resource {
 				t.Errorf("resource: got %q, want %q", rec.resource, tc.resource)

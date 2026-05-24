@@ -11,21 +11,25 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
 // PositionHandler handles HTTP requests for position management.
 type PositionHandler struct {
 	usecase   *usecases.PositionUseCase
-	validator *validation.Validator
 	sanitizer *sanitization.Sanitizer
 }
 
 // NewPositionHandler creates a new position handler.
+//
+// v0.160.1 polish Item 4 follow-up: the standalone *validation.Validator
+// dropped — after the validate:→binding: rename, `c.ShouldBindJSON`
+// fires Gin's internal go-playground/validator on the `binding:` tags,
+// and the explicit second pass became dead code (validator default
+// tag is `validate:`, no longer present on position DTOs). Mirror к
+// user_handler.go + department_handler.go.
 func NewPositionHandler(usecase *usecases.PositionUseCase) *PositionHandler {
 	return &PositionHandler{
 		usecase:   usecase,
-		validator: validation.NewValidator(),
 		sanitizer: sanitization.NewSanitizer(),
 	}
 }
@@ -43,12 +47,6 @@ func (h *PositionHandler) Create(c *gin.Context) {
 	input.Name = h.sanitizer.SanitizeString(input.Name)
 	input.Code = h.sanitizer.SanitizeString(input.Code)
 	input.Description = h.sanitizer.SanitizeString(input.Description)
-
-	if err := h.validator.Validate(input); err != nil {
-		resp := response.BadRequest(err.Error())
-		c.JSON(http.StatusBadRequest, resp)
-		return
-	}
 
 	ctx := c.Request.Context()
 	position, err := h.usecase.CreatePosition(ctx, &input)
@@ -118,12 +116,6 @@ func (h *PositionHandler) Update(c *gin.Context) {
 	input.Name = h.sanitizer.SanitizeString(input.Name)
 	input.Code = h.sanitizer.SanitizeString(input.Code)
 	input.Description = h.sanitizer.SanitizeString(input.Description)
-
-	if err := h.validator.Validate(input); err != nil {
-		resp := response.BadRequest(err.Error())
-		c.JSON(http.StatusBadRequest, resp)
-		return
-	}
 
 	ctx := c.Request.Context()
 	position, err := h.usecase.UpdatePosition(ctx, id, &input)
