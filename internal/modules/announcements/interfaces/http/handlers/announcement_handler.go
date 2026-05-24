@@ -136,7 +136,13 @@ func (h *AnnouncementHandler) GetByID(c *gin.Context) {
 	}
 
 	audiences := domain.VisibleAudiences(h.role(c))
-	announcement, err := h.useCase.GetByID(c.Request.Context(), id, true, audiences)
+	// userID = 0 for anonymous callers (no JWT). h.getUserID writes 401
+	// directly when user_id key is missing — here we tolerate 0 because
+	// the route group already requires JWT, and 0 simply never matches
+	// any AuthorID so the author override no-ops.
+	userIDVal, _ := c.Get("user_id")
+	userID, _ := userIDVal.(int64)
+	announcement, err := h.useCase.GetByID(c.Request.Context(), id, true, userID, audiences)
 	if err != nil {
 		h.handleError(c, err)
 		return

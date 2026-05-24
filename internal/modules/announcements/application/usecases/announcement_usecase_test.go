@@ -497,9 +497,64 @@ func TestAnnouncementUseCase_GetByID(t *testing.T) {
 
 	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
-	announcement, err := uc.GetByID(ctx, created.ID, false, allAudiences)
+	announcement, err := uc.GetByID(ctx, created.ID, false, 1, allAudiences)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, announcement.ID)
+}
+
+// TestAnnouncementUseCase_GetByID_AuthorOverride_OutsideAudience pins
+// the v0.163.1 polish UX defense: an author must be able to read back
+// their own announcement even when its target_audience is outside the
+// author's role-derived VisibleAudiences set.
+//
+// Example: methodist (VisibleAudiences = {all, staff}) creates a
+// student-targeted announcement, then opens the edit dialog
+// (GET /api/announcements/:id). Without the author override, the repo
+// audience filter would return 404 and break edit/view UX. Closes the
+// "Item 1 ADR-2 over-restriction" gap caught by reviewing the frontend
+// useAnnouncement(editingId) flow.
+func TestAnnouncementUseCase_GetByID_AuthorOverride_OutsideAudience(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	authorID := int64(42)
+	req := createDefaultRequest()
+	req.TargetAudience = domain.TargetAudienceStudents
+	created, err := uc.Create(ctx, authorID, req)
+	require.NoError(t, err)
+
+	// Methodist's VisibleAudiences would NOT include "students" —
+	// but they're the author, so they MUST get the announcement back.
+	methodistAudiences := []domain.TargetAudience{
+		domain.TargetAudienceAll, domain.TargetAudienceStaff,
+	}
+	announcement, err := uc.GetByID(ctx, created.ID, false, authorID, methodistAudiences)
+	require.NoError(t, err, "author must read own announcement regardless of audience")
+	assert.Equal(t, created.ID, announcement.ID)
+}
+
+// TestAnnouncementUseCase_GetByID_NonAuthor_OutsideAudience pins the
+// other side: a caller who is NEITHER the author NOR has the audience
+// в their visible set must get ErrAnnouncementNotFound (defense-in-depth
+// still applies для non-authors).
+func TestAnnouncementUseCase_GetByID_NonAuthor_OutsideAudience(t *testing.T) {
+	repo := NewMockAnnouncementRepository()
+	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
+	ctx := context.Background()
+
+	authorID := int64(42)
+	req := createDefaultRequest()
+	req.TargetAudience = domain.TargetAudienceStudents
+	created, _ := uc.Create(ctx, authorID, req)
+
+	otherUserID := int64(99) // not the author
+	methodistAudiences := []domain.TargetAudience{
+		domain.TargetAudienceAll, domain.TargetAudienceStaff,
+	}
+	_, err := uc.GetByID(ctx, created.ID, false, otherUserID, methodistAudiences)
+	assert.ErrorIs(t, err, ErrAnnouncementNotFound,
+		"non-author с no audience access must get 404")
 }
 
 func TestAnnouncementUseCase_GetByID_NotFound(t *testing.T) {
@@ -507,7 +562,7 @@ func TestAnnouncementUseCase_GetByID_NotFound(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
 	ctx := context.Background()
 
-	_, err := uc.GetByID(ctx, 999, false, allAudiences)
+	_, err := uc.GetByID(ctx, 999, false, 1, allAudiences)
 	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 
@@ -519,7 +574,7 @@ func TestAnnouncementUseCase_GetByID_IncrementView(t *testing.T) {
 	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 	_, _ = uc.Publish(ctx, 1, created.ID, false)
 
-	announcement, err := uc.GetByID(ctx, created.ID, true, allAudiences)
+	announcement, err := uc.GetByID(ctx, created.ID, true, 1, allAudiences)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), announcement.ViewCount)
 }
@@ -532,7 +587,7 @@ func TestAnnouncementUseCase_GetByID_NoIncrementForDraft(t *testing.T) {
 	created, _ := uc.Create(ctx, 1, createDefaultRequest())
 
 	// Draft is not visible, so view should not increment even with incrementView=true
-	announcement, err := uc.GetByID(ctx, created.ID, true, allAudiences)
+	announcement, err := uc.GetByID(ctx, created.ID, true, 1, allAudiences)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), announcement.ViewCount)
 }
@@ -545,7 +600,7 @@ func TestAnnouncementUseCase_GetByID_RepoError(t *testing.T) {
 	uc := NewAnnouncementUseCase(repo, nil, nil, nil)
 	ctx := context.Background()
 
-	_, err := uc.GetByID(ctx, 1, false, allAudiences)
+	_, err := uc.GetByID(ctx, 1, false, 1, allAudiences)
 	assert.Error(t, err)
 	assert.Equal(t, "db error", err.Error())
 }
@@ -564,7 +619,7 @@ func TestAnnouncementUseCase_GetByID_GetAttachmentsError(t *testing.T) {
 	// Now set the error so GetAttachments fails
 	repo.getAttachmentsErr = errors.New("attachments error")
 
-	_, err = uc.GetByID(ctx, created.ID, false, allAudiences)
+	_, err = uc.GetByID(ctx, created.ID, false, 1, allAudiences)
 	assert.Error(t, err)
 	assert.Equal(t, "attachments error", err.Error())
 }
@@ -585,7 +640,7 @@ func TestAnnouncementUseCase_GetByID_WithAttachments(t *testing.T) {
 		MimeType:       "application/pdf",
 	})
 
-	announcement, err := uc.GetByID(ctx, created.ID, false, allAudiences)
+	announcement, err := uc.GetByID(ctx, created.ID, false, 1, allAudiences)
 	require.NoError(t, err)
 	assert.Len(t, announcement.Attachments, 1)
 	assert.Equal(t, "test.pdf", announcement.Attachments[0].FileName)
@@ -895,7 +950,7 @@ func TestAnnouncementUseCase_Delete(t *testing.T) {
 	err := uc.Delete(ctx, 1, created.ID, false)
 	require.NoError(t, err)
 
-	_, err = uc.GetByID(ctx, created.ID, false, allAudiences)
+	_, err = uc.GetByID(ctx, created.ID, false, 1, allAudiences)
 	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 
@@ -929,7 +984,7 @@ func TestAnnouncementUseCase_Delete_AdminCanDelete(t *testing.T) {
 	err := uc.Delete(ctx, 2, created.ID, true)
 	require.NoError(t, err)
 
-	_, err = uc.GetByID(ctx, created.ID, false, allAudiences)
+	_, err = uc.GetByID(ctx, created.ID, false, 1, allAudiences)
 	assert.ErrorIs(t, err, ErrAnnouncementNotFound)
 }
 

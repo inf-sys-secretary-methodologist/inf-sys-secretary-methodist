@@ -122,12 +122,26 @@ func (uc *AnnouncementUseCase) Create(ctx context.Context, userID int64, req *dt
 
 // GetByID retrieves an announcement by ID, filtered к the caller's
 // audience set. The handler computes `audiences` via
-// domain.VisibleAudiences(role) — this method is the public read path,
-// so the repo refuses anything outside the audience list (v0.163.1
-// ADR-2 polish, defense-in-depth поверх handler-layer clamp from
-// v0.163.0). Admin/author paths (Update / Delete / Publish / Archive)
-// keep using uc.repo.GetByID directly without the audience filter.
-func (uc *AnnouncementUseCase) GetByID(ctx context.Context, id int64, incrementView bool, audiences []domain.TargetAudience) (*entities.Announcement, error) {
+// domain.VisibleAudiences(role) — public callers see only announcements
+// within their visible audience set (v0.163.1 ADR-2 polish,
+// defense-in-depth поверх handler-layer clamp from v0.163.0).
+//
+// **Author override**: an author MUST be able to read back their own
+// announcement even when its target_audience is outside the
+// role-derived VisibleAudiences set. Example: methodist
+// (visible={all,staff}) creates a student-targeted announcement and
+// then opens the edit dialog via GET /api/announcements/:id. Without
+// this override the repo audience filter would return 404 and break
+// edit/view UX. The override is keyed on userID == AuthorID — any role
+// satisfies it on their own work.
+//
+// Admin/author paths that mutate (Update / Delete / Publish / Archive)
+// still use uc.repo.GetByID directly without any filter — they have
+// their own ownership checks (CanEdit).
+//
+// Stub for v0.163.1 polish RED: only filters by audience, no author
+// override. GREEN restores the override.
+func (uc *AnnouncementUseCase) GetByID(ctx context.Context, id int64, incrementView bool, userID int64, audiences []domain.TargetAudience) (*entities.Announcement, error) {
 	announcement, err := uc.repo.GetByIDForAudience(ctx, id, audiences)
 	if err != nil {
 		return nil, err
@@ -135,6 +149,7 @@ func (uc *AnnouncementUseCase) GetByID(ctx context.Context, id int64, incrementV
 	if announcement == nil {
 		return nil, ErrAnnouncementNotFound
 	}
+	_ = userID // RED: userID ignored; GREEN uses for author override
 
 	// Load attachments
 	attachments, err := uc.repo.GetAttachments(ctx, id)
