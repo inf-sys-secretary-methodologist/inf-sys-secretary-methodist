@@ -11,7 +11,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
@@ -40,8 +39,8 @@ const AvatarURLExpiration = 7 * 24 * time.Hour // 7 days
 
 // MessagingUseCase implements messaging business logic.
 type MessagingUseCase struct {
-	conversationRepo repositories.ConversationRepository
-	messageRepo      repositories.MessageRepository
+	conversationRepo ConversationRepository
+	messageRepo      MessageRepository
 	hub              *websocket.Hub
 	logger           *logging.Logger
 	notifier         MessageNotifier
@@ -58,8 +57,8 @@ type MessagingUseCase struct {
 // к v0.125.0 WithMFAVerification setter pattern (memory:
 // feedback_setter_pattern_optional_deps).
 func NewMessagingUseCase(
-	conversationRepo repositories.ConversationRepository,
-	messageRepo repositories.MessageRepository,
+	conversationRepo ConversationRepository,
+	messageRepo MessageRepository,
 	hub *websocket.Hub,
 	logger *logging.Logger,
 	notifier MessageNotifier,

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	messagingUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/repositories"
 )
 
 // ConversationRepositoryPG implements ConversationRepository using PostgreSQL.
@@ -17,7 +17,7 @@ type ConversationRepositoryPG struct {
 }
 
 // NewConversationRepositoryPG creates a new PostgreSQL conversation repository.
-func NewConversationRepositoryPG(db *sql.DB) repositories.ConversationRepository {
+func NewConversationRepositoryPG(db *sql.DB) messagingUsecases.ConversationRepository {
 	return &ConversationRepositoryPG{db: db}
 }
 

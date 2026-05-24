@@ -124,7 +124,6 @@ import (
 	integration "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration"
 	messagingServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/services"
 	messagingUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/usecases"
-	messagingRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/repositories"
 	messagingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/persistence"
 	messagingWebsocket "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
 	messagingHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http"
@@ -233,7 +232,7 @@ func (f messagingUserExistenceFunc) UserExists(ctx context.Context, userID int64
 
 // newMessagingAccessChecker builds the ADR-1 conversation participant
 // gate. Extracted from main() to keep gocyclo below the project gate.
-func newMessagingAccessChecker(conversationRepo messagingRepositories.ConversationRepository) messagingAccessCheckerFunc {
+func newMessagingAccessChecker(conversationRepo messagingUsecases.ConversationRepository) messagingAccessCheckerFunc {
 	return func(ctx context.Context, userID, conversationID int64) (bool, error) {
 		conv, err := conversationRepo.GetByID(ctx, conversationID)
 		if err != nil {
