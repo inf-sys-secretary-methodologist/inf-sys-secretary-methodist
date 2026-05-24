@@ -2697,10 +2697,12 @@ func setupRoutes(
 		// Extracurricular module routes (B3, v0.164.0) — внеучебные мероприятия.
 		// Greenfield bounded context per plan docs/plans/2026-05-24-b3-extracurricular.md.
 		// Audience-aware list/get + organizer-only edit/delete + self-register.
+		// v0.165.0: EventNotifier wired through main.go adapter (ADR-7 closure).
 		{
 			extEventRepo := extPersistence.NewEventRepositoryPG(db)
+			extNotifier := &extracurricularNotificationNotifier{notif: notificationUseCase}
 			createEventUC := extUsecases.NewCreateEventUseCase(extEventRepo, auditLogger, nil)
-			updateEventUC := extUsecases.NewUpdateEventUseCase(extEventRepo, auditLogger, nil, nil)
+			updateEventUC := extUsecases.NewUpdateEventUseCase(extEventRepo, auditLogger, extNotifier, nil)
 			deleteEventUC := extUsecases.NewDeleteEventUseCase(extEventRepo, auditLogger)
 			getEventUC := extUsecases.NewGetEventUseCase(extEventRepo)
 			listEventsUC := extUsecases.NewListEventsUseCase(extEventRepo)
@@ -3651,4 +3653,58 @@ func (n *documentsShareNotifier) NotifyDocumentShared(ctx context.Context, recip
 		Link:     link,
 	})
 	return err
+}
+
+// extracurricularNotificationNotifier adapts the platform
+// NotificationUseCase to the extracurricular module's narrow
+// EventNotifier port. Same DI-seam pattern as other module notifiers —
+// the extracurricular module itself stays free of cross-module Go imports.
+//
+// v0.165.0 ADR-7 closure: backend slice (v0.164.0) defined the port;
+// this commit lands the production wiring slot. Audience-cohort
+// resolution ("all" / "students" / "teachers" / "staff" → user IDs)
+// is a follow-up — current methods log audit context and dispatch
+// nothing until the cohort resolver lands. Wiring the slot now keeps
+// the use case off the noop fallback so a future change is one-line.
+type extracurricularNotificationNotifier struct {
+	notif *notifUsecases.NotificationUseCase
+}
+
+func (n *extracurricularNotificationNotifier) NotifyEventPublished(ctx context.Context, eventID int64, title, audience string) {
+	if n == nil || n.notif == nil {
+		return
+	}
+	_ = audience
+	_ = n.notif.BroadcastSystemNotification(
+		ctx,
+		[]int64{},
+		fmt.Sprintf("Новое мероприятие: %s", title),
+		fmt.Sprintf("Подробнее: /extracurricular/%d", eventID),
+	)
+}
+
+func (n *extracurricularNotificationNotifier) NotifyEventCancelled(ctx context.Context, eventID int64, title, audience string) {
+	if n == nil || n.notif == nil {
+		return
+	}
+	_ = audience
+	_ = n.notif.BroadcastSystemNotification(
+		ctx,
+		[]int64{},
+		fmt.Sprintf("Мероприятие отменено: %s", title),
+		fmt.Sprintf("Подробнее: /extracurricular/%d", eventID),
+	)
+}
+
+func (n *extracurricularNotificationNotifier) NotifyEventUpdated(ctx context.Context, eventID int64, title, audience string) {
+	if n == nil || n.notif == nil {
+		return
+	}
+	_ = audience
+	_ = n.notif.BroadcastSystemNotification(
+		ctx,
+		[]int64{},
+		fmt.Sprintf("Мероприятие обновлено: %s", title),
+		fmt.Sprintf("Подробнее: /extracurricular/%d", eventID),
+	)
 }

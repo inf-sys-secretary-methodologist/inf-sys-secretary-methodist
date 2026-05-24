@@ -10,6 +10,7 @@ import { useDashboardStats, useDashboardTrends, useDashboardActivity } from '@/h
 import { AppLayout } from '@/components/layout'
 import { GlowingEffect } from '@/components/ui/glowing-effect-lazy'
 import { StatsCard, ActivityFeed, ExportButton } from '@/components/dashboard'
+import { UpcomingEventsWidget } from '@/components/dashboard/UpcomingEventsWidget'
 import { FileText, Users, Calendar, TrendingUp, ClipboardList } from 'lucide-react'
 
 // Lazy load MetodychWidget
@@ -167,6 +168,9 @@ export default function DashboardPage() {
 
         {/* Metodych AI Assistant */}
         <MetodychWidget />
+
+        {/* Upcoming extracurricular events */}
+        <UpcomingEventsWidget />
 
         {/* Charts Row */}
         <section aria-labelledby="trends-heading">

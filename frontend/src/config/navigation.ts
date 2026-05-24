@@ -178,6 +178,21 @@ export const navigationConfig: NavEntry[] = [
         ],
       },
       {
+        // Extracurricular events — backend GET /api/v1/extracurricular/events
+        // applies CanViewEvent audience matrix per actor role, so the entry
+        // is visible to all 5 roles and the server narrows visible rows.
+        nameKey: 'extracurricular',
+        url: '/extracurricular',
+        icon: Activity,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+          UserRole.STUDENT,
+        ],
+      },
+      {
         nameKey: 'tasks',
         url: '/tasks',
         icon: ListTodo,
