@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -313,15 +314,65 @@ func (m *ErrorMockAnnouncementRepository) GetAttachments(ctx context.Context, an
 	return m.MockAnnouncementRepository.GetAttachments(ctx, announcementID)
 }
 
+// --- MockSystemNotifier ---
+
+// MockSystemNotifier records every SendSystemNotification call so tests
+// can assert audience-scoped fan-out hit each expected user with the
+// expected title / summary.
+type MockSystemNotifier struct {
+	mu    sync.Mutex
+	calls []notifierCall
+	err   error
+}
+
+type notifierCall struct {
+	ctx     context.Context
+	userID  int64
+	title   string
+	summary string
+}
+
+func (m *MockSystemNotifier) SendSystemNotification(ctx context.Context, userID int64, title, summary string) error {
+	m.mu.Lock()
+	m.calls = append(m.calls, notifierCall{ctx: ctx, userID: userID, title: title, summary: summary})
+	m.mu.Unlock()
+	return m.err
+}
+
+func (m *MockSystemNotifier) callsSnapshot() []notifierCall {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]notifierCall, len(m.calls))
+	copy(out, m.calls)
+	return out
+}
+
 // --- MockUserIDsProvider ---
 
 type MockUserIDsProvider struct {
 	userIDs []int64
 	err     error
+	// Recorded args from the most recent call. Tests inspect these к
+	// pin v0.163.1 polish guarantees: audience scoping (no
+	// cross-audience push leak) and lifecycle-ctx propagation.
+	lastAudience domain.TargetAudience
+	lastCtx      context.Context
+	mu           sync.Mutex
 }
 
-func (m *MockUserIDsProvider) GetActiveUserIDs(_ context.Context) ([]int64, error) {
+func (m *MockUserIDsProvider) GetUserIDsForAudience(ctx context.Context, audience domain.TargetAudience) ([]int64, error) {
+	m.mu.Lock()
+	m.lastAudience = audience
+	m.lastCtx = ctx
+	m.mu.Unlock()
 	return m.userIDs, m.err
+}
+
+// snapshot returns the recorded last call args under the mutex.
+func (m *MockUserIDsProvider) snapshot() (domain.TargetAudience, context.Context) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.lastAudience, m.lastCtx
 }
 
 // ============================
@@ -1289,6 +1340,103 @@ func TestAnnouncementUseCase_Publish_NilUserIDsProvider(t *testing.T) {
 	published, err := uc.Publish(ctx, 1, created.ID, false)
 	require.NoError(t, err)
 	assert.Equal(t, domain.AnnouncementStatusPublished, published.Status)
+}
+
+// TestAnnouncementUseCase_Publish_FanOutScopedToTargetAudience pins
+// v0.163.1 polish guarantee #1: the broadcast fan-out provider is
+// called with the announcement's target_audience (not "all users")
+// so a student-targeted announcement only pushes к students. Closes
+// v0.163.0 audit T1-7 cross-audience push leak.
+func TestAnnouncementUseCase_Publish_FanOutScopedToTargetAudience(t *testing.T) {
+	tests := []struct {
+		name     string
+		audience domain.TargetAudience
+	}{
+		{"students-only", domain.TargetAudienceStudents},
+		{"teachers-only", domain.TargetAudienceTeachers},
+		{"admins-only", domain.TargetAudienceAdmins},
+		{"staff-only", domain.TargetAudienceStaff},
+		{"broadcast-all", domain.TargetAudienceAll},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := NewMockAnnouncementRepository()
+			provider := &MockUserIDsProvider{userIDs: []int64{10}}
+			notifier := &MockSystemNotifier{}
+			uc := NewAnnouncementUseCase(repo, nil, notifier, provider)
+			ctx := context.Background()
+
+			req := createDefaultRequest()
+			req.TargetAudience = tc.audience
+			created, err := uc.Create(ctx, 1, req)
+			require.NoError(t, err)
+
+			_, err = uc.Publish(ctx, 1, created.ID, false)
+			require.NoError(t, err)
+
+			waitForFanOut(t, provider)
+			gotAudience, _ := provider.snapshot()
+			assert.Equalf(t, tc.audience, gotAudience,
+				"expected provider к receive audience=%s, got %s",
+				tc.audience, gotAudience)
+		})
+	}
+}
+
+// TestAnnouncementUseCase_Publish_FanOutUsesLifecycleContext pins
+// v0.163.1 polish guarantee #2: the broadcast goroutine runs on the
+// ctx registered via WithLifecycleContext, not context.Background().
+// Graceful shutdown can therefore cancel in-flight sends rather than
+// leak goroutines past server stop.
+func TestAnnouncementUseCase_Publish_FanOutUsesLifecycleContext(t *testing.T) {
+	type ctxKey struct{}
+	sentinel := "v0.163.1-lifecycle-ctx"
+	lifecycleCtx := context.WithValue(context.Background(), ctxKey{}, sentinel)
+
+	repo := NewMockAnnouncementRepository()
+	provider := &MockUserIDsProvider{userIDs: []int64{10}}
+	notifier := &MockSystemNotifier{}
+	uc := NewAnnouncementUseCase(repo, nil, notifier, provider).
+		WithLifecycleContext(lifecycleCtx)
+	ctx := context.Background()
+
+	created, err := uc.Create(ctx, 1, createDefaultRequest())
+	require.NoError(t, err)
+
+	_, err = uc.Publish(ctx, 1, created.ID, false)
+	require.NoError(t, err)
+
+	waitForFanOut(t, provider)
+	_, gotCtx := provider.snapshot()
+	require.NotNil(t, gotCtx)
+	got, ok := gotCtx.Value(ctxKey{}).(string)
+	assert.True(t, ok, "ctx must carry sentinel value")
+	assert.Equal(t, sentinel, got)
+
+	// Notifier should also have received the lifecycle ctx for each
+	// fanned-out recipient.
+	calls := notifier.callsSnapshot()
+	require.Len(t, calls, 1)
+	notifGot, ok := calls[0].ctx.Value(ctxKey{}).(string)
+	assert.True(t, ok, "notifier ctx must carry sentinel value")
+	assert.Equal(t, sentinel, notifGot)
+}
+
+// waitForFanOut polls until the spy provider records a call or fails
+// the test on timeout. Fan-out is fire-and-forget goroutine so the
+// assertions need к wait briefly.
+func waitForFanOut(t *testing.T, p *MockUserIDsProvider) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		_, ctx := p.snapshot()
+		if ctx != nil {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("timeout waiting for broadcast fan-out goroutine к call provider")
 }
 
 func TestAnnouncementUseCase_Publish_AdminCanPublish(t *testing.T) {

@@ -10,7 +10,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
-	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -23,33 +22,67 @@ var (
 	ErrInvalidInput = errors.New("invalid input")
 )
 
-// UserIDsProvider provides a list of user IDs for broadcast notifications.
+// UserIDsProvider returns the active user IDs whose role makes them
+// recipients for an announcement targeted к the given audience. The
+// announcement broadcast fan-out scopes notifications к the audience —
+// a student-targeted announcement only pushes к students, etc. — so
+// the v0.163.0 Tier 1 cross-audience push leak doesn't reappear when
+// the fan-out is wired (main.go).
 type UserIDsProvider interface {
-	GetActiveUserIDs(ctx context.Context) ([]int64, error)
+	GetUserIDsForAudience(ctx context.Context, audience domain.TargetAudience) ([]int64, error)
+}
+
+// SystemNotifier is the narrow port for sending a single system-
+// originated notification к one user. Replaces the prior dependency
+// on the concrete `*notifUsecases.NotificationUseCase` — the announcement
+// usecase only ever calls SendSystemNotification, so the wide
+// interface was leaking unused surface. The real
+// notifications.NotificationUseCase satisfies it structurally; tests
+// substitute a recording fake.
+type SystemNotifier interface {
+	SendSystemNotification(ctx context.Context, userID int64, title, summary string) error
 }
 
 // AnnouncementUseCase handles announcement business logic.
 type AnnouncementUseCase struct {
-	repo                AnnouncementRepository
-	auditLogger         *logging.AuditLogger
-	notificationUseCase *notifUsecases.NotificationUseCase
-	userIDsProvider     UserIDsProvider
-	attachmentStorage   AttachmentStorage // optional; wired via SetAttachmentStorage
+	repo              AnnouncementRepository
+	auditLogger       *logging.AuditLogger
+	notifier          SystemNotifier
+	userIDsProvider   UserIDsProvider
+	attachmentStorage AttachmentStorage // optional; wired via SetAttachmentStorage
+	// lifecycleCtx replaces context.Background() in the broadcast
+	// fan-out goroutine. main.go passes a server-lifecycle ctx through
+	// WithLifecycleContext so graceful shutdown cancels in-flight
+	// notifications instead of leaking goroutines past server stop.
+	lifecycleCtx context.Context
 }
 
 // NewAnnouncementUseCase creates a new AnnouncementUseCase.
 func NewAnnouncementUseCase(
 	repo AnnouncementRepository,
 	auditLogger *logging.AuditLogger,
-	notificationUseCase *notifUsecases.NotificationUseCase,
+	notifier SystemNotifier,
 	userIDsProvider UserIDsProvider,
 ) *AnnouncementUseCase {
 	return &AnnouncementUseCase{
-		repo:                repo,
-		auditLogger:         auditLogger,
-		notificationUseCase: notificationUseCase,
-		userIDsProvider:     userIDsProvider,
+		repo:            repo,
+		auditLogger:     auditLogger,
+		notifier:        notifier,
+		userIDsProvider: userIDsProvider,
+		lifecycleCtx:    context.Background(),
 	}
+}
+
+// WithLifecycleContext registers the server-lifecycle ctx the broadcast
+// fan-out should use instead of context.Background(). Chainable —
+// returns the receiver. Pattern matches the optional-deps setter
+// shape used elsewhere in the codebase (e.g. MFA verification wiring
+// in auth usecase).
+func (uc *AnnouncementUseCase) WithLifecycleContext(ctx context.Context) *AnnouncementUseCase {
+	if ctx != nil {
+		uc.lifecycleCtx = ctx
+	}
+	return uc
 }
 
 // Create creates a new announcement.
@@ -327,10 +360,17 @@ func (uc *AnnouncementUseCase) Publish(ctx context.Context, userID int64, id int
 		})
 	}
 
-	// Send broadcast notification to all users
-	if uc.notificationUseCase != nil && uc.userIDsProvider != nil {
+	// Broadcast push notification к users whose role matches the
+	// announcement's target_audience. v0.163.1 polish: audience-scoped
+	// (no cross-audience leak, closes v0.163.0 audit T1-7) and runs on
+	// the server-lifecycle ctx so graceful shutdown can cancel
+	// in-flight sends instead of orphaning the goroutine.
+	if uc.notifier != nil && uc.userIDsProvider != nil {
 		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
-			userIDs, err := uc.userIDsProvider.GetActiveUserIDs(context.Background())
+			// v0.163.1 polish RED: stub hardcodes audience and uses
+			// context.Background(); GREEN scopes к announcement audience
+			// and uses uc.lifecycleCtx.
+			userIDs, err := uc.userIDsProvider.GetUserIDsForAudience(context.Background(), domain.TargetAudienceAll)
 			if err != nil {
 				return
 			}
@@ -339,7 +379,7 @@ func (uc *AnnouncementUseCase) Publish(ctx context.Context, userID int64, id int
 				if announcement.Summary != nil {
 					summary = *announcement.Summary
 				}
-				_ = uc.notificationUseCase.SendSystemNotification(
+				_ = uc.notifier.SendSystemNotification(
 					context.Background(),
 					uid,
 					fmt.Sprintf("Объявление: %s", announcement.Title),
