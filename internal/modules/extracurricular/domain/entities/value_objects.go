@@ -19,10 +19,14 @@ const (
 )
 
 // IsValid reports whether c is one of the canonical Category values.
-// The Pair 1 RED placeholder accepts everything; Pair 2 GREEN tightens
-// to the const set (mirror ControlForm pattern в curriculum module).
+// Restrictive impl — empty / unknown / case-variant / whitespace-padded
+// inputs return false (mirror ControlForm.Validate в curriculum).
 func (c Category) IsValid() bool {
-	return true
+	switch c {
+	case CategoryCultural, CategorySports, CategoryRecreational, CategoryEducational, CategoryOther:
+		return true
+	}
+	return false
 }
 
 // TargetAudience identifies the role-cohort eligible to view + register
@@ -40,9 +44,14 @@ const (
 )
 
 // IsValid reports whether a is one of the canonical TargetAudience
-// values. Pair 1 placeholder accepts everything (Pair 2 tightens).
+// values. Restrictive impl — `admins` explicitly excluded per ADR-3
+// (admins are not "target" but read-everything по permission matrix).
 func (a TargetAudience) IsValid() bool {
-	return true
+	switch a {
+	case TargetAudienceAll, TargetAudienceStudents, TargetAudienceTeachers, TargetAudienceStaff:
+		return true
+	}
+	return false
 }
 
 // Status is the event lifecycle state machine per ADR-2:
@@ -65,9 +74,12 @@ const (
 )
 
 // IsValid reports whether s is one of the canonical Status values.
-// Pair 1 placeholder accepts everything (Pair 2 tightens).
 func (s Status) IsValid() bool {
-	return true
+	switch s {
+	case StatusDraft, StatusPublished, StatusCanceled, StatusCompleted:
+		return true
+	}
+	return false
 }
 
 // CanEdit reports whether the event in this status accepts content
