@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.163.1
+// @version         0.162.1
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -122,12 +122,11 @@ import (
 	filesPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/infrastructure/persistence"
 	filesHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/interfaces/http/handlers"
 	integration "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration"
-	messagingServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/services"
 	messagingUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/usecases"
-	messagingRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/repositories"
 	messagingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/persistence"
 	messagingWebsocket "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
 	messagingHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http"
+	messagingMessages "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http/messages"
 	notifDTO "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
 	notifServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
@@ -181,7 +180,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.163.1"
+const versionString = "0.162.1"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -233,7 +232,7 @@ func (f messagingUserExistenceFunc) UserExists(ctx context.Context, userID int64
 
 // newMessagingAccessChecker builds the ADR-1 conversation participant
 // gate. Extracted from main() to keep gocyclo below the project gate.
-func newMessagingAccessChecker(conversationRepo messagingRepositories.ConversationRepository) messagingAccessCheckerFunc {
+func newMessagingAccessChecker(conversationRepo messagingUsecases.ConversationRepository) messagingAccessCheckerFunc {
 	return func(ctx context.Context, userID, conversationID int64) (bool, error) {
 		conv, err := conversationRepo.GetByID(ctx, conversationID)
 		if err != nil {
@@ -307,6 +306,45 @@ func (p *announcementUserIDsProvider) GetUserIDsForAudience(ctx context.Context,
 		}
 	}
 	return out, nil
+}
+
+// messagingNotificationNotifier adapts the notifications module's
+// NotificationUseCase к the messaging module's MessageNotifier port.
+// v0.162.1 polish Item 3: the adapter previously lived в
+// internal/modules/messaging/application/services/notifier.go and
+// imported internal/modules/notifications/... directly — a
+// cross-module-impl violation. Moving к main.go (the composition
+// root) keeps the messaging module free of the notifications import
+// while preserving the original adapter behavior. Mirror к the
+// announcementUserIDsProvider DI seam above.
+type messagingNotificationNotifier struct {
+	notificationUseCase *notifUsecases.NotificationUseCase
+}
+
+// NotifyNewMessage sends a notification about a new message to the
+// specified user. Nil notificationUseCase is treated as a successful
+// no-op so the messaging module stays usable when notifications wiring
+// is absent (e.g. dev/test profiles, mirror к the original adapter's
+// short-circuit branch).
+func (n *messagingNotificationNotifier) NotifyNewMessage(ctx context.Context, userID int64, senderName, content string, conversationID, messageID int64) error {
+	if n.notificationUseCase == nil {
+		return nil
+	}
+	input := &notifDTO.CreateNotificationInput{
+		UserID:   userID,
+		Type:     notifEntities.NotificationTypeInfo,
+		Priority: notifEntities.PriorityNormal,
+		Title:    fmt.Sprintf("Новое сообщение от %s", senderName),
+		Message:  content,
+		Link:     fmt.Sprintf("/messages/%d", conversationID),
+		Metadata: map[string]any{
+			"conversation_id": conversationID,
+			"message_id":      messageID,
+			"sender_name":     senderName,
+		},
+	}
+	_, err := n.notificationUseCase.Create(ctx, input)
+	return err
 }
 
 // rolesForAudience inverts the announcements visibility matrix: which
@@ -918,10 +956,16 @@ func main() {
 	messagingHub := messagingWebsocket.NewHub(logger).
 		WithAccessChecker(newMessagingAccessChecker(conversationRepo))
 	go messagingHub.Run() // Start WebSocket hub in background
-	messageNotifier := messagingServices.NewNotificationNotifier(notificationUseCase)
+	messageNotifier := &messagingNotificationNotifier{notificationUseCase: notificationUseCase}
 	messagingUseCase := messagingUsecases.NewMessagingUseCase(conversationRepo, messageRepo, messagingHub, logger, messageNotifier, s3Client).
 		WithAuditSink(auditLogger).
-		WithUserExistenceChecker(newMessagingUserExistenceChecker(userRepo))
+		WithUserExistenceChecker(newMessagingUserExistenceChecker(userRepo)).
+		WithLifecycleContext(serverCtx).
+		WithSystemMessageTexts(messagingUsecases.SystemMessageTexts{
+			GroupCreated: messagingMessages.SystemGroupCreated,
+			UserJoined:   messagingMessages.SystemUserJoined,
+			UserLeft:     messagingMessages.SystemUserLeft,
+		})
 	logger.Info("Messaging module initialized", nil)
 
 	// Initialize files module

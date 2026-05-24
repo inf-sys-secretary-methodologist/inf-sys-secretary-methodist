@@ -11,7 +11,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
@@ -22,6 +21,24 @@ import (
 type MessageNotifier interface {
 	// NotifyNewMessage sends a notification about a new message to the specified user.
 	NotifyNewMessage(ctx context.Context, userID int64, senderName, content string, conversationID, messageID int64) error
+}
+
+// SystemMessageTexts holds the user-facing strings the usecase writes
+// as system message content on conversation lifecycle events
+// (group created / participant joined / participant left). The
+// usecase reads these from the configured value rather than embedding
+// literals, satisfying the CLAUDE.md Clean Architecture gate ("UI-строки
+// — в `handler/messages`, ... НЕ в usecase"). main.go wires the
+// production strings from
+// internal/modules/messaging/interfaces/http/messages.
+//
+// Empty fields are the zero-value default — existing test setups that
+// do not need a specific system message body keep working without
+// wiring up texts.
+type SystemMessageTexts struct {
+	GroupCreated string
+	UserJoined   string
+	UserLeft     string
 }
 
 // UserExistenceChecker is a narrow port over the users module used to
@@ -40,14 +57,21 @@ const AvatarURLExpiration = 7 * 24 * time.Hour // 7 days
 
 // MessagingUseCase implements messaging business logic.
 type MessagingUseCase struct {
-	conversationRepo repositories.ConversationRepository
-	messageRepo      repositories.MessageRepository
+	conversationRepo ConversationRepository
+	messageRepo      MessageRepository
 	hub              *websocket.Hub
 	logger           *logging.Logger
 	notifier         MessageNotifier
 	s3Client         *storage.S3Client
 	auditSink        AuditSink
 	userExistence    UserExistenceChecker
+	systemMessages   SystemMessageTexts
+	// lifecycleCtx replaces context.Background() in the SendMessage
+	// fan-out goroutine. main.go passes a server-lifecycle ctx through
+	// WithLifecycleContext so graceful shutdown cancels in-flight
+	// notifications instead of leaking goroutines past server stop.
+	// Mirrors к announcement usecase pattern (v0.163.1).
+	lifecycleCtx context.Context
 }
 
 // NewMessagingUseCase creates a new messaging use case.
@@ -58,8 +82,8 @@ type MessagingUseCase struct {
 // к v0.125.0 WithMFAVerification setter pattern (memory:
 // feedback_setter_pattern_optional_deps).
 func NewMessagingUseCase(
-	conversationRepo repositories.ConversationRepository,
-	messageRepo repositories.MessageRepository,
+	conversationRepo ConversationRepository,
+	messageRepo MessageRepository,
 	hub *websocket.Hub,
 	logger *logging.Logger,
 	notifier MessageNotifier,
@@ -72,6 +96,7 @@ func NewMessagingUseCase(
 		logger:           logger,
 		notifier:         notifier,
 		s3Client:         s3Client,
+		lifecycleCtx:     context.Background(),
 	}
 }
 
@@ -94,6 +119,34 @@ func (uc *MessagingUseCase) WithAuditSink(sink AuditSink) *MessagingUseCase {
 // entities.ErrInvalidParticipants response.
 func (uc *MessagingUseCase) WithUserExistenceChecker(checker UserExistenceChecker) *MessagingUseCase {
 	uc.userExistence = checker
+	return uc
+}
+
+// WithSystemMessageTexts registers the user-facing strings the
+// usecase writes as system message content on conversation lifecycle
+// events. main.go wires the production strings from the
+// interfaces/http/messages package (CA UI/messaging seam). Chainable.
+//
+// Pass zero-value defaults are acceptable for tests that don't care
+// about the rendered text.
+func (uc *MessagingUseCase) WithSystemMessageTexts(texts SystemMessageTexts) *MessagingUseCase {
+	uc.systemMessages = texts
+	return uc
+}
+
+// WithLifecycleContext registers the server-lifecycle ctx the
+// SendMessage broadcast goroutine should use instead of
+// context.Background(). Chainable; mirror к v0.163.1 announcement
+// usecase setter shape and к the optional-deps setter pattern
+// elsewhere (memory: feedback_setter_pattern_optional_deps).
+//
+// Nil ctx (the default) is treated as no-op so existing test setups
+// без the setter wired keep the constructor's
+// context.Background() default.
+func (uc *MessagingUseCase) WithLifecycleContext(ctx context.Context) *MessagingUseCase {
+	if ctx != nil {
+		uc.lifecycleCtx = ctx
+	}
 	return uc
 }
 
@@ -199,7 +252,7 @@ func (uc *MessagingUseCase) CreateGroupConversation(ctx context.Context, creator
 	}
 
 	// Send system message
-	systemMsg := entities.NewSystemMessage(conv.ID, "Group created")
+	systemMsg := entities.NewSystemMessage(conv.ID, uc.systemMessages.GroupCreated)
 	if err := uc.messageRepo.Create(ctx, systemMsg); err != nil {
 		uc.logger.Error("failed to create system message", map[string]interface{}{
 			"error":           err.Error(),
@@ -386,7 +439,7 @@ func (uc *MessagingUseCase) AddParticipants(ctx context.Context, userID, convers
 		}
 
 		// Send system message
-		systemMsg := entities.NewSystemMessage(conversationID, "User joined the chat")
+		systemMsg := entities.NewSystemMessage(conversationID, uc.systemMessages.UserJoined)
 		if err := uc.messageRepo.Create(ctx, systemMsg); err != nil {
 			uc.logger.Error("failed to create system message", map[string]interface{}{
 				"error": err.Error(),
@@ -430,7 +483,7 @@ func (uc *MessagingUseCase) LeaveConversation(ctx context.Context, userID, conve
 	}
 
 	// Send system message
-	systemMsg := entities.NewSystemMessage(conversationID, "User left the chat")
+	systemMsg := entities.NewSystemMessage(conversationID, uc.systemMessages.UserLeft)
 	if err := uc.messageRepo.Create(ctx, systemMsg); err != nil {
 		uc.logger.Error("failed to create system message", map[string]interface{}{
 			"error": err.Error(),
@@ -529,10 +582,12 @@ func (uc *MessagingUseCase) SendMessage(ctx context.Context, userID, conversatio
 		Payload:        dto.ToMessageOutput(msg),
 	}, 0) // Don't exclude sender - they should see their own message
 
-	// Send notifications to participants who are not online in the conversation
-	// Use background context because HTTP request context may be canceled by the time goroutine runs
+	// Send notifications to participants who are not online in the conversation.
+	// Use the lifecycle ctx so graceful shutdown can cancel in-flight sends
+	// instead of leaking the goroutine past server stop (v0.162.1 Item 2,
+	// mirror к v0.163.1 announcement broadcast goroutine).
 	if uc.notifier != nil {
-		go uc.notifyParticipants(context.Background(), conversationID, userID, msg) // #nosec G118 -- fire-and-forget goroutine outlives request
+		go uc.notifyParticipants(uc.lifecycleCtx, conversationID, userID, msg) // #nosec G118 -- fire-and-forget goroutine; cancellable via uc.lifecycleCtx
 	}
 
 	uc.logger.Debug("message sent", map[string]any{

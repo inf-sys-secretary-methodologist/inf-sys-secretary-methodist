@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 
+	messagingUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/domain/repositories"
 )
 
 // MessageRepositoryPG implements MessageRepository using PostgreSQL.
@@ -16,7 +16,7 @@ type MessageRepositoryPG struct {
 }
 
 // NewMessageRepositoryPG creates a new PostgreSQL message repository.
-func NewMessageRepositoryPG(db *sql.DB) repositories.MessageRepository {
+func NewMessageRepositoryPG(db *sql.DB) messagingUsecases.MessageRepository {
 	return &MessageRepositoryPG{db: db}
 }
 
