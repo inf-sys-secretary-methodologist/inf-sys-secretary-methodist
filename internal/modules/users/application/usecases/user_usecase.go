@@ -9,7 +9,6 @@ import (
 
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	usersDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
@@ -18,12 +17,12 @@ import (
 
 // UserUseCase handles user management business logic.
 type UserUseCase struct {
-	userRepo            UserAccountRepository
-	userProfileRepo     UserProfileRepository
-	departmentRepo      DepartmentRepository
-	positionRepo        PositionRepository
-	auditSink           AuditSink
-	notificationUseCase *notifUsecases.NotificationUseCase
+	userRepo        UserAccountRepository
+	userProfileRepo UserProfileRepository
+	departmentRepo  DepartmentRepository
+	positionRepo    PositionRepository
+	auditSink       AuditSink
+	notifier        SystemNotifier
 }
 
 // NewUserUseCase creates a new user use case.
@@ -33,15 +32,15 @@ func NewUserUseCase(
 	departmentRepo DepartmentRepository,
 	positionRepo PositionRepository,
 	auditSink AuditSink,
-	notificationUseCase *notifUsecases.NotificationUseCase,
+	notifier SystemNotifier,
 ) *UserUseCase {
 	return &UserUseCase{
-		userRepo:            userRepo,
-		userProfileRepo:     userProfileRepo,
-		departmentRepo:      departmentRepo,
-		positionRepo:        positionRepo,
-		auditSink:           auditSink,
-		notificationUseCase: notificationUseCase,
+		userRepo:        userRepo,
+		userProfileRepo: userProfileRepo,
+		departmentRepo:  departmentRepo,
+		positionRepo:    positionRepo,
+		auditSink:       auditSink,
+		notifier:        notifier,
 	}
 }
 
@@ -207,9 +206,9 @@ func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *
 	}
 
 	// Notify user about role change
-	if uc.notificationUseCase != nil {
+	if uc.notifier != nil {
 		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
-			_ = uc.notificationUseCase.SendSystemNotification(
+			_ = uc.notifier.SendSystemNotification(
 				context.Background(),
 				userID,
 				"Изменение роли",
@@ -290,7 +289,7 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID i
 	}
 
 	// Notify user about status change
-	if uc.notificationUseCase != nil {
+	if uc.notifier != nil {
 		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
 			statusNames := map[string]string{
 				"active":   "активен",
@@ -301,7 +300,7 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID i
 			if statusName == "" {
 				statusName = input.Status
 			}
-			_ = uc.notificationUseCase.SendSystemNotification(
+			_ = uc.notifier.SendSystemNotification(
 				context.Background(),
 				targetID,
 				"Изменение статуса",

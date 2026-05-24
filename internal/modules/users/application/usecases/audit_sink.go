@@ -24,3 +24,20 @@ var _ AuditSink = (*logging.AuditLogger)(nil)
 type AuditSink interface {
 	LogAuditEvent(ctx context.Context, action, resource string, fields map[string]any)
 }
+
+// SystemNotifier is the narrow port the users use case uses to push
+// system-level notifications (role change / status change) к the
+// affected user. Concrete adapter lives в cmd/server/main.go DI seam;
+// users module no longer imports
+// internal/modules/notifications/application/... directly.
+//
+// v0.160.1 polish Item 3 — closes cross-module-impl class per the
+// CLAUDE.md gate ("Cross-module импорты — запрещены. Только через
+// адаптеры в main.go / DI-точке"). Mirror к v0.162.1 messaging Item 3
+// + v0.163.1 announcement SystemNotifier pattern.
+//
+// Nil notifier is treated as a successful no-op so existing test
+// setups что omit notifications wiring keep working unchanged.
+type SystemNotifier interface {
+	SendSystemNotification(ctx context.Context, userID int64, title, message string) error
+}

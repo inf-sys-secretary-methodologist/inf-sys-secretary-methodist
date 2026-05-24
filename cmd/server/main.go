@@ -926,6 +926,11 @@ func main() {
 		// error. gocritic: exitAfterDefer.
 		panic("auth user repository does not satisfy users.UserAccountRepository — CountByRole required for #283 ADR-4 last-admin guard")
 	}
+	// v0.160.1 polish Item 3: NotificationUseCase satisfies the
+	// users.SystemNotifier narrow port structurally (single method
+	// SendSystemNotification). The compile-time assertion below pins
+	// the contract — drift в either signature fails build, not request.
+	var _ usersUsecases.SystemNotifier = (*notifUsecases.NotificationUseCase)(nil)
 	userUseCase := usersUsecases.NewUserUseCase(usersUserAccountRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger, notificationUseCase)
 	departmentUseCase := usersUsecases.NewDepartmentUseCase(departmentRepo, auditLogger)
 	positionUseCase := usersUsecases.NewPositionUseCase(positionRepo, auditLogger)
