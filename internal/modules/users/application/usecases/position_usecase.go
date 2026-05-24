@@ -7,19 +7,18 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // PositionUseCase handles position management business logic.
 type PositionUseCase struct {
-	positionRepo repositories.PositionRepository
+	positionRepo PositionRepository
 	auditLogger  *logging.AuditLogger
 }
 
 // NewPositionUseCase creates a new position use case.
 func NewPositionUseCase(
-	positionRepo repositories.PositionRepository,
+	positionRepo PositionRepository,
 	auditLogger *logging.AuditLogger,
 ) *PositionUseCase {
 	return &PositionUseCase{

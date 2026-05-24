@@ -268,7 +268,7 @@ func newMessagingUserExistenceChecker(userRepo usecases.UserRepository) messagin
 // Cross-module DI adapter pattern from v0.155.1 — announcements/
 // application stays free of direct users/application imports.
 type announcementUserIDsProvider struct {
-	repo usersRepositories.UserProfileRepository
+	repo usersUsecases.UserProfileRepository
 }
 
 // announcementFanOutPageLimit caps the per-role page so a single
@@ -1706,7 +1706,7 @@ func setupRoutes(
 	db *sql.DB,
 	redisCache *cache.RedisCache,
 	userRepo usecases.UserRepository,
-	userProfileRepo usersRepositories.UserProfileRepository,
+	userProfileRepo usersUsecases.UserProfileRepository,
 	validator *validation.Validator,
 	jwtSecret []byte,
 	submitDocUseCase *docUsecases.SubmitDocumentUseCase,

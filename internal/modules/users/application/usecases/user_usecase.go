@@ -20,9 +20,9 @@ import (
 // UserUseCase handles user management business logic.
 type UserUseCase struct {
 	userRepo            UserAccountRepository
-	userProfileRepo     repositories.UserProfileRepository
-	departmentRepo      repositories.DepartmentRepository
-	positionRepo        repositories.PositionRepository
+	userProfileRepo     UserProfileRepository
+	departmentRepo      DepartmentRepository
+	positionRepo        PositionRepository
 	auditLogger         *logging.AuditLogger
 	notificationUseCase *notifUsecases.NotificationUseCase
 }
@@ -30,9 +30,9 @@ type UserUseCase struct {
 // NewUserUseCase creates a new user use case.
 func NewUserUseCase(
 	userRepo UserAccountRepository,
-	userProfileRepo repositories.UserProfileRepository,
-	departmentRepo repositories.DepartmentRepository,
-	positionRepo repositories.PositionRepository,
+	userProfileRepo UserProfileRepository,
+	departmentRepo DepartmentRepository,
+	positionRepo PositionRepository,
 	auditLogger *logging.AuditLogger,
 	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *UserUseCase {

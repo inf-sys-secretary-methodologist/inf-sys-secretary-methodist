@@ -7,19 +7,18 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // DepartmentUseCase handles department management business logic.
 type DepartmentUseCase struct {
-	departmentRepo repositories.DepartmentRepository
+	departmentRepo DepartmentRepository
 	auditLogger    *logging.AuditLogger
 }
 
 // NewDepartmentUseCase creates a new department use case.
 func NewDepartmentUseCase(
-	departmentRepo repositories.DepartmentRepository,
+	departmentRepo DepartmentRepository,
 	auditLogger *logging.AuditLogger,
 ) *DepartmentUseCase {
 	return &DepartmentUseCase{

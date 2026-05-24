@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	usersUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
@@ -19,7 +20,7 @@ type UserProfileRepositoryPG struct {
 }
 
 // NewUserProfileRepositoryPG creates a new PostgreSQL user profile repository.
-func NewUserProfileRepositoryPG(db *sql.DB) repositories.UserProfileRepository {
+func NewUserProfileRepositoryPG(db *sql.DB) usersUsecases.UserProfileRepository {
 	return &UserProfileRepositoryPG{db: db}
 }
 
