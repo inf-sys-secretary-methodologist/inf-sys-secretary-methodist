@@ -13,7 +13,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
 	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
@@ -21,16 +20,16 @@ import (
 
 // VersionUseCase обрабатывает бизнес-логику версионирования файлов.
 type VersionUseCase struct {
-	fileRepo      repositories.FileMetadataRepository
-	versionRepo   repositories.FileVersionRepository
+	fileRepo      FileMetadataRepository
+	versionRepo   FileVersionRepository
 	storageClient StorageClient
 	auditLogger   AuditEventLogger
 }
 
 // NewVersionUseCase создаёт новый use case для версий файлов.
 func NewVersionUseCase(
-	fileRepo repositories.FileMetadataRepository,
-	versionRepo repositories.FileVersionRepository,
+	fileRepo FileMetadataRepository,
+	versionRepo FileVersionRepository,
 	s3Client *storage.S3Client,
 	auditLogger *logging.AuditLogger,
 ) *VersionUseCase {

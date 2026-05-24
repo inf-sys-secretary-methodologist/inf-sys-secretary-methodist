@@ -17,15 +17,14 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
 	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
 
 // FileUseCase обрабатывает бизнес-логику управления файлами.
 type FileUseCase struct {
-	fileRepo       repositories.FileMetadataRepository
-	versionRepo    repositories.FileVersionRepository
+	fileRepo       FileMetadataRepository
+	versionRepo    FileVersionRepository
 	storageClient  StorageClient
 	fileValidator  FileNameValidator
 	auditLogger    AuditEventLogger
@@ -34,8 +33,8 @@ type FileUseCase struct {
 
 // NewFileUseCase создаёт новый use case для файлов.
 func NewFileUseCase(
-	fileRepo repositories.FileMetadataRepository,
-	versionRepo repositories.FileVersionRepository,
+	fileRepo FileMetadataRepository,
+	versionRepo FileVersionRepository,
 	s3Client *storage.S3Client,
 	fileValidator *storage.FileValidator,
 	auditLogger *logging.AuditLogger,

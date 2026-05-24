@@ -5,8 +5,8 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
 )
 
@@ -16,7 +16,7 @@ type FileVersionRepositoryPG struct {
 }
 
 // NewFileVersionRepositoryPG создаёт новый PostgreSQL репозиторий версий файлов.
-func NewFileVersionRepositoryPG(db *sql.DB) repositories.FileVersionRepository {
+func NewFileVersionRepositoryPG(db *sql.DB) usecases.FileVersionRepository {
 	return &FileVersionRepositoryPG{db: db}
 }
 
