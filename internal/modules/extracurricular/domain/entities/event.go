@@ -2,6 +2,8 @@ package entities
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -106,7 +108,7 @@ const (
 // NewExtracurricularEvent validates invariants and returns a fresh
 // event in draft status at version 0 (optimistic-locking baseline).
 //
-// Invariants (Pair 1 RED stub — Pair 1 GREEN implements):
+// Invariants (mirroring SQL CHECK constraints в migration 046):
 //   - organizer_id > 0
 //   - title trimmed-non-empty, ≤ 255 runes
 //   - description ≤ 4096 runes (blank OK)
@@ -115,8 +117,98 @@ const (
 //   - target_audience.IsValid()
 //   - start_at < end_at
 //   - max_capacity nil OR ≥ 0
+//
+// Each violation wraps ErrInvalidEvent с the offending field so
+// errors.Is resolves the sentinel for the 422 mapping в handlers.
 func NewExtracurricularEvent(p NewExtracurricularEventParams) (*ExtracurricularEvent, error) {
-	return nil, errors.New("not implemented (Pair 1 RED stub)")
+	if p.OrganizerID <= 0 {
+		return nil, fmt.Errorf("%w: organizer_id must be positive, got %d",
+			ErrInvalidEvent, p.OrganizerID)
+	}
+	title := strings.TrimSpace(p.Title)
+	if title == "" {
+		return nil, fmt.Errorf("%w: title must not be empty", ErrInvalidEvent)
+	}
+	if len([]rune(title)) > maxEventTitleLen {
+		return nil, fmt.Errorf("%w: title length %d exceeds max %d",
+			ErrInvalidEvent, len([]rune(title)), maxEventTitleLen)
+	}
+	description := strings.TrimSpace(p.Description)
+	if len([]rune(description)) > maxEventDescriptionLen {
+		return nil, fmt.Errorf("%w: description length %d exceeds max %d",
+			ErrInvalidEvent, len([]rune(description)), maxEventDescriptionLen)
+	}
+	location := strings.TrimSpace(p.Location)
+	if len([]rune(location)) > maxEventLocationLen {
+		return nil, fmt.Errorf("%w: location length %d exceeds max %d",
+			ErrInvalidEvent, len([]rune(location)), maxEventLocationLen)
+	}
+	if !p.Category.IsValid() {
+		return nil, fmt.Errorf("%w: invalid category %q", ErrInvalidEvent, p.Category)
+	}
+	if !p.TargetAudience.IsValid() {
+		return nil, fmt.Errorf("%w: invalid target_audience %q", ErrInvalidEvent, p.TargetAudience)
+	}
+	if !p.StartAt.Before(p.EndAt) {
+		return nil, fmt.Errorf("%w: start_at (%v) must be before end_at (%v)",
+			ErrInvalidEvent, p.StartAt, p.EndAt)
+	}
+	if p.MaxCapacity != nil && *p.MaxCapacity < 0 {
+		return nil, fmt.Errorf("%w: max_capacity must be non-negative, got %d",
+			ErrInvalidEvent, *p.MaxCapacity)
+	}
+	return &ExtracurricularEvent{
+		title:          title,
+		description:    description,
+		category:       p.Category,
+		targetAudience: p.TargetAudience,
+		status:         StatusDraft,
+		location:       location,
+		startAt:        p.StartAt,
+		endAt:          p.EndAt,
+		maxCapacity:    p.MaxCapacity,
+		organizerID:    p.OrganizerID,
+		participants:   nil,
+		version:        0,
+		createdAt:      p.Now,
+		updatedAt:      p.Now,
+	}, nil
+}
+
+// ReconstituteExtracurricularEvent rebuilds an event from authoritative
+// storage без re-validating invariants — DB CHECKs are the canonical
+// gate at write time. Used exclusively by repository implementations.
+func ReconstituteExtracurricularEvent(
+	id int64,
+	title, description string,
+	category Category,
+	targetAudience TargetAudience,
+	status Status,
+	location string,
+	startAt, endAt time.Time,
+	maxCapacity *int,
+	organizerID int64,
+	participants []Participant,
+	version int,
+	createdAt, updatedAt time.Time,
+) *ExtracurricularEvent {
+	return &ExtracurricularEvent{
+		ID:             id,
+		title:          title,
+		description:    description,
+		category:       category,
+		targetAudience: targetAudience,
+		status:         status,
+		location:       location,
+		startAt:        startAt,
+		endAt:          endAt,
+		maxCapacity:    maxCapacity,
+		organizerID:    organizerID,
+		participants:   participants,
+		version:        version,
+		createdAt:      createdAt,
+		updatedAt:      updatedAt,
+	}
 }
 
 // Title returns the human-readable event title.
