@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/domain/entities"
 )
@@ -27,11 +26,15 @@ func NewUnregisterParticipantUseCase(repo unregisterParticipantRepo, audit Audit
 	return &UnregisterParticipantUseCase{repo: repo, audit: audit}
 }
 
-// Execute removes actorID's participant entry от the event.
-// Pair 5 RED stub.
+// Execute loads the event (ErrEventNotFound surfaces для 404 mapping),
+// then deletes the participant row.
 func (uc *UnregisterParticipantUseCase) Execute(ctx context.Context, actorID int64, eventID int64) error {
-	_ = ctx
-	_ = actorID
-	_ = eventID
-	return errors.New("not implemented (Pair 5 RED stub)")
+	if _, err := uc.repo.GetByID(ctx, eventID); err != nil {
+		return err
+	}
+	if err := uc.repo.RemoveParticipant(ctx, eventID, actorID); err != nil {
+		return err
+	}
+	emitAudit(uc.audit, ctx, "extracurricular.participant_unregistered", actionFields(actorID, eventID))
+	return nil
 }

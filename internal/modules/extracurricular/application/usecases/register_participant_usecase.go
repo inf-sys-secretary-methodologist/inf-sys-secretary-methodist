@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/domain/entities"
@@ -32,12 +31,22 @@ func NewRegisterParticipantUseCase(repo registerParticipantRepo, audit AuditSink
 	return &RegisterParticipantUseCase{repo: repo, audit: audit, clock: clock}
 }
 
-// Execute registers actorID as participant в the event. Self-register
-// only — teacher-on-behalf NOT в scope для backend slice (deferred).
-// Pair 5 RED stub.
+// Execute loads the event, runs the aggregate Register method к check
+// status + capacity + duplicate, then persists the participant row.
 func (uc *RegisterParticipantUseCase) Execute(ctx context.Context, actorID int64, eventID int64) error {
-	_ = ctx
-	_ = actorID
-	_ = eventID
-	return errors.New("not implemented (Pair 5 RED stub)")
+	e, err := uc.repo.GetByID(ctx, eventID)
+	if err != nil {
+		return err
+	}
+	now := uc.clock()
+	if err := e.Register(actorID, now); err != nil {
+		emitAudit(uc.audit, ctx, "extracurricular.register_denied",
+			denialFields(actorID, eventID, err.Error(), "register_blocked"))
+		return err
+	}
+	if err := uc.repo.AddParticipant(ctx, eventID, actorID, now); err != nil {
+		return err
+	}
+	emitAudit(uc.audit, ctx, "extracurricular.participant_registered", actionFields(actorID, eventID))
+	return nil
 }

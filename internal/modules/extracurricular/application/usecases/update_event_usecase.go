@@ -8,9 +8,8 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/domain/entities"
 )
 
-// UpdateEventInput bundles update fields. Pointer-less; full replace
-// semantics (UI sends full state) — simpler than tri-state pointers
-// для greenfield. MaxCapacity nil = explicit "unlimited".
+// UpdateEventInput bundles update fields. Full-replace semantics
+// (no pointer tri-state) — UI sends complete state.
 type UpdateEventInput struct {
 	ID             int64
 	Title          string
@@ -53,13 +52,38 @@ func NewUpdateEventUseCase(repo updateEventRepo, audit AuditSink, notifier Event
 	return &UpdateEventUseCase{repo: repo, audit: audit, notifier: notifier, clock: clock}
 }
 
-// Execute runs UpdateBasics on the loaded aggregate с authz + optimistic
-// lock conflict translation. Pair 5 RED stub.
+// Execute loads + authz + UpdateBasics + persists.
 func (uc *UpdateEventUseCase) Execute(ctx context.Context, actorID int64, actorRole string, isAdmin bool, in UpdateEventInput) (*entities.ExtracurricularEvent, error) {
-	_ = actorID
-	_ = actorRole
-	_ = isAdmin
-	_ = in
-	_ = ctx
-	return nil, errors.New("not implemented (Pair 5 RED stub)")
+	e, err := uc.repo.GetByID(ctx, in.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err := entities.AuthorizeEventEdit(actorID, e.OrganizerID(), actorRole, isAdmin); err != nil {
+		emitAudit(uc.audit, ctx, "extracurricular.event_update_denied",
+			denialFields(actorID, in.ID, "not organizer / not admin", "forbidden"))
+		return nil, err
+	}
+	if err := e.UpdateBasics(entities.UpdateEventBasicsParams{
+		Title:          in.Title,
+		Description:    in.Description,
+		Category:       in.Category,
+		TargetAudience: in.TargetAudience,
+		Location:       in.Location,
+		StartAt:        in.StartAt,
+		EndAt:          in.EndAt,
+		MaxCapacity:    in.MaxCapacity,
+		Now:            uc.clock(),
+	}); err != nil {
+		if errors.Is(err, entities.ErrInvalidEvent) {
+			emitAudit(uc.audit, ctx, "extracurricular.event_update_denied",
+				denialFields(actorID, in.ID, err.Error(), "invalid"))
+		}
+		return nil, err
+	}
+	if err := uc.repo.Update(ctx, e); err != nil {
+		return nil, err
+	}
+	emitAudit(uc.audit, ctx, "extracurricular.event_updated", actionFields(actorID, e.ID))
+	uc.notifier.NotifyEventUpdated(ctx, e.ID, e.Title(), string(e.TargetAudience()))
+	return e, nil
 }
