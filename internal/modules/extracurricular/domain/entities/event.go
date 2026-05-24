@@ -337,3 +337,29 @@ func (e *ExtracurricularEvent) Complete(now time.Time) error {
 	e.updatedAt = now
 	return nil
 }
+
+// UpdateEventBasicsParams bundles inputs к UpdateBasics. Mirror к
+// NewExtracurricularEventParams shape — same fields except identity
+// (ID, organizerID) and timeline (createdAt) are non-mutable post-
+// creation, and status transitions go through dedicated methods.
+type UpdateEventBasicsParams struct {
+	Title          string
+	Description    string
+	Category       Category
+	TargetAudience TargetAudience
+	Location       string
+	StartAt        time.Time
+	EndAt          time.Time
+	MaxCapacity    *int
+	Now            time.Time
+}
+
+// UpdateBasics applies a content edit to the event. Status gate (only
+// draft + published editable per ADR-2) is enforced via CanEdit.
+// Invariants mirror NewExtracurricularEvent. Atomic: if any invariant
+// fails, entity stays unmutated.
+//
+// Pair 4 RED stub — Pair 4 GREEN implements.
+func (e *ExtracurricularEvent) UpdateBasics(p UpdateEventBasicsParams) error {
+	return errors.New("not implemented (Pair 4 RED stub)")
+}
