@@ -77,43 +77,60 @@ export function useExtracurricularEvent(id: number | null) {
   }
 }
 
-// === Mutations (Pair 2 — stubs until next GREEN) ===
-
-const NOT_IMPL = new Error('extracurricular mutation stub — not implemented')
+// === Mutations ===
 
 export async function createExtracurricularEvent(
-  _input: CreateExtracurricularEventInput
+  input: CreateExtracurricularEventInput
 ): Promise<ExtracurricularEvent> {
-  void _input
-  throw NOT_IMPL
+  const wrapper = await apiClient.post<ApiResponse<ExtracurricularEvent>>(BASE_URL, input)
+  return wrapper.data
 }
 
 export async function updateExtracurricularEvent(
-  _id: number,
-  _input: UpdateExtracurricularEventInput
+  id: number,
+  input: UpdateExtracurricularEventInput
 ): Promise<ExtracurricularEvent> {
-  void _id
-  void _input
-  throw NOT_IMPL
+  const wrapper = await apiClient.put<ApiResponse<ExtracurricularEvent>>(`${BASE_URL}/${id}`, input)
+  return wrapper.data
 }
 
-export async function deleteExtracurricularEvent(_id: number): Promise<void> {
-  void _id
-  throw NOT_IMPL
+export async function deleteExtracurricularEvent(id: number): Promise<void> {
+  await apiClient.delete(`${BASE_URL}/${id}`)
 }
 
-export async function registerForExtracurricularEvent(_id: number): Promise<void> {
-  void _id
-  throw NOT_IMPL
+export async function registerForExtracurricularEvent(id: number): Promise<void> {
+  await apiClient.post(`${BASE_URL}/${id}/register`)
 }
 
-export async function unregisterFromExtracurricularEvent(_id: number): Promise<void> {
-  void _id
-  throw NOT_IMPL
+export async function unregisterFromExtracurricularEvent(id: number): Promise<void> {
+  await apiClient.delete(`${BASE_URL}/${id}/register`)
 }
 
-// Pair 2 stub — table-driven mapping in next GREEN.
-export function pickExtracurricularErrorKey(_err: unknown): string {
-  void _err
-  return 'unstubbed'
+// === Error mapping ===
+//
+// Translates backend sentinel codes (see mapEventError in
+// event_handler.go) to camelCase i18n keys under the
+// extracurricular.errors.* namespace. Status-aware fallback for
+// codes the backend omits (plain 403 / 404 / 5xx).
+
+const ERROR_CODE_MAP: Record<string, string> = {
+  VERSION_CONFLICT: 'versionConflict',
+  ALREADY_REGISTERED: 'alreadyRegistered',
+  EVENT_FULL: 'eventFull',
+  REGISTRATION_CLOSED: 'registrationClosed',
+  CANNOT_EDIT: 'cannotEdit',
+  INVALID_EVENT: 'invalidEvent',
+}
+
+export function pickExtracurricularErrorKey(err: unknown): string {
+  if (!err) return 'generic'
+  const e = err as {
+    response?: { status?: number; data?: { error?: { code?: string } } }
+  }
+  const code = e.response?.data?.error?.code
+  if (code && ERROR_CODE_MAP[code]) return ERROR_CODE_MAP[code]
+  const status = e.response?.status
+  if (status === 403) return 'forbidden'
+  if (status === 404) return 'notFound'
+  return 'generic'
 }
