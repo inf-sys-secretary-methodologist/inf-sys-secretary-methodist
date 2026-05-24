@@ -13,9 +13,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
 	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
 
 // VersionUseCase обрабатывает бизнес-логику версионирования файлов.
@@ -27,18 +25,22 @@ type VersionUseCase struct {
 }
 
 // NewVersionUseCase создаёт новый use case для версий файлов.
+//
+// Mirror NewFileUseCase — narrow interfaces accepted instead of concrete
+// infrastructure types. Existing main.go wiring satisfies the ports
+// structurally; nil values fall back to no-op behavior.
 func NewVersionUseCase(
 	fileRepo FileMetadataRepository,
 	versionRepo FileVersionRepository,
-	s3Client *storage.S3Client,
-	auditLogger *logging.AuditLogger,
+	storageClient StorageClient,
+	auditLogger AuditEventLogger,
 ) *VersionUseCase {
 	uc := &VersionUseCase{
 		fileRepo:    fileRepo,
 		versionRepo: versionRepo,
 	}
-	if s3Client != nil {
-		uc.storageClient = s3Client
+	if storageClient != nil {
+		uc.storageClient = storageClient
 	}
 	if auditLogger != nil {
 		uc.auditLogger = auditLogger

@@ -17,7 +17,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
 	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
 
@@ -32,20 +31,26 @@ type FileUseCase struct {
 }
 
 // NewFileUseCase создаёт новый use case для файлов.
+//
+// All infrastructure parameters accept narrow interfaces — concrete
+// `*storage.S3Client` / `*storage.FileValidator` / `*logging.AuditLogger`
+// satisfy them structurally so existing main.go wiring is unaffected.
+// Nil values are tolerated (constructor falls back to no-op behavior),
+// preserving graceful-degradation semantics from v0.161.0.
 func NewFileUseCase(
 	fileRepo FileMetadataRepository,
 	versionRepo FileVersionRepository,
-	s3Client *storage.S3Client,
-	fileValidator *storage.FileValidator,
-	auditLogger *logging.AuditLogger,
+	storageClient StorageClient,
+	fileValidator FileNameValidator,
+	auditLogger AuditEventLogger,
 ) *FileUseCase {
 	uc := &FileUseCase{
 		fileRepo:       fileRepo,
 		versionRepo:    versionRepo,
 		tempExpiration: 24 * time.Hour, // Временные файлы живут 24 часа
 	}
-	if s3Client != nil {
-		uc.storageClient = s3Client
+	if storageClient != nil {
+		uc.storageClient = storageClient
 	}
 	if fileValidator != nil {
 		uc.fileValidator = fileValidator

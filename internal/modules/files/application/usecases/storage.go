@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
 
@@ -36,3 +37,14 @@ type FileNameValidator interface {
 type AuditEventLogger interface {
 	LogAuditEvent(ctx context.Context, action string, resource string, fields map[string]interface{})
 }
+
+// Compile-time assertions pinning the narrow-port contracts. Each concrete
+// infrastructure type structurally satisfies its respective port; these
+// `var _` lines catch interface drift (e.g. method rename / new method
+// added) at build time без needing a runtime test. Mirror v0.160.1 users
+// + v0.162.1 messaging pattern.
+var (
+	_ StorageClient     = (*storage.S3Client)(nil)
+	_ FileNameValidator = (*storage.FileValidator)(nil)
+	_ AuditEventLogger  = (*logging.AuditLogger)(nil)
+)
