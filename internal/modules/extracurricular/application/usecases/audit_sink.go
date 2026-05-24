@@ -14,12 +14,6 @@ type AuditSink interface {
 // the extracurricular bounded context.
 const auditResource = "extracurricular_event"
 
-// Pair 5 RED anchor — keeps helpers referenced until GREEN switches
-// stubs к real call sites. Removed in GREEN.
-//
-//nolint:gochecknoglobals,unused // anchor only
-var _ = []any{auditResource, emitAudit, actionFields, denialFields}
-
 // emitAudit dispatches an audit event. Nil sink → no-op so each
 // use-case site stays free of `if uc.audit != nil` clutter.
 func emitAudit(sink AuditSink, ctx context.Context, action string, fields map[string]any) {

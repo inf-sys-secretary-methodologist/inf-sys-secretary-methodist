@@ -2,9 +2,9 @@ package usecases
 
 import (
 	"context"
-	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/domain/repositories"
 )
 
 type getEventRepo interface {
@@ -12,7 +12,8 @@ type getEventRepo interface {
 }
 
 // GetEventUseCase fetches one event by id и applies audience filter
-// для non-admin callers.
+// для non-admin callers. Audience mismatch returns ErrEventNotFound
+// to hide existence per security best practice.
 type GetEventUseCase struct {
 	repo getEventRepo
 }
@@ -25,13 +26,17 @@ func NewGetEventUseCase(repo getEventRepo) *GetEventUseCase {
 	return &GetEventUseCase{repo: repo}
 }
 
-// Execute fetches the event и filters via CanViewEvent + isAdmin
-// для non-admin callers. Returns ErrEventNotFound для audience
-// mismatch — hides existence per security best practice. Pair 5 RED stub.
+// Execute fetches the event и applies audience filter.
 func (uc *GetEventUseCase) Execute(ctx context.Context, actorRole string, isAdmin bool, eventID int64) (*entities.ExtracurricularEvent, error) {
-	_ = ctx
-	_ = actorRole
-	_ = isAdmin
-	_ = eventID
-	return nil, errors.New("not implemented (Pair 5 RED stub)")
+	e, err := uc.repo.GetByID(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	if isAdmin {
+		return e, nil
+	}
+	if !entities.CanViewEvent(actorRole, e.TargetAudience()) {
+		return nil, repositories.ErrEventNotFound
+	}
+	return e, nil
 }

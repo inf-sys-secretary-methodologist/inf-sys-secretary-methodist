@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/domain/entities"
 )
@@ -27,12 +26,20 @@ func NewDeleteEventUseCase(repo deleteEventRepo, audit AuditSink) *DeleteEventUs
 	return &DeleteEventUseCase{repo: repo, audit: audit}
 }
 
-// Execute deletes the event after loading it for authz check. Pair 5 RED stub.
+// Execute loads + authz + deletes.
 func (uc *DeleteEventUseCase) Execute(ctx context.Context, actorID int64, actorRole string, isAdmin bool, eventID int64) error {
-	_ = actorID
-	_ = actorRole
-	_ = isAdmin
-	_ = eventID
-	_ = ctx
-	return errors.New("not implemented (Pair 5 RED stub)")
+	e, err := uc.repo.GetByID(ctx, eventID)
+	if err != nil {
+		return err
+	}
+	if err := entities.AuthorizeEventEdit(actorID, e.OrganizerID(), actorRole, isAdmin); err != nil {
+		emitAudit(uc.audit, ctx, "extracurricular.event_delete_denied",
+			denialFields(actorID, eventID, "not organizer / not admin", "forbidden"))
+		return err
+	}
+	if err := uc.repo.Delete(ctx, eventID); err != nil {
+		return err
+	}
+	emitAudit(uc.audit, ctx, "extracurricular.event_deleted", actionFields(actorID, eventID))
+	return nil
 }
