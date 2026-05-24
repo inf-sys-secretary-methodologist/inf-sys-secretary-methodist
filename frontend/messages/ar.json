@@ -205,7 +205,8 @@
     "integrations": "التكاملات",
     "composio": "Composio",
     "branding": "العلامة",
-    "usersCatalog": "دليل المستخدمين"
+    "usersCatalog": "دليل المستخدمين",
+    "extracurricular": "الفعاليات"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -3122,6 +3123,88 @@
         "notFound": "المستند غير موجود",
         "generic": "فشل إعادة إرسال المستند"
       }
+    }
+  },
+  "extracurricular": {
+    "title": "الفعاليات اللاصفية",
+    "description": "تقويم فعاليات المؤسسة — حفلات، مؤتمرات، أنشطة رياضية",
+    "loading": "جارٍ تحميل الفعاليات...",
+    "loadFailed": "فشل تحميل الفعاليات",
+    "empty": "لا توجد فعاليات",
+    "create": "إنشاء فعالية",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "register": "التسجيل",
+    "unregister": "إلغاء التسجيل",
+    "registered": "أنت مسجَّل",
+    "capacity": "السعة",
+    "organizer": "المنظِّم",
+    "participants": "المشاركون",
+    "location": "الموقع",
+    "startAt": "البداية",
+    "endAt": "النهاية",
+    "backToList": "العودة إلى القائمة",
+    "calendar": "التقويم",
+    "upcoming": "الفعاليات القادمة",
+    "confirmDelete": "حذف هذه الفعالية؟",
+    "confirmUnregister": "إلغاء التسجيل لهذه الفعالية؟",
+    "status": {
+      "label": "الحالة",
+      "all": "كل الحالات",
+      "draft": "مسودة",
+      "published": "منشورة",
+      "canceled": "ملغاة",
+      "completed": "منتهية"
+    },
+    "category": {
+      "label": "الفئة",
+      "all": "كل الفئات",
+      "academic": "أكاديمية",
+      "cultural": "ثقافية",
+      "sports": "رياضية",
+      "volunteer": "تطوعية",
+      "professional": "مهنية"
+    },
+    "audience": {
+      "label": "الجمهور",
+      "all": "الجميع",
+      "students": "الطلاب",
+      "teachers": "المدرسون",
+      "staff": "الموظفون"
+    },
+    "form": {
+      "createTitle": "فعالية جديدة",
+      "editTitle": "تعديل الفعالية",
+      "titleLabel": "العنوان",
+      "titlePlaceholder": "مثال: حفل الربيع",
+      "descriptionLabel": "الوصف",
+      "descriptionPlaceholder": "تفاصيل الفعالية...",
+      "categoryLabel": "الفئة",
+      "audienceLabel": "الجمهور المستهدف",
+      "locationLabel": "الموقع",
+      "locationPlaceholder": "مثال: القاعة الرئيسية",
+      "startAtLabel": "وقت البداية",
+      "endAtLabel": "وقت النهاية",
+      "maxCapacityLabel": "الحد الأقصى للمشاركين",
+      "maxCapacityPlaceholder": "اتركه فارغًا لعدم تحديد سقف",
+      "save": "حفظ",
+      "cancel": "إلغاء"
+    },
+    "actions": {
+      "publish": "نشر",
+      "cancel": "إلغاء",
+      "complete": "إنهاء"
+    },
+    "errors": {
+      "versionConflict": "تم تعديل الفعالية في علامة تبويب أخرى — أعد التحميل وحاول مجددًا",
+      "invalidEvent": "بيانات فعالية غير صالحة",
+      "alreadyRegistered": "أنت مسجَّل بالفعل في هذه الفعالية",
+      "eventFull": "لا توجد مقاعد متاحة",
+      "registrationClosed": "التسجيل مغلق لهذه الفعالية",
+      "cannotEdit": "لا يمكن تعديل الفعالية في حالتها الحالية",
+      "forbidden": "صلاحيات غير كافية لهذا الإجراء",
+      "notFound": "الفعالية غير موجودة",
+      "generic": "فشل تنفيذ الإجراء"
     }
   }
 }
