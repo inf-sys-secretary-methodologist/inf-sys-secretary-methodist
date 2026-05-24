@@ -205,7 +205,8 @@
     "integrations": "Integrations",
     "composio": "Composio",
     "branding": "Branding",
-    "usersCatalog": "User directory"
+    "usersCatalog": "User directory",
+    "extracurricular": "Events"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -3122,6 +3123,88 @@
         "notFound": "Document not found",
         "generic": "Failed to resubmit the document"
       }
+    }
+  },
+  "extracurricular": {
+    "title": "Extracurricular events",
+    "description": "Institution event calendar — concerts, conferences, sports activities",
+    "loading": "Loading events...",
+    "loadFailed": "Failed to load events",
+    "empty": "No events yet",
+    "create": "Create event",
+    "edit": "Edit",
+    "delete": "Delete",
+    "register": "Register",
+    "unregister": "Cancel registration",
+    "registered": "You are registered",
+    "capacity": "Capacity",
+    "organizer": "Organizer",
+    "participants": "Participants",
+    "location": "Location",
+    "startAt": "Starts",
+    "endAt": "Ends",
+    "backToList": "Back to list",
+    "calendar": "Calendar",
+    "upcoming": "Upcoming events",
+    "confirmDelete": "Delete this event?",
+    "confirmUnregister": "Cancel registration for this event?",
+    "status": {
+      "label": "Status",
+      "all": "All statuses",
+      "draft": "Draft",
+      "published": "Published",
+      "canceled": "Canceled",
+      "completed": "Completed"
+    },
+    "category": {
+      "label": "Category",
+      "all": "All categories",
+      "academic": "Academic",
+      "cultural": "Cultural",
+      "sports": "Sports",
+      "volunteer": "Volunteer",
+      "professional": "Professional"
+    },
+    "audience": {
+      "label": "Audience",
+      "all": "All",
+      "students": "Students",
+      "teachers": "Teachers",
+      "staff": "Staff"
+    },
+    "form": {
+      "createTitle": "New event",
+      "editTitle": "Edit event",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. Spring concert",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Event details...",
+      "categoryLabel": "Category",
+      "audienceLabel": "Target audience",
+      "locationLabel": "Location",
+      "locationPlaceholder": "e.g. Main hall",
+      "startAtLabel": "Starts at",
+      "endAtLabel": "Ends at",
+      "maxCapacityLabel": "Max participants",
+      "maxCapacityPlaceholder": "Leave empty for unlimited",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "actions": {
+      "publish": "Publish",
+      "cancel": "Cancel",
+      "complete": "Complete"
+    },
+    "errors": {
+      "versionConflict": "The event was modified in another tab — reload and retry",
+      "invalidEvent": "Invalid event data",
+      "alreadyRegistered": "You are already registered for this event",
+      "eventFull": "No seats remaining",
+      "registrationClosed": "Registration is closed for this event",
+      "cannotEdit": "Event cannot be edited in its current status",
+      "forbidden": "Insufficient permissions for this action",
+      "notFound": "Event not found",
+      "generic": "Failed to complete the action"
     }
   }
 }

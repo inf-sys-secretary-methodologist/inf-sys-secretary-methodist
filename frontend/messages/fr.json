@@ -205,7 +205,8 @@
     "integrations": "Intégrations",
     "composio": "Composio",
     "branding": "Marque",
-    "usersCatalog": "Annuaire des utilisateurs"
+    "usersCatalog": "Annuaire des utilisateurs",
+    "extracurricular": "Événements"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -3122,6 +3123,88 @@
         "notFound": "Document introuvable",
         "generic": "Échec de la soumission à nouveau du document"
       }
+    }
+  },
+  "extracurricular": {
+    "title": "Événements parascolaires",
+    "description": "Calendrier des événements — concerts, conférences, activités sportives",
+    "loading": "Chargement des événements...",
+    "loadFailed": "Échec du chargement des événements",
+    "empty": "Aucun événement",
+    "create": "Créer un événement",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "register": "S'inscrire",
+    "unregister": "Annuler l'inscription",
+    "registered": "Vous êtes inscrit(e)",
+    "capacity": "Capacité",
+    "organizer": "Organisateur",
+    "participants": "Participants",
+    "location": "Lieu",
+    "startAt": "Début",
+    "endAt": "Fin",
+    "backToList": "Retour à la liste",
+    "calendar": "Calendrier",
+    "upcoming": "Événements à venir",
+    "confirmDelete": "Supprimer cet événement ?",
+    "confirmUnregister": "Annuler l'inscription à cet événement ?",
+    "status": {
+      "label": "Statut",
+      "all": "Tous les statuts",
+      "draft": "Brouillon",
+      "published": "Publié",
+      "canceled": "Annulé",
+      "completed": "Terminé"
+    },
+    "category": {
+      "label": "Catégorie",
+      "all": "Toutes les catégories",
+      "academic": "Académique",
+      "cultural": "Culturel",
+      "sports": "Sportif",
+      "volunteer": "Bénévole",
+      "professional": "Professionnel"
+    },
+    "audience": {
+      "label": "Public",
+      "all": "Tous",
+      "students": "Étudiants",
+      "teachers": "Enseignants",
+      "staff": "Personnel"
+    },
+    "form": {
+      "createTitle": "Nouvel événement",
+      "editTitle": "Modifier l'événement",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "ex. Concert de printemps",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Détails de l'événement...",
+      "categoryLabel": "Catégorie",
+      "audienceLabel": "Public cible",
+      "locationLabel": "Lieu",
+      "locationPlaceholder": "ex. Grande salle",
+      "startAtLabel": "Début",
+      "endAtLabel": "Fin",
+      "maxCapacityLabel": "Participants maximum",
+      "maxCapacityPlaceholder": "Laisser vide pour illimité",
+      "save": "Enregistrer",
+      "cancel": "Annuler"
+    },
+    "actions": {
+      "publish": "Publier",
+      "cancel": "Annuler",
+      "complete": "Terminer"
+    },
+    "errors": {
+      "versionConflict": "L'événement a été modifié ailleurs — rechargez et réessayez",
+      "invalidEvent": "Données d'événement invalides",
+      "alreadyRegistered": "Vous êtes déjà inscrit(e) à cet événement",
+      "eventFull": "Aucune place disponible",
+      "registrationClosed": "Les inscriptions sont closes",
+      "cannotEdit": "L'événement ne peut pas être modifié dans son statut actuel",
+      "forbidden": "Permissions insuffisantes pour cette action",
+      "notFound": "Événement introuvable",
+      "generic": "Échec de l'action"
     }
   }
 }
