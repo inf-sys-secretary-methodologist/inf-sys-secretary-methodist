@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.161.1
+// @version         0.162.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -118,6 +118,9 @@ import (
 	docEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	docPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/infrastructure/persistence"
 	docHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
+	extUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/application/usecases"
+	extPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/infrastructure/persistence"
+	extHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/interfaces/http/handlers"
 	filesUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
 	filesPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/infrastructure/persistence"
 	filesHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/interfaces/http/handlers"
@@ -180,7 +183,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.161.1"
+const versionString = "0.162.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -2689,6 +2692,27 @@ func setupRoutes(
 				bulkDisciplineItemsGroup.OPTIONS("/sections/:sectionID/items/bulk", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 			logger.Info("Bulk DisciplineItem route registered", nil)
+		}
+
+		// Extracurricular module routes (B3, v0.162.0) — внеучебные мероприятия.
+		// Greenfield bounded context per plan docs/plans/2026-05-24-b3-extracurricular.md.
+		// Audience-aware list/get + organizer-only edit/delete + self-register.
+		{
+			extEventRepo := extPersistence.NewEventRepositoryPG(db)
+			createEventUC := extUsecases.NewCreateEventUseCase(extEventRepo, auditLogger, nil)
+			updateEventUC := extUsecases.NewUpdateEventUseCase(extEventRepo, auditLogger, nil, nil)
+			deleteEventUC := extUsecases.NewDeleteEventUseCase(extEventRepo, auditLogger)
+			getEventUC := extUsecases.NewGetEventUseCase(extEventRepo)
+			listEventsUC := extUsecases.NewListEventsUseCase(extEventRepo)
+			registerParticipantUC := extUsecases.NewRegisterParticipantUseCase(extEventRepo, auditLogger, nil)
+			unregisterParticipantUC := extUsecases.NewUnregisterParticipantUseCase(extEventRepo, auditLogger)
+
+			extracurricularHandler := extHandler.NewEventHandler(
+				createEventUC, updateEventUC, deleteEventUC, getEventUC,
+				listEventsUC, registerParticipantUC, unregisterParticipantUC,
+			)
+			extHandler.RegisterExtracurricularRoutes(protectedGroup, extracurricularHandler)
+			logger.Info("Extracurricular module routes registered", nil)
 		}
 
 		// Schedule/Events module routes
