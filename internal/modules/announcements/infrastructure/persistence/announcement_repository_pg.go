@@ -160,17 +160,55 @@ func (r *AnnouncementRepositoryPG) GetPublished(ctx context.Context, audience do
 	return r.scanAnnouncements(rows)
 }
 
-// GetByIDForAudience is the audience-filtered companion of GetByID.
-// Stub for v0.163.1 ADR-2 polish RED commit — SQL filter лежит в next
-// GREEN pair.
-func (r *AnnouncementRepositoryPG) GetByIDForAudience(_ context.Context, _ int64, _ []domain.TargetAudience) (*entities.Announcement, error) {
-	return nil, nil
+// GetByIDForAudience returns the announcement only if its target_audience
+// is one of the provided audiences. Defense-in-depth поверх handler-layer
+// clamp from v0.163.0. The handler computes the audience list via
+// domain.VisibleAudiences(role); the repo refuses anything outside it.
+//
+// An empty `audiences` slice yields no rows — explicit zero is safer
+// than "no filter" surprise.
+func (r *AnnouncementRepositoryPG) GetByIDForAudience(ctx context.Context, id int64, audiences []domain.TargetAudience) (*entities.Announcement, error) {
+	if len(audiences) == 0 {
+		return nil, nil
+	}
+	query := `
+		SELECT id, title, content, summary, author_id, status, priority,
+			target_audience, publish_at, expire_at, is_pinned, view_count,
+			tags, metadata, created_at, updated_at
+		FROM announcements
+		WHERE id = $1 AND target_audience = ANY($2)`
+
+	announcement := &entities.Announcement{}
+	var tags pq.StringArray
+
+	err := r.db.QueryRowContext(ctx, query, id, audienceStringArray(audiences)).Scan(
+		&announcement.ID, &announcement.Title, &announcement.Content,
+		&announcement.Summary, &announcement.AuthorID, &announcement.Status,
+		&announcement.Priority, &announcement.TargetAudience,
+		&announcement.PublishAt, &announcement.ExpireAt, &announcement.IsPinned,
+		&announcement.ViewCount, &tags, &announcement.Metadata,
+		&announcement.CreatedAt, &announcement.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	announcement.Tags = tags
+	return announcement, nil
 }
 
-// GetPinned retrieves pinned announcements. Audiences ignored in stub
-// (matches pre-polish behavior); GREEN commit adds `target_audience =
-// ANY($1)` к the SQL.
-func (r *AnnouncementRepositoryPG) GetPinned(ctx context.Context, _ []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
+// GetPinned retrieves pinned announcements visible к the caller's
+// audience set. SQL `target_audience = ANY($1)` is the canonical filter
+// — handler clamps caller role к audiences via domain.VisibleAudiences.
+//
+// An empty `audiences` slice yields no rows.
+func (r *AnnouncementRepositoryPG) GetPinned(ctx context.Context, audiences []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
+	if len(audiences) == 0 {
+		return nil, nil
+	}
 	query := `
 		SELECT id, title, content, summary, author_id, status, priority,
 			target_audience, publish_at, expire_at, is_pinned, view_count,
@@ -178,12 +216,13 @@ func (r *AnnouncementRepositoryPG) GetPinned(ctx context.Context, _ []domain.Tar
 		FROM announcements
 		WHERE is_pinned = true
 			AND status = 'published'
+			AND target_audience = ANY($1)
 			AND (publish_at IS NULL OR publish_at <= NOW())
 			AND (expire_at IS NULL OR expire_at > NOW())
 		ORDER BY priority DESC, created_at DESC
-		LIMIT $1`
+		LIMIT $2`
 
-	rows, err := r.db.QueryContext(ctx, query, limit)
+	rows, err := r.db.QueryContext(ctx, query, audienceStringArray(audiences), limit)
 	if err != nil {
 		return nil, err
 	}
@@ -192,26 +231,42 @@ func (r *AnnouncementRepositoryPG) GetPinned(ctx context.Context, _ []domain.Tar
 	return r.scanAnnouncements(rows)
 }
 
-// GetRecent — same stub pattern as GetPinned for the RED commit.
-func (r *AnnouncementRepositoryPG) GetRecent(ctx context.Context, _ []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
+// GetRecent retrieves recent announcements visible к the caller's
+// audience set. Same filter pattern as GetPinned.
+func (r *AnnouncementRepositoryPG) GetRecent(ctx context.Context, audiences []domain.TargetAudience, limit int) ([]*entities.Announcement, error) {
+	if len(audiences) == 0 {
+		return nil, nil
+	}
 	query := `
 		SELECT id, title, content, summary, author_id, status, priority,
 			target_audience, publish_at, expire_at, is_pinned, view_count,
 			tags, metadata, created_at, updated_at
 		FROM announcements
 		WHERE status = 'published'
+			AND target_audience = ANY($1)
 			AND (publish_at IS NULL OR publish_at <= NOW())
 			AND (expire_at IS NULL OR expire_at > NOW())
 		ORDER BY publish_at DESC NULLS LAST, created_at DESC
-		LIMIT $1`
+		LIMIT $2`
 
-	rows, err := r.db.QueryContext(ctx, query, limit)
+	rows, err := r.db.QueryContext(ctx, query, audienceStringArray(audiences), limit)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = rows.Close() }()
 
 	return r.scanAnnouncements(rows)
+}
+
+// audienceStringArray converts the domain typed slice to pq.StringArray
+// for `= ANY($N)` binding. Keeps the typed boundary at the repo edge —
+// callers pass domain.TargetAudience values, lib/pq sees strings.
+func audienceStringArray(audiences []domain.TargetAudience) pq.StringArray {
+	out := make(pq.StringArray, len(audiences))
+	for i, a := range audiences {
+		out[i] = string(a)
+	}
+	return out
 }
 
 // IncrementViewCount increments the view counter for an announcement.
