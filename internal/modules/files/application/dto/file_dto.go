@@ -9,9 +9,9 @@ import (
 
 // UploadFileInput представляет входные данные для загрузки файла.
 type UploadFileInput struct {
-	OriginalName string `json:"original_name" validate:"required,min=1,max=500"`
-	MimeType     string `json:"mime_type" validate:"required"`
-	Size         int64  `json:"size" validate:"required,min=1"`
+	OriginalName string `json:"original_name" binding:"required,min=1,max=500"`
+	MimeType     string `json:"mime_type" binding:"required"`
+	Size         int64  `json:"size" binding:"required,min=1"`
 	UserID       int64  `json:"-"` // Заполняется из контекста авторизации
 }
 
@@ -21,7 +21,9 @@ type UploadFileInput struct {
 // required for the ownership guard in AttachFile — they intentionally
 // have `json:"-"` so they cannot be overridden by request payload.
 type AttachFileInput struct {
-	FileID         int64               `json:"file_id" validate:"required"`
+	// FileID is populated from URL path в Attach handler after binding;
+	// no `binding:"required"` so request body need not repeat it.
+	FileID         int64               `json:"file_id"`
 	DocumentID     *int64              `json:"document_id"`
 	TaskID         *int64              `json:"task_id"`
 	AnnouncementID *int64              `json:"announcement_id"`
@@ -31,8 +33,10 @@ type AttachFileInput struct {
 
 // CreateVersionInput представляет входные данные для создания версии файла.
 type CreateVersionInput struct {
-	FileID   int64               `json:"file_id" validate:"required"`
-	Comment  string              `json:"comment" validate:"omitempty,max=500"`
+	// FileID is populated from URL path в CreateVersion handler after binding;
+	// no `binding:"required"` so request body need not repeat it.
+	FileID   int64               `json:"file_id"`
+	Comment  string              `json:"comment" binding:"omitempty,max=500"`
 	UserID   int64               `json:"-"` // Заполняется из контекста авторизации
 	UserRole authDomain.RoleType `json:"-"` // Заполняется из контекста авторизации
 }
@@ -68,11 +72,11 @@ type FileVersionResponse struct {
 
 // FileListResponse представляет ответ со списком файлов с пагинацией.
 type FileListResponse struct {
-	Files      interface{} `json:"files"`
-	Total      int64       `json:"total"`
-	Page       int         `json:"page"`
-	Limit      int         `json:"limit"`
-	TotalPages int         `json:"total_pages"`
+	Files      []*FileResponse `json:"files"`
+	Total      int64           `json:"total"`
+	Page       int             `json:"page"`
+	Limit      int             `json:"limit"`
+	TotalPages int             `json:"total_pages"`
 }
 
 // UploadResponse представляет ответ после успешной загрузки файла.

@@ -9,6 +9,12 @@ import (
 	"strings"
 )
 
+// sniffBufSize is the byte count read from an upload stream to match against
+// magic-byte signatures. 8 bytes covers the longest registered prefix (PNG).
+// Readers shorter than 8 bytes are tolerated — `reader.Read` returns the
+// available bytes and the prefix check uses the truncated length.
+const sniffBufSize = 8
+
 // FileValidator validates uploaded files
 type FileValidator struct {
 	maxFileSize       int64
@@ -236,8 +242,7 @@ func (v *FileValidator) sanitizeFileName(fileName string) string {
 
 // detectFileType detects file type based on magic bytes
 func (v *FileValidator) detectFileType(reader io.Reader) (string, error) {
-	// Read first 8 bytes for magic number detection
-	header := make([]byte, 8)
+	header := make([]byte, sniffBufSize)
 	n, err := reader.Read(header)
 	if err != nil && err != io.EOF {
 		return "", err
