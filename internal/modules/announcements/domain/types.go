@@ -98,8 +98,20 @@ func CanAccessAudience(role string, audience TargetAudience) bool {
 // v0.163.0): repo-layer SQL filter feeds from this matrix, so even a
 // usecase caller that forgot to clamp at the handler boundary won't leak
 // announcements addressed к audiences the role can't see.
-//
-// Stub: returns nil — actual matrix implemented in GREEN commit pair.
-func VisibleAudiences(_ string) []TargetAudience {
-	return nil
+func VisibleAudiences(role string) []TargetAudience {
+	switch role {
+	case "system_admin":
+		return []TargetAudience{
+			TargetAudienceAll, TargetAudienceStudents, TargetAudienceTeachers,
+			TargetAudienceStaff, TargetAudienceAdmins,
+		}
+	case "methodist", "academic_secretary":
+		return []TargetAudience{TargetAudienceAll, TargetAudienceStaff}
+	case "teacher":
+		return []TargetAudience{TargetAudienceAll, TargetAudienceTeachers}
+	case "student":
+		return []TargetAudience{TargetAudienceAll, TargetAudienceStudents}
+	default:
+		return []TargetAudience{TargetAudienceAll}
+	}
 }
