@@ -4,8 +4,8 @@ import "context"
 
 // EventNotifier is the narrow notification port. Concrete adapter
 // wired в main.go bridges to NotificationUseCase per plan ADR-7 —
-// backend slice (v0.162.0) defines the port; production wiring lands
-// в v0.163.0 alongside frontend.
+// backend slice (v0.164.0) defines the port; production wiring lands
+// в v0.165.0 alongside frontend.
 //
 // Methods correspond to the lifecycle events that surface к target
 // audience: published / canceled / completed / updated. Implementations
