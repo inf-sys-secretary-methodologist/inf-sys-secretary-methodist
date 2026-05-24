@@ -1016,6 +1016,5 @@ func TestNewUserHandler(t *testing.T) {
 	handler := NewUserHandler(uc)
 	assert.NotNil(t, handler)
 	assert.NotNil(t, handler.usecase)
-	assert.NotNil(t, handler.validator)
 	assert.NotNil(t, handler.sanitizer)
 }

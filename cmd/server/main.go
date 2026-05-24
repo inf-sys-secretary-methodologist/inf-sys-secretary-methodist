@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.162.1
+// @version         0.160.1
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -180,7 +180,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.162.1"
+const versionString = "0.160.1"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -268,7 +268,7 @@ func newMessagingUserExistenceChecker(userRepo usecases.UserRepository) messagin
 // Cross-module DI adapter pattern from v0.155.1 — announcements/
 // application stays free of direct users/application imports.
 type announcementUserIDsProvider struct {
-	repo usersRepositories.UserProfileRepository
+	repo usersUsecases.UserProfileRepository
 }
 
 // announcementFanOutPageLimit caps the per-role page so a single
@@ -926,7 +926,13 @@ func main() {
 		// error. gocritic: exitAfterDefer.
 		panic("auth user repository does not satisfy users.UserAccountRepository — CountByRole required for #283 ADR-4 last-admin guard")
 	}
-	userUseCase := usersUsecases.NewUserUseCase(usersUserAccountRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger, notificationUseCase)
+	// v0.160.1 polish Item 3: NotificationUseCase satisfies the
+	// users.SystemNotifier narrow port structurally (single method
+	// SendSystemNotification). The compile-time assertion below pins
+	// the contract — drift в either signature fails build, not request.
+	var _ usersUsecases.SystemNotifier = (*notifUsecases.NotificationUseCase)(nil)
+	userUseCase := usersUsecases.NewUserUseCase(usersUserAccountRepo, userProfileRepo, departmentRepo, positionRepo, auditLogger, notificationUseCase).
+		WithLifecycleContext(serverCtx)
 	departmentUseCase := usersUsecases.NewDepartmentUseCase(departmentRepo, auditLogger)
 	positionUseCase := usersUsecases.NewPositionUseCase(positionRepo, auditLogger)
 	logger.Info("Users module initialized", nil)
@@ -1706,7 +1712,7 @@ func setupRoutes(
 	db *sql.DB,
 	redisCache *cache.RedisCache,
 	userRepo usecases.UserRepository,
-	userProfileRepo usersRepositories.UserProfileRepository,
+	userProfileRepo usersUsecases.UserProfileRepository,
 	validator *validation.Validator,
 	jwtSecret []byte,
 	submitDocUseCase *docUsecases.SubmitDocumentUseCase,

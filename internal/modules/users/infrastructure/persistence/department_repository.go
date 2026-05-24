@@ -5,8 +5,8 @@ import (
 	"context"
 	"database/sql"
 
+	usersUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
 )
 
@@ -18,7 +18,7 @@ type DepartmentRepositoryPG struct {
 }
 
 // NewDepartmentRepositoryPG creates a new PostgreSQL department repository.
-func NewDepartmentRepositoryPG(db *sql.DB) repositories.DepartmentRepository {
+func NewDepartmentRepositoryPG(db *sql.DB) usersUsecases.DepartmentRepository {
 	return &DepartmentRepositoryPG{db: db}
 }
 

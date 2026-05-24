@@ -3,17 +3,17 @@ package dto
 
 // CreateDepartmentInput represents input for creating a department.
 type CreateDepartmentInput struct {
-	Name        string `json:"name" validate:"required,min=2,max=100"`
-	Code        string `json:"code" validate:"required,min=2,max=20,alphanum"`
-	Description string `json:"description" validate:"omitempty,max=500"`
+	Name        string `json:"name" binding:"required,min=2,max=100"`
+	Code        string `json:"code" binding:"required,min=2,max=20,alphanum"`
+	Description string `json:"description" binding:"omitempty,max=500"`
 	ParentID    *int64 `json:"parent_id"`
 }
 
 // UpdateDepartmentInput represents input for updating a department.
 type UpdateDepartmentInput struct {
-	Name        string `json:"name" validate:"required,min=2,max=100"`
-	Code        string `json:"code" validate:"required,min=2,max=20,alphanum"`
-	Description string `json:"description" validate:"omitempty,max=500"`
+	Name        string `json:"name" binding:"required,min=2,max=100"`
+	Code        string `json:"code" binding:"required,min=2,max=20,alphanum"`
+	Description string `json:"description" binding:"omitempty,max=500"`
 	ParentID    *int64 `json:"parent_id"`
 	HeadID      *int64 `json:"head_id"`
 	IsActive    *bool  `json:"is_active"`

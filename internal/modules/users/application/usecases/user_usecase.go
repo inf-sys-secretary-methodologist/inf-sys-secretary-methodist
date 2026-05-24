@@ -9,41 +9,61 @@ import (
 
 	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	authEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
-	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/dto"
 	usersDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // UserUseCase handles user management business logic.
 type UserUseCase struct {
-	userRepo            UserAccountRepository
-	userProfileRepo     repositories.UserProfileRepository
-	departmentRepo      repositories.DepartmentRepository
-	positionRepo        repositories.PositionRepository
-	auditLogger         *logging.AuditLogger
-	notificationUseCase *notifUsecases.NotificationUseCase
+	userRepo        UserAccountRepository
+	userProfileRepo UserProfileRepository
+	departmentRepo  DepartmentRepository
+	positionRepo    PositionRepository
+	auditSink       AuditSink
+	notifier        SystemNotifier
+	// lifecycleCtx replaces context.Background() in the
+	// UpdateUserRole + UpdateUserStatus fire-and-forget notification
+	// goroutines. main.go passes a server-lifecycle ctx through
+	// WithLifecycleContext so graceful shutdown cancels in-flight
+	// SendSystemNotification calls instead of leaking goroutines past
+	// server stop. Mirror к v0.162.1 messaging + v0.163.1 announcements
+	// pattern.
+	lifecycleCtx context.Context
 }
 
 // NewUserUseCase creates a new user use case.
 func NewUserUseCase(
 	userRepo UserAccountRepository,
-	userProfileRepo repositories.UserProfileRepository,
-	departmentRepo repositories.DepartmentRepository,
-	positionRepo repositories.PositionRepository,
-	auditLogger *logging.AuditLogger,
-	notificationUseCase *notifUsecases.NotificationUseCase,
+	userProfileRepo UserProfileRepository,
+	departmentRepo DepartmentRepository,
+	positionRepo PositionRepository,
+	auditSink AuditSink,
+	notifier SystemNotifier,
 ) *UserUseCase {
 	return &UserUseCase{
-		userRepo:            userRepo,
-		userProfileRepo:     userProfileRepo,
-		departmentRepo:      departmentRepo,
-		positionRepo:        positionRepo,
-		auditLogger:         auditLogger,
-		notificationUseCase: notificationUseCase,
+		userRepo:        userRepo,
+		userProfileRepo: userProfileRepo,
+		departmentRepo:  departmentRepo,
+		positionRepo:    positionRepo,
+		auditSink:       auditSink,
+		notifier:        notifier,
+		lifecycleCtx:    context.Background(),
 	}
+}
+
+// WithLifecycleContext registers the server-lifecycle ctx the
+// UpdateUserRole + UpdateUserStatus fire-and-forget goroutines should
+// use instead of context.Background(). Chainable; mirror к
+// v0.162.1 messaging + v0.163.1 announcement usecase setter shape.
+// Nil ctx is treated as no-op so existing test setups keep working
+// with the constructor's context.Background() default.
+func (uc *UserUseCase) WithLifecycleContext(ctx context.Context) *UserUseCase {
+	if ctx != nil {
+		uc.lifecycleCtx = ctx
+	}
+	return uc
 }
 
 // GetUser retrieves a user by ID with organizational info.
@@ -119,8 +139,8 @@ func (uc *UserUseCase) UpdateUserProfile(
 		// Audit emit denial: failed cross-edit attempts must NOT
 		// vanish from the trail (reviewer T1-3 / #283 ADR-1
 		// denial-path audit).
-		if uc.auditLogger != nil {
-			uc.auditLogger.LogAuditEvent(ctx, "update_denied", "user_profile", map[string]interface{}{
+		if uc.auditSink != nil {
+			uc.auditSink.LogAuditEvent(ctx, "update_denied", "user_profile", map[string]interface{}{
 				"actor_user_id":  actorID,
 				"target_user_id": targetID,
 				"reason":         "profile_edit_forbidden",
@@ -133,8 +153,8 @@ func (uc *UserUseCase) UpdateUserProfile(
 	// Empty key clears the avatar — always allowed.
 	if input.Avatar != "" {
 		if err := usersDomain.ValidateAvatarKey(input.Avatar, targetID); err != nil {
-			if uc.auditLogger != nil {
-				uc.auditLogger.LogAuditEvent(ctx, "update_denied", "user_profile", map[string]interface{}{
+			if uc.auditSink != nil {
+				uc.auditSink.LogAuditEvent(ctx, "update_denied", "user_profile", map[string]interface{}{
 					"actor_user_id":  actorID,
 					"target_user_id": targetID,
 					"reason":         "invalid_avatar_key",
@@ -171,8 +191,8 @@ func (uc *UserUseCase) UpdateUserProfile(
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "update", "user_profile", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "update", "user_profile", map[string]interface{}{
 			"actor_user_id":  actorID,
 			"target_user_id": targetID,
 			"department_id":  input.DepartmentID,
@@ -184,8 +204,13 @@ func (uc *UserUseCase) UpdateUserProfile(
 }
 
 // UpdateUserRole updates a user's role.
-func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *dto.UpdateUserRoleInput) error {
-	user, err := uc.userRepo.GetByID(ctx, userID)
+//
+// actorID is the calling user — recorded в the audit row alongside
+// target_user_id so role changes carry the same actor_user_id forensic
+// invariant as UpdateUserStatus/DeleteUser (v0.160.0 #283 ADR-4).
+// v0.160.1 polish Item 6.
+func (uc *UserUseCase) UpdateUserRole(ctx context.Context, actorID, targetID int64, input *dto.UpdateUserRoleInput) error {
+	user, err := uc.userRepo.GetByID(ctx, targetID)
 	if err != nil {
 		return err
 	}
@@ -199,20 +224,24 @@ func (uc *UserUseCase) UpdateUserRole(ctx context.Context, userID int64, input *
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "role_change", "user", map[string]interface{}{
-			"user_id":  userID,
-			"old_role": oldRole,
-			"new_role": user.Role,
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "role_change", "user", map[string]interface{}{
+			"actor_user_id":  actorID,
+			"target_user_id": targetID,
+			"old_role":       oldRole,
+			"new_role":       user.Role,
 		})
 	}
 
-	// Notify user about role change
-	if uc.notificationUseCase != nil {
-		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
-			_ = uc.notificationUseCase.SendSystemNotification(
-				context.Background(),
-				userID,
+	// Notify user about role change.
+	// Uses uc.lifecycleCtx so graceful shutdown can cancel in-flight
+	// sends instead of leaking the goroutine past server stop
+	// (v0.160.1 Item 5, mirror к v0.162.1 messaging + v0.163.1).
+	if uc.notifier != nil {
+		go func() { // #nosec G118 -- fire-and-forget goroutine; cancellable via uc.lifecycleCtx
+			_ = uc.notifier.SendSystemNotification(
+				uc.lifecycleCtx,
+				targetID,
 				"Изменение роли",
 				fmt.Sprintf("Ваша роль изменена на «%s»", input.Role),
 			)
@@ -249,12 +278,12 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID i
 			}
 		}
 		if guardErr := usersDomain.AuthorizeUserDelete(actorID, targetID, target.Role, adminHeadcount); guardErr != nil {
-			if uc.auditLogger != nil {
+			if uc.auditSink != nil {
 				reason := "cannot_delete_self"
 				if errors.Is(guardErr, usersDomain.ErrLastAdminProtected) {
 					reason = "last_admin_protected"
 				}
-				uc.auditLogger.LogAuditEvent(ctx, "status_change_denied", "user", map[string]interface{}{
+				uc.auditSink.LogAuditEvent(ctx, "status_change_denied", "user", map[string]interface{}{
 					"actor_user_id":  actorID,
 					"target_user_id": targetID,
 					"new_status":     input.Status,
@@ -281,8 +310,8 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID i
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "status_change", "user", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "status_change", "user", map[string]interface{}{
 			"actor_user_id":  actorID,
 			"target_user_id": targetID,
 			"old_status":     oldStatus,
@@ -290,9 +319,12 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID i
 		})
 	}
 
-	// Notify user about status change
-	if uc.notificationUseCase != nil {
-		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
+	// Notify user about status change.
+	// Uses uc.lifecycleCtx so graceful shutdown can cancel in-flight
+	// sends instead of leaking the goroutine past server stop
+	// (v0.160.1 Item 5, mirror к v0.162.1 messaging + v0.163.1).
+	if uc.notifier != nil {
+		go func() { // #nosec G118 -- fire-and-forget goroutine; cancellable via uc.lifecycleCtx
 			statusNames := map[string]string{
 				"active":   "активен",
 				"inactive": "неактивен",
@@ -302,8 +334,8 @@ func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, actorID, targetID i
 			if statusName == "" {
 				statusName = input.Status
 			}
-			_ = uc.notificationUseCase.SendSystemNotification(
-				context.Background(),
+			_ = uc.notifier.SendSystemNotification(
+				uc.lifecycleCtx,
 				targetID,
 				"Изменение статуса",
 				fmt.Sprintf("Ваш статус изменён на «%s»", statusName),
@@ -342,12 +374,12 @@ func (uc *UserUseCase) DeleteUser(ctx context.Context, actorID, targetID int64) 
 
 	if err := usersDomain.AuthorizeUserDelete(actorID, targetID, target.Role, adminHeadcount); err != nil {
 		// Audit emit denial (reviewer T1-3).
-		if uc.auditLogger != nil {
+		if uc.auditSink != nil {
 			reason := "cannot_delete_self"
 			if errors.Is(err, usersDomain.ErrLastAdminProtected) {
 				reason = "last_admin_protected"
 			}
-			uc.auditLogger.LogAuditEvent(ctx, "delete_denied", "user", map[string]interface{}{
+			uc.auditSink.LogAuditEvent(ctx, "delete_denied", "user", map[string]interface{}{
 				"actor_user_id":  actorID,
 				"target_user_id": targetID,
 				"reason":         reason,
@@ -360,8 +392,8 @@ func (uc *UserUseCase) DeleteUser(ctx context.Context, actorID, targetID int64) 
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "delete", "user", map[string]interface{}{
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "delete", "user", map[string]interface{}{
 			"actor_user_id":  actorID,
 			"target_user_id": targetID,
 		})
@@ -371,7 +403,10 @@ func (uc *UserUseCase) DeleteUser(ctx context.Context, actorID, targetID int64) 
 }
 
 // BulkUpdateDepartment assigns multiple users to a department.
-func (uc *UserUseCase) BulkUpdateDepartment(ctx context.Context, input *dto.BulkUpdateDepartmentInput) error {
+//
+// actorID is the calling user — recorded в the audit row для forensic
+// parity с UpdateUserStatus/DeleteUser shape (v0.160.1 polish Item 6).
+func (uc *UserUseCase) BulkUpdateDepartment(ctx context.Context, actorID int64, input *dto.BulkUpdateDepartmentInput) error {
 	// Verify department exists if provided
 	if input.DepartmentID != nil {
 		_, err := uc.departmentRepo.GetByID(ctx, *input.DepartmentID)
@@ -385,10 +420,11 @@ func (uc *UserUseCase) BulkUpdateDepartment(ctx context.Context, input *dto.Bulk
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "bulk_department_update", "user_profile", map[string]interface{}{
-			"user_ids":      input.UserIDs,
-			"department_id": input.DepartmentID,
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "bulk_department_update", "user_profile", map[string]interface{}{
+			"actor_user_id":   actorID,
+			"target_user_ids": input.UserIDs,
+			"department_id":   input.DepartmentID,
 		})
 	}
 
@@ -396,7 +432,10 @@ func (uc *UserUseCase) BulkUpdateDepartment(ctx context.Context, input *dto.Bulk
 }
 
 // BulkUpdatePosition assigns multiple users to a position.
-func (uc *UserUseCase) BulkUpdatePosition(ctx context.Context, input *dto.BulkUpdatePositionInput) error {
+//
+// actorID is the calling user — recorded в the audit row для forensic
+// parity с UpdateUserStatus/DeleteUser shape (v0.160.1 polish Item 6).
+func (uc *UserUseCase) BulkUpdatePosition(ctx context.Context, actorID int64, input *dto.BulkUpdatePositionInput) error {
 	// Verify position exists if provided
 	if input.PositionID != nil {
 		_, err := uc.positionRepo.GetByID(ctx, *input.PositionID)
@@ -410,10 +449,11 @@ func (uc *UserUseCase) BulkUpdatePosition(ctx context.Context, input *dto.BulkUp
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "bulk_position_update", "user_profile", map[string]interface{}{
-			"user_ids":    input.UserIDs,
-			"position_id": input.PositionID,
+	if uc.auditSink != nil {
+		uc.auditSink.LogAuditEvent(ctx, "bulk_position_update", "user_profile", map[string]interface{}{
+			"actor_user_id":   actorID,
+			"target_user_ids": input.UserIDs,
+			"position_id":     input.PositionID,
 		})
 	}
 

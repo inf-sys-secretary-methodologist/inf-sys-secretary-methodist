@@ -5,8 +5,8 @@ import (
 	"context"
 	"database/sql"
 
+	usersUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
 )
 
@@ -16,7 +16,7 @@ type PositionRepositoryPG struct {
 }
 
 // NewPositionRepositoryPG creates a new PostgreSQL position repository.
-func NewPositionRepositoryPG(db *sql.DB) repositories.PositionRepository {
+func NewPositionRepositoryPG(db *sql.DB) usersUsecases.PositionRepository {
 	return &PositionRepositoryPG{db: db}
 }
 

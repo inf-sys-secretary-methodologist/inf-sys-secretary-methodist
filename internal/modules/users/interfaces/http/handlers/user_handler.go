@@ -12,7 +12,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
 // asString safely coerces an interface{} into a string, returning ""
@@ -32,15 +31,19 @@ func asString(v interface{}) string {
 // UserHandler handles HTTP requests for user management.
 type UserHandler struct {
 	usecase   *usecases.UserUseCase
-	validator *validation.Validator
 	sanitizer *sanitization.Sanitizer
 }
 
 // NewUserHandler creates a new user handler.
+//
+// v0.160.1 polish Item 4 follow-up: the standalone *validation.Validator
+// dropped — after the validate:→binding: rename, `c.ShouldBindJSON`
+// fires Gin's internal go-playground/validator on the `binding:` tags,
+// и the explicit second pass became dead code (validator default tag
+// is `validate:`, no longer present on these DTOs).
 func NewUserHandler(usecase *usecases.UserUseCase) *UserHandler {
 	return &UserHandler{
 		usecase:   usecase,
-		validator: validation.NewValidator(),
 		sanitizer: sanitization.NewSanitizer(),
 	}
 }
@@ -109,12 +112,6 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	input.Avatar = h.sanitizer.SanitizeString(input.Avatar)
 	input.Bio = h.sanitizer.SanitizeString(input.Bio)
 
-	if err := h.validator.Validate(input); err != nil {
-		resp := response.BadRequest(err.Error())
-		c.JSON(http.StatusBadRequest, resp)
-		return
-	}
-
 	// Authorization: actor must be the target user (self-edit) OR
 	// system_admin (override). The usecase enforces the rule via the
 	// domain free function; the handler just supplies the inputs from
@@ -158,14 +155,18 @@ func (h *UserHandler) UpdateRole(c *gin.Context) {
 
 	input.Role = h.sanitizer.SanitizeString(input.Role)
 
-	if err := h.validator.Validate(input); err != nil {
-		resp := response.BadRequest(err.Error())
-		c.JSON(http.StatusBadRequest, resp)
+	// Actor identity required for audit forensic invariant (v0.160.1
+	// Item 6 — role change must record who triggered it).
+	actorIDRaw, exists := c.Get("user_id")
+	if !exists {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
 		return
 	}
+	actorID, _ := actorIDRaw.(int64)
 
 	ctx := c.Request.Context()
-	if err := h.usecase.UpdateUserRole(ctx, id, &input); err != nil {
+	if err := h.usecase.UpdateUserRole(ctx, actorID, id, &input); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return
@@ -191,12 +192,6 @@ func (h *UserHandler) UpdateStatus(c *gin.Context) {
 	}
 
 	input.Status = h.sanitizer.SanitizeString(input.Status)
-
-	if err := h.validator.Validate(input); err != nil {
-		resp := response.BadRequest(err.Error())
-		c.JSON(http.StatusBadRequest, resp)
-		return
-	}
 
 	// Actor identity required by usecase last-admin guard (#283 ADR-4).
 	actorIDRaw, exists := c.Get("user_id")
@@ -258,14 +253,17 @@ func (h *UserHandler) BulkUpdateDepartment(c *gin.Context) {
 		return
 	}
 
-	if err := h.validator.Validate(input); err != nil {
-		resp := response.BadRequest(err.Error())
-		c.JSON(http.StatusBadRequest, resp)
+	// Actor identity for audit forensic invariant (v0.160.1 Item 6).
+	actorIDRaw, exists := c.Get("user_id")
+	if !exists {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
 		return
 	}
+	actorID, _ := actorIDRaw.(int64)
 
 	ctx := c.Request.Context()
-	if err := h.usecase.BulkUpdateDepartment(ctx, &input); err != nil {
+	if err := h.usecase.BulkUpdateDepartment(ctx, actorID, &input); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return
@@ -283,14 +281,17 @@ func (h *UserHandler) BulkUpdatePosition(c *gin.Context) {
 		return
 	}
 
-	if err := h.validator.Validate(input); err != nil {
-		resp := response.BadRequest(err.Error())
-		c.JSON(http.StatusBadRequest, resp)
+	// Actor identity for audit forensic invariant (v0.160.1 Item 6).
+	actorIDRaw, exists := c.Get("user_id")
+	if !exists {
+		resp := response.Unauthorized("Требуется авторизация")
+		c.JSON(http.StatusUnauthorized, resp)
 		return
 	}
+	actorID, _ := actorIDRaw.(int64)
 
 	ctx := c.Request.Context()
-	if err := h.usecase.BulkUpdatePosition(ctx, &input); err != nil {
+	if err := h.usecase.BulkUpdatePosition(ctx, actorID, &input); err != nil {
 		httpErr := response.MapDomainError(err)
 		c.JSON(httpErr.Status, httpErr.Response)
 		return
