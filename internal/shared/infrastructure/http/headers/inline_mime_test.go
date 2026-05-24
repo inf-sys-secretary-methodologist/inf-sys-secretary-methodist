@@ -1,11 +1,11 @@
-package http_test
+package headers_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	handlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/headers"
 )
 
 // TestIsInlineSafeMime guards the v0.156.0 ADR-2 whitelist (#266).
@@ -46,7 +46,7 @@ func TestIsInlineSafeMime(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, handlers.IsInlineSafeMime(tt.mime),
+			assert.Equal(t, tt.expected, headers.IsInlineSafeMime(tt.mime),
 				"mime %q expected safe=%v", tt.mime, tt.expected)
 		})
 	}

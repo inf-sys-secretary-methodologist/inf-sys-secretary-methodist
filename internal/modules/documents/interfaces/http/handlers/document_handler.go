@@ -14,6 +14,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/headers"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/sanitization"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
@@ -409,9 +410,9 @@ func (h *DocumentHandler) DownloadFile(c *gin.Context) {
 	// v0.156.0 ADR-2 (#266): inline preview only для whitelisted MIMEs;
 	// non-whitelisted forced к attachment regardless of ?inline=true to
 	// avoid clickjacking via scriptable/executable downloads.
-	isInline := c.Query("inline") == "true" && IsInlineSafeMime(fileInfo.ContentType)
+	isInline := c.Query("inline") == "true" && headers.IsInlineSafeMime(fileInfo.ContentType)
 	if isInline {
-		c.Header("Content-Disposition", BuildContentDisposition("inline", fileInfo.FileName))
+		c.Header("Content-Disposition", headers.BuildContentDisposition("inline", fileInfo.FileName))
 		// Restrict iframe embedding к same-origin (СОХРАНЯЕМ frame-ancestors
 		// 'self' вместо wildcard `*`) — previous wildcard CSP открывал
 		// clickjacking vector. Same-origin allows internal preview без
@@ -419,7 +420,7 @@ func (h *DocumentHandler) DownloadFile(c *gin.Context) {
 		c.Header("X-Frame-Options", "SAMEORIGIN")
 		c.Header("Content-Security-Policy", "frame-ancestors 'self'")
 	} else {
-		c.Header("Content-Disposition", BuildContentDisposition("attachment", fileInfo.FileName))
+		c.Header("Content-Disposition", headers.BuildContentDisposition("attachment", fileInfo.FileName))
 	}
 	c.Header("Content-Type", fileInfo.ContentType)
 	c.Header("Content-Length", strconv.FormatInt(fileInfo.Size, 10))
