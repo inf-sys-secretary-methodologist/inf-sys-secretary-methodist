@@ -111,3 +111,106 @@ func TestMessagingUseCase_SendMessage_FanOutUsesLifecycleContext(t *testing.T) {
 	require.True(t, ok, "notifier ctx must carry lifecycle sentinel value")
 	assert.Equal(t, sentinel, got)
 }
+
+// TestMessagingUseCase_SystemMessageTexts_RoutedThroughConfig pins
+// v0.162.1 polish Item 4: system message content is sourced from the
+// configured SystemMessageTexts value, not from string literals
+// embedded в the usecase. Verifies all three lifecycle paths
+// (group create / join / leave) read the configured field. Table-
+// driven per CLAUDE.md ≥3-variant gate.
+func TestMessagingUseCase_SystemMessageTexts_RoutedThroughConfig(t *testing.T) {
+	cases := []struct {
+		name     string
+		texts    SystemMessageTexts
+		exercise func(t *testing.T, uc *MessagingUseCase, msgRepo *MockMessageRepository, convRepo *MockConversationRepository)
+		want     string
+	}{
+		{
+			name:  "group_created",
+			texts: SystemMessageTexts{GroupCreated: "Создана группа"},
+			exercise: func(t *testing.T, uc *MessagingUseCase, msgRepo *MockMessageRepository, convRepo *MockConversationRepository) {
+				t.Helper()
+				convRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Conversation")).Return(nil)
+				msgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
+				_, err := uc.CreateGroupConversation(context.Background(), 1, dto.CreateGroupConversationInput{
+					Title:          "T",
+					ParticipantIDs: []int64{2},
+				})
+				require.NoError(t, err)
+			},
+			want: "Создана группа",
+		},
+		{
+			name:  "user_joined",
+			texts: SystemMessageTexts{UserJoined: "Пользователь присоединился"},
+			exercise: func(t *testing.T, uc *MessagingUseCase, msgRepo *MockMessageRepository, convRepo *MockConversationRepository) {
+				t.Helper()
+				conv := &entities.Conversation{
+					ID:   1,
+					Type: entities.ConversationTypeGroup,
+					Participants: []entities.Participant{
+						{UserID: 1, Role: entities.ParticipantRoleAdmin},
+					},
+				}
+				convRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+				convRepo.On("AddParticipant", mock.Anything, mock.AnythingOfType("*entities.Participant")).Return(nil)
+				msgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
+				err := uc.AddParticipants(context.Background(), 1, 1, dto.AddParticipantsInput{
+					UserIDs: []int64{42},
+				})
+				require.NoError(t, err)
+			},
+			want: "Пользователь присоединился",
+		},
+		{
+			name:  "user_left",
+			texts: SystemMessageTexts{UserLeft: "Пользователь покинул"},
+			exercise: func(t *testing.T, uc *MessagingUseCase, msgRepo *MockMessageRepository, convRepo *MockConversationRepository) {
+				t.Helper()
+				conv := &entities.Conversation{
+					ID:   1,
+					Type: entities.ConversationTypeGroup,
+					Participants: []entities.Participant{
+						{UserID: 1, Role: entities.ParticipantRoleMember},
+						{UserID: 2, Role: entities.ParticipantRoleAdmin},
+					},
+				}
+				convRepo.On("GetByID", mock.Anything, int64(1)).Return(conv, nil)
+				convRepo.On("RemoveParticipant", mock.Anything, int64(1), int64(1)).Return(nil)
+				msgRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Message")).Return(nil)
+				err := uc.LeaveConversation(context.Background(), 1, 1)
+				require.NoError(t, err)
+			},
+			want: "Пользователь покинул",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockConvRepo := new(MockConversationRepository)
+			mockMsgRepo := new(MockMessageRepository)
+			logger := createTestLogger()
+			hub := websocket.NewHub(logger)
+			uc := NewMessagingUseCase(mockConvRepo, mockMsgRepo, hub, logger, nil, nil).
+				WithSystemMessageTexts(tc.texts)
+
+			tc.exercise(t, uc, mockMsgRepo, mockConvRepo)
+
+			// Find the system message create call and assert content
+			// matches the configured text.
+			found := false
+			for _, call := range mockMsgRepo.Calls {
+				if call.Method != "Create" {
+					continue
+				}
+				msg, ok := call.Arguments[1].(*entities.Message)
+				if !ok || msg.Type != entities.MessageTypeSystem {
+					continue
+				}
+				assert.Equal(t, tc.want, msg.Content)
+				found = true
+			}
+			assert.True(t, found, "expected a system message to be created")
+		})
+	}
+}

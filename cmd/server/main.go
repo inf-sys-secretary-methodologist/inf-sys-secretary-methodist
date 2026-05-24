@@ -126,6 +126,7 @@ import (
 	messagingPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/persistence"
 	messagingWebsocket "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/infrastructure/websocket"
 	messagingHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http"
+	messagingMessages "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/messaging/interfaces/http/messages"
 	notifDTO "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
 	notifServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
@@ -959,7 +960,12 @@ func main() {
 	messagingUseCase := messagingUsecases.NewMessagingUseCase(conversationRepo, messageRepo, messagingHub, logger, messageNotifier, s3Client).
 		WithAuditSink(auditLogger).
 		WithUserExistenceChecker(newMessagingUserExistenceChecker(userRepo)).
-		WithLifecycleContext(serverCtx)
+		WithLifecycleContext(serverCtx).
+		WithSystemMessageTexts(messagingUsecases.SystemMessageTexts{
+			GroupCreated: messagingMessages.SystemGroupCreated,
+			UserJoined:   messagingMessages.SystemUserJoined,
+			UserLeft:     messagingMessages.SystemUserLeft,
+		})
 	logger.Info("Messaging module initialized", nil)
 
 	// Initialize files module

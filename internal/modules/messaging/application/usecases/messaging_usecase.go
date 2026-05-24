@@ -23,6 +23,24 @@ type MessageNotifier interface {
 	NotifyNewMessage(ctx context.Context, userID int64, senderName, content string, conversationID, messageID int64) error
 }
 
+// SystemMessageTexts holds the user-facing strings the usecase writes
+// as system message content on conversation lifecycle events
+// (group created / participant joined / participant left). The
+// usecase reads these from the configured value rather than embedding
+// literals, satisfying the CLAUDE.md Clean Architecture gate ("UI-строки
+// — в `handler/messages`, ... НЕ в usecase"). main.go wires the
+// production strings from
+// internal/modules/messaging/interfaces/http/messages.
+//
+// Empty fields are the zero-value default — existing test setups that
+// do not need a specific system message body keep working without
+// wiring up texts.
+type SystemMessageTexts struct {
+	GroupCreated string
+	UserJoined   string
+	UserLeft     string
+}
+
 // UserExistenceChecker is a narrow port over the users module used to
 // validate recipients / participants before a conversation is created.
 // v0.162.0 ADR-3 (#297): without this check, sequential RecipientID
@@ -47,6 +65,7 @@ type MessagingUseCase struct {
 	s3Client         *storage.S3Client
 	auditSink        AuditSink
 	userExistence    UserExistenceChecker
+	systemMessages   SystemMessageTexts
 	// lifecycleCtx replaces context.Background() in the SendMessage
 	// fan-out goroutine. main.go passes a server-lifecycle ctx through
 	// WithLifecycleContext so graceful shutdown cancels in-flight
@@ -100,6 +119,18 @@ func (uc *MessagingUseCase) WithAuditSink(sink AuditSink) *MessagingUseCase {
 // entities.ErrInvalidParticipants response.
 func (uc *MessagingUseCase) WithUserExistenceChecker(checker UserExistenceChecker) *MessagingUseCase {
 	uc.userExistence = checker
+	return uc
+}
+
+// WithSystemMessageTexts registers the user-facing strings the
+// usecase writes as system message content on conversation lifecycle
+// events. main.go wires the production strings from the
+// interfaces/http/messages package (CA UI/messaging seam). Chainable.
+//
+// Pass zero-value defaults are acceptable for tests that don't care
+// about the rendered text.
+func (uc *MessagingUseCase) WithSystemMessageTexts(texts SystemMessageTexts) *MessagingUseCase {
+	uc.systemMessages = texts
 	return uc
 }
 
@@ -221,7 +252,7 @@ func (uc *MessagingUseCase) CreateGroupConversation(ctx context.Context, creator
 	}
 
 	// Send system message
-	systemMsg := entities.NewSystemMessage(conv.ID, "Group created")
+	systemMsg := entities.NewSystemMessage(conv.ID, uc.systemMessages.GroupCreated)
 	if err := uc.messageRepo.Create(ctx, systemMsg); err != nil {
 		uc.logger.Error("failed to create system message", map[string]interface{}{
 			"error":           err.Error(),
@@ -408,7 +439,7 @@ func (uc *MessagingUseCase) AddParticipants(ctx context.Context, userID, convers
 		}
 
 		// Send system message
-		systemMsg := entities.NewSystemMessage(conversationID, "User joined the chat")
+		systemMsg := entities.NewSystemMessage(conversationID, uc.systemMessages.UserJoined)
 		if err := uc.messageRepo.Create(ctx, systemMsg); err != nil {
 			uc.logger.Error("failed to create system message", map[string]interface{}{
 				"error": err.Error(),
@@ -452,7 +483,7 @@ func (uc *MessagingUseCase) LeaveConversation(ctx context.Context, userID, conve
 	}
 
 	// Send system message
-	systemMsg := entities.NewSystemMessage(conversationID, "User left the chat")
+	systemMsg := entities.NewSystemMessage(conversationID, uc.systemMessages.UserLeft)
 	if err := uc.messageRepo.Create(ctx, systemMsg); err != nil {
 		uc.logger.Error("failed to create system message", map[string]interface{}{
 			"error": err.Error(),
