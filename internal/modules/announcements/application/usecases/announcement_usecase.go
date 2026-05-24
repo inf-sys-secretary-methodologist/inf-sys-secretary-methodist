@@ -366,11 +366,9 @@ func (uc *AnnouncementUseCase) Publish(ctx context.Context, userID int64, id int
 	// the server-lifecycle ctx so graceful shutdown can cancel
 	// in-flight sends instead of orphaning the goroutine.
 	if uc.notifier != nil && uc.userIDsProvider != nil {
-		go func() { // #nosec G118 -- fire-and-forget goroutine outlives request
-			// v0.163.1 polish RED: stub hardcodes audience and uses
-			// context.Background(); GREEN scopes к announcement audience
-			// and uses uc.lifecycleCtx.
-			userIDs, err := uc.userIDsProvider.GetUserIDsForAudience(context.Background(), domain.TargetAudienceAll)
+		audience := announcement.TargetAudience
+		go func() { // #nosec G118 -- fire-and-forget goroutine; cancellable via uc.lifecycleCtx
+			userIDs, err := uc.userIDsProvider.GetUserIDsForAudience(uc.lifecycleCtx, audience)
 			if err != nil {
 				return
 			}
@@ -380,7 +378,7 @@ func (uc *AnnouncementUseCase) Publish(ctx context.Context, userID int64, id int
 					summary = *announcement.Summary
 				}
 				_ = uc.notifier.SendSystemNotification(
-					context.Background(),
+					uc.lifecycleCtx,
 					uid,
 					fmt.Sprintf("Объявление: %s", announcement.Title),
 					summary,
