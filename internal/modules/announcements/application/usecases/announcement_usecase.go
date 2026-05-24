@@ -10,7 +10,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/announcements/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 var (
@@ -46,7 +45,7 @@ type SystemNotifier interface {
 // AnnouncementUseCase handles announcement business logic.
 type AnnouncementUseCase struct {
 	repo              AnnouncementRepository
-	auditLogger       *logging.AuditLogger
+	audit             AuditSink
 	notifier          SystemNotifier
 	userIDsProvider   UserIDsProvider
 	attachmentStorage AttachmentStorage // optional; wired via SetAttachmentStorage
@@ -57,16 +56,19 @@ type AnnouncementUseCase struct {
 	lifecycleCtx context.Context
 }
 
-// NewAnnouncementUseCase creates a new AnnouncementUseCase.
+// NewAnnouncementUseCase creates a new AnnouncementUseCase. The audit
+// arg is the narrow AuditSink port — pass *logging.AuditLogger in
+// production, a recording fake in tests. Nil sink is treated as a
+// silent no-op at every call site.
 func NewAnnouncementUseCase(
 	repo AnnouncementRepository,
-	auditLogger *logging.AuditLogger,
+	audit AuditSink,
 	notifier SystemNotifier,
 	userIDsProvider UserIDsProvider,
 ) *AnnouncementUseCase {
 	return &AnnouncementUseCase{
 		repo:            repo,
-		auditLogger:     auditLogger,
+		audit:           audit,
 		notifier:        notifier,
 		userIDsProvider: userIDsProvider,
 		lifecycleCtx:    context.Background(),
@@ -107,8 +109,8 @@ func (uc *AnnouncementUseCase) Create(ctx context.Context, userID int64, req *dt
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.created", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.created", "announcement", map[string]interface{}{
 			"announcement_id": announcement.ID,
 			"title":           announcement.Title,
 			"author_id":       userID,
@@ -216,8 +218,8 @@ func (uc *AnnouncementUseCase) Update(ctx context.Context, userID int64, id int6
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.updated", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.updated", "announcement", map[string]interface{}{
 			"announcement_id": announcement.ID,
 			"updated_by":      userID,
 		})
@@ -244,8 +246,8 @@ func (uc *AnnouncementUseCase) Delete(ctx context.Context, userID int64, id int6
 		return err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.deleted", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.deleted", "announcement", map[string]interface{}{
 			"announcement_id": id,
 			"deleted_by":      userID,
 		})
@@ -353,8 +355,8 @@ func (uc *AnnouncementUseCase) Publish(ctx context.Context, userID int64, id int
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.published", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.published", "announcement", map[string]interface{}{
 			"announcement_id": announcement.ID,
 			"published_by":    userID,
 		})
@@ -412,8 +414,8 @@ func (uc *AnnouncementUseCase) Unpublish(ctx context.Context, userID int64, id i
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.unpublished", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.unpublished", "announcement", map[string]interface{}{
 			"announcement_id": announcement.ID,
 			"unpublished_by":  userID,
 		})
@@ -444,8 +446,8 @@ func (uc *AnnouncementUseCase) Archive(ctx context.Context, userID int64, id int
 		return nil, err
 	}
 
-	if uc.auditLogger != nil {
-		uc.auditLogger.LogAuditEvent(ctx, "announcement.archived", "announcement", map[string]interface{}{
+	if uc.audit != nil {
+		uc.audit.LogAuditEvent(ctx, "announcement.archived", "announcement", map[string]interface{}{
 			"announcement_id": announcement.ID,
 			"archived_by":     userID,
 		})
