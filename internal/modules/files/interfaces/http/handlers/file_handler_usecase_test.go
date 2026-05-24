@@ -28,7 +28,6 @@ import (
 	authMiddleware "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/interfaces/http/middleware"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
 )
 
 // fakeFileMetaRepo — in-memory FileMetadataRepository satisfying
@@ -140,7 +139,7 @@ func (r *fakeFileMetaRepo) CleanupExpired(_ context.Context) (int64, error) {
 }
 
 // satisfy compile-time interface check
-var _ repositories.FileMetadataRepository = (*fakeFileMetaRepo)(nil)
+var _ usecases.FileMetadataRepository = (*fakeFileMetaRepo)(nil)
 
 // authMW устанавливает user_id + role в Gin context, как production middleware.
 //

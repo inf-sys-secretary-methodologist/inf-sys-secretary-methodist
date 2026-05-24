@@ -1,4 +1,4 @@
-package http
+package headers
 
 import (
 	"mime"
@@ -6,10 +6,10 @@ import (
 )
 
 // BuildContentDisposition formats a Content-Disposition header value
-// safely (v0.156.0 ADR-3 #266). Pre-fix DownloadFile concatenated
-// fileInfo.FileName directly into the header — attacker-controlled
-// filename could inject CRLF response headers; non-ASCII filenames
-// rendered incorrectly per RFC 2616.
+// safely (v0.156.0 ADR-3 #266). Pre-fix the documents DownloadFile
+// concatenated attacker-controlled filename directly into the header —
+// CRLF injection vector; non-ASCII filenames rendered incorrectly per
+// RFC 2616.
 //
 // Post-fix:
 //   - control bytes (\r, \n, \x00 etc.) stripped from filename
@@ -26,7 +26,7 @@ func BuildContentDisposition(disposition, filename string) string {
 	formatted := mime.FormatMediaType(disposition, map[string]string{"filename": safe})
 	if formatted == "" {
 		// FormatMediaType returns empty on invalid input; should not
-		// happen after stripControlBytes, but use a safe fallback to
+		// happen after stripControlBytes, но use a safe fallback to
 		// avoid panic / blank header.
 		return disposition + `; filename="file"`
 	}

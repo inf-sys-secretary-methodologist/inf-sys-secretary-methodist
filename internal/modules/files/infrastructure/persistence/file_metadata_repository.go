@@ -6,8 +6,8 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/database"
 )
 
@@ -17,7 +17,7 @@ type FileMetadataRepositoryPG struct {
 }
 
 // NewFileMetadataRepositoryPG создаёт новый PostgreSQL репозиторий метаданных файлов.
-func NewFileMetadataRepositoryPG(db *sql.DB) repositories.FileMetadataRepository {
+func NewFileMetadataRepositoryPG(db *sql.DB) usecases.FileMetadataRepository {
 	return &FileMetadataRepositoryPG{db: db}
 }
 

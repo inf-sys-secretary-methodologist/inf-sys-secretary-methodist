@@ -1,4 +1,4 @@
-package http_test
+package headers_test
 
 import (
 	"strings"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	handlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/headers"
 )
 
 // TestBuildContentDisposition guards v0.156.0 ADR-3 (#266): header
@@ -81,7 +81,7 @@ func TestBuildContentDisposition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := handlers.BuildContentDisposition(tt.disposition, tt.filename)
+			got := headers.BuildContentDisposition(tt.disposition, tt.filename)
 			for _, want := range tt.wantContains {
 				assert.Contains(t, got, want, "expected %q к contain %q", got, want)
 			}

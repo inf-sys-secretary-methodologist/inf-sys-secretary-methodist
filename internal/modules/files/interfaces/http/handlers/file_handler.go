@@ -16,6 +16,14 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/validation"
 )
 
+// maxUploadBodyBytes caps the raw HTTP request body for upload endpoints
+// (file upload, version upload). DoS safety net — the precise file-size
+// limit lives в FileValidator (50 MB default), this is a coarser bound
+// with headroom for multipart boundary + form-field overhead so the
+// process can't be OOM'd by a single oversized request before validation
+// runs. Set wide enough to never falsely reject a legitimate 50 MB file.
+const maxUploadBodyBytes = 64 << 20 // 64 MB
+
 // readActor extracts the authenticated actor (userID + role) from the
 // gin context. Returns ok=false if either is missing or wrong-typed,
 // so the caller can emit 401 once and bail out.
@@ -60,6 +68,12 @@ func NewFileHandler(
 
 // Upload обрабатывает POST /api/files/upload - загружает файл.
 func (h *FileHandler) Upload(c *gin.Context) {
+	// DoS safety net — bound the request body BEFORE multipart parsing
+	// fills memory. The precise size limit is enforced downstream by
+	// FileValidator (50MB default, configurable); this is a coarser
+	// cap with headroom для multipart boundary overhead.
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxUploadBodyBytes)
+
 	// Получаем файл из формы
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
@@ -342,6 +356,9 @@ func (h *FileHandler) CreateVersion(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, resp)
 		return
 	}
+
+	// DoS safety net (see Upload — same rationale).
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxUploadBodyBytes)
 
 	// Получаем файл из формы
 	file, header, err := c.Request.FormFile("file")

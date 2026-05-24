@@ -17,15 +17,13 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/application/dto"
 	filesDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/files/domain/repositories"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
 
 // FileUseCase обрабатывает бизнес-логику управления файлами.
 type FileUseCase struct {
-	fileRepo       repositories.FileMetadataRepository
-	versionRepo    repositories.FileVersionRepository
+	fileRepo       FileMetadataRepository
+	versionRepo    FileVersionRepository
 	storageClient  StorageClient
 	fileValidator  FileNameValidator
 	auditLogger    AuditEventLogger
@@ -33,20 +31,26 @@ type FileUseCase struct {
 }
 
 // NewFileUseCase создаёт новый use case для файлов.
+//
+// All infrastructure parameters accept narrow interfaces — concrete
+// `*storage.S3Client` / `*storage.FileValidator` / `*logging.AuditLogger`
+// satisfy them structurally so existing main.go wiring is unaffected.
+// Nil values are tolerated (constructor falls back to no-op behavior),
+// preserving graceful-degradation semantics from v0.161.0.
 func NewFileUseCase(
-	fileRepo repositories.FileMetadataRepository,
-	versionRepo repositories.FileVersionRepository,
-	s3Client *storage.S3Client,
-	fileValidator *storage.FileValidator,
-	auditLogger *logging.AuditLogger,
+	fileRepo FileMetadataRepository,
+	versionRepo FileVersionRepository,
+	storageClient StorageClient,
+	fileValidator FileNameValidator,
+	auditLogger AuditEventLogger,
 ) *FileUseCase {
 	uc := &FileUseCase{
 		fileRepo:       fileRepo,
 		versionRepo:    versionRepo,
 		tempExpiration: 24 * time.Hour, // Временные файлы живут 24 часа
 	}
-	if s3Client != nil {
-		uc.storageClient = s3Client
+	if storageClient != nil {
+		uc.storageClient = storageClient
 	}
 	if fileValidator != nil {
 		uc.fileValidator = fileValidator
@@ -153,7 +157,7 @@ func (uc *FileUseCase) GetFile(ctx context.Context, id int64, actorID int64, act
 	}
 
 	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionRead); err != nil {
-		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionRead, "read")
+		emitAccessDenied(ctx, uc.auditLogger, actorID, file.ID, filesDomain.FileActionRead, "read")
 		return nil, err
 	}
 
@@ -170,7 +174,7 @@ func (uc *FileUseCase) GetFileWithDownloadURL(ctx context.Context, id int64, url
 	}
 
 	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionRead); err != nil {
-		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionRead, "read_with_url")
+		emitAccessDenied(ctx, uc.auditLogger, actorID, file.ID, filesDomain.FileActionRead, "read_with_url")
 		return nil, err
 	}
 
@@ -196,7 +200,7 @@ func (uc *FileUseCase) DownloadFile(ctx context.Context, id int64, actorID int64
 	}
 
 	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionRead); err != nil {
-		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionRead, "download")
+		emitAccessDenied(ctx, uc.auditLogger, actorID, file.ID, filesDomain.FileActionRead, "download")
 		return nil, err
 	}
 
@@ -226,7 +230,7 @@ func (uc *FileUseCase) AttachFile(ctx context.Context, input *dto.AttachFileInpu
 	}
 
 	if err := filesDomain.AuthorizeFileAccess(input.UserID, input.UserRole, file, filesDomain.FileActionAttach); err != nil {
-		uc.emitAccessDenied(ctx, input.UserID, file.ID, filesDomain.FileActionAttach, "attach")
+		emitAccessDenied(ctx, uc.auditLogger, input.UserID, file.ID, filesDomain.FileActionAttach, "attach")
 		return err
 	}
 
@@ -265,21 +269,6 @@ func (uc *FileUseCase) AttachFile(ctx context.Context, input *dto.AttachFileInpu
 	return nil
 }
 
-// emitAccessDenied is a small helper for emitting standardized
-// access-denied audit events. Mirrors the v0.160.0 users denial
-// pattern: stable action names (`file_<action>_denied`) so analytics
-// can pivot consistently across modules.
-func (uc *FileUseCase) emitAccessDenied(ctx context.Context, actorID, fileID int64, action filesDomain.FileAction, reasonSuffix string) {
-	if uc.auditLogger == nil {
-		return
-	}
-	uc.auditLogger.LogAuditEvent(ctx, fmt.Sprintf("file_%s_denied", action), "file", map[string]interface{}{
-		"actor_user_id":  actorID,
-		"target_file_id": fileID,
-		"reason":         reasonSuffix,
-	})
-}
-
 // DeleteFile удаляет файл (мягкое удаление).
 //
 // Only the uploader may delete. The role parameter mirrors the other
@@ -292,7 +281,7 @@ func (uc *FileUseCase) DeleteFile(ctx context.Context, id int64, actorID int64, 
 	}
 
 	if err := filesDomain.AuthorizeFileAccess(actorID, actorRole, file, filesDomain.FileActionDelete); err != nil {
-		uc.emitAccessDenied(ctx, actorID, file.ID, filesDomain.FileActionDelete, "delete")
+		emitAccessDenied(ctx, uc.auditLogger, actorID, file.ID, filesDomain.FileActionDelete, "delete")
 		return err
 	}
 
