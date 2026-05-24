@@ -66,8 +66,13 @@ fi
 
 # --- Go: golangci-lint on the packages owning staged files ---
 # Per-package scan, not whole repo — fast and matches CI expectations.
+#
+# bash 3.2 portability (macOS): NO `declare -A` (associative arrays —
+# bash 4+). Dedup the package list через a single space-separated string
+# с substring guards. SEEN_PKGS = " ./a/... ./b/... " so " $pkg " test
+# distinguishes ./a/... от ./a/b/...
 if [[ ${#STAGED_GO[@]} -gt 0 ]]; then
-    declare -A SEEN_PKGS=()
+    SEEN_PKGS=" "
     GO_PKG_DIRS=()
     for f in "${STAGED_GO[@]}"; do
         d=$(dirname "$f")
@@ -77,10 +82,13 @@ if [[ ${#STAGED_GO[@]} -gt 0 ]]; then
         [[ "$d" == "." ]] && d=""
         pkg=${d:+./$d/...}
         pkg=${pkg:-./...}
-        if [[ -z "${SEEN_PKGS[$pkg]:-}" ]]; then
-            SEEN_PKGS[$pkg]=1
-            GO_PKG_DIRS+=("$pkg")
-        fi
+        case "$SEEN_PKGS" in
+            *" $pkg "*) ;;
+            *)
+                SEEN_PKGS="$SEEN_PKGS$pkg "
+                GO_PKG_DIRS+=("$pkg")
+                ;;
+        esac
     done
     if command -v golangci-lint >/dev/null 2>&1; then
         if ! golangci-lint run --config=.github/golangci.yml --timeout=2m "${GO_PKG_DIRS[@]}" >&2; then
