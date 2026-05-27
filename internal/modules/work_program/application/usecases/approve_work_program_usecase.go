@@ -3,8 +3,12 @@ package usecases
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
 )
 
 // ApproveWorkProgramInput is the public DTO. Approver id flows through
@@ -38,7 +42,58 @@ func NewApproveWorkProgramUseCase(repo approveWorkProgramRepo, audit AuditSink) 
 	return &ApproveWorkProgramUseCase{repo: repo, audit: audit}
 }
 
-// Execute is a stub. Real implementation lands in the matching GREEN commit.
-func (uc *ApproveWorkProgramUseCase) Execute(_ context.Context, _ int64, _ string, _ ApproveWorkProgramInput) (*entities.WorkProgram, error) {
-	return nil, errors.New("work_program: ApproveWorkProgramUseCase not implemented yet (RED)")
+// Execute runs the approve flow:
+//  1. Role gate: methodist OR system_admin per ADR-018 ADR-5.
+//  2. Load by id; ErrWorkProgramNotFound → 'not_found' denial.
+//  3. Apply wp.Approve(actorID); ErrInvalidStatusTransition →
+//     'not_pending' denial.
+//  4. Persist via repo.Update. Transport errors propagate without
+//     audit (audit log = policy decisions, not infra outages).
+//
+// ApproverID is the actor id (JWT-derived), recorded on the entity
+// for Рособрнадзор audit trail ("who approved this РПД").
+func (uc *ApproveWorkProgramUseCase) Execute(ctx context.Context, actorID int64, actorRole string, in ApproveWorkProgramInput) (*entities.WorkProgram, error) {
+	if !isApprover(actorRole) {
+		emitAudit(uc.audit, ctx, "work_program.approve_denied",
+			denialFields(actorID, in.ID, "forbidden_role", ""))
+		return nil, fmt.Errorf("%w: role %q cannot approve", domain.ErrWorkProgramScopeForbidden, actorRole)
+	}
+
+	wp, err := uc.repo.GetByID(ctx, in.ID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrWorkProgramNotFound) {
+			emitAudit(uc.audit, ctx, "work_program.approve_denied",
+				denialFields(actorID, in.ID, "not_found", ""))
+		}
+		return nil, err
+	}
+
+	if err := wp.Approve(actorID); err != nil {
+		if errors.Is(err, domain.ErrInvalidStatusTransition) {
+			emitAudit(uc.audit, ctx, "work_program.approve_denied",
+				denialFields(actorID, in.ID, "not_pending", wp.SpecialtyCode()))
+		}
+		return nil, err
+	}
+
+	if err := uc.repo.Update(ctx, wp); err != nil {
+		return nil, err
+	}
+
+	emitAudit(uc.audit, ctx, "work_program.approved", map[string]any{
+		"actor_user_id":   actorID,
+		"work_program_id": wp.ID(),
+		"specialty_code":  wp.SpecialtyCode(),
+		"status":          string(wp.Status()),
+	})
+	return wp, nil
+}
+
+// isApprover encodes the ADR-018 ADR-5 approver role set: methodist
+// primary, system_admin override. Reused by Reject in the same release.
+// Typed against authDomain.RoleType so a typo in the role spelling
+// would fail at compile time on the constant reference.
+func isApprover(role string) bool {
+	r := authDomain.RoleType(role)
+	return r == authDomain.RoleMethodist || r == authDomain.RoleSystemAdmin
 }
