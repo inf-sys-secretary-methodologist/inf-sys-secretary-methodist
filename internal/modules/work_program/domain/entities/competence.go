@@ -1,10 +1,15 @@
 package entities
 
 import (
+	"fmt"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 )
+
+const maxCompetenceDescriptionLen = 2048
 
 // Competence — ФГОС-derived компетенция (ПК/ОК/УК), inner aggregate
 // of WorkProgram per ADR-1. Identity within parent = code (UNIQUE
@@ -18,9 +23,32 @@ type Competence struct {
 	createdAt     time.Time
 }
 
-// NewCompetence — stub for RED commit.
-func NewCompetence(_ string, _ domain.CompetenceType, _ string) (*Competence, error) {
-	return nil, domain.ErrInvalidWorkProgram
+// NewCompetence constructs a fresh Competence. code and description
+// are trimmed; ctype is validated against the three FGOS classifications.
+// description is rune-count-bounded (UTF-8 aware).
+func NewCompetence(code string, ctype domain.CompetenceType, description string) (*Competence, error) {
+	trimmedCode := strings.TrimSpace(code)
+	trimmedDesc := strings.TrimSpace(description)
+
+	if trimmedCode == "" {
+		return nil, fmt.Errorf("%w: code is required", domain.ErrInvalidWorkProgram)
+	}
+	if !ctype.IsValid() {
+		return nil, fmt.Errorf("%w: type %q must be one of pk/ok/uk", domain.ErrInvalidWorkProgram, ctype)
+	}
+	if trimmedDesc == "" {
+		return nil, fmt.Errorf("%w: description is required", domain.ErrInvalidWorkProgram)
+	}
+	if utf8.RuneCountInString(trimmedDesc) > maxCompetenceDescriptionLen {
+		return nil, fmt.Errorf("%w: description must be <= %d runes",
+			domain.ErrInvalidWorkProgram, maxCompetenceDescriptionLen)
+	}
+	return &Competence{
+		code:        trimmedCode,
+		ctype:       ctype,
+		description: trimmedDesc,
+		createdAt:   time.Now().UTC(),
+	}, nil
 }
 
 // ID returns the persistent identifier.
