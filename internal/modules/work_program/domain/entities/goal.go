@@ -1,10 +1,15 @@
 package entities
 
 import (
+	"fmt"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 )
+
+const maxGoalTextLen = 2048
 
 // Goal — цель/задача освоения дисциплины. Inner aggregate of
 // WorkProgram (ADR-1); fields stay unexported so collection
@@ -18,10 +23,25 @@ type Goal struct {
 	createdAt     time.Time
 }
 
-// NewGoal constructs a fresh Goal. Stub for the RED commit — GREEN
-// commit fills in the real invariant logic.
-func NewGoal(_ string, _ int) (*Goal, error) {
-	return nil, domain.ErrInvalidWorkProgram
+// NewGoal constructs a fresh Goal. Text is trimmed; empty/whitespace
+// after trim and overlong text fail with ErrInvalidWorkProgram naming
+// the offending field. order_index ≥ 0 enforced.
+func NewGoal(text string, orderIndex int) (*Goal, error) {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" {
+		return nil, fmt.Errorf("%w: text is required", domain.ErrInvalidWorkProgram)
+	}
+	if utf8.RuneCountInString(trimmed) > maxGoalTextLen {
+		return nil, fmt.Errorf("%w: text must be <= %d runes", domain.ErrInvalidWorkProgram, maxGoalTextLen)
+	}
+	if orderIndex < 0 {
+		return nil, fmt.Errorf("%w: order_index must be non-negative", domain.ErrInvalidWorkProgram)
+	}
+	return &Goal{
+		text:       trimmed,
+		orderIndex: orderIndex,
+		createdAt:  time.Now().UTC(),
+	}, nil
 }
 
 // ID returns the persistent identifier (0 for unsaved goals).
