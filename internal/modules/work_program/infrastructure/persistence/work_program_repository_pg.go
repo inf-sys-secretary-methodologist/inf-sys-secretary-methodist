@@ -43,17 +43,20 @@ const pqUniqueViolation = "23505"
 // than collapsing both onto ErrWorkProgramIdentityExists.
 const uqWPIdentityConstraint = "uq_wp_discipline_specialty_cohort"
 
-// Save inserts a new WorkProgram aggregate root atomically inside a
-// transaction. PR 2a ships only the root insert; child aggregate
-// persistence (Goals, Competences, Topics, Assessments, References,
-// Revisions) lands in the next RED/GREEN pair so the tx scope grows
-// incrementally with test coverage.
+// Save inserts a new WorkProgram aggregate atomically inside a single
+// transaction: root row + every populated child collection (Goals,
+// Competences, Topics, Assessments, References). Revisions are
+// included in the iteration only when the aggregate carries any —
+// fresh drafts cannot per ErrRevisionNotPermitted, but Reconstituted
+// aggregates may.
 //
-// On success the generated id is written back onto the aggregate via
-// SetID. PostgreSQL unique-constraint violation (SQLSTATE 23505)
+// On success the generated root id is written back onto the aggregate
+// via SetID. PostgreSQL unique-constraint violation (SQLSTATE 23505)
 // against uq_wp_discipline_specialty_cohort maps to
 // ErrWorkProgramIdentityExists so the use-case layer gets a
 // deterministic 409 mapping without parsing pq error structs itself.
+// Any child-insert failure surfaces via fmt.Errorf wrapping and the
+// deferred Rollback discards the partial state.
 func (r *WorkProgramRepositoryPG) Save(ctx context.Context, wp *entities.WorkProgram) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -63,6 +66,38 @@ func (r *WorkProgramRepositoryPG) Save(ctx context.Context, wp *entities.WorkPro
 
 	if err := insertWorkProgramRoot(ctx, tx, wp); err != nil {
 		return err
+	}
+
+	rootID := wp.ID()
+	for _, g := range wp.Goals() {
+		if err := insertGoal(ctx, tx, rootID, g); err != nil {
+			return err
+		}
+	}
+	for _, c := range wp.Competences() {
+		if err := insertCompetence(ctx, tx, rootID, c); err != nil {
+			return err
+		}
+	}
+	for _, t := range wp.Topics() {
+		if err := insertTopic(ctx, tx, rootID, t); err != nil {
+			return err
+		}
+	}
+	for _, a := range wp.Assessments() {
+		if err := insertAssessment(ctx, tx, rootID, a); err != nil {
+			return err
+		}
+	}
+	for _, ref := range wp.References() {
+		if err := insertReference(ctx, tx, rootID, ref); err != nil {
+			return err
+		}
+	}
+	for _, rev := range wp.Revisions() {
+		if err := insertRevision(ctx, tx, rootID, rev); err != nil {
+			return err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

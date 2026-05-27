@@ -41,3 +41,14 @@ func nullableTimePtr(p *time.Time) sql.NullTime {
 	}
 	return sql.NullTime{Time: *p, Valid: true}
 }
+
+// nullableIntPtr wraps an *int as SQL NULL when the pointer is nil.
+// Used for optional numeric columns (week_number ∈ [1, 52], year ∈
+// [1900, 2100]) — both ranges enforced by domain invariants and DB
+// CHECK constraints, so the int→int32 conversion cannot overflow.
+func nullableIntPtr(p *int) sql.NullInt32 {
+	if p == nil {
+		return sql.NullInt32{}
+	}
+	return sql.NullInt32{Int32: int32(*p), Valid: true} //nolint:gosec // G115 safe: domain bounds enforce week ≤ 52, year ≤ 2100
+}
