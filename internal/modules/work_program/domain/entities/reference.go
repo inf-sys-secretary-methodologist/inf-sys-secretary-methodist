@@ -1,7 +1,16 @@
 package entities
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
+)
+
+const (
+	minReferenceYear = 1900
+	maxReferenceYear = 2100
+	maxReferenceURL  = 500
 )
 
 // NewReferenceInput collects constructor parameters for a Reference
@@ -28,9 +37,42 @@ type Reference struct {
 	orderIndex    int
 }
 
-// NewReference — stub for RED commit.
-func NewReference(_ NewReferenceInput) (*Reference, error) {
-	return nil, domain.ErrInvalidWorkProgram
+// NewReference constructs a fresh Reference. Kind validated against
+// canonical values, citation trim + non-empty, year (when set) in
+// [1900, 2100], URL ≤ 500 chars, order_index ≥ 0. ISBN format is
+// not validated — references могут содержать non-ISBN sources.
+func NewReference(in NewReferenceInput) (*Reference, error) {
+	trimmedCitation := strings.TrimSpace(in.Citation)
+	trimmedISBN := strings.TrimSpace(in.ISBN)
+	trimmedURL := strings.TrimSpace(in.URL)
+
+	if !in.Kind.IsValid() {
+		return nil, fmt.Errorf("%w: kind %q must be one of main/additional/electronic",
+			domain.ErrInvalidWorkProgram, in.Kind)
+	}
+	if trimmedCitation == "" {
+		return nil, fmt.Errorf("%w: citation is required", domain.ErrInvalidWorkProgram)
+	}
+	if in.Year != nil {
+		if *in.Year < minReferenceYear || *in.Year > maxReferenceYear {
+			return nil, fmt.Errorf("%w: year must be in [%d, %d]",
+				domain.ErrInvalidWorkProgram, minReferenceYear, maxReferenceYear)
+		}
+	}
+	if len(trimmedURL) > maxReferenceURL {
+		return nil, fmt.Errorf("%w: url must be <= %d chars", domain.ErrInvalidWorkProgram, maxReferenceURL)
+	}
+	if in.OrderIndex < 0 {
+		return nil, fmt.Errorf("%w: order_index must be non-negative", domain.ErrInvalidWorkProgram)
+	}
+	return &Reference{
+		kind:       in.Kind,
+		citation:   trimmedCitation,
+		year:       in.Year,
+		isbn:       trimmedISBN,
+		url:        trimmedURL,
+		orderIndex: in.OrderIndex,
+	}, nil
 }
 
 // ID returns the persistent identifier.
