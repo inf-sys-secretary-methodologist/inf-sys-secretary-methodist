@@ -86,8 +86,19 @@ type ReconstituteReferenceInput struct {
 }
 
 // ReconstituteReference builds a Reference from persisted state.
-// Skips invariant checks. RED stub returns nil.
-func ReconstituteReference(_ ReconstituteReferenceInput) *Reference { return nil }
+// Skips invariant checks — DB CHECK constraints already validated.
+func ReconstituteReference(in ReconstituteReferenceInput) *Reference {
+	return &Reference{
+		id:            in.ID,
+		workProgramID: in.WorkProgramID,
+		kind:          in.Kind,
+		citation:      in.Citation,
+		year:          in.Year,
+		isbn:          in.ISBN,
+		url:           in.URL,
+		orderIndex:    in.OrderIndex,
+	}
+}
 
 // ID returns the persistent identifier.
 func (r *Reference) ID() int64 { return r.id }

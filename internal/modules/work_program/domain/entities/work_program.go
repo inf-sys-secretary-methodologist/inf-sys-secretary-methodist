@@ -351,9 +351,33 @@ type ReconstituteWorkProgramInput struct {
 }
 
 // ReconstituteWorkProgram builds an aggregate from persisted state.
-// Skips invariant checks — DB CHECK constraints and inner-entity
-// Reconstitute calls already validated. RED stub returns nil.
-func ReconstituteWorkProgram(_ ReconstituteWorkProgramInput) *WorkProgram { return nil }
+// Skips invariant checks — DB CHECK constraints + inner-entity
+// Reconstitute calls already validated. Inner slices are stored by
+// reference; the repository owns lifetime semantics.
+func ReconstituteWorkProgram(in ReconstituteWorkProgramInput) *WorkProgram {
+	return &WorkProgram{
+		id:                 in.ID,
+		disciplineID:       in.DisciplineID,
+		specialtyCode:      in.SpecialtyCode,
+		applicableFromYear: in.ApplicableFromYear,
+		title:              in.Title,
+		annotation:         in.Annotation,
+		status:             in.Status,
+		authorID:           in.AuthorID,
+		approverID:         in.ApproverID,
+		approvedAt:         in.ApprovedAt,
+		rejectReason:       in.RejectReason,
+		version:            in.Version,
+		createdAt:          in.CreatedAt,
+		updatedAt:          in.UpdatedAt,
+		goals:              in.Goals,
+		competences:        in.Competences,
+		topics:             in.Topics,
+		assessments:        in.Assessments,
+		references:         in.References,
+		revisions:          in.Revisions,
+	}
+}
 
 // HoursTotal aggregates Topic.Hours per kind. The returned map always
 // contains all four canonical TopicKinds (initialized to zero) so

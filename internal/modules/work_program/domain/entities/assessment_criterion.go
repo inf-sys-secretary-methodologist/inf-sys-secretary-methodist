@@ -89,9 +89,17 @@ type ReconstituteAssessmentCriterionInput struct {
 }
 
 // ReconstituteAssessmentCriterion builds an AssessmentCriterion from
-// persisted state. Skips invariant checks. RED stub returns nil.
-func ReconstituteAssessmentCriterion(_ ReconstituteAssessmentCriterionInput) *AssessmentCriterion {
-	return nil
+// persisted state. Skips invariant checks — DB CHECK constraints
+// already validated.
+func ReconstituteAssessmentCriterion(in ReconstituteAssessmentCriterionInput) *AssessmentCriterion {
+	return &AssessmentCriterion{
+		id:               in.ID,
+		workProgramID:    in.WorkProgramID,
+		atype:            in.Type,
+		description:      in.Description,
+		maxScore:         in.MaxScore,
+		exampleQuestions: in.ExampleQuestions,
+	}
 }
 
 // ID returns the persistent identifier.

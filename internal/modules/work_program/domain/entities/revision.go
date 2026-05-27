@@ -157,8 +157,25 @@ type ReconstituteRevisionInput struct {
 }
 
 // ReconstituteRevision builds a Revision from persisted state. Skips
-// invariant checks. RED stub returns nil.
-func ReconstituteRevision(_ ReconstituteRevisionInput) *Revision { return nil }
+// invariant checks — DB CHECK constraints and the original NewRevision
+// call already validated.
+func ReconstituteRevision(in ReconstituteRevisionInput) *Revision {
+	return &Revision{
+		id:             in.ID,
+		workProgramID:  in.WorkProgramID,
+		revisionNumber: in.RevisionNumber,
+		changeType:     in.ChangeType,
+		changeSummary:  in.ChangeSummary,
+		status:         in.Status,
+		authorID:       in.AuthorID,
+		approverID:     in.ApproverID,
+		approvedAt:     in.ApprovedAt,
+		rejectReason:   in.RejectReason,
+		diffPayload:    in.DiffPayload,
+		createdAt:      in.CreatedAt,
+		updatedAt:      in.UpdatedAt,
+	}
+}
 
 // ID returns the persistent identifier.
 func (r *Revision) ID() int64 { return r.id }

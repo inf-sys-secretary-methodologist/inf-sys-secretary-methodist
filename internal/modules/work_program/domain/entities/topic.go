@@ -96,8 +96,19 @@ type ReconstituteTopicInput struct {
 }
 
 // ReconstituteTopic builds a Topic from persisted state. Skips
-// invariant checks. RED stub returns nil.
-func ReconstituteTopic(_ ReconstituteTopicInput) *Topic { return nil }
+// invariant checks — DB CHECK constraints already validated.
+func ReconstituteTopic(in ReconstituteTopicInput) *Topic {
+	return &Topic{
+		id:               in.ID,
+		workProgramID:    in.WorkProgramID,
+		kind:             in.Kind,
+		title:            in.Title,
+		hours:            in.Hours,
+		weekNumber:       in.WeekNumber,
+		learningOutcomes: in.LearningOutcomes,
+		orderIndex:       in.OrderIndex,
+	}
+}
 
 // ID returns the persistent identifier.
 func (t *Topic) ID() int64 { return t.id }

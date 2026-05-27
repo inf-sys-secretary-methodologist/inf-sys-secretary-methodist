@@ -54,9 +54,17 @@ type ReconstituteGoalInput struct {
 }
 
 // ReconstituteGoal builds a Goal from persisted state. Skips
-// invariant checks — DB CHECK constraints already validated. RED
-// stub returns nil so collection-hydration tests go red.
-func ReconstituteGoal(_ ReconstituteGoalInput) *Goal { return nil }
+// invariant checks — DB CHECK constraints and the original NewGoal
+// call already validated.
+func ReconstituteGoal(in ReconstituteGoalInput) *Goal {
+	return &Goal{
+		id:            in.ID,
+		workProgramID: in.WorkProgramID,
+		text:          in.Text,
+		orderIndex:    in.OrderIndex,
+		createdAt:     in.CreatedAt,
+	}
+}
 
 // ID returns the persistent identifier (0 for unsaved goals).
 func (g *Goal) ID() int64 { return g.id }

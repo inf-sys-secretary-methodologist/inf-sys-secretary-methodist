@@ -62,8 +62,17 @@ type ReconstituteCompetenceInput struct {
 }
 
 // ReconstituteCompetence builds a Competence from persisted state.
-// Skips invariant checks. RED stub returns nil.
-func ReconstituteCompetence(_ ReconstituteCompetenceInput) *Competence { return nil }
+// Skips invariant checks — DB CHECK constraints already validated.
+func ReconstituteCompetence(in ReconstituteCompetenceInput) *Competence {
+	return &Competence{
+		id:            in.ID,
+		workProgramID: in.WorkProgramID,
+		code:          in.Code,
+		ctype:         in.Type,
+		description:   in.Description,
+		createdAt:     in.CreatedAt,
+	}
+}
 
 // ID returns the persistent identifier.
 func (c *Competence) ID() int64 { return c.id }
