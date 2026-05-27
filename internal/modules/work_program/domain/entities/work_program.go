@@ -101,36 +101,68 @@ func NewWorkProgram(in NewWorkProgramInput) (*WorkProgram, error) {
 	}, nil
 }
 
-// --- Status FSM transitions ---
-// Stubs for the RED commit — every transition returns
-// ErrInvalidStatusTransition unconditionally. GREEN commit fills in
-// the actual FSM logic per ADR-2.
+// --- Status FSM transitions per ADR-2 ---
 
-// Submit transitions the WorkProgram from draft (or needs_revision)
-// to pending_approval. Author-only operation; caller (use case) is
-// responsible for the role check.
+// Submit transitions the WorkProgram from draft or needs_revision to
+// pending_approval. Author-only operation; caller (use case) handles
+// the role check.
 func (w *WorkProgram) Submit() error {
-	return domain.ErrInvalidStatusTransition
+	if w.status != domain.StatusDraft && w.status != domain.StatusNeedsRevision {
+		return domain.ErrInvalidStatusTransition
+	}
+	w.status = domain.StatusPendingApproval
+	w.updatedAt = time.Now().UTC()
+	return nil
 }
 
 // Approve transitions the WorkProgram from pending_approval to
-// approved. Methodist-only operation per ADR-5.
-func (w *WorkProgram) Approve(_ int64) error {
-	return domain.ErrInvalidStatusTransition
+// approved. Methodist-only operation per ADR-5; approverID is the
+// acting user's ID, recorded for audit / Рособрнадзор-trail.
+func (w *WorkProgram) Approve(approverID int64) error {
+	if w.status != domain.StatusPendingApproval {
+		return domain.ErrInvalidStatusTransition
+	}
+	if approverID <= 0 {
+		return fmt.Errorf("%w: approver_id must be positive", domain.ErrInvalidWorkProgram)
+	}
+	now := time.Now().UTC()
+	w.status = domain.StatusApproved
+	w.approverID = &approverID
+	w.approvedAt = &now
+	w.rejectReason = ""
+	w.updatedAt = now
+	return nil
 }
 
 // MarkNeedsRevision transitions the WorkProgram from approved to
 // needs_revision. Auto-triggered by DisciplineItem.Updated event
-// handler per ADR-8.
+// handler per ADR-8; safe-noop if already in needs_revision (event
+// dispatch may double-fire on retry).
 func (w *WorkProgram) MarkNeedsRevision() error {
-	return domain.ErrInvalidStatusTransition
+	if w.status == domain.StatusNeedsRevision {
+		return nil
+	}
+	if w.status != domain.StatusApproved {
+		return domain.ErrInvalidStatusTransition
+	}
+	w.status = domain.StatusNeedsRevision
+	w.updatedAt = time.Now().UTC()
+	return nil
 }
 
-// Archive transitions the WorkProgram to archived (terminal state).
-// Allowed from draft / approved per ADR-2. РПД никогда не удаляется
-// (Рособрнадзор 6 лет).
+// Archive transitions the WorkProgram to archived (terminal). Allowed
+// from draft / approved / needs_revision per ADR-2. Cannot archive
+// from pending_approval — methodist must Reject first так чтобы
+// reason is recorded.
 func (w *WorkProgram) Archive() error {
-	return domain.ErrInvalidStatusTransition
+	switch w.status {
+	case domain.StatusDraft, domain.StatusApproved, domain.StatusNeedsRevision:
+		w.status = domain.StatusArchived
+		w.updatedAt = time.Now().UTC()
+		return nil
+	default:
+		return domain.ErrInvalidStatusTransition
+	}
 }
 
 // Read-only accessors. Aggregate fields stay unexported so invariants
