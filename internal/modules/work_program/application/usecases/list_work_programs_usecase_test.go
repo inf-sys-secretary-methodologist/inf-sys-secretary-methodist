@@ -107,18 +107,32 @@ func TestListWorkProgramsUseCase_StudentIsForcedToApproved(t *testing.T) {
 }
 
 func TestListWorkProgramsUseCase_UnknownRoleDenied(t *testing.T) {
-	repo := &fakeListRepo{}
-	audit := &recordingAuditSink{}
-	uc := NewListWorkProgramsUseCase(repo, audit)
+	// Table-driven over every "not in the role enum" variant so a
+	// future regression that special-cases empty / whitespace strings
+	// would surface here. Per v0.179.0 FIX-CYCLE: "" and "  " pin the
+	// default branch catches blank role strings (no implicit TrimSpace);
+	// "Methodist" pins case-sensitive role match ("Methodist" ≠ "methodist").
+	deniedRoles := []string{"unknown_role", "", "  ", "Methodist"}
+	for _, role := range deniedRoles {
+		t.Run("role="+role, func(t *testing.T) {
+			repo := &fakeListRepo{}
+			audit := &recordingAuditSink{}
+			uc := NewListWorkProgramsUseCase(repo, audit)
 
-	_, err := uc.Execute(context.Background(), 1, "unknown_role", ListWorkProgramsInput{})
-	assert.True(t, errors.Is(err, domain.ErrWorkProgramScopeForbidden),
-		"unknown role must be denied, got %v", err)
-	assert.Zero(t, repo.calls, "repo.List must not be called on denied role")
+			_, err := uc.Execute(context.Background(), 1, role,
+				ListWorkProgramsInput{SpecialtyCode: "09.03.01"})
+			assert.True(t, errors.Is(err, domain.ErrWorkProgramScopeForbidden),
+				"role %q must be denied, got %v", role, err)
+			assert.Zero(t, repo.calls, "repo.List must not be called on denied role")
 
-	require.Len(t, audit.events, 1)
-	assert.Equal(t, "work_program.list_denied", audit.events[0].Action)
-	assert.Equal(t, "forbidden_role", audit.events[0].Fields["reason"])
+			require.Len(t, audit.events, 1)
+			ev := audit.events[0]
+			assert.Equal(t, "work_program.list_denied", ev.Action)
+			assert.Equal(t, "forbidden_role", ev.Fields["reason"])
+			assert.Equal(t, "09.03.01", ev.Fields["specialty_code"],
+				"denial audit must carry the inbound specialty_code for forensic context")
+		})
+	}
 }
 
 func TestListWorkProgramsUseCase_PaginationDefaultsAndClamp(t *testing.T) {
@@ -149,11 +163,14 @@ func TestListWorkProgramsUseCase_PaginationDefaultsAndClamp(t *testing.T) {
 	}
 }
 
-func TestListWorkProgramsUseCase_RepoErrorPropagates(t *testing.T) {
+func TestListWorkProgramsUseCase_RepoErrorPropagatesWithoutAudit(t *testing.T) {
 	repo := &fakeListRepo{err: errors.New("conn refused")}
-	uc := NewListWorkProgramsUseCase(repo, &recordingAuditSink{})
+	audit := &recordingAuditSink{}
+	uc := NewListWorkProgramsUseCase(repo, audit)
 
 	_, err := uc.Execute(context.Background(), 99, "system_admin", ListWorkProgramsInput{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "conn refused")
+	assert.Empty(t, audit.events,
+		"transport errors must not produce a list audit event")
 }
