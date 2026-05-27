@@ -50,5 +50,5 @@ func nullableIntPtr(p *int) sql.NullInt32 {
 	if p == nil {
 		return sql.NullInt32{}
 	}
-	return sql.NullInt32{Int32: int32(*p), Valid: true} //nolint:gosec // G115 safe: domain bounds enforce week ≤ 52, year ≤ 2100
+	return sql.NullInt32{Int32: int32(*p), Valid: true} // #nosec G115 -- domain bounds enforce week ≤ 52, year ≤ 2100
 }
