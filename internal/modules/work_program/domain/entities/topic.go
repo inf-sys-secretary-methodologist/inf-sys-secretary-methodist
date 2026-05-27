@@ -1,7 +1,18 @@
 package entities
 
 import (
+	"fmt"
+	"strings"
+	"unicode/utf8"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
+)
+
+const (
+	maxTopicTitleLen       = 500
+	maxLearningOutcomesLen = 2048
+	minWeekNumber          = 1
+	maxWeekNumber          = 52
 )
 
 // NewTopicInput collects constructor parameters for a Topic.
@@ -29,9 +40,47 @@ type Topic struct {
 	orderIndex       int
 }
 
-// NewTopic — stub for RED commit.
-func NewTopic(_ NewTopicInput) (*Topic, error) {
-	return nil, domain.ErrInvalidWorkProgram
+// NewTopic constructs a fresh Topic. Kind validated against canonical
+// values, title trimmed and non-empty, hours strictly positive, week
+// (if set) in [1,52], outcomes ≤ 2048 runes, order_index ≥ 0.
+func NewTopic(in NewTopicInput) (*Topic, error) {
+	trimmedTitle := strings.TrimSpace(in.Title)
+	trimmedOutcomes := strings.TrimSpace(in.LearningOutcomes)
+
+	if !in.Kind.IsValid() {
+		return nil, fmt.Errorf("%w: kind %q must be one of lecture/practice/lab/self_study",
+			domain.ErrInvalidWorkProgram, in.Kind)
+	}
+	if trimmedTitle == "" {
+		return nil, fmt.Errorf("%w: title is required", domain.ErrInvalidWorkProgram)
+	}
+	if utf8.RuneCountInString(trimmedTitle) > maxTopicTitleLen {
+		return nil, fmt.Errorf("%w: title must be <= %d runes", domain.ErrInvalidWorkProgram, maxTopicTitleLen)
+	}
+	if in.Hours <= 0 {
+		return nil, fmt.Errorf("%w: hours must be positive", domain.ErrInvalidWorkProgram)
+	}
+	if in.WeekNumber != nil {
+		if *in.WeekNumber < minWeekNumber || *in.WeekNumber > maxWeekNumber {
+			return nil, fmt.Errorf("%w: week_number must be in [%d, %d]",
+				domain.ErrInvalidWorkProgram, minWeekNumber, maxWeekNumber)
+		}
+	}
+	if utf8.RuneCountInString(trimmedOutcomes) > maxLearningOutcomesLen {
+		return nil, fmt.Errorf("%w: learning_outcomes must be <= %d runes",
+			domain.ErrInvalidWorkProgram, maxLearningOutcomesLen)
+	}
+	if in.OrderIndex < 0 {
+		return nil, fmt.Errorf("%w: order_index must be non-negative", domain.ErrInvalidWorkProgram)
+	}
+	return &Topic{
+		kind:             in.Kind,
+		title:            trimmedTitle,
+		hours:            in.Hours,
+		weekNumber:       in.WeekNumber,
+		learningOutcomes: trimmedOutcomes,
+		orderIndex:       in.OrderIndex,
+	}, nil
 }
 
 // ID returns the persistent identifier.
