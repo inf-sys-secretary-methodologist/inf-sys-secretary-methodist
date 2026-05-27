@@ -30,3 +30,16 @@ var ErrCannotEditFrozenStatus = errors.New("work_program: cannot edit, status is
 // reason. Methodist must explain rejection so the author can revise.
 // Handlers map to HTTP 422.
 var ErrRejectReasonRequired = errors.New("work_program: reject reason is required")
+
+// ErrDuplicateCompetenceCode signals that a Competence with the same
+// code already exists in this WorkProgram (mirrors uq_wpc_program_code
+// at the DB level). Distinct from generic invariant errors because
+// handlers should map this to HTTP 409 (Conflict) so the UI can
+// highlight the conflict and offer an edit-existing flow.
+var ErrDuplicateCompetenceCode = errors.New("work_program: competence code already exists in this program")
+
+// ErrRevisionNotPermitted signals an AddRevision call when the parent
+// WorkProgram is not in an approved or needs_revision status. Drafts
+// have no baseline to revise; pending_approval / archived programs
+// cannot accept new revisions per ADR-10. Handlers map to HTTP 422.
+var ErrRevisionNotPermitted = errors.New("work_program: revisions only allowed in status approved or needs_revision")

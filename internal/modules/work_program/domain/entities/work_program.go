@@ -35,9 +35,10 @@ type NewWorkProgramInput struct {
 
 // WorkProgram — aggregate root for рабочая программа дисциплины (РПД).
 // Identity = (DisciplineID, SpecialtyCode, ApplicableFromYear) per
-// ADR-3. Status FSM per ADR-2. Inner aggregates (Goal/Competence/
-// Topic/AssessmentCriterion/Reference/Revision) land in subsequent
-// TDD pairs of this PR.
+// ADR-3. Status FSM per ADR-2. Inner aggregates per ADR-1 mutate only
+// through the AddX collection methods so the root can enforce
+// aggregate-wide invariants (frozen status, code uniqueness, monotonic
+// revision numbering).
 type WorkProgram struct {
 	id                 int64
 	disciplineID       int64
@@ -53,6 +54,12 @@ type WorkProgram struct {
 	version            int
 	createdAt          time.Time
 	updatedAt          time.Time
+	goals              []*Goal
+	competences        []*Competence
+	topics             []*Topic
+	assessments        []*AssessmentCriterion
+	references         []*Reference
+	revisions          []*Revision
 }
 
 // NewWorkProgram constructs a fresh draft WorkProgram. Inputs are
@@ -199,6 +206,78 @@ func (w *WorkProgram) Archive() error {
 	default:
 		return domain.ErrInvalidStatusTransition
 	}
+}
+
+// --- Inner-aggregate collection methods (ADR-1) ---
+//
+// PR 1c RED phase: stubs return ErrInvalidWorkProgram so collection
+// tests go red while the constructor/FSM tests stay green. Real
+// invariant logic lands in the matching GREEN commit.
+
+// AddGoal appends a Goal to the aggregate. Real impl in GREEN.
+func (w *WorkProgram) AddGoal(_ *Goal) error { return domain.ErrInvalidWorkProgram }
+
+// AddCompetence appends a Competence to the aggregate. Real impl in GREEN.
+func (w *WorkProgram) AddCompetence(_ *Competence) error { return domain.ErrInvalidWorkProgram }
+
+// AddTopic appends a Topic to the aggregate. Real impl in GREEN.
+func (w *WorkProgram) AddTopic(_ *Topic) error { return domain.ErrInvalidWorkProgram }
+
+// AddAssessment appends an AssessmentCriterion to the aggregate. Real impl in GREEN.
+func (w *WorkProgram) AddAssessment(_ *AssessmentCriterion) error {
+	return domain.ErrInvalidWorkProgram
+}
+
+// AddReference appends a Reference to the aggregate. Real impl in GREEN.
+func (w *WorkProgram) AddReference(_ *Reference) error { return domain.ErrInvalidWorkProgram }
+
+// AddRevision appends a Revision to the aggregate. Real impl in GREEN.
+func (w *WorkProgram) AddRevision(_ *Revision) error { return domain.ErrInvalidWorkProgram }
+
+// NextRevisionNumber returns 0 in the RED stub. Real impl in GREEN
+// returns max(existing revision_number) + 1 (or 1 if none).
+func (w *WorkProgram) NextRevisionNumber() int { return 0 }
+
+// Goals returns a defensive copy of the goals slice.
+func (w *WorkProgram) Goals() []*Goal {
+	out := make([]*Goal, len(w.goals))
+	copy(out, w.goals)
+	return out
+}
+
+// Competences returns a defensive copy of the competences slice.
+func (w *WorkProgram) Competences() []*Competence {
+	out := make([]*Competence, len(w.competences))
+	copy(out, w.competences)
+	return out
+}
+
+// Topics returns a defensive copy of the topics slice.
+func (w *WorkProgram) Topics() []*Topic {
+	out := make([]*Topic, len(w.topics))
+	copy(out, w.topics)
+	return out
+}
+
+// Assessments returns a defensive copy of the assessments slice.
+func (w *WorkProgram) Assessments() []*AssessmentCriterion {
+	out := make([]*AssessmentCriterion, len(w.assessments))
+	copy(out, w.assessments)
+	return out
+}
+
+// References returns a defensive copy of the references slice.
+func (w *WorkProgram) References() []*Reference {
+	out := make([]*Reference, len(w.references))
+	copy(out, w.references)
+	return out
+}
+
+// Revisions returns a defensive copy of the revisions slice.
+func (w *WorkProgram) Revisions() []*Revision {
+	out := make([]*Revision, len(w.revisions))
+	copy(out, w.revisions)
+	return out
 }
 
 // Read-only accessors. Aggregate fields stay unexported so invariants
