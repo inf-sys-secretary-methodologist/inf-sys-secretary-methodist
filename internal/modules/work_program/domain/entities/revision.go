@@ -88,28 +88,55 @@ func NewRevision(in NewRevisionInput) (*Revision, error) {
 }
 
 // --- Sub-FSM transitions per ADR-10 ---
-//
-// PR 1c RED phase: stubs always return ErrInvalidStatusTransition so
-// the sibling constructor tests stay green while the transition tests
-// go red. Real logic lands in the matching GREEN commit.
 
 // Submit transitions the Revision from draft to pending_approval.
 // Author-only operation; caller (use case) handles the role check.
 func (r *Revision) Submit() error {
-	return domain.ErrInvalidStatusTransition
+	if r.status != domain.RevisionStatusDraft {
+		return domain.ErrInvalidStatusTransition
+	}
+	r.status = domain.RevisionStatusPendingApproval
+	r.updatedAt = time.Now().UTC()
+	return nil
 }
 
 // Approve transitions the Revision from pending_approval to approved.
 // approverID is the acting methodist's ID, recorded for audit /
-// Рособрнадзор-trail (chk_wprev_approved_consistency).
-func (r *Revision) Approve(_ int64) error {
-	return domain.ErrInvalidStatusTransition
+// Рособрнадзор-trail (chk_wprev_approved_consistency). Transition
+// guard runs before the approverID invariant so wrong-status calls
+// surface the status error (more informative for the caller).
+func (r *Revision) Approve(approverID int64) error {
+	if r.status != domain.RevisionStatusPendingApproval {
+		return domain.ErrInvalidStatusTransition
+	}
+	if approverID <= 0 {
+		return fmt.Errorf("%w: approver_id must be positive", domain.ErrInvalidWorkProgram)
+	}
+	now := time.Now().UTC()
+	r.status = domain.RevisionStatusApproved
+	r.approverID = &approverID
+	r.approvedAt = &now
+	r.updatedAt = now
+	return nil
 }
 
 // Reject transitions the Revision from pending_approval to rejected
-// with a recorded reason. Methodist-only per ADR-5.
-func (r *Revision) Reject(_ string) error {
-	return domain.ErrInvalidStatusTransition
+// with a recorded reason. Reason is trimmed; empty/whitespace-only
+// after trim is rejected via ErrRejectReasonRequired. Methodist-only
+// per ADR-5. Status guard fires first so wrong-status callers get the
+// FSM error rather than the reason error.
+func (r *Revision) Reject(reason string) error {
+	if r.status != domain.RevisionStatusPendingApproval {
+		return domain.ErrInvalidStatusTransition
+	}
+	trimmed := strings.TrimSpace(reason)
+	if trimmed == "" {
+		return domain.ErrRejectReasonRequired
+	}
+	r.status = domain.RevisionStatusRejected
+	r.rejectReason = trimmed
+	r.updatedAt = time.Now().UTC()
+	return nil
 }
 
 // ID returns the persistent identifier.
