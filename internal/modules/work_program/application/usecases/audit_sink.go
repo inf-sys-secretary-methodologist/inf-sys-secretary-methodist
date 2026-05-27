@@ -43,6 +43,26 @@ func denialFields(actorID, workProgramID int64, reason, specialtyCode string) ma
 	}
 }
 
+// successFields composes the canonical
+// {actor_user_id, work_program_id, specialty_code, status} field shape
+// that every successful (non-denied) work_program audit event carries.
+// Use cases that record additional context (e.g. `reject_reason`,
+// `discipline_id`, `applicable_from_year`) append those keys after
+// the helper returns.
+//
+// Centralizing the base shape closes the canonical-key drift risk
+// flagged in the v0.178.0 code-review: with five success-event call
+// sites each constructing the map literal manually, a key rename
+// would silently land in only the call site the diff touched.
+func successFields(actorID, workProgramID int64, specialtyCode, status string) map[string]any {
+	return map[string]any{
+		"actor_user_id":   actorID,
+		"work_program_id": workProgramID,
+		"specialty_code":  specialtyCode,
+		"status":          status,
+	}
+}
+
 // emitAudit dispatches an audit event for the work_program bounded
 // context. A nil sink is treated as a successful no-op so use cases
 // never need to sprinkle nil checks at every call site.

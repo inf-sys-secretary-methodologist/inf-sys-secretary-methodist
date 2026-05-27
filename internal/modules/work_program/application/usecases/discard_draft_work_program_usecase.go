@@ -78,11 +78,7 @@ func (uc *DiscardDraftWorkProgramUseCase) Execute(ctx context.Context, actorID i
 		return nil, err
 	}
 
-	emitAudit(uc.audit, ctx, "work_program.discarded", map[string]any{
-		"actor_user_id":   actorID,
-		"work_program_id": wp.ID(),
-		"specialty_code":  wp.SpecialtyCode(),
-		"status":          string(wp.Status()),
-	})
+	emitAudit(uc.audit, ctx, "work_program.discarded",
+		successFields(actorID, wp.ID(), wp.SpecialtyCode(), string(wp.Status())))
 	return wp, nil
 }
