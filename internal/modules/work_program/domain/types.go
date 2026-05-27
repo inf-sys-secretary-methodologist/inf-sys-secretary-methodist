@@ -113,6 +113,69 @@ func (a AssessmentType) IsValid() bool {
 // String returns the wire-form.
 func (a AssessmentType) String() string { return string(a) }
 
+// RevisionChangeType classifies the nature of a Revision change (лист
+// актуализации) per ADR-10. The five canonical values cover the most
+// common minor-amendment categories named in 273-ФЗ / Рособрнадзор
+// guidance.
+type RevisionChangeType string
+
+// RevisionChangeType values.
+const (
+	RevisionChangeTypeHours      RevisionChangeType = "hours"
+	RevisionChangeTypeSemester   RevisionChangeType = "semester"
+	RevisionChangeTypeLiterature RevisionChangeType = "literature"
+	RevisionChangeTypeAssessment RevisionChangeType = "assessment"
+	RevisionChangeTypeOther      RevisionChangeType = "other"
+)
+
+// IsValid reports whether c is one of the five canonical change types.
+func (c RevisionChangeType) IsValid() bool {
+	switch c {
+	case RevisionChangeTypeHours, RevisionChangeTypeSemester,
+		RevisionChangeTypeLiterature, RevisionChangeTypeAssessment, RevisionChangeTypeOther:
+		return true
+	default:
+		return false
+	}
+}
+
+// String returns the wire-form.
+func (c RevisionChangeType) String() string { return string(c) }
+
+// RevisionStatus is the lifecycle state of a Revision sub-aggregate.
+//
+// Sub-FSM (ADR-10):
+//
+//	draft → pending_approval (Submit, author)
+//	pending_approval → approved (Approve, methodist; sets approverID + approvedAt)
+//	pending_approval → rejected (Reject + reason, methodist)
+//
+// Independent from WorkProgram.Status — a Revision can be in flight
+// while the parent program remains approved.
+type RevisionStatus string
+
+// RevisionStatus values.
+const (
+	RevisionStatusDraft           RevisionStatus = "draft"
+	RevisionStatusPendingApproval RevisionStatus = "pending_approval"
+	RevisionStatusApproved        RevisionStatus = "approved"
+	RevisionStatusRejected        RevisionStatus = "rejected"
+)
+
+// IsValid reports whether s is one of the four canonical revision statuses.
+func (s RevisionStatus) IsValid() bool {
+	switch s {
+	case RevisionStatusDraft, RevisionStatusPendingApproval,
+		RevisionStatusApproved, RevisionStatusRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+// String returns the wire-form.
+func (s RevisionStatus) String() string { return string(s) }
+
 // ReferenceKind classifies a Reference (литература/источник) by importance tier.
 type ReferenceKind string
 
