@@ -69,3 +69,35 @@ func TestMigration005DoesNotDuplicateTaskReminders(t *testing.T) {
 		t.Errorf("migration 005 must not CREATE task_reminders; canonical owner is migration 038")
 	}
 }
+
+// TestScheduleRepoUsesUsersNameColumn guards against a second SQL drift
+// in the schedule module: lesson_repository_pg.go's GetByID and
+// GetTimetable used to project u.first_name || ' ' || u.last_name from
+// the users join, but the users table in migration 001 declares a
+// single `name` column. Any timetable / lesson-by-id query crashed
+// with column "u.first_name" does not exist against a fresh DB.
+func TestScheduleRepoUsesUsersNameColumn(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	repoPath := ""
+	for dir := cwd; dir != "/"; dir = filepath.Dir(dir) {
+		candidate := filepath.Join(dir, "internal/modules/schedule/infrastructure/persistence/lesson_repository_pg.go")
+		if _, err := os.Stat(candidate); err == nil {
+			repoPath = candidate
+			break
+		}
+	}
+	if repoPath == "" {
+		t.Fatal("lesson_repository_pg.go not found")
+	}
+	body, err := os.ReadFile(repoPath)
+	if err != nil {
+		t.Fatalf("read repo: %v", err)
+	}
+	src := string(body)
+	if strings.Contains(src, "u.first_name") || strings.Contains(src, "u.last_name") {
+		t.Errorf("lesson_repository_pg.go references u.first_name/u.last_name; users table declares only `name`")
+	}
+}

@@ -73,7 +73,7 @@ func (r *LessonRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.L
 			cr.id, cr.building, cr.number, cr.name, cr.capacity, cr.type,
 			cr.is_available, cr.created_at, cr.updated_at,
 			sg.id, sg.specialty_id, sg.name, sg.course, sg.curator_id, sg.capacity,
-			u.id, u.first_name || ' ' || u.last_name, u.email
+			u.id, u.name, u.email
 		FROM schedule_lessons l
 		LEFT JOIN disciplines d ON l.discipline_id = d.id
 		LEFT JOIN lesson_types lt ON l.lesson_type_id = lt.id
@@ -177,7 +177,7 @@ func (r *LessonRepositoryPG) GetTimetable(ctx context.Context, filter repositori
 			cr.id, cr.building, cr.number, cr.name, cr.capacity, cr.type,
 			cr.is_available, cr.created_at, cr.updated_at,
 			sg.id, sg.specialty_id, sg.name, sg.course, sg.curator_id, sg.capacity,
-			u.id, u.first_name || ' ' || u.last_name, u.email
+			u.id, u.name, u.email
 		FROM schedule_lessons l
 		LEFT JOIN disciplines d ON l.discipline_id = d.id
 		LEFT JOIN lesson_types lt ON l.lesson_type_id = lt.id
