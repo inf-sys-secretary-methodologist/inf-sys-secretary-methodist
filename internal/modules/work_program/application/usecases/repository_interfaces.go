@@ -19,6 +19,7 @@ import (
 	"context"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
 )
 
 // WorkProgramRepository is the persistence port for WorkProgram
@@ -50,4 +51,11 @@ type WorkProgramRepository interface {
 	// Revisions). Returns repositories.ErrWorkProgramNotFound when no
 	// matching row exists.
 	GetByID(ctx context.Context, id int64) (*entities.WorkProgram, error)
+
+	// List returns a page of WorkProgram items matching the filter
+	// together with the total number of matching rows (ignoring
+	// Limit/Offset). Items carry root state only — list endpoints
+	// stay cheap; callers needing full child hydration use GetByID.
+	// An empty result is not an error.
+	List(ctx context.Context, filter repositories.WorkProgramListFilter) (repositories.WorkProgramListResult, error)
 }
