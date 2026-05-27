@@ -101,6 +101,38 @@ func NewWorkProgram(in NewWorkProgramInput) (*WorkProgram, error) {
 	}, nil
 }
 
+// --- Status FSM transitions ---
+// Stubs for the RED commit — every transition returns
+// ErrInvalidStatusTransition unconditionally. GREEN commit fills in
+// the actual FSM logic per ADR-2.
+
+// Submit transitions the WorkProgram from draft (or needs_revision)
+// to pending_approval. Author-only operation; caller (use case) is
+// responsible for the role check.
+func (w *WorkProgram) Submit() error {
+	return domain.ErrInvalidStatusTransition
+}
+
+// Approve transitions the WorkProgram from pending_approval to
+// approved. Methodist-only operation per ADR-5.
+func (w *WorkProgram) Approve(_ int64) error {
+	return domain.ErrInvalidStatusTransition
+}
+
+// MarkNeedsRevision transitions the WorkProgram from approved to
+// needs_revision. Auto-triggered by DisciplineItem.Updated event
+// handler per ADR-8.
+func (w *WorkProgram) MarkNeedsRevision() error {
+	return domain.ErrInvalidStatusTransition
+}
+
+// Archive transitions the WorkProgram to archived (terminal state).
+// Allowed from draft / approved per ADR-2. РПД никогда не удаляется
+// (Рособрнадзор 6 лет).
+func (w *WorkProgram) Archive() error {
+	return domain.ErrInvalidStatusTransition
+}
+
 // Read-only accessors. Aggregate fields stay unexported so invariants
 // can only be mutated via aggregate methods.
 

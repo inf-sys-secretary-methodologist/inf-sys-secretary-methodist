@@ -130,6 +130,102 @@ func TestNewWorkProgram_InvariantViolations(t *testing.T) {
 	}
 }
 
+// --- Submit transition ---
+
+func TestSubmit_FromDraft_TransitionsToPendingApproval(t *testing.T) {
+	wp := newDraft(t)
+	if err := wp.Submit(); err != nil {
+		t.Fatalf("Submit on draft: unexpected error %v", err)
+	}
+	if wp.Status() != domain.StatusPendingApproval {
+		t.Errorf("Status: got %s, want %s", wp.Status(), domain.StatusPendingApproval)
+	}
+}
+
+func TestSubmit_FromNeedsRevision_TransitionsToPendingApproval(t *testing.T) {
+	wp := newDraft(t)
+	if err := wp.Submit(); err != nil {
+		t.Fatalf("Submit: %v", err)
+	}
+	if err := wp.Approve(99); err != nil {
+		t.Fatalf("Approve: %v", err)
+	}
+	if err := wp.MarkNeedsRevision(); err != nil {
+		t.Fatalf("MarkNeedsRevision: %v", err)
+	}
+	if err := wp.Submit(); err != nil {
+		t.Fatalf("Submit from needs_revision: %v", err)
+	}
+	if wp.Status() != domain.StatusPendingApproval {
+		t.Errorf("Status: got %s, want %s", wp.Status(), domain.StatusPendingApproval)
+	}
+}
+
+func TestSubmit_FromForbiddenStatus_ReturnsTransitionError(t *testing.T) {
+	cases := []struct {
+		name      string
+		setStatus func(t *testing.T, wp *entities.WorkProgram)
+	}{
+		{
+			name: "from pending_approval",
+			setStatus: func(t *testing.T, wp *entities.WorkProgram) {
+				t.Helper()
+				if err := wp.Submit(); err != nil {
+					t.Fatalf("setup Submit: %v", err)
+				}
+			},
+		},
+		{
+			name: "from approved",
+			setStatus: func(t *testing.T, wp *entities.WorkProgram) {
+				t.Helper()
+				if err := wp.Submit(); err != nil {
+					t.Fatalf("setup Submit: %v", err)
+				}
+				if err := wp.Approve(99); err != nil {
+					t.Fatalf("setup Approve: %v", err)
+				}
+			},
+		},
+		{
+			name: "from archived",
+			setStatus: func(t *testing.T, wp *entities.WorkProgram) {
+				t.Helper()
+				if err := wp.Archive(); err != nil {
+					t.Fatalf("setup Archive: %v", err)
+				}
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			wp := newDraft(t)
+			tc.setStatus(t, wp)
+			err := wp.Submit()
+			if !errors.Is(err, domain.ErrInvalidStatusTransition) {
+				t.Errorf("expected ErrInvalidStatusTransition, got %v", err)
+			}
+		})
+	}
+}
+
+// newDraft is a test helper that builds a valid draft WorkProgram.
+func newDraft(t *testing.T) *entities.WorkProgram {
+	t.Helper()
+	wp, err := entities.NewWorkProgram(entities.NewWorkProgramInput{
+		DisciplineID:       42,
+		SpecialtyCode:      "09.03.01",
+		ApplicableFromYear: 2026,
+		Title:              "Базы данных",
+		Annotation:         "Курс по основам СУБД",
+		AuthorID:           7,
+	})
+	if err != nil {
+		t.Fatalf("newDraft: NewWorkProgram failed: %v", err)
+	}
+	return wp
+}
+
 func TestNewWorkProgram_TrimsWhitespace(t *testing.T) {
 	wp, err := entities.NewWorkProgram(entities.NewWorkProgramInput{
 		DisciplineID:       42,
