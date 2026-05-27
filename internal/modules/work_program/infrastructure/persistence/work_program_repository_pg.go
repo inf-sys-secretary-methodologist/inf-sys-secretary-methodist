@@ -178,7 +178,7 @@ func (r *WorkProgramRepositoryPG) List(ctx context.Context, filter repositories.
 	}
 	var yearArg sql.NullInt32
 	if filter.ApplicableFromYear != nil {
-		yearArg = sql.NullInt32{Int32: int32(*filter.ApplicableFromYear), Valid: true} //nolint:gosec // G115 safe: domain bounds year ≤ 2100
+		yearArg = sql.NullInt32{Int32: int32(*filter.ApplicableFromYear), Valid: true} // #nosec G115 -- domain bounds year ≤ 2100
 	}
 	var authorArg sql.NullInt64
 	if filter.AuthorID != nil {
