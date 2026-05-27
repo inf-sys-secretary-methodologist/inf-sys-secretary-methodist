@@ -83,6 +83,33 @@ func NewTopic(in NewTopicInput) (*Topic, error) {
 	}, nil
 }
 
+// ReconstituteTopicInput collects fields for repository hydration.
+type ReconstituteTopicInput struct {
+	ID               int64
+	WorkProgramID    int64
+	Kind             domain.TopicKind
+	Title            string
+	Hours            int
+	WeekNumber       *int
+	LearningOutcomes string
+	OrderIndex       int
+}
+
+// ReconstituteTopic builds a Topic from persisted state. Skips
+// invariant checks — DB CHECK constraints already validated.
+func ReconstituteTopic(in ReconstituteTopicInput) *Topic {
+	return &Topic{
+		id:               in.ID,
+		workProgramID:    in.WorkProgramID,
+		kind:             in.Kind,
+		title:            in.Title,
+		hours:            in.Hours,
+		weekNumber:       in.WeekNumber,
+		learningOutcomes: in.LearningOutcomes,
+		orderIndex:       in.OrderIndex,
+	}
+}
+
 // ID returns the persistent identifier.
 func (t *Topic) ID() int64 { return t.id }
 

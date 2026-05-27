@@ -139,6 +139,44 @@ func (r *Revision) Reject(reason string) error {
 	return nil
 }
 
+// ReconstituteRevisionInput collects fields for repository hydration.
+type ReconstituteRevisionInput struct {
+	ID             int64
+	WorkProgramID  int64
+	RevisionNumber int
+	ChangeType     domain.RevisionChangeType
+	ChangeSummary  string
+	Status         domain.RevisionStatus
+	AuthorID       int64
+	ApproverID     *int64
+	ApprovedAt     *time.Time
+	RejectReason   string
+	DiffPayload    []byte
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+// ReconstituteRevision builds a Revision from persisted state. Skips
+// invariant checks — DB CHECK constraints and the original NewRevision
+// call already validated.
+func ReconstituteRevision(in ReconstituteRevisionInput) *Revision {
+	return &Revision{
+		id:             in.ID,
+		workProgramID:  in.WorkProgramID,
+		revisionNumber: in.RevisionNumber,
+		changeType:     in.ChangeType,
+		changeSummary:  in.ChangeSummary,
+		status:         in.Status,
+		authorID:       in.AuthorID,
+		approverID:     in.ApproverID,
+		approvedAt:     in.ApprovedAt,
+		rejectReason:   in.RejectReason,
+		diffPayload:    in.DiffPayload,
+		createdAt:      in.CreatedAt,
+		updatedAt:      in.UpdatedAt,
+	}
+}
+
 // ID returns the persistent identifier.
 func (r *Revision) ID() int64 { return r.id }
 

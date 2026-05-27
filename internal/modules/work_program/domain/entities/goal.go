@@ -44,6 +44,28 @@ func NewGoal(text string, orderIndex int) (*Goal, error) {
 	}, nil
 }
 
+// ReconstituteGoalInput collects fields for repository hydration.
+type ReconstituteGoalInput struct {
+	ID            int64
+	WorkProgramID int64
+	Text          string
+	OrderIndex    int
+	CreatedAt     time.Time
+}
+
+// ReconstituteGoal builds a Goal from persisted state. Skips
+// invariant checks — DB CHECK constraints and the original NewGoal
+// call already validated.
+func ReconstituteGoal(in ReconstituteGoalInput) *Goal {
+	return &Goal{
+		id:            in.ID,
+		workProgramID: in.WorkProgramID,
+		text:          in.Text,
+		orderIndex:    in.OrderIndex,
+		createdAt:     in.CreatedAt,
+	}
+}
+
 // ID returns the persistent identifier (0 for unsaved goals).
 func (g *Goal) ID() int64 { return g.id }
 

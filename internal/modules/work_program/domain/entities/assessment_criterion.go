@@ -78,6 +78,30 @@ func NewAssessmentCriterion(in NewAssessmentCriterionInput) (*AssessmentCriterio
 	}, nil
 }
 
+// ReconstituteAssessmentCriterionInput collects fields for repository hydration.
+type ReconstituteAssessmentCriterionInput struct {
+	ID               int64
+	WorkProgramID    int64
+	Type             domain.AssessmentType
+	Description      string
+	MaxScore         int
+	ExampleQuestions []string
+}
+
+// ReconstituteAssessmentCriterion builds an AssessmentCriterion from
+// persisted state. Skips invariant checks — DB CHECK constraints
+// already validated.
+func ReconstituteAssessmentCriterion(in ReconstituteAssessmentCriterionInput) *AssessmentCriterion {
+	return &AssessmentCriterion{
+		id:               in.ID,
+		workProgramID:    in.WorkProgramID,
+		atype:            in.Type,
+		description:      in.Description,
+		maxScore:         in.MaxScore,
+		exampleQuestions: in.ExampleQuestions,
+	}
+}
+
 // ID returns the persistent identifier.
 func (a *AssessmentCriterion) ID() int64 { return a.id }
 
