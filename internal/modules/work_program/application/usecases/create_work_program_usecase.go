@@ -3,8 +3,11 @@ package usecases
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
 )
 
 // CreateWorkProgramInput is the public request DTO. The actor
@@ -50,7 +53,73 @@ func NewCreateWorkProgramUseCase(repo createWorkProgramRepo, audit AuditSink) *C
 	return &CreateWorkProgramUseCase{repo: repo, audit: audit}
 }
 
-// Execute is a stub. Real implementation lands in the matching GREEN commit.
-func (uc *CreateWorkProgramUseCase) Execute(_ context.Context, _ int64, _ string, _ CreateWorkProgramInput) (*entities.WorkProgram, error) {
-	return nil, errors.New("work_program: CreateWorkProgramUseCase not implemented yet (RED)")
+// Execute runs the use case end-to-end:
+//  1. Role gate per ADR-018 ADR-5 (teacher / methodist / system_admin).
+//  2. Build the entity through NewWorkProgram (invariant gate).
+//  3. Persist via repo.Save (which translates uniqueness violations to
+//     ErrWorkProgramIdentityExists).
+//  4. Emit a forensic audit event reflecting success or domain denial.
+//     Transport errors propagate without an audit event — the audit log
+//     records policy decisions, not infrastructure outages.
+//
+// Returns the persisted entity (with ID populated) on success. On
+// domain failures the entity is nil and the returned error wraps
+// either ErrWorkProgramScopeForbidden / ErrInvalidWorkProgram /
+// ErrWorkProgramIdentityExists so errors.Is resolves cleanly in
+// handler error mapping.
+func (uc *CreateWorkProgramUseCase) Execute(ctx context.Context, actorID int64, actorRole string, in CreateWorkProgramInput) (*entities.WorkProgram, error) {
+	if !isAllowedToCreateWorkProgram(actorRole) {
+		emitAudit(uc.audit, ctx, "work_program.create_denied",
+			denialFields(actorID, 0, "forbidden_role", in.SpecialtyCode))
+		return nil, fmt.Errorf("%w: role %q cannot create work program", domain.ErrWorkProgramScopeForbidden, actorRole)
+	}
+
+	wp, err := entities.NewWorkProgram(entities.NewWorkProgramInput{
+		DisciplineID:       in.DisciplineID,
+		SpecialtyCode:      in.SpecialtyCode,
+		ApplicableFromYear: in.ApplicableFromYear,
+		Title:              in.Title,
+		Annotation:         in.Annotation,
+		AuthorID:           actorID,
+	})
+	if err != nil {
+		// work_program_id is 0 — the row was never built. denialFields
+		// tolerates a zero id; operators reading the audit log still see
+		// actor + reason + specialty_code.
+		emitAudit(uc.audit, ctx, "work_program.create_denied",
+			denialFields(actorID, 0, "invalid", in.SpecialtyCode))
+		return nil, err
+	}
+
+	if err := uc.repo.Save(ctx, wp); err != nil {
+		if errors.Is(err, repositories.ErrWorkProgramIdentityExists) {
+			emitAudit(uc.audit, ctx, "work_program.create_denied",
+				denialFields(actorID, 0, "identity_conflict", in.SpecialtyCode))
+		}
+		return nil, err
+	}
+
+	emitAudit(uc.audit, ctx, "work_program.created", map[string]any{
+		"actor_user_id":        actorID,
+		"work_program_id":      wp.ID(),
+		"specialty_code":       wp.SpecialtyCode(),
+		"applicable_from_year": wp.ApplicableFromYear(),
+		"discipline_id":        wp.DisciplineID(),
+		"status":               string(wp.Status()),
+	})
+	return wp, nil
+}
+
+// isAllowedToCreateWorkProgram encodes the ADR-018 ADR-5 role matrix
+// for the create operation. Centralizing the predicate here (rather
+// than open-coding it inline) lets the Submit / Discard use cases
+// reuse the same predicate when checking "is the caller in the set of
+// roles that could have authored this WP" without duplicating literals.
+func isAllowedToCreateWorkProgram(role string) bool {
+	switch role {
+	case "teacher", "methodist", "system_admin":
+		return true
+	default:
+		return false
+	}
 }
