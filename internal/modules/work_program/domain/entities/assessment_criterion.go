@@ -1,7 +1,16 @@
 package entities
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
+)
+
+const (
+	minAssessmentScore       = 1
+	maxAssessmentScore       = 100
+	maxExampleQuestionsCount = 10
 )
 
 // NewAssessmentCriterionInput collects constructor parameters for an
@@ -24,10 +33,49 @@ type AssessmentCriterion struct {
 	exampleQuestions []string
 }
 
-// NewAssessmentCriterion stub for PR 1c RED phase — real invariants
-// land in the GREEN commit.
-func NewAssessmentCriterion(_ NewAssessmentCriterionInput) (*AssessmentCriterion, error) {
-	return nil, domain.ErrInvalidWorkProgram
+// NewAssessmentCriterion constructs a fresh AssessmentCriterion. Type
+// is validated against canonical values, description trimmed and
+// non-empty, max_score in [1, 100], example_questions limited to 10
+// entries with each non-empty after trim (empty entries cannot carry
+// meaning, so reject rather than silently skip).
+func NewAssessmentCriterion(in NewAssessmentCriterionInput) (*AssessmentCriterion, error) {
+	trimmedDesc := strings.TrimSpace(in.Description)
+
+	if !in.Type.IsValid() {
+		return nil, fmt.Errorf("%w: type %q must be one of current/intermediate/final",
+			domain.ErrInvalidWorkProgram, in.Type)
+	}
+	if trimmedDesc == "" {
+		return nil, fmt.Errorf("%w: description is required", domain.ErrInvalidWorkProgram)
+	}
+	if in.MaxScore < minAssessmentScore || in.MaxScore > maxAssessmentScore {
+		return nil, fmt.Errorf("%w: max_score must be in [%d, %d]",
+			domain.ErrInvalidWorkProgram, minAssessmentScore, maxAssessmentScore)
+	}
+	if len(in.ExampleQuestions) > maxExampleQuestionsCount {
+		return nil, fmt.Errorf("%w: example_questions must contain at most %d entries",
+			domain.ErrInvalidWorkProgram, maxExampleQuestionsCount)
+	}
+
+	var trimmedQuestions []string
+	if len(in.ExampleQuestions) > 0 {
+		trimmedQuestions = make([]string, 0, len(in.ExampleQuestions))
+		for i, q := range in.ExampleQuestions {
+			tq := strings.TrimSpace(q)
+			if tq == "" {
+				return nil, fmt.Errorf("%w: example_questions[%d] must not be empty",
+					domain.ErrInvalidWorkProgram, i)
+			}
+			trimmedQuestions = append(trimmedQuestions, tq)
+		}
+	}
+
+	return &AssessmentCriterion{
+		atype:            in.Type,
+		description:      trimmedDesc,
+		maxScore:         in.MaxScore,
+		exampleQuestions: trimmedQuestions,
+	}, nil
 }
 
 // ID returns the persistent identifier.
