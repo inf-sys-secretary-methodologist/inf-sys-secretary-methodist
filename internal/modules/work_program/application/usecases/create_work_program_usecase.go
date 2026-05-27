@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
@@ -109,15 +108,4 @@ func (uc *CreateWorkProgramUseCase) Execute(ctx context.Context, actorID int64, 
 		"status":               string(wp.Status()),
 	})
 	return wp, nil
-}
-
-// isAllowedToCreateWorkProgram encodes the ADR-018 ADR-5 role matrix
-// for the create operation. Typed against authDomain.RoleType so a
-// typo in the role string would fail at compile time on the constant
-// reference, not silently at runtime through default-deny.
-func isAllowedToCreateWorkProgram(role string) bool {
-	r := authDomain.RoleType(role)
-	return r == authDomain.RoleTeacher ||
-		r == authDomain.RoleMethodist ||
-		r == authDomain.RoleSystemAdmin
 }

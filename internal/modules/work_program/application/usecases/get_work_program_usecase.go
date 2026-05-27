@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
 )
@@ -60,27 +59,4 @@ func (uc *GetWorkProgramUseCase) Execute(ctx context.Context, actorID int64, act
 	}
 
 	return wp, nil
-}
-
-// canViewWorkProgram encodes the ADR-018 ADR-5 view-rights matrix.
-//
-//	system_admin / methodist / academic_secretary → see every status
-//	teacher                                       → own at any status OR any author's approved
-//	student                                       → only approved (273-ФЗ ст. 29 mandatory openness)
-//	anything else                                 → denied unconditionally
-//
-// Typed against authDomain.RoleType so role checks reference a typed
-// constant rather than a bare literal — a typo would surface at
-// compile time on the constant reference, not silently as default-deny.
-func canViewWorkProgram(actorID int64, actorRole string, wp *entities.WorkProgram) bool {
-	switch authDomain.RoleType(actorRole) {
-	case authDomain.RoleSystemAdmin, authDomain.RoleMethodist, authDomain.RoleAcademicSecretary:
-		return true
-	case authDomain.RoleTeacher:
-		return wp.AuthorID() == actorID || wp.Status() == domain.StatusApproved
-	case authDomain.RoleStudent:
-		return wp.Status() == domain.StatusApproved
-	default:
-		return false
-	}
 }

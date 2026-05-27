@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
@@ -87,13 +86,4 @@ func (uc *ApproveWorkProgramUseCase) Execute(ctx context.Context, actorID int64,
 		"status":          string(wp.Status()),
 	})
 	return wp, nil
-}
-
-// isApprover encodes the ADR-018 ADR-5 approver role set: methodist
-// primary, system_admin override. Reused by Reject in the same release.
-// Typed against authDomain.RoleType so a typo in the role spelling
-// would fail at compile time on the constant reference.
-func isApprover(role string) bool {
-	r := authDomain.RoleType(role)
-	return r == authDomain.RoleMethodist || r == authDomain.RoleSystemAdmin
 }
