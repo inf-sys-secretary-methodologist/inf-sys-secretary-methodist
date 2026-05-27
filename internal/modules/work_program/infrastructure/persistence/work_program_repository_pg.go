@@ -145,6 +145,12 @@ func insertWorkProgramRoot(ctx context.Context, tx execQuerier, wp *entities.Wor
 	return nil
 }
 
+// GetByID stub for PR 2b RED phase — real hydration lands in the
+// matching GREEN commit.
+func (r *WorkProgramRepositoryPG) GetByID(_ context.Context, _ int64) (*entities.WorkProgram, error) {
+	return nil, repositories.ErrWorkProgramNotFound
+}
+
 // isIdentityViolation reports whether err is a PostgreSQL unique
 // violation against the identity tuple constraint.
 func isIdentityViolation(err error) bool {
