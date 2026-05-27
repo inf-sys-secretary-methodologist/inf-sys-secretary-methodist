@@ -191,7 +191,7 @@ CREATE TABLE IF NOT EXISTS schedule_lessons (
 
     -- Дополнительная информация
     notes TEXT,
-    is_cancelled BOOLEAN NOT NULL DEFAULT false,
+    is_canceled BOOLEAN NOT NULL DEFAULT false,
     cancellation_reason TEXT,
 
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),

@@ -4,6 +4,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -75,13 +76,14 @@ func (r *TaskRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.Tas
 
 	task := &entities.Task{}
 	var tags pq.StringArray
+	var metadata sql.NullString
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&task.ID, &task.ProjectID, &task.Title, &task.Description,
 		&task.DocumentID, &task.AuthorID, &task.AssigneeID, &task.Status,
 		&task.Priority, &task.DueDate, &task.StartDate, &task.CompletedAt,
 		&task.Progress, &task.EstimatedHours, &task.ActualHours,
-		&tags, &task.Metadata, &task.CreatedAt, &task.UpdatedAt,
+		&tags, &metadata, &task.CreatedAt, &task.UpdatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -91,6 +93,9 @@ func (r *TaskRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.Tas
 	}
 
 	task.Tags = tags
+	if metadata.Valid {
+		task.Metadata = json.RawMessage(metadata.String)
+	}
 	return task, nil
 }
 
@@ -201,19 +206,23 @@ func (r *TaskRepositoryPG) scanTasks(rows *sql.Rows) ([]*entities.Task, error) {
 	for rows.Next() {
 		task := &entities.Task{}
 		var tags pq.StringArray
+		var metadata sql.NullString
 
 		err := rows.Scan(
 			&task.ID, &task.ProjectID, &task.Title, &task.Description,
 			&task.DocumentID, &task.AuthorID, &task.AssigneeID, &task.Status,
 			&task.Priority, &task.DueDate, &task.StartDate, &task.CompletedAt,
 			&task.Progress, &task.EstimatedHours, &task.ActualHours,
-			&tags, &task.Metadata, &task.CreatedAt, &task.UpdatedAt,
+			&tags, &metadata, &task.CreatedAt, &task.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
 
 		task.Tags = tags
+		if metadata.Valid {
+			task.Metadata = json.RawMessage(metadata.String)
+		}
 		tasks = append(tasks, task)
 	}
 

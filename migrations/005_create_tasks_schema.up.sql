@@ -171,20 +171,10 @@ CREATE INDEX idx_task_history_task_id ON task_history(task_id);
 CREATE INDEX idx_task_history_user_id ON task_history(user_id);
 CREATE INDEX idx_task_history_created_at ON task_history(created_at DESC);
 
--- Напоминания о задачах
-CREATE TABLE IF NOT EXISTS task_reminders (
-    id BIGSERIAL PRIMARY KEY,
-    task_id BIGINT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    remind_at TIMESTAMP NOT NULL,
-    is_sent BOOLEAN NOT NULL DEFAULT false,
-    sent_at TIMESTAMP,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_task_reminders_task_id ON task_reminders(task_id);
-CREATE INDEX idx_task_reminders_user_id ON task_reminders(user_id);
-CREATE INDEX idx_task_reminders_remind_at ON task_reminders(remind_at) WHERE is_sent = false;
+-- Напоминания о задачах: каноническая схема создаётся миграцией 038
+-- (reminder_type + minutes_before, v0.138.0). Здесь блок убран в
+-- v0.167.0 — раньше IF NOT EXISTS silently shadowил 038 и backend
+-- падал с column "reminder_type" does not exist.
 
 -- Шаблоны задач (для повторяющихся задач)
 CREATE TABLE IF NOT EXISTS task_templates (

@@ -159,6 +159,62 @@ func TestTaskRepositoryPG_GetByID_Error(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+// addTaskRowWithNullMetadata mirrors addTaskRow but sets the metadata
+// column to NULL — modeling rows produced by seed_demo_data.sql and
+// any production task created without explicit metadata. The Postgres
+// schema allows metadata JSONB to be NULL.
+func addTaskRowWithNullMetadata(rows *sqlmock.Rows, id int64, title string) *sqlmock.Rows {
+	now := time.Now()
+	return rows.AddRow(
+		id, nil, title, nil, nil, int64(1),
+		nil, domain.TaskStatusNew, domain.TaskPriorityNormal, nil, nil, nil,
+		0, nil, nil, pq.StringArray{"tag1"}, nil,
+		now, now,
+	)
+}
+
+// TestTaskRepositoryPG_GetByID_NullMetadata exposes a pre-existing
+// scan bug: scanning a NULL JSONB column directly into *json.RawMessage
+// returns
+//
+//	sql: Scan error on column index 16, name "metadata":
+//	     unsupported Scan, storing driver.Value type <nil> into type *json.RawMessage
+//
+// because json.RawMessage's Scanner implementation does not accept
+// nil. The repo must use sql.NullString as the intermediate and
+// only assign task.Metadata when the column is non-null.
+func TestTaskRepositoryPG_GetByID_NullMetadata(t *testing.T) {
+	repo, mock := newTaskRepoMock(t)
+	rows := addTaskRowWithNullMetadata(newTaskRows(), 1, "TaskWithNullMeta")
+
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, project_id")).
+		WithArgs(int64(1)).
+		WillReturnRows(rows)
+
+	task, err := repo.GetByID(context.Background(), 1)
+	require.NoError(t, err)
+	require.NotNil(t, task)
+	assert.Equal(t, "TaskWithNullMeta", task.Title)
+	assert.Nil(t, task.Metadata, "NULL DB metadata must leave entity field nil")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestTaskRepositoryPG_List_NullMetadata mirrors the above for the
+// List path — the scanTasks loop must survive NULL metadata rows.
+func TestTaskRepositoryPG_List_NullMetadata(t *testing.T) {
+	repo, mock := newTaskRepoMock(t)
+	rows := addTaskRowWithNullMetadata(newTaskRows(), 7, "SeedTask")
+
+	mock.ExpectQuery("SELECT id, project_id").
+		WillReturnRows(rows)
+
+	tasks, err := repo.List(context.Background(), repositories.TaskFilter{}, 10, 0)
+	require.NoError(t, err)
+	require.Len(t, tasks, 1)
+	assert.Nil(t, tasks[0].Metadata, "NULL DB metadata must leave entity field nil")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 // --- Delete ---
 
 func TestTaskRepositoryPG_Delete_Success(t *testing.T) {
