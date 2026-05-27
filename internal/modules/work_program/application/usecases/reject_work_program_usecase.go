@@ -85,12 +85,8 @@ func (uc *RejectWorkProgramUseCase) Execute(ctx context.Context, actorID int64, 
 		return nil, err
 	}
 
-	emitAudit(uc.audit, ctx, "work_program.rejected", map[string]any{
-		"actor_user_id":   actorID,
-		"work_program_id": wp.ID(),
-		"specialty_code":  wp.SpecialtyCode(),
-		"status":          string(wp.Status()),
-		"reject_reason":   wp.RejectReason(),
-	})
+	fields := successFields(actorID, wp.ID(), wp.SpecialtyCode(), string(wp.Status()))
+	fields["reject_reason"] = wp.RejectReason()
+	emitAudit(uc.audit, ctx, "work_program.rejected", fields)
 	return wp, nil
 }

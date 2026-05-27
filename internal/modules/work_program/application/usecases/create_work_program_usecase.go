@@ -99,13 +99,9 @@ func (uc *CreateWorkProgramUseCase) Execute(ctx context.Context, actorID int64, 
 		return nil, err
 	}
 
-	emitAudit(uc.audit, ctx, "work_program.created", map[string]any{
-		"actor_user_id":        actorID,
-		"work_program_id":      wp.ID(),
-		"specialty_code":       wp.SpecialtyCode(),
-		"applicable_from_year": wp.ApplicableFromYear(),
-		"discipline_id":        wp.DisciplineID(),
-		"status":               string(wp.Status()),
-	})
+	fields := successFields(actorID, wp.ID(), wp.SpecialtyCode(), string(wp.Status()))
+	fields["applicable_from_year"] = wp.ApplicableFromYear()
+	fields["discipline_id"] = wp.DisciplineID()
+	emitAudit(uc.audit, ctx, "work_program.created", fields)
 	return wp, nil
 }

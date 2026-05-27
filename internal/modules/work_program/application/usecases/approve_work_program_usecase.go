@@ -79,11 +79,7 @@ func (uc *ApproveWorkProgramUseCase) Execute(ctx context.Context, actorID int64,
 		return nil, err
 	}
 
-	emitAudit(uc.audit, ctx, "work_program.approved", map[string]any{
-		"actor_user_id":   actorID,
-		"work_program_id": wp.ID(),
-		"specialty_code":  wp.SpecialtyCode(),
-		"status":          string(wp.Status()),
-	})
+	emitAudit(uc.audit, ctx, "work_program.approved",
+		successFields(actorID, wp.ID(), wp.SpecialtyCode(), string(wp.Status())))
 	return wp, nil
 }
