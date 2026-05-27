@@ -325,6 +325,12 @@ func (w *WorkProgram) NextRevisionNumber() int {
 	return maxN + 1
 }
 
+// HoursTotal aggregates Topic.Hours per kind. Real impl in GREEN
+// returns a map with all four canonical TopicKinds keyed to zero
+// when no topics of that kind exist (so callers never see missing
+// keys). RED stub returns nil.
+func (w *WorkProgram) HoursTotal() map[domain.TopicKind]int { return nil }
+
 // Goals returns a defensive copy of the goals slice.
 func (w *WorkProgram) Goals() []*Goal {
 	out := make([]*Goal, len(w.goals))

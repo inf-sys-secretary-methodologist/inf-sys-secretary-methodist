@@ -337,6 +337,70 @@ func TestWorkProgram_Accessors_ReturnDefensiveCopies(t *testing.T) {
 	}
 }
 
+// --- HoursTotal aggregation ---
+
+func TestWorkProgram_HoursTotal_EmptyTopics_AllKindsZero(t *testing.T) {
+	wp := newDraft(t)
+	got := wp.HoursTotal()
+
+	want := map[domain.TopicKind]int{
+		domain.TopicKindLecture:   0,
+		domain.TopicKindPractice:  0,
+		domain.TopicKindLab:       0,
+		domain.TopicKindSelfStudy: 0,
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("HoursTotal[%s]: got %d, want %d", k, got[k], v)
+		}
+	}
+	if len(got) != 4 {
+		t.Errorf("HoursTotal should always carry all 4 kinds, got %d keys", len(got))
+	}
+}
+
+func TestWorkProgram_HoursTotal_SumsWithinKind(t *testing.T) {
+	wp := newDraft(t)
+	if err := wp.AddTopic(mustTopic(t, domain.TopicKindLecture, "Лекция 1", 4)); err != nil {
+		t.Fatalf("AddTopic 1: %v", err)
+	}
+	if err := wp.AddTopic(mustTopic(t, domain.TopicKindLecture, "Лекция 2", 6)); err != nil {
+		t.Fatalf("AddTopic 2: %v", err)
+	}
+	got := wp.HoursTotal()
+	if got[domain.TopicKindLecture] != 10 {
+		t.Errorf("HoursTotal[lecture]: got %d, want 10", got[domain.TopicKindLecture])
+	}
+}
+
+func TestWorkProgram_HoursTotal_SumsIndependentlyPerKind(t *testing.T) {
+	wp := newDraft(t)
+	if err := wp.AddTopic(mustTopic(t, domain.TopicKindLecture, "Л", 4)); err != nil {
+		t.Fatalf("AddTopic lecture: %v", err)
+	}
+	if err := wp.AddTopic(mustTopic(t, domain.TopicKindPractice, "П", 2)); err != nil {
+		t.Fatalf("AddTopic practice: %v", err)
+	}
+	if err := wp.AddTopic(mustTopic(t, domain.TopicKindLab, "Лаб", 6)); err != nil {
+		t.Fatalf("AddTopic lab: %v", err)
+	}
+	if err := wp.AddTopic(mustTopic(t, domain.TopicKindSelfStudy, "СРС", 36)); err != nil {
+		t.Fatalf("AddTopic self_study: %v", err)
+	}
+	got := wp.HoursTotal()
+	want := map[domain.TopicKind]int{
+		domain.TopicKindLecture:   4,
+		domain.TopicKindPractice:  2,
+		domain.TopicKindLab:       6,
+		domain.TopicKindSelfStudy: 36,
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("HoursTotal[%s]: got %d, want %d", k, got[k], v)
+		}
+	}
+}
+
 // --- Test helpers ---
 
 func approved(t *testing.T) *entities.WorkProgram {
