@@ -5,9 +5,20 @@
 package entities
 
 import (
+	"fmt"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
+)
+
+// Invariant bounds. Mirrored by migration 047 CHECK constraints
+// (defense in depth) — single source of truth lives here.
+const (
+	minApplicableYear = 2000
+	maxApplicableYear = 2100
+	maxAnnotationLen  = 8192
 )
 
 // NewWorkProgramInput carries the constructor parameters for a fresh
@@ -44,10 +55,50 @@ type WorkProgram struct {
 	updatedAt          time.Time
 }
 
-// NewWorkProgram constructs a fresh draft WorkProgram. Stub for the
-// RED commit — GREEN commit fills in invariant checks.
-func NewWorkProgram(_ NewWorkProgramInput) (*WorkProgram, error) {
-	return nil, domain.ErrInvalidWorkProgram
+// NewWorkProgram constructs a fresh draft WorkProgram. Inputs are
+// trimmed prior to invariant checks. All five field-level invariants
+// surface as ErrInvalidWorkProgram with the offending field named
+// (so handlers can map to 422 with a usable message). On success the
+// aggregate is in status=draft, version=0 (optimistic-lock starting
+// point per v0.157.0 ADR-2), approved_at=nil.
+func NewWorkProgram(in NewWorkProgramInput) (*WorkProgram, error) {
+	title := strings.TrimSpace(in.Title)
+	specialty := strings.TrimSpace(in.SpecialtyCode)
+	annotation := strings.TrimSpace(in.Annotation)
+
+	if title == "" {
+		return nil, fmt.Errorf("%w: title is required", domain.ErrInvalidWorkProgram)
+	}
+	if specialty == "" {
+		return nil, fmt.Errorf("%w: specialty_code is required", domain.ErrInvalidWorkProgram)
+	}
+	if in.DisciplineID <= 0 {
+		return nil, fmt.Errorf("%w: discipline_id must be positive", domain.ErrInvalidWorkProgram)
+	}
+	if in.AuthorID <= 0 {
+		return nil, fmt.Errorf("%w: author_id must be positive", domain.ErrInvalidWorkProgram)
+	}
+	if in.ApplicableFromYear < minApplicableYear || in.ApplicableFromYear > maxApplicableYear {
+		return nil, fmt.Errorf("%w: applicable_from_year must be in [%d, %d]",
+			domain.ErrInvalidWorkProgram, minApplicableYear, maxApplicableYear)
+	}
+	if utf8.RuneCountInString(annotation) > maxAnnotationLen {
+		return nil, fmt.Errorf("%w: annotation must be <= %d runes", domain.ErrInvalidWorkProgram, maxAnnotationLen)
+	}
+
+	now := time.Now().UTC()
+	return &WorkProgram{
+		disciplineID:       in.DisciplineID,
+		specialtyCode:      specialty,
+		applicableFromYear: in.ApplicableFromYear,
+		title:              title,
+		annotation:         annotation,
+		status:             domain.StatusDraft,
+		authorID:           in.AuthorID,
+		version:            0,
+		createdAt:          now,
+		updatedAt:          now,
+	}, nil
 }
 
 // Read-only accessors. Aggregate fields stay unexported so invariants
