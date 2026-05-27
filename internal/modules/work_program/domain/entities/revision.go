@@ -87,6 +87,31 @@ func NewRevision(in NewRevisionInput) (*Revision, error) {
 	}, nil
 }
 
+// --- Sub-FSM transitions per ADR-10 ---
+//
+// PR 1c RED phase: stubs always return ErrInvalidStatusTransition so
+// the sibling constructor tests stay green while the transition tests
+// go red. Real logic lands in the matching GREEN commit.
+
+// Submit transitions the Revision from draft to pending_approval.
+// Author-only operation; caller (use case) handles the role check.
+func (r *Revision) Submit() error {
+	return domain.ErrInvalidStatusTransition
+}
+
+// Approve transitions the Revision from pending_approval to approved.
+// approverID is the acting methodist's ID, recorded for audit /
+// Рособрнадзор-trail (chk_wprev_approved_consistency).
+func (r *Revision) Approve(_ int64) error {
+	return domain.ErrInvalidStatusTransition
+}
+
+// Reject transitions the Revision from pending_approval to rejected
+// with a recorded reason. Methodist-only per ADR-5.
+func (r *Revision) Reject(_ string) error {
+	return domain.ErrInvalidStatusTransition
+}
+
 // ID returns the persistent identifier.
 func (r *Revision) ID() int64 { return r.id }
 

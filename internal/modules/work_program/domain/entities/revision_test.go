@@ -83,6 +83,246 @@ func TestNewRevision_StoresDiffPayload(t *testing.T) {
 	}
 }
 
+// --- Sub-FSM transitions per ADR-10 ---
+
+func TestRevision_Submit_FromDraft_TransitionsToPendingApproval(t *testing.T) {
+	r := newDraftRevision(t)
+	if err := r.Submit(); err != nil {
+		t.Fatalf("Submit on draft: unexpected error %v", err)
+	}
+	if r.Status() != domain.RevisionStatusPendingApproval {
+		t.Errorf("Status: got %s, want %s", r.Status(), domain.RevisionStatusPendingApproval)
+	}
+}
+
+func TestRevision_Submit_FromForbiddenStatus_ReturnsTransitionError(t *testing.T) {
+	cases := []struct {
+		name  string
+		setup func(t *testing.T, r *entities.Revision)
+	}{
+		{
+			name: "from pending_approval",
+			setup: func(t *testing.T, r *entities.Revision) {
+				t.Helper()
+				if err := r.Submit(); err != nil {
+					t.Fatalf("setup Submit: %v", err)
+				}
+			},
+		},
+		{
+			name: "from approved",
+			setup: func(t *testing.T, r *entities.Revision) {
+				t.Helper()
+				if err := r.Submit(); err != nil {
+					t.Fatalf("setup Submit: %v", err)
+				}
+				if err := r.Approve(99); err != nil {
+					t.Fatalf("setup Approve: %v", err)
+				}
+			},
+		},
+		{
+			name: "from rejected",
+			setup: func(t *testing.T, r *entities.Revision) {
+				t.Helper()
+				if err := r.Submit(); err != nil {
+					t.Fatalf("setup Submit: %v", err)
+				}
+				if err := r.Reject("Не соответствует ФГОС"); err != nil {
+					t.Fatalf("setup Reject: %v", err)
+				}
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := newDraftRevision(t)
+			tc.setup(t, r)
+			err := r.Submit()
+			if !errors.Is(err, domain.ErrInvalidStatusTransition) {
+				t.Errorf("expected ErrInvalidStatusTransition, got %v", err)
+			}
+		})
+	}
+}
+
+func TestRevision_Approve_FromPendingApproval_SetsApproverAndTimestamp(t *testing.T) {
+	r := newDraftRevision(t)
+	if err := r.Submit(); err != nil {
+		t.Fatalf("Submit: %v", err)
+	}
+	if err := r.Approve(99); err != nil {
+		t.Fatalf("Approve: unexpected error %v", err)
+	}
+	if r.Status() != domain.RevisionStatusApproved {
+		t.Errorf("Status: got %s, want %s", r.Status(), domain.RevisionStatusApproved)
+	}
+	if r.ApproverID() == nil || *r.ApproverID() != 99 {
+		t.Errorf("ApproverID: got %v, want *99", r.ApproverID())
+	}
+	if r.ApprovedAt() == nil {
+		t.Error("ApprovedAt: should be set after Approve, got nil")
+	}
+}
+
+func TestRevision_Approve_NonPositiveApproverID_RejectedAsInvariant(t *testing.T) {
+	r := newDraftRevision(t)
+	if err := r.Submit(); err != nil {
+		t.Fatalf("Submit: %v", err)
+	}
+	err := r.Approve(0)
+	if !errors.Is(err, domain.ErrInvalidWorkProgram) {
+		t.Errorf("expected ErrInvalidWorkProgram, got %v", err)
+	}
+	if r.Status() != domain.RevisionStatusPendingApproval {
+		t.Errorf("Status should be unchanged on invariant failure: got %s", r.Status())
+	}
+}
+
+func TestRevision_Approve_FromForbiddenStatus_ReturnsTransitionError(t *testing.T) {
+	cases := []struct {
+		name  string
+		setup func(t *testing.T, r *entities.Revision)
+	}{
+		{name: "from draft", setup: func(_ *testing.T, _ *entities.Revision) {}},
+		{
+			name: "from approved",
+			setup: func(t *testing.T, r *entities.Revision) {
+				t.Helper()
+				if err := r.Submit(); err != nil {
+					t.Fatalf("setup Submit: %v", err)
+				}
+				if err := r.Approve(99); err != nil {
+					t.Fatalf("setup Approve: %v", err)
+				}
+			},
+		},
+		{
+			name: "from rejected",
+			setup: func(t *testing.T, r *entities.Revision) {
+				t.Helper()
+				if err := r.Submit(); err != nil {
+					t.Fatalf("setup Submit: %v", err)
+				}
+				if err := r.Reject("причина"); err != nil {
+					t.Fatalf("setup Reject: %v", err)
+				}
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := newDraftRevision(t)
+			tc.setup(t, r)
+			err := r.Approve(99)
+			if !errors.Is(err, domain.ErrInvalidStatusTransition) {
+				t.Errorf("expected ErrInvalidStatusTransition, got %v", err)
+			}
+		})
+	}
+}
+
+func TestRevision_Reject_FromPendingApproval_TransitionsToRejectedWithReason(t *testing.T) {
+	r := newDraftRevision(t)
+	if err := r.Submit(); err != nil {
+		t.Fatalf("Submit: %v", err)
+	}
+	if err := r.Reject("Не соответствует ФГОС: формулировка ПК-3"); err != nil {
+		t.Fatalf("Reject: unexpected error %v", err)
+	}
+	if r.Status() != domain.RevisionStatusRejected {
+		t.Errorf("Status: got %s, want %s", r.Status(), domain.RevisionStatusRejected)
+	}
+	if r.RejectReason() != "Не соответствует ФГОС: формулировка ПК-3" {
+		t.Errorf("RejectReason: %q", r.RejectReason())
+	}
+}
+
+func TestRevision_Reject_TrimsReason(t *testing.T) {
+	r := newDraftRevision(t)
+	if err := r.Submit(); err != nil {
+		t.Fatalf("Submit: %v", err)
+	}
+	if err := r.Reject("  Доработать раздел ФОС  "); err != nil {
+		t.Fatalf("Reject: %v", err)
+	}
+	if r.RejectReason() != "Доработать раздел ФОС" {
+		t.Errorf("RejectReason not trimmed: %q", r.RejectReason())
+	}
+}
+
+func TestRevision_Reject_EmptyReason_ReturnsRejectReasonRequired(t *testing.T) {
+	cases := []struct {
+		name   string
+		reason string
+	}{
+		{name: "empty string", reason: ""},
+		{name: "whitespace only", reason: "  \t\n  "},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := newDraftRevision(t)
+			if err := r.Submit(); err != nil {
+				t.Fatalf("setup Submit: %v", err)
+			}
+			err := r.Reject(tc.reason)
+			if !errors.Is(err, domain.ErrRejectReasonRequired) {
+				t.Errorf("expected ErrRejectReasonRequired, got %v", err)
+			}
+			if r.Status() != domain.RevisionStatusPendingApproval {
+				t.Errorf("Status should be unchanged: got %s", r.Status())
+			}
+		})
+	}
+}
+
+func TestRevision_Reject_FromForbiddenStatus_ReturnsTransitionError(t *testing.T) {
+	cases := []struct {
+		name  string
+		setup func(t *testing.T, r *entities.Revision)
+	}{
+		{name: "from draft", setup: func(_ *testing.T, _ *entities.Revision) {}},
+		{
+			name: "from approved",
+			setup: func(t *testing.T, r *entities.Revision) {
+				t.Helper()
+				if err := r.Submit(); err != nil {
+					t.Fatalf("setup Submit: %v", err)
+				}
+				if err := r.Approve(99); err != nil {
+					t.Fatalf("setup Approve: %v", err)
+				}
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := newDraftRevision(t)
+			tc.setup(t, r)
+			err := r.Reject("valid reason")
+			if !errors.Is(err, domain.ErrInvalidStatusTransition) {
+				t.Errorf("expected ErrInvalidStatusTransition, got %v", err)
+			}
+		})
+	}
+}
+
+// newDraftRevision builds a valid draft Revision for sub-FSM tests.
+func newDraftRevision(t *testing.T) *entities.Revision {
+	t.Helper()
+	r, err := entities.NewRevision(entities.NewRevisionInput{
+		WorkProgramID:  42,
+		RevisionNumber: 1,
+		ChangeType:     domain.RevisionChangeTypeOther,
+		ChangeSummary:  "Прочие правки",
+		AuthorID:       7,
+	})
+	if err != nil {
+		t.Fatalf("newDraftRevision: NewRevision failed: %v", err)
+	}
+	return r
+}
+
 func TestNewRevision_InvariantViolations(t *testing.T) {
 	base := entities.NewRevisionInput{
 		WorkProgramID:  42,
