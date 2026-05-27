@@ -129,10 +129,10 @@ func TestListWorkProgramsUseCase_PaginationDefaultsAndClamp(t *testing.T) {
 		outLimit  int
 		outOffset int
 	}{
-		{"zero_limit_defaults_to_50", 0, 0, defaultListWPLimit, 0},
-		{"negative_limit_defaults_to_50", -10, 0, defaultListWPLimit, 0},
+		{"zero_limit_defaults_to_50", 0, 0, defaultListLimit, 0},
+		{"negative_limit_defaults_to_50", -10, 0, defaultListLimit, 0},
 		{"negative_offset_clamped_to_0", 25, -5, 25, 0},
-		{"over_max_limit_clamped_to_200", 500, 100, maxListWPLimit, 100},
+		{"over_max_limit_clamped_to_200", 500, 100, maxListLimit, 100},
 		{"valid_values_passed_through", 75, 25, 75, 25},
 	}
 	for _, tc := range cases {

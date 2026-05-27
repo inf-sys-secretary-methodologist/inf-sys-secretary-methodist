@@ -2,9 +2,7 @@ package usecases
 
 import (
 	"context"
-	"fmt"
 
-	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
 )
@@ -13,8 +11,8 @@ import (
 // than in the handler) so any future caller — internal scheduler,
 // batch job, alternate transport — inherits the same boundedness.
 const (
-	defaultListWPLimit = 50
-	maxListWPLimit     = 200
+	defaultListLimit = 50
+	maxListLimit     = 200
 )
 
 // ListWorkProgramsInput mirrors WorkProgramListFilter at the use-case
@@ -87,27 +85,17 @@ func (uc *ListWorkProgramsUseCase) Execute(ctx context.Context, actorID int64, a
 		filter.Status = &s
 	}
 
-	switch authDomain.RoleType(actorRole) {
-	case authDomain.RoleSystemAdmin, authDomain.RoleMethodist, authDomain.RoleAcademicSecretary:
-		// Pass-through — these roles see every WP.
-	case authDomain.RoleTeacher:
-		actor := actorID
-		filter.AuthorID = &actor
-	case authDomain.RoleStudent:
-		approved := domain.StatusApproved
-		filter.Status = &approved
-	default:
+	if err := applyListRoleFilter(actorID, actorRole, &filter); err != nil {
 		emitAudit(uc.audit, ctx, "work_program.list_denied",
-			denialFields(actorID, 0, "forbidden_role", ""))
-		return ListWorkProgramsResult{}, fmt.Errorf("%w: role %q cannot list work programs",
-			domain.ErrWorkProgramScopeForbidden, actorRole)
+			denialFields(actorID, 0, "forbidden_role", in.SpecialtyCode))
+		return ListWorkProgramsResult{}, err
 	}
 
 	filter.Limit = in.Limit
 	if filter.Limit <= 0 {
-		filter.Limit = defaultListWPLimit
+		filter.Limit = defaultListLimit
 	}
-	filter.Limit = min(filter.Limit, maxListWPLimit)
+	filter.Limit = min(filter.Limit, maxListLimit)
 	filter.Offset = max(in.Offset, 0)
 
 	res, err := uc.repo.List(ctx, filter)
