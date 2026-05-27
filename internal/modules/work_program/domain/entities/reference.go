@@ -13,8 +13,7 @@ const (
 	maxReferenceURL  = 500
 )
 
-// NewReferenceInput collects constructor parameters for a Reference
-// (литература/источник).
+// NewReferenceInput collects constructor parameters for a Reference (литература/источник).
 type NewReferenceInput struct {
 	Kind       domain.ReferenceKind
 	Citation   string
@@ -24,8 +23,7 @@ type NewReferenceInput struct {
 	OrderIndex int
 }
 
-// Reference — литература/источник для дисциплины. Inner aggregate of
-// WorkProgram per ADR-1.
+// Reference — литература/источник, inner aggregate of WorkProgram per ADR-1.
 type Reference struct {
 	id            int64
 	workProgramID int64
