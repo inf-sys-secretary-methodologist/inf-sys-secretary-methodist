@@ -85,6 +85,83 @@ func TestWorkProgramRepositoryPG_Save_IdentityConflict_ReturnsErrIdentityExists(
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestWorkProgramRepositoryPG_Save_WithChildren_InsertsAll(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	wp := freshDraftWP(t)
+
+	// Add one of each child type via the aggregate.
+	goal, err := entities.NewGoal("Освоить SQL", 0)
+	require.NoError(t, err)
+	require.NoError(t, wp.AddGoal(goal))
+
+	comp, err := entities.NewCompetence("ПК-3", "pk", "Разработка СУБД")
+	require.NoError(t, err)
+	require.NoError(t, wp.AddCompetence(comp))
+
+	topic, err := entities.NewTopic(entities.NewTopicInput{
+		Kind: "lecture", Title: "Введение", Hours: 4,
+	})
+	require.NoError(t, err)
+	require.NoError(t, wp.AddTopic(topic))
+
+	ass, err := entities.NewAssessmentCriterion(entities.NewAssessmentCriterionInput{
+		Type: "current", Description: "Опрос", MaxScore: 5,
+	})
+	require.NoError(t, err)
+	require.NoError(t, wp.AddAssessment(ass))
+
+	ref, err := entities.NewReference(entities.NewReferenceInput{
+		Kind: "main", Citation: "Дейт",
+	})
+	require.NoError(t, err)
+	require.NoError(t, wp.AddReference(ref))
+	// Revision intentionally not added — drafts cannot carry revisions
+	// (ErrRevisionNotPermitted); covered separately when status flows
+	// allow it. Here we cover the 5 always-allowed child kinds.
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO work_programs")).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(100)))
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO work_program_goals")).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO work_program_competences")).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO work_program_topics")).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO work_program_assessment")).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO work_program_references")).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	err = repo.Save(context.Background(), wp)
+	require.NoError(t, err)
+	assert.Equal(t, int64(100), wp.ID())
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkProgramRepositoryPG_Save_ChildInsertFailure_RollsBack(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	wp := freshDraftWP(t)
+
+	goal, err := entities.NewGoal("Освоить SQL", 0)
+	require.NoError(t, err)
+	require.NoError(t, wp.AddGoal(goal))
+
+	childErr := errors.New("simulated child insert failure")
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO work_programs")).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(100)))
+	mock.ExpectExec(regexp.QuoteMeta("INSERT INTO work_program_goals")).
+		WillReturnError(childErr)
+	mock.ExpectRollback()
+
+	err = repo.Save(context.Background(), wp)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, childErr, "child insert failure must surface and roll back the tx")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestWorkProgramRepositoryPG_Save_BeginTxFailure_Surfaces(t *testing.T) {
 	repo, mock := newWPRepoMock(t)
 	wp := freshDraftWP(t)
