@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"regexp"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
 )
@@ -282,6 +284,109 @@ func TestWorkProgramRepositoryPG_GetByID_HydratesAllChildKinds(t *testing.T) {
 	assert.Len(t, got.Revisions(), 1)
 	assert.Equal(t, "Освоить SQL", got.Goals()[0].Text())
 	assert.Equal(t, "ПК-3", got.Competences()[0].Code())
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// --- List ---
+
+func wpListRow(id int64, status string) []driver.Value {
+	return []driver.Value{
+		id, int64(42), "09.03.01", 2026, "Базы данных", status, int64(7), 0,
+	}
+}
+
+func wpListColumns() []string {
+	return []string{
+		"id", "discipline_id", "specialty_code", "applicable_from_year",
+		"title", "status", "author_id", "version",
+	}
+}
+
+func TestWorkProgramRepositoryPG_List_EmptyFilter_ReturnsAllRows(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM work_programs")).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs")).
+		WillReturnRows(sqlmock.NewRows(wpListColumns()).
+			AddRow(wpListRow(1, "draft")...).
+			AddRow(wpListRow(2, "approved")...))
+
+	got, err := repo.List(context.Background(), repositories.WorkProgramListFilter{Limit: 20})
+	require.NoError(t, err)
+	assert.Equal(t, 2, got.Total)
+	require.Len(t, got.Items, 2)
+	assert.Equal(t, int64(1), got.Items[0].ID)
+	assert.Equal(t, "draft", string(got.Items[0].Status))
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkProgramRepositoryPG_List_FilterByAuthor_PassesAuthorIDArg(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	authorID := int64(7)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM work_programs")).
+		WithArgs(
+			"", sql.NullInt64{}, "", sql.NullInt32{},
+			sql.NullInt64{Int64: 7, Valid: true},
+		).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs")).
+		WithArgs(
+			"", sql.NullInt64{}, "", sql.NullInt32{},
+			sql.NullInt64{Int64: 7, Valid: true},
+			20, 0,
+		).
+		WillReturnRows(sqlmock.NewRows(wpListColumns()).
+			AddRow(wpListRow(1, "draft")...))
+
+	got, err := repo.List(context.Background(), repositories.WorkProgramListFilter{
+		AuthorID: &authorID,
+		Limit:    20,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 1, got.Total)
+	assert.Len(t, got.Items, 1)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkProgramRepositoryPG_List_EmptyResult_NotAnError(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM work_programs")).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs")).
+		WillReturnRows(sqlmock.NewRows(wpListColumns()))
+
+	got, err := repo.List(context.Background(), repositories.WorkProgramListFilter{Limit: 20})
+	require.NoError(t, err)
+	assert.Equal(t, 0, got.Total)
+	assert.Empty(t, got.Items)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkProgramRepositoryPG_List_FilterByStatusAndSpecialty(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	status := domain.StatusApproved
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM work_programs")).
+		WithArgs(
+			"approved", sql.NullInt64{}, "09.03.01", sql.NullInt32{}, sql.NullInt64{},
+		).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(3))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs")).
+		WithArgs(
+			"approved", sql.NullInt64{}, "09.03.01", sql.NullInt32{}, sql.NullInt64{},
+			10, 20,
+		).
+		WillReturnRows(sqlmock.NewRows(wpListColumns()).
+			AddRow(wpListRow(100, "approved")...))
+
+	got, err := repo.List(context.Background(), repositories.WorkProgramListFilter{
+		Status:        &status,
+		SpecialtyCode: "09.03.01",
+		Limit:         10,
+		Offset:        20,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 3, got.Total)
+	assert.Len(t, got.Items, 1)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

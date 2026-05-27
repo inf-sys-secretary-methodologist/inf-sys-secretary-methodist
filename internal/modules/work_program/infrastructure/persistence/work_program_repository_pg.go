@@ -150,6 +150,12 @@ func insertWorkProgramRoot(ctx context.Context, tx execQuerier, wp *entities.Wor
 	return nil
 }
 
+// List stub for PR 2c RED phase — real impl lands in the matching
+// GREEN commit.
+func (r *WorkProgramRepositoryPG) List(_ context.Context, _ repositories.WorkProgramListFilter) (repositories.WorkProgramListResult, error) {
+	return repositories.WorkProgramListResult{}, nil
+}
+
 // GetByID returns the aggregate with the given id, hydrated through
 // Reconstitute*: root + every populated child collection (Goals,
 // Competences, Topics, Assessments, References, Revisions). Returns
