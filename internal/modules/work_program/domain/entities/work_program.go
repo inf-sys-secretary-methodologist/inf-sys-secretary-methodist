@@ -445,6 +445,12 @@ func (w *WorkProgram) Revisions() []*Revision {
 // ID returns the persistent identifier (0 for fresh, not-yet-saved aggregates).
 func (w *WorkProgram) ID() int64 { return w.id }
 
+// SetID assigns the persistent identifier after a successful repository
+// INSERT ... RETURNING id. Repository-only contract — use cases and
+// handlers get a fully-formed aggregate from the repo and MUST NOT
+// call this. Mirrors the curriculum module pattern (v0.157.0+).
+func (w *WorkProgram) SetID(id int64) { w.id = id }
+
 // DisciplineID returns the linked discipline identifier.
 func (w *WorkProgram) DisciplineID() int64 { return w.disciplineID }
 
