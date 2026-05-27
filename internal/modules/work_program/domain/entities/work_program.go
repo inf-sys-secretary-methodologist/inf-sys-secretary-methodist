@@ -150,6 +150,27 @@ func (w *WorkProgram) MarkNeedsRevision() error {
 	return nil
 }
 
+// Reject transitions the WorkProgram from pending_approval back to
+// draft with a recorded reason. Methodist-only per ADR-5. Empty or
+// whitespace-only reason is rejected via ErrRejectReasonRequired so
+// the author has actionable feedback. Reason is trimmed before
+// storage.
+//
+// Stub for the RED commit — GREEN commit replaces with real logic.
+func (w *WorkProgram) Reject(_ string) error {
+	return domain.ErrInvalidStatusTransition
+}
+
+// DiscardDraft transitions the WorkProgram from draft to archived
+// without going through approval — author abandons their own draft.
+// Allowed from draft only (other states have proper Archive/Reject
+// paths that preserve audit trail).
+//
+// Stub for the RED commit — GREEN commit replaces with real logic.
+func (w *WorkProgram) DiscardDraft() error {
+	return domain.ErrInvalidStatusTransition
+}
+
 // Archive transitions the WorkProgram to archived (terminal). Allowed
 // from draft / approved / needs_revision per ADR-2. Cannot archive
 // from pending_approval — methodist must Reject first так чтобы
