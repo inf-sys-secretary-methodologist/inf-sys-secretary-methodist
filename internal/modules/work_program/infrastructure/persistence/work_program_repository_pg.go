@@ -334,6 +334,16 @@ func selectWorkProgramRoot(ctx context.Context, db DBTX, id int64) (entities.Rec
 	return out, nil
 }
 
+// Update stub for PR 2d RED phase — real impl lands in the GREEN commit.
+func (r *WorkProgramRepositoryPG) Update(_ context.Context, _ *entities.WorkProgram) error {
+	return repositories.ErrWorkProgramNotFound
+}
+
+// Delete stub for PR 2d RED phase — real impl lands in the GREEN commit.
+func (r *WorkProgramRepositoryPG) Delete(_ context.Context, _ int64) error {
+	return repositories.ErrWorkProgramNotFound
+}
+
 // isIdentityViolation reports whether err is a PostgreSQL unique
 // violation against the identity tuple constraint.
 func isIdentityViolation(err error) bool {
