@@ -209,34 +209,121 @@ func (w *WorkProgram) Archive() error {
 }
 
 // --- Inner-aggregate collection methods (ADR-1) ---
-//
-// PR 1c RED phase: stubs return ErrInvalidWorkProgram so collection
-// tests go red while the constructor/FSM tests stay green. Real
-// invariant logic lands in the matching GREEN commit.
 
-// AddGoal appends a Goal to the aggregate. Real impl in GREEN.
-func (w *WorkProgram) AddGoal(_ *Goal) error { return domain.ErrInvalidWorkProgram }
-
-// AddCompetence appends a Competence to the aggregate. Real impl in GREEN.
-func (w *WorkProgram) AddCompetence(_ *Competence) error { return domain.ErrInvalidWorkProgram }
-
-// AddTopic appends a Topic to the aggregate. Real impl in GREEN.
-func (w *WorkProgram) AddTopic(_ *Topic) error { return domain.ErrInvalidWorkProgram }
-
-// AddAssessment appends an AssessmentCriterion to the aggregate. Real impl in GREEN.
-func (w *WorkProgram) AddAssessment(_ *AssessmentCriterion) error {
-	return domain.ErrInvalidWorkProgram
+// canEditContent reports whether content mutations (Goal / Competence
+// / Topic / Assessment / Reference) are allowed in the current status.
+// Per ADR-2, only draft and needs_revision permit content edits;
+// pending_approval / approved / archived are frozen.
+func (w *WorkProgram) canEditContent() bool {
+	return w.status == domain.StatusDraft || w.status == domain.StatusNeedsRevision
 }
 
-// AddReference appends a Reference to the aggregate. Real impl in GREEN.
-func (w *WorkProgram) AddReference(_ *Reference) error { return domain.ErrInvalidWorkProgram }
+// AddGoal appends a Goal to the aggregate. Returns
+// ErrCannotEditFrozenStatus if the program is in a frozen status.
+func (w *WorkProgram) AddGoal(g *Goal) error {
+	if g == nil {
+		return fmt.Errorf("%w: goal must not be nil", domain.ErrInvalidWorkProgram)
+	}
+	if !w.canEditContent() {
+		return domain.ErrCannotEditFrozenStatus
+	}
+	w.goals = append(w.goals, g)
+	w.updatedAt = time.Now().UTC()
+	return nil
+}
 
-// AddRevision appends a Revision to the aggregate. Real impl in GREEN.
-func (w *WorkProgram) AddRevision(_ *Revision) error { return domain.ErrInvalidWorkProgram }
+// AddCompetence appends a Competence. Code must be unique within the
+// program (mirrors uq_wpc_program_code at the DB level).
+func (w *WorkProgram) AddCompetence(c *Competence) error {
+	if c == nil {
+		return fmt.Errorf("%w: competence must not be nil", domain.ErrInvalidWorkProgram)
+	}
+	if !w.canEditContent() {
+		return domain.ErrCannotEditFrozenStatus
+	}
+	for _, existing := range w.competences {
+		if existing.Code() == c.Code() {
+			return fmt.Errorf("%w: code %q", domain.ErrDuplicateCompetenceCode, c.Code())
+		}
+	}
+	w.competences = append(w.competences, c)
+	w.updatedAt = time.Now().UTC()
+	return nil
+}
 
-// NextRevisionNumber returns 0 in the RED stub. Real impl in GREEN
-// returns max(existing revision_number) + 1 (or 1 if none).
-func (w *WorkProgram) NextRevisionNumber() int { return 0 }
+// AddTopic appends a Topic. HoursTotal cross-aggregate validation
+// (sum vs учебный план) lives in the use-case layer per ADR-1.
+func (w *WorkProgram) AddTopic(t *Topic) error {
+	if t == nil {
+		return fmt.Errorf("%w: topic must not be nil", domain.ErrInvalidWorkProgram)
+	}
+	if !w.canEditContent() {
+		return domain.ErrCannotEditFrozenStatus
+	}
+	w.topics = append(w.topics, t)
+	w.updatedAt = time.Now().UTC()
+	return nil
+}
+
+// AddAssessment appends an AssessmentCriterion (ФОС item).
+func (w *WorkProgram) AddAssessment(a *AssessmentCriterion) error {
+	if a == nil {
+		return fmt.Errorf("%w: assessment must not be nil", domain.ErrInvalidWorkProgram)
+	}
+	if !w.canEditContent() {
+		return domain.ErrCannotEditFrozenStatus
+	}
+	w.assessments = append(w.assessments, a)
+	w.updatedAt = time.Now().UTC()
+	return nil
+}
+
+// AddReference appends a Reference (литература/источник).
+func (w *WorkProgram) AddReference(r *Reference) error {
+	if r == nil {
+		return fmt.Errorf("%w: reference must not be nil", domain.ErrInvalidWorkProgram)
+	}
+	if !w.canEditContent() {
+		return domain.ErrCannotEditFrozenStatus
+	}
+	w.references = append(w.references, r)
+	w.updatedAt = time.Now().UTC()
+	return nil
+}
+
+// AddRevision appends a Revision (лист актуализации). Permitted only
+// when the parent is approved or needs_revision per ADR-10 — drafts
+// have no baseline; pending_approval / archived programs cannot
+// accept revisions. revision_number must equal NextRevisionNumber()
+// (monotonic, no gaps).
+func (w *WorkProgram) AddRevision(r *Revision) error {
+	if r == nil {
+		return fmt.Errorf("%w: revision must not be nil", domain.ErrInvalidWorkProgram)
+	}
+	if w.status != domain.StatusApproved && w.status != domain.StatusNeedsRevision {
+		return domain.ErrRevisionNotPermitted
+	}
+	expected := w.NextRevisionNumber()
+	if r.RevisionNumber() != expected {
+		return fmt.Errorf("%w: revision_number must equal %d (next monotonic), got %d",
+			domain.ErrInvalidWorkProgram, expected, r.RevisionNumber())
+	}
+	w.revisions = append(w.revisions, r)
+	w.updatedAt = time.Now().UTC()
+	return nil
+}
+
+// NextRevisionNumber returns the expected revision_number for the
+// next AddRevision call: 1 if no revisions yet, else max + 1.
+func (w *WorkProgram) NextRevisionNumber() int {
+	maxN := 0
+	for _, r := range w.revisions {
+		if r.RevisionNumber() > maxN {
+			maxN = r.RevisionNumber()
+		}
+	}
+	return maxN + 1
+}
 
 // Goals returns a defensive copy of the goals slice.
 func (w *WorkProgram) Goals() []*Goal {
