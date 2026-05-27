@@ -325,6 +325,36 @@ func (w *WorkProgram) NextRevisionNumber() int {
 	return maxN + 1
 }
 
+// ReconstituteWorkProgramInput collects fields for repository
+// hydration. Mirror migration 047 + 048 columns.
+type ReconstituteWorkProgramInput struct {
+	ID                 int64
+	DisciplineID       int64
+	SpecialtyCode      string
+	ApplicableFromYear int
+	Title              string
+	Annotation         string
+	Status             domain.Status
+	AuthorID           int64
+	ApproverID         *int64
+	ApprovedAt         *time.Time
+	RejectReason       string
+	Version            int
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	Goals              []*Goal
+	Competences        []*Competence
+	Topics             []*Topic
+	Assessments        []*AssessmentCriterion
+	References         []*Reference
+	Revisions          []*Revision
+}
+
+// ReconstituteWorkProgram builds an aggregate from persisted state.
+// Skips invariant checks — DB CHECK constraints and inner-entity
+// Reconstitute calls already validated. RED stub returns nil.
+func ReconstituteWorkProgram(_ ReconstituteWorkProgramInput) *WorkProgram { return nil }
+
 // HoursTotal aggregates Topic.Hours per kind. The returned map always
 // contains all four canonical TopicKinds (initialized to zero) so
 // callers can index without nil-map / missing-key hazards. Cross-

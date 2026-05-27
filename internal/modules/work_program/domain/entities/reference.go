@@ -73,6 +73,22 @@ func NewReference(in NewReferenceInput) (*Reference, error) {
 	}, nil
 }
 
+// ReconstituteReferenceInput collects fields for repository hydration.
+type ReconstituteReferenceInput struct {
+	ID            int64
+	WorkProgramID int64
+	Kind          domain.ReferenceKind
+	Citation      string
+	Year          *int
+	ISBN          string
+	URL           string
+	OrderIndex    int
+}
+
+// ReconstituteReference builds a Reference from persisted state.
+// Skips invariant checks. RED stub returns nil.
+func ReconstituteReference(_ ReconstituteReferenceInput) *Reference { return nil }
+
 // ID returns the persistent identifier.
 func (r *Reference) ID() int64 { return r.id }
 

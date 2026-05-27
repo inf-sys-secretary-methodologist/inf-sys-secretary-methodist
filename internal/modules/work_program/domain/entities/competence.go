@@ -51,6 +51,20 @@ func NewCompetence(code string, ctype domain.CompetenceType, description string)
 	}, nil
 }
 
+// ReconstituteCompetenceInput collects fields for repository hydration.
+type ReconstituteCompetenceInput struct {
+	ID            int64
+	WorkProgramID int64
+	Code          string
+	Type          domain.CompetenceType
+	Description   string
+	CreatedAt     time.Time
+}
+
+// ReconstituteCompetence builds a Competence from persisted state.
+// Skips invariant checks. RED stub returns nil.
+func ReconstituteCompetence(_ ReconstituteCompetenceInput) *Competence { return nil }
+
 // ID returns the persistent identifier.
 func (c *Competence) ID() int64 { return c.id }
 
