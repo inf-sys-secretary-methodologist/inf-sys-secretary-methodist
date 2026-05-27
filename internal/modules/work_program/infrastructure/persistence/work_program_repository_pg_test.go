@@ -2,9 +2,11 @@ package persistence
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/lib/pq"
@@ -159,6 +161,127 @@ func TestWorkProgramRepositoryPG_Save_ChildInsertFailure_RollsBack(t *testing.T)
 	err = repo.Save(context.Background(), wp)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, childErr, "child insert failure must surface and roll back the tx")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// --- GetByID ---
+
+func wpRootRow(id int64, status string, now time.Time) *sqlmock.Rows {
+	return sqlmock.NewRows([]string{
+		"id", "discipline_id", "specialty_code", "applicable_from_year",
+		"title", "annotation", "status", "author_id",
+		"approver_id", "approved_at", "reject_reason", "version",
+		"created_at", "updated_at",
+	}).AddRow(
+		id, int64(42), "09.03.01", 2026,
+		"Базы данных", sql.NullString{String: "СУБД", Valid: true}, status, int64(7),
+		sql.NullInt64{}, sql.NullTime{}, sql.NullString{}, 0,
+		now, now,
+	)
+}
+
+func TestWorkProgramRepositoryPG_GetByID_NotFound(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs WHERE id = $1")).
+		WithArgs(int64(999)).
+		WillReturnError(sql.ErrNoRows)
+
+	got, err := repo.GetByID(context.Background(), 999)
+	assert.Nil(t, got)
+	assert.ErrorIs(t, err, repositories.ErrWorkProgramNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkProgramRepositoryPG_GetByID_RootOnly_PopulatesFields(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	now := time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC)
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs WHERE id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(wpRootRow(100, "draft", now))
+	// All 6 child SELECTs return empty rows.
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_goals WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "text", "order_index", "created_at"}))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_competences WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "code", "type", "description", "created_at"}))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_topics WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "kind", "title", "hours", "week_number", "learning_outcomes", "order_index"}))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_assessment WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "type", "description", "max_score", "example_questions"}))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_references WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "kind", "citation", "year", "isbn", "url", "order_index"}))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_revisions WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "revision_number", "change_type", "change_summary", "status", "author_id", "approver_id", "approved_at", "reject_reason", "diff_payload", "created_at", "updated_at"}))
+
+	got, err := repo.GetByID(context.Background(), 100)
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, int64(100), got.ID())
+	assert.Equal(t, int64(42), got.DisciplineID())
+	assert.Equal(t, "09.03.01", got.SpecialtyCode())
+	assert.Equal(t, 2026, got.ApplicableFromYear())
+	assert.Equal(t, "Базы данных", got.Title())
+	assert.Equal(t, "СУБД", got.Annotation())
+	assert.Equal(t, int64(7), got.AuthorID())
+	assert.Empty(t, got.Goals())
+	assert.Empty(t, got.Competences())
+	assert.Empty(t, got.Topics())
+	assert.Empty(t, got.Assessments())
+	assert.Empty(t, got.References())
+	assert.Empty(t, got.Revisions())
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkProgramRepositoryPG_GetByID_HydratesAllChildKinds(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	now := time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC)
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs WHERE id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(wpRootRow(100, "draft", now))
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_goals WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "text", "order_index", "created_at"}).
+			AddRow(int64(1), int64(100), "Освоить SQL", 0, now))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_competences WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "code", "type", "description", "created_at"}).
+			AddRow(int64(2), int64(100), "ПК-3", "pk", "Разработка СУБД", now))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_topics WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "kind", "title", "hours", "week_number", "learning_outcomes", "order_index"}).
+			AddRow(int64(3), int64(100), "lecture", "Введение", 4, sql.NullInt32{}, sql.NullString{}, 0))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_assessment WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "type", "description", "max_score", "example_questions"}).
+			AddRow(int64(4), int64(100), "current", "Опрос", 5, pq.Array([]string{"Q1"})))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_references WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "kind", "citation", "year", "isbn", "url", "order_index"}).
+			AddRow(int64(5), int64(100), "main", "Дейт", sql.NullInt32{}, sql.NullString{}, sql.NullString{}, 0))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_program_revisions WHERE work_program_id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "work_program_id", "revision_number", "change_type", "change_summary", "status", "author_id", "approver_id", "approved_at", "reject_reason", "diff_payload", "created_at", "updated_at"}).
+			AddRow(int64(6), int64(100), 1, "other", "правки", "draft", int64(7), sql.NullInt64{}, sql.NullTime{}, sql.NullString{}, []byte(nil), now, now))
+
+	got, err := repo.GetByID(context.Background(), 100)
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Len(t, got.Goals(), 1)
+	assert.Len(t, got.Competences(), 1)
+	assert.Len(t, got.Topics(), 1)
+	assert.Len(t, got.Assessments(), 1)
+	assert.Len(t, got.References(), 1)
+	assert.Len(t, got.Revisions(), 1)
+	assert.Equal(t, "Освоить SQL", got.Goals()[0].Text())
+	assert.Equal(t, "ПК-3", got.Competences()[0].Code())
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

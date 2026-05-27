@@ -33,8 +33,9 @@ import (
 //     against (discipline_id, specialty_code, applicable_from_year)
 //   - repositories.ErrWorkProgramVersionConflict on stale-version Update
 //
-// PR 2a (v0.173.0) ships only the Save method; GetByID / List / Update
-// / Delete land in subsequent PRs of the persistence slice.
+// PR 2a (v0.173.0) shipped Save; PR 2b (v0.174.0) adds GetByID with
+// full child hydration; List / Update / Delete land in subsequent PRs
+// of the persistence slice.
 type WorkProgramRepository interface {
 	// Save inserts a new WorkProgram aggregate (root row + all inner
 	// aggregate rows) atomically. On success the generated id is
@@ -42,4 +43,11 @@ type WorkProgramRepository interface {
 	// repositories.ErrWorkProgramIdentityExists if a row with the
 	// same identity tuple already exists.
 	Save(ctx context.Context, wp *entities.WorkProgram) error
+
+	// GetByID returns the WorkProgram aggregate with the given id,
+	// hydrated through Reconstitute* — root + every populated child
+	// collection (Goals, Competences, Topics, Assessments, References,
+	// Revisions). Returns repositories.ErrWorkProgramNotFound when no
+	// matching row exists.
+	GetByID(ctx context.Context, id int64) (*entities.WorkProgram, error)
 }

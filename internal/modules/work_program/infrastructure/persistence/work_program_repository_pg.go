@@ -2,15 +2,20 @@ package persistence
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/lib/pq"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
 )
+
+const wpSelectColumns = `id, discipline_id, specialty_code, applicable_from_year, title, annotation, status, author_id, approver_id, approved_at, reject_reason, version, created_at, updated_at`
 
 // Compile-time assertion that the PG impl satisfies the wide port
 // declared in application/usecases (DIP). Catches signature drift at
@@ -143,6 +148,107 @@ func insertWorkProgramRoot(ctx context.Context, tx execQuerier, wp *entities.Wor
 	}
 	wp.SetID(newID)
 	return nil
+}
+
+// GetByID returns the aggregate with the given id, hydrated through
+// Reconstitute*: root + every populated child collection (Goals,
+// Competences, Topics, Assessments, References, Revisions). Returns
+// repositories.ErrWorkProgramNotFound when no row matches.
+func (r *WorkProgramRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.WorkProgram, error) {
+	rootIn, err := selectWorkProgramRoot(ctx, r.db, id)
+	if err != nil {
+		return nil, err
+	}
+
+	goals, err := selectGoals(ctx, r.db, id)
+	if err != nil {
+		return nil, err
+	}
+	competences, err := selectCompetences(ctx, r.db, id)
+	if err != nil {
+		return nil, err
+	}
+	topics, err := selectTopics(ctx, r.db, id)
+	if err != nil {
+		return nil, err
+	}
+	assessments, err := selectAssessments(ctx, r.db, id)
+	if err != nil {
+		return nil, err
+	}
+	references, err := selectReferences(ctx, r.db, id)
+	if err != nil {
+		return nil, err
+	}
+	revisions, err := selectRevisions(ctx, r.db, id)
+	if err != nil {
+		return nil, err
+	}
+
+	rootIn.Goals = goals
+	rootIn.Competences = competences
+	rootIn.Topics = topics
+	rootIn.Assessments = assessments
+	rootIn.References = references
+	rootIn.Revisions = revisions
+	return entities.ReconstituteWorkProgram(rootIn), nil
+}
+
+// selectWorkProgramRoot fetches the root row and unwraps nullable
+// columns into the Reconstitute input. Inner aggregate slices are
+// filled by the caller after sibling child selects.
+func selectWorkProgramRoot(ctx context.Context, db DBTX, id int64) (entities.ReconstituteWorkProgramInput, error) {
+	query := `SELECT ` + wpSelectColumns + ` FROM work_programs WHERE id = $1`
+
+	var (
+		idv, disciplineID, authorID int64
+		specialty, title, statusStr string
+		applicableFromYear, version int
+		annotation, rejectReason    sql.NullString
+		approverID                  sql.NullInt64
+		approvedAt                  sql.NullTime
+		createdAt, updatedAt        time.Time
+	)
+	err := db.QueryRowContext(ctx, query, id).Scan(
+		&idv, &disciplineID, &specialty, &applicableFromYear,
+		&title, &annotation, &statusStr, &authorID,
+		&approverID, &approvedAt, &rejectReason, &version,
+		&createdAt, &updatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return entities.ReconstituteWorkProgramInput{}, repositories.ErrWorkProgramNotFound
+		}
+		return entities.ReconstituteWorkProgramInput{}, fmt.Errorf("work_program: get by id: %w", err)
+	}
+
+	out := entities.ReconstituteWorkProgramInput{
+		ID:                 idv,
+		DisciplineID:       disciplineID,
+		SpecialtyCode:      specialty,
+		ApplicableFromYear: applicableFromYear,
+		Title:              title,
+		Status:             domain.Status(statusStr),
+		AuthorID:           authorID,
+		Version:            version,
+		CreatedAt:          createdAt,
+		UpdatedAt:          updatedAt,
+	}
+	if annotation.Valid {
+		out.Annotation = annotation.String
+	}
+	if rejectReason.Valid {
+		out.RejectReason = rejectReason.String
+	}
+	if approverID.Valid {
+		v := approverID.Int64
+		out.ApproverID = &v
+	}
+	if approvedAt.Valid {
+		t := approvedAt.Time
+		out.ApprovedAt = &t
+	}
+	return out, nil
 }
 
 // isIdentityViolation reports whether err is a PostgreSQL unique
