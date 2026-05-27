@@ -295,7 +295,7 @@ func wpListRow(id int64, status string) []driver.Value {
 	}
 }
 
-func wpListColumns() []string {
+func wpListColumnsTest() []string {
 	return []string{
 		"id", "discipline_id", "specialty_code", "applicable_from_year",
 		"title", "status", "author_id", "version",
@@ -307,7 +307,7 @@ func TestWorkProgramRepositoryPG_List_EmptyFilter_ReturnsAllRows(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM work_programs")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
 	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs")).
-		WillReturnRows(sqlmock.NewRows(wpListColumns()).
+		WillReturnRows(sqlmock.NewRows(wpListColumnsTest()).
 			AddRow(wpListRow(1, "draft")...).
 			AddRow(wpListRow(2, "approved")...))
 
@@ -335,7 +335,7 @@ func TestWorkProgramRepositoryPG_List_FilterByAuthor_PassesAuthorIDArg(t *testin
 			sql.NullInt64{Int64: 7, Valid: true},
 			20, 0,
 		).
-		WillReturnRows(sqlmock.NewRows(wpListColumns()).
+		WillReturnRows(sqlmock.NewRows(wpListColumnsTest()).
 			AddRow(wpListRow(1, "draft")...))
 
 	got, err := repo.List(context.Background(), repositories.WorkProgramListFilter{
@@ -353,7 +353,7 @@ func TestWorkProgramRepositoryPG_List_EmptyResult_NotAnError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM work_programs")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs")).
-		WillReturnRows(sqlmock.NewRows(wpListColumns()))
+		WillReturnRows(sqlmock.NewRows(wpListColumnsTest()))
 
 	got, err := repo.List(context.Background(), repositories.WorkProgramListFilter{Limit: 20})
 	require.NoError(t, err)
@@ -375,7 +375,7 @@ func TestWorkProgramRepositoryPG_List_FilterByStatusAndSpecialty(t *testing.T) {
 			"approved", sql.NullInt64{}, "09.03.01", sql.NullInt32{}, sql.NullInt64{},
 			10, 20,
 		).
-		WillReturnRows(sqlmock.NewRows(wpListColumns()).
+		WillReturnRows(sqlmock.NewRows(wpListColumnsTest()).
 			AddRow(wpListRow(100, "approved")...))
 
 	got, err := repo.List(context.Background(), repositories.WorkProgramListFilter{

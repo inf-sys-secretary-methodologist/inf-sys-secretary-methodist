@@ -150,10 +150,87 @@ func insertWorkProgramRoot(ctx context.Context, tx execQuerier, wp *entities.Wor
 	return nil
 }
 
-// List stub for PR 2c RED phase — real impl lands in the matching
-// GREEN commit.
-func (r *WorkProgramRepositoryPG) List(_ context.Context, _ repositories.WorkProgramListFilter) (repositories.WorkProgramListResult, error) {
-	return repositories.WorkProgramListResult{}, nil
+// wpListColumns enumerates the projection used for List — root-only
+// fields, no inner aggregate slices (list endpoints stay cheap).
+const wpListColumns = `id, discipline_id, specialty_code, applicable_from_year, title, status, author_id, version`
+
+// wpListFilterClause uses cast-and-nullable predicates so a single
+// filter shape works for every filter combination (mirror curriculum
+// module pattern). Empty string / sql.Null* values disable a predicate.
+const wpListFilterClause = `WHERE ($1 = '' OR status = $1)
+		AND ($2::bigint IS NULL OR discipline_id = $2::bigint)
+		AND ($3 = '' OR specialty_code = $3)
+		AND ($4::int IS NULL OR applicable_from_year = $4::int)
+		AND ($5::bigint IS NULL OR author_id = $5::bigint)`
+
+// List returns a page of WorkProgram items matching the filter
+// together with the total number of matching rows (ignoring Limit /
+// Offset). Items carry root state only; callers needing children use
+// GetByID.
+func (r *WorkProgramRepositoryPG) List(ctx context.Context, filter repositories.WorkProgramListFilter) (repositories.WorkProgramListResult, error) {
+	statusArg := ""
+	if filter.Status != nil {
+		statusArg = string(*filter.Status)
+	}
+	var disciplineArg sql.NullInt64
+	if filter.DisciplineID != nil {
+		disciplineArg = sql.NullInt64{Int64: *filter.DisciplineID, Valid: true}
+	}
+	var yearArg sql.NullInt32
+	if filter.ApplicableFromYear != nil {
+		yearArg = sql.NullInt32{Int32: int32(*filter.ApplicableFromYear), Valid: true} //nolint:gosec // G115 safe: domain bounds year ≤ 2100
+	}
+	var authorArg sql.NullInt64
+	if filter.AuthorID != nil {
+		authorArg = sql.NullInt64{Int64: *filter.AuthorID, Valid: true}
+	}
+
+	countQuery := `SELECT COUNT(*) FROM work_programs ` + wpListFilterClause
+	var total int
+	if err := r.db.QueryRowContext(ctx, countQuery,
+		statusArg, disciplineArg, filter.SpecialtyCode, yearArg, authorArg,
+	).Scan(&total); err != nil {
+		return repositories.WorkProgramListResult{}, fmt.Errorf("work_program: list count: %w", err)
+	}
+
+	listQuery := `SELECT ` + wpListColumns + ` FROM work_programs ` + wpListFilterClause + `
+		ORDER BY applicable_from_year DESC, created_at DESC, id DESC
+		LIMIT $6 OFFSET $7`
+
+	rows, err := r.db.QueryContext(ctx, listQuery,
+		statusArg, disciplineArg, filter.SpecialtyCode, yearArg, authorArg,
+		filter.Limit, filter.Offset,
+	)
+	if err != nil {
+		return repositories.WorkProgramListResult{}, fmt.Errorf("work_program: list: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var items []repositories.ListItem
+	for rows.Next() {
+		var (
+			id, disciplineID, authorID int64
+			specialty, title, statusS  string
+			year, version              int
+		)
+		if err := rows.Scan(&id, &disciplineID, &specialty, &year, &title, &statusS, &authorID, &version); err != nil {
+			return repositories.WorkProgramListResult{}, fmt.Errorf("work_program: list scan: %w", err)
+		}
+		items = append(items, repositories.ListItem{
+			ID:                 id,
+			DisciplineID:       disciplineID,
+			SpecialtyCode:      specialty,
+			ApplicableFromYear: year,
+			Title:              title,
+			Status:             domain.Status(statusS),
+			AuthorID:           authorID,
+			Version:            version,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return repositories.WorkProgramListResult{}, fmt.Errorf("work_program: list iter: %w", err)
+	}
+	return repositories.WorkProgramListResult{Items: items, Total: total}, nil
 }
 
 // GetByID returns the aggregate with the given id, hydrated through
