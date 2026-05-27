@@ -1,6 +1,8 @@
 -- Drop tables in reverse order
+-- task_reminders ownership moved to migration 038 (v0.167.0 cleanup) —
+-- rolling back 005 no longer touches it; 038's own down migration
+-- handles task_reminders teardown.
 DROP TABLE IF EXISTS task_templates;
-DROP TABLE IF EXISTS task_reminders;
 DROP TABLE IF EXISTS task_history;
 DROP TABLE IF EXISTS task_dependencies;
 DROP TABLE IF EXISTS task_checklist_items;

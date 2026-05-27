@@ -2713,7 +2713,13 @@ func setupRoutes(
 				createEventUC, updateEventUC, deleteEventUC, getEventUC,
 				listEventsUC, registerParticipantUC, unregisterParticipantUC,
 			)
-			extHandler.RegisterExtracurricularRoutes(protectedGroup, extracurricularHandler)
+			// RegisterExtracurricularRoutes contract (per its docstring) mounts
+			// endpoints under /api/v1/extracurricular — wrap the protected
+			// group in /v1 so the call site honors that promise. Without this
+			// wrap the routes land on /api/extracurricular and the B3
+			// frontend slice (which calls /api/v1/...) receives 404.
+			v1Group := protectedGroup.Group("/v1")
+			extHandler.RegisterExtracurricularRoutes(v1Group, extracurricularHandler)
 			logger.Info("Extracurricular module routes registered", nil)
 		}
 
