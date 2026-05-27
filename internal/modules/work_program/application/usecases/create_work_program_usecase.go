@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
@@ -111,15 +112,12 @@ func (uc *CreateWorkProgramUseCase) Execute(ctx context.Context, actorID int64, 
 }
 
 // isAllowedToCreateWorkProgram encodes the ADR-018 ADR-5 role matrix
-// for the create operation. Centralizing the predicate here (rather
-// than open-coding it inline) lets the Submit / Discard use cases
-// reuse the same predicate when checking "is the caller in the set of
-// roles that could have authored this WP" without duplicating literals.
+// for the create operation. Typed against authDomain.RoleType so a
+// typo in the role string would fail at compile time on the constant
+// reference, not silently at runtime through default-deny.
 func isAllowedToCreateWorkProgram(role string) bool {
-	switch role {
-	case "teacher", "methodist", "system_admin":
-		return true
-	default:
-		return false
-	}
+	r := authDomain.RoleType(role)
+	return r == authDomain.RoleTeacher ||
+		r == authDomain.RoleMethodist ||
+		r == authDomain.RoleSystemAdmin
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
@@ -88,13 +89,16 @@ func (uc *SubmitWorkProgramUseCase) Execute(ctx context.Context, actorID int64, 
 }
 
 // isAuthorOrSystemAdmin is the canonical authorship predicate for
-// author-scoped operations (Submit / DiscardDraft in PR 3a). The
-// predicate intentionally does NOT accept methodist — methodist's
-// authorship rights are bounded to Create (per ADR-018 ADR-5 "резервно
-// creates если teacher не успевает"); ongoing operations on an existing
-// WP belong either to its actual author or to system_admin override.
+// author-scoped operations (Submit / DiscardDraft). The predicate
+// intentionally does NOT accept methodist — methodist's authorship
+// rights are bounded to Create (per ADR-018 ADR-5 "резервно creates
+// если teacher не успевает"); ongoing operations on an existing WP
+// belong either to its actual author or to system_admin override.
+//
+// Typed against authDomain.RoleType so the role string is checked
+// against a typed constant rather than a bare literal.
 func isAuthorOrSystemAdmin(actorID int64, actorRole string, authorID int64) bool {
-	if actorRole == "system_admin" {
+	if authDomain.RoleType(actorRole) == authDomain.RoleSystemAdmin {
 		return true
 	}
 	return actorID == authorID

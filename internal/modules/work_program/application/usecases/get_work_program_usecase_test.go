@@ -89,8 +89,8 @@ func TestGetWorkProgramUseCase_ViewRightsMatrix_Allowed(t *testing.T) {
 			uc := NewGetWorkProgramUseCase(repo, audit)
 
 			got, err := uc.Execute(context.Background(), tc.actorID, tc.actorRole, GetWorkProgramInput{ID: 100})
-			require.NoError(t, err, "(%s, %s) on status=%s must succeed",
-				tc.actorRole, "actor", tc.status)
+			require.NoError(t, err, "(role=%s actor=%d) on status=%s must succeed",
+				tc.actorRole, tc.actorID, tc.status)
 			assert.Same(t, wp, got)
 			assert.Empty(t, audit.events,
 				"successful reads do not audit (only denials do)")
