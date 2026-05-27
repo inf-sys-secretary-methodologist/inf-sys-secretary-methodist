@@ -287,6 +287,121 @@ func TestWorkProgramRepositoryPG_GetByID_HydratesAllChildKinds(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// --- Update ---
+
+// approvedWP returns a Reconstituted WP suitable for Update testing
+// (carries ID + non-zero version so optimistic-lock arg verification
+// has known values).
+func approvedWP(t *testing.T) *entities.WorkProgram {
+	t.Helper()
+	approver := int64(99)
+	approvedAt := time.Date(2026, 5, 27, 10, 0, 0, 0, time.UTC)
+	now := time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC)
+	return entities.ReconstituteWorkProgram(entities.ReconstituteWorkProgramInput{
+		ID:                 100,
+		DisciplineID:       42,
+		SpecialtyCode:      "09.03.01",
+		ApplicableFromYear: 2026,
+		Title:              "Базы данных",
+		Annotation:         "СУБД",
+		Status:             "approved",
+		AuthorID:           7,
+		ApproverID:         &approver,
+		ApprovedAt:         &approvedAt,
+		Version:            3,
+		CreatedAt:          now,
+		UpdatedAt:          now,
+	})
+}
+
+func TestWorkProgramRepositoryPG_Update_HappyPath_BumpsVersion(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	wp := approvedWP(t)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE work_programs SET")).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	// Children: 6 DELETE statements before reinsert pass — empty
+	// collections still issue the DELETE so reinsert is symmetric.
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM work_program_goals")).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM work_program_competences")).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM work_program_topics")).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM work_program_assessment")).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM work_program_references")).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM work_program_revisions")).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectCommit()
+
+	err := repo.Update(context.Background(), wp)
+	require.NoError(t, err)
+	assert.Equal(t, 4, wp.Version(), "Update must bump version on the entity to mirror the row state")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkProgramRepositoryPG_Update_StaleVersion_ReturnsVersionConflict(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	wp := approvedWP(t)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE work_programs SET")).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	// Follow-up existence check finds the row → version conflict.
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM work_programs WHERE id = $1")).
+		WithArgs(int64(100)).
+		WillReturnRows(sqlmock.NewRows([]string{"?column?"}).AddRow(1))
+	mock.ExpectRollback()
+
+	err := repo.Update(context.Background(), wp)
+	assert.ErrorIs(t, err, repositories.ErrWorkProgramVersionConflict)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkProgramRepositoryPG_Update_RowMissing_ReturnsNotFound(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	wp := approvedWP(t)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE work_programs SET")).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT 1 FROM work_programs WHERE id = $1")).
+		WithArgs(int64(100)).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectRollback()
+
+	err := repo.Update(context.Background(), wp)
+	assert.ErrorIs(t, err, repositories.ErrWorkProgramNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// --- Delete ---
+
+func TestWorkProgramRepositoryPG_Delete_HappyPath(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM work_programs WHERE id = $1")).
+		WithArgs(int64(100)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err := repo.Delete(context.Background(), 100)
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkProgramRepositoryPG_Delete_NotFound(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM work_programs WHERE id = $1")).
+		WithArgs(int64(999)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	err := repo.Delete(context.Background(), 999)
+	assert.ErrorIs(t, err, repositories.ErrWorkProgramNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 // --- List ---
 
 func wpListRow(id int64, status string) []driver.Value {

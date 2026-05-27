@@ -334,6 +334,149 @@ func selectWorkProgramRoot(ctx context.Context, db DBTX, id int64) (entities.Rec
 	return out, nil
 }
 
+// Update writes the (already-mutated) aggregate back atomically:
+// UPDATE root with optimistic-lock guard (WHERE id=? AND version=?)
+// — server-side `version = version + 1` increment is reflected back
+// onto the entity on success — followed by delete + reinsert of every
+// child collection inside the same tx.
+//
+// On RowsAffected == 0 the impl distinguishes via a follow-up SELECT 1:
+//   - row missing entirely             → ErrWorkProgramNotFound
+//   - row exists but stale version     → ErrWorkProgramVersionConflict
+//
+// Mirrors the curriculum module pattern (v0.157.0+).
+func (r *WorkProgramRepositoryPG) Update(ctx context.Context, wp *entities.WorkProgram) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("work_program: update: begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	currentVersion := wp.Version()
+
+	const query = `
+		UPDATE work_programs SET
+			discipline_id = $1,
+			specialty_code = $2,
+			applicable_from_year = $3,
+			title = $4,
+			annotation = $5,
+			status = $6,
+			author_id = $7,
+			approver_id = $8,
+			approved_at = $9,
+			reject_reason = $10,
+			updated_at = $11,
+			version = version + 1
+		WHERE id = $12 AND version = $13`
+
+	result, err := tx.ExecContext(ctx, query,
+		wp.DisciplineID(),
+		wp.SpecialtyCode(),
+		wp.ApplicableFromYear(),
+		wp.Title(),
+		nullableString(wp.Annotation()),
+		string(wp.Status()),
+		wp.AuthorID(),
+		nullableInt64Ptr(wp.ApproverID()),
+		nullableTimePtr(wp.ApprovedAt()),
+		nullableString(wp.RejectReason()),
+		wp.UpdatedAt(),
+		wp.ID(),
+		currentVersion,
+	)
+	if err != nil {
+		return fmt.Errorf("work_program: update: exec: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("work_program: update: rows affected: %w", err)
+	}
+	if affected == 0 {
+		return r.disambiguateAbsentUpdate(ctx, tx, wp.ID())
+	}
+
+	// Re-sync children: simplest correct algorithm is delete-all +
+	// reinsert-all under the same tx. WorkProgram aggregates are
+	// modest in size (≤ a few hundred children combined) so the
+	// extra IO is acceptable; a diff-merge optimization is а future
+	// refinement once profiling shows it matters.
+	if err := deleteAllChildren(ctx, tx, wp.ID()); err != nil {
+		return err
+	}
+	for _, g := range wp.Goals() {
+		if err := insertGoal(ctx, tx, wp.ID(), g); err != nil {
+			return err
+		}
+	}
+	for _, c := range wp.Competences() {
+		if err := insertCompetence(ctx, tx, wp.ID(), c); err != nil {
+			return err
+		}
+	}
+	for _, tp := range wp.Topics() {
+		if err := insertTopic(ctx, tx, wp.ID(), tp); err != nil {
+			return err
+		}
+	}
+	for _, a := range wp.Assessments() {
+		if err := insertAssessment(ctx, tx, wp.ID(), a); err != nil {
+			return err
+		}
+	}
+	for _, ref := range wp.References() {
+		if err := insertReference(ctx, tx, wp.ID(), ref); err != nil {
+			return err
+		}
+	}
+	for _, rev := range wp.Revisions() {
+		if err := insertRevision(ctx, tx, wp.ID(), rev); err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("work_program: update: commit: %w", err)
+	}
+	wp.SetVersion(currentVersion + 1)
+	return nil
+}
+
+// disambiguateAbsentUpdate runs a SELECT 1 against the row id; returns
+// ErrWorkProgramNotFound when the row is gone (mid-edit deletion),
+// ErrWorkProgramVersionConflict when the row exists with a different
+// version (stale entity), wrapping any other DB error.
+func (r *WorkProgramRepositoryPG) disambiguateAbsentUpdate(ctx context.Context, tx execQuerier, id int64) error {
+	var one int
+	err := tx.QueryRowContext(ctx, `SELECT 1 FROM work_programs WHERE id = $1`, id).Scan(&one)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return repositories.ErrWorkProgramNotFound
+		}
+		return fmt.Errorf("work_program: update: disambiguate: %w", err)
+	}
+	return repositories.ErrWorkProgramVersionConflict
+}
+
+// Delete removes the WorkProgram row by id. Migration 048
+// ON DELETE CASCADE handles every child table cleanup automatically,
+// so a single DELETE statement suffices. Returns
+// ErrWorkProgramNotFound when no row is deleted.
+func (r *WorkProgramRepositoryPG) Delete(ctx context.Context, id int64) error {
+	result, err := r.db.ExecContext(ctx, `DELETE FROM work_programs WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("work_program: delete: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("work_program: delete: rows affected: %w", err)
+	}
+	if affected == 0 {
+		return repositories.ErrWorkProgramNotFound
+	}
+	return nil
+}
+
 // isIdentityViolation reports whether err is a PostgreSQL unique
 // violation against the identity tuple constraint.
 func isIdentityViolation(err error) bool {

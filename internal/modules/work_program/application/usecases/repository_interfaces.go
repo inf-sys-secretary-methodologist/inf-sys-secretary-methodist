@@ -58,4 +58,25 @@ type WorkProgramRepository interface {
 	// stay cheap; callers needing full child hydration use GetByID.
 	// An empty result is not an error.
 	List(ctx context.Context, filter repositories.WorkProgramListFilter) (repositories.WorkProgramListResult, error)
+
+	// Update writes the (already-mutated) aggregate back atomically:
+	// UPDATE root with optimistic-lock guard (WHERE id=? AND version=?)
+	// then delete + reinsert every child collection inside the same
+	// tx. On RowsAffected == 0 the impl distinguishes:
+	//   - row missing entirely → ErrWorkProgramNotFound
+	//   - row exists but stale version → ErrWorkProgramVersionConflict
+	// On success the entity's version is bumped to reflect the new
+	// row state so callers see a consistent post-update view without
+	// reloading.
+	Update(ctx context.Context, wp *entities.WorkProgram) error
+
+	// Delete removes the WorkProgram row by id. Returns
+	// ErrWorkProgramNotFound when no row is deleted. Migration 048
+	// ON DELETE CASCADE handles child cleanup automatically; the
+	// repo issues a single DELETE statement.
+	//
+	// Note: РПД are normally archived (status=archived), never deleted —
+	// see ADR-1 / Рособрнадзор 6-year retention. Delete exists for
+	// admin-grade cleanup paths (test fixtures, GDPR-style erasure).
+	Delete(ctx context.Context, id int64) error
 }
