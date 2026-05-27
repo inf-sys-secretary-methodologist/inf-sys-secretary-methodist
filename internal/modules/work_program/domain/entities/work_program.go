@@ -325,11 +325,23 @@ func (w *WorkProgram) NextRevisionNumber() int {
 	return maxN + 1
 }
 
-// HoursTotal aggregates Topic.Hours per kind. Real impl in GREEN
-// returns a map with all four canonical TopicKinds keyed to zero
-// when no topics of that kind exist (so callers never see missing
-// keys). RED stub returns nil.
-func (w *WorkProgram) HoursTotal() map[domain.TopicKind]int { return nil }
+// HoursTotal aggregates Topic.Hours per kind. The returned map always
+// contains all four canonical TopicKinds (initialized to zero) so
+// callers can index without nil-map / missing-key hazards. Cross-
+// aggregate validation (sum vs учебный план) is the use-case layer's
+// job per ADR-1.
+func (w *WorkProgram) HoursTotal() map[domain.TopicKind]int {
+	result := map[domain.TopicKind]int{
+		domain.TopicKindLecture:   0,
+		domain.TopicKindPractice:  0,
+		domain.TopicKindLab:       0,
+		domain.TopicKindSelfStudy: 0,
+	}
+	for _, t := range w.topics {
+		result[t.Kind()] += t.Hours()
+	}
+	return result
+}
 
 // Goals returns a defensive copy of the goals slice.
 func (w *WorkProgram) Goals() []*Goal {
