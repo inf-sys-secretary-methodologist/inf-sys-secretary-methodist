@@ -151,24 +151,39 @@ func (w *WorkProgram) MarkNeedsRevision() error {
 }
 
 // Reject transitions the WorkProgram from pending_approval back to
-// draft with a recorded reason. Methodist-only per ADR-5. Empty or
-// whitespace-only reason is rejected via ErrRejectReasonRequired so
-// the author has actionable feedback. Reason is trimmed before
-// storage.
+// draft with a recorded reason. Methodist-only per ADR-5. Reason is
+// trimmed before storage; empty/whitespace-only after trim is
+// rejected via ErrRejectReasonRequired (the author needs actionable
+// feedback).
 //
-// Stub for the RED commit — GREEN commit replaces with real logic.
-func (w *WorkProgram) Reject(_ string) error {
-	return domain.ErrInvalidStatusTransition
+// Transition guard runs before reason guard so an empty reason on a
+// wrong-status WP returns the status error (more informative). When
+// both would fire the status mismatch wins.
+func (w *WorkProgram) Reject(reason string) error {
+	if w.status != domain.StatusPendingApproval {
+		return domain.ErrInvalidStatusTransition
+	}
+	trimmed := strings.TrimSpace(reason)
+	if trimmed == "" {
+		return domain.ErrRejectReasonRequired
+	}
+	w.status = domain.StatusDraft
+	w.rejectReason = trimmed
+	w.updatedAt = time.Now().UTC()
+	return nil
 }
 
 // DiscardDraft transitions the WorkProgram from draft to archived
 // without going through approval — author abandons their own draft.
-// Allowed from draft only (other states have proper Archive/Reject
-// paths that preserve audit trail).
-//
-// Stub for the RED commit — GREEN commit replaces with real logic.
+// Allowed from draft only; other states have proper Archive/Reject
+// paths that preserve audit trail.
 func (w *WorkProgram) DiscardDraft() error {
-	return domain.ErrInvalidStatusTransition
+	if w.status != domain.StatusDraft {
+		return domain.ErrInvalidStatusTransition
+	}
+	w.status = domain.StatusArchived
+	w.updatedAt = time.Now().UTC()
+	return nil
 }
 
 // Archive transitions the WorkProgram to archived (terminal). Allowed
