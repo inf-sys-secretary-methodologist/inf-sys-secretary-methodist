@@ -451,6 +451,11 @@ func (w *WorkProgram) ID() int64 { return w.id }
 // call this. Mirrors the curriculum module pattern (v0.157.0+).
 func (w *WorkProgram) SetID(id int64) { w.id = id }
 
+// SetVersion writes the optimistic-lock counter after a successful
+// repository UPDATE. Repository-only contract (same caveat as SetID).
+// Callers see a consistent post-update view without a separate reload.
+func (w *WorkProgram) SetVersion(v int) { w.version = v }
+
 // DisciplineID returns the linked discipline identifier.
 func (w *WorkProgram) DisciplineID() int64 { return w.disciplineID }
 
