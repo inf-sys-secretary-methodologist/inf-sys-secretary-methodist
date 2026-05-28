@@ -290,3 +290,60 @@ describe('WorkProgramDetailPage — draft author actions (8d-1)', () => {
     expect(screen.queryByRole('button', { name: 'detail.actions.discard' })).not.toBeInTheDocument()
   })
 })
+
+describe('WorkProgramDetailPage — approver actions (8d-2)', () => {
+  const methodist = {
+    user: { id: 3, role: 'methodist' as const },
+    isAuthenticated: true,
+    isLoading: false,
+  }
+
+  const wpInState = (status: WorkProgram['status']) => ({
+    workProgram: sample({ status }),
+    isLoading: false,
+    error: undefined,
+    mutate: jest.fn(),
+  })
+
+  beforeEach(() => {
+    mockUseParams.mockReturnValue({ id: '7' })
+    mockUseAuthCheck.mockReturnValue(methodist)
+    mockUseWorkProgram.mockReturnValue(wpInState('pending_approval'))
+  })
+
+  it('shows approve + reject actions for an approver on a pending programme', () => {
+    render(<WorkProgramDetailPage />)
+    expect(screen.getByRole('button', { name: 'detail.actions.approve' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'detail.actions.reject' })).toBeInTheDocument()
+  })
+
+  it('opens the approve dialog when the approve action is clicked', () => {
+    render(<WorkProgramDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.actions.approve' }))
+    expect(screen.getByText('approveDialog.title')).toBeInTheDocument()
+  })
+
+  it('opens the reject dialog when the reject action is clicked', () => {
+    render(<WorkProgramDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.actions.reject' }))
+    expect(screen.getByText('rejectDialog.title')).toBeInTheDocument()
+  })
+
+  it('hides approver actions for a non-approver (teacher author)', () => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 5, role: 'teacher' as const },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<WorkProgramDetailPage />)
+    expect(screen.queryByRole('button', { name: 'detail.actions.approve' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'detail.actions.reject' })).not.toBeInTheDocument()
+  })
+
+  it('hides approver actions when the programme is not pending (draft)', () => {
+    mockUseWorkProgram.mockReturnValue(wpInState('draft'))
+    render(<WorkProgramDetailPage />)
+    expect(screen.queryByRole('button', { name: 'detail.actions.approve' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'detail.actions.reject' })).not.toBeInTheDocument()
+  })
+})
