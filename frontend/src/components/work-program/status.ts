@@ -1,6 +1,6 @@
 import { Archive, AlertTriangle, CheckCircle2, Clock, PenLine } from 'lucide-react'
 
-import type { WorkProgramStatus } from '@/types/workProgram'
+import type { RevisionStatus, WorkProgramStatus } from '@/types/workProgram'
 
 // statusKey collapses the wire-format multi-token statuses to the
 // shorter camelCase UI keys used under workProgram.card.status.* /
@@ -11,6 +11,16 @@ export function statusKey(status: WorkProgramStatus): string {
   if (status === 'pending_approval') return 'pending'
   if (status === 'needs_revision') return 'needsRevision'
   return status
+}
+
+// revisionStatusKey is the analogue of statusKey for the revision child
+// FSM (draft / pending_approval / approved / rejected). Only the
+// pending_approval wire value needs collapsing to the short UI key
+// `pending`; the rest map 1:1 to their workProgram.detail.revisionStatus
+// i18n keys. Without this the detail page would interpolate
+// `pending_approval` and render a raw missing key.
+export function revisionStatusKey(status: RevisionStatus): string {
+  return status === 'pending_approval' ? 'pending' : status
 }
 
 // STATUS_STYLES is the single source of truth for РПД status
