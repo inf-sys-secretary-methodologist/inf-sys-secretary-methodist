@@ -178,3 +178,50 @@ func TestWorkProgramHandler_Create_IdentityExistsMaps409(t *testing.T) {
 	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs", validCreateBody())
 	assert.Equal(t, http.StatusConflict, w.Code)
 }
+
+// ===== Get =====
+
+func TestWorkProgramHandler_Get_HappyPath(t *testing.T) {
+	fg := &fakeGet{result: sampleWP(t)}
+	r := newRouter(&fakeCreate{}, fg, &fakeList{}, withAuth(7, "student"))
+	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs/99", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, fg.called)
+}
+
+func TestWorkProgramHandler_Get_Unauthenticated(t *testing.T) {
+	r := newRouter(&fakeCreate{}, &fakeGet{}, &fakeList{})
+	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs/99", nil)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestWorkProgramHandler_Get_InvalidIDMaps400(t *testing.T) {
+	r := newRouter(&fakeCreate{}, &fakeGet{}, &fakeList{}, withAuth(7, "student"))
+	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs/abc", nil)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestWorkProgramHandler_Get_NotFoundMaps404(t *testing.T) {
+	fg := &fakeGet{err: repositories.ErrWorkProgramNotFound}
+	r := newRouter(&fakeCreate{}, fg, &fakeList{}, withAuth(7, "student"))
+	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs/404", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// IDOR mitigation: a non-admin denied by scope must see 404, not 403,
+// so resource ids cannot be enumerated by privilege class (OWASP).
+func TestWorkProgramHandler_Get_ForbiddenHiddenAs404ForNonAdmin(t *testing.T) {
+	fg := &fakeGet{err: domain.ErrWorkProgramScopeForbidden}
+	r := newRouter(&fakeCreate{}, fg, &fakeList{}, withAuth(7, "teacher"))
+	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs/99", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// Admins are entitled to know the resource exists — they keep the 403
+// signal (they can see all РПД per ADR-5, so this is defensive).
+func TestWorkProgramHandler_Get_ForbiddenStays403ForAdmin(t *testing.T) {
+	fg := &fakeGet{err: domain.ErrWorkProgramScopeForbidden}
+	r := newRouter(&fakeCreate{}, fg, &fakeList{}, withAuth(1, "system_admin"))
+	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs/99", nil)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
