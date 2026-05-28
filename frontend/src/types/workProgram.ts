@@ -176,8 +176,12 @@ export interface RejectWorkProgramInput {
   reason: string
 }
 
-// Sentinel error codes mirrored from backend handler mapWorkProgramError.
-// Frontend maps these via pickWorkProgramErrorKey to i18n strings.
+// Error codes consumed by pickWorkProgramErrorKey (→ i18n keys). The
+// first five are sentinel codes the backend emits in the error body via
+// mapWorkProgramError; FORBIDDEN / NOT_FOUND are derived frontend-side
+// from the HTTP status (the handler returns 403/404 with no code), and
+// GENERIC is the catch-all fallback for unknown 5xx — neither group is
+// an actual mapWorkProgramError code.
 export type WorkProgramErrorCode =
   | 'IDENTITY_EXISTS'
   | 'VERSION_CONFLICT'
