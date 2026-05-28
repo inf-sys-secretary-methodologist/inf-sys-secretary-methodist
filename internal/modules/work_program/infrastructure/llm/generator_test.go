@@ -124,6 +124,20 @@ func TestGenerator_APIErrorField(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestGenerator_NonJSONErrorBody(t *testing.T) {
+	// A gateway 502 with an HTML body must surface the status, not a
+	// confusing "decode response" error from trying to JSON-parse HTML.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = io.WriteString(w, "<html><body>502 Bad Gateway</body></html>")
+	}))
+	defer srv.Close()
+
+	_, err := newTestGenerator(srv.URL).GenerateDraft(context.Background(), sampleReq())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "502", "non-200 non-JSON body must surface the status code")
+}
+
 func TestGenerator_MalformedContentJSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, chatCompletion("this is plainly not json"))
