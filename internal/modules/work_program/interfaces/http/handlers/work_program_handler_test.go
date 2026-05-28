@@ -290,3 +290,22 @@ func TestWorkProgramHandler_List_ForbiddenMaps403(t *testing.T) {
 	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs", nil)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
+
+// Malformed numeric query params are silently dropped (lenient contract,
+// consistent with the extracurricular handler) — unparseable filters
+// stay nil and bad limit/offset zero out (use case then applies its own
+// defaults). Pins this intent so a later "stricter parsing" change is a
+// deliberate, test-visible decision rather than an accident.
+func TestWorkProgramHandler_List_MalformedNumericParamsDropped(t *testing.T) {
+	fl := &fakeList{}
+	r := newRouter(&fakeCreate{}, &fakeGet{}, fl, withAuth(42, "methodist"))
+	w := doJSON(t, r, http.MethodGet,
+		"/api/v1/work-programs?discipline_id=abc&author_id=xyz&applicable_from_year=nope&limit=foo&offset=bar",
+		nil)
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Nil(t, fl.gotIn.DisciplineID)
+	assert.Nil(t, fl.gotIn.AuthorID)
+	assert.Nil(t, fl.gotIn.ApplicableFromYear)
+	assert.Equal(t, 0, fl.gotIn.Limit)
+	assert.Equal(t, 0, fl.gotIn.Offset)
+}
