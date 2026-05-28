@@ -206,7 +206,8 @@
     "composio": "Composio",
     "branding": "Marque",
     "usersCatalog": "Annuaire des utilisateurs",
-    "extracurricular": "Événements"
+    "extracurricular": "Événements",
+    "workPrograms": "Programmes de travail"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -2407,6 +2408,59 @@
         "forbidden": "Vous n'avez pas le droit de retourner ce travail",
         "generic": "Impossible de retourner le travail"
       }
+    }
+  },
+  "workProgram": {
+    "title": "Programmes de travail (РПД)",
+    "description": "Programmes de travail des disciplines : objectifs, compétences, thèmes, évaluation et références",
+    "loading": "Chargement des programmes de travail…",
+    "loadFailed": "Échec du chargement des programmes de travail",
+    "createButton": "Créer un programme",
+    "countLabel": "Affichage de {shown} sur {total}",
+    "empty": {
+      "title": "Aucun programme de travail pour l'instant",
+      "description": "Créez le premier programme ou ajustez les filtres"
+    },
+    "pagination": {
+      "prev": "Précédent",
+      "next": "Suivant"
+    },
+    "filters": {
+      "status": "Statut",
+      "specialty": "Code de spécialité",
+      "specialtyPlaceholder": "ex. 09.03.01",
+      "year": "Année de la cohorte",
+      "yearPlaceholder": "ex. 2026",
+      "statusOptions": {
+        "all": "Tous les statuts",
+        "draft": "Brouillon",
+        "pending": "En attente d'approbation",
+        "approved": "Approuvé",
+        "needsRevision": "À réviser",
+        "archived": "Archivé"
+      }
+    },
+    "card": {
+      "discipline": "Discipline n°{id}",
+      "year": "Année de la cohorte",
+      "specialty": "Spécialité",
+      "status": {
+        "draft": "Brouillon",
+        "pending": "En attente d'approbation",
+        "approved": "Approuvé",
+        "needsRevision": "À réviser",
+        "archived": "Archivé"
+      }
+    },
+    "errors": {
+      "identityExists": "Un programme avec cette discipline, cette spécialité et cette année de cohorte existe déjà",
+      "versionConflict": "Le programme a été modifié par quelqu'un d'autre — rechargez et réessayez",
+      "invalidTransition": "Transition de statut non valide pour ce programme",
+      "rejectReasonRequired": "Un motif de rejet est requis",
+      "invalidWorkProgram": "Les données du programme sont invalides",
+      "forbidden": "Vous n'êtes pas autorisé à effectuer cette action",
+      "notFound": "Programme de travail introuvable",
+      "generic": "L'opération n'a pas pu être effectuée"
     }
   },
   "curriculum": {

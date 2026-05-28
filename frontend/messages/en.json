@@ -206,7 +206,8 @@
     "composio": "Composio",
     "branding": "Branding",
     "usersCatalog": "User directory",
-    "extracurricular": "Events"
+    "extracurricular": "Events",
+    "workPrograms": "Work Programs"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -2407,6 +2408,59 @@
         "forbidden": "You are not allowed to return this submission",
         "generic": "Could not return the submission"
       }
+    }
+  },
+  "workProgram": {
+    "title": "Work Programs (РПД)",
+    "description": "Discipline work programs: goals, competences, topics, assessment funds and references",
+    "loading": "Loading work programs…",
+    "loadFailed": "Failed to load work programs",
+    "createButton": "Create work program",
+    "countLabel": "Showing {shown} of {total}",
+    "empty": {
+      "title": "No work programs yet",
+      "description": "Create the first work program or adjust the filters"
+    },
+    "pagination": {
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "filters": {
+      "status": "Status",
+      "specialty": "Specialty code",
+      "specialtyPlaceholder": "e.g. 09.03.01",
+      "year": "Cohort year",
+      "yearPlaceholder": "e.g. 2026",
+      "statusOptions": {
+        "all": "All statuses",
+        "draft": "Draft",
+        "pending": "Pending approval",
+        "approved": "Approved",
+        "needsRevision": "Needs revision",
+        "archived": "Archived"
+      }
+    },
+    "card": {
+      "discipline": "Discipline #{id}",
+      "year": "Cohort year",
+      "specialty": "Specialty",
+      "status": {
+        "draft": "Draft",
+        "pending": "Pending approval",
+        "approved": "Approved",
+        "needsRevision": "Needs revision",
+        "archived": "Archived"
+      }
+    },
+    "errors": {
+      "identityExists": "A work program with this discipline, specialty and cohort year already exists",
+      "versionConflict": "The work program was modified by someone else — reload and retry",
+      "invalidTransition": "Invalid status transition for this work program",
+      "rejectReasonRequired": "A rejection reason is required",
+      "invalidWorkProgram": "The work program data is invalid",
+      "forbidden": "You are not allowed to perform this action",
+      "notFound": "Work program not found",
+      "generic": "The operation could not be completed"
     }
   },
   "curriculum": {
