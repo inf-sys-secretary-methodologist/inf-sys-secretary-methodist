@@ -9,7 +9,7 @@ import { ArrowLeft, BookMarked, Calendar, GraduationCap, Loader2 } from 'lucide-
 import { AppLayout } from '@/components/layout'
 import { useWorkProgram } from '@/hooks/useWorkPrograms'
 import { useAuthCheck } from '@/hooks/useAuth'
-import { STATUS_STYLES, statusKey } from '@/components/work-program/status'
+import { STATUS_STYLES, statusKey, revisionStatusKey } from '@/components/work-program/status'
 import type { WorkProgram, WorkProgramStatus } from '@/types/workProgram'
 import { cn } from '@/lib/utils'
 
@@ -206,7 +206,7 @@ function WorkProgramDetail({ wp, t }: { wp: WorkProgram; t: T }) {
               </span>
               <span>{rev.change_summary}</span>
               <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                {t(`detail.revisionStatus.${rev.status}`)}
+                {t(`detail.revisionStatus.${revisionStatusKey(rev.status)}`)}
               </span>
             </li>
           ))}
