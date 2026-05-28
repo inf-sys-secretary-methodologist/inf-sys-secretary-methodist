@@ -635,7 +635,37 @@ func (h *WorkProgramHandler) Reject(c *gin.Context) {
 }
 
 // Discard handles POST /api/v1/work-programs/:id/discard.
-func (h *WorkProgramHandler) Discard(c *gin.Context) { c.Status(http.StatusNotImplemented) }
+// @Summary Discard a draft work program (draft → archived, author abandons)
+// @Tags    work-programs
+// @Produce json
+// @Param   id path int true "Work program ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/discard [post]
+func (h *WorkProgramHandler) Discard(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	wp, err := h.discard.Execute(c.Request.Context(), actorID, role, wpUsecases.DiscardDraftWorkProgramInput{ID: id})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
+}
 
 // RegisterWorkProgramRoutes mounts all 7 endpoints under /work-programs.
 // Caller must apply auth middleware to the group before passing it in —
