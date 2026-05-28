@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -270,6 +271,19 @@ func authContext(c *gin.Context) (userID int64, role string, ok bool) {
 	return userID, roleStr, true
 }
 
+func parsePositiveID(raw string) (int64, bool) {
+	if raw == "" {
+		return 0, false
+	}
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || id <= 0 {
+		return 0, false
+	}
+	return id, true
+}
+
+func isAdminRole(role string) bool { return role == "system_admin" }
+
 // mapWorkProgramError maps domain / repository sentinels to HTTP status.
 //
 // hideForbiddenAsNotFound implements the OWASP IDOR mitigation: on
@@ -354,7 +368,36 @@ func (h *WorkProgramHandler) Create(c *gin.Context) {
 }
 
 // Get handles GET /api/v1/work-programs/:id.
-func (h *WorkProgramHandler) Get(c *gin.Context) { c.Status(http.StatusNotImplemented) }
+// @Summary Fetch one work program (РПД) by id with all inner collections
+// @Tags    work-programs
+// @Produce json
+// @Param   id path int true "Work program ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id} [get]
+func (h *WorkProgramHandler) Get(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	wp, err := h.get.Execute(c.Request.Context(), actorID, role, wpUsecases.GetWorkProgramInput{ID: id})
+	if err != nil {
+		// Non-admins get scope-forbidden collapsed to 404 (IDOR).
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
+}
 
 // List handles GET /api/v1/work-programs.
 func (h *WorkProgramHandler) List(c *gin.Context) { c.Status(http.StatusNotImplemented) }
