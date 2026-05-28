@@ -2462,6 +2462,68 @@
       "forbidden": "لا تملك صلاحية تنفيذ هذا الإجراء",
       "notFound": "برنامج العمل غير موجود",
       "generic": "تعذّر إتمام العملية"
+    },
+    "detail": {
+      "backToList": "العودة إلى برامج العمل",
+      "notFound": "برنامج العمل غير موجود",
+      "loadFailed": "فشل تحميل برنامج العمل",
+      "topicHours": "{hours} ساعة",
+      "topicWeek": "الأسبوع {week}",
+      "maxScore": "حتى {score} نقطة",
+      "fields": {
+        "rejectReason": "سبب الرفض"
+      },
+      "statusHint": {
+        "draft": "مسودة — لم تُرسل للاعتماد بعد",
+        "pending": "بانتظار اعتماد المنهجي",
+        "approved": "معتمد وساري المفعول",
+        "needsRevision": "يحتاج إلى تحديث",
+        "archived": "مؤرشف (استُبدل بإصدار جديد)"
+      },
+      "sections": {
+        "annotation": "الوصف",
+        "goals": "الأهداف والمهام",
+        "competences": "الكفايات",
+        "topics": "المواضيع",
+        "assessments": "صندوق وسائل التقييم",
+        "references": "المراجع",
+        "revisions": "صفحات التحديث",
+        "empty": "لم يُملأ بعد"
+      },
+      "competenceType": {
+        "pk": "كفاية مهنية",
+        "ok": "كفاية عامة",
+        "uk": "كفاية شاملة"
+      },
+      "topicKind": {
+        "lecture": "محاضرة",
+        "practice": "تطبيق عملي",
+        "lab": "مختبر",
+        "self_study": "دراسة ذاتية"
+      },
+      "assessmentType": {
+        "current": "جارٍ",
+        "intermediate": "وسيط",
+        "final": "نهائي"
+      },
+      "referenceType": {
+        "main": "أساسية",
+        "additional": "إضافية",
+        "electronic": "إلكترونية"
+      },
+      "revisionChangeType": {
+        "hours": "ساعات",
+        "semester": "فصل دراسي",
+        "literature": "أدبيات",
+        "assessment": "تقييم",
+        "other": "أخرى"
+      },
+      "revisionStatus": {
+        "draft": "مسودة",
+        "pending": "بانتظار الاعتماد",
+        "approved": "معتمد",
+        "rejected": "مرفوض"
+      }
     }
   },
   "curriculum": {

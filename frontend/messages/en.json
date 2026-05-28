@@ -2462,6 +2462,68 @@
       "forbidden": "You are not allowed to perform this action",
       "notFound": "Work program not found",
       "generic": "The operation could not be completed"
+    },
+    "detail": {
+      "backToList": "Back to work programs",
+      "notFound": "Work program not found",
+      "loadFailed": "Failed to load the work program",
+      "topicHours": "{hours} h",
+      "topicWeek": "week {week}",
+      "maxScore": "up to {score} points",
+      "fields": {
+        "rejectReason": "Rejection reason"
+      },
+      "statusHint": {
+        "draft": "Draft — not yet submitted for approval",
+        "pending": "Awaiting methodist approval",
+        "approved": "Approved and in effect",
+        "needsRevision": "Needs revision",
+        "archived": "Archived (superseded by a new edition)"
+      },
+      "sections": {
+        "annotation": "Annotation",
+        "goals": "Goals and objectives",
+        "competences": "Competences",
+        "topics": "Topics",
+        "assessments": "Assessment fund",
+        "references": "References",
+        "revisions": "Revision sheets",
+        "empty": "Not filled in yet"
+      },
+      "competenceType": {
+        "pk": "PC",
+        "ok": "GC",
+        "uk": "UC"
+      },
+      "topicKind": {
+        "lecture": "Lecture",
+        "practice": "Practice",
+        "lab": "Lab",
+        "self_study": "Self-study"
+      },
+      "assessmentType": {
+        "current": "Current",
+        "intermediate": "Intermediate",
+        "final": "Final"
+      },
+      "referenceType": {
+        "main": "Main",
+        "additional": "Additional",
+        "electronic": "Electronic"
+      },
+      "revisionChangeType": {
+        "hours": "Hours",
+        "semester": "Semester",
+        "literature": "Literature",
+        "assessment": "Assessment",
+        "other": "Other"
+      },
+      "revisionStatus": {
+        "draft": "Draft",
+        "pending": "Pending approval",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      }
     }
   },
   "curriculum": {

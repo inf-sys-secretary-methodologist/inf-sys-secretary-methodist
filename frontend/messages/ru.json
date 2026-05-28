@@ -2462,6 +2462,68 @@
       "forbidden": "У вас нет прав на это действие",
       "notFound": "Рабочая программа не найдена",
       "generic": "Не удалось выполнить операцию"
+    },
+    "detail": {
+      "backToList": "К списку РПД",
+      "notFound": "Рабочая программа не найдена",
+      "loadFailed": "Не удалось загрузить рабочую программу",
+      "topicHours": "{hours} ч",
+      "topicWeek": "неделя {week}",
+      "maxScore": "до {score} баллов",
+      "fields": {
+        "rejectReason": "Причина возврата"
+      },
+      "statusHint": {
+        "draft": "Черновик — ещё не отправлен на утверждение",
+        "pending": "На утверждении у методиста",
+        "approved": "Утверждена и действует",
+        "needsRevision": "Требует актуализации",
+        "archived": "В архиве (заменена новой редакцией)"
+      },
+      "sections": {
+        "annotation": "Аннотация",
+        "goals": "Цели и задачи",
+        "competences": "Компетенции",
+        "topics": "Темы",
+        "assessments": "Фонд оценочных средств",
+        "references": "Литература",
+        "revisions": "Листы актуализации",
+        "empty": "Пока не заполнено"
+      },
+      "competenceType": {
+        "pk": "ПК",
+        "ok": "ОК",
+        "uk": "УК"
+      },
+      "topicKind": {
+        "lecture": "Лекция",
+        "practice": "Практика",
+        "lab": "Лаб. работа",
+        "self_study": "Самост. работа"
+      },
+      "assessmentType": {
+        "current": "Текущий",
+        "intermediate": "Промежуточный",
+        "final": "Итоговый"
+      },
+      "referenceType": {
+        "main": "Основная",
+        "additional": "Дополнительная",
+        "electronic": "Электронная"
+      },
+      "revisionChangeType": {
+        "hours": "Часы",
+        "semester": "Семестр",
+        "literature": "Литература",
+        "assessment": "Оценочные средства",
+        "other": "Прочее"
+      },
+      "revisionStatus": {
+        "draft": "Черновик",
+        "pending": "На утверждении",
+        "approved": "Утверждён",
+        "rejected": "Отклонён"
+      }
     }
   },
   "curriculum": {

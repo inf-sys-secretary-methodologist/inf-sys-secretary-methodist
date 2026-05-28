@@ -1,4 +1,4 @@
-import { STATUS_STYLES, statusKey } from '../status'
+import { STATUS_STYLES, statusKey, revisionStatusKey } from '../status'
 import { WORK_PROGRAM_STATUSES } from '@/types/workProgram'
 
 describe('work-program statusKey', () => {
@@ -14,6 +14,18 @@ describe('work-program statusKey', () => {
     expect(statusKey('draft')).toBe('draft')
     expect(statusKey('approved')).toBe('approved')
     expect(statusKey('archived')).toBe('archived')
+  })
+})
+
+describe('work-program revisionStatusKey', () => {
+  it('collapses revision pending_approval to the short UI key "pending"', () => {
+    expect(revisionStatusKey('pending_approval')).toBe('pending')
+  })
+
+  it('passes draft / approved / rejected through unchanged', () => {
+    expect(revisionStatusKey('draft')).toBe('draft')
+    expect(revisionStatusKey('approved')).toBe('approved')
+    expect(revisionStatusKey('rejected')).toBe('rejected')
   })
 })
 

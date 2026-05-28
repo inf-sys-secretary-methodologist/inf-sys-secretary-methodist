@@ -2462,6 +2462,68 @@
       "forbidden": "Vous n'êtes pas autorisé à effectuer cette action",
       "notFound": "Programme de travail introuvable",
       "generic": "L'opération n'a pas pu être effectuée"
+    },
+    "detail": {
+      "backToList": "Retour aux programmes",
+      "notFound": "Programme de travail introuvable",
+      "loadFailed": "Échec du chargement du programme de travail",
+      "topicHours": "{hours} h",
+      "topicWeek": "semaine {week}",
+      "maxScore": "jusqu'à {score} points",
+      "fields": {
+        "rejectReason": "Motif de rejet"
+      },
+      "statusHint": {
+        "draft": "Brouillon — pas encore soumis à l'approbation",
+        "pending": "En attente d'approbation du méthodiste",
+        "approved": "Approuvé et en vigueur",
+        "needsRevision": "À réviser",
+        "archived": "Archivé (remplacé par une nouvelle édition)"
+      },
+      "sections": {
+        "annotation": "Annotation",
+        "goals": "Buts et objectifs",
+        "competences": "Compétences",
+        "topics": "Thèmes",
+        "assessments": "Fonds d'évaluation",
+        "references": "Références",
+        "revisions": "Feuilles de mise à jour",
+        "empty": "Pas encore renseigné"
+      },
+      "competenceType": {
+        "pk": "CP",
+        "ok": "CG",
+        "uk": "CU"
+      },
+      "topicKind": {
+        "lecture": "Cours",
+        "practice": "Travaux pratiques",
+        "lab": "Laboratoire",
+        "self_study": "Travail autonome"
+      },
+      "assessmentType": {
+        "current": "Continu",
+        "intermediate": "Intermédiaire",
+        "final": "Final"
+      },
+      "referenceType": {
+        "main": "Principale",
+        "additional": "Complémentaire",
+        "electronic": "Électronique"
+      },
+      "revisionChangeType": {
+        "hours": "Heures",
+        "semester": "Semestre",
+        "literature": "Littérature",
+        "assessment": "Évaluation",
+        "other": "Autre"
+      },
+      "revisionStatus": {
+        "draft": "Brouillon",
+        "pending": "En attente d'approbation",
+        "approved": "Approuvé",
+        "rejected": "Rejeté"
+      }
     }
   },
   "curriculum": {
