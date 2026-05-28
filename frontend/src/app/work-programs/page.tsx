@@ -1,17 +1,20 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { BookOpen, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { BookOpen, ChevronLeft, ChevronRight, Loader2, Plus } from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { WorkProgramCard } from '@/components/work-program/WorkProgramCard'
+import { CreateWorkProgramDialog } from '@/components/work-program/CreateWorkProgramDialog'
 import { statusKey } from '@/components/work-program/status'
 import { useWorkPrograms } from '@/hooks/useWorkPrograms'
 import { useAuthCheck } from '@/hooks/useAuth'
+import { canCreateWorkProgram } from '@/lib/auth/permissions'
 import {
   WORK_PROGRAM_STATUSES,
   type WorkProgramListFilter,
@@ -25,14 +28,18 @@ import {
 // scopes teachers to their own. So the page just gates the fetch on
 // auth resolution and lets the server narrow the rows.
 export default function WorkProgramsPage() {
-  const { isAuthenticated, isLoading } = useAuthCheck()
+  const { isAuthenticated, isLoading, user } = useAuthCheck()
   const t = useTranslations('workProgram')
+  const router = useRouter()
 
   const [statusFilter, setStatusFilter] = useState<WorkProgramStatus | ''>('')
   const [yearFilter, setYearFilter] = useState('')
   const [specialty, setSpecialty] = useState('')
   const [offset, setOffset] = useState(0)
+  const [createOpen, setCreateOpen] = useState(false)
   const limit = 20
+
+  const canCreate = canCreateWorkProgram(user?.role)
 
   // Reset to the first page whenever a filter changes so the user does
   // not land on an out-of-range page from a previous filter.
@@ -70,9 +77,17 @@ export default function WorkProgramsPage() {
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-6">
-        <header>
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <p className="text-muted-foreground">{t('description')}</p>
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground">{t('description')}</p>
+          </div>
+          {canCreate && (
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t('createButton')}
+            </Button>
+          )}
         </header>
 
         <section className="grid gap-3 sm:grid-cols-3">
@@ -163,6 +178,12 @@ export default function WorkProgramsPage() {
             </div>
           </div>
         )}
+
+        <CreateWorkProgramDialog
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          onCreated={(wp) => router.push(`/work-programs/${wp.id}`)}
+        />
       </div>
     </AppLayout>
   )
