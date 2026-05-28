@@ -16,8 +16,10 @@ export default defineConfig({
   /* Повторять тесты на CI при падении */
   retries: process.env.CI ? 2 : 0,
 
-  /* Количество воркеров */
-  workers: process.env.CI ? 1 : undefined,
+  /* На CI '75%' ядер (public-repo runner = 4 vCPU → 3 воркера). Параллелить безопасно:
+     E2E не поднимает бэкенд и не шарит состояние между тестами, Playwright изолирует
+     browser-контекст на каждый тест. Локально — авто по числу ядер. */
+  workers: process.env.CI ? '75%' : undefined,
 
   /* Репортер для результатов */
   reporter: 'html',
