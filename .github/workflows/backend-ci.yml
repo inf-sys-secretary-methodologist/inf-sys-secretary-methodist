@@ -165,7 +165,7 @@ jobs:
     - name: Build server
       if: steps.check_gomod.outputs.exists == 'true'
       run: |
-        go build -v -o bin/server cmd/server/main.go
+        go build -v -o bin/server ./cmd/server
 
     - name: Verify binary
       if: steps.check_gomod.outputs.exists == 'true'
