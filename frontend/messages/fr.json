@@ -2564,6 +2564,29 @@
       "successToast": "Programme de travail rejeté et renvoyé à l’auteur",
       "reasonLabel": "Motif du rejet",
       "reasonPlaceholder": "Ex. : les heures ne correspondent pas au plan d’études"
+    },
+    "createDialog": {
+      "title": "Créer un programme de travail",
+      "description": "Créez un brouillon de programme. Après sa création, vous pourrez renseigner les objectifs, les compétences, les thèmes, le fonds d'évaluation et la bibliographie, puis le soumettre pour approbation.",
+      "labels": {
+        "title": "Titre",
+        "disciplineId": "ID de la discipline",
+        "specialty": "Code de la spécialité",
+        "year": "Année d'admission",
+        "annotation": "Annotation"
+      },
+      "placeholders": {
+        "disciplineId": "p. ex. 42",
+        "specialty": "p. ex. 09.03.01",
+        "year": "p. ex. 2026"
+      },
+      "validation": {
+        "yearRange": "L'année d'admission doit être comprise entre {min} et {max}"
+      },
+      "cancel": "Annuler",
+      "create": "Créer",
+      "creating": "Création…",
+      "successToast": "Brouillon du programme créé"
     }
   },
   "curriculum": {
