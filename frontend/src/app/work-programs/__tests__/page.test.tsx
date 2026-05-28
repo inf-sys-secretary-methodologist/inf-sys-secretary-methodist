@@ -203,4 +203,21 @@ describe('WorkProgramsPage', () => {
     const lastCall = mockUseWorkPrograms.mock.calls.at(-1)
     expect(lastCall?.[0]).toMatchObject({ limit: 20, offset: 20 })
   })
+
+  it('resets offset to 0 when a filter changes (avoids out-of-range page)', () => {
+    mockUseWorkPrograms.mockReturnValue({
+      items: [sample({ id: 11 })],
+      total: 100,
+      isLoading: false,
+      error: undefined,
+    })
+    render(<WorkProgramsPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'pagination.next' }))
+    expect(mockUseWorkPrograms.mock.calls.at(-1)?.[0]).toMatchObject({ offset: 20 })
+    fireEvent.change(screen.getByLabelText('filters.status'), {
+      target: { value: 'approved' },
+    })
+    const lastCall = mockUseWorkPrograms.mock.calls.at(-1)
+    expect(lastCall?.[0]).toMatchObject({ status: 'approved', offset: 0 })
+  })
 })
