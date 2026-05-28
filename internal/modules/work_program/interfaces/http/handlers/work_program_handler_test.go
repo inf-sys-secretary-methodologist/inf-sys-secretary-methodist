@@ -53,10 +53,12 @@ type fakeList struct {
 	result wpUsecases.ListWorkProgramsResult
 	err    error
 	called bool
+	gotIn  wpUsecases.ListWorkProgramsInput
 }
 
-func (f *fakeList) Execute(_ context.Context, _ int64, _ string, _ wpUsecases.ListWorkProgramsInput) (wpUsecases.ListWorkProgramsResult, error) {
+func (f *fakeList) Execute(_ context.Context, _ int64, _ string, in wpUsecases.ListWorkProgramsInput) (wpUsecases.ListWorkProgramsResult, error) {
 	f.called = true
+	f.gotIn = in
 	return f.result, f.err
 }
 
@@ -223,5 +225,68 @@ func TestWorkProgramHandler_Get_ForbiddenStays403ForAdmin(t *testing.T) {
 	fg := &fakeGet{err: domain.ErrWorkProgramScopeForbidden}
 	r := newRouter(&fakeCreate{}, fg, &fakeList{}, withAuth(1, "system_admin"))
 	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs/99", nil)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+// ===== List =====
+
+func TestWorkProgramHandler_List_HappyPath(t *testing.T) {
+	fl := &fakeList{result: wpUsecases.ListWorkProgramsResult{
+		Items: []repositories.ListItem{
+			{ID: 1, Title: "РПД A", Status: domain.StatusApproved},
+			{ID: 2, Title: "РПД B", Status: domain.StatusDraft},
+		},
+		Total: 2,
+	}}
+	r := newRouter(&fakeCreate{}, &fakeGet{}, fl, withAuth(42, "methodist"))
+	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, fl.called)
+}
+
+func TestWorkProgramHandler_List_Unauthenticated(t *testing.T) {
+	r := newRouter(&fakeCreate{}, &fakeGet{}, &fakeList{})
+	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs", nil)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestWorkProgramHandler_List_ParsesQueryFilters(t *testing.T) {
+	fl := &fakeList{}
+	r := newRouter(&fakeCreate{}, &fakeGet{}, fl, withAuth(42, "methodist"))
+	w := doJSON(t, r, http.MethodGet,
+		"/api/v1/work-programs?status=approved&discipline_id=7&specialty_code=09.03.01&applicable_from_year=2026&author_id=42&limit=10&offset=20",
+		nil)
+	require.Equal(t, http.StatusOK, w.Code)
+	require.NotNil(t, fl.gotIn.Status)
+	assert.Equal(t, "approved", *fl.gotIn.Status)
+	require.NotNil(t, fl.gotIn.DisciplineID)
+	assert.Equal(t, int64(7), *fl.gotIn.DisciplineID)
+	assert.Equal(t, "09.03.01", fl.gotIn.SpecialtyCode)
+	require.NotNil(t, fl.gotIn.ApplicableFromYear)
+	assert.Equal(t, 2026, *fl.gotIn.ApplicableFromYear)
+	require.NotNil(t, fl.gotIn.AuthorID)
+	assert.Equal(t, int64(42), *fl.gotIn.AuthorID)
+	assert.Equal(t, 10, fl.gotIn.Limit)
+	assert.Equal(t, 20, fl.gotIn.Offset)
+}
+
+func TestWorkProgramHandler_List_OmittedFiltersStayNil(t *testing.T) {
+	fl := &fakeList{}
+	r := newRouter(&fakeCreate{}, &fakeGet{}, fl, withAuth(42, "methodist"))
+	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs", nil)
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Nil(t, fl.gotIn.Status)
+	assert.Nil(t, fl.gotIn.DisciplineID)
+	assert.Nil(t, fl.gotIn.ApplicableFromYear)
+	assert.Nil(t, fl.gotIn.AuthorID)
+	assert.Equal(t, "", fl.gotIn.SpecialtyCode)
+}
+
+// Unknown-role denial on a collection endpoint is a true 403 (no
+// specific resource id to enumerate), so no IDOR collapse here.
+func TestWorkProgramHandler_List_ForbiddenMaps403(t *testing.T) {
+	fl := &fakeList{err: domain.ErrWorkProgramScopeForbidden}
+	r := newRouter(&fakeCreate{}, &fakeGet{}, fl, withAuth(7, "guest"))
+	w := doJSON(t, r, http.MethodGet, "/api/v1/work-programs", nil)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
