@@ -1,0 +1,200 @@
+// Work program (РПД — рабочая программа дисциплины) module types,
+// mirroring the backend DTOs at
+// internal/modules/work_program/interfaces/http/handlers/work_program_handler.go
+// (WorkProgramDTO + 6 child DTOs / WorkProgramSummaryDTO /
+// WorkProgramsListResponse / CreateWorkProgramRequest /
+// RejectWorkProgramRequest). Enum const arrays mirror the domain types
+// at internal/modules/work_program/domain/types.go. Error codes mirror
+// handler mapWorkProgramError.
+//
+// Bounded context: рабочая программа дисциплины (how one discipline is
+// taught), orthogonal to curriculum (учебный план — what a specialty
+// studies). Distinct lifecycle, distinct author (teacher, not
+// academic_secretary). Do not cross-import with curriculum types.
+
+// Wire format is verbatim — no translation in the type layer; UI labels
+// go through next-intl keys (workProgram.card.status.* etc.) via the
+// statusKey() mapper in components/work-program/status.ts.
+export type WorkProgramStatus =
+  | 'draft'
+  | 'pending_approval'
+  | 'approved'
+  | 'needs_revision'
+  | 'archived'
+
+export const WORK_PROGRAM_STATUSES: WorkProgramStatus[] = [
+  'draft',
+  'pending_approval',
+  'approved',
+  'needs_revision',
+  'archived',
+]
+
+export type CompetenceType = 'pk' | 'ok' | 'uk'
+export const COMPETENCE_TYPES: CompetenceType[] = ['pk', 'ok', 'uk']
+
+export type TopicKind = 'lecture' | 'practice' | 'lab' | 'self_study'
+export const TOPIC_KINDS: TopicKind[] = ['lecture', 'practice', 'lab', 'self_study']
+
+export type AssessmentType = 'current' | 'intermediate' | 'final'
+export const ASSESSMENT_TYPES: AssessmentType[] = ['current', 'intermediate', 'final']
+
+export type ReferenceKind = 'main' | 'additional' | 'electronic'
+export const REFERENCE_KINDS: ReferenceKind[] = ['main', 'additional', 'electronic']
+
+export type RevisionStatus = 'draft' | 'pending_approval' | 'approved' | 'rejected'
+
+export type RevisionChangeType = 'hours' | 'semester' | 'literature' | 'assessment' | 'other'
+
+// === Child collection shapes (mirror GoalDTO / CompetenceDTO / ... ) ===
+
+export interface WorkProgramGoal {
+  id: number
+  text: string
+  order_index: number
+}
+
+export interface WorkProgramCompetence {
+  id: number
+  code: string
+  type: CompetenceType
+  description: string
+}
+
+export interface WorkProgramTopic {
+  id: number
+  kind: TopicKind
+  title: string
+  hours: number
+  week_number?: number | null
+  learning_outcomes: string
+  order_index: number
+}
+
+export interface WorkProgramAssessment {
+  id: number
+  type: AssessmentType
+  description: string
+  max_score: number
+  example_questions: string[]
+}
+
+export interface WorkProgramReference {
+  id: number
+  kind: ReferenceKind
+  citation: string
+  year?: number | null
+  isbn?: string
+  url?: string
+  order_index: number
+}
+
+export interface WorkProgramRevision {
+  id: number
+  revision_number: number
+  change_type: RevisionChangeType
+  change_summary: string
+  status: RevisionStatus
+  author_id: number
+  approver_id?: number | null
+  approved_at?: string | null
+  reject_reason?: string
+  created_at: string
+  updated_at: string
+}
+
+// === Root aggregate (mirror WorkProgramDTO, all 6 collections hydrated) ===
+
+export interface WorkProgram {
+  id: number
+  discipline_id: number
+  specialty_code: string
+  applicable_from_year: number
+  title: string
+  annotation: string
+  status: WorkProgramStatus
+  author_id: number
+  approver_id?: number | null
+  approved_at?: string | null
+  reject_reason?: string
+  version: number
+  created_at: string
+  updated_at: string
+  goals: WorkProgramGoal[]
+  competences: WorkProgramCompetence[]
+  topics: WorkProgramTopic[]
+  assessments: WorkProgramAssessment[]
+  references: WorkProgramReference[]
+  revisions: WorkProgramRevision[]
+}
+
+// WorkProgramSummary mirrors WorkProgramSummaryDTO — list-row projection,
+// root fields only (no inner collections).
+export interface WorkProgramSummary {
+  id: number
+  discipline_id: number
+  specialty_code: string
+  applicable_from_year: number
+  title: string
+  status: WorkProgramStatus
+  author_id: number
+  version: number
+}
+
+export interface WorkProgramListResponse {
+  items: WorkProgramSummary[]
+  total: number
+}
+
+// WorkProgramListFilter matches the query string accepted by GET
+// /api/v1/work-programs. All fields optional — the use case applies
+// role-scoping (teacher → own / student → approved) + pagination
+// defaults server-side.
+export interface WorkProgramListFilter {
+  status?: WorkProgramStatus
+  discipline_id?: number
+  specialty_code?: string
+  applicable_from_year?: number
+  author_id?: number
+  limit?: number
+  offset?: number
+}
+
+// CreateWorkProgramInput matches CreateWorkProgramRequest. The author is
+// stamped from the JWT subject server-side — never a client field.
+export interface CreateWorkProgramInput {
+  discipline_id: number
+  specialty_code: string
+  applicable_from_year: number
+  title: string
+  annotation?: string
+}
+
+// RejectWorkProgramInput matches RejectWorkProgramRequest. The reason is
+// mandatory (domain enforces non-empty after trim; binding fails fast).
+export interface RejectWorkProgramInput {
+  reason: string
+}
+
+// Sentinel error codes mirrored from backend handler mapWorkProgramError.
+// Frontend maps these via pickWorkProgramErrorKey to i18n strings.
+export type WorkProgramErrorCode =
+  | 'IDENTITY_EXISTS'
+  | 'VERSION_CONFLICT'
+  | 'INVALID_TRANSITION'
+  | 'REJECT_REASON_REQUIRED'
+  | 'INVALID_WORK_PROGRAM'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'GENERIC'
+
+export const WORK_PROGRAM_ERROR_CODES: WorkProgramErrorCode[] = [
+  'IDENTITY_EXISTS',
+  'VERSION_CONFLICT',
+  'INVALID_TRANSITION',
+  'REJECT_REASON_REQUIRED',
+  'INVALID_WORK_PROGRAM',
+  'FORBIDDEN',
+  'NOT_FOUND',
+  'GENERIC',
+]
