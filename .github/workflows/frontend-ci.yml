@@ -105,8 +105,18 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   e2e:
-    name: E2E Tests
+    name: E2E Shard
     runs-on: ubuntu-latest
+    # Sharded across parallel runners. The suite leans heavily on
+    # waitForLoadState('networkidle'), which flakes under in-runner CPU
+    # contention (workers>1) — so each runner keeps workers=1 (see
+    # playwright.config.ts) and we parallelise across jobs instead. To change
+    # the degree of parallelism, edit the matrix list below; the --shard total
+    # tracks it automatically via strategy.job-total.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     # Run inside the official Playwright image: Chromium + its system deps are
     # baked in, eliminating the ~167 MB per-run browser download that caused
     # the chronic E2E slowness/hangs. Tag MUST track the @playwright/test
@@ -137,16 +147,33 @@ jobs:
         # mismatch. System deps come from the image, so no --with-deps.
         run: npx playwright install chromium
 
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Run E2E tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: frontend/playwright-report/
           retention-days: 7
+
+  # Aggregate gate: keeps a single "E2E Tests" status check regardless of how
+  # many shards run, so branch-protection required checks stay stable. Green
+  # only when every shard succeeded.
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [e2e]
+    if: always()
+    steps:
+      - name: Verify all E2E shards passed
+        run: |
+          if [ "${{ needs.e2e.result }}" != "success" ]; then
+            echo "E2E shards result: ${{ needs.e2e.result }}"
+            exit 1
+          fi
+          echo "All E2E shards passed"
 
   build:
     name: Build Check
