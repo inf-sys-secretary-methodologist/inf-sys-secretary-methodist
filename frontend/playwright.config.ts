@@ -16,11 +16,10 @@ export default defineConfig({
   /* Повторять тесты на CI при падении */
   retries: process.env.CI ? 2 : 0,
 
-  /* На CI '50%' ядер (public-repo runner = 4 vCPU → 2 воркера). 75% (3 воркера)
-     давало networkidle-таймауты: 3 воркера + co-located Next-сервер не оставляли
-     запаса CPU. 2 воркера держат ядро под сервер/ОС → стабильно и ~2× быстрее
-     сериала. Состояние между тестами не шарится (бэкенда нет). Локально — авто. */
-  workers: process.env.CI ? '50%' : undefined,
+  /* На CI 1 воркер: in-runner параллелизм (workers>1) флэйкает — сьют насквозь
+     ждёт networkidle, который под нагрузкой не успевает за 30s. Ускорять через
+     job-sharding (matrix --shard, по воркеру на раннер), не через workers. */
+  workers: process.env.CI ? 1 : undefined,
 
   /* Репортер для результатов */
   reporter: 'html',
