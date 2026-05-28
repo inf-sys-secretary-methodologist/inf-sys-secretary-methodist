@@ -107,6 +107,12 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
+    # Run inside the official Playwright image: Chromium + its system deps are
+    # baked in, eliminating the ~167 MB per-run browser download that caused
+    # the chronic E2E slowness/hangs. Tag MUST track the @playwright/test
+    # version in frontend/package-lock.json (bump both together).
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
     defaults:
       run:
         working-directory: ./frontend
@@ -125,8 +131,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+      - name: Ensure Playwright browser present
+        # No-op when the image tag matches the locked Playwright version
+        # (browser already baked in); only fetches the binary on a version
+        # mismatch. System deps come from the image, so no --with-deps.
+        run: npx playwright install chromium
 
       - name: Run E2E tests
         run: npm run test:e2e
