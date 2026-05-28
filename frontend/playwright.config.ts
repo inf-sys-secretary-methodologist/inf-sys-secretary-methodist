@@ -16,7 +16,9 @@ export default defineConfig({
   /* Повторять тесты на CI при падении */
   retries: process.env.CI ? 2 : 0,
 
-  /* Количество воркеров */
+  /* На CI 1 воркер: in-runner параллелизм (workers>1) флэйкает — сьют насквозь
+     ждёт networkidle, который под нагрузкой не успевает за 30s. Ускорять через
+     job-sharding (matrix --shard, по воркеру на раннер), не через workers. */
   workers: process.env.CI ? 1 : undefined,
 
   /* Репортер для результатов */
