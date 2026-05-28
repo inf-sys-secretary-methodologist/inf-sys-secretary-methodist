@@ -2441,6 +2441,7 @@
       }
     },
     "card": {
+      "openAria": "Ouvrir le programme de travail : {title}",
       "discipline": "Discipline n°{id}",
       "year": "Année de la cohorte",
       "specialty": "Spécialité",

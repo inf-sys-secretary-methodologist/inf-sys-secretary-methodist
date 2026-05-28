@@ -2441,6 +2441,7 @@
       }
     },
     "card": {
+      "openAria": "فتح برنامج العمل: {title}",
       "discipline": "المقرر رقم {id}",
       "year": "سنة الدفعة",
       "specialty": "التخصص",

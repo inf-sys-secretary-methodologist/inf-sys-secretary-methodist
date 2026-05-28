@@ -2441,6 +2441,7 @@
       }
     },
     "card": {
+      "openAria": "Open work program: {title}",
       "discipline": "Discipline #{id}",
       "year": "Cohort year",
       "specialty": "Specialty",
