@@ -376,6 +376,10 @@ func mapWorkProgramError(c *gin.Context, err error, hideForbiddenAsNotFound bool
 		}
 	case errors.Is(err, repositories.ErrWorkProgramIdentityExists):
 		c.JSON(http.StatusConflict, response.ErrorResponse("IDENTITY_EXISTS", "a work program with this discipline + specialty + year already exists"))
+	case errors.Is(err, repositories.ErrWorkProgramVersionConflict):
+		c.JSON(http.StatusConflict, response.ErrorResponse("VERSION_CONFLICT", "work program was modified concurrently; reload + retry"))
+	case errors.Is(err, domain.ErrInvalidStatusTransition):
+		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("INVALID_TRANSITION", err.Error()))
 	case errors.Is(err, domain.ErrInvalidWorkProgram):
 		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("INVALID_WORK_PROGRAM", err.Error()))
 	default:
@@ -523,7 +527,37 @@ func (h *WorkProgramHandler) List(c *gin.Context) {
 }
 
 // Submit handles POST /api/v1/work-programs/:id/submit.
-func (h *WorkProgramHandler) Submit(c *gin.Context) { c.Status(http.StatusNotImplemented) }
+// @Summary Submit a draft work program for approval (draft → pending_approval)
+// @Tags    work-programs
+// @Produce json
+// @Param   id path int true "Work program ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/submit [post]
+func (h *WorkProgramHandler) Submit(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	wp, err := h.submit.Execute(c.Request.Context(), actorID, role, wpUsecases.SubmitWorkProgramInput{ID: id})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
+}
 
 // Approve handles POST /api/v1/work-programs/:id/approve.
 func (h *WorkProgramHandler) Approve(c *gin.Context) { c.Status(http.StatusNotImplemented) }
