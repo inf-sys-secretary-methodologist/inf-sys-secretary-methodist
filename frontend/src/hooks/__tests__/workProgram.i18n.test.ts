@@ -40,6 +40,17 @@ type MessagesShape = {
     discardDialog?: EnumGroup
     approveDialog?: EnumGroup
     rejectDialog?: EnumGroup
+    createDialog?: {
+      title?: string
+      description?: string
+      cancel?: string
+      create?: string
+      creating?: string
+      successToast?: string
+      labels?: EnumGroup
+      placeholders?: EnumGroup
+      validation?: EnumGroup
+    }
     detail?: {
       backToList?: string
       notFound?: string
@@ -258,4 +269,30 @@ describe('workProgram approver dialogs (8d-2) i18n parity × 4 locales', () => {
       for (const k of rejectDialogKeys) expect(d?.[k]).toBeTruthy()
     }
   )
+})
+
+const createDialogLabelKeys = ['title', 'disciplineId', 'specialty', 'year', 'annotation'] as const
+const createDialogPlaceholderKeys = ['disciplineId', 'specialty', 'year'] as const
+
+describe('workProgram.createDialog (8e) i18n parity × 4 locales', () => {
+  it.each(locales)('%s has top-level createDialog strings', (_name, msgs) => {
+    const d = msgs.workProgram?.createDialog
+    expect(d?.title).toBeTruthy()
+    expect(d?.description).toBeTruthy()
+    expect(d?.cancel).toBeTruthy()
+    expect(d?.create).toBeTruthy()
+    expect(d?.creating).toBeTruthy()
+    expect(d?.successToast).toBeTruthy()
+    expect(d?.validation?.yearRange).toBeTruthy()
+  })
+
+  it.each(locales)('%s has all createDialog field labels', (_name, msgs) => {
+    const l = msgs.workProgram?.createDialog?.labels
+    for (const k of createDialogLabelKeys) expect(l?.[k]).toBeTruthy()
+  })
+
+  it.each(locales)('%s has all createDialog placeholders', (_name, msgs) => {
+    const p = msgs.workProgram?.createDialog?.placeholders
+    for (const k of createDialogPlaceholderKeys) expect(p?.[k]).toBeTruthy()
+  })
 })
