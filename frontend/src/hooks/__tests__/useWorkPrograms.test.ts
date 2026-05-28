@@ -262,6 +262,13 @@ describe('pickWorkProgramErrorKey', () => {
       err: mkErr(422, 'INVALID_WORK_PROGRAM'),
       expected: 'invalidWorkProgram',
     },
+    {
+      // A sentinel code must win over a mismatched HTTP status — pins
+      // that the code branch runs before the status fallbacks.
+      name: 'code beats mismatched status (404 + VERSION_CONFLICT) → versionConflict',
+      err: mkErr(404, 'VERSION_CONFLICT'),
+      expected: 'versionConflict',
+    },
     { name: 'plain 403 (no code) → forbidden', err: mkErr(403), expected: 'forbidden' },
     { name: 'plain 404 (no code) → notFound', err: mkErr(404), expected: 'notFound' },
     { name: 'unknown 500 → generic', err: mkErr(500), expected: 'generic' },
