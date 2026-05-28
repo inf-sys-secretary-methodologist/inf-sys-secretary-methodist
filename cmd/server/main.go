@@ -2736,8 +2736,15 @@ func setupRoutes(
 			createWPUC := wpUsecases.NewCreateWorkProgramUseCase(wpRepo, auditLogger)
 			getWPUC := wpUsecases.NewGetWorkProgramUseCase(wpRepo, auditLogger)
 			listWPUC := wpUsecases.NewListWorkProgramsUseCase(wpRepo, auditLogger)
+			submitWPUC := wpUsecases.NewSubmitWorkProgramUseCase(wpRepo, auditLogger)
+			approveWPUC := wpUsecases.NewApproveWorkProgramUseCase(wpRepo, auditLogger)
+			rejectWPUC := wpUsecases.NewRejectWorkProgramUseCase(wpRepo, auditLogger)
+			discardWPUC := wpUsecases.NewDiscardDraftWorkProgramUseCase(wpRepo, auditLogger)
 
-			workProgramHandler := wpHandler.NewWorkProgramHandler(createWPUC, getWPUC, listWPUC)
+			workProgramHandler := wpHandler.NewWorkProgramHandler(
+				createWPUC, getWPUC, listWPUC,
+				submitWPUC, approveWPUC, rejectWPUC, discardWPUC,
+			)
 			// Routes mount under /api/v1/work-programs — wrap the
 			// protected group in /v1 (mirror extracurricular) so the
 			// path matches the documented /api/v1 contract.

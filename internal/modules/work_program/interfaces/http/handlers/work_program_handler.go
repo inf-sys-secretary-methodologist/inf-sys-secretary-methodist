@@ -37,13 +37,37 @@ type ListWorkProgramsPort interface {
 	Execute(ctx context.Context, actorID int64, actorRole string, in wpUsecases.ListWorkProgramsInput) (wpUsecases.ListWorkProgramsResult, error)
 }
 
-// WorkProgramHandler exposes the read + create endpoints over HTTP
-// (PR 4a). Transition endpoints (submit/approve/reject/discard) join in
-// PR 4b — the ctor grows then.
+// SubmitWorkProgramPort is the narrow port for SubmitWorkProgramUseCase.
+type SubmitWorkProgramPort interface {
+	Execute(ctx context.Context, actorID int64, actorRole string, in wpUsecases.SubmitWorkProgramInput) (*entities.WorkProgram, error)
+}
+
+// ApproveWorkProgramPort is the narrow port for ApproveWorkProgramUseCase.
+type ApproveWorkProgramPort interface {
+	Execute(ctx context.Context, actorID int64, actorRole string, in wpUsecases.ApproveWorkProgramInput) (*entities.WorkProgram, error)
+}
+
+// RejectWorkProgramPort is the narrow port for RejectWorkProgramUseCase.
+type RejectWorkProgramPort interface {
+	Execute(ctx context.Context, actorID int64, actorRole string, in wpUsecases.RejectWorkProgramInput) (*entities.WorkProgram, error)
+}
+
+// DiscardDraftWorkProgramPort is the narrow port for DiscardDraftWorkProgramUseCase.
+type DiscardDraftWorkProgramPort interface {
+	Execute(ctx context.Context, actorID int64, actorRole string, in wpUsecases.DiscardDraftWorkProgramInput) (*entities.WorkProgram, error)
+}
+
+// WorkProgramHandler exposes the 7 РПД endpoints over HTTP: read + create
+// (PR 4a) and the four status transitions submit/approve/reject/discard
+// (PR 4b).
 type WorkProgramHandler struct {
-	create CreateWorkProgramPort
-	get    GetWorkProgramPort
-	list   ListWorkProgramsPort
+	create  CreateWorkProgramPort
+	get     GetWorkProgramPort
+	list    ListWorkProgramsPort
+	submit  SubmitWorkProgramPort
+	approve ApproveWorkProgramPort
+	reject  RejectWorkProgramPort
+	discard DiscardDraftWorkProgramPort
 }
 
 // NewWorkProgramHandler wires the handler. All ports are required —
@@ -54,11 +78,19 @@ func NewWorkProgramHandler(
 	create CreateWorkProgramPort,
 	get GetWorkProgramPort,
 	list ListWorkProgramsPort,
+	submit SubmitWorkProgramPort,
+	approve ApproveWorkProgramPort,
+	reject RejectWorkProgramPort,
+	discard DiscardDraftWorkProgramPort,
 ) *WorkProgramHandler {
-	if create == nil || get == nil || list == nil {
+	if create == nil || get == nil || list == nil ||
+		submit == nil || approve == nil || reject == nil || discard == nil {
 		panic("work_program: NewWorkProgramHandler requires non-nil ports")
 	}
-	return &WorkProgramHandler{create: create, get: get, list: list}
+	return &WorkProgramHandler{
+		create: create, get: get, list: list,
+		submit: submit, approve: approve, reject: reject, discard: discard,
+	}
 }
 
 // CreateWorkProgramRequest is the JSON body for POST /work-programs.
@@ -70,6 +102,13 @@ type CreateWorkProgramRequest struct {
 	ApplicableFromYear int    `json:"applicable_from_year" binding:"required"`
 	Title              string `json:"title"                binding:"required"`
 	Annotation         string `json:"annotation"`
+}
+
+// RejectWorkProgramRequest is the JSON body for POST /work-programs/:id/reject.
+// The reason is mandatory so the author understands what to revise — the
+// domain enforces non-empty after trimming, this binding tag fails fast.
+type RejectWorkProgramRequest struct {
+	Reason string `json:"reason" binding:"required"`
 }
 
 // ===== Response DTOs =====
@@ -483,12 +522,28 @@ func (h *WorkProgramHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(out))
 }
 
-// RegisterWorkProgramRoutes mounts the read + create endpoints under
-// /work-programs. Caller must apply auth middleware to the group before
-// passing it in — every endpoint requires an authenticated context.
+// Submit handles POST /api/v1/work-programs/:id/submit.
+func (h *WorkProgramHandler) Submit(c *gin.Context) { c.Status(http.StatusNotImplemented) }
+
+// Approve handles POST /api/v1/work-programs/:id/approve.
+func (h *WorkProgramHandler) Approve(c *gin.Context) { c.Status(http.StatusNotImplemented) }
+
+// Reject handles POST /api/v1/work-programs/:id/reject.
+func (h *WorkProgramHandler) Reject(c *gin.Context) { c.Status(http.StatusNotImplemented) }
+
+// Discard handles POST /api/v1/work-programs/:id/discard.
+func (h *WorkProgramHandler) Discard(c *gin.Context) { c.Status(http.StatusNotImplemented) }
+
+// RegisterWorkProgramRoutes mounts all 7 endpoints under /work-programs.
+// Caller must apply auth middleware to the group before passing it in —
+// every endpoint requires an authenticated context.
 func RegisterWorkProgramRoutes(rg *gin.RouterGroup, h *WorkProgramHandler) {
 	wp := rg.Group("/work-programs")
 	wp.POST("", h.Create)
 	wp.GET("", h.List)
 	wp.GET("/:id", h.Get)
+	wp.POST("/:id/submit", h.Submit)
+	wp.POST("/:id/approve", h.Approve)
+	wp.POST("/:id/reject", h.Reject)
+	wp.POST("/:id/discard", h.Discard)
 }

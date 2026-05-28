@@ -62,6 +62,66 @@ func (f *fakeList) Execute(_ context.Context, _ int64, _ string, in wpUsecases.L
 	return f.result, f.err
 }
 
+type fakeSubmit struct {
+	result   *entities.WorkProgram
+	err      error
+	called   bool
+	gotID    int64
+	gotActor int64
+	gotRole  string
+}
+
+func (f *fakeSubmit) Execute(_ context.Context, actorID int64, role string, in wpUsecases.SubmitWorkProgramInput) (*entities.WorkProgram, error) {
+	f.called = true
+	f.gotID = in.ID
+	f.gotActor = actorID
+	f.gotRole = role
+	return f.result, f.err
+}
+
+type fakeApprove struct {
+	result   *entities.WorkProgram
+	err      error
+	called   bool
+	gotID    int64
+	gotActor int64
+}
+
+func (f *fakeApprove) Execute(_ context.Context, actorID int64, _ string, in wpUsecases.ApproveWorkProgramInput) (*entities.WorkProgram, error) {
+	f.called = true
+	f.gotID = in.ID
+	f.gotActor = actorID
+	return f.result, f.err
+}
+
+type fakeReject struct {
+	result    *entities.WorkProgram
+	err       error
+	called    bool
+	gotID     int64
+	gotReason string
+}
+
+func (f *fakeReject) Execute(_ context.Context, _ int64, _ string, in wpUsecases.RejectWorkProgramInput) (*entities.WorkProgram, error) {
+	f.called = true
+	f.gotID = in.ID
+	f.gotReason = in.Reason
+	return f.result, f.err
+}
+
+type fakeDiscard struct {
+	result *entities.WorkProgram
+	err    error
+	called bool
+	gotID  int64
+}
+
+func (f *fakeDiscard) Execute(_ context.Context, _ int64, _ string, in wpUsecases.DiscardDraftWorkProgramInput) (*entities.WorkProgram, error) {
+	f.called = true
+	f.gotID = in.ID
+	return f.result, f.err
+}
+
 // withAuth pre-sets user_id + role в the gin context — mirrors what the
 // RequireAuth middleware does in production. Pinning the exact context
 // keys (`user_id`, `role`) catches drift per
@@ -92,10 +152,23 @@ func sampleWP(t *testing.T) *entities.WorkProgram {
 	})
 }
 
+// newRouter builds a router for the read+create tests. The four
+// transition ports are filled with no-op fakes (the ctor requires all
+// seven non-nil) so existing read+create tests need not name them.
 func newRouter(fc *fakeCreate, fg *fakeGet, fl *fakeList, mw ...gin.HandlerFunc) *gin.Engine {
+	return newRouterFull(fc, fg, fl, &fakeSubmit{}, &fakeApprove{}, &fakeReject{}, &fakeDiscard{}, mw...)
+}
+
+// newRouterFull wires all seven ports — transition tests use it directly
+// to inject the fake under test.
+func newRouterFull(
+	fc *fakeCreate, fg *fakeGet, fl *fakeList,
+	fsub *fakeSubmit, fapp *fakeApprove, frej *fakeReject, fdis *fakeDiscard,
+	mw ...gin.HandlerFunc,
+) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	h := NewWorkProgramHandler(fc, fg, fl)
+	h := NewWorkProgramHandler(fc, fg, fl, fsub, fapp, frej, fdis)
 	api := r.Group("/api/v1")
 	for _, m := range mw {
 		api.Use(m)
