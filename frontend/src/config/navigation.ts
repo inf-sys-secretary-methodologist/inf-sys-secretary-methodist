@@ -17,6 +17,7 @@ import {
   FolderOpen,
   GraduationCap,
   BookMarked,
+  ScrollText,
   ClipboardCheck,
   HardDrive,
   Activity,
@@ -244,6 +245,22 @@ export const navigationConfig: NavEntry[] = [
           UserRole.METHODIST,
           UserRole.ACADEMIC_SECRETARY,
           UserRole.TEACHER,
+        ],
+      },
+      {
+        // Work programs (РПД) — рабочая программа дисциплины. Visible to
+        // all five roles: the backend List use case role-scopes the rows
+        // (teacher → own / student → approved per 273-ФЗ ст. 29 / others
+        // → all), so unlike curriculum the student is NOT excluded.
+        nameKey: 'workPrograms',
+        url: '/work-programs',
+        icon: ScrollText,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+          UserRole.STUDENT,
         ],
       },
     ],

@@ -206,7 +206,8 @@
     "composio": "Composio",
     "branding": "العلامة",
     "usersCatalog": "دليل المستخدمين",
-    "extracurricular": "الفعاليات"
+    "extracurricular": "الفعاليات",
+    "workPrograms": "برامج العمل"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -2407,6 +2408,60 @@
         "forbidden": "ليس لديك الصلاحية لإرجاع هذا العمل",
         "generic": "تعذر إرجاع العمل"
       }
+    }
+  },
+  "workProgram": {
+    "title": "برامج العمل (РПД)",
+    "description": "برامج عمل المقررات: الأهداف والكفايات والمواضيع وصندوق التقييم والمراجع",
+    "loading": "جارٍ تحميل برامج العمل…",
+    "loadFailed": "فشل تحميل برامج العمل",
+    "createButton": "إنشاء برنامج عمل",
+    "countLabel": "عرض {shown} من {total}",
+    "empty": {
+      "title": "لا توجد برامج عمل بعد",
+      "description": "أنشئ أول برنامج عمل أو عدّل عوامل التصفية"
+    },
+    "pagination": {
+      "prev": "السابق",
+      "next": "التالي"
+    },
+    "filters": {
+      "status": "الحالة",
+      "specialty": "رمز التخصص",
+      "specialtyPlaceholder": "مثال: 09.03.01",
+      "year": "سنة الدفعة",
+      "yearPlaceholder": "مثال: 2026",
+      "statusOptions": {
+        "all": "كل الحالات",
+        "draft": "مسودة",
+        "pending": "بانتظار الاعتماد",
+        "approved": "معتمد",
+        "needsRevision": "يحتاج إلى تحديث",
+        "archived": "مؤرشف"
+      }
+    },
+    "card": {
+      "openAria": "فتح برنامج العمل: {title}",
+      "discipline": "المقرر رقم {id}",
+      "year": "سنة الدفعة",
+      "specialty": "التخصص",
+      "status": {
+        "draft": "مسودة",
+        "pending": "بانتظار الاعتماد",
+        "approved": "معتمد",
+        "needsRevision": "يحتاج إلى تحديث",
+        "archived": "مؤرشف"
+      }
+    },
+    "errors": {
+      "identityExists": "يوجد بالفعل برنامج عمل بنفس المقرر والتخصص وسنة الدفعة",
+      "versionConflict": "تم تعديل برنامج العمل من قبل مستخدم آخر — أعد التحميل وحاول مرة أخرى",
+      "invalidTransition": "انتقال حالة غير صالح لبرنامج العمل هذا",
+      "rejectReasonRequired": "سبب الرفض مطلوب",
+      "invalidWorkProgram": "بيانات برنامج العمل غير صالحة",
+      "forbidden": "لا تملك صلاحية تنفيذ هذا الإجراء",
+      "notFound": "برنامج العمل غير موجود",
+      "generic": "تعذّر إتمام العملية"
     }
   },
   "curriculum": {
