@@ -77,6 +77,11 @@ func (uc *GenerateDraftUseCase) Execute(
 			domain.ErrWorkProgramScopeForbidden, actorRole)
 	}
 
+	// Rate limit runs before GetByID on purpose: a throttled caller
+	// learns nothing about whether workProgramID exists, and no LLM
+	// cost is incurred. Keep this ordering — moving the existence /
+	// ownership checks ahead of it would reintroduce existence
+	// disclosure to rate-limited callers.
 	allowed, err := uc.limiter.Allow(ctx, actorID)
 	if err != nil {
 		return nil, fmt.Errorf("generate draft: rate limit check: %w", err)
@@ -106,6 +111,16 @@ func (uc *GenerateDraftUseCase) Execute(
 		emitAudit(uc.audit, ctx, "work_program.generate_denied",
 			denialFields(actorID, workProgramID, "frozen_status", wp.SpecialtyCode()))
 		return nil, fmt.Errorf("%w: status %q", domain.ErrCannotEditFrozenStatus, wp.Status())
+	}
+
+	// Generation fills an empty draft. Refuse to regenerate over
+	// existing content — AddX would append duplicates (and hard-fail on
+	// a competence-code collision). The author clears first to refill.
+	if len(wp.Goals()) > 0 || len(wp.Competences()) > 0 ||
+		len(wp.Topics()) > 0 || len(wp.References()) > 0 {
+		emitAudit(uc.audit, ctx, "work_program.generate_denied",
+			denialFields(actorID, workProgramID, "not_empty", wp.SpecialtyCode()))
+		return nil, fmt.Errorf("%w: id %d", domain.ErrWorkProgramNotEmpty, workProgramID)
 	}
 
 	info, err := uc.disciplines.GetDisciplineInfo(ctx, wp.DisciplineID())
