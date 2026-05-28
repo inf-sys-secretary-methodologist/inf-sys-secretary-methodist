@@ -9,25 +9,29 @@ import {
   ArrowLeft,
   BookMarked,
   Calendar,
+  CheckCircle2,
   GraduationCap,
   Loader2,
   Send,
+  XCircle,
 } from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { useWorkProgram } from '@/hooks/useWorkPrograms'
 import { useAuthCheck } from '@/hooks/useAuth'
-import { canCreateWorkProgram } from '@/lib/auth/permissions'
+import { canApproveWorkProgram, canCreateWorkProgram } from '@/lib/auth/permissions'
 import { SubmitWorkProgramDialog } from '@/components/work-program/SubmitWorkProgramDialog'
 import { DiscardWorkProgramDialog } from '@/components/work-program/DiscardWorkProgramDialog'
+import { ApproveWorkProgramDialog } from '@/components/work-program/ApproveWorkProgramDialog'
+import { RejectWorkProgramDialog } from '@/components/work-program/RejectWorkProgramDialog'
 import { STATUS_STYLES, statusKey, revisionStatusKey } from '@/components/work-program/status'
 import type { WorkProgram, WorkProgramStatus } from '@/types/workProgram'
 import { cn } from '@/lib/utils'
 
 // WorkProgramDetailPage — full РПД view with all six inner collections.
-// Author-side draft actions (submit / discard) are wired for create-
-// capable roles; approve / reject land in 8d-2. Visible to all
+// Author-side draft actions (submit / discard) and approver actions
+// (approve / reject) are wired by role + status. Visible to all
 // authenticated roles (no student redirect — 273-ФЗ ст. 29); the backend
 // scopes what each role can fetch.
 export default function WorkProgramDetailPage() {
@@ -105,12 +109,19 @@ function WorkProgramDetail({
 }) {
   const [submitOpen, setSubmitOpen] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
+  const [approveOpen, setApproveOpen] = useState(false)
+  const [rejectOpen, setRejectOpen] = useState(false)
 
   // Draft author actions (submit / discard) are gated by role + status:
   // the create-capable roles (teacher / methodist / admin per ADR-5) on a
   // draft. The backend is the real gate (it scopes fetches + collapses
   // unauthorized rows to 404), so this only decides button visibility.
   const canDraftActions = wp.status === 'draft' && canCreateWorkProgram(role)
+
+  // Approver actions (approve / reject) are gated to the approver roles
+  // (methodist / admin per ADR-5) on a pending_approval programme. Draft
+  // and pending are disjoint statuses, so at most one action set shows.
+  const canApproveActions = wp.status === 'pending_approval' && canApproveWorkProgram(role)
 
   return (
     <>
@@ -144,6 +155,19 @@ function WorkProgramDetail({
           <Button onClick={() => setDiscardOpen(true)} variant="outline">
             <Archive className="h-4 w-4 mr-2" />
             {t('detail.actions.discard')}
+          </Button>
+        </section>
+      ) : null}
+
+      {canApproveActions ? (
+        <section className="flex flex-wrap gap-2">
+          <Button onClick={() => setApproveOpen(true)}>
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            {t('detail.actions.approve')}
+          </Button>
+          <Button onClick={() => setRejectOpen(true)} variant="destructive">
+            <XCircle className="h-4 w-4 mr-2" />
+            {t('detail.actions.reject')}
           </Button>
         </section>
       ) : null}
@@ -274,6 +298,18 @@ function WorkProgramDetail({
         open={discardOpen}
         onClose={() => setDiscardOpen(false)}
         onDiscarded={onMutate}
+      />
+      <ApproveWorkProgramDialog
+        workProgramId={wp.id}
+        open={approveOpen}
+        onClose={() => setApproveOpen(false)}
+        onApproved={onMutate}
+      />
+      <RejectWorkProgramDialog
+        workProgramId={wp.id}
+        open={rejectOpen}
+        onClose={() => setRejectOpen(false)}
+        onRejected={onMutate}
       />
     </>
   )

@@ -2526,7 +2526,9 @@
       },
       "actions": {
         "submit": "Submit for approval",
-        "discard": "Discard to archive"
+        "discard": "Discard to archive",
+        "approve": "Approve",
+        "reject": "Reject"
       }
     },
     "submitDialog": {
@@ -2544,6 +2546,24 @@
       "confirm": "Discard",
       "submitting": "Discarding…",
       "successToast": "Draft moved to archive"
+    },
+    "approveDialog": {
+      "title": "Approve work programme?",
+      "description": "The programme will be approved and become available to students. The approval is recorded under your name.",
+      "cancel": "Cancel",
+      "confirm": "Approve",
+      "submitting": "Approving…",
+      "successToast": "Work programme approved"
+    },
+    "rejectDialog": {
+      "title": "Reject work programme?",
+      "description": "The programme will return to “Draft”. Provide a reason — the author will see it and can revise.",
+      "cancel": "Cancel",
+      "confirm": "Reject",
+      "submitting": "Rejecting…",
+      "successToast": "Work programme rejected and returned to the author",
+      "reasonLabel": "Rejection reason",
+      "reasonPlaceholder": "E.g.: hours do not match the curriculum"
     }
   },
   "curriculum": {

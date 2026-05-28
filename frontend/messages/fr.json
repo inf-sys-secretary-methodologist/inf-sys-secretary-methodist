@@ -2526,7 +2526,9 @@
       },
       "actions": {
         "submit": "Soumettre pour approbation",
-        "discard": "Archiver"
+        "discard": "Archiver",
+        "approve": "Approuver",
+        "reject": "Rejeter"
       }
     },
     "submitDialog": {
@@ -2544,6 +2546,24 @@
       "confirm": "Archiver",
       "submitting": "Archivage…",
       "successToast": "Brouillon archivé"
+    },
+    "approveDialog": {
+      "title": "Approuver le programme de travail ?",
+      "description": "Le programme sera approuvé et deviendra accessible aux étudiants. L’approbation est enregistrée à votre nom.",
+      "cancel": "Annuler",
+      "confirm": "Approuver",
+      "submitting": "Approbation…",
+      "successToast": "Programme de travail approuvé"
+    },
+    "rejectDialog": {
+      "title": "Rejeter le programme de travail ?",
+      "description": "Le programme reviendra à l’état « Brouillon ». Indiquez un motif — l’auteur le verra et pourra corriger.",
+      "cancel": "Annuler",
+      "confirm": "Rejeter",
+      "submitting": "Rejet…",
+      "successToast": "Programme de travail rejeté et renvoyé à l’auteur",
+      "reasonLabel": "Motif du rejet",
+      "reasonPlaceholder": "Ex. : les heures ne correspondent pas au plan d’études"
     }
   },
   "curriculum": {
