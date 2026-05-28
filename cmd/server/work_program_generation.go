@@ -47,6 +47,19 @@ func (a *disciplineInfoAdapter) GetDisciplineInfo(ctx context.Context, id int64)
 	}, nil
 }
 
+// allowAllGenerationLimiter is the no-op fallback used when Redis is
+// unavailable: draft generation still works, just without the per-user
+// cost guard (best-effort, not a hard dependency).
+type allowAllGenerationLimiter struct{}
+
+// compile-time check that the fallback satisfies the application port.
+var _ wpUsecases.GenerationRateLimiter = allowAllGenerationLimiter{}
+
+// Allow always permits the call.
+func (allowAllGenerationLimiter) Allow(_ context.Context, _ int64) (bool, error) {
+	return true, nil
+}
+
 // controlFormLabel renders the control-form enum as the Russian label the
 // generation prompt expects. Unknown values fall back to the raw enum
 // string so a new control form degrades gracefully rather than blanking.

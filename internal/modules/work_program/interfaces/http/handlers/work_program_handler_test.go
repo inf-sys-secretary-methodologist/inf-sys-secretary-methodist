@@ -122,6 +122,23 @@ func (f *fakeDiscard) Execute(_ context.Context, _ int64, _ string, in wpUsecase
 	return f.result, f.err
 }
 
+type fakeGenerate struct {
+	result   *entities.WorkProgram
+	err      error
+	called   bool
+	gotID    int64
+	gotActor int64
+	gotRole  string
+}
+
+func (f *fakeGenerate) Execute(_ context.Context, actorID int64, role string, workProgramID int64) (*entities.WorkProgram, error) {
+	f.called = true
+	f.gotID = workProgramID
+	f.gotActor = actorID
+	f.gotRole = role
+	return f.result, f.err
+}
+
 // withAuth pre-sets user_id + role в the gin context — mirrors what the
 // RequireAuth middleware does in production. Pinning the exact context
 // keys (`user_id`, `role`) catches drift per
@@ -168,7 +185,24 @@ func newRouterFull(
 ) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	h := NewWorkProgramHandler(fc, fg, fl, fsub, fapp, frej, fdis)
+	h := NewWorkProgramHandler(fc, fg, fl, fsub, fapp, frej, fdis, &fakeGenerate{})
+	api := r.Group("/api/v1")
+	for _, m := range mw {
+		api.Use(m)
+	}
+	RegisterWorkProgramRoutes(api, h)
+	return r
+}
+
+// newRouterWithGenerate wires no-op fakes for the other seven ports and
+// the supplied generate fake — generate tests use it directly.
+func newRouterWithGenerate(fgen *fakeGenerate, mw ...gin.HandlerFunc) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h := NewWorkProgramHandler(
+		&fakeCreate{}, &fakeGet{}, &fakeList{},
+		&fakeSubmit{}, &fakeApprove{}, &fakeReject{}, &fakeDiscard{}, fgen,
+	)
 	api := r.Group("/api/v1")
 	for _, m := range mw {
 		api.Use(m)
@@ -616,4 +650,52 @@ func TestWorkProgramHandler_Discard_VersionConflictMaps409(t *testing.T) {
 	r := discardRouter(fd, withAuth(42, "teacher"))
 	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/discard", nil)
 	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
+// ===== Generate (LLM draft) =====
+
+func TestWorkProgramHandler_Generate_HappyPath(t *testing.T) {
+	fgen := &fakeGenerate{result: sampleWP(t)}
+	r := newRouterWithGenerate(fgen, withAuth(42, "teacher"))
+
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/generate", nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, fgen.called)
+	assert.Equal(t, int64(99), fgen.gotID)
+	assert.Equal(t, int64(42), fgen.gotActor)
+	assert.Equal(t, "teacher", fgen.gotRole)
+}
+
+func TestWorkProgramHandler_Generate_Unauthenticated(t *testing.T) {
+	r := newRouterWithGenerate(&fakeGenerate{}) // no withAuth
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/generate", nil)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestWorkProgramHandler_Generate_InvalidIDMaps400(t *testing.T) {
+	r := newRouterWithGenerate(&fakeGenerate{}, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/abc/generate", nil)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestWorkProgramHandler_Generate_RateLimitedMaps429(t *testing.T) {
+	fgen := &fakeGenerate{err: domain.ErrGenerationRateLimited}
+	r := newRouterWithGenerate(fgen, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/generate", nil)
+	assert.Equal(t, http.StatusTooManyRequests, w.Code)
+}
+
+func TestWorkProgramHandler_Generate_NonEmptyMaps409(t *testing.T) {
+	fgen := &fakeGenerate{err: domain.ErrWorkProgramNotEmpty}
+	r := newRouterWithGenerate(fgen, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/generate", nil)
+	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
+func TestWorkProgramHandler_Generate_NotFoundMaps404(t *testing.T) {
+	fgen := &fakeGenerate{err: repositories.ErrWorkProgramNotFound}
+	r := newRouterWithGenerate(fgen, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/generate", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }

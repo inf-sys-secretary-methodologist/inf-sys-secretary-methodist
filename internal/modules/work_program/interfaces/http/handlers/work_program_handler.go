@@ -57,17 +57,25 @@ type DiscardDraftWorkProgramPort interface {
 	Execute(ctx context.Context, actorID int64, actorRole string, in wpUsecases.DiscardDraftWorkProgramInput) (*entities.WorkProgram, error)
 }
 
+// GenerateWorkProgramPort is the narrow port for GenerateDraftUseCase
+// (LLM draft generation). It takes the work-program id directly rather
+// than an input struct — there is no request body.
+type GenerateWorkProgramPort interface {
+	Execute(ctx context.Context, actorID int64, actorRole string, workProgramID int64) (*entities.WorkProgram, error)
+}
+
 // WorkProgramHandler exposes the 7 РПД endpoints over HTTP: read + create
 // (PR 4a) and the four status transitions submit/approve/reject/discard
 // (PR 4b).
 type WorkProgramHandler struct {
-	create  CreateWorkProgramPort
-	get     GetWorkProgramPort
-	list    ListWorkProgramsPort
-	submit  SubmitWorkProgramPort
-	approve ApproveWorkProgramPort
-	reject  RejectWorkProgramPort
-	discard DiscardDraftWorkProgramPort
+	create   CreateWorkProgramPort
+	get      GetWorkProgramPort
+	list     ListWorkProgramsPort
+	submit   SubmitWorkProgramPort
+	approve  ApproveWorkProgramPort
+	reject   RejectWorkProgramPort
+	discard  DiscardDraftWorkProgramPort
+	generate GenerateWorkProgramPort
 }
 
 // NewWorkProgramHandler wires the handler. All ports are required —
@@ -82,14 +90,17 @@ func NewWorkProgramHandler(
 	approve ApproveWorkProgramPort,
 	reject RejectWorkProgramPort,
 	discard DiscardDraftWorkProgramPort,
+	generate GenerateWorkProgramPort,
 ) *WorkProgramHandler {
 	if create == nil || get == nil || list == nil ||
-		submit == nil || approve == nil || reject == nil || discard == nil {
+		submit == nil || approve == nil || reject == nil || discard == nil ||
+		generate == nil {
 		panic("work_program: NewWorkProgramHandler requires non-nil ports")
 	}
 	return &WorkProgramHandler{
 		create: create, get: get, list: list,
 		submit: submit, approve: approve, reject: reject, discard: discard,
+		generate: generate,
 	}
 }
 
@@ -667,7 +678,24 @@ func (h *WorkProgramHandler) Discard(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
 }
 
-// RegisterWorkProgramRoutes mounts all 7 endpoints under /work-programs.
+// Generate handles POST /api/v1/work-programs/:id/generate.
+// STUB — implementation lands in the GREEN commit.
+func (h *WorkProgramHandler) Generate(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	_, _ = h.generate.Execute(c.Request.Context(), actorID, role, id)
+	c.JSON(http.StatusNotImplemented, response.ErrorResponse("NOT_IMPLEMENTED", "generate not implemented"))
+}
+
+// RegisterWorkProgramRoutes mounts all 8 endpoints under /work-programs.
 // Caller must apply auth middleware to the group before passing it in —
 // every endpoint requires an authenticated context.
 func RegisterWorkProgramRoutes(rg *gin.RouterGroup, h *WorkProgramHandler) {
@@ -679,4 +707,5 @@ func RegisterWorkProgramRoutes(rg *gin.RouterGroup, h *WorkProgramHandler) {
 	wp.POST("/:id/approve", h.Approve)
 	wp.POST("/:id/reject", h.Reject)
 	wp.POST("/:id/discard", h.Discard)
+	wp.POST("/:id/generate", h.Generate)
 }
