@@ -112,6 +112,30 @@ describe('navigationConfig', () => {
     )
   })
 
+  it('educationGroup contains workPrograms (РПД) visible to all 5 roles incl student', () => {
+    const eduGroup = navigationConfig.find((e) => e.nameKey === 'educationGroup') as NavGroup
+    const wp = eduGroup.items.find((i) => i.nameKey === 'workPrograms')
+    expect(wp).toBeDefined()
+    expect(wp!.url).toBe('/work-programs')
+    // 273-ФЗ ст. 29: students see approved РПД (open ЭИОС), so unlike
+    // curriculum the entry is visible to all five roles; the backend
+    // role-scopes the rows.
+    expect(wp!.roles).toEqual(
+      expect.arrayContaining([
+        UserRole.SYSTEM_ADMIN,
+        UserRole.METHODIST,
+        UserRole.ACADEMIC_SECRETARY,
+        UserRole.TEACHER,
+        UserRole.STUDENT,
+      ])
+    )
+  })
+
+  it('workPrograms entry is visible to STUDENT (flat items)', () => {
+    const flatKeys = getAvailableNavItems(UserRole.STUDENT).map((i) => i.nameKey)
+    expect(flatKeys).toContain('workPrograms')
+  })
+
   it('communicationGroup contains announcements, messages, and aiAssistant', () => {
     const commGroup = navigationConfig.find((e) => e.nameKey === 'communicationGroup') as NavGroup
     expect(commGroup).toBeDefined()
