@@ -157,6 +157,33 @@ describe('WorkProgramDetailPage', () => {
     expect(screen.getByText('detail.referenceType.main')).toBeInTheDocument()
   })
 
+  it('renders a revision with change-type + collapsed status labels (not the raw wire key)', () => {
+    mockUseWorkProgram.mockReturnValue({
+      workProgram: sample({
+        revisions: [
+          {
+            id: 1,
+            revision_number: 1,
+            change_type: 'hours',
+            change_summary: 'Часы скорректированы',
+            status: 'pending_approval',
+            author_id: 5,
+            created_at: '2026-05-21T10:00:00Z',
+            updated_at: '2026-05-21T10:00:00Z',
+          },
+        ],
+      }),
+      isLoading: false,
+      error: undefined,
+    })
+    render(<WorkProgramDetailPage />)
+    expect(screen.getByText('Часы скорректированы')).toBeInTheDocument()
+    expect(screen.getByText('detail.revisionChangeType.hours')).toBeInTheDocument()
+    // pending_approval must collapse to the short key, not render the wire value.
+    expect(screen.getByText('detail.revisionStatus.pending')).toBeInTheDocument()
+    expect(screen.queryByText('detail.revisionStatus.pending_approval')).not.toBeInTheDocument()
+  })
+
   it('shows section empty text when a collection is empty', () => {
     mockUseWorkProgram.mockReturnValue({
       workProgram: sample({
