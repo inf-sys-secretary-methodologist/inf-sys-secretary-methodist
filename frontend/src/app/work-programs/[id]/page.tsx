@@ -30,8 +30,8 @@ import type { WorkProgram, WorkProgramStatus } from '@/types/workProgram'
 import { cn } from '@/lib/utils'
 
 // WorkProgramDetailPage — full РПД view with all six inner collections.
-// Author-side draft actions (submit / discard) are wired for create-
-// capable roles; approve / reject land in 8d-2. Visible to all
+// Author-side draft actions (submit / discard) and approver actions
+// (approve / reject) are wired by role + status. Visible to all
 // authenticated roles (no student redirect — 273-ФЗ ст. 29); the backend
 // scopes what each role can fetch.
 export default function WorkProgramDetailPage() {
