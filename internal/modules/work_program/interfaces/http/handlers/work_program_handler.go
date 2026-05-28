@@ -389,7 +389,7 @@ func mapWorkProgramError(c *gin.Context, err error, hideForbiddenAsNotFound bool
 	}
 }
 
-// ===== Endpoints (PR 4a stubs — implemented in following GREEN commits) =====
+// ===== Endpoints =====
 
 // Create handles POST /api/v1/work-programs.
 // @Summary Create a work program (РПД) draft

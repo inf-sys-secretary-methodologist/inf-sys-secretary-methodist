@@ -587,3 +587,33 @@ func TestWorkProgramHandler_Discard_InvalidTransitionMaps422(t *testing.T) {
 	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/discard", nil)
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 }
+
+// ===== VersionConflict symmetry =====
+//
+// Submit pins VersionConflict→409 above; Approve/Reject/Discard each also
+// call repo.Update and can surface ErrWorkProgramVersionConflict. Pin the
+// 409 mapping on all three so the optimistic-lock contract is symmetric
+// across every mutating transition (the shared mapper already handles it —
+// these guard against a future per-endpoint divergence).
+
+func TestWorkProgramHandler_Approve_VersionConflictMaps409(t *testing.T) {
+	fa := &fakeApprove{err: repositories.ErrWorkProgramVersionConflict}
+	r := approveRouter(fa, withAuth(5, "methodist"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/approve", nil)
+	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
+func TestWorkProgramHandler_Reject_VersionConflictMaps409(t *testing.T) {
+	fr := &fakeReject{err: repositories.ErrWorkProgramVersionConflict}
+	r := rejectRouter(fr, withAuth(5, "methodist"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/reject",
+		RejectWorkProgramRequest{Reason: "x"})
+	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
+func TestWorkProgramHandler_Discard_VersionConflictMaps409(t *testing.T) {
+	fd := &fakeDiscard{err: repositories.ErrWorkProgramVersionConflict}
+	r := discardRouter(fd, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/discard", nil)
+	assert.Equal(t, http.StatusConflict, w.Code)
+}
