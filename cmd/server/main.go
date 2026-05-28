@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.179.0
+// @version         0.180.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -160,6 +160,9 @@ import (
 	usersPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/infrastructure/persistence"
 	usersHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/handlers"
 	usersRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/routes"
+	wpUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/application/usecases"
+	wpPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/infrastructure/persistence"
+	wpHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/interfaces/http/handlers"
 	adminAuditLog "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/auditlog"
 	adminBackups "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/backups"
 	adminComposio "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/composio"
@@ -183,7 +186,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.179.0"
+const versionString = "0.180.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -2721,6 +2724,26 @@ func setupRoutes(
 			v1Group := protectedGroup.Group("/v1")
 			extHandler.RegisterExtracurricularRoutes(v1Group, extracurricularHandler)
 			logger.Info("Extracurricular module routes registered", nil)
+		}
+
+		// Work program (РПД) module routes (PR 4a, v0.180.0) — рабочая
+		// программа дисциплины. Greenfield bounded context per plan
+		// docs/plans/2026-05-27-work-program-initiative.md. PR 4a mounts
+		// read + create (POST / GET list / GET by id); transition
+		// endpoints (submit/approve/reject/discard) land in PR 4b.
+		{
+			wpRepo := wpPersistence.NewWorkProgramRepositoryPG(db)
+			createWPUC := wpUsecases.NewCreateWorkProgramUseCase(wpRepo, auditLogger)
+			getWPUC := wpUsecases.NewGetWorkProgramUseCase(wpRepo, auditLogger)
+			listWPUC := wpUsecases.NewListWorkProgramsUseCase(wpRepo, auditLogger)
+
+			workProgramHandler := wpHandler.NewWorkProgramHandler(createWPUC, getWPUC, listWPUC)
+			// Routes mount under /api/v1/work-programs — wrap the
+			// protected group in /v1 (mirror extracurricular) so the
+			// path matches the documented /api/v1 contract.
+			wpV1Group := protectedGroup.Group("/v1")
+			wpHandler.RegisterWorkProgramRoutes(wpV1Group, workProgramHandler)
+			logger.Info("Work program (РПД) module routes registered", nil)
 		}
 
 		// Schedule/Events module routes
