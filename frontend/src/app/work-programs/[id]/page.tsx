@@ -26,9 +26,10 @@ import type { WorkProgram, WorkProgramStatus } from '@/types/workProgram'
 import { cn } from '@/lib/utils'
 
 // WorkProgramDetailPage — full РПД view with all six inner collections.
-// Read-only in this slice (transition actions land in a later PR).
-// Visible to all authenticated roles (no student redirect — 273-ФЗ
-// ст. 29); the backend scopes what each role can fetch.
+// Author-side draft actions (submit / discard) are wired for create-
+// capable roles; approve / reject land in 8d-2. Visible to all
+// authenticated roles (no student redirect — 273-ФЗ ст. 29); the backend
+// scopes what each role can fetch.
 export default function WorkProgramDetailPage() {
   const params = useParams<{ id: string }>()
   const id = useMemo(() => {
