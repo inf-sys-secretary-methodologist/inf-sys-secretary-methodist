@@ -1,14 +1,26 @@
 'use client'
 
-import { useMemo, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { ArrowLeft, BookMarked, Calendar, GraduationCap, Loader2 } from 'lucide-react'
+import {
+  Archive,
+  ArrowLeft,
+  BookMarked,
+  Calendar,
+  GraduationCap,
+  Loader2,
+  Send,
+} from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
+import { Button } from '@/components/ui/button'
 import { useWorkProgram } from '@/hooks/useWorkPrograms'
 import { useAuthCheck } from '@/hooks/useAuth'
+import { canCreateWorkProgram } from '@/lib/auth/permissions'
+import { SubmitWorkProgramDialog } from '@/components/work-program/SubmitWorkProgramDialog'
+import { DiscardWorkProgramDialog } from '@/components/work-program/DiscardWorkProgramDialog'
 import { STATUS_STYLES, statusKey, revisionStatusKey } from '@/components/work-program/status'
 import type { WorkProgram, WorkProgramStatus } from '@/types/workProgram'
 import { cn } from '@/lib/utils'
@@ -25,11 +37,16 @@ export default function WorkProgramDetailPage() {
     return Number.isInteger(parsed) && parsed > 0 ? parsed : null
   }, [params])
 
-  const { isAuthenticated, isLoading: authLoading } = useAuthCheck()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthCheck()
   const t = useTranslations('workProgram')
 
   const enabled = !authLoading && isAuthenticated && id !== null
-  const { workProgram: wp, isLoading: detailLoading, error } = useWorkProgram(id, { enabled })
+  const {
+    workProgram: wp,
+    isLoading: detailLoading,
+    error,
+    mutate,
+  } = useWorkProgram(id, { enabled })
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -65,7 +82,7 @@ export default function WorkProgramDetailPage() {
             <p className="font-medium text-destructive">{t('detail.loadFailed')}</p>
           </div>
         ) : (
-          <WorkProgramDetail wp={wp} t={t} />
+          <WorkProgramDetail wp={wp} t={t} role={user?.role} onMutate={mutate} />
         )}
       </div>
     </AppLayout>
@@ -74,7 +91,26 @@ export default function WorkProgramDetailPage() {
 
 type T = ReturnType<typeof useTranslations>
 
-function WorkProgramDetail({ wp, t }: { wp: WorkProgram; t: T }) {
+function WorkProgramDetail({
+  wp,
+  t,
+  role,
+  onMutate,
+}: {
+  wp: WorkProgram
+  t: T
+  role?: string
+  onMutate: () => void
+}) {
+  const [submitOpen, setSubmitOpen] = useState(false)
+  const [discardOpen, setDiscardOpen] = useState(false)
+
+  // Draft author actions (submit / discard) are gated by role + status:
+  // the create-capable roles (teacher / methodist / admin per ADR-5) on a
+  // draft. The backend is the real gate (it scopes fetches + collapses
+  // unauthorized rows to 404), so this only decides button visibility.
+  const canDraftActions = wp.status === 'draft' && canCreateWorkProgram(role)
+
   return (
     <>
       <header className="space-y-3">
@@ -97,6 +133,19 @@ function WorkProgramDetail({ wp, t }: { wp: WorkProgram; t: T }) {
           </div>
         </dl>
       </header>
+
+      {canDraftActions ? (
+        <section className="flex flex-wrap gap-2">
+          <Button onClick={() => setSubmitOpen(true)}>
+            <Send className="h-4 w-4 mr-2" />
+            {t('detail.actions.submit')}
+          </Button>
+          <Button onClick={() => setDiscardOpen(true)} variant="outline">
+            <Archive className="h-4 w-4 mr-2" />
+            {t('detail.actions.discard')}
+          </Button>
+        </section>
+      ) : null}
 
       <section
         className={cn(
@@ -212,6 +261,19 @@ function WorkProgramDetail({ wp, t }: { wp: WorkProgram; t: T }) {
           ))}
         </ul>
       </Section>
+
+      <SubmitWorkProgramDialog
+        workProgramId={wp.id}
+        open={submitOpen}
+        onClose={() => setSubmitOpen(false)}
+        onSubmitted={onMutate}
+      />
+      <DiscardWorkProgramDialog
+        workProgramId={wp.id}
+        open={discardOpen}
+        onClose={() => setDiscardOpen(false)}
+        onDiscarded={onMutate}
+      />
     </>
   )
 }
