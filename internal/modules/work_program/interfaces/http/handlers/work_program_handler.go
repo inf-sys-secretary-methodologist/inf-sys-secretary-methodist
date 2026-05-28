@@ -160,6 +160,25 @@ type RevisionDTO struct {
 	UpdatedAt      string  `json:"updated_at"`
 }
 
+// WorkProgramSummaryDTO is the lightweight list-row projection — root
+// fields only (no inner collections). Mirrors repositories.ListItem.
+type WorkProgramSummaryDTO struct {
+	ID                 int64  `json:"id"`
+	DisciplineID       int64  `json:"discipline_id"`
+	SpecialtyCode      string `json:"specialty_code"`
+	ApplicableFromYear int    `json:"applicable_from_year"`
+	Title              string `json:"title"`
+	Status             string `json:"status"`
+	AuthorID           int64  `json:"author_id"`
+	Version            int    `json:"version"`
+}
+
+// WorkProgramsListResponse is the page response shape.
+type WorkProgramsListResponse struct {
+	Items []WorkProgramSummaryDTO `json:"items"`
+	Total int                     `json:"total"`
+}
+
 // ===== Mappers =====
 
 func formatRFC3339Ptr(t *time.Time) *string {
@@ -240,6 +259,19 @@ func mapWorkProgram(wp *entities.WorkProgram) WorkProgramDTO {
 		Assessments:        asmtDTOs,
 		References:         refDTOs,
 		Revisions:          revDTOs,
+	}
+}
+
+func mapSummary(it repositories.ListItem) WorkProgramSummaryDTO {
+	return WorkProgramSummaryDTO{
+		ID:                 it.ID,
+		DisciplineID:       it.DisciplineID,
+		SpecialtyCode:      it.SpecialtyCode,
+		ApplicableFromYear: it.ApplicableFromYear,
+		Title:              it.Title,
+		Status:             string(it.Status),
+		AuthorID:           it.AuthorID,
+		Version:            it.Version,
 	}
 }
 
@@ -400,7 +432,68 @@ func (h *WorkProgramHandler) Get(c *gin.Context) {
 }
 
 // List handles GET /api/v1/work-programs.
-func (h *WorkProgramHandler) List(c *gin.Context) { c.Status(http.StatusNotImplemented) }
+// @Summary List work programs (РПД), role-scoped + filterable
+// @Tags    work-programs
+// @Produce json
+// @Param   status               query string false "Lifecycle status filter"
+// @Param   discipline_id        query int    false "Discipline id filter"
+// @Param   specialty_code       query string false "Specialty code filter"
+// @Param   applicable_from_year query int    false "Cohort year filter"
+// @Param   author_id            query int    false "Author user id filter"
+// @Param   limit                query int    false "Page size (default 50, max 200)"
+// @Param   offset               query int    false "Page offset"
+// @Success 200 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs [get]
+func (h *WorkProgramHandler) List(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	in := wpUsecases.ListWorkProgramsInput{
+		SpecialtyCode: c.Query("specialty_code"),
+	}
+	if s := c.Query("status"); s != "" {
+		in.Status = &s
+	}
+	if v := c.Query("discipline_id"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			in.DisciplineID = &n
+		}
+	}
+	if v := c.Query("applicable_from_year"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			in.ApplicableFromYear = &n
+		}
+	}
+	if v := c.Query("author_id"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			in.AuthorID = &n
+		}
+	}
+	// Pagination defaults / clamps live in the use case so every caller
+	// inherits the same bounds — handler passes raw values through.
+	in.Limit, _ = strconv.Atoi(c.Query("limit"))
+	in.Offset, _ = strconv.Atoi(c.Query("offset"))
+
+	res, err := h.list.Execute(c.Request.Context(), actorID, role, in)
+	if err != nil {
+		// Collection endpoint — role-based denial is a true 403.
+		mapWorkProgramError(c, err, false)
+		return
+	}
+	out := WorkProgramsListResponse{
+		Items: make([]WorkProgramSummaryDTO, 0, len(res.Items)),
+		Total: res.Total,
+	}
+	for _, it := range res.Items {
+		out.Items = append(out.Items, mapSummary(it))
+	}
+	c.JSON(http.StatusOK, response.Success(out))
+}
 
 // RegisterWorkProgramRoutes mounts the read + create endpoints under
 // /work-programs. Caller must apply auth middleware to the group before
