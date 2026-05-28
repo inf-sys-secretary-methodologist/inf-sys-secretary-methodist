@@ -36,6 +36,8 @@ type MessagesShape = {
       status?: EnumGroup
     }
     errors?: EnumGroup
+    submitDialog?: EnumGroup
+    discardDialog?: EnumGroup
     detail?: {
       backToList?: string
       notFound?: string
@@ -46,6 +48,7 @@ type MessagesShape = {
       fields?: EnumGroup
       statusHint?: EnumGroup
       sections?: EnumGroup
+      actions?: EnumGroup
       competenceType?: EnumGroup
       topicKind?: EnumGroup
       assessmentType?: EnumGroup
@@ -202,5 +205,32 @@ describe('workProgram.detail i18n parity × 4 locales', () => {
     for (const k of referenceTypeKeys) expect(d?.referenceType?.[k]).toBeTruthy()
     for (const k of revisionChangeTypeKeys) expect(d?.revisionChangeType?.[k]).toBeTruthy()
     for (const k of revisionStatusKeys) expect(d?.revisionStatus?.[k]).toBeTruthy()
+  })
+})
+
+const transitionDialogKeys = [
+  'title',
+  'description',
+  'cancel',
+  'confirm',
+  'submitting',
+  'successToast',
+] as const
+
+describe('workProgram transition dialogs (8d-1) i18n parity × 4 locales', () => {
+  it.each(locales)('%s has detail.actions submit + discard labels', (_name, msgs) => {
+    const a = msgs.workProgram?.detail?.actions
+    expect(a?.submit).toBeTruthy()
+    expect(a?.discard).toBeTruthy()
+  })
+
+  it.each(locales)('%s has all submitDialog strings', (_name, msgs) => {
+    const d = msgs.workProgram?.submitDialog
+    for (const k of transitionDialogKeys) expect(d?.[k]).toBeTruthy()
+  })
+
+  it.each(locales)('%s has all discardDialog strings', (_name, msgs) => {
+    const d = msgs.workProgram?.discardDialog
+    for (const k of transitionDialogKeys) expect(d?.[k]).toBeTruthy()
   })
 })
