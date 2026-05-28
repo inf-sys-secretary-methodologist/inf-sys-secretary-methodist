@@ -37,13 +37,37 @@ type ListWorkProgramsPort interface {
 	Execute(ctx context.Context, actorID int64, actorRole string, in wpUsecases.ListWorkProgramsInput) (wpUsecases.ListWorkProgramsResult, error)
 }
 
-// WorkProgramHandler exposes the read + create endpoints over HTTP
-// (PR 4a). Transition endpoints (submit/approve/reject/discard) join in
-// PR 4b — the ctor grows then.
+// SubmitWorkProgramPort is the narrow port for SubmitWorkProgramUseCase.
+type SubmitWorkProgramPort interface {
+	Execute(ctx context.Context, actorID int64, actorRole string, in wpUsecases.SubmitWorkProgramInput) (*entities.WorkProgram, error)
+}
+
+// ApproveWorkProgramPort is the narrow port for ApproveWorkProgramUseCase.
+type ApproveWorkProgramPort interface {
+	Execute(ctx context.Context, actorID int64, actorRole string, in wpUsecases.ApproveWorkProgramInput) (*entities.WorkProgram, error)
+}
+
+// RejectWorkProgramPort is the narrow port for RejectWorkProgramUseCase.
+type RejectWorkProgramPort interface {
+	Execute(ctx context.Context, actorID int64, actorRole string, in wpUsecases.RejectWorkProgramInput) (*entities.WorkProgram, error)
+}
+
+// DiscardDraftWorkProgramPort is the narrow port for DiscardDraftWorkProgramUseCase.
+type DiscardDraftWorkProgramPort interface {
+	Execute(ctx context.Context, actorID int64, actorRole string, in wpUsecases.DiscardDraftWorkProgramInput) (*entities.WorkProgram, error)
+}
+
+// WorkProgramHandler exposes the 7 РПД endpoints over HTTP: read + create
+// (PR 4a) and the four status transitions submit/approve/reject/discard
+// (PR 4b).
 type WorkProgramHandler struct {
-	create CreateWorkProgramPort
-	get    GetWorkProgramPort
-	list   ListWorkProgramsPort
+	create  CreateWorkProgramPort
+	get     GetWorkProgramPort
+	list    ListWorkProgramsPort
+	submit  SubmitWorkProgramPort
+	approve ApproveWorkProgramPort
+	reject  RejectWorkProgramPort
+	discard DiscardDraftWorkProgramPort
 }
 
 // NewWorkProgramHandler wires the handler. All ports are required —
@@ -54,11 +78,19 @@ func NewWorkProgramHandler(
 	create CreateWorkProgramPort,
 	get GetWorkProgramPort,
 	list ListWorkProgramsPort,
+	submit SubmitWorkProgramPort,
+	approve ApproveWorkProgramPort,
+	reject RejectWorkProgramPort,
+	discard DiscardDraftWorkProgramPort,
 ) *WorkProgramHandler {
-	if create == nil || get == nil || list == nil {
+	if create == nil || get == nil || list == nil ||
+		submit == nil || approve == nil || reject == nil || discard == nil {
 		panic("work_program: NewWorkProgramHandler requires non-nil ports")
 	}
-	return &WorkProgramHandler{create: create, get: get, list: list}
+	return &WorkProgramHandler{
+		create: create, get: get, list: list,
+		submit: submit, approve: approve, reject: reject, discard: discard,
+	}
 }
 
 // CreateWorkProgramRequest is the JSON body for POST /work-programs.
@@ -70,6 +102,13 @@ type CreateWorkProgramRequest struct {
 	ApplicableFromYear int    `json:"applicable_from_year" binding:"required"`
 	Title              string `json:"title"                binding:"required"`
 	Annotation         string `json:"annotation"`
+}
+
+// RejectWorkProgramRequest is the JSON body for POST /work-programs/:id/reject.
+// The reason is mandatory so the author understands what to revise — the
+// domain enforces non-empty after trimming, this binding tag fails fast.
+type RejectWorkProgramRequest struct {
+	Reason string `json:"reason" binding:"required"`
 }
 
 // ===== Response DTOs =====
@@ -337,6 +376,12 @@ func mapWorkProgramError(c *gin.Context, err error, hideForbiddenAsNotFound bool
 		}
 	case errors.Is(err, repositories.ErrWorkProgramIdentityExists):
 		c.JSON(http.StatusConflict, response.ErrorResponse("IDENTITY_EXISTS", "a work program with this discipline + specialty + year already exists"))
+	case errors.Is(err, repositories.ErrWorkProgramVersionConflict):
+		c.JSON(http.StatusConflict, response.ErrorResponse("VERSION_CONFLICT", "work program was modified concurrently; reload + retry"))
+	case errors.Is(err, domain.ErrInvalidStatusTransition):
+		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("INVALID_TRANSITION", err.Error()))
+	case errors.Is(err, domain.ErrRejectReasonRequired):
+		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("REJECT_REASON_REQUIRED", err.Error()))
 	case errors.Is(err, domain.ErrInvalidWorkProgram):
 		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("INVALID_WORK_PROGRAM", err.Error()))
 	default:
@@ -344,7 +389,7 @@ func mapWorkProgramError(c *gin.Context, err error, hideForbiddenAsNotFound bool
 	}
 }
 
-// ===== Endpoints (PR 4a stubs — implemented in following GREEN commits) =====
+// ===== Endpoints =====
 
 // Create handles POST /api/v1/work-programs.
 // @Summary Create a work program (РПД) draft
@@ -483,12 +528,155 @@ func (h *WorkProgramHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Success(out))
 }
 
-// RegisterWorkProgramRoutes mounts the read + create endpoints under
-// /work-programs. Caller must apply auth middleware to the group before
-// passing it in — every endpoint requires an authenticated context.
+// Submit handles POST /api/v1/work-programs/:id/submit.
+// @Summary Submit a draft work program for approval (draft → pending_approval)
+// @Tags    work-programs
+// @Produce json
+// @Param   id path int true "Work program ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/submit [post]
+func (h *WorkProgramHandler) Submit(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	wp, err := h.submit.Execute(c.Request.Context(), actorID, role, wpUsecases.SubmitWorkProgramInput{ID: id})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
+}
+
+// Approve handles POST /api/v1/work-programs/:id/approve.
+// @Summary Approve a pending work program (pending_approval → approved)
+// @Tags    work-programs
+// @Produce json
+// @Param   id path int true "Work program ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/approve [post]
+func (h *WorkProgramHandler) Approve(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	wp, err := h.approve.Execute(c.Request.Context(), actorID, role, wpUsecases.ApproveWorkProgramInput{ID: id})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
+}
+
+// Reject handles POST /api/v1/work-programs/:id/reject.
+// @Summary Reject a pending work program back to draft with a reason
+// @Tags    work-programs
+// @Accept  json
+// @Produce json
+// @Param   id   path int                       true "Work program ID"
+// @Param   body body RejectWorkProgramRequest  true "Rejection reason"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/reject [post]
+func (h *WorkProgramHandler) Reject(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	var body RejectWorkProgramRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid request body: "+err.Error()))
+		return
+	}
+	wp, err := h.reject.Execute(c.Request.Context(), actorID, role, wpUsecases.RejectWorkProgramInput{ID: id, Reason: body.Reason})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
+}
+
+// Discard handles POST /api/v1/work-programs/:id/discard.
+// @Summary Discard a draft work program (draft → archived, author abandons)
+// @Tags    work-programs
+// @Produce json
+// @Param   id path int true "Work program ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/discard [post]
+func (h *WorkProgramHandler) Discard(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	wp, err := h.discard.Execute(c.Request.Context(), actorID, role, wpUsecases.DiscardDraftWorkProgramInput{ID: id})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
+}
+
+// RegisterWorkProgramRoutes mounts all 7 endpoints under /work-programs.
+// Caller must apply auth middleware to the group before passing it in —
+// every endpoint requires an authenticated context.
 func RegisterWorkProgramRoutes(rg *gin.RouterGroup, h *WorkProgramHandler) {
 	wp := rg.Group("/work-programs")
 	wp.POST("", h.Create)
 	wp.GET("", h.List)
 	wp.GET("/:id", h.Get)
+	wp.POST("/:id/submit", h.Submit)
+	wp.POST("/:id/approve", h.Approve)
+	wp.POST("/:id/reject", h.Reject)
+	wp.POST("/:id/discard", h.Discard)
 }
