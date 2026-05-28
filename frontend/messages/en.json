@@ -2523,7 +2523,27 @@
         "pending": "Pending approval",
         "approved": "Approved",
         "rejected": "Rejected"
+      },
+      "actions": {
+        "submit": "Submit for approval",
+        "discard": "Discard to archive"
       }
+    },
+    "submitDialog": {
+      "title": "Submit work programme for approval?",
+      "description": "The programme will move to “Pending approval” and become read-only until the methodist makes a decision.",
+      "cancel": "Cancel",
+      "confirm": "Submit",
+      "submitting": "Submitting…",
+      "successToast": "Work programme submitted for approval"
+    },
+    "discardDialog": {
+      "title": "Discard draft to archive?",
+      "description": "The draft will be moved to the archive and removed from active work. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Discard",
+      "submitting": "Discarding…",
+      "successToast": "Draft moved to archive"
     }
   },
   "curriculum": {
