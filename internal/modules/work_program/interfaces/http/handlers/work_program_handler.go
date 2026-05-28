@@ -560,7 +560,37 @@ func (h *WorkProgramHandler) Submit(c *gin.Context) {
 }
 
 // Approve handles POST /api/v1/work-programs/:id/approve.
-func (h *WorkProgramHandler) Approve(c *gin.Context) { c.Status(http.StatusNotImplemented) }
+// @Summary Approve a pending work program (pending_approval → approved)
+// @Tags    work-programs
+// @Produce json
+// @Param   id path int true "Work program ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/approve [post]
+func (h *WorkProgramHandler) Approve(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	wp, err := h.approve.Execute(c.Request.Context(), actorID, role, wpUsecases.ApproveWorkProgramInput{ID: id})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
+}
 
 // Reject handles POST /api/v1/work-programs/:id/reject.
 func (h *WorkProgramHandler) Reject(c *gin.Context) { c.Status(http.StatusNotImplemented) }
