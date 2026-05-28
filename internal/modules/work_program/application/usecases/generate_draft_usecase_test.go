@@ -306,6 +306,7 @@ func TestGenerateDraftUseCase_HappyPath(t *testing.T) {
 			require.Len(t, comps, 2)
 			assert.Equal(t, "ПК-1", comps[0].Code())
 			assert.Equal(t, domain.CompetenceTypePK, comps[0].Type())
+			assert.Equal(t, "УК-2", comps[1].Code(), "competences keep emitted order by slice position")
 			assert.Equal(t, domain.CompetenceTypeUK, comps[1].Type())
 
 			topics := got.Topics()
@@ -330,6 +331,29 @@ func TestGenerateDraftUseCase_HappyPath(t *testing.T) {
 			assert.Equal(t, int64(100), audit.events[0].Fields["work_program_id"])
 		})
 	}
+}
+
+func TestGenerateDraftUseCase_NonEmptyDraftRejected(t *testing.T) {
+	const authorID = int64(7)
+	wp := reconstituteWPWithStatus(t, 100, authorID, domain.StatusDraft)
+	existing, err := entities.NewGoal("Уже существующая цель", 0)
+	require.NoError(t, err)
+	require.NoError(t, wp.AddGoal(existing))
+
+	repo := &fakeGenerateRepo{wp: wp}
+	gen := &fakeDraftGenerator{result: sampleResult()}
+	disc := &fakeDisciplineProvider{info: sampleDisciplineInfo()}
+	audit := &recordingAuditSink{}
+	uc := NewGenerateDraftUseCase(repo, gen, disc, allowingLimiter(), audit)
+
+	_, err = uc.Execute(context.Background(), authorID, "teacher", 100)
+	assert.True(t, errors.Is(err, domain.ErrWorkProgramNotEmpty),
+		"generating into a non-empty draft must be rejected, got %v", err)
+	assert.Zero(t, gen.calls, "must not call generator for a non-empty draft")
+	assert.Zero(t, repo.updateCalls, "must not persist when the draft is non-empty")
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "work_program.generate_denied", audit.events[0].Action)
+	assert.Equal(t, "not_empty", audit.events[0].Fields["reason"])
 }
 
 func TestGenerateDraftUseCase_DisciplineProviderErrorPropagates(t *testing.T) {
