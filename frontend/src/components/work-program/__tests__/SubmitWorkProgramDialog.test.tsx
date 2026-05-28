@@ -82,6 +82,25 @@ describe('SubmitWorkProgramDialog', () => {
     expect(onSubmitted).not.toHaveBeenCalled()
   })
 
+  it('does not close while a submit is in flight (Esc dismiss guarded)', async () => {
+    const onClose = jest.fn()
+    let resolve: (v: unknown) => void = () => {}
+    mockSubmitWorkProgram.mockImplementation(
+      () =>
+        new Promise((r) => {
+          resolve = r
+        })
+    )
+
+    render(<SubmitWorkProgramDialog workProgramId={7} open={true} onClose={onClose} />)
+    fireEvent.click(screen.getByRole('button', { name: 'submitDialog.confirm' }))
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+
+    resolve({})
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
+  })
+
   it('does not double-fire submitWorkProgram on rapid double-click', async () => {
     const onClose = jest.fn()
     let resolve: (v: unknown) => void = () => {}

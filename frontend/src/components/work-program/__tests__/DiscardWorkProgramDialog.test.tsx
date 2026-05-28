@@ -57,6 +57,7 @@ describe('DiscardWorkProgramDialog', () => {
 
   it.each([
     [{ response: { data: { error: { code: 'INVALID_TRANSITION' } } } }, 'errors.invalidTransition'],
+    [{ response: { data: { error: { code: 'VERSION_CONFLICT' } } } }, 'errors.versionConflict'],
     [{ response: { status: 403 } }, 'errors.forbidden'],
     [{ response: { status: 404 } }, 'errors.notFound'],
     [{ response: { status: 500 } }, 'errors.generic'],
@@ -79,6 +80,25 @@ describe('DiscardWorkProgramDialog', () => {
     expect(mockToastError.mock.calls[0][0]).toBe(expectedKey)
     expect(onClose).not.toHaveBeenCalled()
     expect(onDiscarded).not.toHaveBeenCalled()
+  })
+
+  it('does not close while a discard is in flight (Esc dismiss guarded)', async () => {
+    const onClose = jest.fn()
+    let resolve: (v: unknown) => void = () => {}
+    mockDiscardWorkProgram.mockImplementation(
+      () =>
+        new Promise((r) => {
+          resolve = r
+        })
+    )
+
+    render(<DiscardWorkProgramDialog workProgramId={7} open={true} onClose={onClose} />)
+    fireEvent.click(screen.getByRole('button', { name: 'discardDialog.confirm' }))
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+
+    resolve({})
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
 
   it('does not double-fire discardWorkProgram on rapid double-click', async () => {
