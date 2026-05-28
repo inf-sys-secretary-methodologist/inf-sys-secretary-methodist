@@ -64,9 +64,9 @@ type GenerateWorkProgramPort interface {
 	Execute(ctx context.Context, actorID int64, actorRole string, workProgramID int64) (*entities.WorkProgram, error)
 }
 
-// WorkProgramHandler exposes the 7 РПД endpoints over HTTP: read + create
-// (PR 4a) and the four status transitions submit/approve/reject/discard
-// (PR 4b).
+// WorkProgramHandler exposes the 8 РПД endpoints over HTTP: read + create
+// (PR 4a), the four status transitions submit/approve/reject/discard
+// (PR 4b), and LLM draft generation (PR 5b).
 type WorkProgramHandler struct {
 	create   CreateWorkProgramPort
 	get      GetWorkProgramPort
@@ -395,6 +395,10 @@ func mapWorkProgramError(c *gin.Context, err error, hideForbiddenAsNotFound bool
 		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("REJECT_REASON_REQUIRED", err.Error()))
 	case errors.Is(err, domain.ErrInvalidWorkProgram):
 		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("INVALID_WORK_PROGRAM", err.Error()))
+	case errors.Is(err, domain.ErrGenerationRateLimited):
+		c.JSON(http.StatusTooManyRequests, response.ErrorResponse("RATE_LIMITED", "draft generation rate limit exceeded; try again later"))
+	case errors.Is(err, domain.ErrWorkProgramNotEmpty):
+		c.JSON(http.StatusConflict, response.ErrorResponse("DRAFT_NOT_EMPTY", "draft already has content; clear it before generating"))
 	default:
 		c.JSON(http.StatusInternalServerError, response.InternalError("internal error"))
 	}
@@ -679,7 +683,20 @@ func (h *WorkProgramHandler) Discard(c *gin.Context) {
 }
 
 // Generate handles POST /api/v1/work-programs/:id/generate.
-// STUB — implementation lands in the GREEN commit.
+// @Summary LLM-generate the content of a draft work program (goals/competences/topics/references)
+// @Tags    work-programs
+// @Produce json
+// @Param   id path int true "Work program ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Failure 429 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/generate [post]
 func (h *WorkProgramHandler) Generate(c *gin.Context) {
 	actorID, role, ok := authContext(c)
 	if !ok {
@@ -691,8 +708,12 @@ func (h *WorkProgramHandler) Generate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
 		return
 	}
-	_, _ = h.generate.Execute(c.Request.Context(), actorID, role, id)
-	c.JSON(http.StatusNotImplemented, response.ErrorResponse("NOT_IMPLEMENTED", "generate not implemented"))
+	wp, err := h.generate.Execute(c.Request.Context(), actorID, role, id)
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
 }
 
 // RegisterWorkProgramRoutes mounts all 8 endpoints under /work-programs.
