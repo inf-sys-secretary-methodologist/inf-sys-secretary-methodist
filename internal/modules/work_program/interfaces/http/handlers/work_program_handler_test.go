@@ -382,3 +382,63 @@ func TestWorkProgramHandler_List_MalformedNumericParamsDropped(t *testing.T) {
 	assert.Equal(t, 0, fl.gotIn.Limit)
 	assert.Equal(t, 0, fl.gotIn.Offset)
 }
+
+// ===== transition-test router helpers =====
+
+func submitRouter(fs *fakeSubmit, mw ...gin.HandlerFunc) *gin.Engine {
+	return newRouterFull(&fakeCreate{}, &fakeGet{}, &fakeList{}, fs, &fakeApprove{}, &fakeReject{}, &fakeDiscard{}, mw...)
+}
+
+// ===== Submit =====
+
+func TestWorkProgramHandler_Submit_HappyPath(t *testing.T) {
+	fs := &fakeSubmit{result: sampleWP(t)}
+	r := submitRouter(fs, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/submit", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, fs.called)
+	assert.Equal(t, int64(99), fs.gotID)
+	assert.Equal(t, int64(42), fs.gotActor)
+	assert.Equal(t, "teacher", fs.gotRole)
+}
+
+func TestWorkProgramHandler_Submit_Unauthenticated(t *testing.T) {
+	r := submitRouter(&fakeSubmit{})
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/submit", nil)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestWorkProgramHandler_Submit_InvalidIDMaps400(t *testing.T) {
+	r := submitRouter(&fakeSubmit{}, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/abc/submit", nil)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestWorkProgramHandler_Submit_NotFoundMaps404(t *testing.T) {
+	fs := &fakeSubmit{err: repositories.ErrWorkProgramNotFound}
+	r := submitRouter(fs, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/404/submit", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestWorkProgramHandler_Submit_InvalidTransitionMaps422(t *testing.T) {
+	fs := &fakeSubmit{err: domain.ErrInvalidStatusTransition}
+	r := submitRouter(fs, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/submit", nil)
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+}
+
+// Resource-scoped transition → non-admin scope denial collapses to 404.
+func TestWorkProgramHandler_Submit_ForbiddenHiddenAs404ForNonAdmin(t *testing.T) {
+	fs := &fakeSubmit{err: domain.ErrWorkProgramScopeForbidden}
+	r := submitRouter(fs, withAuth(7, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/submit", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestWorkProgramHandler_Submit_VersionConflictMaps409(t *testing.T) {
+	fs := &fakeSubmit{err: repositories.ErrWorkProgramVersionConflict}
+	r := submitRouter(fs, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/submit", nil)
+	assert.Equal(t, http.StatusConflict, w.Code)
+}
