@@ -546,3 +546,44 @@ func TestWorkProgramHandler_Reject_ForbiddenHiddenAs404ForNonAdmin(t *testing.T)
 		RejectWorkProgramRequest{Reason: "x"})
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
+
+// ===== Discard =====
+
+func discardRouter(fd *fakeDiscard, mw ...gin.HandlerFunc) *gin.Engine {
+	return newRouterFull(&fakeCreate{}, &fakeGet{}, &fakeList{}, &fakeSubmit{}, &fakeApprove{}, &fakeReject{}, fd, mw...)
+}
+
+func TestWorkProgramHandler_Discard_HappyPath(t *testing.T) {
+	fd := &fakeDiscard{result: sampleWP(t)}
+	r := discardRouter(fd, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/discard", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, fd.called)
+	assert.Equal(t, int64(99), fd.gotID)
+}
+
+func TestWorkProgramHandler_Discard_Unauthenticated(t *testing.T) {
+	r := discardRouter(&fakeDiscard{})
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/discard", nil)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestWorkProgramHandler_Discard_InvalidIDMaps400(t *testing.T) {
+	r := discardRouter(&fakeDiscard{}, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/abc/discard", nil)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestWorkProgramHandler_Discard_ForbiddenHiddenAs404ForNonAdmin(t *testing.T) {
+	fd := &fakeDiscard{err: domain.ErrWorkProgramScopeForbidden}
+	r := discardRouter(fd, withAuth(7, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/discard", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestWorkProgramHandler_Discard_InvalidTransitionMaps422(t *testing.T) {
+	fd := &fakeDiscard{err: domain.ErrInvalidStatusTransition}
+	r := discardRouter(fd, withAuth(42, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/discard", nil)
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+}
