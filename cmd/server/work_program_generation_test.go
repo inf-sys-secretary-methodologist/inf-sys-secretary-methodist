@@ -35,6 +35,7 @@ func TestControlFormLabel(t *testing.T) {
 		{curEntities.ControlFormZachet, "зачёт"},
 		{curEntities.ControlFormDifferentialZachet, "дифференцированный зачёт"},
 		{curEntities.ControlFormCourseProject, "курсовой проект"},
+		{curEntities.ControlForm("seminar"), "seminar"}, // unknown → raw enum fallback
 	}
 	for _, tc := range cases {
 		assert.Equal(t, tc.want, controlFormLabel(tc.cf), "label for %s", tc.cf)

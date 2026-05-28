@@ -2760,6 +2760,8 @@ func setupRoutes(
 			var wpGenLimiter wpUsecases.GenerationRateLimiter = allowAllGenerationLimiter{}
 			if redisCache != nil {
 				wpGenLimiter = wpRateLimit.NewGenerationLimiter(redisCache.Client(), 5, time.Hour)
+			} else {
+				logger.Warn("РПД draft generation rate limiting disabled — Redis unavailable; LLM spend is uncapped", nil)
 			}
 			generateWPUC := wpUsecases.NewGenerateDraftUseCase(wpRepo, wpDraftGen, wpDisciplineInfo, wpGenLimiter, auditLogger)
 
