@@ -38,6 +38,8 @@ type MessagesShape = {
     errors?: EnumGroup
     submitDialog?: EnumGroup
     discardDialog?: EnumGroup
+    approveDialog?: EnumGroup
+    rejectDialog?: EnumGroup
     detail?: {
       backToList?: string
       notFound?: string
@@ -233,4 +235,27 @@ describe('workProgram transition dialogs (8d-1) i18n parity × 4 locales', () =>
     const d = msgs.workProgram?.discardDialog
     for (const k of transitionDialogKeys) expect(d?.[k]).toBeTruthy()
   })
+})
+
+const rejectDialogKeys = [...transitionDialogKeys, 'reasonLabel', 'reasonPlaceholder'] as const
+
+describe('workProgram approver dialogs (8d-2) i18n parity × 4 locales', () => {
+  it.each(locales)('%s has detail.actions approve + reject labels', (_name, msgs) => {
+    const a = msgs.workProgram?.detail?.actions
+    expect(a?.approve).toBeTruthy()
+    expect(a?.reject).toBeTruthy()
+  })
+
+  it.each(locales)('%s has all approveDialog strings', (_name, msgs) => {
+    const d = msgs.workProgram?.approveDialog
+    for (const k of transitionDialogKeys) expect(d?.[k]).toBeTruthy()
+  })
+
+  it.each(locales)(
+    '%s has all rejectDialog strings (incl. reason label + placeholder)',
+    (_name, msgs) => {
+      const d = msgs.workProgram?.rejectDialog
+      for (const k of rejectDialogKeys) expect(d?.[k]).toBeTruthy()
+    }
+  )
 })
