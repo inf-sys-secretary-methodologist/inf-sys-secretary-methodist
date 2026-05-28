@@ -380,6 +380,8 @@ func mapWorkProgramError(c *gin.Context, err error, hideForbiddenAsNotFound bool
 		c.JSON(http.StatusConflict, response.ErrorResponse("VERSION_CONFLICT", "work program was modified concurrently; reload + retry"))
 	case errors.Is(err, domain.ErrInvalidStatusTransition):
 		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("INVALID_TRANSITION", err.Error()))
+	case errors.Is(err, domain.ErrRejectReasonRequired):
+		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("REJECT_REASON_REQUIRED", err.Error()))
 	case errors.Is(err, domain.ErrInvalidWorkProgram):
 		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("INVALID_WORK_PROGRAM", err.Error()))
 	default:
@@ -593,7 +595,44 @@ func (h *WorkProgramHandler) Approve(c *gin.Context) {
 }
 
 // Reject handles POST /api/v1/work-programs/:id/reject.
-func (h *WorkProgramHandler) Reject(c *gin.Context) { c.Status(http.StatusNotImplemented) }
+// @Summary Reject a pending work program back to draft with a reason
+// @Tags    work-programs
+// @Accept  json
+// @Produce json
+// @Param   id   path int                       true "Work program ID"
+// @Param   body body RejectWorkProgramRequest  true "Rejection reason"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/reject [post]
+func (h *WorkProgramHandler) Reject(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	var body RejectWorkProgramRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid request body: "+err.Error()))
+		return
+	}
+	wp, err := h.reject.Execute(c.Request.Context(), actorID, role, wpUsecases.RejectWorkProgramInput{ID: id, Reason: body.Reason})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
+}
 
 // Discard handles POST /api/v1/work-programs/:id/discard.
 func (h *WorkProgramHandler) Discard(c *gin.Context) { c.Status(http.StatusNotImplemented) }
