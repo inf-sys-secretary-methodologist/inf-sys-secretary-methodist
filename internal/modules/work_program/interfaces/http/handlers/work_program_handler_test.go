@@ -487,3 +487,62 @@ func TestWorkProgramHandler_Approve_InvalidTransitionMaps422(t *testing.T) {
 	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/approve", nil)
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 }
+
+// ===== Reject =====
+
+func rejectRouter(fr *fakeReject, mw ...gin.HandlerFunc) *gin.Engine {
+	return newRouterFull(&fakeCreate{}, &fakeGet{}, &fakeList{}, &fakeSubmit{}, &fakeApprove{}, fr, &fakeDiscard{}, mw...)
+}
+
+func TestWorkProgramHandler_Reject_HappyPath(t *testing.T) {
+	fr := &fakeReject{result: sampleWP(t)}
+	r := rejectRouter(fr, withAuth(5, "methodist"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/reject",
+		RejectWorkProgramRequest{Reason: "часы не соответствуют учебному плану"})
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, fr.called)
+	assert.Equal(t, int64(99), fr.gotID)
+	assert.Equal(t, "часы не соответствуют учебному плану", fr.gotReason)
+}
+
+func TestWorkProgramHandler_Reject_Unauthenticated(t *testing.T) {
+	r := rejectRouter(&fakeReject{})
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/reject",
+		RejectWorkProgramRequest{Reason: "x"})
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestWorkProgramHandler_Reject_InvalidIDMaps400(t *testing.T) {
+	r := rejectRouter(&fakeReject{}, withAuth(5, "methodist"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/abc/reject",
+		RejectWorkProgramRequest{Reason: "x"})
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// Empty reason is rejected at the binding layer (binding:"required").
+func TestWorkProgramHandler_Reject_MissingReasonMaps400(t *testing.T) {
+	fr := &fakeReject{}
+	r := rejectRouter(fr, withAuth(5, "methodist"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/reject",
+		RejectWorkProgramRequest{Reason: ""})
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.False(t, fr.called) // never reaches the use case
+}
+
+// A whitespace-only reason passes binding but the domain trims + rejects
+// it → ErrRejectReasonRequired → 422.
+func TestWorkProgramHandler_Reject_ReasonRequiredMaps422(t *testing.T) {
+	fr := &fakeReject{err: domain.ErrRejectReasonRequired}
+	r := rejectRouter(fr, withAuth(5, "methodist"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/reject",
+		RejectWorkProgramRequest{Reason: "   "})
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+}
+
+func TestWorkProgramHandler_Reject_ForbiddenHiddenAs404ForNonAdmin(t *testing.T) {
+	fr := &fakeReject{err: domain.ErrWorkProgramScopeForbidden}
+	r := rejectRouter(fr, withAuth(7, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/reject",
+		RejectWorkProgramRequest{Reason: "x"})
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
