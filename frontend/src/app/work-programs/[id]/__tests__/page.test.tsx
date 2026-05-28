@@ -1,4 +1,4 @@
-import { render, screen } from '@/test-utils'
+import { render, screen, fireEvent } from '@/test-utils'
 
 const mockReplace = jest.fn()
 const mockUseParams = jest.fn()
@@ -83,6 +83,7 @@ beforeEach(() => {
     workProgram: sample(),
     isLoading: false,
     error: undefined,
+    mutate: jest.fn(),
   })
 })
 
@@ -230,5 +231,62 @@ describe('WorkProgramDetailPage', () => {
     })
     render(<WorkProgramDetailPage />)
     expect(screen.getByText('detail.notFound')).toBeInTheDocument()
+  })
+})
+
+describe('WorkProgramDetailPage — draft author actions (8d-1)', () => {
+  const draftAuthor = {
+    user: { id: 5, role: 'teacher' as const },
+    isAuthenticated: true,
+    isLoading: false,
+  }
+
+  const draftWp = (status: WorkProgram['status'] = 'draft') => ({
+    workProgram: sample({ status }),
+    isLoading: false,
+    error: undefined,
+    mutate: jest.fn(),
+  })
+
+  beforeEach(() => {
+    mockUseParams.mockReturnValue({ id: '7' })
+    mockUseAuthCheck.mockReturnValue(draftAuthor)
+    mockUseWorkProgram.mockReturnValue(draftWp('draft'))
+  })
+
+  it('shows submit + discard actions for an author on a draft', () => {
+    render(<WorkProgramDetailPage />)
+    expect(screen.getByRole('button', { name: 'detail.actions.submit' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'detail.actions.discard' })).toBeInTheDocument()
+  })
+
+  it('opens the submit dialog when the submit action is clicked', () => {
+    render(<WorkProgramDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.actions.submit' }))
+    expect(screen.getByText('submitDialog.title')).toBeInTheDocument()
+  })
+
+  it('opens the discard dialog when the discard action is clicked', () => {
+    render(<WorkProgramDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.actions.discard' }))
+    expect(screen.getByText('discardDialog.title')).toBeInTheDocument()
+  })
+
+  it('hides draft actions for a student (cannot author РПД)', () => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 9, role: 'student' as const },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<WorkProgramDetailPage />)
+    expect(screen.queryByRole('button', { name: 'detail.actions.submit' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'detail.actions.discard' })).not.toBeInTheDocument()
+  })
+
+  it('hides draft actions when the programme is not a draft (approved)', () => {
+    mockUseWorkProgram.mockReturnValue(draftWp('approved'))
+    render(<WorkProgramDetailPage />)
+    expect(screen.queryByRole('button', { name: 'detail.actions.submit' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'detail.actions.discard' })).not.toBeInTheDocument()
   })
 })

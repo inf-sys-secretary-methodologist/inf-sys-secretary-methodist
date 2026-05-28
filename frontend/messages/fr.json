@@ -2523,7 +2523,27 @@
         "pending": "En attente d'approbation",
         "approved": "Approuvé",
         "rejected": "Rejeté"
+      },
+      "actions": {
+        "submit": "Soumettre pour approbation",
+        "discard": "Archiver"
       }
+    },
+    "submitDialog": {
+      "title": "Soumettre le programme de travail pour approbation ?",
+      "description": "Le programme passera à « En attente d’approbation » et deviendra en lecture seule jusqu’à la décision du méthodiste.",
+      "cancel": "Annuler",
+      "confirm": "Soumettre",
+      "submitting": "Envoi…",
+      "successToast": "Programme de travail soumis pour approbation"
+    },
+    "discardDialog": {
+      "title": "Archiver le brouillon ?",
+      "description": "Le brouillon sera déplacé vers les archives et retiré du travail actif. Cette action est irréversible.",
+      "cancel": "Annuler",
+      "confirm": "Archiver",
+      "submitting": "Archivage…",
+      "successToast": "Brouillon archivé"
     }
   },
   "curriculum": {
