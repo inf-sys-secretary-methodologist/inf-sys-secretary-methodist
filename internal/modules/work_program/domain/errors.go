@@ -43,3 +43,9 @@ var ErrDuplicateCompetenceCode = errors.New("work_program: competence code alrea
 // have no baseline to revise; pending_approval / archived programs
 // cannot accept new revisions per ADR-10. Handlers map to HTTP 422.
 var ErrRevisionNotPermitted = errors.New("work_program: revisions only allowed in status approved or needs_revision")
+
+// ErrGenerationRateLimited signals that the actor has exceeded the
+// per-user LLM draft-generation budget (5/hour per ADR-7). A distinct
+// sentinel so handlers map it to HTTP 429 (Too Many Requests) rather
+// than a generic forbidden/invalid response.
+var ErrGenerationRateLimited = errors.New("work_program: generation rate limit exceeded")
