@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/application/usecases"
 )
@@ -18,6 +19,10 @@ import (
 var systemPrompt string
 
 const defaultTimeout = 60 * time.Second
+
+// maxRespBytes caps how much of the upstream response we read into
+// memory, so a hostile or buggy provider cannot OOM the process.
+const maxRespBytes = 1 << 20 // 1 MiB
 
 // Config configures the OpenAI-compatible draft generator. BaseURL /
 // APIKey / Model are provider-agnostic (OpenRouter by default, but any
@@ -136,9 +141,17 @@ func (g *Generator) GenerateDraft(ctx context.Context, req usecases.DraftRequest
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxRespBytes))
 	if err != nil {
 		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: read response: %w", err)
+	}
+
+	// Check the status before decoding: a non-200 body is often non-JSON
+	// (e.g. an HTML gateway 502) and would otherwise fail json.Unmarshal
+	// with a misleading "decode response" error instead of the status.
+	if resp.StatusCode != http.StatusOK {
+		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: unexpected status %d: %s",
+			resp.StatusCode, truncate(string(respBody), 256))
 	}
 
 	var parsed chatResponse
@@ -147,10 +160,6 @@ func (g *Generator) GenerateDraft(ctx context.Context, req usecases.DraftRequest
 	}
 	if parsed.Error != nil {
 		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: api error: %s", parsed.Error.Message)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: unexpected status %d: %s",
-			resp.StatusCode, truncate(string(respBody), 256))
 	}
 	if len(parsed.Choices) == 0 {
 		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: response had no choices")
@@ -198,6 +207,11 @@ func stripCodeFence(s string) string {
 func truncate(s string, n int) string {
 	if len(s) <= n {
 		return s
+	}
+	// Back off to a rune boundary so the truncated error string never
+	// splits a multibyte rune mid-character.
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
 	}
 	return s[:n]
 }
