@@ -29,6 +29,7 @@ type MessagesShape = {
       statusOptions?: EnumGroup
     }
     card?: {
+      openAria?: string
       discipline?: string
       year?: string
       specialty?: string
@@ -111,6 +112,7 @@ describe('workProgram i18n parity × 4 locales', () => {
 
   it.each(locales)('%s has card labels + all status pills', (_name, msgs) => {
     const c = msgs.workProgram?.card
+    expect(c?.openAria).toBeTruthy()
     expect(c?.discipline).toBeTruthy()
     expect(c?.year).toBeTruthy()
     expect(c?.specialty).toBeTruthy()
