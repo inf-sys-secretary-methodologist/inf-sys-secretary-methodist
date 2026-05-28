@@ -442,3 +442,48 @@ func TestWorkProgramHandler_Submit_VersionConflictMaps409(t *testing.T) {
 	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/submit", nil)
 	assert.Equal(t, http.StatusConflict, w.Code)
 }
+
+// ===== Approve =====
+
+func approveRouter(fa *fakeApprove, mw ...gin.HandlerFunc) *gin.Engine {
+	return newRouterFull(&fakeCreate{}, &fakeGet{}, &fakeList{}, &fakeSubmit{}, fa, &fakeReject{}, &fakeDiscard{}, mw...)
+}
+
+func TestWorkProgramHandler_Approve_HappyPath(t *testing.T) {
+	fa := &fakeApprove{result: sampleWP(t)}
+	r := approveRouter(fa, withAuth(5, "methodist"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/approve", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, fa.called)
+	assert.Equal(t, int64(99), fa.gotID)
+	// Approver identity derives from the JWT actor, not the request body.
+	assert.Equal(t, int64(5), fa.gotActor)
+}
+
+func TestWorkProgramHandler_Approve_Unauthenticated(t *testing.T) {
+	r := approveRouter(&fakeApprove{})
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/approve", nil)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestWorkProgramHandler_Approve_InvalidIDMaps400(t *testing.T) {
+	r := approveRouter(&fakeApprove{}, withAuth(5, "methodist"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/abc/approve", nil)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// A non-approver (teacher) hitting approve is scope-denied → collapsed to
+// 404 for the non-admin (IDOR), not 403.
+func TestWorkProgramHandler_Approve_ForbiddenHiddenAs404ForNonAdmin(t *testing.T) {
+	fa := &fakeApprove{err: domain.ErrWorkProgramScopeForbidden}
+	r := approveRouter(fa, withAuth(7, "teacher"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/approve", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestWorkProgramHandler_Approve_InvalidTransitionMaps422(t *testing.T) {
+	fa := &fakeApprove{err: domain.ErrInvalidStatusTransition}
+	r := approveRouter(fa, withAuth(5, "methodist"))
+	w := doJSON(t, r, http.MethodPost, "/api/v1/work-programs/99/approve", nil)
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+}
