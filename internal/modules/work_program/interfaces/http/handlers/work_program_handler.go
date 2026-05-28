@@ -337,18 +337,6 @@ func mapWorkProgramError(c *gin.Context, err error, hideForbiddenAsNotFound bool
 		}
 	case errors.Is(err, repositories.ErrWorkProgramIdentityExists):
 		c.JSON(http.StatusConflict, response.ErrorResponse("IDENTITY_EXISTS", "a work program with this discipline + specialty + year already exists"))
-	case errors.Is(err, repositories.ErrWorkProgramVersionConflict):
-		c.JSON(http.StatusConflict, response.ErrorResponse("VERSION_CONFLICT", "work program was modified concurrently; reload + retry"))
-	case errors.Is(err, domain.ErrInvalidStatusTransition):
-		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("INVALID_TRANSITION", err.Error()))
-	case errors.Is(err, domain.ErrRejectReasonRequired):
-		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("REJECT_REASON_REQUIRED", err.Error()))
-	case errors.Is(err, domain.ErrCannotEditFrozenStatus):
-		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("CANNOT_EDIT", err.Error()))
-	case errors.Is(err, domain.ErrDuplicateCompetenceCode):
-		c.JSON(http.StatusConflict, response.ErrorResponse("DUPLICATE_COMPETENCE", err.Error()))
-	case errors.Is(err, domain.ErrRevisionNotPermitted):
-		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("REVISION_NOT_PERMITTED", err.Error()))
 	case errors.Is(err, domain.ErrInvalidWorkProgram):
 		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("INVALID_WORK_PROGRAM", err.Error()))
 	default:
