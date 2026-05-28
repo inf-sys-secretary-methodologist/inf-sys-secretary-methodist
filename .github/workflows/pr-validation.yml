@@ -79,14 +79,21 @@ jobs:
         BRANCH_NAME="${{ github.head_ref }}"
         echo "Checking branch name: $BRANCH_NAME"
 
-        # Allowed patterns: feature/issue-N-description, task/issue-N-description, etc.
-        if [[ ! "$BRANCH_NAME" =~ ^(feature|task|bugfix|hotfix|config|chore|docs|refactor)/(issue-[0-9]+(\.[0-9]+)?-[a-z0-9-]+)$ ]]; then
+        # Allowed patterns:
+        #   <type>/issue-<N>-<desc>       e.g. feature/issue-123-user-auth
+        #   <type>/issue-<N.M>-<desc>     e.g. task/issue-2.1-go-module-setup
+        #   <type>/v<MAJOR.MINOR.PATCH>-<desc>  e.g. feature/v0.180.0-work-program-http
+        # The version-prefixed form is used for release-scoped work (one
+        # branch per minor/patch release) — the dominant convention in this
+        # repo. Both forms enforce a <type>/ prefix + descriptive slug.
+        if [[ ! "$BRANCH_NAME" =~ ^(feature|task|bugfix|hotfix|config|chore|docs|refactor)/((issue-[0-9]+(\.[0-9]+)?|v[0-9]+\.[0-9]+\.[0-9]+)-[a-z0-9-]+)$ ]]; then
           echo "❌ Invalid branch name format!"
-          echo "Expected format: <type>/issue-<number>-<description>"
+          echo "Expected format: <type>/issue-<number>-<description> OR <type>/v<major.minor.patch>-<description>"
           echo "Examples:"
           echo "  - feature/issue-123-user-authentication"
           echo "  - task/issue-2.1-go-module-setup"
           echo "  - bugfix/issue-456-login-validation"
+          echo "  - feature/v0.180.0-work-program-http"
           exit 1
         fi
         echo "✅ Branch name is valid"
