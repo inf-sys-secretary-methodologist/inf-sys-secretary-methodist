@@ -2564,6 +2564,29 @@
       "successToast": "Work programme rejected and returned to the author",
       "reasonLabel": "Rejection reason",
       "reasonPlaceholder": "E.g.: hours do not match the curriculum"
+    },
+    "createDialog": {
+      "title": "Create work program",
+      "description": "Create a draft work program. Once created you can fill in goals, competences, topics, assessment funds and references, then submit it for approval.",
+      "labels": {
+        "title": "Title",
+        "disciplineId": "Discipline ID",
+        "specialty": "Specialty code",
+        "year": "Intake year",
+        "annotation": "Annotation"
+      },
+      "placeholders": {
+        "disciplineId": "e.g. 42",
+        "specialty": "e.g. 09.03.01",
+        "year": "e.g. 2026"
+      },
+      "validation": {
+        "yearRange": "Intake year must be between {min} and {max}"
+      },
+      "cancel": "Cancel",
+      "create": "Create",
+      "creating": "Creating…",
+      "successToast": "Work program draft created"
     }
   },
   "curriculum": {
