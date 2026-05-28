@@ -147,6 +147,34 @@ export function canWriteCurriculum(userRole?: UserRole | string): boolean {
   return CURRICULUM_WRITE_ROLES.includes(userRole as UserRole)
 }
 
+// WORK_PROGRAM_CREATE_ROLES — roles permitted to create a РПД (рабочая
+// программа дисциплины) draft via UI. Mirrors the backend create
+// authorization (work-program ADR-5): teacher is the primary author of
+// their own discipline, methodist is the reserve author, admin retains
+// override. academic_secretary owns curriculum (not РПД) and student is
+// view-only, so both are excluded.
+export const WORK_PROGRAM_CREATE_ROLES: UserRole[] = [
+  UserRole.SYSTEM_ADMIN,
+  UserRole.METHODIST,
+  UserRole.TEACHER,
+]
+
+// WORK_PROGRAM_APPROVE_ROLES — roles permitted to approve/reject a
+// pending РПД. The teacher authors but cannot approve their own work;
+// methodist is the approver (методотдел/проректор combined per ADR-5),
+// admin retains emergency override.
+export const WORK_PROGRAM_APPROVE_ROLES: UserRole[] = [UserRole.SYSTEM_ADMIN, UserRole.METHODIST]
+
+export function canCreateWorkProgram(userRole?: UserRole | string): boolean {
+  if (!userRole) return false
+  return WORK_PROGRAM_CREATE_ROLES.includes(userRole as UserRole)
+}
+
+export function canApproveWorkProgram(userRole?: UserRole | string): boolean {
+  if (!userRole) return false
+  return WORK_PROGRAM_APPROVE_ROLES.includes(userRole as UserRole)
+}
+
 /** @deprecated Use can(role, resource, action) instead */
 export function canEdit(userRole?: UserRole | string): boolean {
   if (!userRole) return false
