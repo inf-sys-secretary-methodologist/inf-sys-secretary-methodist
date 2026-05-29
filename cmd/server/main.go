@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.188.0
+// @version         0.189.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -161,7 +161,9 @@ import (
 	usersHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/handlers"
 	usersRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/users/interfaces/http/routes"
 	wpUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/application/usecases"
+	wpLLM "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/infrastructure/llm"
 	wpPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/infrastructure/persistence"
+	wpRateLimit "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/infrastructure/ratelimit"
 	wpHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/interfaces/http/handlers"
 	adminAuditLog "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/auditlog"
 	adminBackups "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/admin/backups"
@@ -186,7 +188,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.188.0"
+const versionString = "0.189.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -2741,9 +2743,32 @@ func setupRoutes(
 			rejectWPUC := wpUsecases.NewRejectWorkProgramUseCase(wpRepo, auditLogger)
 			discardWPUC := wpUsecases.NewDiscardDraftWorkProgramUseCase(wpRepo, auditLogger)
 
+			// LLM draft generation (PR 5b / v0.189.0): OpenAI-compatible
+			// generator (OpenRouter by default) + curriculum discipline
+			// enrichment + Redis rate limit. Generation degrades to
+			// allow-all when Redis is unavailable so the feature still
+			// works (the cost guard is best-effort, not a hard dependency).
+			wpDraftGen := wpLLM.NewGenerator(wpLLM.Config{
+				BaseURL:     cfg.AI.GenerationBaseURL,
+				APIKey:      cfg.AI.GenerationAPIKey,
+				Model:       cfg.AI.GenerationModel,
+				Timeout:     cfg.AI.Timeout,
+				Temperature: cfg.AI.GenerationTemperature,
+				MaxTokens:   cfg.AI.GenerationMaxTokens,
+			})
+			wpDisciplineInfo := newDisciplineInfoAdapter(curPersistence.NewDisciplineItemRepositoryPG(db))
+			var wpGenLimiter wpUsecases.GenerationRateLimiter = allowAllGenerationLimiter{}
+			if redisCache != nil {
+				wpGenLimiter = wpRateLimit.NewGenerationLimiter(redisCache.Client(), 5, time.Hour)
+			} else {
+				logger.Warn("РПД draft generation rate limiting disabled — Redis unavailable; LLM spend is uncapped", nil)
+			}
+			generateWPUC := wpUsecases.NewGenerateDraftUseCase(wpRepo, wpDraftGen, wpDisciplineInfo, wpGenLimiter, auditLogger)
+
 			workProgramHandler := wpHandler.NewWorkProgramHandler(
 				createWPUC, getWPUC, listWPUC,
 				submitWPUC, approveWPUC, rejectWPUC, discardWPUC,
+				generateWPUC,
 			)
 			// Routes mount under /api/v1/work-programs — wrap the
 			// protected group in /v1 (mirror extracurricular) so the

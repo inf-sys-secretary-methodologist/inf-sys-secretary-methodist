@@ -183,6 +183,16 @@ type AIConfig struct {
 	FallbackEmbeddingBaseURL        string // Fallback embedding base URL
 	FallbackEmbeddingModel          string // Fallback embedding model
 	FallbackEmbeddingDimensionality int    // Fallback embedding dimensionality
+
+	// WorkProgram (РПД) LLM draft generation — a separate configurable
+	// DI point from the RAG chat config above. OpenAI-compatible; defaults
+	// to OpenRouter. Changing base_url/key/model serves OpenRouter / OpenAI
+	// / Groq without touching the chat providers.
+	GenerationBaseURL     string  // Draft-generation API base URL
+	GenerationAPIKey      string  // Draft-generation API key
+	GenerationModel       string  // Draft-generation model id
+	GenerationMaxTokens   int     // Max tokens for a generated draft
+	GenerationTemperature float64 // Temperature for draft generation
 }
 
 // S3Config holds S3/MinIO storage configuration
@@ -328,6 +338,12 @@ func Load() (*Config, error) {
 			FallbackEmbeddingBaseURL:        getEnv("AI_FALLBACK_EMBEDDING_BASE_URL", ""),
 			FallbackEmbeddingModel:          getEnv("AI_FALLBACK_EMBEDDING_MODEL", ""),
 			FallbackEmbeddingDimensionality: getEnvAsInt("AI_FALLBACK_EMBEDDING_DIMENSIONALITY", 0),
+
+			GenerationBaseURL:     getEnv("LLM_GENERATION_BASE_URL", "https://openrouter.ai/api/v1"),
+			GenerationAPIKey:      getEnv("LLM_GENERATION_API_KEY", ""),
+			GenerationModel:       getEnv("LLM_GENERATION_MODEL", "openai/gpt-4o-mini"),
+			GenerationMaxTokens:   getEnvAsInt("LLM_GENERATION_MAX_TOKENS", 4096),
+			GenerationTemperature: getEnvAsFloat("LLM_GENERATION_TEMPERATURE", 0.4),
 		},
 		Backup: BackupConfig{
 			FilesDir:   getEnv("BACKUP_FILES_DIR", "/var/backups"),
