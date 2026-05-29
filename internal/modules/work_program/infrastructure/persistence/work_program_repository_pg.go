@@ -160,7 +160,7 @@ const wpListColumns = `id, discipline_id, specialty_code, applicable_from_year, 
 const wpListFilterClause = `WHERE ($1 = '' OR status = $1)
 		AND ($2::bigint IS NULL OR discipline_id = $2::bigint)
 		AND ($3 = '' OR specialty_code = $3)
-		AND ($4::int IS NULL OR applicable_from_year = $4::int)
+		AND ($4::bigint IS NULL OR applicable_from_year = $4::bigint)
 		AND ($5::bigint IS NULL OR author_id = $5::bigint)`
 
 // List returns a page of WorkProgram items matching the filter
@@ -176,9 +176,13 @@ func (r *WorkProgramRepositoryPG) List(ctx context.Context, filter repositories.
 	if filter.DisciplineID != nil {
 		disciplineArg = sql.NullInt64{Int64: *filter.DisciplineID, Valid: true}
 	}
-	var yearArg sql.NullInt32
+	var yearArg sql.NullInt64
 	if filter.ApplicableFromYear != nil {
-		yearArg = sql.NullInt32{Int32: int32(*filter.ApplicableFromYear), Valid: true} // #nosec G115 -- domain bounds year ≤ 2100
+		// Carried as int64 (no int32 narrowing): the filter year is
+		// untrusted query input, so a value past int32's range must not
+		// wrap and spuriously match a stored cohort year. Out-of-range
+		// years simply match no row.
+		yearArg = sql.NullInt64{Int64: int64(*filter.ApplicableFromYear), Valid: true}
 	}
 	var authorArg sql.NullInt64
 	if filter.AuthorID != nil {

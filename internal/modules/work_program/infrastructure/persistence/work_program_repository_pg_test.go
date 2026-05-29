@@ -441,13 +441,13 @@ func TestWorkProgramRepositoryPG_List_FilterByAuthor_PassesAuthorIDArg(t *testin
 	authorID := int64(7)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM work_programs")).
 		WithArgs(
-			"", sql.NullInt64{}, "", sql.NullInt32{},
+			"", sql.NullInt64{}, "", sql.NullInt64{},
 			sql.NullInt64{Int64: 7, Valid: true},
 		).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs")).
 		WithArgs(
-			"", sql.NullInt64{}, "", sql.NullInt32{},
+			"", sql.NullInt64{}, "", sql.NullInt64{},
 			sql.NullInt64{Int64: 7, Valid: true},
 			20, 0,
 		).
@@ -513,12 +513,12 @@ func TestWorkProgramRepositoryPG_List_FilterByStatusAndSpecialty(t *testing.T) {
 	status := domain.StatusApproved
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM work_programs")).
 		WithArgs(
-			"approved", sql.NullInt64{}, "09.03.01", sql.NullInt32{}, sql.NullInt64{},
+			"approved", sql.NullInt64{}, "09.03.01", sql.NullInt64{}, sql.NullInt64{},
 		).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(3))
 	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs")).
 		WithArgs(
-			"approved", sql.NullInt64{}, "09.03.01", sql.NullInt32{}, sql.NullInt64{},
+			"approved", sql.NullInt64{}, "09.03.01", sql.NullInt64{}, sql.NullInt64{},
 			10, 20,
 		).
 		WillReturnRows(sqlmock.NewRows(wpListColumnsTest()).
