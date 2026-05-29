@@ -156,6 +156,7 @@ func (uc *GenerateDraftUseCase) Execute(
 	fields["competences"] = len(result.Competences)
 	fields["topics"] = len(result.Topics)
 	fields["references"] = len(result.References)
+	fields["assessments"] = len(result.Assessments)
 	emitAudit(uc.audit, ctx, "work_program.generated", fields)
 	return wp, nil
 }
@@ -209,6 +210,20 @@ func applyDraft(wp *entities.WorkProgram, r DraftResult) error {
 			return err
 		}
 		if err := wp.AddReference(reference); err != nil {
+			return err
+		}
+	}
+	for _, asm := range r.Assessments {
+		assessment, err := entities.NewAssessmentCriterion(entities.NewAssessmentCriterionInput{
+			Type:             domain.AssessmentType(asm.Type),
+			Description:      asm.Description,
+			MaxScore:         asm.MaxScore,
+			ExampleQuestions: asm.ExampleQuestions,
+		})
+		if err != nil {
+			return err
+		}
+		if err := wp.AddAssessment(assessment); err != nil {
 			return err
 		}
 	}
