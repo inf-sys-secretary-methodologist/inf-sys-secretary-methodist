@@ -330,6 +330,20 @@ func (w *WorkProgram) SubmitRevision(revisionID int64) error {
 	return nil
 }
 
+// ApproveRevision transitions the identified inner Revision from
+// pending_approval to approved, recording approverID. STUB — real
+// lookup + delegation lands in GREEN.
+func (w *WorkProgram) ApproveRevision(revisionID, approverID int64) error {
+	return fmt.Errorf("%w: id %d", domain.ErrRevisionNotFound, revisionID)
+}
+
+// RejectRevision transitions the identified inner Revision from
+// pending_approval to rejected with a reason. STUB — real lookup +
+// delegation lands in GREEN.
+func (w *WorkProgram) RejectRevision(revisionID int64, reason string) error {
+	return fmt.Errorf("%w: id %d", domain.ErrRevisionNotFound, revisionID)
+}
+
 // findRevision returns the inner Revision with the given id, or nil if
 // none belongs to this aggregate. Shared by the revision transition
 // methods so lookup semantics stay consistent.
