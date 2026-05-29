@@ -212,7 +212,12 @@ const (
 
 // IsValid reports whether s is one of the two canonical change scopes.
 func (s MinobrnaukiOrderChangeScope) IsValid() bool {
-	return false // STUB (PR 6a RED) — real switch lands in GREEN
+	switch s {
+	case MinobrnaukiOrderChangeScopeMinor, MinobrnaukiOrderChangeScopeMajor:
+		return true
+	default:
+		return false
+	}
 }
 
 // String returns the wire-form.
