@@ -33,7 +33,7 @@ func NewGetMinobrnaukiOrderUseCase(repo getMinobrnaukiOrderRepo) *GetMinobrnauki
 
 // Execute applies the read gate, loads the order, then loads its
 // affected-work-program set. Returns ErrMinobrnaukiOrderScopeForbidden
-// for students, or repositories.ErrMinobrnaukiOrderNotFound (propagated
+// for non-staff roles, or repositories.ErrMinobrnaukiOrderNotFound (propagated
 // from the repo) when the id does not exist. FindAffected runs only
 // after GetByID succeeds, so a missing order short-circuits cleanly.
 func (uc *GetMinobrnaukiOrderUseCase) Execute(ctx context.Context, actorRole string, id int64) (*entities.MinobrnaukiOrder, []int64, error) {
@@ -75,7 +75,7 @@ func NewListMinobrnaukiOrdersUseCase(repo listMinobrnaukiOrdersRepo) *ListMinobr
 // Execute applies the read gate then delegates to the repo. Orders are
 // not author-scoped, so the filter passes through unchanged (no role
 // rewrite, unlike WorkProgram List). Returns
-// ErrMinobrnaukiOrderScopeForbidden for students.
+// ErrMinobrnaukiOrderScopeForbidden for non-staff roles.
 func (uc *ListMinobrnaukiOrdersUseCase) Execute(ctx context.Context, actorRole string, filter repositories.MinobrnaukiOrderListFilter) (repositories.MinobrnaukiOrderListResult, error) {
 	if !isAllowedToViewMinobrnaukiOrders(actorRole) {
 		return repositories.MinobrnaukiOrderListResult{}, fmt.Errorf("%w: role %q cannot list minobrnauki orders", domain.ErrMinobrnaukiOrderScopeForbidden, actorRole)
