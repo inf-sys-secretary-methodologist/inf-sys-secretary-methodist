@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.193.0
+// @version         0.194.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -188,7 +188,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.193.0"
+const versionString = "0.194.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -2776,6 +2776,18 @@ func setupRoutes(
 			wpV1Group := protectedGroup.Group("/v1")
 			wpHandler.RegisterWorkProgramRoutes(wpV1Group, workProgramHandler)
 			logger.Info("Work program (РПД) module routes registered", nil)
+
+			// Минобрнауки order register (PR 6b-2, v0.194.0) — ADR-11.
+			// Record (staff only) / Get / List on the same /api/v1 group.
+			// The affected-work-program set is persisted with the order;
+			// trigger-revision delegation to teachers lands in a later slice.
+			moRepo := wpPersistence.NewMinobrnaukiOrderRepositoryPG(db)
+			recordMOUC := wpUsecases.NewRecordMinobrnaukiOrderUseCase(moRepo, auditLogger)
+			getMOUC := wpUsecases.NewGetMinobrnaukiOrderUseCase(moRepo)
+			listMOUC := wpUsecases.NewListMinobrnaukiOrdersUseCase(moRepo)
+			moHandler := wpHandler.NewMinobrnaukiOrderHandler(recordMOUC, getMOUC, listMOUC)
+			wpHandler.RegisterMinobrnaukiOrderRoutes(wpV1Group, moHandler)
+			logger.Info("Минобрнауки order routes registered", nil)
 		}
 
 		// Schedule/Events module routes
