@@ -40,7 +40,13 @@ CREATE TABLE IF NOT EXISTS minobrnauki_orders (
     CONSTRAINT chk_mo_change_scope_enum
         CHECK (change_scope IN ('minor','major')),
     CONSTRAINT chk_mo_summary_length
-        CHECK (summary IS NULL OR length(summary) <= 4096)
+        CHECK (summary IS NULL OR length(summary) <= 4096),
+    -- Mirrors the entity's published_at IsZero() invariant: DATE NOT NULL
+    -- blocks NULL but not Go's zero time.Time (0001-01-01), which is a valid
+    -- DATE. The 1900 floor catches that and any nonsensical Reconstitute /
+    -- direct-SQL path (Минобрнауки orders are modern artifacts).
+    CONSTRAINT chk_mo_published_at_sane
+        CHECK (published_at > DATE '1900-01-01')
 );
 
 CREATE INDEX IF NOT EXISTS idx_minobrnauki_orders_uploaded_by

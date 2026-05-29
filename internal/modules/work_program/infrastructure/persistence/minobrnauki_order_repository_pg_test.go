@@ -126,6 +126,22 @@ func TestMinobrnaukiOrderRepositoryPG_Save_BeginTxFailure_Surfaces(t *testing.T)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestMinobrnaukiOrderRepositoryPG_Save_OrderInsertFailure_RollsBack(t *testing.T) {
+	repo, mock := newMORepoMock(t)
+	o := validOrder(t)
+	boom := errors.New("simulated order insert failure")
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO minobrnauki_orders")).
+		WillReturnError(boom)
+	mock.ExpectRollback()
+
+	err := repo.Save(context.Background(), o, nil)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, boom, "order-insert failure must surface and roll back the tx")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 // --- GetByID ---
 
 func TestMinobrnaukiOrderRepositoryPG_GetByID_HappyPath(t *testing.T) {
@@ -236,6 +252,50 @@ func TestMinobrnaukiOrderRepositoryPG_List_FilterByScopeAndUploader_PassesArgs(t
 	require.NoError(t, err)
 	assert.Equal(t, 1, got.Total)
 	assert.Empty(t, got.Items)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestMinobrnaukiOrderRepositoryPG_List_CountQueryError_Surfaces(t *testing.T) {
+	repo, mock := newMORepoMock(t)
+	boom := errors.New("simulated count failure")
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM minobrnauki_orders")).
+		WillReturnError(boom)
+
+	_, err := repo.List(context.Background(), repositories.MinobrnaukiOrderListFilter{Limit: 20})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, boom)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestMinobrnaukiOrderRepositoryPG_List_ListQueryError_Surfaces(t *testing.T) {
+	repo, mock := newMORepoMock(t)
+	boom := errors.New("simulated list failure")
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM minobrnauki_orders")).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM minobrnauki_orders")).
+		WillReturnError(boom)
+
+	_, err := repo.List(context.Background(), repositories.MinobrnaukiOrderListFilter{Limit: 20})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, boom)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestMinobrnaukiOrderRepositoryPG_List_RowIterationError_Surfaces(t *testing.T) {
+	repo, mock := newMORepoMock(t)
+	now := time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC)
+	pub := time.Date(2026, 5, 12, 0, 0, 0, 0, time.UTC)
+	boom := errors.New("simulated row iteration failure")
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM minobrnauki_orders")).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM minobrnauki_orders")).
+		WillReturnRows(sqlmock.NewRows(moColumns()).
+			AddRow(int64(1), "№ 1", "A", pub, sql.NullInt64{}, "minor", sql.NullString{}, int64(42), now).
+			RowError(0, boom))
+
+	_, err := repo.List(context.Background(), repositories.MinobrnaukiOrderListFilter{Limit: 20})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, boom)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
