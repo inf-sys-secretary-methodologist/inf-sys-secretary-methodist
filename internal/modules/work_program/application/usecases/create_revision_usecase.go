@@ -2,8 +2,12 @@ package usecases
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
 )
 
 // CreateRevisionInput is the public request DTO for proposing a лист
@@ -41,9 +45,62 @@ func NewCreateRevisionUseCase(repo createRevisionRepo, audit AuditSink) *CreateR
 	return &CreateRevisionUseCase{repo: repo, audit: audit}
 }
 
-// Execute proposes a revision. STUB — real flow lands in GREEN.
+// Execute runs the propose-revision flow:
+//  1. Load by id; ErrWorkProgramNotFound → 'not_found' denial.
+//  2. Authorize: actor must be author OR system_admin → otherwise
+//     ErrWorkProgramScopeForbidden + 'forbidden' denial.
+//  3. Build the Revision through NewRevision (invariant gate);
+//     ErrInvalidWorkProgram → 'invalid' denial.
+//  4. wp.AddRevision applies the parent-status + monotonic-number
+//     gate; ErrRevisionNotPermitted → 'not_permitted' denial.
+//  5. Persist via repo.Update. Transport errors propagate without
+//     audit (audit log = policy decisions, not infra outages).
 func (uc *CreateRevisionUseCase) Execute(ctx context.Context, actorID int64, actorRole string, in CreateRevisionInput) (*entities.WorkProgram, error) {
-	_ = uc.repo
-	_ = uc.audit
-	return nil, nil
+	wp, err := uc.repo.GetByID(ctx, in.WorkProgramID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrWorkProgramNotFound) {
+			emitAudit(uc.audit, ctx, "work_program.revision_create_denied",
+				denialFields(actorID, in.WorkProgramID, "not_found", ""))
+		}
+		return nil, err
+	}
+
+	if !isAuthorOrSystemAdmin(actorID, actorRole, wp.AuthorID()) {
+		emitAudit(uc.audit, ctx, "work_program.revision_create_denied",
+			denialFields(actorID, in.WorkProgramID, "forbidden", wp.SpecialtyCode()))
+		return nil, fmt.Errorf("%w: actor %d is not the author (%d) and not system_admin",
+			domain.ErrWorkProgramScopeForbidden, actorID, wp.AuthorID())
+	}
+
+	rev, err := entities.NewRevision(entities.NewRevisionInput{
+		WorkProgramID:  wp.ID(),
+		RevisionNumber: wp.NextRevisionNumber(),
+		ChangeType:     domain.RevisionChangeType(in.ChangeType),
+		ChangeSummary:  in.ChangeSummary,
+		AuthorID:       actorID,
+		DiffPayload:    in.DiffPayload,
+	})
+	if err != nil {
+		emitAudit(uc.audit, ctx, "work_program.revision_create_denied",
+			denialFields(actorID, in.WorkProgramID, "invalid", wp.SpecialtyCode()))
+		return nil, err
+	}
+
+	if err := wp.AddRevision(rev); err != nil {
+		if errors.Is(err, domain.ErrRevisionNotPermitted) {
+			emitAudit(uc.audit, ctx, "work_program.revision_create_denied",
+				denialFields(actorID, in.WorkProgramID, "not_permitted", wp.SpecialtyCode()))
+		}
+		return nil, err
+	}
+
+	if err := uc.repo.Update(ctx, wp); err != nil {
+		return nil, err
+	}
+
+	fields := successFields(actorID, wp.ID(), wp.SpecialtyCode(), string(wp.Status()))
+	fields["revision_number"] = rev.RevisionNumber()
+	fields["change_type"] = string(rev.ChangeType())
+	emitAudit(uc.audit, ctx, "work_program.revision_created", fields)
+	return wp, nil
 }
