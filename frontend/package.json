@@ -1,6 +1,6 @@
 {
   "name": "inf-sys-secretary-methodist-frontend",
-  "version": "0.194.1",
+  "version": "0.195.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
