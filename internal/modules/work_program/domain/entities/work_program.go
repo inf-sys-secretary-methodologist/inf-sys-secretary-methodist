@@ -315,10 +315,31 @@ func (w *WorkProgram) AddRevision(r *Revision) error {
 
 // SubmitRevision transitions the identified inner Revision from draft
 // to pending_approval, mediated through the aggregate root so the
-// Revision stays encapsulated. STUB — real lookup + delegation lands
-// in GREEN.
+// Revision stays encapsulated. Returns ErrRevisionNotFound when no
+// revision with the id belongs to this program; otherwise delegates to
+// the Revision sub-FSM (ErrInvalidStatusTransition on wrong status).
 func (w *WorkProgram) SubmitRevision(revisionID int64) error {
-	return fmt.Errorf("%w: id %d", domain.ErrRevisionNotFound, revisionID)
+	rev := w.findRevision(revisionID)
+	if rev == nil {
+		return fmt.Errorf("%w: id %d", domain.ErrRevisionNotFound, revisionID)
+	}
+	if err := rev.Submit(); err != nil {
+		return err
+	}
+	w.updatedAt = time.Now().UTC()
+	return nil
+}
+
+// findRevision returns the inner Revision with the given id, or nil if
+// none belongs to this aggregate. Shared by the revision transition
+// methods so lookup semantics stay consistent.
+func (w *WorkProgram) findRevision(revisionID int64) *Revision {
+	for _, r := range w.revisions {
+		if r.ID() == revisionID {
+			return r
+		}
+	}
+	return nil
 }
 
 // NextRevisionNumber returns the expected revision_number for the
