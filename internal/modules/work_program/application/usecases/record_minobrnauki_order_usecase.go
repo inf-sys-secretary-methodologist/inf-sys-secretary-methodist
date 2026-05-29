@@ -2,9 +2,10 @@ package usecases
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
 )
 
@@ -50,9 +51,46 @@ func NewRecordMinobrnaukiOrderUseCase(repo recordMinobrnaukiOrderRepo, audit Aud
 	return &RecordMinobrnaukiOrderUseCase{repo: repo, audit: audit}
 }
 
-// Execute is a RED stub — real implementation lands in the GREEN commit.
-func (uc *RecordMinobrnaukiOrderUseCase) Execute(_ context.Context, _ int64, _ string, _ RecordMinobrnaukiOrderInput) (*entities.MinobrnaukiOrder, error) {
-	_ = uc.repo
-	_ = uc.audit
-	return nil, errors.New("work_program: record minobrnauki order not implemented (RED stub)")
+// Execute runs the use case end-to-end:
+//  1. Role gate per ADR-11 (methodist / academic_secretary / system_admin).
+//  2. Build the entity through NewMinobrnaukiOrder (invariant gate);
+//     UploadedBy is the actor, and the wire change_scope string is mapped
+//     to the domain enum (an unknown value fails the domain invariant).
+//  3. Persist via repo.Save together with the affected-work-program ids.
+//  4. Emit a forensic audit event reflecting success or domain denial.
+//     Transport errors propagate without an audit event — the audit log
+//     records policy decisions, not infrastructure outages.
+//
+// On domain failures the order is nil and the error wraps either
+// ErrMinobrnaukiOrderScopeForbidden or ErrInvalidMinobrnaukiOrder so
+// errors.Is resolves cleanly in handler error mapping.
+func (uc *RecordMinobrnaukiOrderUseCase) Execute(ctx context.Context, actorID int64, actorRole string, in RecordMinobrnaukiOrderInput) (*entities.MinobrnaukiOrder, error) {
+	if !isAllowedToRecordMinobrnaukiOrder(actorRole) {
+		emitOrderAudit(uc.audit, ctx, "minobrnauki_order.record_denied",
+			orderDenialFields(actorID, 0, "forbidden_role", in.OrderNumber))
+		return nil, fmt.Errorf("%w: role %q cannot record minobrnauki order", domain.ErrMinobrnaukiOrderScopeForbidden, actorRole)
+	}
+
+	order, err := entities.NewMinobrnaukiOrder(entities.NewMinobrnaukiOrderInput{
+		OrderNumber: in.OrderNumber,
+		Title:       in.Title,
+		PublishedAt: in.PublishedAt,
+		DocumentID:  in.DocumentID,
+		ChangeScope: domain.MinobrnaukiOrderChangeScope(in.ChangeScope),
+		Summary:     in.Summary,
+		UploadedBy:  actorID,
+	})
+	if err != nil {
+		emitOrderAudit(uc.audit, ctx, "minobrnauki_order.record_denied",
+			orderDenialFields(actorID, 0, "invalid", in.OrderNumber))
+		return nil, err
+	}
+
+	if err := uc.repo.Save(ctx, order, in.AffectedWorkProgramIDs); err != nil {
+		return nil, err
+	}
+
+	emitOrderAudit(uc.audit, ctx, "minobrnauki_order.recorded",
+		orderSuccessFields(actorID, order.ID(), order.OrderNumber(), string(order.ChangeScope())))
+	return order, nil
 }

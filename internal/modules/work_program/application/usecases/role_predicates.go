@@ -67,6 +67,17 @@ func isApprover(role string) bool {
 	return r == authDomain.RoleMethodist || r == authDomain.RoleSystemAdmin
 }
 
+// isAllowedToRecordMinobrnaukiOrder encodes the ADR-11 write gate for
+// приказы Минобрнауки: methodist records orders (primary), academic
+// secretary may record normative documents, system_admin override.
+// teacher and student cannot record orders.
+func isAllowedToRecordMinobrnaukiOrder(role string) bool {
+	r := authDomain.RoleType(role)
+	return r == authDomain.RoleMethodist ||
+		r == authDomain.RoleAcademicSecretary ||
+		r == authDomain.RoleSystemAdmin
+}
+
 // canViewWorkProgram encodes the ADR-018 ADR-5 view-rights matrix
 // for the single-row Get path.
 //
