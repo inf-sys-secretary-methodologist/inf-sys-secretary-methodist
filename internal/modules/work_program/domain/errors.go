@@ -56,3 +56,9 @@ var ErrGenerationRateLimited = errors.New("work_program: generation rate limit e
 // would append duplicates (and hard-fail on competence-code collision),
 // so the caller must clear the draft first. Handlers map to HTTP 409.
 var ErrWorkProgramNotEmpty = errors.New("work_program: draft already has content, clear before generating")
+
+// ErrInvalidMinobrnaukiOrder signals violation of a construction
+// invariant on the MinobrnaukiOrder entity (empty order_number/title,
+// zero published_at, invalid change_scope, non-positive uploaded_by,
+// etc.) per ADR-11. Handlers map this sentinel to HTTP 422.
+var ErrInvalidMinobrnaukiOrder = errors.New("work_program: invalid minobrnauki order invariant")
