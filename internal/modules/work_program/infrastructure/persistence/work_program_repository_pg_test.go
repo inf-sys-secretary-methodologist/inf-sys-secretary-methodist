@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"math"
 	"regexp"
 	"testing"
 	"time"
@@ -440,13 +441,13 @@ func TestWorkProgramRepositoryPG_List_FilterByAuthor_PassesAuthorIDArg(t *testin
 	authorID := int64(7)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM work_programs")).
 		WithArgs(
-			"", sql.NullInt64{}, "", sql.NullInt32{},
+			"", sql.NullInt64{}, "", sql.NullInt64{},
 			sql.NullInt64{Int64: 7, Valid: true},
 		).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs")).
 		WithArgs(
-			"", sql.NullInt64{}, "", sql.NullInt32{},
+			"", sql.NullInt64{}, "", sql.NullInt64{},
 			sql.NullInt64{Int64: 7, Valid: true},
 			20, 0,
 		).
@@ -460,6 +461,36 @@ func TestWorkProgramRepositoryPG_List_FilterByAuthor_PassesAuthorIDArg(t *testin
 	require.NoError(t, err)
 	assert.Equal(t, 1, got.Total)
 	assert.Len(t, got.Items, 1)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWorkProgramRepositoryPG_List_FilterByYear_PassesFullValueWithoutInt32Truncation(t *testing.T) {
+	repo, mock := newWPRepoMock(t)
+	// A filter year beyond the int32 range must reach the query intact.
+	// Narrowing to int32 would wrap (2^31 → a negative / small value) and
+	// could spuriously match a stored cohort year, so the arg is carried
+	// as int64 — like the discipline_id / author_id filters.
+	hugeYear := math.MaxInt32 + 1 // 2147483648 — one past int32's ceiling
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM work_programs")).
+		WithArgs(
+			"", sql.NullInt64{}, "", sql.NullInt64{Int64: int64(hugeYear), Valid: true}, sql.NullInt64{},
+		).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs")).
+		WithArgs(
+			"", sql.NullInt64{}, "", sql.NullInt64{Int64: int64(hugeYear), Valid: true}, sql.NullInt64{},
+			20, 0,
+		).
+		WillReturnRows(sqlmock.NewRows(wpListColumnsTest()))
+
+	year := hugeYear
+	got, err := repo.List(context.Background(), repositories.WorkProgramListFilter{
+		ApplicableFromYear: &year,
+		Limit:              20,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 0, got.Total)
+	assert.Empty(t, got.Items)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -482,12 +513,12 @@ func TestWorkProgramRepositoryPG_List_FilterByStatusAndSpecialty(t *testing.T) {
 	status := domain.StatusApproved
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM work_programs")).
 		WithArgs(
-			"approved", sql.NullInt64{}, "09.03.01", sql.NullInt32{}, sql.NullInt64{},
+			"approved", sql.NullInt64{}, "09.03.01", sql.NullInt64{}, sql.NullInt64{},
 		).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(3))
 	mock.ExpectQuery(regexp.QuoteMeta("FROM work_programs")).
 		WithArgs(
-			"approved", sql.NullInt64{}, "09.03.01", sql.NullInt32{}, sql.NullInt64{},
+			"approved", sql.NullInt64{}, "09.03.01", sql.NullInt64{}, sql.NullInt64{},
 			10, 20,
 		).
 		WillReturnRows(sqlmock.NewRows(wpListColumnsTest()).
