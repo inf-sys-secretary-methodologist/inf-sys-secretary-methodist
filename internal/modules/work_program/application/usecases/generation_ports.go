@@ -52,6 +52,18 @@ type ReferenceDraft struct {
 	Citation string
 }
 
+// AssessmentDraft is one generated ФОС (фонд оценочных средств) row.
+// ExampleQuestions is optional (≤ 10 entries). The use case maps it into
+// an AssessmentCriterion via the domain constructor, so a malformed row
+// (bad type enum, empty description, out-of-range max_score) fails the
+// whole generation rather than bypassing an invariant.
+type AssessmentDraft struct {
+	Type             string // current | intermediate | final
+	Description      string
+	MaxScore         int
+	ExampleQuestions []string
+}
+
 // DraftResult is the structured content a DraftGenerator produces for
 // an empty draft РПД. Annotation is intentionally NOT generated — the
 // author supplies it at creation (PR 8e); generation fills the
@@ -61,6 +73,7 @@ type DraftResult struct {
 	Competences []CompetenceDraft
 	Topics      []TopicDraft
 	References  []ReferenceDraft
+	Assessments []AssessmentDraft
 }
 
 // DisciplineInfo is curriculum-sourced metadata used to ground the

@@ -106,6 +106,12 @@ type draftWire struct {
 		Kind     string `json:"kind"`
 		Citation string `json:"citation"`
 	} `json:"references"`
+	Assessments []struct {
+		Type             string   `json:"type"`
+		Description      string   `json:"description"`
+		MaxScore         int      `json:"max_score"`
+		ExampleQuestions []string `json:"example_questions"`
+	} `json:"assessments"`
 }
 
 // GenerateDraft POSTs the discipline context to {BaseURL}/chat/completions
@@ -231,6 +237,14 @@ func toDraftResult(w draftWire) usecases.DraftResult {
 	for _, r := range w.References {
 		res.References = append(res.References, usecases.ReferenceDraft{
 			Kind: r.Kind, Citation: r.Citation,
+		})
+	}
+	for _, a := range w.Assessments {
+		res.Assessments = append(res.Assessments, usecases.AssessmentDraft{
+			Type:             a.Type,
+			Description:      a.Description,
+			MaxScore:         a.MaxScore,
+			ExampleQuestions: a.ExampleQuestions,
 		})
 	}
 	return res

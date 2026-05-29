@@ -102,6 +102,11 @@ func sampleResult() DraftResult {
 		References: []ReferenceDraft{
 			{Kind: "main", Citation: "Дейт К. Введение в системы баз данных"},
 		},
+		Assessments: []AssessmentDraft{
+			{Type: "current", Description: "Контрольная работа по нормализации", MaxScore: 30,
+				ExampleQuestions: []string{"Приведите отношение к 3НФ"}},
+			{Type: "final", Description: "Экзамен по курсу", MaxScore: 70},
+		},
 	}
 }
 
@@ -323,12 +328,23 @@ func TestGenerateDraftUseCase_HappyPath(t *testing.T) {
 			assert.Equal(t, domain.ReferenceKindMain, refs[0].Kind())
 			assert.Equal(t, "Дейт К. Введение в системы баз данных", refs[0].Citation())
 
+			asmts := got.Assessments()
+			require.Len(t, asmts, 2, "ФОС items must be generated into the draft")
+			assert.Equal(t, domain.AssessmentTypeCurrent, asmts[0].Type())
+			assert.Equal(t, "Контрольная работа по нормализации", asmts[0].Description())
+			assert.Equal(t, 30, asmts[0].MaxScore())
+			require.Len(t, asmts[0].ExampleQuestions(), 1)
+			assert.Equal(t, "Приведите отношение к 3НФ", asmts[0].ExampleQuestions()[0])
+			assert.Equal(t, domain.AssessmentTypeFinal, asmts[1].Type(), "ФОС items keep emitted order by slice position")
+			assert.Equal(t, 70, asmts[1].MaxScore())
+
 			assert.Equal(t, 1, repo.updateCalls)
 			assert.Same(t, wp, repo.updated)
 			require.Len(t, audit.events, 1)
 			assert.Equal(t, "work_program.generated", audit.events[0].Action)
 			assert.Equal(t, tc.actorID, audit.events[0].Fields["actor_user_id"])
 			assert.Equal(t, int64(100), audit.events[0].Fields["work_program_id"])
+			assert.Equal(t, 2, audit.events[0].Fields["assessments"], "success audit must count generated ФОС items")
 		})
 	}
 }
@@ -351,6 +367,31 @@ func TestGenerateDraftUseCase_NonEmptyDraftRejected(t *testing.T) {
 		"generating into a non-empty draft must be rejected, got %v", err)
 	assert.Zero(t, gen.calls, "must not call generator for a non-empty draft")
 	assert.Zero(t, repo.updateCalls, "must not persist when the draft is non-empty")
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "work_program.generate_denied", audit.events[0].Action)
+	assert.Equal(t, "not_empty", audit.events[0].Fields["reason"])
+}
+
+func TestGenerateDraftUseCase_NonEmptyDraftRejectedWhenOnlyAssessmentsPresent(t *testing.T) {
+	const authorID = int64(7)
+	wp := reconstituteWPWithStatus(t, 100, authorID, domain.StatusDraft)
+	existing, err := entities.NewAssessmentCriterion(entities.NewAssessmentCriterionInput{
+		Type: domain.AssessmentTypeCurrent, Description: "Уже существующий ФОС", MaxScore: 50,
+	})
+	require.NoError(t, err)
+	require.NoError(t, wp.AddAssessment(existing))
+
+	repo := &fakeGenerateRepo{wp: wp}
+	gen := &fakeDraftGenerator{result: sampleResult()}
+	disc := &fakeDisciplineProvider{info: sampleDisciplineInfo()}
+	audit := &recordingAuditSink{}
+	uc := NewGenerateDraftUseCase(repo, gen, disc, allowingLimiter(), audit)
+
+	_, err = uc.Execute(context.Background(), authorID, "teacher", 100)
+	assert.True(t, errors.Is(err, domain.ErrWorkProgramNotEmpty),
+		"a draft already carrying ФОС must not be regenerated over, got %v", err)
+	assert.Zero(t, gen.calls, "must not call generator when assessments already exist")
+	assert.Zero(t, repo.updateCalls, "must not persist over an existing ФОС")
 	require.Len(t, audit.events, 1)
 	assert.Equal(t, "work_program.generate_denied", audit.events[0].Action)
 	assert.Equal(t, "not_empty", audit.events[0].Fields["reason"])
@@ -397,6 +438,32 @@ func TestGenerateDraftUseCase_InvalidGeneratedContentRejected(t *testing.T) {
 	assert.True(t, errors.Is(err, domain.ErrInvalidWorkProgram),
 		"invalid generated content must surface as ErrInvalidWorkProgram, got %v", err)
 	assert.Zero(t, repo.updateCalls, "must not persist invalid generated content")
+}
+
+func TestGenerateDraftUseCase_InvalidGeneratedAssessmentRejected(t *testing.T) {
+	const authorID = int64(7)
+	cases := []struct {
+		name string
+		asm  AssessmentDraft
+	}{
+		{"bad_type", AssessmentDraft{Type: "midterm", Description: "X", MaxScore: 50}},
+		{"score_over_max", AssessmentDraft{Type: "current", Description: "X", MaxScore: 101}},
+		{"score_below_min", AssessmentDraft{Type: "final", Description: "X", MaxScore: 0}},
+		{"empty_description", AssessmentDraft{Type: "current", Description: "   ", MaxScore: 40}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			wp := reconstituteWPWithStatus(t, 100, authorID, domain.StatusDraft)
+			repo := &fakeGenerateRepo{wp: wp}
+			gen := &fakeDraftGenerator{result: DraftResult{Assessments: []AssessmentDraft{tc.asm}}}
+			uc := NewGenerateDraftUseCase(repo, gen, &fakeDisciplineProvider{}, allowingLimiter(), &recordingAuditSink{})
+
+			_, err := uc.Execute(context.Background(), authorID, "teacher", 100)
+			assert.True(t, errors.Is(err, domain.ErrInvalidWorkProgram),
+				"invalid generated ФОС must surface as ErrInvalidWorkProgram, got %v", err)
+			assert.Zero(t, repo.updateCalls, "must not persist an invalid generated ФОС")
+		})
+	}
 }
 
 func TestGenerateDraftUseCase_UpdateErrorPropagates(t *testing.T) {
