@@ -102,6 +102,11 @@ func sampleResult() DraftResult {
 		References: []ReferenceDraft{
 			{Kind: "main", Citation: "Дейт К. Введение в системы баз данных"},
 		},
+		Assessments: []AssessmentDraft{
+			{Type: "current", Description: "Контрольная работа по нормализации", MaxScore: 30,
+				ExampleQuestions: []string{"Приведите отношение к 3НФ"}},
+			{Type: "final", Description: "Экзамен по курсу", MaxScore: 70},
+		},
 	}
 }
 
@@ -323,12 +328,23 @@ func TestGenerateDraftUseCase_HappyPath(t *testing.T) {
 			assert.Equal(t, domain.ReferenceKindMain, refs[0].Kind())
 			assert.Equal(t, "Дейт К. Введение в системы баз данных", refs[0].Citation())
 
+			asmts := got.Assessments()
+			require.Len(t, asmts, 2, "ФОС items must be generated into the draft")
+			assert.Equal(t, domain.AssessmentTypeCurrent, asmts[0].Type())
+			assert.Equal(t, "Контрольная работа по нормализации", asmts[0].Description())
+			assert.Equal(t, 30, asmts[0].MaxScore())
+			require.Len(t, asmts[0].ExampleQuestions(), 1)
+			assert.Equal(t, "Приведите отношение к 3НФ", asmts[0].ExampleQuestions()[0])
+			assert.Equal(t, domain.AssessmentTypeFinal, asmts[1].Type(), "ФОС items keep emitted order by slice position")
+			assert.Equal(t, 70, asmts[1].MaxScore())
+
 			assert.Equal(t, 1, repo.updateCalls)
 			assert.Same(t, wp, repo.updated)
 			require.Len(t, audit.events, 1)
 			assert.Equal(t, "work_program.generated", audit.events[0].Action)
 			assert.Equal(t, tc.actorID, audit.events[0].Fields["actor_user_id"])
 			assert.Equal(t, int64(100), audit.events[0].Fields["work_program_id"])
+			assert.Equal(t, 2, audit.events[0].Fields["assessments"], "success audit must count generated ФОС items")
 		})
 	}
 }
