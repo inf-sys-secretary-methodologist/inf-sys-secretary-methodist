@@ -2,8 +2,12 @@ package usecases
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
 )
 
 // ApproveRevisionInput is the public request DTO. Actor + role flow
@@ -36,9 +40,49 @@ func NewApproveRevisionUseCase(repo approveRevisionRepo, audit AuditSink) *Appro
 	return &ApproveRevisionUseCase{repo: repo, audit: audit}
 }
 
-// Execute approves a revision. STUB — real flow lands in GREEN.
+// Execute runs the approve-revision flow:
+//  1. Role gate (isApprover): methodist OR system_admin → otherwise
+//     ErrWorkProgramScopeForbidden + 'forbidden_role' denial.
+//  2. Load by id; ErrWorkProgramNotFound → 'not_found' denial.
+//  3. wp.ApproveRevision applies the lookup + sub-FSM gate:
+//     ErrRevisionNotFound → 'revision_not_found',
+//     ErrInvalidStatusTransition → 'not_pending'. actorID is recorded
+//     on the revision as approverID (Рособрнадзор trail).
+//  4. Persist via repo.Update. Transport errors propagate without audit.
 func (uc *ApproveRevisionUseCase) Execute(ctx context.Context, actorID int64, actorRole string, in ApproveRevisionInput) (*entities.WorkProgram, error) {
-	_ = uc.repo
-	_ = uc.audit
-	return nil, nil
+	if !isApprover(actorRole) {
+		emitAudit(uc.audit, ctx, "work_program.revision_approve_denied",
+			denialFields(actorID, in.WorkProgramID, "forbidden_role", ""))
+		return nil, fmt.Errorf("%w: role %q cannot approve revisions", domain.ErrWorkProgramScopeForbidden, actorRole)
+	}
+
+	wp, err := uc.repo.GetByID(ctx, in.WorkProgramID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrWorkProgramNotFound) {
+			emitAudit(uc.audit, ctx, "work_program.revision_approve_denied",
+				denialFields(actorID, in.WorkProgramID, "not_found", ""))
+		}
+		return nil, err
+	}
+
+	if err := wp.ApproveRevision(in.RevisionID, actorID); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrRevisionNotFound):
+			emitAudit(uc.audit, ctx, "work_program.revision_approve_denied",
+				denialFields(actorID, in.WorkProgramID, "revision_not_found", wp.SpecialtyCode()))
+		case errors.Is(err, domain.ErrInvalidStatusTransition):
+			emitAudit(uc.audit, ctx, "work_program.revision_approve_denied",
+				denialFields(actorID, in.WorkProgramID, "not_pending", wp.SpecialtyCode()))
+		}
+		return nil, err
+	}
+
+	if err := uc.repo.Update(ctx, wp); err != nil {
+		return nil, err
+	}
+
+	fields := successFields(actorID, wp.ID(), wp.SpecialtyCode(), string(wp.Status()))
+	fields["revision_id"] = in.RevisionID
+	emitAudit(uc.audit, ctx, "work_program.revision_approved", fields)
+	return wp, nil
 }
