@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
 )
 
@@ -64,11 +65,63 @@ func NewTriggerOrderRevisionsUseCase(repo revisionTargetRepo, delegator Revision
 	return &TriggerOrderRevisionsUseCase{repo: repo, delegator: delegator, audit: audit}
 }
 
-// Execute drives each affected РПД into needs_revision and delegates a
-// teacher task. STUB — real behavior lands in the GREEN commit.
+// Execute walks the affected programs and, for each one currently in
+// approved status, drives it into needs_revision, persists it, and
+// delegates a revision task to its author (the discipline's teacher).
+// Programs not in approved status are skipped (a draft / pending one has
+// no approved edition to revise; an already-needs_revision one is left
+// untouched — MarkNeedsRevision's safe-noop semantics).
+//
+// The pass is best-effort: a per-program load / update / delegation error
+// is counted in Failures and does not abort the remaining programs. The
+// order itself is already persisted by the caller, so a partial trigger
+// never rolls it back; the returned result + audit event let the caller
+// surface what happened. The error return is reserved for a future hard
+// failure and is currently always nil.
 func (uc *TriggerOrderRevisionsUseCase) Execute(ctx context.Context, actorID, orderID int64, orderNumber string, affectedWorkProgramIDs []int64) (TriggerOrderRevisionsResult, error) {
-	_ = uc.repo
-	_ = uc.delegator
-	_ = uc.audit
-	return TriggerOrderRevisionsResult{}, nil
+	var res TriggerOrderRevisionsResult
+
+	for _, wpID := range affectedWorkProgramIDs {
+		wp, err := uc.repo.GetByID(ctx, wpID)
+		if err != nil {
+			res.Failures++
+			continue
+		}
+		if wp.Status() != domain.StatusApproved {
+			res.Skipped++
+			continue
+		}
+		if err := wp.MarkNeedsRevision(); err != nil {
+			res.Failures++
+			continue
+		}
+		if err := uc.repo.Update(ctx, wp); err != nil {
+			res.Failures++
+			continue
+		}
+		res.Marked++
+
+		if err := uc.delegator.DelegateRevision(ctx, RevisionDelegation{
+			CreatorID:          actorID,
+			TeacherID:          wp.AuthorID(),
+			WorkProgramID:      wp.ID(),
+			MinobrnaukiOrderID: orderID,
+			OrderNumber:        orderNumber,
+		}); err != nil {
+			res.Failures++
+			continue
+		}
+		res.Delegated++
+	}
+
+	emitOrderAudit(uc.audit, ctx, "minobrnauki_order.revisions_triggered", map[string]any{
+		"actor_user_id":        actorID,
+		"minobrnauki_order_id": orderID,
+		"order_number":         orderNumber,
+		"marked":               res.Marked,
+		"skipped":              res.Skipped,
+		"delegated":            res.Delegated,
+		"failures":             res.Failures,
+	})
+	return res, nil
 }
