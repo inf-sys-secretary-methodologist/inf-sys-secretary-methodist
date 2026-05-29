@@ -2461,7 +2461,9 @@
       "invalidWorkProgram": "The work program data is invalid",
       "forbidden": "You are not allowed to perform this action",
       "notFound": "Work program not found",
-      "generic": "The operation could not be completed"
+      "generic": "The operation could not be completed",
+      "rateLimited": "Generation request limit exceeded — try again later",
+      "draftNotEmpty": "The draft already has content — clear it before generating"
     },
     "detail": {
       "backToList": "Back to work programs",
@@ -2528,7 +2530,8 @@
         "submit": "Submit for approval",
         "discard": "Discard to archive",
         "approve": "Approve",
-        "reject": "Reject"
+        "reject": "Reject",
+        "generate": "Generate"
       }
     },
     "submitDialog": {
@@ -2587,6 +2590,14 @@
       "create": "Create",
       "creating": "Creating…",
       "successToast": "Work program draft created"
+    },
+    "generateDialog": {
+      "title": "Generate a work programme draft?",
+      "description": "AI will fill the empty draft — goals, competences, topics and references. Available only for an empty draft and subject to an hourly request limit. You can edit the generated text before submitting it for approval.",
+      "cancel": "Cancel",
+      "confirm": "Generate",
+      "generating": "Generating…",
+      "successToast": "Work programme draft generated"
     }
   },
   "curriculum": {

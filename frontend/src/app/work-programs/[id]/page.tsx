@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Loader2,
   Send,
+  Sparkles,
   XCircle,
 } from 'lucide-react'
 
@@ -21,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { useWorkProgram } from '@/hooks/useWorkPrograms'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { canApproveWorkProgram, canCreateWorkProgram } from '@/lib/auth/permissions'
+import { GenerateWorkProgramDialog } from '@/components/work-program/GenerateWorkProgramDialog'
 import { SubmitWorkProgramDialog } from '@/components/work-program/SubmitWorkProgramDialog'
 import { DiscardWorkProgramDialog } from '@/components/work-program/DiscardWorkProgramDialog'
 import { ApproveWorkProgramDialog } from '@/components/work-program/ApproveWorkProgramDialog'
@@ -107,6 +109,7 @@ function WorkProgramDetail({
   role?: string
   onMutate: () => void
 }) {
+  const [generateOpen, setGenerateOpen] = useState(false)
   const [submitOpen, setSubmitOpen] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
   const [approveOpen, setApproveOpen] = useState(false)
@@ -148,6 +151,10 @@ function WorkProgramDetail({
 
       {canDraftActions ? (
         <section className="flex flex-wrap gap-2">
+          <Button onClick={() => setGenerateOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            {t('detail.actions.generate')}
+          </Button>
           <Button onClick={() => setSubmitOpen(true)}>
             <Send className="h-4 w-4 mr-2" />
             {t('detail.actions.submit')}
@@ -287,6 +294,12 @@ function WorkProgramDetail({
         </ul>
       </Section>
 
+      <GenerateWorkProgramDialog
+        workProgramId={wp.id}
+        open={generateOpen}
+        onClose={() => setGenerateOpen(false)}
+        onGenerated={onMutate}
+      />
       <SubmitWorkProgramDialog
         workProgramId={wp.id}
         open={submitOpen}

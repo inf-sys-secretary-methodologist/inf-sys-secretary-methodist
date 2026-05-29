@@ -291,6 +291,58 @@ describe('WorkProgramDetailPage — draft author actions (8d-1)', () => {
   })
 })
 
+describe('WorkProgramDetailPage — generate action (8f)', () => {
+  const draftAuthor = {
+    user: { id: 5, role: 'teacher' as const },
+    isAuthenticated: true,
+    isLoading: false,
+  }
+
+  const wpInState = (status: WorkProgram['status']) => ({
+    workProgram: sample({ status }),
+    isLoading: false,
+    error: undefined,
+    mutate: jest.fn(),
+  })
+
+  beforeEach(() => {
+    mockUseParams.mockReturnValue({ id: '7' })
+    mockUseAuthCheck.mockReturnValue(draftAuthor)
+    mockUseWorkProgram.mockReturnValue(wpInState('draft'))
+  })
+
+  it('shows the generate action for an author on a draft', () => {
+    render(<WorkProgramDetailPage />)
+    expect(screen.getByRole('button', { name: 'detail.actions.generate' })).toBeInTheDocument()
+  })
+
+  it('opens the generate dialog when the generate action is clicked', () => {
+    render(<WorkProgramDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.actions.generate' }))
+    expect(screen.getByText('generateDialog.title')).toBeInTheDocument()
+  })
+
+  it('hides the generate action for a student (cannot author РПД)', () => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 9, role: 'student' as const },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.queryByRole('button', { name: 'detail.actions.generate' })
+    ).not.toBeInTheDocument()
+  })
+
+  it('hides the generate action when the programme is not a draft (approved)', () => {
+    mockUseWorkProgram.mockReturnValue(wpInState('approved'))
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.queryByRole('button', { name: 'detail.actions.generate' })
+    ).not.toBeInTheDocument()
+  })
+})
+
 describe('WorkProgramDetailPage — approver actions (8d-2)', () => {
   const methodist = {
     user: { id: 3, role: 'methodist' as const },
