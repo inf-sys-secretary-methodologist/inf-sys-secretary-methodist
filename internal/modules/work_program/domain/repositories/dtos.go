@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"time"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 )
 
@@ -40,4 +42,39 @@ type ListItem struct {
 	Status             domain.Status
 	AuthorID           int64
 	Version            int
+}
+
+// MinobrnaukiOrderListFilter parameterizes the MinobrnaukiOrderRepository
+// List query (приказы Минобрнауки per ADR-11). Non-nil fields combine
+// with AND semantics; an empty filter returns every order subject to
+// Limit / Offset.
+type MinobrnaukiOrderListFilter struct {
+	ChangeScope *domain.MinobrnaukiOrderChangeScope // optional
+	UploadedBy  *int64                              // optional, e.g. "orders I recorded"
+	Limit       int                                 // pagination, > 0
+	Offset      int                                 // pagination, ≥ 0
+}
+
+// MinobrnaukiOrderListResult bundles the page items with the total count
+// of matching rows (ignoring Limit / Offset) so the client can render
+// pagination controls without a separate count query.
+type MinobrnaukiOrderListResult struct {
+	Items []MinobrnaukiOrderListItem
+	Total int
+}
+
+// MinobrnaukiOrderListItem is the read projection of a MinobrnaukiOrder
+// for list endpoints. The order is a flat entity (no inner aggregates),
+// so the projection carries every field; the affected-work-program set
+// is a separate concern fetched via MinobrnaukiOrderRepository.FindAffected.
+type MinobrnaukiOrderListItem struct {
+	ID          int64
+	OrderNumber string
+	Title       string
+	PublishedAt time.Time
+	DocumentID  *int64
+	ChangeScope domain.MinobrnaukiOrderChangeScope
+	Summary     string
+	UploadedBy  int64
+	CreatedAt   time.Time
 }
