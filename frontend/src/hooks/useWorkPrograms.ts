@@ -120,6 +120,16 @@ export async function discardWorkProgram(id: number): Promise<WorkProgram> {
   return response.data
 }
 
+// generateWorkProgram asks the backend to fill an empty draft from an LLM
+// (see GenerateDraftUseCase). Empty body — path id + JWT subject identify
+// the row + actor. The backend enforces the invariants (draft must be
+// empty → DRAFT_NOT_EMPTY/409, hourly quota → RATE_LIMITED/429); callers
+// branch on those via pickWorkProgramErrorKey.
+export async function generateWorkProgram(id: number): Promise<WorkProgram> {
+  const response = await apiClient.post<ApiResponse<WorkProgram>>(`${BASE_URL}/${id}/generate`, {})
+  return response.data
+}
+
 // === Error mapping ===
 //
 // Translates backend sentinel codes (mapWorkProgramError) to camelCase
@@ -134,6 +144,8 @@ const ERROR_CODE_MAP: Record<string, string> = {
   INVALID_TRANSITION: 'invalidTransition',
   REJECT_REASON_REQUIRED: 'rejectReasonRequired',
   INVALID_WORK_PROGRAM: 'invalidWorkProgram',
+  RATE_LIMITED: 'rateLimited',
+  DRAFT_NOT_EMPTY: 'draftNotEmpty',
 }
 
 export function pickWorkProgramErrorKey(err: unknown): string {
