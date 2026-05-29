@@ -35,6 +35,21 @@ func (f *fakeRecordOrderRepo) Save(_ context.Context, o *entities.MinobrnaukiOrd
 	return nil
 }
 
+type revisionTriggerCall struct {
+	actorID, orderID int64
+	orderNumber      string
+	affected         []int64
+}
+
+type fakeRevisionTrigger struct {
+	calls []revisionTriggerCall
+}
+
+func (f *fakeRevisionTrigger) Execute(_ context.Context, actorID, orderID int64, orderNumber string, affected []int64) (TriggerOrderRevisionsResult, error) {
+	f.calls = append(f.calls, revisionTriggerCall{actorID, orderID, orderNumber, affected})
+	return TriggerOrderRevisionsResult{}, nil
+}
+
 func validRecordOrderInput() RecordMinobrnaukiOrderInput {
 	return RecordMinobrnaukiOrderInput{
 		OrderNumber:            "№ 1078 от 12.05.2026",
@@ -149,6 +164,31 @@ func TestRecordMinobrnaukiOrderUseCase_TransportErrorPropagatesWithoutSuccessAud
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "conn refused")
 	assert.Empty(t, audit.events, "transport errors must not produce a recorded/denied audit event")
+}
+
+func TestRecordMinobrnaukiOrderUseCase_FiresRevisionTriggerAfterSave(t *testing.T) {
+	repo := &fakeRecordOrderRepo{idAssigned: 100}
+	trig := &fakeRevisionTrigger{}
+	uc := NewRecordMinobrnaukiOrderUseCase(repo, &recordingAuditSink{}).WithRevisionTrigger(trig)
+
+	_, err := uc.Execute(context.Background(), 42, "methodist", validRecordOrderInput())
+	require.NoError(t, err)
+
+	require.Len(t, trig.calls, 1, "the revision trigger fires once after a successful record")
+	assert.Equal(t, int64(42), trig.calls[0].actorID, "actor threads through to the trigger")
+	assert.Equal(t, int64(100), trig.calls[0].orderID, "trigger receives the persisted order id")
+	assert.Equal(t, "№ 1078 от 12.05.2026", trig.calls[0].orderNumber)
+	assert.Equal(t, []int64{11, 22}, trig.calls[0].affected, "affected ids forwarded to the trigger")
+}
+
+func TestRecordMinobrnaukiOrderUseCase_DeniedRole_DoesNotFireTrigger(t *testing.T) {
+	repo := &fakeRecordOrderRepo{}
+	trig := &fakeRevisionTrigger{}
+	uc := NewRecordMinobrnaukiOrderUseCase(repo, &recordingAuditSink{}).WithRevisionTrigger(trig)
+
+	_, err := uc.Execute(context.Background(), 1, "teacher", validRecordOrderInput())
+	require.Error(t, err)
+	assert.Empty(t, trig.calls, "a denied record never fires the revision trigger")
 }
 
 func TestRecordMinobrnaukiOrderUseCase_NilSinkTolerated(t *testing.T) {
