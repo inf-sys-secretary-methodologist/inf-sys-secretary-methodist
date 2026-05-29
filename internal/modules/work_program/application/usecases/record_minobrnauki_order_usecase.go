@@ -32,13 +32,23 @@ type recordMinobrnaukiOrderRepo interface {
 	Save(ctx context.Context, order *entities.MinobrnaukiOrder, affectedWorkProgramIDs []int64) error
 }
 
+// orderRevisionTrigger is the optional collaborator fired after an order
+// is recorded: it drives the affected РПД into needs_revision and
+// delegates teacher tasks (ADR-11 pipeline step 2). Defined here on the
+// consumer side so Record depends on the narrow capability, not the
+// concrete TriggerOrderRevisionsUseCase.
+type orderRevisionTrigger interface {
+	Execute(ctx context.Context, actorID, orderID int64, orderNumber string, affectedWorkProgramIDs []int64) (TriggerOrderRevisionsResult, error)
+}
+
 // RecordMinobrnaukiOrderUseCase records a Минобрнауки order artifact and
 // emits the matching audit event. Role gate per ADR-11: only methodist /
 // academic_secretary / system_admin may record an order; teacher and
 // student are denied.
 type RecordMinobrnaukiOrderUseCase struct {
-	repo  recordMinobrnaukiOrderRepo
-	audit AuditSink
+	repo            recordMinobrnaukiOrderRepo
+	audit           AuditSink
+	revisionTrigger orderRevisionTrigger
 }
 
 // NewRecordMinobrnaukiOrderUseCase wires the use case. repo is required
@@ -49,6 +59,15 @@ func NewRecordMinobrnaukiOrderUseCase(repo recordMinobrnaukiOrderRepo, audit Aud
 		panic("work_program: NewRecordMinobrnaukiOrderUseCase requires non-nil repo")
 	}
 	return &RecordMinobrnaukiOrderUseCase{repo: repo, audit: audit}
+}
+
+// WithRevisionTrigger attaches the collaborator fired after a successful
+// record to drive affected РПД into needs_revision + delegate teacher
+// tasks. Optional and chainable — nil leaves order recording standalone
+// (a missing trigger never blocks recording an order).
+func (uc *RecordMinobrnaukiOrderUseCase) WithRevisionTrigger(t orderRevisionTrigger) *RecordMinobrnaukiOrderUseCase {
+	uc.revisionTrigger = t
+	return uc
 }
 
 // Execute runs the use case end-to-end:
@@ -92,5 +111,13 @@ func (uc *RecordMinobrnaukiOrderUseCase) Execute(ctx context.Context, actorID in
 
 	emitOrderAudit(uc.audit, ctx, "minobrnauki_order.recorded",
 		orderSuccessFields(actorID, order.ID(), order.OrderNumber(), string(order.ChangeScope())))
+
+	// Fire the revision trigger after the order is persisted. The order is
+	// already recorded, so a trigger failure must never roll it back — the
+	// trigger audits its own per-program outcome, so its result and error
+	// are intentionally discarded here (best-effort follow-on).
+	if uc.revisionTrigger != nil {
+		_, _ = uc.revisionTrigger.Execute(ctx, actorID, order.ID(), order.OrderNumber(), in.AffectedWorkProgramIDs)
+	}
 	return order, nil
 }

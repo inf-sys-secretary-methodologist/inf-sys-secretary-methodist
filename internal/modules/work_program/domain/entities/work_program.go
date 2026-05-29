@@ -142,9 +142,9 @@ func (w *WorkProgram) Approve(approverID int64) error {
 }
 
 // MarkNeedsRevision transitions the WorkProgram from approved to
-// needs_revision. Auto-triggered by DisciplineItem.Updated event
-// handler per ADR-8; safe-noop if already in needs_revision (event
-// dispatch may double-fire on retry).
+// needs_revision. Triggered by TriggerOrderRevisionsUseCase when a
+// приказ Минобрнауки marks this program as affected (ADR-11); safe-noop
+// if already in needs_revision (the trigger may re-fire across re-records).
 func (w *WorkProgram) MarkNeedsRevision() error {
 	if w.status == domain.StatusNeedsRevision {
 		return nil
