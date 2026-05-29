@@ -112,6 +112,12 @@ func (uc *RecordMinobrnaukiOrderUseCase) Execute(ctx context.Context, actorID in
 	emitOrderAudit(uc.audit, ctx, "minobrnauki_order.recorded",
 		orderSuccessFields(actorID, order.ID(), order.OrderNumber(), string(order.ChangeScope())))
 
-	_ = uc.revisionTrigger // RED placeholder — trigger fire lands in GREEN
+	// Fire the revision trigger after the order is persisted. The order is
+	// already recorded, so a trigger failure must never roll it back — the
+	// trigger audits its own per-program outcome, so its result and error
+	// are intentionally discarded here (best-effort follow-on).
+	if uc.revisionTrigger != nil {
+		_, _ = uc.revisionTrigger.Execute(ctx, actorID, order.ID(), order.OrderNumber(), in.AffectedWorkProgramIDs)
+	}
 	return order, nil
 }
