@@ -62,3 +62,9 @@ var ErrWorkProgramNotEmpty = errors.New("work_program: draft already has content
 // zero published_at, invalid change_scope, non-positive uploaded_by,
 // etc.) per ADR-11. Handlers map this sentinel to HTTP 422.
 var ErrInvalidMinobrnaukiOrder = errors.New("work_program: invalid minobrnauki order invariant")
+
+// ErrMinobrnaukiOrderScopeForbidden indicates the caller is not
+// authorized for the attempted MinobrnaukiOrder operation per ADR-11:
+// only methodist / academic_secretary / system_admin may record an
+// order; students may not view orders. Handlers map to HTTP 403.
+var ErrMinobrnaukiOrderScopeForbidden = errors.New("work_program: caller cannot operate on minobrnauki orders")
