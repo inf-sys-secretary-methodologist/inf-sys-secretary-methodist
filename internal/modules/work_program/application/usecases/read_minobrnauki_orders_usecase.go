@@ -80,5 +80,15 @@ func (uc *ListMinobrnaukiOrdersUseCase) Execute(ctx context.Context, actorRole s
 	if !isAllowedToViewMinobrnaukiOrders(actorRole) {
 		return repositories.MinobrnaukiOrderListResult{}, fmt.Errorf("%w: role %q cannot list minobrnauki orders", domain.ErrMinobrnaukiOrderScopeForbidden, actorRole)
 	}
+
+	// Pagination defaults / clamps mirror the WorkProgram List policy
+	// (shared defaultListLimit / maxListLimit). A zero limit would
+	// otherwise issue SQL LIMIT 0 and return nothing.
+	if filter.Limit <= 0 {
+		filter.Limit = defaultListLimit
+	}
+	filter.Limit = min(filter.Limit, maxListLimit)
+	filter.Offset = max(filter.Offset, 0)
+
 	return uc.repo.List(ctx, filter)
 }
