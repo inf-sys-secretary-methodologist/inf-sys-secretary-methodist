@@ -9,6 +9,7 @@ import {
   approveWorkProgram,
   rejectWorkProgram,
   discardWorkProgram,
+  generateWorkProgram,
   pickWorkProgramErrorKey,
 } from '../useWorkPrograms'
 import { apiClient } from '@/lib/api'
@@ -222,6 +223,13 @@ describe('useWorkPrograms hooks (mutations)', () => {
     expect(mockedApiClient.post).toHaveBeenCalledWith('/api/v1/work-programs/5/discard', {})
     expect(result.status).toBe('archived')
   })
+
+  it('generateWorkProgram POSTs to /:id/generate with an empty body', async () => {
+    mockedApiClient.post.mockResolvedValue({ data: { id: 5, status: 'draft' } })
+    const result = await generateWorkProgram(5)
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/api/v1/work-programs/5/generate', {})
+    expect(result.status).toBe('draft')
+  })
 })
 
 describe('pickWorkProgramErrorKey', () => {
@@ -261,6 +269,16 @@ describe('pickWorkProgramErrorKey', () => {
       name: 'INVALID_WORK_PROGRAM → invalidWorkProgram',
       err: mkErr(422, 'INVALID_WORK_PROGRAM'),
       expected: 'invalidWorkProgram',
+    },
+    {
+      name: 'RATE_LIMITED → rateLimited',
+      err: mkErr(429, 'RATE_LIMITED'),
+      expected: 'rateLimited',
+    },
+    {
+      name: 'DRAFT_NOT_EMPTY → draftNotEmpty',
+      err: mkErr(409, 'DRAFT_NOT_EMPTY'),
+      expected: 'draftNotEmpty',
     },
     {
       // A sentinel code must win over a mismatched HTTP status — pins
