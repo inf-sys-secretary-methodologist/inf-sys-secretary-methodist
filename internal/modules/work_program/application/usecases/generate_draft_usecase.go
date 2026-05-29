@@ -117,7 +117,8 @@ func (uc *GenerateDraftUseCase) Execute(
 	// existing content — AddX would append duplicates (and hard-fail on
 	// a competence-code collision). The author clears first to refill.
 	if len(wp.Goals()) > 0 || len(wp.Competences()) > 0 ||
-		len(wp.Topics()) > 0 || len(wp.References()) > 0 {
+		len(wp.Topics()) > 0 || len(wp.References()) > 0 ||
+		len(wp.Assessments()) > 0 {
 		emitAudit(uc.audit, ctx, "work_program.generate_denied",
 			denialFields(actorID, workProgramID, "not_empty", wp.SpecialtyCode()))
 		return nil, fmt.Errorf("%w: id %d", domain.ErrWorkProgramNotEmpty, workProgramID)
