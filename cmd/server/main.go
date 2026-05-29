@@ -150,6 +150,7 @@ import (
 	scheduleUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	schedulePersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/infrastructure/persistence"
 	scheduleHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/interfaces/http/handlers"
+	taskDto "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/dto"
 	taskUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
 	taskRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 	taskPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/infrastructure/persistence"
@@ -2779,10 +2780,19 @@ func setupRoutes(
 
 			// Минобрнауки order register (PR 6b-2, v0.194.0) — ADR-11.
 			// Record (staff only) / Get / List on the same /api/v1 group.
-			// The affected-work-program set is persisted with the order;
-			// trigger-revision delegation to teachers lands in a later slice.
 			moRepo := wpPersistence.NewMinobrnaukiOrderRepositoryPG(db)
 			recordMOUC := wpUsecases.NewRecordMinobrnaukiOrderUseCase(moRepo, auditLogger)
+			// Trigger-revision (PR 6c, v0.195.0): on record, drive affected
+			// approved РПД into needs_revision and delegate a revision task
+			// to each program's author via the tasks module. Wired only when
+			// the tasks use case is available; absence degrades gracefully to
+			// standalone order recording.
+			if taskUseCase != nil {
+				revisionDelegator := minobrnaukiRevisionTaskDelegator{tasks: taskUseCase}
+				triggerRevisionsUC := wpUsecases.NewTriggerOrderRevisionsUseCase(wpRepo, revisionDelegator, auditLogger)
+				recordMOUC = recordMOUC.WithRevisionTrigger(triggerRevisionsUC)
+				logger.Info("Минобрнауки revision trigger wired (needs_revision + teacher delegation)", nil)
+			}
 			getMOUC := wpUsecases.NewGetMinobrnaukiOrderUseCase(moRepo)
 			listMOUC := wpUsecases.NewListMinobrnaukiOrdersUseCase(moRepo)
 			moHandler := wpHandler.NewMinobrnaukiOrderHandler(recordMOUC, getMOUC, listMOUC)
@@ -3598,6 +3608,33 @@ func initTaskReminderModule(
 // untouched while the workflow path gets the matchable error.
 //
 // Issue: #227
+// revisionTaskTitleFmt is the title of the РПД-revision task delegated to
+// a discipline's teacher when a приказ Минобрнауки marks the program for
+// revision (ADR-11). Kept at the DI seam, not in the use case, so
+// user-facing wording stays out of the application layer.
+const revisionTaskTitleFmt = "Актуализировать РПД по приказу Минобрнауки %s"
+
+// minobrnaukiRevisionTaskDelegator adapts the tasks module to the
+// work_program RevisionTaskDelegator port (ADR-11 delegation). Keeping the
+// cross-module wiring here at the DI seam avoids a direct import between
+// the work_program and tasks modules.
+type minobrnaukiRevisionTaskDelegator struct {
+	tasks *taskUsecases.TaskUseCase
+}
+
+func (d minobrnaukiRevisionTaskDelegator) DelegateRevision(ctx context.Context, in wpUsecases.RevisionDelegation) error {
+	assignee := in.TeacherID
+	_, err := d.tasks.Create(ctx, in.CreatorID, taskDto.CreateTaskInput{
+		Title:      fmt.Sprintf(revisionTaskTitleFmt, in.OrderNumber),
+		AssigneeID: &assignee,
+		Metadata: map[string]any{
+			"work_program_id":      in.WorkProgramID,
+			"minobrnauki_order_id": in.MinobrnaukiOrderID,
+		},
+	})
+	return err
+}
+
 type workflowDocRepoAdapter struct {
 	inner *docPersistence.DocumentRepositoryPG
 }
