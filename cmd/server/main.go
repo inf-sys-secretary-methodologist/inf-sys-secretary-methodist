@@ -2776,6 +2776,18 @@ func setupRoutes(
 			wpV1Group := protectedGroup.Group("/v1")
 			wpHandler.RegisterWorkProgramRoutes(wpV1Group, workProgramHandler)
 			logger.Info("Work program (РПД) module routes registered", nil)
+
+			// Минобрнауки order register (PR 6b-2, v0.194.0) — ADR-11.
+			// Record (staff only) / Get / List on the same /api/v1 group.
+			// The affected-work-program set is persisted with the order;
+			// trigger-revision delegation to teachers lands in a later slice.
+			moRepo := wpPersistence.NewMinobrnaukiOrderRepositoryPG(db)
+			recordMOUC := wpUsecases.NewRecordMinobrnaukiOrderUseCase(moRepo, auditLogger)
+			getMOUC := wpUsecases.NewGetMinobrnaukiOrderUseCase(moRepo)
+			listMOUC := wpUsecases.NewListMinobrnaukiOrdersUseCase(moRepo)
+			moHandler := wpHandler.NewMinobrnaukiOrderHandler(recordMOUC, getMOUC, listMOUC)
+			wpHandler.RegisterMinobrnaukiOrderRoutes(wpV1Group, moHandler)
+			logger.Info("Минобрнауки order routes registered", nil)
 		}
 
 		// Schedule/Events module routes
