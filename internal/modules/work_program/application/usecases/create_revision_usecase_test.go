@@ -65,6 +65,7 @@ func TestCreateRevisionUseCase_HappyPath(t *testing.T) {
 			assert.Equal(t, "work_program.revision_created", audit.events[0].Action)
 			assert.Equal(t, tc.actorID, audit.events[0].Fields["actor_user_id"])
 			assert.Equal(t, 1, audit.events[0].Fields["revision_number"])
+			assert.Equal(t, "literature", audit.events[0].Fields["change_type"])
 		})
 	}
 }
