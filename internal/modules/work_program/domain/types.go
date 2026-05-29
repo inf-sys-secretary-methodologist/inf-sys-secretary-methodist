@@ -198,3 +198,22 @@ func (r ReferenceKind) IsValid() bool {
 
 // String returns the wire-form.
 func (r ReferenceKind) String() string { return string(r) }
+
+// MinobrnaukiOrderChangeScope classifies how broadly a Минобрнауки order
+// affects work programs per ADR-11: minor → revision (лист
+// актуализации) suffices; major → a new edition is required.
+type MinobrnaukiOrderChangeScope string
+
+// MinobrnaukiOrderChangeScope values.
+const (
+	MinobrnaukiOrderChangeScopeMinor MinobrnaukiOrderChangeScope = "minor"
+	MinobrnaukiOrderChangeScopeMajor MinobrnaukiOrderChangeScope = "major"
+)
+
+// IsValid reports whether s is one of the two canonical change scopes.
+func (s MinobrnaukiOrderChangeScope) IsValid() bool {
+	return false // STUB (PR 6a RED) — real switch lands in GREEN
+}
+
+// String returns the wire-form.
+func (s MinobrnaukiOrderChangeScope) String() string { return string(s) }
