@@ -40,6 +40,7 @@ type MessagesShape = {
     discardDialog?: EnumGroup
     approveDialog?: EnumGroup
     rejectDialog?: EnumGroup
+    generateDialog?: EnumGroup
     createDialog?: {
       title?: string
       description?: string
@@ -93,13 +94,15 @@ const statusOptionKeys = [
 
 const cardStatusKeys = ['draft', 'pending', 'approved', 'needsRevision', 'archived'] as const
 
-// 8 error keys mirror pickWorkProgramErrorKey + sentinel fallbacks.
+// 10 error keys mirror pickWorkProgramErrorKey + sentinel fallbacks.
 const errorKeys = [
   'identityExists',
   'versionConflict',
   'invalidTransition',
   'rejectReasonRequired',
   'invalidWorkProgram',
+  'rateLimited',
+  'draftNotEmpty',
   'forbidden',
   'notFound',
   'generic',
@@ -154,7 +157,7 @@ describe('workProgram i18n parity × 4 locales', () => {
     }
   })
 
-  it.each(locales)('%s has all 8 error messages', (_name, msgs) => {
+  it.each(locales)('%s has all 10 error messages', (_name, msgs) => {
     const e = msgs.workProgram?.errors
     expect(e).toBeDefined()
     for (const k of errorKeys) {
@@ -294,5 +297,25 @@ describe('workProgram.createDialog (8e) i18n parity × 4 locales', () => {
   it.each(locales)('%s has all createDialog placeholders', (_name, msgs) => {
     const p = msgs.workProgram?.createDialog?.placeholders
     for (const k of createDialogPlaceholderKeys) expect(p?.[k]).toBeTruthy()
+  })
+})
+
+const generateDialogKeys = [
+  'title',
+  'description',
+  'cancel',
+  'confirm',
+  'generating',
+  'successToast',
+] as const
+
+describe('workProgram.generateDialog (8f) i18n parity × 4 locales', () => {
+  it.each(locales)('%s has detail.actions.generate label', (_name, msgs) => {
+    expect(msgs.workProgram?.detail?.actions?.generate).toBeTruthy()
+  })
+
+  it.each(locales)('%s has all generateDialog strings', (_name, msgs) => {
+    const d = msgs.workProgram?.generateDialog
+    for (const k of generateDialogKeys) expect(d?.[k]).toBeTruthy()
   })
 })
