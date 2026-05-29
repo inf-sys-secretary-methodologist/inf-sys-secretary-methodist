@@ -53,7 +53,8 @@ func TestGenerator_GenerateDraft_HappyPath(t *testing.T) {
 		"goals": ["Сформировать навыки проектирования БД", "Изучить SQL"],
 		"competences": [{"code":"ПК-1","type":"pk","description":"Способен проектировать БД"}],
 		"topics": [{"kind":"lecture","title":"Реляционная модель","hours":4},{"kind":"practice","title":"Нормализация","hours":6}],
-		"references": [{"kind":"main","citation":"Дейт К. Введение в системы баз данных"}]
+		"references": [{"kind":"main","citation":"Дейт К. Введение в системы баз данных"}],
+		"assessments": [{"type":"current","description":"Контрольная работа","max_score":30,"example_questions":["Приведите отношение к 3НФ"]},{"type":"final","description":"Экзамен","max_score":70}]
 	}`
 
 	var gotAuth, gotPath, gotBody string
@@ -87,6 +88,14 @@ func TestGenerator_GenerateDraft_HappyPath(t *testing.T) {
 	require.Len(t, res.References, 1)
 	assert.Equal(t, "main", res.References[0].Kind)
 	assert.Equal(t, "Дейт К. Введение в системы баз данных", res.References[0].Citation)
+	require.Len(t, res.Assessments, 2)
+	assert.Equal(t, "current", res.Assessments[0].Type)
+	assert.Equal(t, "Контрольная работа", res.Assessments[0].Description)
+	assert.Equal(t, 30, res.Assessments[0].MaxScore)
+	require.Len(t, res.Assessments[0].ExampleQuestions, 1)
+	assert.Equal(t, "Приведите отношение к 3НФ", res.Assessments[0].ExampleQuestions[0])
+	assert.Equal(t, "final", res.Assessments[1].Type)
+	assert.Equal(t, 70, res.Assessments[1].MaxScore)
 }
 
 func TestGenerator_StripsMarkdownFences(t *testing.T) {
