@@ -372,6 +372,31 @@ func TestGenerateDraftUseCase_NonEmptyDraftRejected(t *testing.T) {
 	assert.Equal(t, "not_empty", audit.events[0].Fields["reason"])
 }
 
+func TestGenerateDraftUseCase_NonEmptyDraftRejectedWhenOnlyAssessmentsPresent(t *testing.T) {
+	const authorID = int64(7)
+	wp := reconstituteWPWithStatus(t, 100, authorID, domain.StatusDraft)
+	existing, err := entities.NewAssessmentCriterion(entities.NewAssessmentCriterionInput{
+		Type: domain.AssessmentTypeCurrent, Description: "Уже существующий ФОС", MaxScore: 50,
+	})
+	require.NoError(t, err)
+	require.NoError(t, wp.AddAssessment(existing))
+
+	repo := &fakeGenerateRepo{wp: wp}
+	gen := &fakeDraftGenerator{result: sampleResult()}
+	disc := &fakeDisciplineProvider{info: sampleDisciplineInfo()}
+	audit := &recordingAuditSink{}
+	uc := NewGenerateDraftUseCase(repo, gen, disc, allowingLimiter(), audit)
+
+	_, err = uc.Execute(context.Background(), authorID, "teacher", 100)
+	assert.True(t, errors.Is(err, domain.ErrWorkProgramNotEmpty),
+		"a draft already carrying ФОС must not be regenerated over, got %v", err)
+	assert.Zero(t, gen.calls, "must not call generator when assessments already exist")
+	assert.Zero(t, repo.updateCalls, "must not persist over an existing ФОС")
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "work_program.generate_denied", audit.events[0].Action)
+	assert.Equal(t, "not_empty", audit.events[0].Fields["reason"])
+}
+
 func TestGenerateDraftUseCase_DisciplineProviderErrorPropagates(t *testing.T) {
 	const authorID = int64(7)
 	sentinel := errors.New("curriculum unavailable")
