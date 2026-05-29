@@ -2461,7 +2461,9 @@
       "invalidWorkProgram": "Les données du programme sont invalides",
       "forbidden": "Vous n'êtes pas autorisé à effectuer cette action",
       "notFound": "Programme de travail introuvable",
-      "generic": "L'opération n'a pas pu être effectuée"
+      "generic": "L'opération n'a pas pu être effectuée",
+      "rateLimited": "Limite de requêtes de génération dépassée — réessayez plus tard",
+      "draftNotEmpty": "Le brouillon contient déjà des données — videz-le avant de générer"
     },
     "detail": {
       "backToList": "Retour aux programmes",
@@ -2528,7 +2530,8 @@
         "submit": "Soumettre pour approbation",
         "discard": "Archiver",
         "approve": "Approuver",
-        "reject": "Rejeter"
+        "reject": "Rejeter",
+        "generate": "Générer"
       }
     },
     "submitDialog": {
@@ -2587,6 +2590,14 @@
       "create": "Créer",
       "creating": "Création…",
       "successToast": "Brouillon du programme créé"
+    },
+    "generateDialog": {
+      "title": "Générer un brouillon du programme ?",
+      "description": "L'IA remplira le brouillon vide : objectifs, compétences, thèmes et références. Disponible uniquement pour un brouillon vide et soumis à une limite horaire de requêtes. Vous pourrez modifier le texte généré avant de l'envoyer pour approbation.",
+      "cancel": "Annuler",
+      "confirm": "Générer",
+      "generating": "Génération…",
+      "successToast": "Brouillon du programme généré"
     }
   },
   "curriculum": {
