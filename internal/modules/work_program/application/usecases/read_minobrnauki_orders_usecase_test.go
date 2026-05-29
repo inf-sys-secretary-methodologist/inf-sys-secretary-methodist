@@ -22,6 +22,7 @@ type fakeReadOrderRepo struct {
 	affectedErr error
 	listResult  repositories.MinobrnaukiOrderListResult
 	listErr     error
+	lastFilter  repositories.MinobrnaukiOrderListFilter
 
 	getCalls, findCalls, listCalls int
 }
@@ -42,8 +43,9 @@ func (f *fakeReadOrderRepo) FindAffected(_ context.Context, _ int64) ([]int64, e
 	return f.affected, nil
 }
 
-func (f *fakeReadOrderRepo) List(_ context.Context, _ repositories.MinobrnaukiOrderListFilter) (repositories.MinobrnaukiOrderListResult, error) {
+func (f *fakeReadOrderRepo) List(_ context.Context, filter repositories.MinobrnaukiOrderListFilter) (repositories.MinobrnaukiOrderListResult, error) {
 	f.listCalls++
+	f.lastFilter = filter
 	if f.listErr != nil {
 		return repositories.MinobrnaukiOrderListResult{}, f.listErr
 	}
@@ -130,6 +132,33 @@ func TestListMinobrnaukiOrdersUseCase_HappyPath(t *testing.T) {
 	assert.Equal(t, 2, res.Total)
 	assert.Len(t, res.Items, 2)
 	assert.Equal(t, 1, repo.listCalls)
+}
+
+func TestListMinobrnaukiOrdersUseCase_ClampsPagination(t *testing.T) {
+	cases := []struct {
+		name                  string
+		inLimit, inOffset     int
+		wantLimit, wantOffset int
+	}{
+		{"zero limit defaults to 50", 0, 0, 50, 0},
+		{"negative limit defaults to 50", -3, 0, 50, 0},
+		{"over-max limit clamps to 200", 500, 0, 200, 0},
+		{"negative offset floors to 0", 20, -7, 20, 0},
+		{"in-range passes through", 30, 10, 30, 10},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := &fakeReadOrderRepo{}
+			uc := NewListMinobrnaukiOrdersUseCase(repo)
+			_, err := uc.Execute(context.Background(), "methodist", repositories.MinobrnaukiOrderListFilter{
+				Limit:  tc.inLimit,
+				Offset: tc.inOffset,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantLimit, repo.lastFilter.Limit, "limit clamp")
+			assert.Equal(t, tc.wantOffset, repo.lastFilter.Offset, "offset clamp")
+		})
+	}
 }
 
 func TestListMinobrnaukiOrdersUseCase_StudentDenied(t *testing.T) {
