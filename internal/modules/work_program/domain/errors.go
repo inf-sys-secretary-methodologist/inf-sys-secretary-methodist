@@ -50,6 +50,12 @@ var ErrRevisionNotPermitted = errors.New("work_program: revisions only allowed i
 // than a generic forbidden/invalid response.
 var ErrGenerationRateLimited = errors.New("work_program: generation rate limit exceeded")
 
+// ErrRevisionNotFound signals that no Revision with the requested id
+// belongs to the WorkProgram aggregate. Distinct from
+// ErrWorkProgramNotFound so handlers can map a missing inner revision
+// to HTTP 404 without conflating it with a missing parent program.
+var ErrRevisionNotFound = errors.New("work_program: revision not found")
+
 // ErrWorkProgramNotEmpty signals an attempt to LLM-generate into a draft
 // that already holds content (goals / competences / topics / references).
 // Generation fills an empty draft; regenerating over existing content

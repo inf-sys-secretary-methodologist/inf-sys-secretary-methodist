@@ -313,6 +313,14 @@ func (w *WorkProgram) AddRevision(r *Revision) error {
 	return nil
 }
 
+// SubmitRevision transitions the identified inner Revision from draft
+// to pending_approval, mediated through the aggregate root so the
+// Revision stays encapsulated. STUB — real lookup + delegation lands
+// in GREEN.
+func (w *WorkProgram) SubmitRevision(revisionID int64) error {
+	return fmt.Errorf("%w: id %d", domain.ErrRevisionNotFound, revisionID)
+}
+
 // NextRevisionNumber returns the expected revision_number for the
 // next AddRevision call: 1 if no revisions yet, else max + 1.
 func (w *WorkProgram) NextRevisionNumber() int {
