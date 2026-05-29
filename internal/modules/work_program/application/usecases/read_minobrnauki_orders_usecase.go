@@ -2,8 +2,9 @@ package usecases
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
 )
@@ -30,10 +31,25 @@ func NewGetMinobrnaukiOrderUseCase(repo getMinobrnaukiOrderRepo) *GetMinobrnauki
 	return &GetMinobrnaukiOrderUseCase{repo: repo}
 }
 
-// Execute is a RED stub — real implementation lands in the GREEN commit.
-func (uc *GetMinobrnaukiOrderUseCase) Execute(_ context.Context, _ string, _ int64) (*entities.MinobrnaukiOrder, []int64, error) {
-	_ = uc.repo
-	return nil, nil, errors.New("work_program: get minobrnauki order not implemented (RED stub)")
+// Execute applies the read gate, loads the order, then loads its
+// affected-work-program set. Returns ErrMinobrnaukiOrderScopeForbidden
+// for students, or repositories.ErrMinobrnaukiOrderNotFound (propagated
+// from the repo) when the id does not exist. FindAffected runs only
+// after GetByID succeeds, so a missing order short-circuits cleanly.
+func (uc *GetMinobrnaukiOrderUseCase) Execute(ctx context.Context, actorRole string, id int64) (*entities.MinobrnaukiOrder, []int64, error) {
+	if !isAllowedToViewMinobrnaukiOrders(actorRole) {
+		return nil, nil, fmt.Errorf("%w: role %q cannot view minobrnauki orders", domain.ErrMinobrnaukiOrderScopeForbidden, actorRole)
+	}
+
+	order, err := uc.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+	affected, err := uc.repo.FindAffected(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+	return order, affected, nil
 }
 
 // listMinobrnaukiOrdersRepo is the narrow port the list read use case needs.
@@ -56,8 +72,13 @@ func NewListMinobrnaukiOrdersUseCase(repo listMinobrnaukiOrdersRepo) *ListMinobr
 	return &ListMinobrnaukiOrdersUseCase{repo: repo}
 }
 
-// Execute is a RED stub — real implementation lands in the GREEN commit.
-func (uc *ListMinobrnaukiOrdersUseCase) Execute(_ context.Context, _ string, _ repositories.MinobrnaukiOrderListFilter) (repositories.MinobrnaukiOrderListResult, error) {
-	_ = uc.repo
-	return repositories.MinobrnaukiOrderListResult{}, errors.New("work_program: list minobrnauki orders not implemented (RED stub)")
+// Execute applies the read gate then delegates to the repo. Orders are
+// not author-scoped, so the filter passes through unchanged (no role
+// rewrite, unlike WorkProgram List). Returns
+// ErrMinobrnaukiOrderScopeForbidden for students.
+func (uc *ListMinobrnaukiOrdersUseCase) Execute(ctx context.Context, actorRole string, filter repositories.MinobrnaukiOrderListFilter) (repositories.MinobrnaukiOrderListResult, error) {
+	if !isAllowedToViewMinobrnaukiOrders(actorRole) {
+		return repositories.MinobrnaukiOrderListResult{}, fmt.Errorf("%w: role %q cannot list minobrnauki orders", domain.ErrMinobrnaukiOrderScopeForbidden, actorRole)
+	}
+	return uc.repo.List(ctx, filter)
 }

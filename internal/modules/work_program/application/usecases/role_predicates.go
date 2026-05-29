@@ -78,6 +78,21 @@ func isAllowedToRecordMinobrnaukiOrder(role string) bool {
 		r == authDomain.RoleSystemAdmin
 }
 
+// isAllowedToViewMinobrnaukiOrders encodes the ADR-11 read gate: every
+// non-student staff role may view orders (teachers need to see orders
+// affecting their disciplines). Students have no business reason to read
+// internal regulatory-tracking artifacts, so they are denied. Orders are
+// not author-scoped, so this is a flat role check (no row-level filter).
+func isAllowedToViewMinobrnaukiOrders(role string) bool {
+	switch authDomain.RoleType(role) {
+	case authDomain.RoleSystemAdmin, authDomain.RoleMethodist,
+		authDomain.RoleAcademicSecretary, authDomain.RoleTeacher:
+		return true
+	default:
+		return false
+	}
+}
+
 // canViewWorkProgram encodes the ADR-018 ADR-5 view-rights matrix
 // for the single-row Get path.
 //
