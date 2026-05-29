@@ -440,6 +440,32 @@ func TestGenerateDraftUseCase_InvalidGeneratedContentRejected(t *testing.T) {
 	assert.Zero(t, repo.updateCalls, "must not persist invalid generated content")
 }
 
+func TestGenerateDraftUseCase_InvalidGeneratedAssessmentRejected(t *testing.T) {
+	const authorID = int64(7)
+	cases := []struct {
+		name string
+		asm  AssessmentDraft
+	}{
+		{"bad_type", AssessmentDraft{Type: "midterm", Description: "X", MaxScore: 50}},
+		{"score_over_max", AssessmentDraft{Type: "current", Description: "X", MaxScore: 101}},
+		{"score_below_min", AssessmentDraft{Type: "final", Description: "X", MaxScore: 0}},
+		{"empty_description", AssessmentDraft{Type: "current", Description: "   ", MaxScore: 40}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			wp := reconstituteWPWithStatus(t, 100, authorID, domain.StatusDraft)
+			repo := &fakeGenerateRepo{wp: wp}
+			gen := &fakeDraftGenerator{result: DraftResult{Assessments: []AssessmentDraft{tc.asm}}}
+			uc := NewGenerateDraftUseCase(repo, gen, &fakeDisciplineProvider{}, allowingLimiter(), &recordingAuditSink{})
+
+			_, err := uc.Execute(context.Background(), authorID, "teacher", 100)
+			assert.True(t, errors.Is(err, domain.ErrInvalidWorkProgram),
+				"invalid generated ФОС must surface as ErrInvalidWorkProgram, got %v", err)
+			assert.Zero(t, repo.updateCalls, "must not persist an invalid generated ФОС")
+		})
+	}
+}
+
 func TestGenerateDraftUseCase_UpdateErrorPropagates(t *testing.T) {
 	const authorID = int64(7)
 	wp := reconstituteWPWithStatus(t, 100, authorID, domain.StatusDraft)
