@@ -126,6 +126,11 @@ func ReconstituteMinobrnaukiOrder(in ReconstituteMinobrnaukiOrderInput) *Minobrn
 // ID returns the persistent identifier.
 func (o *MinobrnaukiOrder) ID() int64 { return o.id }
 
+// SetID assigns the persistent identifier after a successful repository
+// insert. Repository-only contract — domain callers construct via
+// NewMinobrnaukiOrder (id stays 0 until the row is written).
+func (o *MinobrnaukiOrder) SetID(id int64) { o.id = id }
+
 // OrderNumber returns the official order number (trimmed, ≤ 100 runes).
 func (o *MinobrnaukiOrder) OrderNumber() string { return o.orderNumber }
 

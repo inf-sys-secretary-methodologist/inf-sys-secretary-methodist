@@ -24,3 +24,8 @@ var ErrWorkProgramIdentityExists = errors.New("work_program: identity already ex
 // caller MUST re-read the latest state and retry the edit. Handlers
 // map to HTTP 409 (Conflict).
 var ErrWorkProgramVersionConflict = errors.New("work_program: version conflict, re-read and retry")
+
+// ErrMinobrnaukiOrderNotFound signals that no minobrnauki_orders row
+// matched the given id (приказ Минобрнауки per ADR-11). Handlers map
+// this sentinel to HTTP 404.
+var ErrMinobrnaukiOrderNotFound = errors.New("work_program: minobrnauki order not found")

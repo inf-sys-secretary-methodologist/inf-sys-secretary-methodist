@@ -80,3 +80,42 @@ type WorkProgramRepository interface {
 	// admin-grade cleanup paths (test fixtures, GDPR-style erasure).
 	Delete(ctx context.Context, id int64) error
 }
+
+// MinobrnaukiOrderRepository is the persistence port for MinobrnaukiOrder
+// entities (приказы Минобрнауки) per ADR-11 — the external regulatory
+// trigger for РПД revisions. Implementations persist the order row plus
+// its affected-work-program junction (minobrnauki_order_affected)
+// atomically.
+//
+// Sentinel contract:
+//   - repositories.ErrMinobrnaukiOrderNotFound on missing rows
+//
+// PR 6a (v0.191.0) ships the full port; the use cases that consume it
+// (record order, methodist trigger, delegate-to-teacher per ADR-11)
+// land in PR 6b. The order is an immutable artifact — no Update/Delete
+// (corrections are made by recording a new order).
+type MinobrnaukiOrderRepository interface {
+	// Save inserts a new order row and its affected-work-program links
+	// (one minobrnauki_order_affected row per id) atomically inside a
+	// single transaction. On success the generated id is written back
+	// onto the entity via SetID. affectedWorkProgramIDs may be empty —
+	// the methodist records the order first and marks affected programs
+	// later (ADR-11 pipeline step 2).
+	Save(ctx context.Context, order *entities.MinobrnaukiOrder, affectedWorkProgramIDs []int64) error
+
+	// GetByID returns the order with the given id. Returns
+	// repositories.ErrMinobrnaukiOrderNotFound when no row matches. The
+	// affected-work-program set is fetched separately via FindAffected.
+	GetByID(ctx context.Context, id int64) (*entities.MinobrnaukiOrder, error)
+
+	// List returns a page of orders matching the filter together with the
+	// total count of matching rows (ignoring Limit / Offset). An empty
+	// result is not an error.
+	List(ctx context.Context, filter repositories.MinobrnaukiOrderListFilter) (repositories.MinobrnaukiOrderListResult, error)
+
+	// FindAffected returns the work_program ids linked to the given order
+	// via minobrnauki_order_affected, in ascending id order. An order
+	// with no recorded affected programs yields an empty slice (not an
+	// error).
+	FindAffected(ctx context.Context, orderID int64) ([]int64, error)
+}
