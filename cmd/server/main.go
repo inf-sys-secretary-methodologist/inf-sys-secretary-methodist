@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.209.0
+// @version         0.210.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -2790,6 +2790,16 @@ func setupRoutes(
 			revisionHandler := wpHandler.NewRevisionHandler(createRevUC, submitRevUC, approveRevUC, rejectRevUC)
 			wpHandler.RegisterRevisionRoutes(wpV1Group, revisionHandler)
 			logger.Info("Revision (лист актуализации) routes registered", nil)
+
+			// Manual collection edit (slice 12b-1, v0.210.0) — methodist or
+			// РПД author hand-edits goals / competences / topics nested
+			// under /work-programs/:id/{goals,competences,topics}. Reuses the
+			// same wpRepo (load-mutate-persist through the aggregate root) +
+			// audit sink; author-scoped + status-gated in the use case/domain.
+			contentUC := wpUsecases.NewWorkProgramContentUseCase(wpRepo, auditLogger)
+			contentHandler := wpHandler.NewWorkProgramContentHandler(contentUC)
+			wpHandler.RegisterWorkProgramContentRoutes(wpV1Group, contentHandler)
+			logger.Info("Work program content (manual collection edit) routes registered", nil)
 
 			// Минобрнауки order register (PR 6b-2, v0.194.0) — ADR-11.
 			// Record (staff only) / Get / List on the same /api/v1 group.
