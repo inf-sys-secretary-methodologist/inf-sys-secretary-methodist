@@ -2463,7 +2463,8 @@
       "notFound": "Work program not found",
       "generic": "The operation could not be completed",
       "rateLimited": "Generation request limit exceeded — try again later",
-      "draftNotEmpty": "The draft already has content — clear it before generating"
+      "draftNotEmpty": "The draft already has content — clear it before generating",
+      "revisionNotPermitted": "This revision action is not available right now"
     },
     "detail": {
       "backToList": "Back to work programs",
@@ -2531,7 +2532,11 @@
         "discard": "Discard to archive",
         "approve": "Approve",
         "reject": "Reject",
-        "generate": "Generate"
+        "generate": "Generate",
+        "createRevision": "Create revision sheet"
+      },
+      "revisionActions": {
+        "submit": "Submit for approval"
       }
     },
     "submitDialog": {
@@ -2598,6 +2603,26 @@
       "confirm": "Generate",
       "generating": "Generating…",
       "successToast": "Work programme draft generated"
+    },
+    "createRevisionDialog": {
+      "title": "Create a revision sheet",
+      "description": "Describe a change to the approved work program. Once created, the draft can be submitted to the methodist for approval.",
+      "changeTypeLabel": "Change type",
+      "changeTypePlaceholder": "Select a type",
+      "summaryLabel": "Change summary",
+      "summaryPlaceholder": "e.g. lecture hours reduced from 36 to 18",
+      "cancel": "Cancel",
+      "create": "Create",
+      "creating": "Creating…",
+      "successToast": "Revision sheet created"
+    },
+    "submitRevisionDialog": {
+      "title": "Submit revision sheet for approval?",
+      "description": "The revision will move to “Pending approval” and become available to the methodist for a decision.",
+      "cancel": "Cancel",
+      "confirm": "Submit",
+      "submitting": "Submitting…",
+      "successToast": "Revision sheet submitted for approval"
     }
   },
   "curriculum": {

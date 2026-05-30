@@ -2463,7 +2463,8 @@
       "notFound": "برنامج العمل غير موجود",
       "generic": "تعذّر إتمام العملية",
       "rateLimited": "تم تجاوز حد طلبات الإنشاء — حاول مرة أخرى لاحقًا",
-      "draftNotEmpty": "تحتوي المسودة على بيانات بالفعل — امسحها قبل الإنشاء"
+      "draftNotEmpty": "تحتوي المسودة على بيانات بالفعل — امسحها قبل الإنشاء",
+      "revisionNotPermitted": "هذا الإجراء على صفحة التحديث غير متاح حاليًا"
     },
     "detail": {
       "backToList": "العودة إلى برامج العمل",
@@ -2531,7 +2532,11 @@
         "discard": "نقل إلى الأرشيف",
         "approve": "اعتماد",
         "reject": "رفض",
-        "generate": "إنشاء"
+        "generate": "إنشاء",
+        "createRevision": "إنشاء صفحة تحديث"
+      },
+      "revisionActions": {
+        "submit": "إرسال للموافقة"
       }
     },
     "submitDialog": {
@@ -2598,6 +2603,26 @@
       "confirm": "إنشاء",
       "generating": "جارٍ الإنشاء…",
       "successToast": "تم إنشاء مسودة برنامج العمل"
+    },
+    "createRevisionDialog": {
+      "title": "إنشاء صفحة تحديث",
+      "description": "صِف تغييرًا في برنامج العمل المعتمد. بعد الإنشاء، يمكن إرسال المسودة إلى المنهجي للموافقة.",
+      "changeTypeLabel": "نوع التغيير",
+      "changeTypePlaceholder": "اختر نوعًا",
+      "summaryLabel": "وصف التغيير",
+      "summaryPlaceholder": "مثال: تقليص ساعات المحاضرات من 36 إلى 18",
+      "cancel": "إلغاء",
+      "create": "إنشاء",
+      "creating": "جارٍ الإنشاء…",
+      "successToast": "تم إنشاء صفحة التحديث"
+    },
+    "submitRevisionDialog": {
+      "title": "إرسال صفحة التحديث للموافقة؟",
+      "description": "ستنتقل صفحة التحديث إلى حالة «قيد الموافقة» وتصبح متاحة للمنهجي لاتخاذ القرار.",
+      "cancel": "إلغاء",
+      "confirm": "إرسال",
+      "submitting": "جارٍ الإرسال…",
+      "successToast": "تم إرسال صفحة التحديث للموافقة"
     }
   },
   "curriculum": {
