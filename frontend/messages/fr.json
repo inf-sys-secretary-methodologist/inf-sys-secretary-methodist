@@ -207,7 +207,8 @@
     "branding": "Marque",
     "usersCatalog": "Annuaire des utilisateurs",
     "extracurricular": "Événements",
-    "workPrograms": "Programmes de travail"
+    "workPrograms": "Programmes de travail",
+    "minobrnaukiOrders": "Arrêtés du ministère"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -3441,6 +3442,35 @@
       "forbidden": "Permissions insuffisantes pour cette action",
       "notFound": "Événement introuvable",
       "generic": "Échec de l'action"
+    }
+  },
+  "minobrnaukiOrder": {
+    "title": "Arrêtés du ministère",
+    "description": "Registre des arrêtés ministériels et changements réglementaires affectant les programmes",
+    "filters": {
+      "changeScope": "Portée des changements",
+      "changeScopeOptions": {
+        "all": "Tous",
+        "minor": "Mineurs",
+        "major": "Majeurs"
+      }
+    },
+    "empty": {
+      "title": "Aucun arrêté pour le moment",
+      "description": "Les arrêtés ministériels enregistrés apparaîtront ici"
+    },
+    "loadFailed": "Échec du chargement des arrêtés",
+    "countLabel": "Affichage de {shown} sur {total}",
+    "pagination": {
+      "prev": "Précédent",
+      "next": "Suivant"
+    },
+    "card": {
+      "changeScope": {
+        "minor": "Mineur",
+        "major": "Majeur"
+      },
+      "published": "Publié le {date}"
     }
   }
 }

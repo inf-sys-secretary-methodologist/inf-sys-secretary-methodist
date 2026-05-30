@@ -175,6 +175,23 @@ export function canApproveWorkProgram(userRole?: UserRole | string): boolean {
   return WORK_PROGRAM_APPROVE_ROLES.includes(userRole as UserRole)
 }
 
+// MINOBRNAUKI_ORDER_VIEW_ROLES — roles permitted to browse Минобрнауки
+// orders (приказы). Mirrors the backend isAllowedToViewMinobrnaukiOrders
+// read gate (ADR-11): every non-student staff role may view orders
+// (teachers need to see orders affecting their disciplines). Students have
+// no business reason to read internal regulatory-tracking artifacts.
+export const MINOBRNAUKI_ORDER_VIEW_ROLES: UserRole[] = [
+  UserRole.SYSTEM_ADMIN,
+  UserRole.METHODIST,
+  UserRole.ACADEMIC_SECRETARY,
+  UserRole.TEACHER,
+]
+
+export function canViewMinobrnaukiOrders(userRole?: UserRole | string): boolean {
+  if (!userRole) return false
+  return MINOBRNAUKI_ORDER_VIEW_ROLES.includes(userRole as UserRole)
+}
+
 /** @deprecated Use can(role, resource, action) instead */
 export function canEdit(userRole?: UserRole | string): boolean {
   if (!userRole) return false

@@ -207,7 +207,8 @@
     "branding": "Branding",
     "usersCatalog": "User directory",
     "extracurricular": "Events",
-    "workPrograms": "Work Programs"
+    "workPrograms": "Work Programs",
+    "minobrnaukiOrders": "Ministry Orders"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -3441,6 +3442,35 @@
       "forbidden": "Insufficient permissions for this action",
       "notFound": "Event not found",
       "generic": "Failed to complete the action"
+    }
+  },
+  "minobrnaukiOrder": {
+    "title": "Ministry Orders",
+    "description": "Registry of Ministry of Education orders and regulatory changes affecting work programs",
+    "filters": {
+      "changeScope": "Change scope",
+      "changeScopeOptions": {
+        "all": "All",
+        "minor": "Minor",
+        "major": "Major"
+      }
+    },
+    "empty": {
+      "title": "No orders yet",
+      "description": "Registered Ministry orders will appear here"
+    },
+    "loadFailed": "Failed to load orders",
+    "countLabel": "Showing {shown} of {total}",
+    "pagination": {
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "card": {
+      "changeScope": {
+        "minor": "Minor",
+        "major": "Major"
+      },
+      "published": "Published {date}"
     }
   }
 }

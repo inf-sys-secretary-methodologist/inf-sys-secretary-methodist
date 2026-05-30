@@ -207,7 +207,8 @@
     "branding": "العلامة",
     "usersCatalog": "دليل المستخدمين",
     "extracurricular": "الفعاليات",
-    "workPrograms": "برامج العمل"
+    "workPrograms": "برامج العمل",
+    "minobrnaukiOrders": "أوامر الوزارة"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -3441,6 +3442,35 @@
       "forbidden": "صلاحيات غير كافية لهذا الإجراء",
       "notFound": "الفعالية غير موجودة",
       "generic": "فشل تنفيذ الإجراء"
+    }
+  },
+  "minobrnaukiOrder": {
+    "title": "أوامر الوزارة",
+    "description": "سجل أوامر الوزارة والتغييرات التنظيمية التي تؤثر على برامج العمل",
+    "filters": {
+      "changeScope": "نطاق التغيير",
+      "changeScopeOptions": {
+        "all": "الكل",
+        "minor": "طفيفة",
+        "major": "كبيرة"
+      }
+    },
+    "empty": {
+      "title": "لا توجد أوامر بعد",
+      "description": "ستظهر أوامر الوزارة المسجلة هنا"
+    },
+    "loadFailed": "فشل تحميل الأوامر",
+    "countLabel": "عرض {shown} من {total}",
+    "pagination": {
+      "prev": "السابق",
+      "next": "التالي"
+    },
+    "card": {
+      "changeScope": {
+        "minor": "طفيف",
+        "major": "كبير"
+      },
+      "published": "نُشر في {date}"
     }
   }
 }
