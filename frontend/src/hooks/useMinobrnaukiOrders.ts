@@ -14,6 +14,7 @@ import type {
   MinobrnaukiOrder,
   MinobrnaukiOrdersListResponse,
   MinobrnaukiOrderListFilter,
+  RecordMinobrnaukiOrderInput,
 } from '@/types/minobrnaukiOrder'
 
 const BASE_URL = '/api/v1/minobrnauki-orders'
@@ -81,4 +82,17 @@ export function useMinobrnaukiOrder(id: number | null, opts?: FetchOpts) {
     dedupingInterval: SWR_DEDUPING.SHORT,
   })
   return { order: data, isLoading, error, mutate }
+}
+
+// === Mutations (STUB — RED state) ===
+// Real implementation + error mapping land in the GREEN commit.
+
+export async function recordMinobrnaukiOrder(
+  _input: RecordMinobrnaukiOrderInput
+): Promise<MinobrnaukiOrder> {
+  return {} as MinobrnaukiOrder
+}
+
+export function pickMinobrnaukiOrderErrorKey(_err: unknown): string {
+  return 'generic'
 }
