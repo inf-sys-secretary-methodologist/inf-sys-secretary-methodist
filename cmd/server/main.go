@@ -2820,9 +2820,23 @@ func setupRoutes(
 			// the shared generation rate limiter. The drafts land for the РПД
 			// author to submit and the methodist to approve via the revision
 			// flow — never silently applied.
+			// Slice 7: when an order has an attached document (PDF/DOCX), feed
+			// its extracted text to the LLM so the revision is grounded on the
+			// real приказ, not just the manual summary. Bridge to the documents +
+			// text-extraction infrastructure (own DocumentAdapter instance — the
+			// AI module's is scoped to its own block); best-effort, so a missing
+			// document or extraction failure leaves generation working from the
+			// summary alone.
+			orderDocText := orderDocumentTextAdapter{docs: aiAdapters.NewDocumentAdapter(
+				docPersistence.NewDocumentRepositoryPG(db),
+				s3Client,
+				aiServices.NewTextExtractionService(),
+				db,
+				slog.Default(),
+			)}
 			generateOrderRevsUC := wpUsecases.NewGenerateOrderRevisionsUseCase(
 				moRepo, wpRepo, wpDraftGen, wpGenLimiter, auditLogger,
-			)
+			).WithDocumentText(orderDocText)
 			genRevHandler := wpHandler.NewGenerateOrderRevisionsHandler(generateOrderRevsUC)
 			wpHandler.RegisterGenerateOrderRevisionsRoutes(wpV1Group, genRevHandler)
 			logger.Info("AI bulk-revision (generate-revisions) route registered", nil)
@@ -3661,6 +3675,21 @@ func (d minobrnaukiRevisionTaskDelegator) DelegateRevision(ctx context.Context, 
 		},
 	})
 	return err
+}
+
+// orderDocumentTextAdapter bridges work_program's OrderDocumentTextProvider
+// port (slice 7) to the documents + text-extraction infrastructure, reusing
+// the AI module's DocumentAdapter (download from S3 → extract PDF/DOCX text →
+// cache). Cross-module wiring kept at the composition root. It exposes only
+// the extracted text; the document title the adapter also returns is unused
+// by bulk-revision.
+type orderDocumentTextAdapter struct {
+	docs *aiAdapters.DocumentAdapter
+}
+
+func (a orderDocumentTextAdapter) GetDocumentText(ctx context.Context, documentID int64) (string, error) {
+	text, _, err := a.docs.GetDocumentContent(ctx, documentID)
+	return text, err
 }
 
 type workflowDocRepoAdapter struct {
