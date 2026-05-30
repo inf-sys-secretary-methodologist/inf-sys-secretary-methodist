@@ -2811,6 +2811,21 @@ func setupRoutes(
 			moHandler := wpHandler.NewMinobrnaukiOrderHandler(recordMOUC, getMOUC, listMOUC)
 			wpHandler.RegisterMinobrnaukiOrderRoutes(wpV1Group, moHandler)
 			logger.Info("Минобрнауки order routes registered", nil)
+
+			// AI bulk-revision (PR 11, ADR-12): a methodist triggers LLM
+			// generation of a draft лист актуализации for every РПД affected
+			// by an order. Reuses the order repo (source + FindAffected), the
+			// РПД repo (load-mutate-persist), the same OpenRouter generator as
+			// draft generation (it also implements RevisionDraftGenerator), and
+			// the shared generation rate limiter. The drafts land for the РПД
+			// author to submit and the methodist to approve via the revision
+			// flow — never silently applied.
+			generateOrderRevsUC := wpUsecases.NewGenerateOrderRevisionsUseCase(
+				moRepo, wpRepo, wpDraftGen, wpGenLimiter, auditLogger,
+			)
+			genRevHandler := wpHandler.NewGenerateOrderRevisionsHandler(generateOrderRevsUC)
+			wpHandler.RegisterGenerateOrderRevisionsRoutes(wpV1Group, genRevHandler)
+			logger.Info("AI bulk-revision (generate-revisions) route registered", nil)
 		}
 
 		// Schedule/Events module routes
