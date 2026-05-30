@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -177,6 +178,52 @@ func sampleRevisionReq() usecases.RevisionDraftRequest {
 		SpecialtyCode:      "09.03.01",
 		ApplicableFromYear: 2026,
 	}
+}
+
+// Slice 7: the extracted text of the order's attached document is woven into
+// the revision prompt (the request body sent to the model) so the LLM grounds
+// its proposal on the real приказ. Empty text is omitted (no dangling
+// section); oversized text is truncated to bound prompt tokens/cost (the
+// manual OrderSummary still carries the digest). Asserted through the exported
+// GenerateRevision surface by capturing the outgoing request body.
+func TestGenerator_GenerateRevision_OrderDocumentText(t *testing.T) {
+	const orderTextLabel = "Текст приказа"
+
+	capture := func(t *testing.T, orderText string) string {
+		t.Helper()
+		var gotBody string
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			b, _ := io.ReadAll(r.Body)
+			gotBody = string(b)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, chatCompletion(`{"change_type":"other","change_summary":"x"}`))
+		}))
+		defer srv.Close()
+		req := sampleRevisionReq()
+		req.OrderText = orderText
+		_, err := newTestGenerator(srv.URL).GenerateRevision(context.Background(), req)
+		require.NoError(t, err)
+		return gotBody
+	}
+
+	t.Run("present text is included for the LLM", func(t *testing.T) {
+		body := capture(t, "Пункт 1. Установить объём часов 18.")
+		assert.Contains(t, body, orderTextLabel)
+		assert.Contains(t, body, "Установить объём часов 18.")
+	})
+
+	t.Run("empty text omits the section", func(t *testing.T) {
+		body := capture(t, "")
+		assert.NotContains(t, body, orderTextLabel)
+	})
+
+	t.Run("oversized text is truncated to bound the prompt", func(t *testing.T) {
+		body := capture(t, strings.Repeat("я", 50000))
+		assert.Contains(t, body, orderTextLabel)
+		assert.Contains(t, body, "усечён", "a truncation marker signals the cut")
+		assert.Less(t, strings.Count(body, "я"), 20000,
+			"the document text must be capped, not sent whole")
+	})
 }
 
 func TestGenerator_GenerateRevision_HappyPath(t *testing.T) {
