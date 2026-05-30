@@ -38,6 +38,37 @@ func (f *fakeBulkRevisionGenerator) GenerateRevision(
 	return f.proposal, nil
 }
 
+// fakeOrderDocText is a deterministic OrderDocumentTextProvider for the
+// slice-7 tests: it returns a fixed extracted text (or an error) and records
+// the document ids it was asked for, so a test can assert the order's
+// attached document was fetched exactly once by its id.
+type fakeOrderDocText struct {
+	text  string
+	err   error
+	calls []int64
+}
+
+func (f *fakeOrderDocText) GetDocumentText(_ context.Context, documentID int64) (string, error) {
+	f.calls = append(f.calls, documentID)
+	return f.text, f.err
+}
+
+// orderWithDocument is affectingOrder() but with an attached document id, so
+// the bulk-revision run has a source PDF/DOCX to extract text from.
+func orderWithDocument(documentID int64) *entities.MinobrnaukiOrder {
+	return entities.ReconstituteMinobrnaukiOrder(entities.ReconstituteMinobrnaukiOrderInput{
+		ID:          50,
+		OrderNumber: "1234",
+		Title:       "Об утверждении ФГОС ВО",
+		PublishedAt: time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
+		DocumentID:  &documentID,
+		ChangeScope: domain.MinobrnaukiOrderChangeScopeMajor,
+		Summary:     "Изменены требования к часам по дисциплине",
+		UploadedBy:  3,
+		CreatedAt:   time.Date(2026, 1, 15, 8, 0, 0, 0, time.UTC),
+	})
+}
+
 func okProposal() RevisionProposal {
 	return RevisionProposal{
 		ChangeType:    string(domain.RevisionChangeTypeHours),
@@ -232,6 +263,81 @@ func TestGenerateOrderRevisionsUseCase_BestEffort_InvalidProposalCounted(t *test
 	assert.Equal(t, 0, res.Generated)
 	assert.Equal(t, 1, res.Failures)
 	assert.Empty(t, wpA.Revisions(), "a rejected proposal adds no revision")
+}
+
+// Slice 7: when the order has an attached document, the bulk-revision run
+// fetches its extracted text once and hands it to the LLM as OrderText
+// (grounding the proposal on the real приказ, not just the manual summary).
+// Best-effort: a missing document or extraction error leaves OrderText empty
+// and never blocks generation (the prompt still has the manual OrderSummary).
+func TestGenerateOrderRevisionsUseCase_FeedsOrderDocumentTextToGenerator(t *testing.T) {
+	const teacherID = int64(5)
+	const docID = int64(77)
+
+	cases := []struct {
+		name          string
+		order         *entities.MinobrnaukiOrder
+		provider      *fakeOrderDocText
+		wantOrderText string
+		wantCalls     []int64
+	}{
+		{
+			name:          "attached document text is fed to the generator",
+			order:         orderWithDocument(docID),
+			provider:      &fakeOrderDocText{text: "ПРИКАЗ. Полный текст, извлечённый из PDF."},
+			wantOrderText: "ПРИКАЗ. Полный текст, извлечённый из PDF.",
+			wantCalls:     []int64{docID},
+		},
+		{
+			name:          "no attached document → provider not called, OrderText empty",
+			order:         affectingOrder(),
+			provider:      &fakeOrderDocText{text: "must not be used"},
+			wantOrderText: "",
+			wantCalls:     nil,
+		},
+		{
+			name:          "extraction error → best-effort empty OrderText, generation proceeds",
+			order:         orderWithDocument(docID),
+			provider:      &fakeOrderDocText{err: errors.New("s3 download failed")},
+			wantOrderText: "",
+			wantCalls:     []int64{docID},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			wp := reconstituteWPWithStatus(t, 701, teacherID, domain.StatusApproved)
+			orders := &fakeReadOrderRepo{order: tc.order, affected: []int64{701}}
+			targets := &fakeRevisionRepo{programs: map[int64]*entities.WorkProgram{701: wp}}
+			gen := &fakeBulkRevisionGenerator{proposal: okProposal()}
+			uc := NewGenerateOrderRevisionsUseCase(orders, targets, gen, nil, nil).
+				WithDocumentText(tc.provider)
+
+			res, err := uc.Execute(context.Background(), 3, "methodist", 50)
+			require.NoError(t, err)
+			assert.Equal(t, 1, res.Generated, "generation proceeds regardless of extraction outcome")
+			require.Len(t, gen.requests, 1)
+			assert.Equal(t, tc.wantOrderText, gen.requests[0].OrderText)
+			assert.Equal(t, tc.wantCalls, tc.provider.calls)
+		})
+	}
+}
+
+// A nil document-text provider (feature off / not wired) leaves OrderText
+// empty without touching the order's document id — generation is unchanged.
+func TestGenerateOrderRevisionsUseCase_NilDocumentTextProvider_OrderTextEmpty(t *testing.T) {
+	const teacherID = int64(5)
+	wp := reconstituteWPWithStatus(t, 801, teacherID, domain.StatusApproved)
+	orders := &fakeReadOrderRepo{order: orderWithDocument(77), affected: []int64{801}}
+	targets := &fakeRevisionRepo{programs: map[int64]*entities.WorkProgram{801: wp}}
+	gen := &fakeBulkRevisionGenerator{proposal: okProposal()}
+	uc := NewGenerateOrderRevisionsUseCase(orders, targets, gen, nil, nil)
+
+	res, err := uc.Execute(context.Background(), 3, "methodist", 50)
+	require.NoError(t, err)
+	assert.Equal(t, 1, res.Generated)
+	require.Len(t, gen.requests, 1)
+	assert.Empty(t, gen.requests[0].OrderText)
 }
 
 func TestGenerateOrderRevisionsUseCase_EmitsSummaryAudit(t *testing.T) {

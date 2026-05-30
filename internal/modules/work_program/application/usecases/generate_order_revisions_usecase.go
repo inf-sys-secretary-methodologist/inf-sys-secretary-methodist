@@ -22,6 +22,7 @@ type RevisionDraftRequest struct {
 	OrderNumber        string
 	OrderTitle         string
 	OrderSummary       string
+	OrderText          string // full text extracted from the attached приказ document (slice 7); empty if none
 	PublishedYear      int
 	WorkProgramTitle   string
 	SpecialtyCode      string
@@ -44,6 +45,17 @@ type RevisionProposal struct {
 // fake. Consumer-owned port (DIP).
 type RevisionDraftGenerator interface {
 	GenerateRevision(ctx context.Context, req RevisionDraftRequest) (RevisionProposal, error)
+}
+
+// OrderDocumentTextProvider fetches the extracted plain-text content of the
+// order's attached document (PDF/DOCX) so the LLM can ground its revision
+// proposal on the real приказ rather than only the manual summary (slice 7).
+// Consumer-owned port (DIP); the adapter bridging to the documents +
+// text-extraction infrastructure is wired at the composition root. Optional
+// collaborator — when nil (or the order has no document) generation works
+// from the manual OrderSummary alone.
+type OrderDocumentTextProvider interface {
+	GetDocumentText(ctx context.Context, documentID int64) (string, error)
 }
 
 // orderRevisionSourceRepo loads the order plus its affected-РПД set.
@@ -71,8 +83,9 @@ type GenerateOrderRevisionsUseCase struct {
 	orders  orderRevisionSourceRepo
 	targets orderRevisionTargetRepo
 	gen     RevisionDraftGenerator
-	limiter GenerationRateLimiter // optional (nil tolerated)
-	audit   AuditSink             // optional (nil tolerated)
+	limiter GenerationRateLimiter     // optional (nil tolerated)
+	audit   AuditSink                 // optional (nil tolerated)
+	docText OrderDocumentTextProvider // optional (nil tolerated): order document text for the LLM
 }
 
 // NewGenerateOrderRevisionsUseCase wires the use case. orders, targets and
@@ -94,6 +107,14 @@ func NewGenerateOrderRevisionsUseCase(
 		limiter: limiter,
 		audit:   audit,
 	}
+}
+
+// WithDocumentText attaches the optional provider that supplies the extracted
+// text of the order's attached document to the LLM (slice 7). Chainable;
+// nil leaves bulk-revision working from the manual OrderSummary alone.
+func (uc *GenerateOrderRevisionsUseCase) WithDocumentText(p OrderDocumentTextProvider) *GenerateOrderRevisionsUseCase {
+	uc.docText = p
+	return uc
 }
 
 // Execute runs the bulk-revision generation for one order:
