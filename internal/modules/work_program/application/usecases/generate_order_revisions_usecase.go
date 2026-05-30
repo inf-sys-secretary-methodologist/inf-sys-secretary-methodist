@@ -170,6 +170,18 @@ func (uc *GenerateOrderRevisionsUseCase) Execute(
 		return res, err
 	}
 
+	// Fetch the order's attached-document text once (slice 7), reused for
+	// every affected РПД's request. Best-effort: when no provider is wired,
+	// the order has no document, or extraction fails, OrderText stays empty
+	// and the LLM falls back to the manual OrderSummary — a missing document
+	// must never block the bulk run.
+	var orderText string
+	if uc.docText != nil && order.DocumentID() != nil {
+		if txt, derr := uc.docText.GetDocumentText(ctx, *order.DocumentID()); derr == nil {
+			orderText = txt
+		}
+	}
+
 	for _, wpID := range affected {
 		wp, err := uc.targets.GetByID(ctx, wpID)
 		if err != nil {
@@ -185,6 +197,7 @@ func (uc *GenerateOrderRevisionsUseCase) Execute(
 			OrderNumber:        order.OrderNumber(),
 			OrderTitle:         order.Title(),
 			OrderSummary:       order.Summary(),
+			OrderText:          orderText,
 			PublishedYear:      order.PublishedAt().Year(),
 			WorkProgramTitle:   wp.Title(),
 			SpecialtyCode:      wp.SpecialtyCode(),
