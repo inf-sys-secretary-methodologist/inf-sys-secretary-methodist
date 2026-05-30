@@ -166,6 +166,34 @@ export async function submitRevision(
   return response.data
 }
 
+// approveRevision moves a pending revision to approved (approver-side).
+// Empty body — the approver derives from the JWT subject server-side.
+export async function approveRevision(
+  workProgramId: number,
+  revisionId: number
+): Promise<WorkProgram> {
+  const response = await apiClient.post<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${workProgramId}/revisions/${revisionId}/approve`,
+    {}
+  )
+  return response.data
+}
+
+// rejectRevision rejects a pending revision with a mandatory reason
+// (approver-side). Reuses RejectWorkProgramInput — identical { reason }
+// shape as the РПД reject.
+export async function rejectRevision(
+  workProgramId: number,
+  revisionId: number,
+  body: RejectWorkProgramInput
+): Promise<WorkProgram> {
+  const response = await apiClient.post<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${workProgramId}/revisions/${revisionId}/reject`,
+    body
+  )
+  return response.data
+}
+
 // === Error mapping ===
 //
 // Translates backend sentinel codes (mapWorkProgramError) to camelCase
