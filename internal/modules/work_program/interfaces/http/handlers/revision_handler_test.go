@@ -239,3 +239,26 @@ func TestNewRevisionHandler_PanicsOnNilPort(t *testing.T) {
 	}()
 	NewRevisionHandler(nil, &fakeSubmitRevision{}, &fakeApproveRevision{}, &fakeRejectRevision{})
 }
+
+// TestRevisionRoutes_CoexistWithWorkProgramRoutes guards the one genuinely
+// new structural risk: both RegisterWorkProgramRoutes and
+// RegisterRevisionRoutes mount on the same group and share the :id param at
+// the same tree position. gin's router panics on a wildcard-name conflict,
+// so this pins that the two registrars coexist — a future param rename on
+// one side fails here in CI instead of at server boot.
+func TestRevisionRoutes_CoexistWithWorkProgramRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	api := r.Group("/api/v1")
+
+	wp := NewWorkProgramHandler(
+		&fakeCreate{}, &fakeGet{}, &fakeList{},
+		&fakeSubmit{}, &fakeApprove{}, &fakeReject{}, &fakeDiscard{}, &fakeGenerate{},
+	)
+	rev := NewRevisionHandler(&fakeCreateRevision{}, &fakeSubmitRevision{}, &fakeApproveRevision{}, &fakeRejectRevision{})
+
+	assert.NotPanics(t, func() {
+		RegisterWorkProgramRoutes(api, wp)
+		RegisterRevisionRoutes(api, rev)
+	}, "WP + revision routes must coexist on one group without a gin wildcard conflict")
+}
