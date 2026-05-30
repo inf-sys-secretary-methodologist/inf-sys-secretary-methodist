@@ -2,9 +2,12 @@ package usecases
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/work_program/domain/repositories"
 )
 
 // Manual editing of РПД inner collections (slice 12). A methodist or the РПД
@@ -103,8 +106,31 @@ func (uc *WorkProgramContentUseCase) mutate(
 	ctx context.Context, actorID int64, actorRole string, wpID int64, action string,
 	apply func(*entities.WorkProgram) error,
 ) (*entities.WorkProgram, error) {
-	_, _, _, _ = actorID, actorRole, action, apply // stub — authorize/apply/persist land in GREEN
-	return uc.repo.GetByID(ctx, wpID)
+	wp, err := uc.repo.GetByID(ctx, wpID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrWorkProgramNotFound) {
+			emitAudit(uc.audit, ctx, "work_program.content_"+action+"_denied",
+				denialFields(actorID, wpID, "not_found", ""))
+		}
+		return nil, err
+	}
+	if !isAuthorOrSystemAdmin(actorID, actorRole, wp.AuthorID()) {
+		emitAudit(uc.audit, ctx, "work_program.content_"+action+"_denied",
+			denialFields(actorID, wpID, "forbidden", wp.SpecialtyCode()))
+		return nil, fmt.Errorf("%w: actor %d is not the author (%d) and not system_admin",
+			domain.ErrWorkProgramScopeForbidden, actorID, wp.AuthorID())
+	}
+	if err := apply(wp); err != nil {
+		emitAudit(uc.audit, ctx, "work_program.content_"+action+"_denied",
+			denialFields(actorID, wpID, "invalid", wp.SpecialtyCode()))
+		return nil, err
+	}
+	if err := uc.repo.Update(ctx, wp); err != nil {
+		return nil, err
+	}
+	emitAudit(uc.audit, ctx, "work_program.content_"+action,
+		successFields(actorID, wpID, wp.SpecialtyCode(), string(wp.Status())))
+	return wp, nil
 }
 
 // --- Goal ---
