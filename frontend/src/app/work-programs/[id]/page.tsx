@@ -136,13 +136,11 @@ function WorkProgramDetail({
   // and pending are disjoint statuses, so at most one action set shows.
   const canApproveActions = wp.status === 'pending_approval' && canApproveWorkProgram(role)
 
-  // Revision (лист актуализации) write-flow gates mirror the backend's
-  // author-scoping (create_revision/submit_revision are isAuthorOrSystemAdmin,
-  // NOT role-only): a revision proposes a change to an already-approved
-  // programme, so creating one belongs to the РПД author (or admin override)
-  // on an approved / needs_revision programme. The backend stays the real
-  // gate; this only decides visibility so a methodist (an approver, not the
-  // author) is not shown a button that would 404.
+  // Revision (лист актуализации) gates mirror the backend's author-scoping
+  // (create/submit are isAuthorOrSystemAdmin, NOT role-only): creating a
+  // revision on an approved / needs_revision programme belongs to its author
+  // (or admin override). Backend stays the real gate; this only hides a
+  // button a methodist (approver, not author) would otherwise 404 on.
   const isAdmin = role === 'system_admin'
   const isAuthor = userId != null && wp.author_id === userId
   const canCreateRevision =

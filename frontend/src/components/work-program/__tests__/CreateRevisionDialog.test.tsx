@@ -99,17 +99,14 @@ describe('CreateRevisionDialog', () => {
     expect(mockToastSuccess).toHaveBeenCalled()
   })
 
+  // The full code→key table is covered in useWorkPrograms.test.ts; here we
+  // only prove the dialog routes through pickWorkProgramErrorKey and stays
+  // open on failure (a representative sentinel + status fallback).
   it.each([
     [
       { response: { data: { error: { code: 'REVISION_NOT_PERMITTED' } } } },
       'errors.revisionNotPermitted',
     ],
-    [{ response: { data: { error: { code: 'VERSION_CONFLICT' } } } }, 'errors.versionConflict'],
-    [
-      { response: { data: { error: { code: 'INVALID_WORK_PROGRAM' } } } },
-      'errors.invalidWorkProgram',
-    ],
-    [{ response: { status: 403 } }, 'errors.forbidden'],
     [{ response: { status: 404 } }, 'errors.notFound'],
     [{ response: { status: 500 } }, 'errors.generic'],
   ])('maps backend error %# to an errors.* toast key and stays open', async (err, expectedKey) => {

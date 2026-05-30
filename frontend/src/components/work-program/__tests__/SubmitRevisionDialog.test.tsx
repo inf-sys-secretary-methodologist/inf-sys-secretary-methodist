@@ -60,14 +60,13 @@ describe('SubmitRevisionDialog', () => {
     expect(mockToastSuccess).toHaveBeenCalled()
   })
 
+  // Full code→key table lives in useWorkPrograms.test.ts; here a
+  // representative sentinel + status fallback proves routing + stay-open.
   it.each([
     [
       { response: { data: { error: { code: 'REVISION_NOT_PERMITTED' } } } },
       'errors.revisionNotPermitted',
     ],
-    [{ response: { data: { error: { code: 'INVALID_TRANSITION' } } } }, 'errors.invalidTransition'],
-    [{ response: { data: { error: { code: 'VERSION_CONFLICT' } } } }, 'errors.versionConflict'],
-    [{ response: { status: 403 } }, 'errors.forbidden'],
     [{ response: { status: 404 } }, 'errors.notFound'],
     [{ response: { status: 500 } }, 'errors.generic'],
   ])('maps backend error %# to an errors.* toast key and stays open', async (err, expectedKey) => {

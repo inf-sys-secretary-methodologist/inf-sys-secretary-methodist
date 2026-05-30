@@ -26,13 +26,9 @@ interface SubmitRevisionDialogProps {
 
 // SubmitRevisionDialog — confirmation modal for the author-side
 // draft → pending_approval transition of a лист актуализации (revision).
-// Mirrors SubmitWorkProgramDialog: no input — the backend submit endpoint
-// accepts an empty body and identifies the row by path ids (РПД + revision)
-// and the actor by JWT subject. Wrapping the transition in a dialog matches
-// the codebase precedent and prevents accidental submits of a still-being-
-// drafted revision. Errors route through pickWorkProgramErrorKey so the
-// toast matches the backend's canonical code; on failure the dialog stays
-// open for retry.
+// Mirrors SubmitWorkProgramDialog: empty body — path ids (РПД + revision)
+// + JWT subject identify the row + actor. Errors route through
+// pickWorkProgramErrorKey; on failure the dialog stays open for retry.
 export function SubmitRevisionDialog({
   workProgramId,
   revisionId,

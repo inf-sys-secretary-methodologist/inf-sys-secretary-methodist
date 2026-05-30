@@ -32,16 +32,13 @@ interface CreateRevisionDialogProps {
 
 // CreateRevisionDialog — author-side modal for proposing a лист
 // актуализации (revision) on an approved / needs_revision РПД. Mirrors
-// CreateWorkProgramDialog (reset-on-open, client validation echoing the
-// domain, errors via pickWorkProgramErrorKey keep the dialog open). The
-// change_type uses a native <select> (the codebase uses native selects
-// for simple enums — EventModal/RegisterForm) so the five domain values
-// stay 1:1 with RevisionChangeType; an empty placeholder option forces an
-// explicit choice. change-type labels are reused from the detail page
+// CreateWorkProgramDialog (reset-on-open, errors via pickWorkProgramErrorKey
+// keep the dialog open). change_type uses a native <select> (codebase
+// precedent for simple enums — EventModal/RegisterForm) with an empty
+// placeholder forcing an explicit choice; its labels reuse the detail-page
 // namespace (detail.revisionChangeType.*) to avoid duplicating the enum.
-// The author is stamped from the JWT subject server-side. diff_payload is
-// omitted — structured diffs arrive later via AI bulk-revision; here the
-// author records the categorized change + a human summary.
+// Author is stamped from the JWT subject server-side; diff_payload is
+// omitted (structured diffs arrive later via AI bulk-revision).
 export function CreateRevisionDialog({
   workProgramId,
   open,
