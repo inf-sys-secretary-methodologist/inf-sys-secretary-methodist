@@ -2778,6 +2778,19 @@ func setupRoutes(
 			wpHandler.RegisterWorkProgramRoutes(wpV1Group, workProgramHandler)
 			logger.Info("Work program (РПД) module routes registered", nil)
 
+			// Revision (лист актуализации) write-workflow (PR 1-3,
+			// v0.197.0-v0.199.0) — create/submit (author) + approve/reject
+			// (methodist) nested under /work-programs/:id/revisions. All
+			// reuse the same wpRepo (load-mutate-persist through the
+			// aggregate root) + audit sink.
+			createRevUC := wpUsecases.NewCreateRevisionUseCase(wpRepo, auditLogger)
+			submitRevUC := wpUsecases.NewSubmitRevisionUseCase(wpRepo, auditLogger)
+			approveRevUC := wpUsecases.NewApproveRevisionUseCase(wpRepo, auditLogger)
+			rejectRevUC := wpUsecases.NewRejectRevisionUseCase(wpRepo, auditLogger)
+			revisionHandler := wpHandler.NewRevisionHandler(createRevUC, submitRevUC, approveRevUC, rejectRevUC)
+			wpHandler.RegisterRevisionRoutes(wpV1Group, revisionHandler)
+			logger.Info("Revision (лист актуализации) routes registered", nil)
+
 			// Минобрнауки order register (PR 6b-2, v0.194.0) — ADR-11.
 			// Record (staff only) / Get / List on the same /api/v1 group.
 			moRepo := wpPersistence.NewMinobrnaukiOrderRepositoryPG(db)
