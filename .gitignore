@@ -1,16 +1,3 @@
-# Taskmaster
-.taskmaster/
-
-# Local-only two-level memory standard (CLAUDE.md, memory/, SESSION_START.md,
-# _tools/build_session_start.py, .claude/handoffs/). Не пушить в GitHub —
-# это рабочая память Даниила, не часть продуктового кода. Файлы существуют
-# локально, но git их не отслеживает.
-/CLAUDE.md
-/SESSION_START.md
-/memory/
-/_tools/
-# .claude/ уже ignored глобально (~/.config/git/ignore), оставляем как есть
-
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -46,30 +33,6 @@ docker-compose.override.yml
 *.swo
 *~
 
-# AI agent / MCP / coding-assistant configuration — local-only,
-# не часть продуктового кода. Каждый разработчик держит свои конфиги
-# (Claude Code, Cursor, Aider, Continue, Cline, Windsurf, Copilot, etc.)
-# у себя локально. На GitHub этих файлов быть не должно.
-.mcp.json
-.mcp/
-.claude/
-.cursor/
-.cursorrules
-.aider*
-.aiderignore
-.copilot/
-.github/copilot-instructions.md
-.continue/
-.cline/
-.windsurf/
-.windsurfrules
-.roo/
-.roomodes
-.specstory/
-AGENTS.md
-agents.md
-CODEX.md
-
 # OS files
 .DS_Store
 Thumbs.db
@@ -100,9 +63,6 @@ nx
 nx.bat
 nx.json
 
-# Playwright MCP
-.playwright-mcp/
-
 # Playwright test results
 frontend/test-results/
 frontend/playwright-report/
@@ -117,20 +77,11 @@ frontend/node_modules/
 frontend/coverage/
 frontend/.jest-cache/
 
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
-
-# Serena
-.serena/
-
 # Storybook build
 frontend/storybook-static/
 
 # Runtime state
 runtime-state/
-
-# Taskmaster
-.taskmaster/
 
 # Server admin docs (contains sensitive data)
 SERVER_ADMIN.md
@@ -150,10 +101,9 @@ migrations/seed_demo_data.sql
 # Это правило установлено 2026-05-23 пост v0.161.0.
 
 # Personal / local-only thesis & diploma artifacts (acts, scenarios,
-# diagrams, master-thesis math model chapter, Claude session handoffs).
+# diagrams, master-thesis math model chapter).
 # Эти файлы — рабочие материалы Даниила для диплома/защиты, не часть
 # продуктового кода. Не пушить в GitHub.
-NEXT_SESSION_PROMPT.md
 /Akt_*.docx
 /Akt_*.pages
 /Polozheniya_*.docx
@@ -164,3 +114,10 @@ docs/master-thesis/
 docs/Сценарии_*.docx
 docs/use-case-*.drawio
 docs/idef0_*.drawio
+# Diagrams в docs/ (drawio + dbml) — рабочие артефакты для диплома, не product.
+docs/*.drawio
+docs/*.dbml
+# Все docs/plans/ — рабочие docs для планирования, не для git.
+docs/plans/
+# Главы дипломной записки (.docx в docs/) — личные рабочие артефакты, не product.
+docs/*.docx
