@@ -399,3 +399,122 @@ describe('WorkProgramDetailPage — approver actions (8d-2)', () => {
     expect(screen.queryByRole('button', { name: 'detail.actions.reject' })).not.toBeInTheDocument()
   })
 })
+
+describe('WorkProgramDetailPage — revision write-flow actions (10b-1)', () => {
+  const author = {
+    user: { id: 5, role: 'teacher' as const },
+    isAuthenticated: true,
+    isLoading: false,
+  }
+
+  const draftRevision = (overrides: Partial<WorkProgram['revisions'][number]> = {}) => ({
+    id: 11,
+    revision_number: 1,
+    change_type: 'hours' as const,
+    change_summary: 'Часы лекций 36 → 18',
+    status: 'draft' as const,
+    author_id: 5,
+    created_at: '2026-05-21T10:00:00Z',
+    updated_at: '2026-05-21T10:00:00Z',
+    ...overrides,
+  })
+
+  const wp = (overrides: Partial<WorkProgram> = {}) => ({
+    workProgram: sample({ status: 'approved', author_id: 5, ...overrides }),
+    isLoading: false,
+    error: undefined,
+    mutate: jest.fn(),
+  })
+
+  beforeEach(() => {
+    mockUseParams.mockReturnValue({ id: '7' })
+    mockUseAuthCheck.mockReturnValue(author)
+    mockUseWorkProgram.mockReturnValue(wp())
+  })
+
+  it('shows the create-revision action for the author on an approved РПД', () => {
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.getByRole('button', { name: 'detail.actions.createRevision' })
+    ).toBeInTheDocument()
+  })
+
+  it('shows the create-revision action for the author on a needs_revision РПД', () => {
+    mockUseWorkProgram.mockReturnValue(wp({ status: 'needs_revision' }))
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.getByRole('button', { name: 'detail.actions.createRevision' })
+    ).toBeInTheDocument()
+  })
+
+  it('opens the create-revision dialog when the action is clicked', () => {
+    render(<WorkProgramDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.actions.createRevision' }))
+    expect(screen.getByText('createRevisionDialog.title')).toBeInTheDocument()
+  })
+
+  it('hides the create-revision action for a non-author (methodist on another author РПД)', () => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 3, role: 'methodist' as const },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.queryByRole('button', { name: 'detail.actions.createRevision' })
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows the create-revision action for a system_admin (override) on an approved РПД', () => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 99, role: 'system_admin' as const },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.getByRole('button', { name: 'detail.actions.createRevision' })
+    ).toBeInTheDocument()
+  })
+
+  it('hides the create-revision action on a draft РПД (only approved/needs_revision)', () => {
+    mockUseWorkProgram.mockReturnValue(wp({ status: 'draft' }))
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.queryByRole('button', { name: 'detail.actions.createRevision' })
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows a per-row submit action on a draft revision authored by the user', () => {
+    mockUseWorkProgram.mockReturnValue(wp({ revisions: [draftRevision()] }))
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.getByRole('button', { name: 'detail.revisionActions.submit' })
+    ).toBeInTheDocument()
+  })
+
+  it('opens the submit-revision dialog when a row submit action is clicked', () => {
+    mockUseWorkProgram.mockReturnValue(wp({ revisions: [draftRevision()] }))
+    render(<WorkProgramDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.revisionActions.submit' }))
+    expect(screen.getByText('submitRevisionDialog.title')).toBeInTheDocument()
+  })
+
+  it('hides the per-row submit action on a non-draft revision (pending_approval)', () => {
+    mockUseWorkProgram.mockReturnValue(
+      wp({ revisions: [draftRevision({ status: 'pending_approval' })] })
+    )
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.queryByRole('button', { name: 'detail.revisionActions.submit' })
+    ).not.toBeInTheDocument()
+  })
+
+  it('hides the per-row submit action for a non-author of the revision', () => {
+    mockUseWorkProgram.mockReturnValue(wp({ revisions: [draftRevision({ author_id: 999 })] }))
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.queryByRole('button', { name: 'detail.revisionActions.submit' })
+    ).not.toBeInTheDocument()
+  })
+})
