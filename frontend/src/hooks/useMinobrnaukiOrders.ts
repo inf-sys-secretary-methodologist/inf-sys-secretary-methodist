@@ -84,15 +84,39 @@ export function useMinobrnaukiOrder(id: number | null, opts?: FetchOpts) {
   return { order: data, isLoading, error, mutate }
 }
 
-// === Mutations (STUB — RED state) ===
-// Real implementation + error mapping land in the GREEN commit.
+// === Mutations ===
 
+// recordMinobrnaukiOrder registers a new приказ. The uploader is stamped
+// from the JWT subject server-side; the body carries order metadata +
+// optional affected РПД ids. Axios errors propagate so the dialog can
+// branch via pickMinobrnaukiOrderErrorKey.
 export async function recordMinobrnaukiOrder(
-  _input: RecordMinobrnaukiOrderInput
+  input: RecordMinobrnaukiOrderInput
 ): Promise<MinobrnaukiOrder> {
-  return {} as MinobrnaukiOrder
+  const response = await apiClient.post<ApiResponse<MinobrnaukiOrder>>(BASE_URL, input)
+  return response.data
 }
 
-export function pickMinobrnaukiOrderErrorKey(_err: unknown): string {
+// === Error mapping ===
+//
+// Translates backend sentinel codes (mapMinobrnaukiOrderError) to camelCase
+// i18n keys under the minobrnaukiOrder.errors.* namespace, with a
+// status-aware fallback for codes the backend omits.
+const ERROR_CODE_MAP: Record<string, string> = {
+  INVALID_MINOBRNAUKI_ORDER: 'invalidOrder',
+  RATE_LIMITED: 'rateLimited',
+}
+
+export function pickMinobrnaukiOrderErrorKey(err: unknown): string {
+  if (!err) return 'generic'
+  const e = err as {
+    response?: { status?: number; data?: { error?: { code?: string } } }
+  }
+  const code = e.response?.data?.error?.code
+  if (code && ERROR_CODE_MAP[code]) return ERROR_CODE_MAP[code]
+  const status = e.response?.status
+  if (status === 403) return 'forbidden'
+  if (status === 404) return 'notFound'
+  if (status === 400) return 'invalidInput'
   return 'generic'
 }
