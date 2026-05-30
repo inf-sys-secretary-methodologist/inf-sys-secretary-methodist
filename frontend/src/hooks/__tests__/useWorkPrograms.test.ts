@@ -10,6 +10,8 @@ import {
   rejectWorkProgram,
   discardWorkProgram,
   generateWorkProgram,
+  createRevision,
+  submitRevision,
   pickWorkProgramErrorKey,
 } from '../useWorkPrograms'
 import { apiClient } from '@/lib/api'
@@ -230,6 +232,29 @@ describe('useWorkPrograms hooks (mutations)', () => {
     expect(mockedApiClient.post).toHaveBeenCalledWith('/api/v1/work-programs/5/generate', {})
     expect(result.status).toBe('draft')
   })
+
+  it('createRevision POSTs to /:id/revisions with the change body', async () => {
+    mockedApiClient.post.mockResolvedValue({ data: { id: 5, status: 'approved' } })
+    const result = await createRevision(5, {
+      change_type: 'hours',
+      change_summary: 'Часы лекций 36 → 18',
+    })
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/api/v1/work-programs/5/revisions', {
+      change_type: 'hours',
+      change_summary: 'Часы лекций 36 → 18',
+    })
+    expect(result.id).toBe(5)
+  })
+
+  it('submitRevision POSTs to /:id/revisions/:rid/submit with an empty body', async () => {
+    mockedApiClient.post.mockResolvedValue({ data: { id: 5, status: 'approved' } })
+    const result = await submitRevision(5, 9)
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/api/v1/work-programs/5/revisions/9/submit',
+      {}
+    )
+    expect(result.id).toBe(5)
+  })
 })
 
 describe('pickWorkProgramErrorKey', () => {
@@ -279,6 +304,11 @@ describe('pickWorkProgramErrorKey', () => {
       name: 'DRAFT_NOT_EMPTY → draftNotEmpty',
       err: mkErr(409, 'DRAFT_NOT_EMPTY'),
       expected: 'draftNotEmpty',
+    },
+    {
+      name: 'REVISION_NOT_PERMITTED → revisionNotPermitted',
+      err: mkErr(422, 'REVISION_NOT_PERMITTED'),
+      expected: 'revisionNotPermitted',
     },
     {
       // A sentinel code must win over a mismatched HTTP status — pins
