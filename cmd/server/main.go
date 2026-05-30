@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.198.0
+// @version         0.199.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -189,7 +189,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.198.0"
+const versionString = "0.199.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -2777,6 +2777,19 @@ func setupRoutes(
 			wpV1Group := protectedGroup.Group("/v1")
 			wpHandler.RegisterWorkProgramRoutes(wpV1Group, workProgramHandler)
 			logger.Info("Work program (РПД) module routes registered", nil)
+
+			// Revision (лист актуализации) write-workflow (PR 1-3,
+			// v0.197.0-v0.199.0) — create/submit (author) + approve/reject
+			// (methodist) nested under /work-programs/:id/revisions. All
+			// reuse the same wpRepo (load-mutate-persist through the
+			// aggregate root) + audit sink.
+			createRevUC := wpUsecases.NewCreateRevisionUseCase(wpRepo, auditLogger)
+			submitRevUC := wpUsecases.NewSubmitRevisionUseCase(wpRepo, auditLogger)
+			approveRevUC := wpUsecases.NewApproveRevisionUseCase(wpRepo, auditLogger)
+			rejectRevUC := wpUsecases.NewRejectRevisionUseCase(wpRepo, auditLogger)
+			revisionHandler := wpHandler.NewRevisionHandler(createRevUC, submitRevUC, approveRevUC, rejectRevUC)
+			wpHandler.RegisterRevisionRoutes(wpV1Group, revisionHandler)
+			logger.Info("Revision (лист актуализации) routes registered", nil)
 
 			// Минобрнауки order register (PR 6b-2, v0.194.0) — ADR-11.
 			// Record (staff only) / Get / List on the same /api/v1 group.
