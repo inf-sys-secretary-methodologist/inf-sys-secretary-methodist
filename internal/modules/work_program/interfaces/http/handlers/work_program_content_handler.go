@@ -52,11 +52,31 @@ func (r TopicContentRequest) toInput() wpUsecases.TopicContentInput {
 	}
 }
 
+// AssessmentContentRequest is the JSON body for add/update of an
+// AssessmentCriterion (ФОС item). Type + Description are required at the
+// boundary; MaxScore range + per-item rules stay in the domain.
+type AssessmentContentRequest struct {
+	Type             string   `json:"type"              binding:"required"`
+	Description      string   `json:"description"       binding:"required"`
+	MaxScore         int      `json:"max_score"`
+	ExampleQuestions []string `json:"example_questions"`
+}
+
+// ReferenceContentRequest is the JSON body for add/update of a Reference.
+type ReferenceContentRequest struct {
+	Kind       string `json:"kind"        binding:"required"`
+	Citation   string `json:"citation"    binding:"required"`
+	Year       *int   `json:"year"`
+	ISBN       string `json:"isbn"`
+	URL        string `json:"url"`
+	OrderIndex int    `json:"order_index"`
+}
+
 // ===== Port =====
 
 // WorkProgramContentPort is the narrow port for the manual collection-edit
-// use case (slice 12). It exposes the goals / competences / topics methods
-// the handler calls — assessments / references arrive in 12b-2.
+// use case (slice 12). It exposes all five collections —
+// goals / competences / topics (12b-1) and assessments / references (12b-2).
 type WorkProgramContentPort interface {
 	AddGoal(ctx context.Context, actorID int64, actorRole string, wpID int64, text string, orderIndex int) (*entities.WorkProgram, error)
 	UpdateGoal(ctx context.Context, actorID int64, actorRole string, wpID, goalID int64, text string, orderIndex int) (*entities.WorkProgram, error)
@@ -67,6 +87,12 @@ type WorkProgramContentPort interface {
 	AddTopic(ctx context.Context, actorID int64, actorRole string, wpID int64, in wpUsecases.TopicContentInput) (*entities.WorkProgram, error)
 	UpdateTopic(ctx context.Context, actorID int64, actorRole string, wpID, topicID int64, in wpUsecases.TopicContentInput) (*entities.WorkProgram, error)
 	RemoveTopic(ctx context.Context, actorID int64, actorRole string, wpID, topicID int64) (*entities.WorkProgram, error)
+	AddAssessment(ctx context.Context, actorID int64, actorRole string, wpID int64, in wpUsecases.AssessmentContentInput) (*entities.WorkProgram, error)
+	UpdateAssessment(ctx context.Context, actorID int64, actorRole string, wpID, assessmentID int64, in wpUsecases.AssessmentContentInput) (*entities.WorkProgram, error)
+	RemoveAssessment(ctx context.Context, actorID int64, actorRole string, wpID, assessmentID int64) (*entities.WorkProgram, error)
+	AddReference(ctx context.Context, actorID int64, actorRole string, wpID int64, in wpUsecases.ReferenceContentInput) (*entities.WorkProgram, error)
+	UpdateReference(ctx context.Context, actorID int64, actorRole string, wpID, referenceID int64, in wpUsecases.ReferenceContentInput) (*entities.WorkProgram, error)
+	RemoveReference(ctx context.Context, actorID int64, actorRole string, wpID, referenceID int64) (*entities.WorkProgram, error)
 }
 
 // WorkProgramContentHandler exposes the manual collection-edit endpoints.
