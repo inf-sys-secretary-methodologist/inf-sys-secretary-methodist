@@ -133,7 +133,10 @@ describe('RecordMinobrnaukiOrderDialog', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'recordDialog.record' }))
 
-    await waitFor(() => expect(mockToastError).toHaveBeenCalled())
+    // The toast names the upload as the failure, not a generic "record failed".
+    await waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith('recordDialog.errors.uploadFailed')
+    )
     expect(mockRecord).not.toHaveBeenCalled()
     expect(onClose).not.toHaveBeenCalled()
   })
