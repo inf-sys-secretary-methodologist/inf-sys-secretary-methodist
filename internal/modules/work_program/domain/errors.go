@@ -56,6 +56,13 @@ var ErrGenerationRateLimited = errors.New("work_program: generation rate limit e
 // to HTTP 404 without conflating it with a missing parent program.
 var ErrRevisionNotFound = errors.New("work_program: revision not found")
 
+// ErrChildNotFound signals that no inner-collection element (Goal /
+// Competence / Topic / AssessmentCriterion / Reference) with the requested
+// id belongs to the WorkProgram aggregate. Used by the manual collection-edit
+// Remove/Update methods (slice 12); the endpoint path identifies which
+// collection, so a single sentinel maps cleanly to HTTP 404.
+var ErrChildNotFound = errors.New("work_program: collection item not found")
+
 // ErrWorkProgramNotEmpty signals an attempt to LLM-generate into a draft
 // that already holds content (goals / competences / topics / references).
 // Generation fills an empty draft; regenerating over existing content
