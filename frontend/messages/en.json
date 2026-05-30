@@ -3493,7 +3493,8 @@
         "publishedAt": "Published date",
         "changeScope": "Change scope",
         "summary": "Summary",
-        "affected": "Affected work programs (comma-separated IDs)"
+        "affected": "Affected work programs (comma-separated IDs)",
+        "document": "Order document (PDF/DOCX)"
       },
       "affectedPlaceholder": "e.g. 10, 11, 12",
       "cancel": "Cancel",
@@ -3507,7 +3508,8 @@
         "invalidInput": "Check the form fields",
         "rateLimited": "Too many requests, try again later",
         "generic": "Failed to record the order"
-      }
+      },
+      "documentHint": "Attach the order file — the AI extracts its text to generate revisions"
     },
     "generateButton": "Generate revisions",
     "generateDialog": {

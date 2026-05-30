@@ -18,10 +18,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { recordMinobrnaukiOrder, pickMinobrnaukiOrderErrorKey } from '@/hooks/useMinobrnaukiOrders'
+import { documentsApi } from '@/lib/api/documents'
 import {
   MINOBRNAUKI_ORDER_CHANGE_SCOPES,
   type MinobrnaukiOrderChangeScope,
 } from '@/types/minobrnaukiOrder'
+
+// DEFAULT_DOCUMENT_TYPE_ID — the documents module requires a document_type_id
+// FK; the order PDF/DOCX is stored as the default type (mirrors the documents
+// page upload, which also pins type 1). The order links to it via document_id,
+// and the bulk-revision LLM extracts its text (slice 7 backend).
+const DEFAULT_DOCUMENT_TYPE_ID = 1
 
 interface RecordMinobrnaukiOrderDialogProps {
   open: boolean
@@ -56,6 +63,7 @@ export function RecordMinobrnaukiOrderDialog({
   const [changeScope, setChangeScope] = useState<MinobrnaukiOrderChangeScope>('minor')
   const [summary, setSummary] = useState('')
   const [affected, setAffected] = useState('')
+  const [file, setFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -66,6 +74,7 @@ export function RecordMinobrnaukiOrderDialog({
       setChangeScope('minor')
       setSummary('')
       setAffected('')
+      setFile(null)
     }
   }, [open])
 
@@ -80,12 +89,27 @@ export function RecordMinobrnaukiOrderDialog({
     if (!valid || submitting) return
     setSubmitting(true)
     try {
+      // When a file is attached, store it in the documents module first so the
+      // order can reference it by document_id — the bulk-revision LLM later
+      // extracts its text (slice 7). A failed upload aborts before recording,
+      // so the order is never created pointing at a missing document.
+      let documentID: number | undefined
+      if (file) {
+        const doc = await documentsApi.create({
+          title: file.name,
+          document_type_id: DEFAULT_DOCUMENT_TYPE_ID,
+          importance: 'normal',
+        })
+        await documentsApi.uploadFile(doc.id, file)
+        documentID = doc.id
+      }
       await recordMinobrnaukiOrder({
         order_number: orderNumber.trim(),
         title: title.trim(),
         published_at: publishedAt,
         change_scope: changeScope,
         summary: summary.trim(),
+        document_id: documentID,
         affected_work_program_ids: parseAffectedIds(affected),
       })
       toast.success(t('recordDialog.successToast'))
@@ -170,6 +194,17 @@ export function RecordMinobrnaukiOrderDialog({
               placeholder={t('recordDialog.affectedPlaceholder')}
               disabled={submitting}
             />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="record-document">{t('recordDialog.labels.document')}</Label>
+            <Input
+              id="record-document"
+              type="file"
+              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              disabled={submitting}
+            />
+            <p className="text-xs text-muted-foreground">{t('recordDialog.documentHint')}</p>
           </div>
         </div>
 
