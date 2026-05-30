@@ -34,6 +34,13 @@ const maxDiffPayloadBytes = 64 << 10 // 64 KiB
 // memory, so a hostile or buggy provider cannot OOM the process.
 const maxRespBytes = 1 << 20 // 1 MiB
 
+// maxRevisionOrderTextRunes caps how much of the order's extracted document
+// text (slice 7) is woven into the revision prompt. A full ministry order
+// can run to many pages; sending it whole would blow the model's context
+// window and the per-call cost. The manual OrderSummary still carries the
+// human digest, so a truncated body is acceptable — the cut is marked.
+const maxRevisionOrderTextRunes = 8000
+
 // Config configures the OpenAI-compatible draft generator. BaseURL /
 // APIKey / Model are provider-agnostic (OpenRouter by default, but any
 // OpenAI-compatible endpoint works by changing these three).
@@ -235,13 +242,27 @@ func buildRevisionUserPrompt(req usecases.RevisionDraftRequest) string {
 	if strings.TrimSpace(req.OrderSummary) != "" {
 		fmt.Fprintf(&b, "Краткое содержание: %s\n", req.OrderSummary)
 	}
-	fmt.Fprintf(&b, "Год публикации: %d\n\n", req.PublishedYear)
+	fmt.Fprintf(&b, "Год публикации: %d\n", req.PublishedYear)
+	if txt := strings.TrimSpace(req.OrderText); txt != "" {
+		fmt.Fprintf(&b, "Текст приказа (из приложенного документа):\n%s\n", truncateRunes(txt, maxRevisionOrderTextRunes))
+	}
+	b.WriteString("\n")
 	b.WriteString("Рабочая программа дисциплины (РПД):\n")
 	fmt.Fprintf(&b, "Название: %s\n", req.WorkProgramTitle)
 	fmt.Fprintf(&b, "Специальность (код): %s\n", req.SpecialtyCode)
 	fmt.Fprintf(&b, "Год начала применения: %d\n\n", req.ApplicableFromYear)
 	b.WriteString("Предложи одну актуализацию этой РПД во исполнение приказа в формате JSON по описанным правилам.")
 	return b.String()
+}
+
+// truncateRunes returns s capped to max runes, appending a Russian
+// truncation marker when the cut happens. Rune-based (not byte-based) so a
+// multibyte order text is never sliced mid-character.
+func truncateRunes(s string, limit int) string {
+	if utf8.RuneCountInString(s) <= limit {
+		return s
+	}
+	return string([]rune(s)[:limit]) + "…(текст приказа усечён)"
 }
 
 // toRevisionProposal maps the wire shape into the application DTO,
