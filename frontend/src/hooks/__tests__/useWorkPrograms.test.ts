@@ -12,6 +12,8 @@ import {
   generateWorkProgram,
   createRevision,
   submitRevision,
+  approveRevision,
+  rejectRevision,
   pickWorkProgramErrorKey,
 } from '../useWorkPrograms'
 import { apiClient } from '@/lib/api'
@@ -252,6 +254,26 @@ describe('useWorkPrograms hooks (mutations)', () => {
     expect(mockedApiClient.post).toHaveBeenCalledWith(
       '/api/v1/work-programs/5/revisions/9/submit',
       {}
+    )
+    expect(result.id).toBe(5)
+  })
+
+  it('approveRevision POSTs to /:id/revisions/:rid/approve with an empty body', async () => {
+    mockedApiClient.post.mockResolvedValue({ data: { id: 5, status: 'approved' } })
+    const result = await approveRevision(5, 9)
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/api/v1/work-programs/5/revisions/9/approve',
+      {}
+    )
+    expect(result.id).toBe(5)
+  })
+
+  it('rejectRevision POSTs to /:id/revisions/:rid/reject with the reason body', async () => {
+    mockedApiClient.post.mockResolvedValue({ data: { id: 5, status: 'approved' } })
+    const result = await rejectRevision(5, 9, { reason: 'нет обоснования' })
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/api/v1/work-programs/5/revisions/9/reject',
+      { reason: 'нет обоснования' }
     )
     expect(result.id).toBe(5)
   })
