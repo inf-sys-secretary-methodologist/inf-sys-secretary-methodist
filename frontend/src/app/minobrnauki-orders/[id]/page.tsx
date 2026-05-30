@@ -1,15 +1,26 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { ArrowLeft, Calendar, FileText, Hash, Loader2, ScrollText, User } from 'lucide-react'
+import {
+  ArrowLeft,
+  Calendar,
+  FileText,
+  Hash,
+  Loader2,
+  ScrollText,
+  Sparkles,
+  User,
+} from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
+import { Button } from '@/components/ui/button'
+import { GenerateOrderRevisionsDialog } from '@/components/minobrnauki/GenerateOrderRevisionsDialog'
 import { useMinobrnaukiOrder } from '@/hooks/useMinobrnaukiOrders'
 import { useAuthCheck } from '@/hooks/useAuth'
-import { canViewMinobrnaukiOrders } from '@/lib/auth/permissions'
+import { canViewMinobrnaukiOrders, canRecordMinobrnaukiOrder } from '@/lib/auth/permissions'
 import { cn } from '@/lib/utils'
 
 const SCOPE_STYLES = {
@@ -20,13 +31,15 @@ const SCOPE_STYLES = {
 // MinobrnaukiOrderDetailPage — single order view for non-student staff:
 // metadata + the РПД the order affects (each a link to its detail page,
 // so a methodist can jump straight to a touched work program). Mirrors
-// the role-gate + param-parse pattern of the other detail pages. The
-// "Сгенерировать правки" action over the affected set arrives in the
-// next slice (11c-3).
+// the role-gate + param-parse pattern of the other detail pages. Recorders
+// (canRecordMinobrnaukiOrder — methodist/secretary/admin) also get the
+// "Сгенерировать правки" action that triggers AI bulk-revision over the
+// affected set (ADR-12, slice 11c-3).
 export default function MinobrnaukiOrderDetailPage() {
   const router = useRouter()
   const params = useParams<{ id: string }>()
   const t = useTranslations('minobrnaukiOrder')
+  const [generateOpen, setGenerateOpen] = useState(false)
 
   const id = useMemo(() => {
     const raw = params?.id
@@ -36,9 +49,10 @@ export default function MinobrnaukiOrderDetailPage() {
 
   const { user, isAuthenticated, isLoading: authLoading } = useAuthCheck()
   const canView = canViewMinobrnaukiOrders(user?.role)
+  const canGenerate = canRecordMinobrnaukiOrder(user?.role)
 
   const enabled = !authLoading && isAuthenticated && canView && id !== null
-  const { order, isLoading: detailLoading, error } = useMinobrnaukiOrder(id, { enabled })
+  const { order, isLoading: detailLoading, error, mutate } = useMinobrnaukiOrder(id, { enabled })
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && !canView) {
@@ -82,15 +96,23 @@ export default function MinobrnaukiOrderDetailPage() {
             <header className="space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <h1 className="text-2xl font-bold leading-tight">{order.title}</h1>
-                <div
-                  className={cn(
-                    'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
-                    scope.bg,
-                    scope.text
+                <div className="flex shrink-0 items-center gap-2">
+                  {canGenerate && (
+                    <Button size="sm" onClick={() => setGenerateOpen(true)}>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      {t('generateButton')}
+                    </Button>
                   )}
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  {t(`card.changeScope.${order.change_scope}`)}
+                  <div
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
+                      scope.bg,
+                      scope.text
+                    )}
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    {t(`card.changeScope.${order.change_scope}`)}
+                  </div>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
@@ -140,6 +162,15 @@ export default function MinobrnaukiOrderDetailPage() {
                 </ul>
               )}
             </section>
+
+            {canGenerate && (
+              <GenerateOrderRevisionsDialog
+                orderId={order.id}
+                open={generateOpen}
+                onClose={() => setGenerateOpen(false)}
+                onGenerated={() => mutate()}
+              />
+            )}
           </>
         )}
       </div>
