@@ -1,7 +1,7 @@
 // Package main provides the entry point for the Information System Secretary-Methodologist server.
 //
 // @title           Inf-Sys Secretary-Methodist API
-// @version         0.202.0
+// @version         0.203.0
 // @description     API для информационной системы академического секретаря/методиста.
 // @description     Включает управление документами, расписанием, задачами, уведомлениями и мессенджером.
 //
@@ -189,7 +189,7 @@ import (
 // versionString is the single runtime source for the --version banner.
 // It is updated atomically by _tools/bump_version.sh alongside VERSION
 // and the rest of the version-carrying files.
-const versionString = "0.202.0"
+const versionString = "0.203.0"
 
 // errorKey is the field name used in gin.H and logger context maps for
 // error payloads. Extracted to satisfy goconst.
@@ -2811,6 +2811,21 @@ func setupRoutes(
 			moHandler := wpHandler.NewMinobrnaukiOrderHandler(recordMOUC, getMOUC, listMOUC)
 			wpHandler.RegisterMinobrnaukiOrderRoutes(wpV1Group, moHandler)
 			logger.Info("Минобрнауки order routes registered", nil)
+
+			// AI bulk-revision (PR 11, ADR-12): a methodist triggers LLM
+			// generation of a draft лист актуализации for every РПД affected
+			// by an order. Reuses the order repo (source + FindAffected), the
+			// РПД repo (load-mutate-persist), the same OpenRouter generator as
+			// draft generation (it also implements RevisionDraftGenerator), and
+			// the shared generation rate limiter. The drafts land for the РПД
+			// author to submit and the methodist to approve via the revision
+			// flow — never silently applied.
+			generateOrderRevsUC := wpUsecases.NewGenerateOrderRevisionsUseCase(
+				moRepo, wpRepo, wpDraftGen, wpGenLimiter, auditLogger,
+			)
+			genRevHandler := wpHandler.NewGenerateOrderRevisionsHandler(generateOrderRevsUC)
+			wpHandler.RegisterGenerateOrderRevisionsRoutes(wpV1Group, genRevHandler)
+			logger.Info("AI bulk-revision (generate-revisions) route registered", nil)
 		}
 
 		// Schedule/Events module routes

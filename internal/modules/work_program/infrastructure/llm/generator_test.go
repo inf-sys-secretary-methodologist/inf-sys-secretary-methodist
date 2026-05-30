@@ -166,3 +166,75 @@ func TestGenerator_EmptyChoices(t *testing.T) {
 	_, err := newTestGenerator(srv.URL).GenerateDraft(context.Background(), sampleReq())
 	require.Error(t, err)
 }
+
+func sampleRevisionReq() usecases.RevisionDraftRequest {
+	return usecases.RevisionDraftRequest{
+		OrderNumber:        "1234",
+		OrderTitle:         "Об утверждении ФГОС ВО",
+		OrderSummary:       "Изменены требования к часам по дисциплине",
+		PublishedYear:      2026,
+		WorkProgramTitle:   "Базы данных и СУБД",
+		SpecialtyCode:      "09.03.01",
+		ApplicableFromYear: 2026,
+	}
+}
+
+func TestGenerator_GenerateRevision_HappyPath(t *testing.T) {
+	const revJSON = `{
+		"change_type": "hours",
+		"change_summary": "Часы лекций сокращены с 32 до 18 в соответствии с приказом",
+		"diff_payload": {"hours_lecture": {"before": 32, "after": 18}}
+	}`
+
+	var gotAuth, gotPath, gotBody string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		gotPath = r.URL.Path
+		b, _ := io.ReadAll(r.Body)
+		gotBody = string(b)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, chatCompletion(revJSON))
+	}))
+	defer srv.Close()
+
+	res, err := newTestGenerator(srv.URL).GenerateRevision(context.Background(), sampleRevisionReq())
+	require.NoError(t, err)
+
+	assert.Equal(t, "Bearer test-key", gotAuth)
+	assert.Equal(t, "/chat/completions", gotPath)
+	assert.Contains(t, gotBody, "test-model")
+	assert.Contains(t, gotBody, "1234", "prompt must carry the order number")
+	assert.Contains(t, gotBody, "Базы данных и СУБД", "prompt must carry the affected РПД title")
+
+	assert.Equal(t, "hours", res.ChangeType)
+	assert.Equal(t, "Часы лекций сокращены с 32 до 18 в соответствии с приказом", res.ChangeSummary)
+	assert.JSONEq(t, `{"hours_lecture":{"before":32,"after":18}}`, string(res.DiffPayload))
+}
+
+func TestGenerator_GenerateRevision_StripsFencesAndOmittedDiff(t *testing.T) {
+	// No diff_payload, wrapped in a markdown fence the model often adds.
+	const revJSON = "```json\n{\"change_type\":\"literature\",\"change_summary\":\"Обновлён список литературы\"}\n```"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, chatCompletion(revJSON))
+	}))
+	defer srv.Close()
+
+	res, err := newTestGenerator(srv.URL).GenerateRevision(context.Background(), sampleRevisionReq())
+	require.NoError(t, err)
+	assert.Equal(t, "literature", res.ChangeType)
+	assert.Equal(t, "Обновлён список литературы", res.ChangeSummary)
+	assert.Nil(t, res.DiffPayload, "omitted diff_payload maps to nil, not empty JSON")
+}
+
+func TestGenerator_GenerateRevision_HTTPErrorStatus(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = io.WriteString(w, "<html>502</html>")
+	}))
+	defer srv.Close()
+
+	_, err := newTestGenerator(srv.URL).GenerateRevision(context.Background(), sampleRevisionReq())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "502")
+}

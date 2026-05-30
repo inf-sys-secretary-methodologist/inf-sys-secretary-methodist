@@ -18,7 +18,17 @@ import (
 //go:embed prompts/work_program_draft.txt
 var systemPrompt string
 
+//go:embed prompts/work_program_revision.txt
+var revisionPrompt string
+
 const defaultTimeout = 60 * time.Second
+
+// maxDiffPayloadBytes caps the LLM-originated structured diff blob stored
+// on a revision. The change_summary (human text) is the authoritative
+// field; an oversized diff_payload is dropped to nil rather than persisted,
+// so a hostile/verbose model cannot bloat the aggregate (carry-forward
+// from the 11a review).
+const maxDiffPayloadBytes = 64 << 10 // 64 KiB
 
 // maxRespBytes caps how much of the upstream response we read into
 // memory, so a hostile or buggy provider cannot OOM the process.
@@ -46,8 +56,11 @@ type Generator struct {
 	client *http.Client
 }
 
-// compile-time check that the adapter satisfies the application port.
-var _ usecases.DraftGenerator = (*Generator)(nil)
+// compile-time checks that the adapter satisfies the application ports.
+var (
+	_ usecases.DraftGenerator         = (*Generator)(nil)
+	_ usecases.RevisionDraftGenerator = (*Generator)(nil)
+)
 
 // NewGenerator wires the generator. A non-positive timeout falls back to
 // defaultTimeout so a mis-configured zero does not mean "no timeout".
@@ -119,11 +132,43 @@ type draftWire struct {
 // re-validates every row through the domain constructors, so this method
 // does not enforce domain invariants — it only transports + parses.
 func (g *Generator) GenerateDraft(ctx context.Context, req usecases.DraftRequest) (usecases.DraftResult, error) {
+	content, err := g.complete(ctx, systemPrompt, buildUserPrompt(req))
+	if err != nil {
+		return usecases.DraftResult{}, err
+	}
+	var wire draftWire
+	if err := json.Unmarshal([]byte(content), &wire); err != nil {
+		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: decode generated draft: %w", err)
+	}
+	return toDraftResult(wire), nil
+}
+
+// GenerateRevision asks the model for one лист актуализации (revision)
+// proposal grounded on a recorded order + the affected РПД's identity, and
+// maps the model's JSON into a RevisionProposal. The use case re-validates
+// change_type through the domain constructor, so this method only
+// transports + parses; it does guard the optional diff_payload size.
+func (g *Generator) GenerateRevision(ctx context.Context, req usecases.RevisionDraftRequest) (usecases.RevisionProposal, error) {
+	content, err := g.complete(ctx, revisionPrompt, buildRevisionUserPrompt(req))
+	if err != nil {
+		return usecases.RevisionProposal{}, err
+	}
+	var wire revisionWire
+	if err := json.Unmarshal([]byte(content), &wire); err != nil {
+		return usecases.RevisionProposal{}, fmt.Errorf("work_program/llm: decode generated revision: %w", err)
+	}
+	return toRevisionProposal(wire), nil
+}
+
+// complete POSTs a system+user prompt pair to {BaseURL}/chat/completions
+// and returns the model's fence-stripped message content. Shared by both
+// GenerateDraft and GenerateRevision.
+func (g *Generator) complete(ctx context.Context, system, user string) (string, error) {
 	reqBody := chatRequest{
 		Model: g.cfg.Model,
 		Messages: []chatMessage{
-			{Role: "system", Content: systemPrompt},
-			{Role: "user", Content: buildUserPrompt(req)},
+			{Role: "system", Content: system},
+			{Role: "user", Content: user},
 		},
 		Temperature:    g.cfg.Temperature,
 		MaxTokens:      g.cfg.MaxTokens,
@@ -131,52 +176,86 @@ func (g *Generator) GenerateDraft(ctx context.Context, req usecases.DraftRequest
 	}
 	body, err := json.Marshal(reqBody)
 	if err != nil {
-		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: marshal request: %w", err)
+		return "", fmt.Errorf("work_program/llm: marshal request: %w", err)
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, g.cfg.BaseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
-		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: build request: %w", err)
+		return "", fmt.Errorf("work_program/llm: build request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+g.cfg.APIKey)
 
 	resp, err := g.client.Do(httpReq)
 	if err != nil {
-		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: send request: %w", err)
+		return "", fmt.Errorf("work_program/llm: send request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxRespBytes))
 	if err != nil {
-		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: read response: %w", err)
+		return "", fmt.Errorf("work_program/llm: read response: %w", err)
 	}
 
 	// Check the status before decoding: a non-200 body is often non-JSON
 	// (e.g. an HTML gateway 502) and would otherwise fail json.Unmarshal
 	// with a misleading "decode response" error instead of the status.
 	if resp.StatusCode != http.StatusOK {
-		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: unexpected status %d: %s",
+		return "", fmt.Errorf("work_program/llm: unexpected status %d: %s",
 			resp.StatusCode, truncate(string(respBody), 256))
 	}
 
 	var parsed chatResponse
 	if err := json.Unmarshal(respBody, &parsed); err != nil {
-		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: decode response: %w", err)
+		return "", fmt.Errorf("work_program/llm: decode response: %w", err)
 	}
 	if parsed.Error != nil {
-		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: api error: %s", parsed.Error.Message)
+		return "", fmt.Errorf("work_program/llm: api error: %s", parsed.Error.Message)
 	}
 	if len(parsed.Choices) == 0 {
-		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: response had no choices")
+		return "", fmt.Errorf("work_program/llm: response had no choices")
 	}
+	return stripCodeFence(parsed.Choices[0].Message.Content), nil
+}
 
-	content := stripCodeFence(parsed.Choices[0].Message.Content)
-	var wire draftWire
-	if err := json.Unmarshal([]byte(content), &wire); err != nil {
-		return usecases.DraftResult{}, fmt.Errorf("work_program/llm: decode generated draft: %w", err)
+// revisionWire is the JSON contract the model must return for a revision
+// proposal; it mirrors prompts/work_program_revision.txt. diff_payload is
+// optional raw JSON (omitted → nil).
+type revisionWire struct {
+	ChangeType    string          `json:"change_type"`
+	ChangeSummary string          `json:"change_summary"`
+	DiffPayload   json.RawMessage `json:"diff_payload"`
+}
+
+func buildRevisionUserPrompt(req usecases.RevisionDraftRequest) string {
+	var b strings.Builder
+	b.WriteString("Приказ Минобрнауки:\n")
+	fmt.Fprintf(&b, "Номер: %s\n", req.OrderNumber)
+	fmt.Fprintf(&b, "Заголовок: %s\n", req.OrderTitle)
+	if strings.TrimSpace(req.OrderSummary) != "" {
+		fmt.Fprintf(&b, "Краткое содержание: %s\n", req.OrderSummary)
 	}
-	return toDraftResult(wire), nil
+	fmt.Fprintf(&b, "Год публикации: %d\n\n", req.PublishedYear)
+	b.WriteString("Рабочая программа дисциплины (РПД):\n")
+	fmt.Fprintf(&b, "Название: %s\n", req.WorkProgramTitle)
+	fmt.Fprintf(&b, "Специальность (код): %s\n", req.SpecialtyCode)
+	fmt.Fprintf(&b, "Год начала применения: %d\n\n", req.ApplicableFromYear)
+	b.WriteString("Предложи одну актуализацию этой РПД во исполнение приказа в формате JSON по описанным правилам.")
+	return b.String()
+}
+
+// toRevisionProposal maps the wire shape into the application DTO,
+// dropping an oversized diff_payload to nil (the change_summary is the
+// authoritative human field; the structured diff is best-effort).
+func toRevisionProposal(w revisionWire) usecases.RevisionProposal {
+	p := usecases.RevisionProposal{
+		ChangeType:    w.ChangeType,
+		ChangeSummary: w.ChangeSummary,
+	}
+	if len(w.DiffPayload) > 0 && len(w.DiffPayload) <= maxDiffPayloadBytes {
+		p.DiffPayload = []byte(w.DiffPayload)
+	}
+	return p
 }
 
 func buildUserPrompt(req usecases.DraftRequest) string {
