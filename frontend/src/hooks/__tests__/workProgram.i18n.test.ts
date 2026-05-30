@@ -42,6 +42,8 @@ type MessagesShape = {
     rejectDialog?: EnumGroup
     generateDialog?: EnumGroup
     submitRevisionDialog?: EnumGroup
+    approveRevisionDialog?: EnumGroup
+    rejectRevisionDialog?: EnumGroup
     createRevisionDialog?: {
       title?: string
       description?: string
@@ -366,4 +368,25 @@ describe('workProgram revision write-flow dialogs (10b-1) i18n parity × 4 local
     const d = msgs.workProgram?.submitRevisionDialog
     for (const k of transitionDialogKeys) expect(d?.[k]).toBeTruthy()
   })
+})
+
+describe('workProgram revision approver dialogs (10b-2) i18n parity × 4 locales', () => {
+  it.each(locales)('%s has detail.revisionActions approve + reject labels', (_name, msgs) => {
+    const a = msgs.workProgram?.detail?.revisionActions
+    expect(a?.approve).toBeTruthy()
+    expect(a?.reject).toBeTruthy()
+  })
+
+  it.each(locales)('%s has all approveRevisionDialog strings', (_name, msgs) => {
+    const d = msgs.workProgram?.approveRevisionDialog
+    for (const k of transitionDialogKeys) expect(d?.[k]).toBeTruthy()
+  })
+
+  it.each(locales)(
+    '%s has all rejectRevisionDialog strings (incl. reason label + placeholder)',
+    (_name, msgs) => {
+      const d = msgs.workProgram?.rejectRevisionDialog
+      for (const k of rejectDialogKeys) expect(d?.[k]).toBeTruthy()
+    }
+  )
 })

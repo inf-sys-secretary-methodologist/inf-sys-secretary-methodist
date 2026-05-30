@@ -30,6 +30,8 @@ import { ApproveWorkProgramDialog } from '@/components/work-program/ApproveWorkP
 import { RejectWorkProgramDialog } from '@/components/work-program/RejectWorkProgramDialog'
 import { CreateRevisionDialog } from '@/components/work-program/CreateRevisionDialog'
 import { SubmitRevisionDialog } from '@/components/work-program/SubmitRevisionDialog'
+import { ApproveRevisionDialog } from '@/components/work-program/ApproveRevisionDialog'
+import { RejectRevisionDialog } from '@/components/work-program/RejectRevisionDialog'
 import { STATUS_STYLES, statusKey, revisionStatusKey } from '@/components/work-program/status'
 import type { WorkProgram, WorkProgramStatus } from '@/types/workProgram'
 import { cn } from '@/lib/utils'
@@ -120,10 +122,12 @@ function WorkProgramDetail({
   const [approveOpen, setApproveOpen] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
   const [createRevisionOpen, setCreateRevisionOpen] = useState(false)
-  // Which draft revision row (if any) has its submit dialog open. Null =
-  // closed. Tracking the id (not a boolean) lets one dialog instance serve
-  // every row in the листы-актуализации list.
+  // Which revision row (if any) has its submit / approve / reject dialog
+  // open. Null = closed. Tracking the id (not a boolean) lets one dialog
+  // instance serve every row in the листы-актуализации list.
   const [submitRevisionId, setSubmitRevisionId] = useState<number | null>(null)
+  const [approveRevisionId, setApproveRevisionId] = useState<number | null>(null)
+  const [rejectRevisionId, setRejectRevisionId] = useState<number | null>(null)
 
   // Draft author actions (submit / discard) are gated by role + status:
   // the create-capable roles (teacher / methodist / admin per ADR-5) on a
@@ -145,6 +149,12 @@ function WorkProgramDetail({
   const isAuthor = userId != null && wp.author_id === userId
   const canCreateRevision =
     (wp.status === 'approved' || wp.status === 'needs_revision') && (isAuthor || isAdmin)
+
+  // Per-row revision approve/reject belongs to the approver roles
+  // (methodist / admin) — mirrors the backend approve/reject_revision
+  // isApprover scoping. Status gating (pending_approval only) is decided
+  // per row below.
+  const canApproveRevisions = canApproveWorkProgram(role)
 
   return (
     <>
@@ -315,6 +325,9 @@ function WorkProgramDetail({
             // see no action.
             const canSubmitRevision =
               rev.status === 'draft' && ((userId != null && rev.author_id === userId) || isAdmin)
+            // A pending revision is approved/rejected by an approver
+            // (methodist / admin) — mirrors approve/reject_revision scoping.
+            const canDecideRevision = rev.status === 'pending_approval' && canApproveRevisions
             return (
               <li key={rev.id} className="flex flex-wrap items-baseline gap-x-2">
                 <span className="font-medium">#{rev.revision_number}</span>
@@ -335,6 +348,22 @@ function WorkProgramDetail({
                     <Send className="h-3.5 w-3.5 mr-1.5" />
                     {t('detail.revisionActions.submit')}
                   </Button>
+                ) : null}
+                {canDecideRevision ? (
+                  <span className="ml-auto flex gap-2">
+                    <Button size="sm" onClick={() => setApproveRevisionId(rev.id)}>
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                      {t('detail.revisionActions.approve')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setRejectRevisionId(rev.id)}
+                    >
+                      <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                      {t('detail.revisionActions.reject')}
+                    </Button>
+                  </span>
                 ) : null}
               </li>
             )
@@ -385,6 +414,24 @@ function WorkProgramDetail({
           open={true}
           onClose={() => setSubmitRevisionId(null)}
           onSubmitted={onMutate}
+        />
+      ) : null}
+      {approveRevisionId != null ? (
+        <ApproveRevisionDialog
+          workProgramId={wp.id}
+          revisionId={approveRevisionId}
+          open={true}
+          onClose={() => setApproveRevisionId(null)}
+          onApproved={onMutate}
+        />
+      ) : null}
+      {rejectRevisionId != null ? (
+        <RejectRevisionDialog
+          workProgramId={wp.id}
+          revisionId={rejectRevisionId}
+          open={true}
+          onClose={() => setRejectRevisionId(null)}
+          onRejected={onMutate}
         />
       ) : null}
     </>

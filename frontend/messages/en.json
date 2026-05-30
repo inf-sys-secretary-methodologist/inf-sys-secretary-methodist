@@ -2536,7 +2536,9 @@
         "createRevision": "Create revision sheet"
       },
       "revisionActions": {
-        "submit": "Submit for approval"
+        "submit": "Submit for approval",
+        "approve": "Approve",
+        "reject": "Reject"
       }
     },
     "submitDialog": {
@@ -2623,6 +2625,24 @@
       "confirm": "Submit",
       "submitting": "Submitting…",
       "successToast": "Revision sheet submitted for approval"
+    },
+    "approveRevisionDialog": {
+      "title": "Approve revision sheet?",
+      "description": "The change will be approved and applied to the work program.",
+      "cancel": "Cancel",
+      "confirm": "Approve",
+      "submitting": "Approving…",
+      "successToast": "Revision sheet approved"
+    },
+    "rejectRevisionDialog": {
+      "title": "Reject revision sheet?",
+      "description": "The revision will return to “Draft”. Provide a reason — the author will see it and can revise.",
+      "cancel": "Cancel",
+      "confirm": "Reject",
+      "submitting": "Rejecting…",
+      "successToast": "Revision sheet rejected and returned to the author",
+      "reasonLabel": "Rejection reason",
+      "reasonPlaceholder": "e.g. the change is not justified by an order"
     }
   },
   "curriculum": {

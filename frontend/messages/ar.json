@@ -2536,7 +2536,9 @@
         "createRevision": "إنشاء صفحة تحديث"
       },
       "revisionActions": {
-        "submit": "إرسال للموافقة"
+        "submit": "إرسال للموافقة",
+        "approve": "اعتماد",
+        "reject": "رفض"
       }
     },
     "submitDialog": {
@@ -2623,6 +2625,24 @@
       "confirm": "إرسال",
       "submitting": "جارٍ الإرسال…",
       "successToast": "تم إرسال صفحة التحديث للموافقة"
+    },
+    "approveRevisionDialog": {
+      "title": "اعتماد صفحة التحديث؟",
+      "description": "سيتم اعتماد التغيير وتطبيقه على برنامج العمل.",
+      "cancel": "إلغاء",
+      "confirm": "اعتماد",
+      "submitting": "جارٍ الاعتماد…",
+      "successToast": "تم اعتماد صفحة التحديث"
+    },
+    "rejectRevisionDialog": {
+      "title": "رفض صفحة التحديث؟",
+      "description": "ستعود الصفحة إلى حالة «مسودة». اذكر السبب — سيراه المؤلف ويتمكن من التعديل.",
+      "cancel": "إلغاء",
+      "confirm": "رفض",
+      "submitting": "جارٍ الرفض…",
+      "successToast": "تم رفض صفحة التحديث وإعادتها إلى المؤلف",
+      "reasonLabel": "سبب الرفض",
+      "reasonPlaceholder": "مثال: التغيير غير مبرر بأمر"
     }
   },
   "curriculum": {
