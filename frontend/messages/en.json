@@ -3508,6 +3508,33 @@
         "rateLimited": "Too many requests, try again later",
         "generic": "Failed to record the order"
       }
+    },
+    "generateButton": "Generate revisions",
+    "generateDialog": {
+      "title": "Generate revisions for the order",
+      "description": "The AI will draft a revision sheet for every affected work program",
+      "prompt": "This will generate draft revisions for all work programs affected by the order. Each draft is sent to its teacher-author for review and then approved by the methodist.",
+      "confirm": "Generate",
+      "generating": "Generating…",
+      "cancel": "Cancel",
+      "close": "Close",
+      "successToast": "Revision generation started",
+      "result": {
+        "description": "Summary of the generation run",
+        "title": "Revisions generated",
+        "generated": "Drafts created",
+        "skipped": "Skipped",
+        "failures": "Failures",
+        "hint": "The drafts appear for the teacher-authors as revision sheets to review."
+      },
+      "errors": {
+        "invalidOrder": "Invalid order data",
+        "forbidden": "Insufficient permissions",
+        "notFound": "Order not found",
+        "invalidInput": "Check the input fields",
+        "rateLimited": "Too many requests, try again later",
+        "generic": "Failed to generate revisions"
+      }
     }
   }
 }

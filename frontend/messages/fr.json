@@ -3508,6 +3508,33 @@
         "rateLimited": "Trop de requêtes, réessayez plus tard",
         "generic": "Échec de l'enregistrement"
       }
+    },
+    "generateButton": "Générer les révisions",
+    "generateDialog": {
+      "title": "Générer les révisions de l'arrêté",
+      "description": "L'IA rédigera une fiche de révision pour chaque programme de travail concerné",
+      "prompt": "Cela générera des projets de révision pour tous les programmes de travail concernés par l'arrêté. Chaque projet est envoyé à son enseignant-auteur pour examen, puis approuvé par le méthodiste.",
+      "confirm": "Générer",
+      "generating": "Génération…",
+      "cancel": "Annuler",
+      "close": "Fermer",
+      "successToast": "Génération des révisions lancée",
+      "result": {
+        "description": "Récapitulatif de la génération",
+        "title": "Révisions générées",
+        "generated": "Brouillons créés",
+        "skipped": "Ignorés",
+        "failures": "Échecs",
+        "hint": "Les brouillons apparaissent pour les enseignants-auteurs comme fiches de révision à examiner."
+      },
+      "errors": {
+        "invalidOrder": "Données d'arrêté invalides",
+        "forbidden": "Droits insuffisants",
+        "notFound": "Arrêté introuvable",
+        "invalidInput": "Vérifiez les champs",
+        "rateLimited": "Trop de requêtes, réessayez plus tard",
+        "generic": "Échec de la génération des révisions"
+      }
     }
   }
 }
