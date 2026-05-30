@@ -46,6 +46,14 @@ export type RevisionStatus = 'draft' | 'pending_approval' | 'approved' | 'reject
 
 export type RevisionChangeType = 'hours' | 'semester' | 'literature' | 'assessment' | 'other'
 
+export const REVISION_CHANGE_TYPES: RevisionChangeType[] = [
+  'hours',
+  'semester',
+  'literature',
+  'assessment',
+  'other',
+]
+
 // === Child collection shapes (mirror GoalDTO / CompetenceDTO / ... ) ===
 
 export interface WorkProgramGoal {
@@ -172,8 +180,20 @@ export interface CreateWorkProgramInput {
 
 // RejectWorkProgramInput matches RejectWorkProgramRequest. The reason is
 // mandatory (domain enforces non-empty after trim; binding fails fast).
+// Reused by both the РПД reject and the revision (лист актуализации)
+// reject endpoints — identical shape.
 export interface RejectWorkProgramInput {
   reason: string
+}
+
+// CreateRevisionInput matches CreateRevisionRequest (revision_handler.go).
+// The author is stamped from the JWT subject server-side — never a client
+// field. diff_payload (optional raw before/after blob) is omitted here:
+// the create-revision dialog only collects the categorized change_type +
+// a human summary; structured diffs arrive later via AI bulk-revision.
+export interface CreateRevisionInput {
+  change_type: RevisionChangeType
+  change_summary: string
 }
 
 // Error codes consumed by pickWorkProgramErrorKey (→ i18n keys). The
