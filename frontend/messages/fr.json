@@ -2463,7 +2463,8 @@
       "notFound": "Programme de travail introuvable",
       "generic": "L'opération n'a pas pu être effectuée",
       "rateLimited": "Limite de requêtes de génération dépassée — réessayez plus tard",
-      "draftNotEmpty": "Le brouillon contient déjà des données — videz-le avant de générer"
+      "draftNotEmpty": "Le brouillon contient déjà des données — videz-le avant de générer",
+      "revisionNotPermitted": "Cette action sur la feuille de mise à jour n'est pas disponible pour le moment"
     },
     "detail": {
       "backToList": "Retour aux programmes",
@@ -2531,7 +2532,11 @@
         "discard": "Archiver",
         "approve": "Approuver",
         "reject": "Rejeter",
-        "generate": "Générer"
+        "generate": "Générer",
+        "createRevision": "Créer une feuille de mise à jour"
+      },
+      "revisionActions": {
+        "submit": "Soumettre pour approbation"
       }
     },
     "submitDialog": {
@@ -2598,6 +2603,26 @@
       "confirm": "Générer",
       "generating": "Génération…",
       "successToast": "Brouillon du programme généré"
+    },
+    "createRevisionDialog": {
+      "title": "Créer une feuille de mise à jour",
+      "description": "Décrivez une modification du programme de travail approuvé. Une fois créé, le brouillon peut être soumis au méthodiste pour approbation.",
+      "changeTypeLabel": "Type de modification",
+      "changeTypePlaceholder": "Sélectionnez un type",
+      "summaryLabel": "Description de la modification",
+      "summaryPlaceholder": "ex. : heures de cours réduites de 36 à 18",
+      "cancel": "Annuler",
+      "create": "Créer",
+      "creating": "Création…",
+      "successToast": "Feuille de mise à jour créée"
+    },
+    "submitRevisionDialog": {
+      "title": "Soumettre la feuille de mise à jour pour approbation ?",
+      "description": "La feuille passera au statut « En attente d'approbation » et sera transmise au méthodiste pour décision.",
+      "cancel": "Annuler",
+      "confirm": "Soumettre",
+      "submitting": "Soumission…",
+      "successToast": "Feuille de mise à jour soumise pour approbation"
     }
   },
   "curriculum": {

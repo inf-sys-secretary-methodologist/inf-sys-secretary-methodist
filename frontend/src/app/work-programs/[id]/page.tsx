@@ -10,6 +10,7 @@ import {
   BookMarked,
   Calendar,
   CheckCircle2,
+  FilePlus2,
   GraduationCap,
   Loader2,
   Send,
@@ -27,6 +28,8 @@ import { SubmitWorkProgramDialog } from '@/components/work-program/SubmitWorkPro
 import { DiscardWorkProgramDialog } from '@/components/work-program/DiscardWorkProgramDialog'
 import { ApproveWorkProgramDialog } from '@/components/work-program/ApproveWorkProgramDialog'
 import { RejectWorkProgramDialog } from '@/components/work-program/RejectWorkProgramDialog'
+import { CreateRevisionDialog } from '@/components/work-program/CreateRevisionDialog'
+import { SubmitRevisionDialog } from '@/components/work-program/SubmitRevisionDialog'
 import { STATUS_STYLES, statusKey, revisionStatusKey } from '@/components/work-program/status'
 import type { WorkProgram, WorkProgramStatus } from '@/types/workProgram'
 import { cn } from '@/lib/utils'
@@ -89,7 +92,7 @@ export default function WorkProgramDetailPage() {
             <p className="font-medium text-destructive">{t('detail.loadFailed')}</p>
           </div>
         ) : (
-          <WorkProgramDetail wp={wp} t={t} role={user?.role} onMutate={mutate} />
+          <WorkProgramDetail wp={wp} t={t} role={user?.role} userId={user?.id} onMutate={mutate} />
         )}
       </div>
     </AppLayout>
@@ -102,11 +105,13 @@ function WorkProgramDetail({
   wp,
   t,
   role,
+  userId,
   onMutate,
 }: {
   wp: WorkProgram
   t: T
   role?: string
+  userId?: number
   onMutate: () => void
 }) {
   const [generateOpen, setGenerateOpen] = useState(false)
@@ -114,6 +119,11 @@ function WorkProgramDetail({
   const [discardOpen, setDiscardOpen] = useState(false)
   const [approveOpen, setApproveOpen] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
+  const [createRevisionOpen, setCreateRevisionOpen] = useState(false)
+  // Which draft revision row (if any) has its submit dialog open. Null =
+  // closed. Tracking the id (not a boolean) lets one dialog instance serve
+  // every row in the листы-актуализации list.
+  const [submitRevisionId, setSubmitRevisionId] = useState<number | null>(null)
 
   // Draft author actions (submit / discard) are gated by role + status:
   // the create-capable roles (teacher / methodist / admin per ADR-5) on a
@@ -125,6 +135,16 @@ function WorkProgramDetail({
   // (methodist / admin per ADR-5) on a pending_approval programme. Draft
   // and pending are disjoint statuses, so at most one action set shows.
   const canApproveActions = wp.status === 'pending_approval' && canApproveWorkProgram(role)
+
+  // Revision (лист актуализации) gates mirror the backend's author-scoping
+  // (create/submit are isAuthorOrSystemAdmin, NOT role-only): creating a
+  // revision on an approved / needs_revision programme belongs to its author
+  // (or admin override). Backend stays the real gate; this only hides a
+  // button a methodist (approver, not author) would otherwise 404 on.
+  const isAdmin = role === 'system_admin'
+  const isAuthor = userId != null && wp.author_id === userId
+  const canCreateRevision =
+    (wp.status === 'approved' || wp.status === 'needs_revision') && (isAuthor || isAdmin)
 
   return (
     <>
@@ -175,6 +195,15 @@ function WorkProgramDetail({
           <Button onClick={() => setRejectOpen(true)} variant="destructive">
             <XCircle className="h-4 w-4 mr-2" />
             {t('detail.actions.reject')}
+          </Button>
+        </section>
+      ) : null}
+
+      {canCreateRevision ? (
+        <section className="flex flex-wrap gap-2">
+          <Button onClick={() => setCreateRevisionOpen(true)} variant="outline">
+            <FilePlus2 className="h-4 w-4 mr-2" />
+            {t('detail.actions.createRevision')}
           </Button>
         </section>
       ) : null}
@@ -279,18 +308,37 @@ function WorkProgramDetail({
 
       <Section title={t('detail.sections.revisions')} count={wp.revisions.length} t={t}>
         <ul className="space-y-2 text-sm">
-          {wp.revisions.map((rev) => (
-            <li key={rev.id} className="flex flex-wrap items-baseline gap-x-2">
-              <span className="font-medium">#{rev.revision_number}</span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                {t(`detail.revisionChangeType.${rev.change_type}`)}
-              </span>
-              <span>{rev.change_summary}</span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                {t(`detail.revisionStatus.${revisionStatusKey(rev.status)}`)}
-              </span>
-            </li>
-          ))}
+          {wp.revisions.map((rev) => {
+            // A draft revision can be submitted for approval by its own
+            // author (or admin override) — mirrors the backend's
+            // submit_revision author-scoping. Other statuses / non-authors
+            // see no action.
+            const canSubmitRevision =
+              rev.status === 'draft' && ((userId != null && rev.author_id === userId) || isAdmin)
+            return (
+              <li key={rev.id} className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-medium">#{rev.revision_number}</span>
+                <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                  {t(`detail.revisionChangeType.${rev.change_type}`)}
+                </span>
+                <span>{rev.change_summary}</span>
+                <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                  {t(`detail.revisionStatus.${revisionStatusKey(rev.status)}`)}
+                </span>
+                {canSubmitRevision ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto"
+                    onClick={() => setSubmitRevisionId(rev.id)}
+                  >
+                    <Send className="h-3.5 w-3.5 mr-1.5" />
+                    {t('detail.revisionActions.submit')}
+                  </Button>
+                ) : null}
+              </li>
+            )
+          })}
         </ul>
       </Section>
 
@@ -324,6 +372,21 @@ function WorkProgramDetail({
         onClose={() => setRejectOpen(false)}
         onRejected={onMutate}
       />
+      <CreateRevisionDialog
+        workProgramId={wp.id}
+        open={createRevisionOpen}
+        onClose={() => setCreateRevisionOpen(false)}
+        onCreated={onMutate}
+      />
+      {submitRevisionId != null ? (
+        <SubmitRevisionDialog
+          workProgramId={wp.id}
+          revisionId={submitRevisionId}
+          open={true}
+          onClose={() => setSubmitRevisionId(null)}
+          onSubmitted={onMutate}
+        />
+      ) : null}
     </>
   )
 }

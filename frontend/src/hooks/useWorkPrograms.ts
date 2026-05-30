@@ -15,6 +15,7 @@ import type {
   WorkProgramListFilter,
   CreateWorkProgramInput,
   RejectWorkProgramInput,
+  CreateRevisionInput,
 } from '@/types/workProgram'
 
 const BASE_URL = '/api/v1/work-programs'
@@ -130,6 +131,41 @@ export async function generateWorkProgram(id: number): Promise<WorkProgram> {
   return response.data
 }
 
+// === Revision (лист актуализации) write-workflow mutations ===
+//
+// The revision endpoints are nested under a parent РПД
+// (/work-programs/:id/revisions/...). Every mutation returns the updated
+// parent aggregate (the revision read-projection rides along in
+// wp.revisions), so callers can `mutate()` the detail SWR cache directly.
+// Errors propagate so dialogs branch via pickWorkProgramErrorKey
+// (REVISION_NOT_PERMITTED / INVALID_TRANSITION / VERSION_CONFLICT / ...).
+
+// createRevision proposes a draft лист актуализации on an approved /
+// needs_revision РПД. The author derives from the JWT subject server-side.
+export async function createRevision(
+  workProgramId: number,
+  input: CreateRevisionInput
+): Promise<WorkProgram> {
+  const response = await apiClient.post<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${workProgramId}/revisions`,
+    input
+  )
+  return response.data
+}
+
+// submitRevision moves a draft revision to pending_approval. Empty body —
+// path ids + JWT subject identify the row + actor.
+export async function submitRevision(
+  workProgramId: number,
+  revisionId: number
+): Promise<WorkProgram> {
+  const response = await apiClient.post<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${workProgramId}/revisions/${revisionId}/submit`,
+    {}
+  )
+  return response.data
+}
+
 // === Error mapping ===
 //
 // Translates backend sentinel codes (mapWorkProgramError) to camelCase
@@ -146,6 +182,7 @@ const ERROR_CODE_MAP: Record<string, string> = {
   INVALID_WORK_PROGRAM: 'invalidWorkProgram',
   RATE_LIMITED: 'rateLimited',
   DRAFT_NOT_EMPTY: 'draftNotEmpty',
+  REVISION_NOT_PERMITTED: 'revisionNotPermitted',
 }
 
 export function pickWorkProgramErrorKey(err: unknown): string {

@@ -41,6 +41,19 @@ type MessagesShape = {
     approveDialog?: EnumGroup
     rejectDialog?: EnumGroup
     generateDialog?: EnumGroup
+    submitRevisionDialog?: EnumGroup
+    createRevisionDialog?: {
+      title?: string
+      description?: string
+      changeTypeLabel?: string
+      changeTypePlaceholder?: string
+      summaryLabel?: string
+      summaryPlaceholder?: string
+      cancel?: string
+      create?: string
+      creating?: string
+      successToast?: string
+    }
     createDialog?: {
       title?: string
       description?: string
@@ -69,6 +82,7 @@ type MessagesShape = {
       referenceType?: EnumGroup
       revisionChangeType?: EnumGroup
       revisionStatus?: EnumGroup
+      revisionActions?: EnumGroup
     }
   }
   nav?: {
@@ -94,7 +108,7 @@ const statusOptionKeys = [
 
 const cardStatusKeys = ['draft', 'pending', 'approved', 'needsRevision', 'archived'] as const
 
-// 10 error keys mirror pickWorkProgramErrorKey + sentinel fallbacks.
+// 11 error keys mirror pickWorkProgramErrorKey + sentinel fallbacks.
 const errorKeys = [
   'identityExists',
   'versionConflict',
@@ -103,6 +117,7 @@ const errorKeys = [
   'invalidWorkProgram',
   'rateLimited',
   'draftNotEmpty',
+  'revisionNotPermitted',
   'forbidden',
   'notFound',
   'generic',
@@ -317,5 +332,38 @@ describe('workProgram.generateDialog (8f) i18n parity × 4 locales', () => {
   it.each(locales)('%s has all generateDialog strings', (_name, msgs) => {
     const d = msgs.workProgram?.generateDialog
     for (const k of generateDialogKeys) expect(d?.[k]).toBeTruthy()
+  })
+})
+
+const createRevisionDialogKeys = [
+  'title',
+  'description',
+  'changeTypeLabel',
+  'changeTypePlaceholder',
+  'summaryLabel',
+  'summaryPlaceholder',
+  'cancel',
+  'create',
+  'creating',
+  'successToast',
+] as const
+
+describe('workProgram revision write-flow dialogs (10b-1) i18n parity × 4 locales', () => {
+  it.each(locales)('%s has detail.actions.createRevision label', (_name, msgs) => {
+    expect(msgs.workProgram?.detail?.actions?.createRevision).toBeTruthy()
+  })
+
+  it.each(locales)('%s has detail.revisionActions.submit label', (_name, msgs) => {
+    expect(msgs.workProgram?.detail?.revisionActions?.submit).toBeTruthy()
+  })
+
+  it.each(locales)('%s has all createRevisionDialog strings', (_name, msgs) => {
+    const d = msgs.workProgram?.createRevisionDialog
+    for (const k of createRevisionDialogKeys) expect(d?.[k]).toBeTruthy()
+  })
+
+  it.each(locales)('%s has all submitRevisionDialog strings', (_name, msgs) => {
+    const d = msgs.workProgram?.submitRevisionDialog
+    for (const k of transitionDialogKeys) expect(d?.[k]).toBeTruthy()
   })
 })
