@@ -179,6 +179,16 @@ func (uc *GenerateOrderRevisionsUseCase) Execute(
 	if uc.docText != nil && order.DocumentID() != nil {
 		if txt, derr := uc.docText.GetDocumentText(ctx, *order.DocumentID()); derr == nil {
 			orderText = txt
+		} else {
+			// Best-effort still proceeds on the manual summary, but a swallowed
+			// extraction error must stay observable — otherwise a systematic
+			// failure (S3 down, corrupt file) looks like a clean run.
+			emitOrderAudit(uc.audit, ctx, "minobrnauki_order.document_text_unavailable", map[string]any{
+				"actor_user_id":        actorID,
+				"minobrnauki_order_id": orderID,
+				"document_id":          *order.DocumentID(),
+				"reason":               "extraction_failed",
+			})
 		}
 	}
 
