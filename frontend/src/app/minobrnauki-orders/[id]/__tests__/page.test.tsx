@@ -1,4 +1,4 @@
-import { render, screen } from '@/test-utils'
+import { render, screen, fireEvent } from '@/test-utils'
 
 const mockReplace = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -16,10 +16,13 @@ jest.mock('@/components/layout', () => ({
 }))
 
 const mockUseMinobrnaukiOrder = jest.fn()
+const mockGenerate = jest.fn()
 jest.mock('@/hooks/useMinobrnaukiOrders', () => ({
   useMinobrnaukiOrders: jest.fn(),
   useMinobrnaukiOrder: (id: number | null, opts?: { enabled?: boolean }) =>
     mockUseMinobrnaukiOrder(id, opts),
+  generateOrderRevisions: (...args: unknown[]) => mockGenerate(...args),
+  pickMinobrnaukiOrderErrorKey: () => 'generic',
 }))
 
 import MinobrnaukiOrderDetailPage from '../page'
@@ -110,5 +113,26 @@ describe('MinobrnaukiOrderDetailPage', () => {
     })
     render(<MinobrnaukiOrderDetailPage />)
     expect(screen.getByText('detail.notFound')).toBeInTheDocument()
+  })
+
+  it('shows the "Сгенерировать правки" button for a methodist', () => {
+    render(<MinobrnaukiOrderDetailPage />)
+    expect(screen.getByRole('button', { name: 'generateButton' })).toBeInTheDocument()
+  })
+
+  it('hides the generate button for a teacher (can view, cannot record)', () => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 8, role: 'teacher' as const },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<MinobrnaukiOrderDetailPage />)
+    expect(screen.queryByRole('button', { name: 'generateButton' })).not.toBeInTheDocument()
+  })
+
+  it('opens the generate dialog when the button is clicked', () => {
+    render(<MinobrnaukiOrderDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'generateButton' }))
+    expect(screen.getByText('generateDialog.title')).toBeInTheDocument()
   })
 })
