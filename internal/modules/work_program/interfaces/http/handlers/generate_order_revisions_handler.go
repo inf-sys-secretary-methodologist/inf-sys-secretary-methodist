@@ -42,10 +42,44 @@ type GenerateRevisionsResponse struct {
 }
 
 // GenerateRevisions handles
-// POST /api/v1/minobrnauki-orders/:id/generate-revisions — RED stub.
+// POST /api/v1/minobrnauki-orders/:id/generate-revisions — a methodist
+// triggers LLM generation of a draft лист актуализации for every РПД
+// affected by the order. The actor + role derive from the JWT subject
+// (never the body); the run summary is returned as counts.
+//
+// @Summary Generate draft revisions for every РПД affected by an order (AI bulk-revision)
+// @Tags    minobrnauki-orders
+// @Produce json
+// @Param   id path int true "Order ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 429 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/minobrnauki-orders/{id}/generate-revisions [post]
 func (h *GenerateOrderRevisionsHandler) GenerateRevisions(c *gin.Context) {
-	_ = h.gen
-	c.JSON(http.StatusInternalServerError, response.InternalError("not implemented"))
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid minobrnauki order id"))
+		return
+	}
+	res, err := h.gen.Execute(c.Request.Context(), actorID, role, id)
+	if err != nil {
+		mapMinobrnaukiOrderError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(GenerateRevisionsResponse{
+		Generated: res.Generated,
+		Skipped:   res.Skipped,
+		Failures:  res.Failures,
+	}))
 }
 
 // RegisterGenerateOrderRevisionsRoutes mounts the endpoint. Caller applies

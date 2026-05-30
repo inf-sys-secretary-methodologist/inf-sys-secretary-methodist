@@ -157,6 +157,8 @@ func mapMinobrnaukiOrderError(c *gin.Context, err error) {
 		c.JSON(http.StatusNotFound, response.NotFound("minobrnauki order"))
 	case errors.Is(err, domain.ErrMinobrnaukiOrderScopeForbidden):
 		c.JSON(http.StatusForbidden, response.Forbidden("not authorized to operate on minobrnauki orders"))
+	case errors.Is(err, domain.ErrGenerationRateLimited):
+		c.JSON(http.StatusTooManyRequests, response.ErrorResponse("RATE_LIMITED", err.Error()))
 	case errors.Is(err, domain.ErrInvalidMinobrnaukiOrder):
 		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("INVALID_MINOBRNAUKI_ORDER", err.Error()))
 	default:
