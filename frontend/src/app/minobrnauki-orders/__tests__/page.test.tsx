@@ -110,4 +110,15 @@ describe('MinobrnaukiOrdersPage', () => {
     expect(screen.getByText('empty.title')).toBeInTheDocument()
     expect(screen.getByText('empty.description')).toBeInTheDocument()
   })
+
+  it('shows the error state when the list fails to load', () => {
+    mockUseMinobrnaukiOrders.mockReturnValue({
+      items: [],
+      total: 0,
+      isLoading: false,
+      error: new Error('network'),
+    })
+    render(<MinobrnaukiOrdersPage />)
+    expect(screen.getByText('loadFailed')).toBeInTheDocument()
+  })
 })
