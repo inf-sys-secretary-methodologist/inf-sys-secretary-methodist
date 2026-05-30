@@ -179,6 +179,12 @@ func (g *Generator) GenerateDraft(ctx context.Context, req usecases.DraftRequest
 	return toDraftResult(wire), nil
 }
 
+// GenerateRevision — RED stub, implemented in the GREEN step.
+func (g *Generator) GenerateRevision(_ context.Context, _ usecases.RevisionDraftRequest) (usecases.RevisionProposal, error) {
+	_ = g.cfg
+	return usecases.RevisionProposal{}, nil
+}
+
 func buildUserPrompt(req usecases.DraftRequest) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Дисциплина: %s\n", req.DisciplineName)
