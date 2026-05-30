@@ -5,6 +5,7 @@ import {
   useMinobrnaukiOrders,
   useMinobrnaukiOrder,
   recordMinobrnaukiOrder,
+  generateOrderRevisions,
   pickMinobrnaukiOrderErrorKey,
 } from '../useMinobrnaukiOrders'
 import { apiClient } from '@/lib/api'
@@ -139,6 +140,22 @@ describe('recordMinobrnaukiOrder (mutation)', () => {
 
     expect(result.id).toBe(9)
     expect(mockedApiClient.post).toHaveBeenCalledWith('/api/v1/minobrnauki-orders', input)
+  })
+})
+
+describe('generateOrderRevisions (mutation)', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('POSTs to the generate-revisions endpoint and returns the run summary', async () => {
+    const summary = { generated: 3, skipped: 1, failures: 0 }
+    mockedApiClient.post.mockResolvedValue({ success: true, data: summary })
+
+    const result = await generateOrderRevisions(7)
+
+    expect(result).toEqual(summary)
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/api/v1/minobrnauki-orders/7/generate-revisions'
+    )
   })
 })
 
