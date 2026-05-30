@@ -391,6 +391,8 @@ func mapWorkProgramError(c *gin.Context, err error, hideForbiddenAsNotFound bool
 		c.JSON(http.StatusConflict, response.ErrorResponse("VERSION_CONFLICT", "work program was modified concurrently; reload + retry"))
 	case errors.Is(err, domain.ErrRevisionNotFound):
 		c.JSON(http.StatusNotFound, response.NotFound("revision"))
+	case errors.Is(err, domain.ErrChildNotFound):
+		c.JSON(http.StatusNotFound, response.NotFound("collection item"))
 	case errors.Is(err, domain.ErrRevisionNotPermitted):
 		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("REVISION_NOT_PERMITTED", err.Error()))
 	case errors.Is(err, domain.ErrInvalidStatusTransition):

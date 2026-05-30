@@ -328,3 +328,27 @@ func TestContentHandler_RemoveTopic_HappyPath(t *testing.T) {
 func TestNewWorkProgramContentHandler_NilPortPanics(t *testing.T) {
 	assert.Panics(t, func() { NewWorkProgramContentHandler(nil) })
 }
+
+// Content routes share the /work-programs/:id subtree with the main РПД
+// routes and the revision routes. gin panics at registration time on a
+// path/param conflict, so registering all three on one engine guards
+// against the conflict that unit-level routers (which mount only one set)
+// cannot see.
+func TestRegisterWorkProgramContentRoutes_NoConflictWithSiblingRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	api := r.Group("/api/v1")
+
+	wpH := NewWorkProgramHandler(
+		&fakeCreate{}, &fakeGet{}, &fakeList{},
+		&fakeSubmit{}, &fakeApprove{}, &fakeReject{}, &fakeDiscard{}, &fakeGenerate{},
+	)
+	revH := NewRevisionHandler(&fakeCreateRevision{}, &fakeSubmitRevision{}, &fakeApproveRevision{}, &fakeRejectRevision{})
+	contentH := NewWorkProgramContentHandler(&fakeContent{})
+
+	assert.NotPanics(t, func() {
+		RegisterWorkProgramRoutes(api, wpH)
+		RegisterRevisionRoutes(api, revH)
+		RegisterWorkProgramContentRoutes(api, contentH)
+	})
+}
