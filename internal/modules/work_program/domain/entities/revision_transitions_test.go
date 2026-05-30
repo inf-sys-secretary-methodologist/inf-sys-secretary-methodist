@@ -62,3 +62,68 @@ func TestWorkProgram_SubmitRevision_WrongStatus_Rejected(t *testing.T) {
 		t.Errorf("submitting a non-draft revision must fail with ErrInvalidStatusTransition, got %v", err)
 	}
 }
+
+func TestWorkProgram_ApproveRevision_PendingApproval_MovesToApproved(t *testing.T) {
+	wp := approvedWPWithRevision(t, 100, domain.RevisionStatusPendingApproval)
+
+	if err := wp.ApproveRevision(100, 55); err != nil {
+		t.Fatalf("ApproveRevision: unexpected error %v", err)
+	}
+	rev := wp.Revisions()[0]
+	if rev.Status() != domain.RevisionStatusApproved {
+		t.Errorf("revision status: got %q, want approved", rev.Status())
+	}
+	if rev.ApproverID() == nil || *rev.ApproverID() != 55 {
+		t.Errorf("approver id: got %v, want 55", rev.ApproverID())
+	}
+}
+
+func TestWorkProgram_ApproveRevision_UnknownID_NotFound(t *testing.T) {
+	wp := approvedWPWithRevision(t, 100, domain.RevisionStatusPendingApproval)
+	if err := wp.ApproveRevision(999, 55); !errors.Is(err, domain.ErrRevisionNotFound) {
+		t.Errorf("expected ErrRevisionNotFound, got %v", err)
+	}
+}
+
+func TestWorkProgram_ApproveRevision_WrongStatus_Rejected(t *testing.T) {
+	wp := approvedWPWithRevision(t, 100, domain.RevisionStatusDraft)
+	if err := wp.ApproveRevision(100, 55); !errors.Is(err, domain.ErrInvalidStatusTransition) {
+		t.Errorf("approving a non-pending revision must fail with ErrInvalidStatusTransition, got %v", err)
+	}
+}
+
+func TestWorkProgram_RejectRevision_PendingApproval_MovesToRejected(t *testing.T) {
+	wp := approvedWPWithRevision(t, 100, domain.RevisionStatusPendingApproval)
+
+	if err := wp.RejectRevision(100, "Не соответствует приказу"); err != nil {
+		t.Fatalf("RejectRevision: unexpected error %v", err)
+	}
+	rev := wp.Revisions()[0]
+	if rev.Status() != domain.RevisionStatusRejected {
+		t.Errorf("revision status: got %q, want rejected", rev.Status())
+	}
+	if rev.RejectReason() != "Не соответствует приказу" {
+		t.Errorf("reject reason: got %q", rev.RejectReason())
+	}
+}
+
+func TestWorkProgram_RejectRevision_UnknownID_NotFound(t *testing.T) {
+	wp := approvedWPWithRevision(t, 100, domain.RevisionStatusPendingApproval)
+	if err := wp.RejectRevision(999, "причина"); !errors.Is(err, domain.ErrRevisionNotFound) {
+		t.Errorf("expected ErrRevisionNotFound, got %v", err)
+	}
+}
+
+func TestWorkProgram_RejectRevision_EmptyReason_Rejected(t *testing.T) {
+	wp := approvedWPWithRevision(t, 100, domain.RevisionStatusPendingApproval)
+	if err := wp.RejectRevision(100, "   "); !errors.Is(err, domain.ErrRejectReasonRequired) {
+		t.Errorf("expected ErrRejectReasonRequired for empty reason, got %v", err)
+	}
+}
+
+func TestWorkProgram_RejectRevision_WrongStatus_Rejected(t *testing.T) {
+	wp := approvedWPWithRevision(t, 100, domain.RevisionStatusDraft)
+	if err := wp.RejectRevision(100, "причина"); !errors.Is(err, domain.ErrInvalidStatusTransition) {
+		t.Errorf("rejecting a non-pending revision must fail with ErrInvalidStatusTransition, got %v", err)
+	}
+}

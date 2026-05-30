@@ -330,6 +330,42 @@ func (w *WorkProgram) SubmitRevision(revisionID int64) error {
 	return nil
 }
 
+// ApproveRevision transitions the identified inner Revision from
+// pending_approval to approved, recording approverID. Returns
+// ErrRevisionNotFound when no revision with the id belongs to this
+// program; otherwise delegates to the Revision sub-FSM
+// (ErrInvalidStatusTransition on wrong status, invariant error on a
+// non-positive approverID).
+func (w *WorkProgram) ApproveRevision(revisionID, approverID int64) error {
+	rev := w.findRevision(revisionID)
+	if rev == nil {
+		return fmt.Errorf("%w: id %d", domain.ErrRevisionNotFound, revisionID)
+	}
+	if err := rev.Approve(approverID); err != nil {
+		return err
+	}
+	w.updatedAt = time.Now().UTC()
+	return nil
+}
+
+// RejectRevision transitions the identified inner Revision from
+// pending_approval to rejected with a reason. Returns
+// ErrRevisionNotFound when no revision with the id belongs to this
+// program; otherwise delegates to the Revision sub-FSM
+// (ErrInvalidStatusTransition on wrong status, ErrRejectReasonRequired
+// on an empty/whitespace reason).
+func (w *WorkProgram) RejectRevision(revisionID int64, reason string) error {
+	rev := w.findRevision(revisionID)
+	if rev == nil {
+		return fmt.Errorf("%w: id %d", domain.ErrRevisionNotFound, revisionID)
+	}
+	if err := rev.Reject(reason); err != nil {
+		return err
+	}
+	w.updatedAt = time.Now().UTC()
+	return nil
+}
+
 // findRevision returns the inner Revision with the given id, or nil if
 // none belongs to this aggregate. Shared by the revision transition
 // methods so lookup semantics stay consistent.
