@@ -3,15 +3,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { ChevronLeft, ChevronRight, FileText, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FileText, Loader2, Plus } from 'lucide-react'
 
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { MinobrnaukiOrderCard } from '@/components/minobrnauki/MinobrnaukiOrderCard'
+import { RecordMinobrnaukiOrderDialog } from '@/components/minobrnauki/RecordMinobrnaukiOrderDialog'
 import { useMinobrnaukiOrders } from '@/hooks/useMinobrnaukiOrders'
 import { useAuthCheck } from '@/hooks/useAuth'
-import { canViewMinobrnaukiOrders } from '@/lib/auth/permissions'
+import { canRecordMinobrnaukiOrder, canViewMinobrnaukiOrders } from '@/lib/auth/permissions'
 import {
   MINOBRNAUKI_ORDER_CHANGE_SCOPES,
   type MinobrnaukiOrderChangeScope,
@@ -31,6 +32,7 @@ export default function MinobrnaukiOrdersPage() {
 
   const [scopeFilter, setScopeFilter] = useState<MinobrnaukiOrderChangeScope | ''>('')
   const [offset, setOffset] = useState(0)
+  const [recordOpen, setRecordOpen] = useState(false)
   const limit = 20
 
   // Reset to the first page whenever the filter changes so the user does
@@ -52,8 +54,15 @@ export default function MinobrnaukiOrdersPage() {
   // backend ADR-11 read gate). A denied caller sees the redirect; pre-auth
   // sees the spinner — neither needs a fetch in flight.
   const canView = canViewMinobrnaukiOrders(user?.role)
+  const canRecord = canRecordMinobrnaukiOrder(user?.role)
   const enabled = !isLoading && isAuthenticated && canView
-  const { items, total, isLoading: listLoading, error } = useMinobrnaukiOrders(filter, { enabled })
+  const {
+    items,
+    total,
+    isLoading: listLoading,
+    error,
+    mutate,
+  } = useMinobrnaukiOrders(filter, { enabled })
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && !canView) {
@@ -74,9 +83,17 @@ export default function MinobrnaukiOrdersPage() {
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-6">
-        <header>
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <p className="text-muted-foreground">{t('description')}</p>
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground">{t('description')}</p>
+          </div>
+          {canRecord && (
+            <Button onClick={() => setRecordOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t('recordButton')}
+            </Button>
+          )}
         </header>
 
         <section className="grid gap-3 sm:grid-cols-3">
@@ -147,6 +164,14 @@ export default function MinobrnaukiOrdersPage() {
               </Button>
             </div>
           </div>
+        )}
+
+        {canRecord && (
+          <RecordMinobrnaukiOrderDialog
+            open={recordOpen}
+            onClose={() => setRecordOpen(false)}
+            onCreated={() => mutate()}
+          />
         )}
       </div>
     </AppLayout>
