@@ -3481,7 +3481,8 @@
       "affectedTitle": "Затронутые РПД ({count})",
       "affectedEmpty": "Приказ не затрагивает ни одной РПД",
       "affectedItem": "РПД #{id}",
-      "notFound": "Приказ не найден"
+      "notFound": "Приказ не найден",
+      "downloadDocument": "Скачать документ приказа"
     },
     "recordButton": "Записать приказ",
     "recordDialog": {

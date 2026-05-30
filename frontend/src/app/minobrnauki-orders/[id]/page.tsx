@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import {
   ArrowLeft,
   Calendar,
+  Download,
   FileText,
   Hash,
   Loader2,
@@ -18,6 +19,7 @@ import {
 import { AppLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { GenerateOrderRevisionsDialog } from '@/components/minobrnauki/GenerateOrderRevisionsDialog'
+import { documentsApi } from '@/lib/api/documents'
 import { useMinobrnaukiOrder } from '@/hooks/useMinobrnaukiOrders'
 import { useAuthCheck } from '@/hooks/useAuth'
 import { canViewMinobrnaukiOrders, canRecordMinobrnaukiOrder } from '@/lib/auth/permissions'
@@ -128,6 +130,17 @@ export default function MinobrnaukiOrderDetailPage() {
                   <User className="h-4 w-4" />
                   {t('detail.uploadedBy', { id: order.uploaded_by })}
                 </span>
+                {order.document_id != null && (
+                  <a
+                    href={documentsApi.getFileDownloadUrl(order.document_id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                  >
+                    <Download className="h-4 w-4" />
+                    {t('detail.downloadDocument')}
+                  </a>
+                )}
               </div>
             </header>
 

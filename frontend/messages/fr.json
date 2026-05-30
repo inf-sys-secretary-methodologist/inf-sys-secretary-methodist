@@ -3481,7 +3481,8 @@
       "affectedTitle": "Programmes concernés ({count})",
       "affectedEmpty": "Cet arrêté ne concerne aucun programme",
       "affectedItem": "Programme #{id}",
-      "notFound": "Arrêté introuvable"
+      "notFound": "Arrêté introuvable",
+      "downloadDocument": "Télécharger le document de l'arrêté"
     },
     "recordButton": "Enregistrer l'arrêté",
     "recordDialog": {

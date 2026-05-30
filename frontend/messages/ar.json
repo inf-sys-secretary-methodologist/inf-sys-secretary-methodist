@@ -3481,7 +3481,8 @@
       "affectedTitle": "البرامج المتأثرة ({count})",
       "affectedEmpty": "هذا الأمر لا يؤثر على أي برنامج",
       "affectedItem": "برنامج #{id}",
-      "notFound": "الأمر غير موجود"
+      "notFound": "الأمر غير موجود",
+      "downloadDocument": "تنزيل وثيقة الأمر"
     },
     "recordButton": "تسجيل الأمر",
     "recordDialog": {

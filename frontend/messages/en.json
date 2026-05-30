@@ -3481,7 +3481,8 @@
       "affectedTitle": "Affected work programs ({count})",
       "affectedEmpty": "This order affects no work programs",
       "affectedItem": "Work program #{id}",
-      "notFound": "Order not found"
+      "notFound": "Order not found",
+      "downloadDocument": "Download order document"
     },
     "recordButton": "Record order",
     "recordDialog": {
