@@ -75,6 +75,21 @@ func TestRejectRevisionUseCase_ForbiddenRole(t *testing.T) {
 	}
 }
 
+func TestRejectRevisionUseCase_ForbiddenRoleBeatsEmptyReason(t *testing.T) {
+	// Role gate runs before the domain reason guard: a forbidden role with
+	// an empty reason must still surface forbidden_role, never empty_reason.
+	repo := &fakeTransitionRepo{}
+	audit := &recordingAuditSink{}
+	uc := NewRejectRevisionUseCase(repo, audit)
+
+	_, err := uc.Execute(context.Background(), 7, "teacher",
+		RejectRevisionInput{WorkProgramID: 100, RevisionID: 500, Reason: "   "})
+	assert.True(t, errors.Is(err, domain.ErrWorkProgramScopeForbidden), "got %v", err)
+	assert.Zero(t, repo.getCalls)
+	require.Len(t, audit.events, 1)
+	assert.Equal(t, "forbidden_role", audit.events[0].Fields["reason"])
+}
+
 func TestRejectRevisionUseCase_NotFoundPropagates(t *testing.T) {
 	repo := &fakeTransitionRepo{getErr: repositories.ErrWorkProgramNotFound}
 	audit := &recordingAuditSink{}
