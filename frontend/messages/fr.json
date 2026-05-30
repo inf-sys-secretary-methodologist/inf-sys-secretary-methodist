@@ -2536,7 +2536,9 @@
         "createRevision": "Créer une feuille de mise à jour"
       },
       "revisionActions": {
-        "submit": "Soumettre pour approbation"
+        "submit": "Soumettre pour approbation",
+        "approve": "Approuver",
+        "reject": "Rejeter"
       }
     },
     "submitDialog": {
@@ -2623,6 +2625,24 @@
       "confirm": "Soumettre",
       "submitting": "Soumission…",
       "successToast": "Feuille de mise à jour soumise pour approbation"
+    },
+    "approveRevisionDialog": {
+      "title": "Approuver la feuille de mise à jour ?",
+      "description": "La modification sera approuvée et appliquée au programme de travail.",
+      "cancel": "Annuler",
+      "confirm": "Approuver",
+      "submitting": "Approbation…",
+      "successToast": "Feuille de mise à jour approuvée"
+    },
+    "rejectRevisionDialog": {
+      "title": "Rejeter la feuille de mise à jour ?",
+      "description": "La feuille reviendra à l’état « Brouillon ». Indiquez un motif — l’auteur le verra et pourra corriger.",
+      "cancel": "Annuler",
+      "confirm": "Rejeter",
+      "submitting": "Rejet…",
+      "successToast": "Feuille de mise à jour rejetée et renvoyée à l’auteur",
+      "reasonLabel": "Motif du rejet",
+      "reasonPlaceholder": "ex. : la modification n’est pas justifiée par un arrêté"
     }
   },
   "curriculum": {
