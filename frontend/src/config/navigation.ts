@@ -18,6 +18,7 @@ import {
   GraduationCap,
   BookMarked,
   ScrollText,
+  Gavel,
   ClipboardCheck,
   HardDrive,
   Activity,
@@ -261,6 +262,22 @@ export const navigationConfig: NavEntry[] = [
           UserRole.ACADEMIC_SECRETARY,
           UserRole.TEACHER,
           UserRole.STUDENT,
+        ],
+      },
+      {
+        // Минобрнауки orders (приказы) — regulatory registry that drives
+        // the AI bulk-revision flow over affected РПД. Visible to
+        // non-student staff only: the backend list endpoint denies
+        // students (ADR-11 read gate), so the navigation mirrors that
+        // role list to avoid a dead-link round-trip.
+        nameKey: 'minobrnaukiOrders',
+        url: '/minobrnauki-orders',
+        icon: Gavel,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
         ],
       },
     ],

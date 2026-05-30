@@ -106,7 +106,8 @@ describe('MinobrnaukiOrdersPage', () => {
 
   it('shows the empty state when there are no orders', () => {
     render(<MinobrnaukiOrdersPage />)
-    // empty.title from the minobrnaukiOrder namespace
-    expect(screen.getByText(/приказ/i)).toBeInTheDocument()
+    // next-intl is mocked to identity (key → key), so assert on the key.
+    expect(screen.getByText('empty.title')).toBeInTheDocument()
+    expect(screen.getByText('empty.description')).toBeInTheDocument()
   })
 })
