@@ -72,24 +72,173 @@ type RejectRevisionRequest struct {
 	Reason string `json:"reason" binding:"required"`
 }
 
-// Create handles POST /api/v1/work-programs/:id/revisions. STUB.
+// Create handles POST /api/v1/work-programs/:id/revisions — author
+// proposes a draft лист актуализации. Author derives from the JWT
+// subject; forbidden is hidden as 404 for non-admins (IDOR).
+//
+// @Summary Propose a revision (лист актуализации) on a РПД
+// @Tags    work-programs
+// @Accept  json
+// @Produce json
+// @Param   id   path int                   true "Work program ID"
+// @Param   body body CreateRevisionRequest true "Revision proposal"
+// @Success 201 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/revisions [post]
 func (h *RevisionHandler) Create(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, response.InternalError("stub"))
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	id, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	var body CreateRevisionRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid request body: "+err.Error()))
+		return
+	}
+	wp, err := h.create.Execute(c.Request.Context(), actorID, role, wpUsecases.CreateRevisionInput{
+		WorkProgramID: id,
+		ChangeType:    body.ChangeType,
+		ChangeSummary: body.ChangeSummary,
+		DiffPayload:   body.DiffPayload,
+	})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusCreated, response.Success(mapWorkProgram(wp)))
 }
 
-// Submit handles POST /api/v1/work-programs/:id/revisions/:rid/submit. STUB.
+// Submit handles POST /api/v1/work-programs/:id/revisions/:rid/submit —
+// author moves a draft revision to pending_approval.
+//
+// @Summary Submit a revision for approval (draft → pending_approval)
+// @Tags    work-programs
+// @Produce json
+// @Param   id  path int true "Work program ID"
+// @Param   rid path int true "Revision ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/revisions/{rid}/submit [post]
 func (h *RevisionHandler) Submit(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, response.InternalError("stub"))
+	actorID, role, id, rid, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+	wp, err := h.submit.Execute(c.Request.Context(), actorID, role, wpUsecases.SubmitRevisionInput{
+		WorkProgramID: id, RevisionID: rid,
+	})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
 }
 
-// Approve handles POST /api/v1/work-programs/:id/revisions/:rid/approve. STUB.
+// Approve handles POST /api/v1/work-programs/:id/revisions/:rid/approve —
+// methodist approves a pending revision.
+//
+// @Summary Approve a revision (pending_approval → approved)
+// @Tags    work-programs
+// @Produce json
+// @Param   id  path int true "Work program ID"
+// @Param   rid path int true "Revision ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/revisions/{rid}/approve [post]
 func (h *RevisionHandler) Approve(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, response.InternalError("stub"))
+	actorID, role, id, rid, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+	wp, err := h.approve.Execute(c.Request.Context(), actorID, role, wpUsecases.ApproveRevisionInput{
+		WorkProgramID: id, RevisionID: rid,
+	})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
 }
 
-// Reject handles POST /api/v1/work-programs/:id/revisions/:rid/reject. STUB.
+// Reject handles POST /api/v1/work-programs/:id/revisions/:rid/reject —
+// methodist rejects a pending revision with a mandatory reason.
+//
+// @Summary Reject a revision with a reason (pending_approval → rejected)
+// @Tags    work-programs
+// @Accept  json
+// @Produce json
+// @Param   id   path int                   true "Work program ID"
+// @Param   rid  path int                   true "Revision ID"
+// @Param   body body RejectRevisionRequest true "Rejection reason"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/revisions/{rid}/reject [post]
 func (h *RevisionHandler) Reject(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, response.InternalError("stub"))
+	actorID, role, id, rid, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+	var body RejectRevisionRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid request body: "+err.Error()))
+		return
+	}
+	wp, err := h.reject.Execute(c.Request.Context(), actorID, role, wpUsecases.RejectRevisionInput{
+		WorkProgramID: id, RevisionID: rid, Reason: body.Reason,
+	})
+	if err != nil {
+		mapWorkProgramError(c, err, !isAdminRole(role))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapWorkProgram(wp)))
+}
+
+// parseIDs extracts the auth context + :id + :rid path params shared by
+// the transition endpoints, writing the appropriate error response and
+// returning ok=false on any failure.
+func (h *RevisionHandler) parseIDs(c *gin.Context) (actorID int64, role string, id, rid int64, ok bool) {
+	actorID, role, ok = authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return 0, "", 0, 0, false
+	}
+	id, ok = parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return 0, "", 0, 0, false
+	}
+	rid, ok = parsePositiveID(c.Param("rid"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid revision id"))
+		return 0, "", 0, 0, false
+	}
+	return actorID, role, id, rid, true
 }
 
 // RegisterRevisionRoutes mounts the 4 revision endpoints under
