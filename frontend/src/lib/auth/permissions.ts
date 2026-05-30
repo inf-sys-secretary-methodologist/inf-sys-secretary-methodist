@@ -192,6 +192,22 @@ export function canViewMinobrnaukiOrders(userRole?: UserRole | string): boolean 
   return MINOBRNAUKI_ORDER_VIEW_ROLES.includes(userRole as UserRole)
 }
 
+// MINOBRNAUKI_ORDER_RECORD_ROLES — roles permitted to record (create) a
+// приказ + trigger the bulk-revision flow. Mirrors the backend
+// isAllowedToRecordMinobrnaukiOrder write gate (ADR-11): methodist +
+// academic_secretary + admin. Teacher may view but not record (they author
+// the РПД revisions the order triggers, not the regulatory record itself).
+export const MINOBRNAUKI_ORDER_RECORD_ROLES: UserRole[] = [
+  UserRole.SYSTEM_ADMIN,
+  UserRole.METHODIST,
+  UserRole.ACADEMIC_SECRETARY,
+]
+
+export function canRecordMinobrnaukiOrder(userRole?: UserRole | string): boolean {
+  if (!userRole) return false
+  return MINOBRNAUKI_ORDER_RECORD_ROLES.includes(userRole as UserRole)
+}
+
 /** @deprecated Use can(role, resource, action) instead */
 export function canEdit(userRole?: UserRole | string): boolean {
   if (!userRole) return false

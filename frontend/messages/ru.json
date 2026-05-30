@@ -3470,7 +3470,44 @@
         "minor": "Незначительное",
         "major": "Существенное"
       },
-      "published": "Опубликован {date}"
+      "published": "Опубликован {date}",
+      "openAria": "Открыть приказ «{title}»"
+    },
+    "detail": {
+      "back": "Назад к приказам",
+      "publishedAt": "Опубликован {date}",
+      "uploadedBy": "Загрузил #{id}",
+      "summary": "Содержание",
+      "affectedTitle": "Затронутые РПД ({count})",
+      "affectedEmpty": "Приказ не затрагивает ни одной РПД",
+      "affectedItem": "РПД #{id}",
+      "notFound": "Приказ не найден"
+    },
+    "recordButton": "Записать приказ",
+    "recordDialog": {
+      "title": "Записать приказ Минобрнауки",
+      "description": "Зарегистрируйте приказ и при необходимости отметьте затронутые РПД",
+      "labels": {
+        "orderNumber": "Номер приказа",
+        "title": "Наименование",
+        "publishedAt": "Дата публикации",
+        "changeScope": "Масштаб изменений",
+        "summary": "Содержание",
+        "affected": "Затронутые РПД (ID через запятую)"
+      },
+      "affectedPlaceholder": "например: 10, 11, 12",
+      "cancel": "Отмена",
+      "record": "Записать",
+      "recording": "Запись…",
+      "successToast": "Приказ записан",
+      "errors": {
+        "invalidOrder": "Некорректные данные приказа",
+        "forbidden": "Недостаточно прав",
+        "notFound": "Не найдено",
+        "invalidInput": "Проверьте заполнение полей",
+        "rateLimited": "Слишком много запросов, попробуйте позже",
+        "generic": "Не удалось записать приказ"
+      }
     }
   }
 }

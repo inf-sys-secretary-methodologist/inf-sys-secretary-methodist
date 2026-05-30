@@ -20,6 +20,8 @@ jest.mock('@/hooks/useMinobrnaukiOrders', () => ({
   useMinobrnaukiOrders: (filter?: Record<string, unknown>, opts?: { enabled?: boolean }) =>
     mockUseMinobrnaukiOrders(filter, opts),
   useMinobrnaukiOrder: jest.fn(),
+  recordMinobrnaukiOrder: jest.fn(),
+  pickMinobrnaukiOrderErrorKey: jest.fn(() => 'generic'),
 }))
 
 import MinobrnaukiOrdersPage from '../page'
@@ -120,5 +122,28 @@ describe('MinobrnaukiOrdersPage', () => {
     })
     render(<MinobrnaukiOrdersPage />)
     expect(screen.getByText('loadFailed')).toBeInTheDocument()
+  })
+
+  it.each(['system_admin', 'methodist', 'academic_secretary'])(
+    'shows the Record button for %s (record role)',
+    (role) => {
+      mockUseAuthCheck.mockReturnValue({
+        user: { id: 5, role: role as 'methodist' },
+        isAuthenticated: true,
+        isLoading: false,
+      })
+      render(<MinobrnaukiOrdersPage />)
+      expect(screen.getByText('recordButton')).toBeInTheDocument()
+    }
+  )
+
+  it('hides the Record button for a teacher (view-only)', () => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 8, role: 'teacher' as const },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<MinobrnaukiOrdersPage />)
+    expect(screen.queryByText('recordButton')).not.toBeInTheDocument()
   })
 })

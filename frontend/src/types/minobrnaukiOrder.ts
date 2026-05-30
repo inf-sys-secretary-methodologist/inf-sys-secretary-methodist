@@ -49,3 +49,18 @@ export interface MinobrnaukiOrderListFilter {
   limit?: number
   offset?: number
 }
+
+// RecordMinobrnaukiOrderInput matches the backend RecordMinobrnaukiOrderRequest
+// (POST /api/v1/minobrnauki-orders). The uploader (uploaded_by) is stamped
+// from the JWT subject server-side — never a client field. published_at is a
+// calendar date (YYYY-MM-DD). affected_work_program_ids optionally marks the
+// РПД the order touches (they transition to needs_revision on the server).
+export interface RecordMinobrnaukiOrderInput {
+  order_number: string
+  title: string
+  published_at: string
+  change_scope: MinobrnaukiOrderChangeScope
+  summary?: string
+  document_id?: number
+  affected_work_program_ids?: number[]
+}

@@ -3470,7 +3470,44 @@
         "minor": "Minor",
         "major": "Major"
       },
-      "published": "Published {date}"
+      "published": "Published {date}",
+      "openAria": "Open order “{title}”"
+    },
+    "detail": {
+      "back": "Back to orders",
+      "publishedAt": "Published {date}",
+      "uploadedBy": "Uploaded by #{id}",
+      "summary": "Summary",
+      "affectedTitle": "Affected work programs ({count})",
+      "affectedEmpty": "This order affects no work programs",
+      "affectedItem": "Work program #{id}",
+      "notFound": "Order not found"
+    },
+    "recordButton": "Record order",
+    "recordDialog": {
+      "title": "Record a Ministry order",
+      "description": "Register the order and optionally mark the affected work programs",
+      "labels": {
+        "orderNumber": "Order number",
+        "title": "Title",
+        "publishedAt": "Published date",
+        "changeScope": "Change scope",
+        "summary": "Summary",
+        "affected": "Affected work programs (comma-separated IDs)"
+      },
+      "affectedPlaceholder": "e.g. 10, 11, 12",
+      "cancel": "Cancel",
+      "record": "Record",
+      "recording": "Recording…",
+      "successToast": "Order recorded",
+      "errors": {
+        "invalidOrder": "Invalid order data",
+        "forbidden": "Insufficient permissions",
+        "notFound": "Not found",
+        "invalidInput": "Check the form fields",
+        "rateLimited": "Too many requests, try again later",
+        "generic": "Failed to record the order"
+      }
     }
   }
 }

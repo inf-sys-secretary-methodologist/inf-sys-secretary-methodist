@@ -3470,7 +3470,44 @@
         "minor": "Mineur",
         "major": "Majeur"
       },
-      "published": "Publié le {date}"
+      "published": "Publié le {date}",
+      "openAria": "Ouvrir l’arrêté « {title} »"
+    },
+    "detail": {
+      "back": "Retour aux arrêtés",
+      "publishedAt": "Publié le {date}",
+      "uploadedBy": "Téléversé par #{id}",
+      "summary": "Résumé",
+      "affectedTitle": "Programmes concernés ({count})",
+      "affectedEmpty": "Cet arrêté ne concerne aucun programme",
+      "affectedItem": "Programme #{id}",
+      "notFound": "Arrêté introuvable"
+    },
+    "recordButton": "Enregistrer l'arrêté",
+    "recordDialog": {
+      "title": "Enregistrer un arrêté ministériel",
+      "description": "Enregistrez l'arrêté et marquez éventuellement les programmes concernés",
+      "labels": {
+        "orderNumber": "Numéro d'arrêté",
+        "title": "Intitulé",
+        "publishedAt": "Date de publication",
+        "changeScope": "Portée des changements",
+        "summary": "Résumé",
+        "affected": "Programmes concernés (ID séparés par virgule)"
+      },
+      "affectedPlaceholder": "ex. : 10, 11, 12",
+      "cancel": "Annuler",
+      "record": "Enregistrer",
+      "recording": "Enregistrement…",
+      "successToast": "Arrêté enregistré",
+      "errors": {
+        "invalidOrder": "Données d'arrêté invalides",
+        "forbidden": "Permissions insuffisantes",
+        "notFound": "Introuvable",
+        "invalidInput": "Vérifiez les champs",
+        "rateLimited": "Trop de requêtes, réessayez plus tard",
+        "generic": "Échec de l'enregistrement"
+      }
     }
   }
 }

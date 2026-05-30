@@ -3470,7 +3470,44 @@
         "minor": "طفيف",
         "major": "كبير"
       },
-      "published": "نُشر في {date}"
+      "published": "نُشر في {date}",
+      "openAria": "فتح الأمر «{title}»"
+    },
+    "detail": {
+      "back": "العودة إلى الأوامر",
+      "publishedAt": "نُشر في {date}",
+      "uploadedBy": "رفعه #{id}",
+      "summary": "الملخص",
+      "affectedTitle": "البرامج المتأثرة ({count})",
+      "affectedEmpty": "هذا الأمر لا يؤثر على أي برنامج",
+      "affectedItem": "برنامج #{id}",
+      "notFound": "الأمر غير موجود"
+    },
+    "recordButton": "تسجيل الأمر",
+    "recordDialog": {
+      "title": "تسجيل أمر الوزارة",
+      "description": "سجّل الأمر وحدّد البرامج المتأثرة إن لزم",
+      "labels": {
+        "orderNumber": "رقم الأمر",
+        "title": "العنوان",
+        "publishedAt": "تاريخ النشر",
+        "changeScope": "نطاق التغيير",
+        "summary": "الملخص",
+        "affected": "البرامج المتأثرة (معرّفات مفصولة بفواصل)"
+      },
+      "affectedPlaceholder": "مثال: 10، 11، 12",
+      "cancel": "إلغاء",
+      "record": "تسجيل",
+      "recording": "جارٍ التسجيل…",
+      "successToast": "تم تسجيل الأمر",
+      "errors": {
+        "invalidOrder": "بيانات أمر غير صحيحة",
+        "forbidden": "صلاحيات غير كافية",
+        "notFound": "غير موجود",
+        "invalidInput": "تحقق من الحقول",
+        "rateLimited": "طلبات كثيرة، حاول لاحقًا",
+        "generic": "فشل تسجيل الأمر"
+      }
     }
   }
 }

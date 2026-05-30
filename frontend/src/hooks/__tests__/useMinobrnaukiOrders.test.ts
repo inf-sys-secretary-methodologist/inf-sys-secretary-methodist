@@ -1,7 +1,12 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { SWRConfig } from 'swr'
 import React from 'react'
-import { useMinobrnaukiOrders, useMinobrnaukiOrder } from '../useMinobrnaukiOrders'
+import {
+  useMinobrnaukiOrders,
+  useMinobrnaukiOrder,
+  recordMinobrnaukiOrder,
+  pickMinobrnaukiOrderErrorKey,
+} from '../useMinobrnaukiOrders'
 import { apiClient } from '@/lib/api'
 
 jest.mock('@/lib/api', () => ({
@@ -104,5 +109,52 @@ describe('useMinobrnaukiOrders hooks (queries)', () => {
       await new Promise((r) => setTimeout(r, 10))
       expect(mockedApiClient.get).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('recordMinobrnaukiOrder (mutation)', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('POSTs the input and returns the created order', async () => {
+    const created = {
+      id: 9,
+      order_number: '№ 555',
+      title: 'Новый приказ',
+      published_at: '2026-04-01',
+      change_scope: 'major' as const,
+      uploaded_by: 5,
+      created_at: '2026-04-02T09:00:00Z',
+      affected_work_program_ids: [1, 2],
+    }
+    mockedApiClient.post.mockResolvedValue({ success: true, data: created })
+
+    const input = {
+      order_number: '№ 555',
+      title: 'Новый приказ',
+      published_at: '2026-04-01',
+      change_scope: 'major' as const,
+      affected_work_program_ids: [1, 2],
+    }
+    const result = await recordMinobrnaukiOrder(input)
+
+    expect(result.id).toBe(9)
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/api/v1/minobrnauki-orders', input)
+  })
+})
+
+describe('pickMinobrnaukiOrderErrorKey', () => {
+  const codeErr = (code: string) => ({ response: { data: { error: { code } } } })
+  const statusErr = (status: number) => ({ response: { status } })
+
+  it.each([
+    [codeErr('INVALID_MINOBRNAUKI_ORDER'), 'invalidOrder'],
+    [codeErr('RATE_LIMITED'), 'rateLimited'],
+    [statusErr(403), 'forbidden'],
+    [statusErr(404), 'notFound'],
+    [statusErr(400), 'invalidInput'],
+    [undefined, 'generic'],
+    [{}, 'generic'],
+  ])('maps %o → %s', (err, expected) => {
+    expect(pickMinobrnaukiOrderErrorKey(err)).toBe(expected)
   })
 })
