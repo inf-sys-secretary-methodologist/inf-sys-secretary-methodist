@@ -95,13 +95,22 @@ export function RecordMinobrnaukiOrderDialog({
       // so the order is never created pointing at a missing document.
       let documentID: number | undefined
       if (file) {
-        const doc = await documentsApi.create({
-          title: file.name,
-          document_type_id: DEFAULT_DOCUMENT_TYPE_ID,
-          importance: 'normal',
-        })
-        await documentsApi.uploadFile(doc.id, file)
-        documentID = doc.id
+        try {
+          const doc = await documentsApi.create({
+            title: file.name,
+            document_type_id: DEFAULT_DOCUMENT_TYPE_ID,
+            importance: 'normal',
+          })
+          await documentsApi.uploadFile(doc.id, file)
+          documentID = doc.id
+        } catch {
+          // Distinguish an upload failure from a record failure so the toast is
+          // accurate; abort before recording so the order never points at a
+          // document that was not stored.
+          toast.error(t('recordDialog.errors.uploadFailed'))
+          setSubmitting(false)
+          return
+        }
       }
       await recordMinobrnaukiOrder({
         order_number: orderNumber.trim(),

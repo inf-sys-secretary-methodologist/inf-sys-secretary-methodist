@@ -3508,7 +3508,8 @@
         "notFound": "Introuvable",
         "invalidInput": "Vérifiez les champs",
         "rateLimited": "Trop de requêtes, réessayez plus tard",
-        "generic": "Échec de l'enregistrement"
+        "generic": "Échec de l'enregistrement",
+        "uploadFailed": "Échec du téléversement du fichier de l'arrêté"
       },
       "documentHint": "Joignez le fichier de l'arrêté — l'IA en extrait le texte pour générer les révisions"
     },

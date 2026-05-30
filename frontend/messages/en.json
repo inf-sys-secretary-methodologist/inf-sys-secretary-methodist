@@ -3508,7 +3508,8 @@
         "notFound": "Not found",
         "invalidInput": "Check the form fields",
         "rateLimited": "Too many requests, try again later",
-        "generic": "Failed to record the order"
+        "generic": "Failed to record the order",
+        "uploadFailed": "Failed to upload the order file"
       },
       "documentHint": "Attach the order file — the AI extracts its text to generate revisions"
     },
