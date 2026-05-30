@@ -502,3 +502,84 @@ describe('WorkProgramDetailPage — revision write-flow actions (10b-1)', () => 
     ).not.toBeInTheDocument()
   })
 })
+
+describe('WorkProgramDetailPage — revision approver actions (10b-2)', () => {
+  const methodist = {
+    user: { id: 3, role: 'methodist' as const },
+    isAuthenticated: true,
+    isLoading: false,
+  }
+
+  const pendingRevision = (overrides: Partial<WorkProgram['revisions'][number]> = {}) => ({
+    id: 11,
+    revision_number: 1,
+    change_type: 'hours' as const,
+    change_summary: 'Часы лекций 36 → 18',
+    status: 'pending_approval' as const,
+    author_id: 5,
+    created_at: '2026-05-21T10:00:00Z',
+    updated_at: '2026-05-21T10:00:00Z',
+    ...overrides,
+  })
+
+  const wp = (revisions: WorkProgram['revisions']) => ({
+    workProgram: sample({ status: 'approved', author_id: 5, revisions }),
+    isLoading: false,
+    error: undefined,
+    mutate: jest.fn(),
+  })
+
+  beforeEach(() => {
+    mockUseParams.mockReturnValue({ id: '7' })
+    mockUseAuthCheck.mockReturnValue(methodist)
+    mockUseWorkProgram.mockReturnValue(wp([pendingRevision()]))
+  })
+
+  it('shows per-row approve + reject actions for an approver on a pending revision', () => {
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.getByRole('button', { name: 'detail.revisionActions.approve' })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'detail.revisionActions.reject' })
+    ).toBeInTheDocument()
+  })
+
+  it('opens the approve-revision dialog when the row approve action is clicked', () => {
+    render(<WorkProgramDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.revisionActions.approve' }))
+    expect(screen.getByText('approveRevisionDialog.title')).toBeInTheDocument()
+  })
+
+  it('opens the reject-revision dialog when the row reject action is clicked', () => {
+    render(<WorkProgramDetailPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.revisionActions.reject' }))
+    expect(screen.getByText('rejectRevisionDialog.title')).toBeInTheDocument()
+  })
+
+  it('hides approve/reject for a non-approver (teacher author) on a pending revision', () => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 5, role: 'teacher' as const },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.queryByRole('button', { name: 'detail.revisionActions.approve' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'detail.revisionActions.reject' })
+    ).not.toBeInTheDocument()
+  })
+
+  it('hides approve/reject on a non-pending revision (draft)', () => {
+    mockUseWorkProgram.mockReturnValue(wp([pendingRevision({ status: 'draft' })]))
+    render(<WorkProgramDetailPage />)
+    expect(
+      screen.queryByRole('button', { name: 'detail.revisionActions.approve' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'detail.revisionActions.reject' })
+    ).not.toBeInTheDocument()
+  })
+})
