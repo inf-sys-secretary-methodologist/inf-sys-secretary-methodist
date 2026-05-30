@@ -3470,7 +3470,18 @@
         "minor": "Незначительное",
         "major": "Существенное"
       },
-      "published": "Опубликован {date}"
+      "published": "Опубликован {date}",
+      "openAria": "Открыть приказ «{title}»"
+    },
+    "detail": {
+      "back": "Назад к приказам",
+      "publishedAt": "Опубликован {date}",
+      "uploadedBy": "Загрузил #{id}",
+      "summary": "Содержание",
+      "affectedTitle": "Затронутые РПД ({count})",
+      "affectedEmpty": "Приказ не затрагивает ни одной РПД",
+      "affectedItem": "РПД #{id}",
+      "notFound": "Приказ не найден"
     }
   }
 }

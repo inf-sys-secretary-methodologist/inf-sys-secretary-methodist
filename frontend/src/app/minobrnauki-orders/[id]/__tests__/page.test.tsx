@@ -85,10 +85,11 @@ describe('MinobrnaukiOrderDetailPage', () => {
 
   it('renders each affected РПД as a link to its detail page', () => {
     render(<MinobrnaukiOrderDetailPage />)
-    const link10 = screen.getByRole('link', { name: /10/ })
-    const link11 = screen.getByRole('link', { name: /11/ })
-    expect(link10).toHaveAttribute('href', '/work-programs/10')
-    expect(link11).toHaveAttribute('href', '/work-programs/11')
+    // next-intl is mocked to identity (interpolation params ignored), so the
+    // links share an accessible name — assert on href instead.
+    const hrefs = screen.getAllByRole('link').map((a) => a.getAttribute('href'))
+    expect(hrefs).toContain('/work-programs/10')
+    expect(hrefs).toContain('/work-programs/11')
   })
 
   it('shows the affected-empty state when no РПД are affected', () => {

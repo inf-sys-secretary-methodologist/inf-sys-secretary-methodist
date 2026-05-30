@@ -3470,7 +3470,18 @@
         "minor": "طفيف",
         "major": "كبير"
       },
-      "published": "نُشر في {date}"
+      "published": "نُشر في {date}",
+      "openAria": "فتح الأمر «{title}»"
+    },
+    "detail": {
+      "back": "العودة إلى الأوامر",
+      "publishedAt": "نُشر في {date}",
+      "uploadedBy": "رفعه #{id}",
+      "summary": "الملخص",
+      "affectedTitle": "البرامج المتأثرة ({count})",
+      "affectedEmpty": "هذا الأمر لا يؤثر على أي برنامج",
+      "affectedItem": "برنامج #{id}",
+      "notFound": "الأمر غير موجود"
     }
   }
 }

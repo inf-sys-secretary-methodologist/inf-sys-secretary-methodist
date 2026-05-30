@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Calendar, FileText, Hash } from 'lucide-react'
 
@@ -19,19 +20,22 @@ const SCOPE_STYLES: Record<MinobrnaukiOrderSummary['change_scope'], { bg: string
     major: { bg: 'bg-amber-100 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300' },
   }
 
-// MinobrnaukiOrderCard — order list-item summary. Pure presentation; not a
-// link in this slice (the detail page arrives in the next slice, so a link
-// now would be dead). The change-scope pill flags regulatory weight.
+// MinobrnaukiOrderCard — order list-item summary linking to the detail
+// page. The change-scope pill flags regulatory weight so a reader scanning
+// the list can tell a minor edit from a major (ФГОС-level) one at a glance.
 export function MinobrnaukiOrderCard({ order, className }: MinobrnaukiOrderCardProps) {
   const t = useTranslations('minobrnaukiOrder')
   const scope = SCOPE_STYLES[order.change_scope]
 
   return (
-    <div
+    <Link
+      href={`/minobrnauki-orders/${order.id}`}
       className={cn(
-        'relative block overflow-hidden rounded-xl border border-border bg-card p-5',
+        'group relative block overflow-hidden rounded-xl border border-border bg-card p-5',
+        'transition hover:border-primary/40 hover:shadow-md',
         className
       )}
+      aria-label={t('card.openAria', { title: order.title })}
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold leading-tight line-clamp-2">{order.title}</h3>
@@ -61,6 +65,6 @@ export function MinobrnaukiOrderCard({ order, className }: MinobrnaukiOrderCardP
           {t('card.published', { date: order.published_at })}
         </span>
       </div>
-    </div>
+    </Link>
   )
 }

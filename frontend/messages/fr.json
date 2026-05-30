@@ -3470,7 +3470,18 @@
         "minor": "Mineur",
         "major": "Majeur"
       },
-      "published": "Publié le {date}"
+      "published": "Publié le {date}",
+      "openAria": "Ouvrir l’arrêté « {title} »"
+    },
+    "detail": {
+      "back": "Retour aux arrêtés",
+      "publishedAt": "Publié le {date}",
+      "uploadedBy": "Téléversé par #{id}",
+      "summary": "Résumé",
+      "affectedTitle": "Programmes concernés ({count})",
+      "affectedEmpty": "Cet arrêté ne concerne aucun programme",
+      "affectedItem": "Programme #{id}",
+      "notFound": "Arrêté introuvable"
     }
   }
 }
