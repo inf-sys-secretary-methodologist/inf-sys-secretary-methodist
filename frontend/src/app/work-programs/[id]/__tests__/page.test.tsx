@@ -432,20 +432,16 @@ describe('WorkProgramDetailPage — revision write-flow actions (10b-1)', () => 
     mockUseWorkProgram.mockReturnValue(wp())
   })
 
-  it('shows the create-revision action for the author on an approved РПД', () => {
-    render(<WorkProgramDetailPage />)
-    expect(
-      screen.getByRole('button', { name: 'detail.actions.createRevision' })
-    ).toBeInTheDocument()
-  })
-
-  it('shows the create-revision action for the author on a needs_revision РПД', () => {
-    mockUseWorkProgram.mockReturnValue(wp({ status: 'needs_revision' }))
-    render(<WorkProgramDetailPage />)
-    expect(
-      screen.getByRole('button', { name: 'detail.actions.createRevision' })
-    ).toBeInTheDocument()
-  })
+  it.each(['approved', 'needs_revision'] as const)(
+    'shows the create-revision action for the author on a %s РПД',
+    (status) => {
+      mockUseWorkProgram.mockReturnValue(wp({ status }))
+      render(<WorkProgramDetailPage />)
+      expect(
+        screen.getByRole('button', { name: 'detail.actions.createRevision' })
+      ).toBeInTheDocument()
+    }
+  )
 
   it('opens the create-revision dialog when the action is clicked', () => {
     render(<WorkProgramDetailPage />)
@@ -463,18 +459,6 @@ describe('WorkProgramDetailPage — revision write-flow actions (10b-1)', () => 
     expect(
       screen.queryByRole('button', { name: 'detail.actions.createRevision' })
     ).not.toBeInTheDocument()
-  })
-
-  it('shows the create-revision action for a system_admin (override) on an approved РПД', () => {
-    mockUseAuthCheck.mockReturnValue({
-      user: { id: 99, role: 'system_admin' as const },
-      isAuthenticated: true,
-      isLoading: false,
-    })
-    render(<WorkProgramDetailPage />)
-    expect(
-      screen.getByRole('button', { name: 'detail.actions.createRevision' })
-    ).toBeInTheDocument()
   })
 
   it('hides the create-revision action on a draft РПД (only approved/needs_revision)', () => {

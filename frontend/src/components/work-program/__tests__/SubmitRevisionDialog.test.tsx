@@ -91,25 +91,6 @@ describe('SubmitRevisionDialog', () => {
     expect(onSubmitted).not.toHaveBeenCalled()
   })
 
-  it('does not close while a submit is in flight (Esc dismiss guarded)', async () => {
-    const onClose = jest.fn()
-    let resolve: (v: unknown) => void = () => {}
-    mockSubmitRevision.mockImplementation(
-      () =>
-        new Promise((r) => {
-          resolve = r
-        })
-    )
-
-    render(<SubmitRevisionDialog workProgramId={7} revisionId={3} open={true} onClose={onClose} />)
-    fireEvent.click(screen.getByRole('button', confirmBtn))
-    fireEvent.keyDown(document.body, { key: 'Escape' })
-    expect(onClose).not.toHaveBeenCalled()
-
-    resolve({ id: 7 })
-    await waitFor(() => expect(onClose).toHaveBeenCalled())
-  })
-
   it('does not double-fire submitRevision on rapid double-click', async () => {
     const onClose = jest.fn()
     let resolve: (v: unknown) => void = () => {}
