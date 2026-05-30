@@ -135,4 +135,21 @@ describe('MinobrnaukiOrderDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'generateButton' }))
     expect(screen.getByText('generateDialog.title')).toBeInTheDocument()
   })
+
+  it('renders a download link for the attached order document', () => {
+    mockUseMinobrnaukiOrder.mockReturnValue({
+      order: sampleOrder({ document_id: 42 }),
+      isLoading: false,
+      error: undefined,
+    })
+    render(<MinobrnaukiOrderDetailPage />)
+    const link = screen.getByRole('link', { name: 'detail.downloadDocument' })
+    expect(link).toHaveAttribute('href', expect.stringContaining('/api/documents/42/file'))
+  })
+
+  it('hides the download link when no document is attached', () => {
+    // beforeEach sets an order without a document_id
+    render(<MinobrnaukiOrderDetailPage />)
+    expect(screen.queryByRole('link', { name: 'detail.downloadDocument' })).not.toBeInTheDocument()
+  })
 })

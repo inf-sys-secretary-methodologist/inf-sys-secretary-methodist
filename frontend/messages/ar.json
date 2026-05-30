@@ -3481,7 +3481,8 @@
       "affectedTitle": "البرامج المتأثرة ({count})",
       "affectedEmpty": "هذا الأمر لا يؤثر على أي برنامج",
       "affectedItem": "برنامج #{id}",
-      "notFound": "الأمر غير موجود"
+      "notFound": "الأمر غير موجود",
+      "downloadDocument": "تنزيل وثيقة الأمر"
     },
     "recordButton": "تسجيل الأمر",
     "recordDialog": {
@@ -3493,7 +3494,8 @@
         "publishedAt": "تاريخ النشر",
         "changeScope": "نطاق التغيير",
         "summary": "الملخص",
-        "affected": "البرامج المتأثرة (معرّفات مفصولة بفواصل)"
+        "affected": "البرامج المتأثرة (معرّفات مفصولة بفواصل)",
+        "document": "وثيقة الأمر (PDF/DOCX)"
       },
       "affectedPlaceholder": "مثال: 10، 11، 12",
       "cancel": "إلغاء",
@@ -3506,8 +3508,10 @@
         "notFound": "غير موجود",
         "invalidInput": "تحقق من الحقول",
         "rateLimited": "طلبات كثيرة، حاول لاحقًا",
-        "generic": "فشل تسجيل الأمر"
-      }
+        "generic": "فشل تسجيل الأمر",
+        "uploadFailed": "فشل تحميل ملف الأمر"
+      },
+      "documentHint": "أرفق ملف الأمر — يستخرج الذكاء الاصطناعي نصه لإنشاء التعديلات"
     },
     "generateButton": "إنشاء التعديلات",
     "generateDialog": {

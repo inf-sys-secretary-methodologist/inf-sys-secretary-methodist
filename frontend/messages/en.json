@@ -3481,7 +3481,8 @@
       "affectedTitle": "Affected work programs ({count})",
       "affectedEmpty": "This order affects no work programs",
       "affectedItem": "Work program #{id}",
-      "notFound": "Order not found"
+      "notFound": "Order not found",
+      "downloadDocument": "Download order document"
     },
     "recordButton": "Record order",
     "recordDialog": {
@@ -3493,7 +3494,8 @@
         "publishedAt": "Published date",
         "changeScope": "Change scope",
         "summary": "Summary",
-        "affected": "Affected work programs (comma-separated IDs)"
+        "affected": "Affected work programs (comma-separated IDs)",
+        "document": "Order document (PDF/DOCX)"
       },
       "affectedPlaceholder": "e.g. 10, 11, 12",
       "cancel": "Cancel",
@@ -3506,8 +3508,10 @@
         "notFound": "Not found",
         "invalidInput": "Check the form fields",
         "rateLimited": "Too many requests, try again later",
-        "generic": "Failed to record the order"
-      }
+        "generic": "Failed to record the order",
+        "uploadFailed": "Failed to upload the order file"
+      },
+      "documentHint": "Attach the order file — the AI extracts its text to generate revisions"
     },
     "generateButton": "Generate revisions",
     "generateDialog": {

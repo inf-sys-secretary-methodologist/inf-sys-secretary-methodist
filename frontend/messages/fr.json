@@ -3481,7 +3481,8 @@
       "affectedTitle": "Programmes concernés ({count})",
       "affectedEmpty": "Cet arrêté ne concerne aucun programme",
       "affectedItem": "Programme #{id}",
-      "notFound": "Arrêté introuvable"
+      "notFound": "Arrêté introuvable",
+      "downloadDocument": "Télécharger le document de l'arrêté"
     },
     "recordButton": "Enregistrer l'arrêté",
     "recordDialog": {
@@ -3493,7 +3494,8 @@
         "publishedAt": "Date de publication",
         "changeScope": "Portée des changements",
         "summary": "Résumé",
-        "affected": "Programmes concernés (ID séparés par virgule)"
+        "affected": "Programmes concernés (ID séparés par virgule)",
+        "document": "Document de l'arrêté (PDF/DOCX)"
       },
       "affectedPlaceholder": "ex. : 10, 11, 12",
       "cancel": "Annuler",
@@ -3506,8 +3508,10 @@
         "notFound": "Introuvable",
         "invalidInput": "Vérifiez les champs",
         "rateLimited": "Trop de requêtes, réessayez plus tard",
-        "generic": "Échec de l'enregistrement"
-      }
+        "generic": "Échec de l'enregistrement",
+        "uploadFailed": "Échec du téléversement du fichier de l'arrêté"
+      },
+      "documentHint": "Joignez le fichier de l'arrêté — l'IA en extrait le texte pour générer les révisions"
     },
     "generateButton": "Générer les révisions",
     "generateDialog": {
