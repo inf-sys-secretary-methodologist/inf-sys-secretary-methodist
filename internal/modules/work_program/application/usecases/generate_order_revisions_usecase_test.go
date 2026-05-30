@@ -340,6 +340,55 @@ func TestGenerateOrderRevisionsUseCase_NilDocumentTextProvider_OrderTextEmpty(t 
 	assert.Empty(t, gen.requests[0].OrderText)
 }
 
+// Slice 7 observability: a systematic document-extraction failure (e.g. S3
+// down, corrupt file) must be observable, not look like a clean "generated
+// from summary" run. The best-effort fetch emits a forensic audit event
+// naming the order + document so an operator can see the order text never
+// reached the LLM. Generation still proceeds (the run is not aborted).
+func TestGenerateOrderRevisionsUseCase_AuditsDocumentExtractionFailure(t *testing.T) {
+	const teacherID = int64(5)
+	wp := reconstituteWPWithStatus(t, 901, teacherID, domain.StatusApproved)
+	orders := &fakeReadOrderRepo{order: orderWithDocument(77), affected: []int64{901}}
+	targets := &fakeRevisionRepo{programs: map[int64]*entities.WorkProgram{901: wp}}
+	gen := &fakeBulkRevisionGenerator{proposal: okProposal()}
+	audit := &recordingAuditSink{}
+	docText := &fakeOrderDocText{err: errors.New("s3 download failed")}
+	uc := NewGenerateOrderRevisionsUseCase(orders, targets, gen, nil, audit).WithDocumentText(docText)
+
+	res, err := uc.Execute(context.Background(), 3, "methodist", 50)
+	require.NoError(t, err)
+	assert.Equal(t, 1, res.Generated, "extraction failure is best-effort — generation still proceeds")
+
+	var found bool
+	for _, e := range audit.events {
+		if e.Action == "minobrnauki_order.document_text_unavailable" {
+			found = true
+			assert.Equal(t, int64(77), e.Fields["document_id"], "the audit names the unreadable document")
+			assert.Equal(t, int64(50), e.Fields["minobrnauki_order_id"])
+		}
+	}
+	assert.True(t, found, "a swallowed extraction error is recorded as a forensic audit event, not silent")
+}
+
+// A successful extraction (or no document) emits no extraction-failure audit.
+func TestGenerateOrderRevisionsUseCase_NoExtractionAuditOnSuccess(t *testing.T) {
+	const teacherID = int64(5)
+	wp := reconstituteWPWithStatus(t, 911, teacherID, domain.StatusApproved)
+	orders := &fakeReadOrderRepo{order: orderWithDocument(77), affected: []int64{911}}
+	targets := &fakeRevisionRepo{programs: map[int64]*entities.WorkProgram{911: wp}}
+	gen := &fakeBulkRevisionGenerator{proposal: okProposal()}
+	audit := &recordingAuditSink{}
+	docText := &fakeOrderDocText{text: "извлечённый текст приказа"}
+	uc := NewGenerateOrderRevisionsUseCase(orders, targets, gen, nil, audit).WithDocumentText(docText)
+
+	_, err := uc.Execute(context.Background(), 3, "methodist", 50)
+	require.NoError(t, err)
+	for _, e := range audit.events {
+		assert.NotEqual(t, "minobrnauki_order.document_text_unavailable", e.Action,
+			"a successful extraction must not emit a failure audit")
+	}
+}
+
 func TestGenerateOrderRevisionsUseCase_EmitsSummaryAudit(t *testing.T) {
 	const teacherID = int64(5)
 	wpA := reconstituteWPWithStatus(t, 601, teacherID, domain.StatusApproved)
