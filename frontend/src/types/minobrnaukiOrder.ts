@@ -64,3 +64,14 @@ export interface RecordMinobrnaukiOrderInput {
   document_id?: number
   affected_work_program_ids?: number[]
 }
+
+// GenerateOrderRevisionsResult mirrors the backend GenerateRevisionsResponse
+// (generate_order_revisions_handler.go). The methodist triggers LLM
+// generation of a draft лист актуализации for every affected РПД (ADR-12);
+// the endpoint returns the run summary as counts — the drafts themselves
+// ride along on each РПД and are reviewed via the revision flow.
+export interface GenerateOrderRevisionsResult {
+  generated: number
+  skipped: number
+  failures: number
+}

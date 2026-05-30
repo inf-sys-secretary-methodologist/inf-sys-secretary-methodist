@@ -15,6 +15,7 @@ import type {
   MinobrnaukiOrdersListResponse,
   MinobrnaukiOrderListFilter,
   RecordMinobrnaukiOrderInput,
+  GenerateOrderRevisionsResult,
 } from '@/types/minobrnaukiOrder'
 
 const BASE_URL = '/api/v1/minobrnauki-orders'
@@ -94,6 +95,19 @@ export async function recordMinobrnaukiOrder(
   input: RecordMinobrnaukiOrderInput
 ): Promise<MinobrnaukiOrder> {
   const response = await apiClient.post<ApiResponse<MinobrnaukiOrder>>(BASE_URL, input)
+  return response.data
+}
+
+// generateOrderRevisions triggers the methodist-initiated AI bulk-revision
+// (ADR-12): the backend generates a draft лист актуализации for every РПД
+// the order affects (author = the РПД's teacher) and returns the run summary
+// as counts. The actor + role derive from the JWT subject server-side. Axios
+// errors propagate so the dialog can branch via pickMinobrnaukiOrderErrorKey
+// (RATE_LIMITED → 429 → 'rateLimited').
+export async function generateOrderRevisions(id: number): Promise<GenerateOrderRevisionsResult> {
+  const response = await apiClient.post<ApiResponse<GenerateOrderRevisionsResult>>(
+    `${BASE_URL}/${id}/generate-revisions`
+  )
   return response.data
 }
 
