@@ -52,11 +52,51 @@ func (r TopicContentRequest) toInput() wpUsecases.TopicContentInput {
 	}
 }
 
+// AssessmentContentRequest is the JSON body for add/update of an
+// AssessmentCriterion (ФОС item). Type + Description are required at the
+// boundary; MaxScore range + per-item rules stay in the domain.
+type AssessmentContentRequest struct {
+	Type             string   `json:"type"              binding:"required"`
+	Description      string   `json:"description"       binding:"required"`
+	MaxScore         int      `json:"max_score"`
+	ExampleQuestions []string `json:"example_questions"`
+}
+
+func (r AssessmentContentRequest) toInput() wpUsecases.AssessmentContentInput {
+	return wpUsecases.AssessmentContentInput{
+		Type:             r.Type,
+		Description:      r.Description,
+		MaxScore:         r.MaxScore,
+		ExampleQuestions: r.ExampleQuestions,
+	}
+}
+
+// ReferenceContentRequest is the JSON body for add/update of a Reference.
+type ReferenceContentRequest struct {
+	Kind       string `json:"kind"        binding:"required"`
+	Citation   string `json:"citation"    binding:"required"`
+	Year       *int   `json:"year"`
+	ISBN       string `json:"isbn"`
+	URL        string `json:"url"`
+	OrderIndex int    `json:"order_index"`
+}
+
+func (r ReferenceContentRequest) toInput() wpUsecases.ReferenceContentInput {
+	return wpUsecases.ReferenceContentInput{
+		Kind:       r.Kind,
+		Citation:   r.Citation,
+		Year:       r.Year,
+		ISBN:       r.ISBN,
+		URL:        r.URL,
+		OrderIndex: r.OrderIndex,
+	}
+}
+
 // ===== Port =====
 
 // WorkProgramContentPort is the narrow port for the manual collection-edit
-// use case (slice 12). It exposes the goals / competences / topics methods
-// the handler calls — assessments / references arrive in 12b-2.
+// use case (slice 12). It exposes all five collections —
+// goals / competences / topics (12b-1) and assessments / references (12b-2).
 type WorkProgramContentPort interface {
 	AddGoal(ctx context.Context, actorID int64, actorRole string, wpID int64, text string, orderIndex int) (*entities.WorkProgram, error)
 	UpdateGoal(ctx context.Context, actorID int64, actorRole string, wpID, goalID int64, text string, orderIndex int) (*entities.WorkProgram, error)
@@ -67,6 +107,12 @@ type WorkProgramContentPort interface {
 	AddTopic(ctx context.Context, actorID int64, actorRole string, wpID int64, in wpUsecases.TopicContentInput) (*entities.WorkProgram, error)
 	UpdateTopic(ctx context.Context, actorID int64, actorRole string, wpID, topicID int64, in wpUsecases.TopicContentInput) (*entities.WorkProgram, error)
 	RemoveTopic(ctx context.Context, actorID int64, actorRole string, wpID, topicID int64) (*entities.WorkProgram, error)
+	AddAssessment(ctx context.Context, actorID int64, actorRole string, wpID int64, in wpUsecases.AssessmentContentInput) (*entities.WorkProgram, error)
+	UpdateAssessment(ctx context.Context, actorID int64, actorRole string, wpID, assessmentID int64, in wpUsecases.AssessmentContentInput) (*entities.WorkProgram, error)
+	RemoveAssessment(ctx context.Context, actorID int64, actorRole string, wpID, assessmentID int64) (*entities.WorkProgram, error)
+	AddReference(ctx context.Context, actorID int64, actorRole string, wpID int64, in wpUsecases.ReferenceContentInput) (*entities.WorkProgram, error)
+	UpdateReference(ctx context.Context, actorID int64, actorRole string, wpID, referenceID int64, in wpUsecases.ReferenceContentInput) (*entities.WorkProgram, error)
+	RemoveReference(ctx context.Context, actorID int64, actorRole string, wpID, referenceID int64) (*entities.WorkProgram, error)
 }
 
 // WorkProgramContentHandler exposes the manual collection-edit endpoints.
@@ -430,8 +476,233 @@ func (h *WorkProgramContentHandler) RemoveTopic(c *gin.Context) {
 	h.respondContent(c, role, wp, err)
 }
 
-// RegisterWorkProgramContentRoutes mounts the 9 manual collection-edit
-// endpoints (goals / competences / topics) under /work-programs/:id.
+// ===== Assessments (ФОС) =====
+
+// AddAssessment handles POST /api/v1/work-programs/:id/assessments.
+// @Summary Add an assessment criterion (ФОС) to a work program (РПД)
+// @Tags    work-programs
+// @Accept  json
+// @Produce json
+// @Param   id   path int                       true "Work program ID"
+// @Param   body body AssessmentContentRequest true "Assessment payload"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/assessments [post]
+func (h *WorkProgramContentHandler) AddAssessment(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	wpID, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	var body AssessmentContentRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid request body: "+err.Error()))
+		return
+	}
+	wp, err := h.content.AddAssessment(c.Request.Context(), actorID, role, wpID, body.toInput())
+	h.respondContent(c, role, wp, err)
+}
+
+// UpdateAssessment handles PUT /api/v1/work-programs/:id/assessments/:childId.
+// @Summary Update an assessment criterion (ФОС) of a work program (РПД)
+// @Tags    work-programs
+// @Accept  json
+// @Produce json
+// @Param   id      path int                       true "Work program ID"
+// @Param   childId path int                       true "Assessment ID"
+// @Param   body    body AssessmentContentRequest true "Assessment payload"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/assessments/{childId} [put]
+func (h *WorkProgramContentHandler) UpdateAssessment(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	wpID, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	assessmentID, ok := parsePositiveID(c.Param("childId"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid assessment id"))
+		return
+	}
+	var body AssessmentContentRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid request body: "+err.Error()))
+		return
+	}
+	wp, err := h.content.UpdateAssessment(c.Request.Context(), actorID, role, wpID, assessmentID, body.toInput())
+	h.respondContent(c, role, wp, err)
+}
+
+// RemoveAssessment handles DELETE /api/v1/work-programs/:id/assessments/:childId.
+// @Summary Remove an assessment criterion (ФОС) from a work program (РПД)
+// @Tags    work-programs
+// @Produce json
+// @Param   id      path int true "Work program ID"
+// @Param   childId path int true "Assessment ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/assessments/{childId} [delete]
+func (h *WorkProgramContentHandler) RemoveAssessment(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	wpID, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	assessmentID, ok := parsePositiveID(c.Param("childId"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid assessment id"))
+		return
+	}
+	wp, err := h.content.RemoveAssessment(c.Request.Context(), actorID, role, wpID, assessmentID)
+	h.respondContent(c, role, wp, err)
+}
+
+// ===== References =====
+
+// AddReference handles POST /api/v1/work-programs/:id/references.
+// @Summary Add a reference to a work program (РПД)
+// @Tags    work-programs
+// @Accept  json
+// @Produce json
+// @Param   id   path int                     true "Work program ID"
+// @Param   body body ReferenceContentRequest true "Reference payload"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/references [post]
+func (h *WorkProgramContentHandler) AddReference(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	wpID, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	var body ReferenceContentRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid request body: "+err.Error()))
+		return
+	}
+	wp, err := h.content.AddReference(c.Request.Context(), actorID, role, wpID, body.toInput())
+	h.respondContent(c, role, wp, err)
+}
+
+// UpdateReference handles PUT /api/v1/work-programs/:id/references/:childId.
+// @Summary Update a reference of a work program (РПД)
+// @Tags    work-programs
+// @Accept  json
+// @Produce json
+// @Param   id      path int                     true "Work program ID"
+// @Param   childId path int                     true "Reference ID"
+// @Param   body    body ReferenceContentRequest true "Reference payload"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/references/{childId} [put]
+func (h *WorkProgramContentHandler) UpdateReference(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	wpID, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	referenceID, ok := parsePositiveID(c.Param("childId"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid reference id"))
+		return
+	}
+	var body ReferenceContentRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid request body: "+err.Error()))
+		return
+	}
+	wp, err := h.content.UpdateReference(c.Request.Context(), actorID, role, wpID, referenceID, body.toInput())
+	h.respondContent(c, role, wp, err)
+}
+
+// RemoveReference handles DELETE /api/v1/work-programs/:id/references/:childId.
+// @Summary Remove a reference from a work program (РПД)
+// @Tags    work-programs
+// @Produce json
+// @Param   id      path int true "Work program ID"
+// @Param   childId path int true "Reference ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /api/v1/work-programs/{id}/references/{childId} [delete]
+func (h *WorkProgramContentHandler) RemoveReference(c *gin.Context) {
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+	wpID, ok := parsePositiveID(c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid work program id"))
+		return
+	}
+	referenceID, ok := parsePositiveID(c.Param("childId"))
+	if !ok {
+		c.JSON(http.StatusBadRequest, response.BadRequest("invalid reference id"))
+		return
+	}
+	wp, err := h.content.RemoveReference(c.Request.Context(), actorID, role, wpID, referenceID)
+	h.respondContent(c, role, wp, err)
+}
+
+// RegisterWorkProgramContentRoutes mounts the 15 manual collection-edit
+// endpoints (goals / competences / topics / assessments / references) under
+// /work-programs/:id.
 func RegisterWorkProgramContentRoutes(rg *gin.RouterGroup, h *WorkProgramContentHandler) {
 	wp := rg.Group("/work-programs")
 
@@ -446,4 +717,12 @@ func RegisterWorkProgramContentRoutes(rg *gin.RouterGroup, h *WorkProgramContent
 	wp.POST("/:id/topics", h.AddTopic)
 	wp.PUT("/:id/topics/:childId", h.UpdateTopic)
 	wp.DELETE("/:id/topics/:childId", h.RemoveTopic)
+
+	wp.POST("/:id/assessments", h.AddAssessment)
+	wp.PUT("/:id/assessments/:childId", h.UpdateAssessment)
+	wp.DELETE("/:id/assessments/:childId", h.RemoveAssessment)
+
+	wp.POST("/:id/references", h.AddReference)
+	wp.PUT("/:id/references/:childId", h.UpdateReference)
+	wp.DELETE("/:id/references/:childId", h.RemoveReference)
 }
