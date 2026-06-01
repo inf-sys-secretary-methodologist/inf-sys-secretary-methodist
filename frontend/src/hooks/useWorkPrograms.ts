@@ -16,6 +16,7 @@ import type {
   CreateWorkProgramInput,
   RejectWorkProgramInput,
   CreateRevisionInput,
+  GoalInput,
 } from '@/types/workProgram'
 
 const BASE_URL = '/api/v1/work-programs'
@@ -193,6 +194,39 @@ export async function rejectRevision(
   )
   return response.data
 }
+
+// === Collection-edit mutations (slice 12c) ===
+//
+// Manual editing of the five inner collections (goals / competences /
+// topics / assessments / references). Each add/update/delete hits the
+// 12b content endpoints and returns the full updated parent aggregate,
+// so callers `mutate()` the detail SWR cache with the result directly.
+// Author-scoped + status-gated server-side; errors propagate so dialogs
+// branch via pickWorkProgramErrorKey.
+
+// --- Goals ---
+export async function addGoal(wpId: number, input: GoalInput): Promise<WorkProgram> {
+  const r = await apiClient.post<ApiResponse<WorkProgram>>(`${BASE_URL}/${wpId}/goals`, input)
+  return r.data
+}
+export async function updateGoal(
+  wpId: number,
+  goalId: number,
+  input: GoalInput
+): Promise<WorkProgram> {
+  const r = await apiClient.put<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${wpId}/goals/${goalId}`,
+    input
+  )
+  return r.data
+}
+export async function deleteGoal(wpId: number, goalId: number): Promise<WorkProgram> {
+  const r = await apiClient.delete<ApiResponse<WorkProgram>>(`${BASE_URL}/${wpId}/goals/${goalId}`)
+  return r.data
+}
+
+// Competences / topics / assessments / references mutations land in 12c-2
+// alongside their section wiring.
 
 // === Error mapping ===
 //

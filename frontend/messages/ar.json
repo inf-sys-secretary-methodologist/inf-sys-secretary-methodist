@@ -2412,6 +2412,29 @@
     }
   },
   "workProgram": {
+    "collectionDialog": {
+      "description": "يتم حفظ التغييرات فورًا. يتم التحقق من القيود (طول النص، نطاق الدرجات) على الخادم.",
+      "selectPlaceholder": "اختر قيمة",
+      "cancel": "إلغاء",
+      "add": "إضافة",
+      "save": "حفظ",
+      "saving": "جارٍ الحفظ…",
+      "editAria": "تعديل العنصر",
+      "deleteAria": "حذف العنصر",
+      "addSuccessToast": "تمت إضافة العنصر",
+      "editSuccessToast": "تم تحديث العنصر",
+      "deleteSuccessToast": "تم حذف العنصر",
+      "deleteTitle": "حذف العنصر؟",
+      "deleteDescription": "ستتم إزالة العنصر من برنامج العمل. يمكنك التراجع بإضافته مرة أخرى.",
+      "deleteConfirm": "حذف",
+      "deleting": "جارٍ الحذف…",
+      "goals": {
+        "addTitle": "إضافة هدف",
+        "editTitle": "تعديل الهدف",
+        "text": "صيغة الهدف",
+        "textPlaceholder": "مثال: تكوين مهارات تصميم قواعد البيانات"
+      }
+    },
     "title": "برامج العمل (РПД)",
     "description": "برامج عمل المقررات: الأهداف والكفايات والمواضيع وصندوق التقييم والمراجع",
     "loading": "جارٍ تحميل برامج العمل…",

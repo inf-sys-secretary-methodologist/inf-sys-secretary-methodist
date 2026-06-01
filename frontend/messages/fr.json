@@ -2412,6 +2412,29 @@
     }
   },
   "workProgram": {
+    "collectionDialog": {
+      "description": "Les modifications sont enregistrées immédiatement. Les contraintes (longueur du texte, plage de points) sont validées sur le serveur.",
+      "selectPlaceholder": "Sélectionnez une valeur",
+      "cancel": "Annuler",
+      "add": "Ajouter",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "editAria": "Modifier l'élément",
+      "deleteAria": "Supprimer l'élément",
+      "addSuccessToast": "Élément ajouté",
+      "editSuccessToast": "Élément mis à jour",
+      "deleteSuccessToast": "Élément supprimé",
+      "deleteTitle": "Supprimer l'élément ?",
+      "deleteDescription": "L'élément sera retiré du programme de travail. Vous pouvez annuler en l'ajoutant à nouveau.",
+      "deleteConfirm": "Supprimer",
+      "deleting": "Suppression…",
+      "goals": {
+        "addTitle": "Ajouter un objectif",
+        "editTitle": "Modifier l'objectif",
+        "text": "Énoncé de l'objectif",
+        "textPlaceholder": "ex. : acquérir des compétences en conception de bases de données"
+      }
+    },
     "title": "Programmes de travail (РПД)",
     "description": "Programmes de travail des disciplines : objectifs, compétences, thèmes, évaluation et références",
     "loading": "Chargement des programmes de travail…",

@@ -222,3 +222,20 @@ export const WORK_PROGRAM_ERROR_CODES: WorkProgramErrorCode[] = [
   'NOT_FOUND',
   'GENERIC',
 ]
+
+// === Collection-edit inputs (slice 12c) ===
+//
+// Payloads for the 15 manual collection-edit endpoints (add/update ×
+// goals/competences/topics/assessments/references). Mirror the request
+// DTOs at work_program_content_handler.go. Identity fields are required
+// by backend binding tags; deeper invariants (text length, MaxScore
+// range) live in the domain and surface as INVALID_WORK_PROGRAM → 422.
+// The actor is stamped from the JWT subject server-side — never a field.
+
+export interface GoalInput {
+  text: string
+  order_index: number
+}
+
+// CompetenceInput / TopicInput / AssessmentInput / ReferenceInput land in
+// 12c-2 with their section wiring.
