@@ -2433,6 +2433,26 @@
         "editTitle": "Modifier l'objectif",
         "text": "Énoncé de l'objectif",
         "textPlaceholder": "ex. : acquérir des compétences en conception de bases de données"
+      },
+      "competences": {
+        "addTitle": "Ajouter une compétence",
+        "editTitle": "Modifier la compétence",
+        "code": "Code",
+        "codePlaceholder": "ex. : PC-1",
+        "type": "Type",
+        "description": "Énoncé",
+        "descriptionPlaceholder": "ex. : capable de concevoir des bases de données"
+      },
+      "topics": {
+        "addTitle": "Ajouter un thème",
+        "editTitle": "Modifier le thème",
+        "kind": "Type de séance",
+        "title": "Titre du thème",
+        "titlePlaceholder": "ex. : Modèle relationnel des données",
+        "hours": "Heures",
+        "weekNumber": "Numéro de semaine",
+        "learningOutcomes": "Résultats d'apprentissage",
+        "learningOutcomesPlaceholder": "ex. : connaît les formes normales"
       }
     },
     "title": "Programmes de travail (РПД)",

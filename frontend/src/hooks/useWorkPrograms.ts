@@ -17,6 +17,8 @@ import type {
   RejectWorkProgramInput,
   CreateRevisionInput,
   GoalInput,
+  CompetenceInput,
+  TopicInput,
 } from '@/types/workProgram'
 
 const BASE_URL = '/api/v1/work-programs'
@@ -225,8 +227,54 @@ export async function deleteGoal(wpId: number, goalId: number): Promise<WorkProg
   return r.data
 }
 
-// Competences / topics / assessments / references mutations land in 12c-2
-// alongside their section wiring.
+// --- Competences ---
+export async function addCompetence(wpId: number, input: CompetenceInput): Promise<WorkProgram> {
+  const r = await apiClient.post<ApiResponse<WorkProgram>>(`${BASE_URL}/${wpId}/competences`, input)
+  return r.data
+}
+export async function updateCompetence(
+  wpId: number,
+  competenceId: number,
+  input: CompetenceInput
+): Promise<WorkProgram> {
+  const r = await apiClient.put<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${wpId}/competences/${competenceId}`,
+    input
+  )
+  return r.data
+}
+export async function deleteCompetence(wpId: number, competenceId: number): Promise<WorkProgram> {
+  const r = await apiClient.delete<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${wpId}/competences/${competenceId}`
+  )
+  return r.data
+}
+
+// --- Topics ---
+export async function addTopic(wpId: number, input: TopicInput): Promise<WorkProgram> {
+  const r = await apiClient.post<ApiResponse<WorkProgram>>(`${BASE_URL}/${wpId}/topics`, input)
+  return r.data
+}
+export async function updateTopic(
+  wpId: number,
+  topicId: number,
+  input: TopicInput
+): Promise<WorkProgram> {
+  const r = await apiClient.put<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${wpId}/topics/${topicId}`,
+    input
+  )
+  return r.data
+}
+export async function deleteTopic(wpId: number, topicId: number): Promise<WorkProgram> {
+  const r = await apiClient.delete<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${wpId}/topics/${topicId}`
+  )
+  return r.data
+}
+
+// Assessments / references mutations land in 12c-2b alongside their section
+// wiring.
 
 // === Error mapping ===
 //

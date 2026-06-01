@@ -237,5 +237,22 @@ export interface GoalInput {
   order_index: number
 }
 
-// CompetenceInput / TopicInput / AssessmentInput / ReferenceInput land in
-// 12c-2 with their section wiring.
+export interface CompetenceInput {
+  code: string
+  type: CompetenceType
+  description: string
+}
+
+// week_number is optional in the domain (a topic may not be pinned to a
+// teaching week); the empty form field maps to null so the backend's
+// *int pointer stays absent rather than coerced to week 0.
+export interface TopicInput {
+  kind: TopicKind
+  title: string
+  hours: number
+  week_number?: number | null
+  learning_outcomes: string
+  order_index: number
+}
+
+// AssessmentInput / ReferenceInput land in 12c-2b with their section wiring.

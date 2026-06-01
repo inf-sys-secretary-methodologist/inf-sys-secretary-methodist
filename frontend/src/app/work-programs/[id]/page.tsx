@@ -322,7 +322,12 @@ function WorkProgramDetail({
         </ol>
       </Section>
 
-      <Section title={t('detail.sections.competences')} count={wp.competences.length} t={t}>
+      <Section
+        title={t('detail.sections.competences')}
+        count={wp.competences.length}
+        t={t}
+        action={addButton('competences')}
+      >
         <ul className="space-y-2 text-sm">
           {wp.competences.map((c) => (
             <li key={c.id} className="flex flex-wrap items-baseline gap-x-2">
@@ -331,12 +336,18 @@ function WorkProgramDetail({
                 {t(`detail.competenceType.${c.type}`)}
               </span>
               <span>{c.description}</span>
+              {itemActions('competences', c)}
             </li>
           ))}
         </ul>
       </Section>
 
-      <Section title={t('detail.sections.topics')} count={wp.topics.length} t={t}>
+      <Section
+        title={t('detail.sections.topics')}
+        count={wp.topics.length}
+        t={t}
+        action={addButton('topics')}
+      >
         <ul className="space-y-2 text-sm">
           {wp.topics.map((tp) => (
             <li key={tp.id} className="flex flex-wrap items-baseline gap-x-2">
@@ -352,6 +363,7 @@ function WorkProgramDetail({
                   {t('detail.topicWeek', { week: tp.week_number })}
                 </span>
               ) : null}
+              {itemActions('topics', tp)}
             </li>
           ))}
         </ul>
