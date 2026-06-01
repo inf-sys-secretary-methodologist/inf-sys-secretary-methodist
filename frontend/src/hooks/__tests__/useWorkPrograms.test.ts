@@ -23,6 +23,12 @@ import {
   addTopic,
   updateTopic,
   deleteTopic,
+  addAssessment,
+  updateAssessment,
+  deleteAssessment,
+  addReference,
+  updateReference,
+  deleteReference,
   pickWorkProgramErrorKey,
 } from '../useWorkPrograms'
 import { apiClient } from '@/lib/api'
@@ -384,6 +390,78 @@ describe('useWorkPrograms collection-edit mutations', () => {
     mockedApiClient.delete.mockResolvedValue({ data: { id: 7 } })
     await deleteTopic(7, 12)
     expect(mockedApiClient.delete).toHaveBeenCalledWith('/api/v1/work-programs/7/topics/12')
+  })
+
+  it('addAssessment POSTs to /:id/assessments', async () => {
+    mockedApiClient.post.mockResolvedValue({ data: { id: 7 } })
+    await addAssessment(7, {
+      type: 'current',
+      description: 'КР',
+      max_score: 20,
+      example_questions: ['q1'],
+    })
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/api/v1/work-programs/7/assessments',
+      expect.objectContaining({ type: 'current', max_score: 20, example_questions: ['q1'] })
+    )
+  })
+
+  it('updateAssessment PUTs to /:id/assessments/:childId', async () => {
+    mockedApiClient.put.mockResolvedValue({ data: { id: 7 } })
+    await updateAssessment(7, 15, {
+      type: 'final',
+      description: 'Экзамен',
+      max_score: 40,
+      example_questions: [],
+    })
+    expect(mockedApiClient.put).toHaveBeenCalledWith(
+      '/api/v1/work-programs/7/assessments/15',
+      expect.objectContaining({ type: 'final', example_questions: [] })
+    )
+  })
+
+  it('deleteAssessment DELETEs /:id/assessments/:childId', async () => {
+    mockedApiClient.delete.mockResolvedValue({ data: { id: 7 } })
+    await deleteAssessment(7, 15)
+    expect(mockedApiClient.delete).toHaveBeenCalledWith('/api/v1/work-programs/7/assessments/15')
+  })
+
+  it('addReference POSTs to /:id/references', async () => {
+    mockedApiClient.post.mockResolvedValue({ data: { id: 7 } })
+    await addReference(7, {
+      kind: 'main',
+      citation: 'Дейт',
+      year: 2005,
+      isbn: 'x',
+      url: '',
+      order_index: 0,
+    })
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/api/v1/work-programs/7/references',
+      expect.objectContaining({ kind: 'main', citation: 'Дейт', year: 2005 })
+    )
+  })
+
+  it('updateReference PUTs to /:id/references/:childId', async () => {
+    mockedApiClient.put.mockResolvedValue({ data: { id: 7 } })
+    await updateReference(7, 21, {
+      kind: 'electronic',
+      citation: 'ГОСТ',
+      year: null,
+      isbn: '',
+      url: 'https://x',
+      order_index: 1,
+    })
+    expect(mockedApiClient.put).toHaveBeenCalledWith(
+      '/api/v1/work-programs/7/references/21',
+      expect.objectContaining({ kind: 'electronic', year: null, url: 'https://x' })
+    )
+  })
+
+  it('deleteReference DELETEs /:id/references/:childId', async () => {
+    mockedApiClient.delete.mockResolvedValue({ data: { id: 7 } })
+    await deleteReference(7, 21)
+    expect(mockedApiClient.delete).toHaveBeenCalledWith('/api/v1/work-programs/7/references/21')
   })
 })
 
