@@ -76,12 +76,12 @@ export function CollectionItemDialog({
   const [values, setValues] = useState<Record<string, string>>(initialValues)
   const [submitting, setSubmitting] = useState(false)
 
-  // Reset the form to the supplied initial values every reopen so a
-  // canceled edit does not leak into the next item the author touches.
+  // Reset the form to the supplied initial values on (re)open so a canceled
+  // edit does not leak into the next item. The caller keys this component by
+  // collection+row, so switching items remounts it — seeding once per mount
+  // here is correct; we intentionally depend on `open` only.
   useEffect(() => {
     if (open) setValues(initialValues)
-    // initialValues identity is stable per open (caller memoizes or
-    // passes a fresh object keyed by the row), so depend on open only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 

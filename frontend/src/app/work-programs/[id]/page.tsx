@@ -515,6 +515,10 @@ function WorkProgramDetail({
             const item = editState.item
             return (
               <CollectionItemDialog
+                // Keyed by kind+row so switching the edited item forces a
+                // remount → fresh form state seeded from the new
+                // initialValues (no stale values leaking between rows).
+                key={`${editState.kind}-${item ? item.id : 'add'}`}
                 open={true}
                 mode={item ? 'edit' : 'add'}
                 titleKey={item ? cfg.editTitleKey : cfg.addTitleKey}
