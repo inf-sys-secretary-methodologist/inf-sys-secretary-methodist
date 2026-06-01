@@ -2433,6 +2433,26 @@
         "editTitle": "Edit goal",
         "text": "Goal statement",
         "textPlaceholder": "e.g. build database design skills"
+      },
+      "competences": {
+        "addTitle": "Add competence",
+        "editTitle": "Edit competence",
+        "code": "Code",
+        "codePlaceholder": "e.g. PC-1",
+        "type": "Type",
+        "description": "Statement",
+        "descriptionPlaceholder": "e.g. able to design databases"
+      },
+      "topics": {
+        "addTitle": "Add topic",
+        "editTitle": "Edit topic",
+        "kind": "Session type",
+        "title": "Topic title",
+        "titlePlaceholder": "e.g. Relational data model",
+        "hours": "Hours",
+        "weekNumber": "Week number",
+        "learningOutcomes": "Learning outcomes",
+        "learningOutcomesPlaceholder": "e.g. knows normal forms"
       }
     },
     "title": "Work Programs (РПД)",

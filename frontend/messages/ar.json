@@ -2433,6 +2433,26 @@
         "editTitle": "تعديل الهدف",
         "text": "صيغة الهدف",
         "textPlaceholder": "مثال: تكوين مهارات تصميم قواعد البيانات"
+      },
+      "competences": {
+        "addTitle": "إضافة كفاءة",
+        "editTitle": "تعديل الكفاءة",
+        "code": "الرمز",
+        "codePlaceholder": "مثال: PC-1",
+        "type": "النوع",
+        "description": "الصياغة",
+        "descriptionPlaceholder": "مثال: قادر على تصميم قواعد البيانات"
+      },
+      "topics": {
+        "addTitle": "إضافة موضوع",
+        "editTitle": "تعديل الموضوع",
+        "kind": "نوع الحصة",
+        "title": "عنوان الموضوع",
+        "titlePlaceholder": "مثال: النموذج العلائقي للبيانات",
+        "hours": "الساعات",
+        "weekNumber": "رقم الأسبوع",
+        "learningOutcomes": "نتائج التعلم",
+        "learningOutcomesPlaceholder": "مثال: يعرف الأشكال الطبيعية"
       }
     },
     "title": "برامج العمل (РПД)",
