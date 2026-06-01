@@ -2412,6 +2412,29 @@
     }
   },
   "workProgram": {
+    "collectionDialog": {
+      "description": "Changes are saved immediately. Constraints (text length, score range) are validated on the server.",
+      "selectPlaceholder": "Select a value",
+      "cancel": "Cancel",
+      "add": "Add",
+      "save": "Save",
+      "saving": "Saving…",
+      "editAria": "Edit item",
+      "deleteAria": "Delete item",
+      "addSuccessToast": "Item added",
+      "editSuccessToast": "Item updated",
+      "deleteSuccessToast": "Item deleted",
+      "deleteTitle": "Delete item?",
+      "deleteDescription": "The item will be removed from the work program. You can undo this by adding it again.",
+      "deleteConfirm": "Delete",
+      "deleting": "Deleting…",
+      "goals": {
+        "addTitle": "Add goal",
+        "editTitle": "Edit goal",
+        "text": "Goal statement",
+        "textPlaceholder": "e.g. build database design skills"
+      }
+    },
     "title": "Work Programs (РПД)",
     "description": "Discipline work programs: goals, competences, topics, assessment funds and references",
     "loading": "Loading work programs…",

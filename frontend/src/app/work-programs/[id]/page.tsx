@@ -13,8 +13,11 @@ import {
   FilePlus2,
   GraduationCap,
   Loader2,
+  Pencil,
+  Plus,
   Send,
   Sparkles,
+  Trash2,
   XCircle,
 } from 'lucide-react'
 
@@ -32,6 +35,13 @@ import { CreateRevisionDialog } from '@/components/work-program/CreateRevisionDi
 import { SubmitRevisionDialog } from '@/components/work-program/SubmitRevisionDialog'
 import { ApproveRevisionDialog } from '@/components/work-program/ApproveRevisionDialog'
 import { RejectRevisionDialog } from '@/components/work-program/RejectRevisionDialog'
+import { CollectionItemDialog } from '@/components/work-program/CollectionItemDialog'
+import { DeleteCollectionItemDialog } from '@/components/work-program/DeleteCollectionItemDialog'
+import {
+  COLLECTION_CONFIG,
+  type CollectionKind,
+  type CollectionItem,
+} from '@/components/work-program/collectionConfig'
 import { STATUS_STYLES, statusKey, revisionStatusKey } from '@/components/work-program/status'
 import type { WorkProgram, WorkProgramStatus } from '@/types/workProgram'
 import { cn } from '@/lib/utils'
@@ -156,6 +166,59 @@ function WorkProgramDetail({
   // per row below.
   const canApproveRevisions = canApproveWorkProgram(role)
 
+  // Manual collection editing (slice 12c) mirrors the backend author-scoping
+  // (isAuthorOrSystemAdmin) + status gate (draft / needs_revision): the РПД
+  // author (or admin) hand-edits goals / competences / … while the program
+  // is still editable. Backend stays the real gate; this only decides
+  // whether the add / edit / delete affordances render.
+  const canEditCollections =
+    (wp.status === 'draft' || wp.status === 'needs_revision') && (isAuthor || isAdmin)
+
+  // Active collection dialog state. editState=null → closed; item=null → add
+  // mode; item set → edit mode. deleteState drives the confirm modal.
+  const [editState, setEditState] = useState<{
+    kind: CollectionKind
+    item: CollectionItem | null
+  } | null>(null)
+  const [deleteState, setDeleteState] = useState<{
+    kind: CollectionKind
+    item: CollectionItem
+  } | null>(null)
+
+  // Section-header "add" affordance — rendered only when editing is allowed.
+  const addButton = (kind: CollectionKind) =>
+    canEditCollections ? (
+      <Button size="sm" variant="outline" onClick={() => setEditState({ kind, item: null })}>
+        <Plus className="h-3.5 w-3.5 mr-1.5" />
+        {t('collectionDialog.add')}
+      </Button>
+    ) : null
+
+  // Per-row edit / delete affordances — mirror the same gate.
+  const itemActions = (kind: CollectionKind, item: CollectionItem) =>
+    canEditCollections ? (
+      <span className="ml-auto flex shrink-0 gap-0.5">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 p-0"
+          aria-label={t('collectionDialog.editAria')}
+          onClick={() => setEditState({ kind, item })}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 p-0"
+          aria-label={t('collectionDialog.deleteAria')}
+          onClick={() => setDeleteState({ kind, item })}
+        >
+          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+        </Button>
+      </span>
+    ) : null
+
   return (
     <>
       <header className="space-y-3">
@@ -241,10 +304,20 @@ function WorkProgramDetail({
         </Section>
       ) : null}
 
-      <Section title={t('detail.sections.goals')} count={wp.goals.length} t={t}>
+      <Section
+        title={t('detail.sections.goals')}
+        count={wp.goals.length}
+        t={t}
+        action={addButton('goals')}
+      >
         <ol className="list-decimal space-y-1.5 pl-5 text-sm">
           {wp.goals.map((g) => (
-            <li key={g.id}>{g.text}</li>
+            <li key={g.id}>
+              <div className="flex items-start justify-between gap-2">
+                <span>{g.text}</span>
+                {itemActions('goals', g)}
+              </div>
+            </li>
           ))}
         </ol>
       </Section>
@@ -434,6 +507,43 @@ function WorkProgramDetail({
           onRejected={onMutate}
         />
       ) : null}
+
+      {/* Collection add/edit — one schema-driven dialog for every section. */}
+      {editState != null
+        ? (() => {
+            const cfg = COLLECTION_CONFIG[editState.kind]
+            const item = editState.item
+            return (
+              <CollectionItemDialog
+                open={true}
+                mode={item ? 'edit' : 'add'}
+                titleKey={item ? cfg.editTitleKey : cfg.addTitleKey}
+                fields={cfg.fields}
+                initialValues={item ? cfg.initialValues(item) : {}}
+                onSubmit={cfg.submit(wp.id, item ? item.id : null)}
+                onDone={onMutate}
+                onClose={() => setEditState(null)}
+              />
+            )
+          })()
+        : null}
+
+      {/* Collection delete — one generic confirm for every section. */}
+      {deleteState != null
+        ? (() => {
+            const cfg = COLLECTION_CONFIG[deleteState.kind]
+            const item = deleteState.item
+            return (
+              <DeleteCollectionItemDialog
+                open={true}
+                itemLabel={cfg.itemLabel(item)}
+                onConfirm={() => cfg.remove(wp.id, item.id)}
+                onDone={onMutate}
+                onClose={() => setDeleteState(null)}
+              />
+            )
+          })()
+        : null}
     </>
   )
 }
@@ -445,16 +555,21 @@ function Section({
   title,
   count,
   t,
+  action,
   children,
 }: {
   title: string
   count: number
   t: T
+  action?: ReactNode
   children: ReactNode
 }) {
   return (
     <section className="space-y-2 rounded-xl border border-border bg-card p-4">
-      <h2 className="text-base font-semibold">{title}</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-base font-semibold">{title}</h2>
+        {action}
+      </div>
       {count === 0 ? (
         <p className="text-sm text-muted-foreground">{t('detail.sections.empty')}</p>
       ) : (
