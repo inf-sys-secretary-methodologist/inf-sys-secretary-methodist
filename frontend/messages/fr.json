@@ -2453,6 +2453,26 @@
         "weekNumber": "Numéro de semaine",
         "learningOutcomes": "Résultats d'apprentissage",
         "learningOutcomesPlaceholder": "ex. : connaît les formes normales"
+      },
+      "assessments": {
+        "addTitle": "Ajouter une évaluation",
+        "editTitle": "Modifier l'évaluation",
+        "type": "Type de contrôle",
+        "description": "Description",
+        "descriptionPlaceholder": "ex. : devoir sur la normalisation",
+        "maxScore": "Note maximale",
+        "exampleQuestions": "Questions types (une par ligne)",
+        "exampleQuestionsPlaceholder": "ex. : Qu'est-ce que la troisième forme normale ?"
+      },
+      "references": {
+        "addTitle": "Ajouter une source",
+        "editTitle": "Modifier la source",
+        "kind": "Type de source",
+        "citation": "Référence bibliographique",
+        "citationPlaceholder": "ex. : Date C. J. Introduction aux systèmes de bases de données",
+        "year": "Année",
+        "isbn": "ISBN",
+        "url": "Lien (URL)"
       }
     },
     "title": "Programmes de travail (РПД)",

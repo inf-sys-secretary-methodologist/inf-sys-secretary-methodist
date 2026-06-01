@@ -19,6 +19,8 @@ import type {
   GoalInput,
   CompetenceInput,
   TopicInput,
+  AssessmentInput,
+  ReferenceInput,
 } from '@/types/workProgram'
 
 const BASE_URL = '/api/v1/work-programs'
@@ -273,8 +275,51 @@ export async function deleteTopic(wpId: number, topicId: number): Promise<WorkPr
   return r.data
 }
 
-// Assessments / references mutations land in 12c-2b alongside their section
-// wiring.
+// --- Assessments (ФОС) ---
+export async function addAssessment(wpId: number, input: AssessmentInput): Promise<WorkProgram> {
+  const r = await apiClient.post<ApiResponse<WorkProgram>>(`${BASE_URL}/${wpId}/assessments`, input)
+  return r.data
+}
+export async function updateAssessment(
+  wpId: number,
+  assessmentId: number,
+  input: AssessmentInput
+): Promise<WorkProgram> {
+  const r = await apiClient.put<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${wpId}/assessments/${assessmentId}`,
+    input
+  )
+  return r.data
+}
+export async function deleteAssessment(wpId: number, assessmentId: number): Promise<WorkProgram> {
+  const r = await apiClient.delete<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${wpId}/assessments/${assessmentId}`
+  )
+  return r.data
+}
+
+// --- References ---
+export async function addReference(wpId: number, input: ReferenceInput): Promise<WorkProgram> {
+  const r = await apiClient.post<ApiResponse<WorkProgram>>(`${BASE_URL}/${wpId}/references`, input)
+  return r.data
+}
+export async function updateReference(
+  wpId: number,
+  referenceId: number,
+  input: ReferenceInput
+): Promise<WorkProgram> {
+  const r = await apiClient.put<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${wpId}/references/${referenceId}`,
+    input
+  )
+  return r.data
+}
+export async function deleteReference(wpId: number, referenceId: number): Promise<WorkProgram> {
+  const r = await apiClient.delete<ApiResponse<WorkProgram>>(
+    `${BASE_URL}/${wpId}/references/${referenceId}`
+  )
+  return r.data
+}
 
 // === Error mapping ===
 //

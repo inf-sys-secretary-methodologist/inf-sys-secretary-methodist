@@ -6,9 +6,9 @@
 // label for the delete confirmation. The detail page stays declarative —
 // it flips dialog state and looks the behavior up by collection key.
 //
-// 12c-1 wired goals (proves the generic machinery end-to-end); 12c-2a adds
-// competences + topics. assessments + references join in 12c-2b — each is
-// just another entry here plus its section wiring.
+// 12c-1 wired goals (proves the generic machinery end-to-end); 12c-2a added
+// competences + topics; 12c-2b completes the set with assessments (ФОС) and
+// references — each is just another entry here plus its section wiring.
 
 import {
   addGoal,
@@ -20,26 +20,42 @@ import {
   addTopic,
   updateTopic,
   deleteTopic,
+  addAssessment,
+  updateAssessment,
+  deleteAssessment,
+  addReference,
+  updateReference,
+  deleteReference,
 } from '@/hooks/useWorkPrograms'
 import {
   COMPETENCE_TYPES,
   TOPIC_KINDS,
+  ASSESSMENT_TYPES,
+  REFERENCE_KINDS,
   type CompetenceType,
   type TopicKind,
+  type AssessmentType,
+  type ReferenceKind,
   type WorkProgram,
   type WorkProgramGoal,
   type WorkProgramCompetence,
   type WorkProgramTopic,
+  type WorkProgramAssessment,
+  type WorkProgramReference,
 } from '@/types/workProgram'
 import type { CollectionField } from './CollectionItemDialog'
 
-export type CollectionKind = 'goals' | 'competences' | 'topics'
+export type CollectionKind = 'goals' | 'competences' | 'topics' | 'assessments' | 'references'
 
 // CollectionItem is the union of inner-collection row shapes a config
 // operates on. Each entry only ever receives its own row type; the union
-// keeps the registry homogeneous for the detail page's dialog state. It
-// widens further as assessments/references join the registry in 12c-2b.
-export type CollectionItem = WorkProgramGoal | WorkProgramCompetence | WorkProgramTopic
+// keeps the registry homogeneous for the detail page's dialog state.
+export type CollectionItem =
+  | WorkProgramGoal
+  | WorkProgramCompetence
+  | WorkProgramTopic
+  | WorkProgramAssessment
+  | WorkProgramReference
 
 // Generic over the concrete row type so each registry entry stays type-safe
 // against its own collection — initialValues/itemLabel receive the concrete
@@ -200,5 +216,113 @@ export const COLLECTION_CONFIG: Record<CollectionKind, CollectionConfig> = {
     },
     remove: deleteTopic,
     itemLabel: (item) => item.title,
+  }),
+
+  assessments: defineCollection<WorkProgramAssessment>({
+    fields: [
+      {
+        name: 'type',
+        labelKey: 'collectionDialog.assessments.type',
+        type: 'select',
+        required: true,
+        // Reuse the detail-page assessment-type labels — no new i18n keys.
+        options: ASSESSMENT_TYPES.map((v) => ({
+          value: v,
+          labelKey: `detail.assessmentType.${v}`,
+        })),
+      },
+      {
+        name: 'description',
+        labelKey: 'collectionDialog.assessments.description',
+        type: 'textarea',
+        required: true,
+        placeholderKey: 'collectionDialog.assessments.descriptionPlaceholder',
+      },
+      { name: 'max_score', labelKey: 'collectionDialog.assessments.maxScore', type: 'number' },
+      {
+        name: 'example_questions',
+        labelKey: 'collectionDialog.assessments.exampleQuestions',
+        type: 'textarea',
+        placeholderKey: 'collectionDialog.assessments.exampleQuestionsPlaceholder',
+      },
+    ],
+    addTitleKey: 'collectionDialog.assessments.addTitle',
+    editTitleKey: 'collectionDialog.assessments.editTitle',
+    initialValues: (item) => ({
+      type: item.type,
+      description: item.description,
+      max_score: String(item.max_score),
+      // ФОС is edited as one textarea, one question per line.
+      example_questions: item.example_questions.join('\n'),
+    }),
+    submit: (wpId, itemId) => (values) => {
+      const input = {
+        type: values.type as AssessmentType,
+        description: (values.description ?? '').trim(),
+        max_score: Number(values.max_score ?? 0) || 0,
+        // Split the textarea into questions, trimming each and dropping
+        // blank lines so stray newlines do not create empty ФОС items.
+        example_questions: (values.example_questions ?? '')
+          .split('\n')
+          .map((q) => q.trim())
+          .filter((q) => q.length > 0),
+      }
+      return itemId == null ? addAssessment(wpId, input) : updateAssessment(wpId, itemId, input)
+    },
+    remove: deleteAssessment,
+    itemLabel: (item) => item.description,
+  }),
+
+  references: defineCollection<WorkProgramReference>({
+    fields: [
+      {
+        name: 'kind',
+        labelKey: 'collectionDialog.references.kind',
+        type: 'select',
+        required: true,
+        // Reuse the detail-page reference-kind labels — no new i18n keys.
+        options: REFERENCE_KINDS.map((v) => ({
+          value: v,
+          labelKey: `detail.referenceType.${v}`,
+        })),
+      },
+      {
+        name: 'citation',
+        labelKey: 'collectionDialog.references.citation',
+        type: 'textarea',
+        required: true,
+        placeholderKey: 'collectionDialog.references.citationPlaceholder',
+      },
+      { name: 'year', labelKey: 'collectionDialog.references.year', type: 'number' },
+      { name: 'isbn', labelKey: 'collectionDialog.references.isbn', type: 'text' },
+      { name: 'url', labelKey: 'collectionDialog.references.url', type: 'text' },
+    ],
+    addTitleKey: 'collectionDialog.references.addTitle',
+    editTitleKey: 'collectionDialog.references.editTitle',
+    initialValues: (item) => ({
+      kind: item.kind,
+      citation: item.citation,
+      // year is optional — blank when the source has none.
+      year: item.year != null ? String(item.year) : '',
+      isbn: item.isbn ?? '',
+      url: item.url ?? '',
+      // order_index is preserved (not surfaced as a field) so editing a
+      // reference does not reset its position in the bibliography.
+      order_index: String(item.order_index),
+    }),
+    submit: (wpId, itemId) => (values) => {
+      const year = (values.year ?? '').trim()
+      const input = {
+        kind: values.kind as ReferenceKind,
+        citation: (values.citation ?? '').trim(),
+        year: year ? Number(year) : null,
+        isbn: (values.isbn ?? '').trim(),
+        url: (values.url ?? '').trim(),
+        order_index: Number(values.order_index ?? 0) || 0,
+      }
+      return itemId == null ? addReference(wpId, input) : updateReference(wpId, itemId, input)
+    },
+    remove: deleteReference,
+    itemLabel: (item) => item.citation,
   }),
 }

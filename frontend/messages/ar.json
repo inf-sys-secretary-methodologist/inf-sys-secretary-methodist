@@ -2453,6 +2453,26 @@
         "weekNumber": "رقم الأسبوع",
         "learningOutcomes": "نتائج التعلم",
         "learningOutcomesPlaceholder": "مثال: يعرف الأشكال الطبيعية"
+      },
+      "assessments": {
+        "addTitle": "إضافة وسيلة تقييم",
+        "editTitle": "تعديل وسيلة التقييم",
+        "type": "نوع المراقبة",
+        "description": "الوصف",
+        "descriptionPlaceholder": "مثال: اختبار حول التطبيع",
+        "maxScore": "الدرجة القصوى",
+        "exampleQuestions": "أسئلة نموذجية (سؤال في كل سطر)",
+        "exampleQuestionsPlaceholder": "مثال: ما هي الصيغة الطبيعية الثالثة؟"
+      },
+      "references": {
+        "addTitle": "إضافة مصدر",
+        "editTitle": "تعديل المصدر",
+        "kind": "نوع المصدر",
+        "citation": "الوصف الببليوغرافي",
+        "citationPlaceholder": "مثال: ديت ك. ج. مقدمة في أنظمة قواعد البيانات",
+        "year": "السنة",
+        "isbn": "ISBN",
+        "url": "الرابط (URL)"
       }
     },
     "title": "برامج العمل (РПД)",
