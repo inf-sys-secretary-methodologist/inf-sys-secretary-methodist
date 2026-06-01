@@ -2453,6 +2453,26 @@
         "weekNumber": "Week number",
         "learningOutcomes": "Learning outcomes",
         "learningOutcomesPlaceholder": "e.g. knows normal forms"
+      },
+      "assessments": {
+        "addTitle": "Add assessment",
+        "editTitle": "Edit assessment",
+        "type": "Control type",
+        "description": "Description",
+        "descriptionPlaceholder": "e.g. test on normalization",
+        "maxScore": "Maximum score",
+        "exampleQuestions": "Sample questions (one per line)",
+        "exampleQuestionsPlaceholder": "e.g. What is third normal form?"
+      },
+      "references": {
+        "addTitle": "Add reference",
+        "editTitle": "Edit reference",
+        "kind": "Reference type",
+        "citation": "Bibliographic citation",
+        "citationPlaceholder": "e.g. Date C. J. An Introduction to Database Systems",
+        "year": "Year",
+        "isbn": "ISBN",
+        "url": "Link (URL)"
       }
     },
     "title": "Work Programs (РПД)",

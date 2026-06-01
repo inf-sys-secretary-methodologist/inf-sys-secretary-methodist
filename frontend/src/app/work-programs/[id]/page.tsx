@@ -369,7 +369,12 @@ function WorkProgramDetail({
         </ul>
       </Section>
 
-      <Section title={t('detail.sections.assessments')} count={wp.assessments.length} t={t}>
+      <Section
+        title={t('detail.sections.assessments')}
+        count={wp.assessments.length}
+        t={t}
+        action={addButton('assessments')}
+      >
         <ul className="space-y-2 text-sm">
           {wp.assessments.map((a) => (
             <li key={a.id} className="flex flex-wrap items-baseline gap-x-2">
@@ -380,12 +385,18 @@ function WorkProgramDetail({
               <span className="text-muted-foreground">
                 {t('detail.maxScore', { score: a.max_score })}
               </span>
+              {itemActions('assessments', a)}
             </li>
           ))}
         </ul>
       </Section>
 
-      <Section title={t('detail.sections.references')} count={wp.references.length} t={t}>
+      <Section
+        title={t('detail.sections.references')}
+        count={wp.references.length}
+        t={t}
+        action={addButton('references')}
+      >
         <ul className="space-y-2 text-sm">
           {wp.references.map((r) => (
             <li key={r.id} className="flex flex-wrap items-baseline gap-x-2">
@@ -396,6 +407,7 @@ function WorkProgramDetail({
               {typeof r.year === 'number' ? (
                 <span className="text-muted-foreground">{r.year}</span>
               ) : null}
+              {itemActions('references', r)}
             </li>
           ))}
         </ul>

@@ -255,4 +255,24 @@ export interface TopicInput {
   order_index: number
 }
 
-// AssessmentInput / ReferenceInput land in 12c-2b with their section wiring.
+// max_score per-item range is enforced by the domain ([1,100]); the form
+// only collects the value. example_questions (ФОС) is a free list — the
+// dialog edits it as one textarea, one question per line.
+export interface AssessmentInput {
+  type: AssessmentType
+  description: string
+  max_score: number
+  example_questions: string[]
+}
+
+// year is optional in the domain (an electronic source may have none) —
+// the empty form field maps to null. isbn/url are plain optional strings
+// (backend non-pointer), so they default to '' rather than null.
+export interface ReferenceInput {
+  kind: ReferenceKind
+  citation: string
+  year?: number | null
+  isbn: string
+  url: string
+  order_index: number
+}
