@@ -14,6 +14,15 @@ import {
   submitRevision,
   approveRevision,
   rejectRevision,
+  addGoal,
+  updateGoal,
+  deleteGoal,
+  addCompetence,
+  updateCompetence,
+  deleteCompetence,
+  addTopic,
+  updateTopic,
+  deleteTopic,
   pickWorkProgramErrorKey,
 } from '../useWorkPrograms'
 import { apiClient } from '@/lib/api'
@@ -276,6 +285,105 @@ describe('useWorkPrograms hooks (mutations)', () => {
       { reason: 'нет обоснования' }
     )
     expect(result.id).toBe(5)
+  })
+})
+
+describe('useWorkPrograms collection-edit mutations', () => {
+  // Thin transport wrappers over the 12b content endpoints; each returns
+  // the full updated parent aggregate. We pin the verb + URL + payload and
+  // that `r.data` is unwrapped. (Mapping of form values → typed *Input is
+  // tested in collectionConfig.test.ts.)
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('addGoal POSTs to /:id/goals and returns the aggregate', async () => {
+    mockedApiClient.post.mockResolvedValue({ data: { id: 7 } })
+    const result = await addGoal(7, { text: 'Цель', order_index: 0 })
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/api/v1/work-programs/7/goals', {
+      text: 'Цель',
+      order_index: 0,
+    })
+    expect(result.id).toBe(7)
+  })
+
+  it('updateGoal PUTs to /:id/goals/:childId', async () => {
+    mockedApiClient.put.mockResolvedValue({ data: { id: 7 } })
+    await updateGoal(7, 3, { text: 'Цель', order_index: 1 })
+    expect(mockedApiClient.put).toHaveBeenCalledWith('/api/v1/work-programs/7/goals/3', {
+      text: 'Цель',
+      order_index: 1,
+    })
+  })
+
+  it('deleteGoal DELETEs /:id/goals/:childId', async () => {
+    mockedApiClient.delete.mockResolvedValue({ data: { id: 7 } })
+    await deleteGoal(7, 3)
+    expect(mockedApiClient.delete).toHaveBeenCalledWith('/api/v1/work-programs/7/goals/3')
+  })
+
+  it('addCompetence POSTs to /:id/competences', async () => {
+    mockedApiClient.post.mockResolvedValue({ data: { id: 7 } })
+    await addCompetence(7, { code: 'ПК-1', type: 'pk', description: 'd' })
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/api/v1/work-programs/7/competences', {
+      code: 'ПК-1',
+      type: 'pk',
+      description: 'd',
+    })
+  })
+
+  it('updateCompetence PUTs to /:id/competences/:childId', async () => {
+    mockedApiClient.put.mockResolvedValue({ data: { id: 7 } })
+    await updateCompetence(7, 8, { code: 'ОК-2', type: 'ok', description: 'd' })
+    expect(mockedApiClient.put).toHaveBeenCalledWith('/api/v1/work-programs/7/competences/8', {
+      code: 'ОК-2',
+      type: 'ok',
+      description: 'd',
+    })
+  })
+
+  it('deleteCompetence DELETEs /:id/competences/:childId', async () => {
+    mockedApiClient.delete.mockResolvedValue({ data: { id: 7 } })
+    await deleteCompetence(7, 8)
+    expect(mockedApiClient.delete).toHaveBeenCalledWith('/api/v1/work-programs/7/competences/8')
+  })
+
+  it('addTopic POSTs to /:id/topics', async () => {
+    mockedApiClient.post.mockResolvedValue({ data: { id: 7 } })
+    await addTopic(7, {
+      kind: 'lecture',
+      title: 'T',
+      hours: 2,
+      week_number: null,
+      learning_outcomes: '',
+      order_index: 0,
+    })
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/api/v1/work-programs/7/topics',
+      expect.objectContaining({ kind: 'lecture', title: 'T', hours: 2 })
+    )
+  })
+
+  it('updateTopic PUTs to /:id/topics/:childId', async () => {
+    mockedApiClient.put.mockResolvedValue({ data: { id: 7 } })
+    await updateTopic(7, 12, {
+      kind: 'lab',
+      title: 'T',
+      hours: 4,
+      week_number: 3,
+      learning_outcomes: 'x',
+      order_index: 1,
+    })
+    expect(mockedApiClient.put).toHaveBeenCalledWith(
+      '/api/v1/work-programs/7/topics/12',
+      expect.objectContaining({ kind: 'lab', week_number: 3 })
+    )
+  })
+
+  it('deleteTopic DELETEs /:id/topics/:childId', async () => {
+    mockedApiClient.delete.mockResolvedValue({ data: { id: 7 } })
+    await deleteTopic(7, 12)
+    expect(mockedApiClient.delete).toHaveBeenCalledWith('/api/v1/work-programs/7/topics/12')
   })
 })
 
