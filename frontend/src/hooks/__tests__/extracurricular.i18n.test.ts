@@ -58,11 +58,11 @@ const statusKeys = ['label', 'all', 'draft', 'published', 'canceled', 'completed
 const categoryKeys = [
   'label',
   'all',
-  'academic',
   'cultural',
   'sports',
-  'volunteer',
-  'professional',
+  'recreational',
+  'educational',
+  'other',
 ] as const
 const audienceKeys = ['label', 'all', 'students', 'teachers', 'staff'] as const
 
