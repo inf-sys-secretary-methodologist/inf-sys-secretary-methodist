@@ -15,6 +15,284 @@
 
 ---
 
+> **Записи 0.158.0 – 0.214.4 — сжатый backfill** (одна строка на релиз; полные заметки — в [GitHub Releases](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/releases)).
+
+## [0.214.4] — 2026-06-02
+
+fix(notifications): /settings/notifications no longer logs a 404 when web push is unconfigured.
+
+## [0.214.3] — 2026-06-02
+
+fix(extracurricular): frontend category enum had drifted from the backend domain enum on /extracurricular.
+
+## [0.214.2] — 2026-06-02
+
+fix(announcements): GET /announcements returned 500 when jsonb metadata was NULL (database/sql cannot scan NULL into json.RawMessage).
+
+## [0.214.1] — 2026-06-02
+
+fix(curriculum): bulk-edit discipline table on /curriculum/[id] overflowed its card — now contained in a horizontal-scroll wrapper (overflow-x-auto + min-w-[60rem]). Page-sweep patch fix (session 18). PR #405.
+
+## [0.214.0] — 2026-06-01
+
+Финальный срез инициативы РПД (#377). Ручное редактирование последних двух из пяти дочерних коллекций: ФОС (оценочные средства) и литература.
+
+## [0.213.0] — 2026-06-01
+
+Slice 12c-2a — ручное редактирование коллекций РПД: компетенции и темы.
+
+## [0.212.0] — 2026-06-01
+
+Slice 12c-1 — frontend ручного редактирования коллекций РПД (часть 1)
+
+## [0.211.0] — 2026-05-31
+
+Slice 12b-2 — HTTP-слой ручного редактирования коллекций РПД (часть 2/2)
+
+## [0.210.0] — 2026-05-30
+
+Slice 12b-1 — HTTP-слой ручного редактирования коллекций РПД (часть 1/2)
+
+## [0.209.0] — 2026-05-30
+
+Slice 12 — ручное редактирование дочерних коллекций РПД (domain + application)
+
+## [0.208.0] — 2026-05-30
+
+Загрузка/скачивание документа приказа (slice 7c, frontend)
+
+## [0.207.0] — 2026-05-30
+
+Текст документа приказа → LLM bulk-revision (slice 7, backend)
+
+## [0.206.0] — 2026-05-30
+
+Минобрнауки «Сгенерировать правки» (frontend slice 11c-3)
+
+## [0.205.0] — 2026-05-30
+
+Минобрнауки order detail + Record dialog (frontend slice 11c-2)
+
+## [0.204.0] — 2026-05-30
+
+Минобрнауки orders — frontend read-browse (slice 11c-1)
+
+## [0.203.0] — 2026-05-30
+
+AI bulk-revision — backend e2e закрыт (ADR-12, slice 11b)
+
+## [0.202.0] — 2026-05-30
+
+Slice 11a — application layer для центральной автоматизации научрука. GenerateOrderRevisionsUseCase: методист триггерит → LLM-генерация draft ревизии (лист актуализации) по каждой затронутой приказом Минобрнауки РПД (author=преподаватель, s…
+
+## [0.201.0] — 2026-05-30
+
+Slice 10b-2 — approver-side UI листа актуализации (revision) РПД. ApproveRevisionDialog + RejectRevisionDialog (reason) + per-row approve/reject wiring на pending-ревизиях + хуки approveRevision/rejectRevision + i18n×4.
+
+## [0.200.0] — 2026-05-30
+
+Slice 10b-1 — author-side UI листа актуализации (revision) РПД. CreateRevisionDialog (changetype + summary) + SubmitRevisionDialog + detail-page wiring (create button on approved/needsrevision + per-row submit on draft revisions).
+
+## [0.199.0] — 2026-05-30
+
+Revision write-workflow — PR 3/3 (HTTP + DI) — slice 10a COMPLETE
+
+## [0.198.0] — 2026-05-30
+
+Revision write-workflow — PR 2/3 (approve + reject)
+
+## [0.196.0] — 2026-05-29
+
+ФОС в LLM-генерацию РПД
+
+## [0.195.0] — 2026-05-29
+
+PR 6c — trigger-revision + teacher delegation (ADR-11 pipeline step 2)
+
+## [0.194.1] — 2026-05-29
+
+Security fix — CodeQL #35 (go/incorrect-integer-conversion, High)
+
+## [0.194.0] — 2026-05-29
+
+PR 6b-2 — MinobrnaukiOrder HTTP transport + DI wiring (ADR-11)
+
+## [0.193.0] — 2026-05-29
+
+PR 6b-1 — MinobrnaukiOrder application usecases (ADR-11)
+
+## [0.192.0] — 2026-05-29
+
+PR 6a-2 of the WorkProgram (РПД) initiative — persistence layer + DB schema for MinobrnaukiOrder (приказ Минобрнауки) per ADR-11.
+
+## [0.191.0] — 2026-05-29
+
+PR 6a-1 of the WorkProgram (РПД) initiative — domain layer for MinobrnaukiOrder (приказ Минобрнауки), the external regulatory trigger for РПД revisions per ADR-11.
+
+## [0.190.0] — 2026-05-29
+
+Summary
+
+## [0.189.0] — 2026-05-29
+
+Summary
+
+## [0.188.0] — 2026-05-28
+
+Summary
+
+## [0.187.0] — 2026-05-28
+
+Summary
+
+## [0.186.0] — 2026-05-28
+
+Summary
+
+## [0.185.0] — 2026-05-28
+
+Summary
+
+## [0.184.0] — 2026-05-28
+
+Summary
+
+## [0.183.0] — 2026-05-28
+
+Summary
+
+## [0.182.0] — 2026-05-28
+
+Summary
+
+## [0.181.0] — 2026-05-28
+
+Summary
+
+## [0.180.0] — 2026-05-28
+
+Summary
+
+## [0.179.0] — 2026-05-27
+
+Summary
+
+## [0.178.0] — 2026-05-27
+
+PR 3b of the WorkProgram (РПД) initiative — methodist + author-discard slice of the application layer.
+
+## [0.177.0] — 2026-05-27
+
+PR 3a of the WorkProgram (РПД) initiative — opens the application/use-case layer.
+
+## [0.176.0] — 2026-05-27
+
+PR 2d closes the WorkProgram persistence slice — full CRUD contract is now in place:
+
+## [0.175.0] — 2026-05-27
+
+PR 2c of the WorkProgram persistence slice — List with filter + pagination.
+
+## [0.174.0] — 2026-05-27
+
+PR 2b of the WorkProgram persistence slice — full-aggregate hydration.
+
+## [0.173.0] — 2026-05-27
+
+PR 2a of the persistence slice — opens the WorkProgram repository layer.
+
+## [0.172.0] — 2026-05-27
+
+PR 1c-c of the WorkProgram initiative — closes the domain layer.
+
+## [0.171.0] — 2026-05-27
+
+PR 1c-b of the WorkProgram initiative — aggregate-level collection methods.
+
+## [0.170.0] — 2026-05-27
+
+PR 1c-a of the WorkProgram initiative — final two inner entities.
+
+## [0.169.0] — 2026-05-27
+
+PR 1b of the WorkProgram initiative — inner aggregates + remaining root transitions.
+
+## [0.168.0] — 2026-05-27
+
+PR 1a of the WorkProgram (рабочая программа дисциплины) initiative — root aggregate.
+
+## [0.167.0] — 2026-05-27
+
+Fixes 5 regressions after fresh DB wipe (defence rehearsal aftermath).
+
+## [0.166.0] — 2026-05-24
+
+🎓 Final defence-ready release — ceremonial version bump поверх v0.165.0. No new feature code — all substantive work shipped через preceding releases.
+
+## [0.165.0] — 2026-05-24
+
+Frontend half of B3 Extracurricular events bounded context. Backend slice landed в v0.164.0. Closes #328.
+
+## [0.164.0] — 2026-05-24
+
+Highlights
+
+## [0.163.1] — 2026-05-24
+
+First of 4 polish patches closing v1.0.0 batch 2 audit T2 carry-forward + bonus auth refresh-race flake fix that had been intermittently failing CI since v0.159.0.
+
+## [0.163.0] — 2026-05-23
+
+Tier 1 security hotfix — announcements module (closes #303)
+
+## [0.162.1] — 2026-05-24
+
+v0.162.1 — messaging polish
+
+## [0.162.0] — 2026-05-23
+
+Tier 1 security hotfix — messaging module (closes #297)
+
+## [0.161.1] — 2026-05-24
+
+v0.161.1 — Last polish patch ✅
+
+## [0.161.0] — 2026-05-23
+
+Tier 1 security hotfix — files module (closes #290)
+
+## [0.160.2] — 2026-05-24
+
+v0.160.2 — Polish patch follow-up
+
+## [0.160.1] — 2026-05-24
+
+v0.160.1 — users polish
+
+## [0.160.0] — 2026-05-23
+
+Summary
+
+## [0.159.0] — 2026-05-21
+
+Summary
+
+## [0.158.3] — 2026-05-20
+
+Summary
+
+## [0.158.2] — 2026-05-20
+
+Summary
+
+## [0.158.1] — 2026-05-20
+
+Summary
+
+## [0.158.0] — 2026-05-20
+
+Summary
+
 ## [0.157.0] — 2026-05-20
 
 ### Security — curriculum module Tier 1 hotfix (#269) — partial
