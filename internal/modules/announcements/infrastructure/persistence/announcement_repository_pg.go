@@ -77,13 +77,17 @@ func (r *AnnouncementRepositoryPG) GetByID(ctx context.Context, id int64) (*enti
 
 	announcement := &entities.Announcement{}
 	var tags pq.StringArray
+	// metadata is a nullable jsonb column; scan it through a []byte
+	// intermediate so a SQL NULL maps to a nil slice. Scanning NULL
+	// directly into json.RawMessage fails ("unsupported Scan ... <nil>").
+	var meta []byte
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&announcement.ID, &announcement.Title, &announcement.Content,
 		&announcement.Summary, &announcement.AuthorID, &announcement.Status,
 		&announcement.Priority, &announcement.TargetAudience,
 		&announcement.PublishAt, &announcement.ExpireAt, &announcement.IsPinned,
-		&announcement.ViewCount, &tags, &announcement.Metadata,
+		&announcement.ViewCount, &tags, &meta,
 		&announcement.CreatedAt, &announcement.UpdatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -94,6 +98,7 @@ func (r *AnnouncementRepositoryPG) GetByID(ctx context.Context, id int64) (*enti
 	}
 
 	announcement.Tags = tags
+	announcement.Metadata = meta
 	return announcement, nil
 }
 
@@ -180,13 +185,16 @@ func (r *AnnouncementRepositoryPG) GetByIDForAudience(ctx context.Context, id in
 
 	announcement := &entities.Announcement{}
 	var tags pq.StringArray
+	// metadata jsonb is nullable — scan via []byte so NULL → nil slice
+	// (see GetByID for the json.RawMessage NULL-scan rationale).
+	var meta []byte
 
 	err := r.db.QueryRowContext(ctx, query, id, audienceStringArray(audiences)).Scan(
 		&announcement.ID, &announcement.Title, &announcement.Content,
 		&announcement.Summary, &announcement.AuthorID, &announcement.Status,
 		&announcement.Priority, &announcement.TargetAudience,
 		&announcement.PublishAt, &announcement.ExpireAt, &announcement.IsPinned,
-		&announcement.ViewCount, &tags, &announcement.Metadata,
+		&announcement.ViewCount, &tags, &meta,
 		&announcement.CreatedAt, &announcement.UpdatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -197,6 +205,7 @@ func (r *AnnouncementRepositoryPG) GetByIDForAudience(ctx context.Context, id in
 	}
 
 	announcement.Tags = tags
+	announcement.Metadata = meta
 	return announcement, nil
 }
 
@@ -438,19 +447,23 @@ func (r *AnnouncementRepositoryPG) scanAnnouncements(rows *sql.Rows) ([]*entitie
 	for rows.Next() {
 		announcement := &entities.Announcement{}
 		var tags pq.StringArray
+		// metadata jsonb is nullable — scan via []byte so NULL → nil slice
+		// (see GetByID for the json.RawMessage NULL-scan rationale).
+		var meta []byte
 
 		if err := rows.Scan(
 			&announcement.ID, &announcement.Title, &announcement.Content,
 			&announcement.Summary, &announcement.AuthorID, &announcement.Status,
 			&announcement.Priority, &announcement.TargetAudience,
 			&announcement.PublishAt, &announcement.ExpireAt, &announcement.IsPinned,
-			&announcement.ViewCount, &tags, &announcement.Metadata,
+			&announcement.ViewCount, &tags, &meta,
 			&announcement.CreatedAt, &announcement.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
 
 		announcement.Tags = tags
+		announcement.Metadata = meta
 		announcements = append(announcements, announcement)
 	}
 
