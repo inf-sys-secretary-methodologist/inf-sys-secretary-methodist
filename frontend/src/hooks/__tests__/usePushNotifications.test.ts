@@ -184,6 +184,9 @@ describe('usePushNotifications', () => {
       await waitFor(() => {
         expect(result.current.error).toBeTruthy()
       })
+
+      // A transient server error must NOT be disguised as "feature disabled".
+      expect(result.current.isAvailable).toBe(true)
     })
   })
 
