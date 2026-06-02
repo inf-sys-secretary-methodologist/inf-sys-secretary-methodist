@@ -700,3 +700,43 @@ func TestAnnouncementRepositoryPG_GetAttachmentByID_QueryError(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, result)
 }
+
+// --- NULL jsonb metadata regression (real PG returns NULL for unset
+// metadata; scanning NULL into json.RawMessage fails unless the scan goes
+// through a []byte intermediate). sqlmock reproduces the real driver path. ---
+
+func TestAnnouncementRepositoryPG_GetByID_NullMetadata(t *testing.T) {
+	repo, mock := newAnnouncementRepoMock(t)
+	now := time.Now()
+	rows := sqlmock.NewRows(selectCols).AddRow(
+		int64(42), "Title", "Content", nil, int64(1), "published", "normal",
+		"all", nil, nil, false, int64(0),
+		pq.StringArray{}, nil, now, now, // metadata = NULL
+	)
+	mock.ExpectQuery(regexp.QuoteMeta("FROM announcements WHERE id = $1")).
+		WithArgs(int64(42)).
+		WillReturnRows(rows)
+
+	result, err := repo.GetByID(context.Background(), 42)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Empty(t, result.Metadata)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAnnouncementRepositoryPG_List_NullMetadata(t *testing.T) {
+	repo, mock := newAnnouncementRepoMock(t)
+	now := time.Now()
+	rows := sqlmock.NewRows(selectCols).AddRow(
+		int64(1), "A", "ca", nil, int64(1), "published", "normal", "all",
+		nil, nil, false, int64(0), pq.StringArray{}, nil, now, now, // metadata = NULL
+	)
+	mock.ExpectQuery(regexp.QuoteMeta("FROM announcements")).
+		WillReturnRows(rows)
+
+	result, err := repo.List(context.Background(), usecases.AnnouncementFilter{}, 10, 0)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	assert.Empty(t, result[0].Metadata)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
