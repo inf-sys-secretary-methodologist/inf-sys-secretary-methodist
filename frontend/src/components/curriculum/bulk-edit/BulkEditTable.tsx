@@ -109,57 +109,206 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
   return (
     <div className="space-y-3" data-testid={`bulk-edit-table-${sectionID}`}>
       {!isEmpty && (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-muted/30 text-left">
-              {canEdit && (
-                <th
-                  className="p-2"
-                  aria-label={t('disciplineItems.bulkEdit.aria.deleteColumnHeader')}
-                />
-              )}
-              <th className="p-2">{t('disciplineItems.bulkEdit.columns.title')}</th>
-              <th className="p-2">{t('disciplineItems.bulkEdit.columns.hoursLectures')}</th>
-              <th className="p-2">{t('disciplineItems.bulkEdit.columns.hoursPractice')}</th>
-              <th className="p-2">{t('disciplineItems.bulkEdit.columns.hoursLab')}</th>
-              <th className="p-2">{t('disciplineItems.bulkEdit.columns.hoursSelf')}</th>
-              <th className="p-2">{t('disciplineItems.bulkEdit.columns.controlForm')}</th>
-              <th className="p-2">{t('disciplineItems.bulkEdit.columns.credits')}</th>
-              <th className="p-2">{t('disciplineItems.bulkEdit.columns.semester')}</th>
-              <th className="p-2">{t('disciplineItems.bulkEdit.columns.order')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => {
-              const row = effectiveRow(item, state)
-              const isPendingDelete = state.pendingDeletes.includes(item.id)
-              return (
+        // Horizontal scroll container: the 10-column edit grid (title +
+        // 4 hour inputs + control-form select + credits/semester/order) is
+        // wider than the curriculum detail card, so it must scroll instead of
+        // overflowing the card and clipping cells. min-w keeps columns at
+        // their natural width rather than squeezing the title to ellipsis.
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[60rem] border-collapse text-sm">
+            <thead>
+              <tr className="bg-muted/30 text-left">
+                {canEdit && (
+                  <th
+                    className="p-2"
+                    aria-label={t('disciplineItems.bulkEdit.aria.deleteColumnHeader')}
+                  />
+                )}
+                <th className="p-2">{t('disciplineItems.bulkEdit.columns.title')}</th>
+                <th className="p-2">{t('disciplineItems.bulkEdit.columns.hoursLectures')}</th>
+                <th className="p-2">{t('disciplineItems.bulkEdit.columns.hoursPractice')}</th>
+                <th className="p-2">{t('disciplineItems.bulkEdit.columns.hoursLab')}</th>
+                <th className="p-2">{t('disciplineItems.bulkEdit.columns.hoursSelf')}</th>
+                <th className="p-2">{t('disciplineItems.bulkEdit.columns.controlForm')}</th>
+                <th className="p-2">{t('disciplineItems.bulkEdit.columns.credits')}</th>
+                <th className="p-2">{t('disciplineItems.bulkEdit.columns.semester')}</th>
+                <th className="p-2">{t('disciplineItems.bulkEdit.columns.order')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => {
+                const row = effectiveRow(item, state)
+                const isPendingDelete = state.pendingDeletes.includes(item.id)
+                return (
+                  <tr
+                    key={item.id}
+                    data-testid={`bulk-edit-row-${item.id}`}
+                    data-pending-delete={isPendingDelete ? 'true' : 'false'}
+                    className={isPendingDelete ? 'opacity-50 line-through' : ''}
+                  >
+                    {canEdit && (
+                      <td className="p-2">
+                        <input
+                          type="checkbox"
+                          data-testid={`bulk-edit-row-${item.id}-delete-toggle`}
+                          aria-label={t('disciplineItems.bulkEdit.aria.deleteToggle')}
+                          checked={isPendingDelete}
+                          onChange={() =>
+                            dispatch({ type: 'TOGGLE_DELETE', payload: { id: item.id } })
+                          }
+                        />
+                      </td>
+                    )}
+                    <td className="p-2">
+                      <input
+                        type="text"
+                        aria-label={t('disciplineItems.bulkEdit.aria.titleInput')}
+                        value={row.title}
+                        readOnly={!canEdit}
+                        onChange={(e) => editExistingField(item, 'title', e.target.value)}
+                        className="w-full rounded border bg-background p-1"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        type="number"
+                        min={0}
+                        aria-label={t('disciplineItems.bulkEdit.aria.hoursLecturesInput')}
+                        value={row.hours_lectures}
+                        readOnly={!canEdit}
+                        onChange={(e) =>
+                          editExistingField(item, 'hours_lectures', asInt(e.target.value))
+                        }
+                        className="w-20 rounded border bg-background p-1"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        type="number"
+                        min={0}
+                        aria-label={t('disciplineItems.bulkEdit.aria.hoursPracticeInput')}
+                        value={row.hours_practice}
+                        readOnly={!canEdit}
+                        onChange={(e) =>
+                          editExistingField(item, 'hours_practice', asInt(e.target.value))
+                        }
+                        className="w-20 rounded border bg-background p-1"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        type="number"
+                        min={0}
+                        aria-label={t('disciplineItems.bulkEdit.aria.hoursLabInput')}
+                        value={row.hours_lab}
+                        readOnly={!canEdit}
+                        onChange={(e) =>
+                          editExistingField(item, 'hours_lab', asInt(e.target.value))
+                        }
+                        className="w-20 rounded border bg-background p-1"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        type="number"
+                        min={0}
+                        aria-label={t('disciplineItems.bulkEdit.aria.hoursSelfInput')}
+                        value={row.hours_self}
+                        readOnly={!canEdit}
+                        onChange={(e) =>
+                          editExistingField(item, 'hours_self', asInt(e.target.value))
+                        }
+                        className="w-20 rounded border bg-background p-1"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <select
+                        data-testid={`bulk-edit-row-${item.id}-control-form-select`}
+                        aria-label={t('disciplineItems.bulkEdit.aria.controlFormSelect')}
+                        value={row.control_form}
+                        disabled={!canEdit}
+                        onChange={(e) =>
+                          editExistingField(item, 'control_form', e.target.value as ControlForm)
+                        }
+                        className="rounded border bg-background p-1"
+                      >
+                        {CONTROL_FORMS.map((cf) => (
+                          <option key={cf} value={cf}>
+                            {t(`disciplineItems.controlForm.${cf}`)}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="p-2">
+                      <input
+                        type="number"
+                        min={0}
+                        aria-label={t('disciplineItems.bulkEdit.aria.creditsInput')}
+                        value={row.credits}
+                        readOnly={!canEdit}
+                        onChange={(e) => editExistingField(item, 'credits', asInt(e.target.value))}
+                        className="w-16 rounded border bg-background p-1"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        type="number"
+                        min={0}
+                        aria-label={t('disciplineItems.bulkEdit.aria.semesterInput')}
+                        value={row.semester}
+                        readOnly={!canEdit}
+                        onChange={(e) => editExistingField(item, 'semester', asInt(e.target.value))}
+                        className="w-16 rounded border bg-background p-1"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        type="number"
+                        min={0}
+                        aria-label={t('disciplineItems.bulkEdit.aria.orderIndexInput')}
+                        value={row.order_index}
+                        readOnly={!canEdit}
+                        onChange={(e) =>
+                          editExistingField(item, 'order_index', asInt(e.target.value))
+                        }
+                        className="w-16 rounded border bg-background p-1"
+                      />
+                    </td>
+                  </tr>
+                )
+              })}
+              {state.pendingCreates.map((pending) => (
                 <tr
-                  key={item.id}
-                  data-testid={`bulk-edit-row-${item.id}`}
-                  data-pending-delete={isPendingDelete ? 'true' : 'false'}
-                  className={isPendingDelete ? 'opacity-50 line-through' : ''}
+                  key={pending.localKey}
+                  data-testid={`bulk-edit-row-create-${pending.localKey}`}
+                  className="bg-emerald-50/40 dark:bg-emerald-950/20"
                 >
                   {canEdit && (
                     <td className="p-2">
-                      <input
-                        type="checkbox"
-                        data-testid={`bulk-edit-row-${item.id}-delete-toggle`}
-                        aria-label={t('disciplineItems.bulkEdit.aria.deleteToggle')}
-                        checked={isPendingDelete}
-                        onChange={() =>
-                          dispatch({ type: 'TOGGLE_DELETE', payload: { id: item.id } })
+                      <button
+                        type="button"
+                        data-testid={`bulk-edit-row-create-${pending.localKey}-remove`}
+                        onClick={() =>
+                          dispatch({
+                            type: 'REMOVE_CREATE',
+                            payload: { localKey: pending.localKey },
+                          })
                         }
-                      />
+                        aria-label={t('disciplineItems.bulkEdit.removeRow')}
+                        className="text-destructive"
+                      >
+                        ×
+                      </button>
                     </td>
                   )}
                   <td className="p-2">
                     <input
                       type="text"
+                      data-testid={`bulk-edit-row-create-${pending.localKey}-title-input`}
                       aria-label={t('disciplineItems.bulkEdit.aria.titleInput')}
-                      value={row.title}
+                      value={pending.title}
                       readOnly={!canEdit}
-                      onChange={(e) => editExistingField(item, 'title', e.target.value)}
+                      onChange={(e) => editPendingCreateField(pending, 'title', e.target.value)}
                       className="w-full rounded border bg-background p-1"
                     />
                   </td>
@@ -168,10 +317,10 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                       type="number"
                       min={0}
                       aria-label={t('disciplineItems.bulkEdit.aria.hoursLecturesInput')}
-                      value={row.hours_lectures}
+                      value={pending.hours_lectures}
                       readOnly={!canEdit}
                       onChange={(e) =>
-                        editExistingField(item, 'hours_lectures', asInt(e.target.value))
+                        editPendingCreateField(pending, 'hours_lectures', asInt(e.target.value))
                       }
                       className="w-20 rounded border bg-background p-1"
                     />
@@ -181,10 +330,10 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                       type="number"
                       min={0}
                       aria-label={t('disciplineItems.bulkEdit.aria.hoursPracticeInput')}
-                      value={row.hours_practice}
+                      value={pending.hours_practice}
                       readOnly={!canEdit}
                       onChange={(e) =>
-                        editExistingField(item, 'hours_practice', asInt(e.target.value))
+                        editPendingCreateField(pending, 'hours_practice', asInt(e.target.value))
                       }
                       className="w-20 rounded border bg-background p-1"
                     />
@@ -194,9 +343,11 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                       type="number"
                       min={0}
                       aria-label={t('disciplineItems.bulkEdit.aria.hoursLabInput')}
-                      value={row.hours_lab}
+                      value={pending.hours_lab}
                       readOnly={!canEdit}
-                      onChange={(e) => editExistingField(item, 'hours_lab', asInt(e.target.value))}
+                      onChange={(e) =>
+                        editPendingCreateField(pending, 'hours_lab', asInt(e.target.value))
+                      }
                       className="w-20 rounded border bg-background p-1"
                     />
                   </td>
@@ -205,20 +356,25 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                       type="number"
                       min={0}
                       aria-label={t('disciplineItems.bulkEdit.aria.hoursSelfInput')}
-                      value={row.hours_self}
+                      value={pending.hours_self}
                       readOnly={!canEdit}
-                      onChange={(e) => editExistingField(item, 'hours_self', asInt(e.target.value))}
+                      onChange={(e) =>
+                        editPendingCreateField(pending, 'hours_self', asInt(e.target.value))
+                      }
                       className="w-20 rounded border bg-background p-1"
                     />
                   </td>
                   <td className="p-2">
                     <select
-                      data-testid={`bulk-edit-row-${item.id}-control-form-select`}
                       aria-label={t('disciplineItems.bulkEdit.aria.controlFormSelect')}
-                      value={row.control_form}
+                      value={pending.control_form}
                       disabled={!canEdit}
                       onChange={(e) =>
-                        editExistingField(item, 'control_form', e.target.value as ControlForm)
+                        editPendingCreateField(
+                          pending,
+                          'control_form',
+                          e.target.value as ControlForm
+                        )
                       }
                       className="rounded border bg-background p-1"
                     >
@@ -234,9 +390,11 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                       type="number"
                       min={0}
                       aria-label={t('disciplineItems.bulkEdit.aria.creditsInput')}
-                      value={row.credits}
+                      value={pending.credits}
                       readOnly={!canEdit}
-                      onChange={(e) => editExistingField(item, 'credits', asInt(e.target.value))}
+                      onChange={(e) =>
+                        editPendingCreateField(pending, 'credits', asInt(e.target.value))
+                      }
                       className="w-16 rounded border bg-background p-1"
                     />
                   </td>
@@ -245,9 +403,11 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                       type="number"
                       min={0}
                       aria-label={t('disciplineItems.bulkEdit.aria.semesterInput')}
-                      value={row.semester}
+                      value={pending.semester}
                       readOnly={!canEdit}
-                      onChange={(e) => editExistingField(item, 'semester', asInt(e.target.value))}
+                      onChange={(e) =>
+                        editPendingCreateField(pending, 'semester', asInt(e.target.value))
+                      }
                       className="w-16 rounded border bg-background p-1"
                     />
                   </td>
@@ -256,164 +416,19 @@ export function BulkEditTable({ sectionID, items, state, dispatch, canEdit }: Bu
                       type="number"
                       min={0}
                       aria-label={t('disciplineItems.bulkEdit.aria.orderIndexInput')}
-                      value={row.order_index}
+                      value={pending.order_index}
                       readOnly={!canEdit}
                       onChange={(e) =>
-                        editExistingField(item, 'order_index', asInt(e.target.value))
+                        editPendingCreateField(pending, 'order_index', asInt(e.target.value))
                       }
                       className="w-16 rounded border bg-background p-1"
                     />
                   </td>
                 </tr>
-              )
-            })}
-            {state.pendingCreates.map((pending) => (
-              <tr
-                key={pending.localKey}
-                data-testid={`bulk-edit-row-create-${pending.localKey}`}
-                className="bg-emerald-50/40 dark:bg-emerald-950/20"
-              >
-                {canEdit && (
-                  <td className="p-2">
-                    <button
-                      type="button"
-                      data-testid={`bulk-edit-row-create-${pending.localKey}-remove`}
-                      onClick={() =>
-                        dispatch({
-                          type: 'REMOVE_CREATE',
-                          payload: { localKey: pending.localKey },
-                        })
-                      }
-                      aria-label={t('disciplineItems.bulkEdit.removeRow')}
-                      className="text-destructive"
-                    >
-                      ×
-                    </button>
-                  </td>
-                )}
-                <td className="p-2">
-                  <input
-                    type="text"
-                    data-testid={`bulk-edit-row-create-${pending.localKey}-title-input`}
-                    aria-label={t('disciplineItems.bulkEdit.aria.titleInput')}
-                    value={pending.title}
-                    readOnly={!canEdit}
-                    onChange={(e) => editPendingCreateField(pending, 'title', e.target.value)}
-                    className="w-full rounded border bg-background p-1"
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    min={0}
-                    aria-label={t('disciplineItems.bulkEdit.aria.hoursLecturesInput')}
-                    value={pending.hours_lectures}
-                    readOnly={!canEdit}
-                    onChange={(e) =>
-                      editPendingCreateField(pending, 'hours_lectures', asInt(e.target.value))
-                    }
-                    className="w-20 rounded border bg-background p-1"
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    min={0}
-                    aria-label={t('disciplineItems.bulkEdit.aria.hoursPracticeInput')}
-                    value={pending.hours_practice}
-                    readOnly={!canEdit}
-                    onChange={(e) =>
-                      editPendingCreateField(pending, 'hours_practice', asInt(e.target.value))
-                    }
-                    className="w-20 rounded border bg-background p-1"
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    min={0}
-                    aria-label={t('disciplineItems.bulkEdit.aria.hoursLabInput')}
-                    value={pending.hours_lab}
-                    readOnly={!canEdit}
-                    onChange={(e) =>
-                      editPendingCreateField(pending, 'hours_lab', asInt(e.target.value))
-                    }
-                    className="w-20 rounded border bg-background p-1"
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    min={0}
-                    aria-label={t('disciplineItems.bulkEdit.aria.hoursSelfInput')}
-                    value={pending.hours_self}
-                    readOnly={!canEdit}
-                    onChange={(e) =>
-                      editPendingCreateField(pending, 'hours_self', asInt(e.target.value))
-                    }
-                    className="w-20 rounded border bg-background p-1"
-                  />
-                </td>
-                <td className="p-2">
-                  <select
-                    aria-label={t('disciplineItems.bulkEdit.aria.controlFormSelect')}
-                    value={pending.control_form}
-                    disabled={!canEdit}
-                    onChange={(e) =>
-                      editPendingCreateField(pending, 'control_form', e.target.value as ControlForm)
-                    }
-                    className="rounded border bg-background p-1"
-                  >
-                    {CONTROL_FORMS.map((cf) => (
-                      <option key={cf} value={cf}>
-                        {t(`disciplineItems.controlForm.${cf}`)}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    min={0}
-                    aria-label={t('disciplineItems.bulkEdit.aria.creditsInput')}
-                    value={pending.credits}
-                    readOnly={!canEdit}
-                    onChange={(e) =>
-                      editPendingCreateField(pending, 'credits', asInt(e.target.value))
-                    }
-                    className="w-16 rounded border bg-background p-1"
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    min={0}
-                    aria-label={t('disciplineItems.bulkEdit.aria.semesterInput')}
-                    value={pending.semester}
-                    readOnly={!canEdit}
-                    onChange={(e) =>
-                      editPendingCreateField(pending, 'semester', asInt(e.target.value))
-                    }
-                    className="w-16 rounded border bg-background p-1"
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    min={0}
-                    aria-label={t('disciplineItems.bulkEdit.aria.orderIndexInput')}
-                    value={pending.order_index}
-                    readOnly={!canEdit}
-                    onChange={(e) =>
-                      editPendingCreateField(pending, 'order_index', asInt(e.target.value))
-                    }
-                    className="w-16 rounded border bg-background p-1"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {isEmpty && (
