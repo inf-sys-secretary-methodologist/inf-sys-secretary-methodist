@@ -3459,11 +3459,11 @@
     "category": {
       "label": "Category",
       "all": "All categories",
-      "academic": "Academic",
+      "recreational": "Recreational",
       "cultural": "Cultural",
       "sports": "Sports",
-      "volunteer": "Volunteer",
-      "professional": "Professional"
+      "educational": "Educational",
+      "other": "Other"
     },
     "audience": {
       "label": "Audience",

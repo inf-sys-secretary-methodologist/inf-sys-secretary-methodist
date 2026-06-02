@@ -136,7 +136,7 @@ describe('useExtracurricularEvents hooks (queries)', () => {
         id: 7,
         title: 'Hackathon',
         description: 'Annual programming hackathon',
-        category: 'academic',
+        category: 'cultural',
         target_audience: 'students',
         status: 'published',
         location: 'Lab 3',
@@ -190,14 +190,14 @@ describe('useExtracurricularEvents hooks (mutations)', () => {
       mockedApiClient.post.mockResolvedValue({ data: { id: 1, title: 'X' } })
       const result = await createExtracurricularEvent({
         title: 'X',
-        category: 'academic',
+        category: 'cultural',
         target_audience: 'students',
         start_at: '2026-06-01T10:00:00Z',
         end_at: '2026-06-01T12:00:00Z',
       })
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/api/v1/extracurricular/events',
-        expect.objectContaining({ title: 'X', category: 'academic' })
+        expect.objectContaining({ title: 'X', category: 'cultural' })
       )
       expect(result.id).toBe(1)
     })

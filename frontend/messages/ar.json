@@ -3459,11 +3459,11 @@
     "category": {
       "label": "الفئة",
       "all": "كل الفئات",
-      "academic": "أكاديمية",
+      "recreational": "ترفيهية",
       "cultural": "ثقافية",
       "sports": "رياضية",
-      "volunteer": "تطوعية",
-      "professional": "مهنية"
+      "educational": "تعليمية",
+      "other": "أخرى"
     },
     "audience": {
       "label": "الجمهور",

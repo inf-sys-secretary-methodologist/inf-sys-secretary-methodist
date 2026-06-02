@@ -22,7 +22,7 @@ describe('ExtracurricularEventFilters', () => {
     const select = screen.getByLabelText('category.label') as HTMLSelectElement
     const optionValues = Array.from(select.options).map((o) => o.value)
     expect(optionValues).toEqual(
-      expect.arrayContaining(['', 'academic', 'cultural', 'sports', 'volunteer', 'professional'])
+      expect.arrayContaining(['', 'cultural', 'sports', 'recreational', 'educational', 'other'])
     )
   })
 
@@ -52,11 +52,11 @@ describe('ExtracurricularEventFilters', () => {
 
   it('reflects current value in select state', () => {
     const onChange = jest.fn()
-    const value: ExtracurricularEventFilterParams = { status: 'canceled', category: 'volunteer' }
+    const value: ExtracurricularEventFilterParams = { status: 'canceled', category: 'recreational' }
     render(<ExtracurricularEventFilters value={value} onChange={onChange} />)
     const status = screen.getByLabelText('status.label') as HTMLSelectElement
     const category = screen.getByLabelText('category.label') as HTMLSelectElement
     expect(status.value).toBe('canceled')
-    expect(category.value).toBe('volunteer')
+    expect(category.value).toBe('recreational')
   })
 })
