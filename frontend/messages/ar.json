@@ -1197,6 +1197,8 @@
     "description": "تلقي الإشعارات مباشرة في متصفحك",
     "notSupported": "الإشعارات الفورية غير مدعومة",
     "notSupportedDescription": "متصفحك لا يدعم الإشعارات الفورية. جرب استخدام متصفح حديث مثل Chrome أو Firefox أو Edge.",
+    "serverUnavailable": "إشعارات الويب الفورية غير متاحة على هذا الخادم",
+    "serverUnavailableDescription": "لم يقم هذا الخادم بتكوين الإشعارات الفورية. تواصل مع المسؤول إذا كنت بحاجة إليها.",
     "permissionBlocked": "الإشعارات محظورة",
     "permissionBlockedTitle": "الإذن مطلوب",
     "permissionBlockedDescription": "الإشعارات الفورية محظورة في إعدادات متصفحك. لتفعيلها، انقر على أيقونة القفل في شريط العنوان واسمح بالإشعارات.",

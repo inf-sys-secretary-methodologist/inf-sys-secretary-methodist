@@ -18,9 +18,24 @@ import {
 
 const PUSH_STATUS_URL = '/api/notifications/push/status'
 
-// Fetcher for SWR
-const fetcher = async <T>(url: string): Promise<T> => {
-  return await apiClient.get<T>(url)
+type PushStatusResult = { available: true; status: WebPushStatus } | { available: false }
+
+// Web push routes are only mounted when the server has VAPID keys configured;
+// without them the whole /push group 404s (or a guarded endpoint 503s). That is an
+// expected "feature disabled" signal, not an error — degrade gracefully so the
+// browser console stays clean and SWR does not retry. If VAPID is configured later
+// the endpoint returns 200 and this transparently starts reporting real status.
+const pushStatusFetcher = async (url: string): Promise<PushStatusResult> => {
+  try {
+    const status = await apiClient.get<WebPushStatus>(url)
+    return { available: true, status }
+  } catch (err) {
+    const httpStatus = (err as { response?: { status?: number } })?.response?.status
+    if (httpStatus === 404 || httpStatus === 503) {
+      return { available: false }
+    }
+    throw err
+  }
 }
 
 /**
@@ -38,14 +53,20 @@ export function usePushNotifications() {
 
   // Fetch server-side push status
   const {
-    data: serverStatus,
+    data,
     error: fetchError,
     isLoading,
     mutate: revalidate,
-  } = useSWR<WebPushStatus>(isSupported ? PUSH_STATUS_URL : null, fetcher, {
+  } = useSWR<PushStatusResult>(isSupported ? PUSH_STATUS_URL : null, pushStatusFetcher, {
     revalidateOnFocus: false,
     dedupingInterval: SWR_DEDUPING.LONG,
   })
+
+  // Web push is "available" unless the server explicitly reported it unconfigured.
+  // While loading (data undefined) assume available to avoid a flash of the
+  // unavailable state.
+  const isAvailable = data ? data.available : true
+  const serverStatus = data?.available ? data.status : undefined
 
   // Check local subscription status on mount
   useEffect(() => {
@@ -153,6 +174,7 @@ export function usePushNotifications() {
   return {
     // Status
     isSupported,
+    isAvailable,
     permission,
     isEnabled: serverStatus?.is_enabled ?? false,
     isLocallySubscribed,

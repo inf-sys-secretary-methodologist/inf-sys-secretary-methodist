@@ -38,6 +38,7 @@ export function PushNotificationSettings() {
 
   const {
     isSupported,
+    isAvailable,
     permission,
     isEnabled,
     isLocallySubscribed,
@@ -123,6 +124,28 @@ export function PushNotificationSettings() {
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <AlertTriangle className="h-4 w-4" />
             <span>{t('notSupportedDescription')}</span>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Web push not configured on the server (no VAPID keys → /push routes 404).
+  // Distinct from "not supported": the browser can do push, this server cannot.
+  if (!isAvailable) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BellOff className="h-5 w-5 flex-shrink-0" />
+            {t('title')}
+          </CardTitle>
+          <CardDescription>{t('serverUnavailable')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <AlertTriangle className="h-4 w-4" />
+            <span>{t('serverUnavailableDescription')}</span>
           </div>
         </CardContent>
       </Card>

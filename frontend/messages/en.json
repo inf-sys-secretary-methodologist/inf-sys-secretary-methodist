@@ -1197,6 +1197,8 @@
     "description": "Receive notifications directly in your browser",
     "notSupported": "Push notifications not supported",
     "notSupportedDescription": "Your browser does not support push notifications. Try using a modern browser like Chrome, Firefox, or Edge.",
+    "serverUnavailable": "Web push is not available on this server",
+    "serverUnavailableDescription": "This server has not configured push notifications. Contact your administrator if you need them.",
     "permissionBlocked": "Notifications blocked",
     "permissionBlockedTitle": "Permission required",
     "permissionBlockedDescription": "Push notifications are blocked in your browser settings. To enable them, click on the lock icon in the address bar and allow notifications.",

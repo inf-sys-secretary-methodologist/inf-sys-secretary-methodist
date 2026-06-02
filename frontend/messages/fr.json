@@ -1197,6 +1197,8 @@
     "description": "Recevez des notifications directement dans votre navigateur",
     "notSupported": "Notifications push non prises en charge",
     "notSupportedDescription": "Votre navigateur ne prend pas en charge les notifications push. Essayez d'utiliser un navigateur moderne comme Chrome, Firefox ou Edge.",
+    "serverUnavailable": "Les notifications push web ne sont pas disponibles sur ce serveur",
+    "serverUnavailableDescription": "Ce serveur n'a pas configuré les notifications push. Contactez votre administrateur si vous en avez besoin.",
     "permissionBlocked": "Notifications bloquées",
     "permissionBlockedTitle": "Autorisation requise",
     "permissionBlockedDescription": "Les notifications push sont bloquées dans les paramètres de votre navigateur. Pour les activer, cliquez sur l'icône de cadenas dans la barre d'adresse et autorisez les notifications.",
