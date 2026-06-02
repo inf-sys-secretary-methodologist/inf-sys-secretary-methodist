@@ -130,6 +130,63 @@ describe('usePushNotifications', () => {
     })
   })
 
+  describe('server availability', () => {
+    it('treats a 404 push/status as unavailable without surfacing an error', async () => {
+      // Web push routes are only registered when VAPID keys are configured;
+      // otherwise the whole /push group 404s. That is not an error to show.
+      mockedApiClient.get.mockRejectedValue({ response: { status: 404 } })
+
+      const { result } = renderHook(() => usePushNotifications(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      expect(result.current.isAvailable).toBe(false)
+      expect(result.current.error).toBeFalsy()
+      expect(result.current.isEnabled).toBe(false)
+    })
+
+    it('treats a 503 push/status as unavailable', async () => {
+      mockedApiClient.get.mockRejectedValue({ response: { status: 503 } })
+
+      const { result } = renderHook(() => usePushNotifications(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      expect(result.current.isAvailable).toBe(false)
+      expect(result.current.error).toBeFalsy()
+    })
+
+    it('reports available when the status fetch succeeds', async () => {
+      mockedApiClient.get.mockResolvedValue({
+        is_enabled: false,
+        subscriptions: [],
+        total_devices: 0,
+      })
+
+      const { result } = renderHook(() => usePushNotifications(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      expect(result.current.isAvailable).toBe(true)
+    })
+
+    it('keeps surfacing genuine (non-404/503) fetch errors', async () => {
+      mockedApiClient.get.mockRejectedValue({ response: { status: 500 } })
+
+      const { result } = renderHook(() => usePushNotifications(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.error).toBeTruthy()
+      })
+    })
+  })
+
   describe('subscribe', () => {
     it('subscribes successfully', async () => {
       mockedApiClient.get.mockResolvedValue({

@@ -11,6 +11,9 @@ jest.mock('next-intl', () => ({
       notSupported: 'Push notifications are not supported',
       notSupportedDescription:
         'Your browser does not support push notifications. Please use a modern browser.',
+      serverUnavailable: 'Web push is not available on this server',
+      serverUnavailableDescription:
+        'This server has not configured push notifications. Contact your administrator if you need them.',
       permissionBlocked: 'Permission blocked',
       permissionBlockedTitle: 'Notifications blocked',
       permissionBlockedDescription: 'Enable notifications in your browser settings.',
@@ -59,6 +62,7 @@ jest.mock('sonner', () => ({
 // Mock hooks state
 const mockHookState = {
   isSupported: true,
+  isAvailable: true,
   permission: 'default' as 'default' | 'granted' | 'denied' | 'unsupported',
   isEnabled: false,
   isLocallySubscribed: false,
@@ -90,6 +94,7 @@ describe('PushNotificationSettings', () => {
     jest.clearAllMocks()
     // Reset to default state
     mockHookState.isSupported = true
+    mockHookState.isAvailable = true
     mockHookState.permission = 'default'
     mockHookState.isEnabled = false
     mockHookState.isLocallySubscribed = false
@@ -118,6 +123,24 @@ describe('PushNotificationSettings', () => {
           'Your browser does not support push notifications. Please use a modern browser.'
         )
       ).toBeInTheDocument()
+    })
+  })
+
+  describe('Server Unavailable State', () => {
+    it('shows server-unavailable message when web push is not configured on the server', () => {
+      mockHookState.isAvailable = false
+
+      render(<PushNotificationSettings />)
+
+      expect(screen.getByText('Push Notifications')).toBeInTheDocument()
+      expect(screen.getByText('Web push is not available on this server')).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          'This server has not configured push notifications. Contact your administrator if you need them.'
+        )
+      ).toBeInTheDocument()
+      // Must NOT offer an enable button that cannot work
+      expect(screen.queryByText('Enable Push Notifications')).not.toBeInTheDocument()
     })
   })
 
