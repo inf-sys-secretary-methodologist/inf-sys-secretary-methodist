@@ -91,7 +91,7 @@ describe('ExtracurricularEventsPage', () => {
         {
           id: 1,
           title: 'Hackathon 2026',
-          category: 'academic',
+          category: 'cultural',
           target_audience: 'students',
           status: 'published',
           location: 'Lab 3',

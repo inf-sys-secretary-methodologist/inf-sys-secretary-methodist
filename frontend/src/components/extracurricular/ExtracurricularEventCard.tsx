@@ -55,11 +55,11 @@ const STATUS_COLORS: Record<EventStatus, string> = {
 }
 
 const CATEGORY_COLORS: Record<EventCategory, string> = {
-  academic: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
   cultural: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
   sports: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-  volunteer: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  professional: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
+  recreational: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  educational: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  other: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
 }
 
 const AUDIENCE_COLORS: Record<EventTargetAudience, string> = {

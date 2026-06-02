@@ -5,18 +5,20 @@
 
 export type EventStatus = 'draft' | 'published' | 'canceled' | 'completed'
 
-export type EventCategory = 'academic' | 'cultural' | 'sports' | 'volunteer' | 'professional'
+// Mirrors backend domain Category enum (value_objects.go):
+// cultural / sports / recreational / educational / other.
+export type EventCategory = 'cultural' | 'sports' | 'recreational' | 'educational' | 'other'
 
 export type EventTargetAudience = 'all' | 'students' | 'teachers' | 'staff'
 
 export const EVENT_STATUSES: EventStatus[] = ['draft', 'published', 'canceled', 'completed']
 
 export const EVENT_CATEGORIES: EventCategory[] = [
-  'academic',
   'cultural',
   'sports',
-  'volunteer',
-  'professional',
+  'recreational',
+  'educational',
+  'other',
 ]
 
 export const EVENT_TARGET_AUDIENCES: EventTargetAudience[] = [

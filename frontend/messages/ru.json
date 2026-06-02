@@ -3459,11 +3459,11 @@
     "category": {
       "label": "Категория",
       "all": "Все категории",
-      "academic": "Академическое",
+      "recreational": "Досуговое",
       "cultural": "Культурное",
       "sports": "Спортивное",
-      "volunteer": "Волонтёрское",
-      "professional": "Профессиональное"
+      "educational": "Образовательное",
+      "other": "Прочее"
     },
     "audience": {
       "label": "Аудитория",
