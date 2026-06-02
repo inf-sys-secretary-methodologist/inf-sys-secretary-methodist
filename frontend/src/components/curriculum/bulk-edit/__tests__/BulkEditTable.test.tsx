@@ -375,3 +375,22 @@ describe('BulkEditTable / hardening — number input min={0}', () => {
     })
   })
 })
+
+describe('BulkEditTable / layout', () => {
+  // The 10-column edit grid is wider than the curriculum detail card, so the
+  // table must live inside a horizontally scrollable container — otherwise the
+  // cells overflow the card and clip (regression: cells spilled past the card).
+  it('wraps the table in a horizontally scrollable container', () => {
+    const { container } = render(<Host items={[sampleItem]} />)
+    const table = container.querySelector('table')
+    expect(table).not.toBeNull()
+    const wrapper = table?.parentElement
+    expect(wrapper?.className).toContain('overflow-x-auto')
+  })
+
+  it('gives the table a min width so columns are not squeezed below content', () => {
+    const { container } = render(<Host items={[sampleItem]} />)
+    const table = container.querySelector('table')
+    expect(table?.className).toContain('min-w-[60rem]')
+  })
+})
