@@ -1,9 +1,15 @@
+// ⚠️ УСТАРЕЛО / OUTDATED (2026-06-14) — неполный исторический снимок (79 таблиц).
+// Актуальная схема: migrations/*.up.sql (49 миграций, 105 таблиц).
+// Полный актуальный DBML генерируется скриптом docs/master-thesis/build/build_dbml_full.py
+// (интроспекция живой БД). Этот файл оставлен как исторический и не поддерживается.
+//
 // Database Schema для Information System Secretary-Methodist
 // Визуализация: https://dbdiagram.io/
 
 Project inf_sys_secretary_methodist {
   database_type: 'PostgreSQL'
   Note: '''
+    ⚠️ УСТАРЕЛО — неполный исторический снимок. Актуальная схема: migrations/*.up.sql (105 таблиц).
     Информационная система секретаря-методиста
     Всего: 79 таблиц (78 + schema_migrations) + 6 views
     Модули: Auth (2), Users (3), Documents (12), Schedule (13), Tasks (11), Reports (10), Events (4), Announcements (2), Files (2), Notifications (6), Integration (4), Messaging (4), Analytics (4)

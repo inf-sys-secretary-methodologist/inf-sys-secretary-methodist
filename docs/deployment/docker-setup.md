@@ -300,7 +300,7 @@ TELEGRAM_BOT_TOKEN=your-bot-token
 TELEGRAM_CHAT_ID=your-chat-id
 ```
 
-Подробнее: [grafana-alerting.md](../grafana-alerting.md)
+Подробнее: [grafana-alerting.md](monitoring/grafana-alerting.md)
 
 ---
 
