@@ -26,7 +26,10 @@ docs/
 │   ├── docker-setup.md
 │   ├── infrastructure.md
 │   ├── environment.md
-│   └── production-deploy.md
+│   ├── production-deploy.md
+│   └── monitoring/           # Мониторинг и алертинг
+│       ├── uptime-kuma.md
+│       └── grafana-alerting.md
 ├── 📊 api/                   # Документация API
 │   ├── api-documentation.md  # Полная документация (включает Dashboard, Announcements, Analytics)
 │   ├── authentication.md
@@ -35,19 +38,27 @@ docs/
 │   └── schedule.md
 ├── 🔗 integrations/          # Внешние интеграции
 │   ├── composio-gmail.md
+│   ├── COMPOSIO_INTEGRATION.md
+│   ├── n8n.md
 │   └── telegram-bot.md
 ├── 👥 users/                 # Управление пользователями
 │   └── roles-and-permissions.md
 ├── 🔄 workflows/             # Бизнес-процессы
 │   └── document-lifecycle.md
 ├── 🔒 security/              # Рекомендации по безопасности
-│   └── security-guidelines.md
+│   ├── security-guidelines.md
+│   └── AUDIT_REPORT.md        # Отчёт аудита безопасности
 ├── 🎭 features/               # Спецификации функций
 │   └── metodych-personality-assistant.md  # AI-ассистент "Методыч"
-├── LOGGING_AND_PERFORMANCE.md # Логирование и оптимизация
+├── 💼 business/               # Бизнес-аналитика
+│   └── market-analysis.md
+├── 🏛️ architecture/ …         # (см. выше) + LOGGING_AND_PERFORMANCE.md, er-diagram-chen.drawio
+├── 🎓 master-thesis/          # Исходники и генераторы дипломной работы (gitignored)
+│   └── build/                # build_*.py + сгенерированные .docx/.pptx/.png/.dbml
 ├── project-overview.md       # Бизнес-требования
-├── uptime-kuma.md            # Status page и мониторинг uptime
-└── grafana-alerting.md       # Алерты с Telegram уведомлениями
+├── roles-and-flows.md        # Brief по ролям и потокам (для защиты)
+├── TECH_STACK.md             # Технологический стек
+└── README.md                 # Этот файл — оглавление docs/
 ```
 
 ## 🚀 Быстрая навигация
@@ -99,8 +110,8 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
 ```
 
 **Документация:**
-- [Uptime Kuma](uptime-kuma.md) - Настройка status page
-- [Grafana Alerting](grafana-alerting.md) - Алерты с Telegram уведомлениями
+- [Uptime Kuma](deployment/monitoring/uptime-kuma.md) - Настройка status page
+- [Grafana Alerting](deployment/monitoring/grafana-alerting.md) - Алерты с Telegram уведомлениями
 
 ### Distributed Tracing (OpenTelemetry + Tempo)
 
@@ -205,7 +216,7 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
 
 ### Оптимизация и мониторинг
 
-1. [📊 Логирование и производительность](LOGGING_AND_PERFORMANCE.md) - Полное руководство по:
+1. [📊 Логирование и производительность](architecture/LOGGING_AND_PERFORMANCE.md) - Полное руководство по:
    - Security logging (логи безопасности)
    - Audit logging (audit trail)
    - Performance logging (мониторинг производительности)
@@ -295,6 +306,6 @@ docker compose -f compose.yml -f compose.monitoring.yml --profile monitoring up 
 ---
 
 **📅 Актуальность документа**
-**Последнее обновление**: 2026-02-09
-**Версия проекта**: 0.3.3
-**Статус**: Актуальный
+**Последнее обновление**: 2026-06-14
+**Версия проекта**: 0.214.4
+**Статус**: Актуальный (подготовка к защите 2026-06-23)

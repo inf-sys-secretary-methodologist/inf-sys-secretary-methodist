@@ -4,8 +4,10 @@
 
 **Информационная система для секретаря-методиста** — система управления образовательным учреждением, включающая документооборот, отчётность, расписание, уведомления и внутренний мессенджер.
 
-**Версия проекта:** 0.3.3
-**Последнее обновление:** Февраль 2026
+**Версия проекта:** 0.214.4
+**Последнее обновление:** Июнь 2026
+
+> 💡 Этот документ — **каталог** технологий: что используется, версии и назначение. Обоснование выбора (почему именно эти технологии, сравнения и бенчмарки) — см. [architecture/tech-stack-rationale.md](architecture/tech-stack-rationale.md).
 
 ---
 
@@ -32,7 +34,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Frontend                                 │
-│                   Next.js 15 + React 19                         │
+│                   Next.js 16 + React 19                         │
 │                      (TypeScript)                                │
 └─────────────────────────┬───────────────────────────────────────┘
                           │ REST API / WebSocket
@@ -41,17 +43,19 @@
 │                         Backend                                  │
 │                      Go 1.25 + Gin                              │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │                    Modules                               │   │
-│  │  auth │ documents │ notifications │ messaging │ users   │   │
-│  │  schedule │ files │ integration │ reports │ analytics   │   │
-│  │  dashboard │ announcements                                │   │
+│  │              Modules (20 в internal/modules/)            │   │
+│  │  auth │ users │ documents │ files │ notifications        │   │
+│  │  messaging │ announcements │ schedule │ tasks │ reports  │   │
+│  │  reporting │ analytics │ dashboard │ integration         │   │
+│  │  curriculum │ work_program │ assignments │ extracurricular│   │
+│  │  ai (RAG) │ branding                                      │   │
 │  └─────────────────────────────────────────────────────────┘   │
 └──────┬──────────────────┬──────────────────┬────────────────────┘
        │                  │                  │
        ▼                  ▼                  ▼
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
 │  PostgreSQL  │  │    Redis     │  │    MinIO     │
-│      17      │  │      7       │  │     S3       │
+│  17+pgvector │  │      7       │  │     S3       │
 └──────────────┘  └──────────────┘  └──────────────┘
 ```
 
@@ -73,53 +77,60 @@ internal/modules/<module>/
 | Компонент | Технология | Версия | Назначение |
 |-----------|------------|--------|------------|
 | **Язык программирования** | Go | 1.25 | Основной язык бэкенда |
-| **HTTP-фреймворк** | Gin | 1.11.0 | Роутинг, middleware, контекст |
-| **Валидация** | go-playground/validator | v10.30.0 | Валидация структур через теги |
-| **JWT-аутентификация** | golang-jwt | v5.3.0 | Access + Refresh токены |
+| **HTTP-фреймворк** | Gin | 1.12.0 | Роутинг, middleware, контекст |
+| **Валидация** | go-playground/validator | v10.30.2 | Валидация структур через теги |
+| **JWT-аутентификация** | golang-jwt | v5.3.1 | Access + Refresh токены |
 | **UUID** | google/uuid | 1.6.0 | Генерация уникальных идентификаторов |
 | **WebSocket** | gorilla/websocket | 1.5.3 | Real-time коммуникация (чаты) |
-| **Криптография** | golang.org/x/crypto | 0.46.0 | Bcrypt хеширование паролей |
+| **Криптография** | golang.org/x/crypto | 0.52.0 | Bcrypt хеширование паролей |
+| **Swagger/OpenAPI** | swaggo/swag + gin-swagger | 1.16.6 / 1.6.1 | Автогенерация API-документации |
 
 ### Работа с данными
 
 | Компонент | Технология | Версия | Назначение |
 |-----------|------------|--------|------------|
-| **PostgreSQL драйвер** | lib/pq | 1.10.9 | Подключение к БД |
-| **Redis клиент** | go-redis | v9.17.2 | Кеширование, сессии |
-| **MinIO SDK** | minio-go | v7.0.97 | S3-совместимое хранилище |
+| **PostgreSQL драйвер** | lib/pq | 1.12.3 | Подключение к БД |
+| **Векторы (pgvector)** | pgvector/pgvector-go | 0.4.0 | Эмбеддинги для AI/RAG-поиска |
+| **OTel SQL-инструментация** | XSAM/otelsql | 0.42.0 | Трейсинг SQL-запросов |
+| **Redis клиент** | go-redis | v9.19.0 | Кеширование, сессии |
+| **MinIO SDK** | minio-go | v7.1.0 | S3-совместимое хранилище |
 
 ### Фоновые задачи и метрики
 
 | Компонент | Технология | Версия | Назначение |
 |-----------|------------|--------|------------|
-| **Планировщик** | gocron | v2.19.0 | Cron-задачи (напоминания, синхронизация) |
+| **Планировщик** | gocron | v2.21.2 | Cron-задачи (напоминания, синхронизация) |
 | **Cron** | robfig/cron | v3.0.1 | Парсинг cron-выражений |
 | **Prometheus** | client_golang | 1.23.2 | Экспорт метрик |
+| **Error Tracking** | getsentry/sentry-go (+gin) | 0.46.2 | Сбор ошибок в Sentry |
+| **Web Push** | SherClockHolmes/webpush-go | 1.4.0 | Push-уведомления (VAPID) |
+| **PDF-парсинг** | dslipak/pdf | 0.0.2 | Импорт РПД из PDF |
 
 ### Distributed Tracing (OpenTelemetry)
 
 | Компонент | Технология | Версия | Назначение |
 |-----------|------------|--------|------------|
-| **OTEL SDK** | go.opentelemetry.io/otel | 1.28+ | Core OpenTelemetry SDK |
-| **OTEL Trace** | go.opentelemetry.io/otel/sdk/trace | 1.28+ | Трассировка |
-| **OTLP Exporter** | otlptrace/otlptracegrpc | 1.28+ | Экспорт в Collector |
-| **Gin Instrumentation** | otelgin | 0.54+ | Автоматический трейсинг HTTP |
-| **Redis Hooks** | otelredis | - | Трейсинг Redis операций |
+| **OTEL SDK** | go.opentelemetry.io/otel + otel/sdk | 1.43.0 | Core OpenTelemetry SDK |
+| **OTEL Trace** | go.opentelemetry.io/otel/trace | 1.43.0 | Трассировка |
+| **OTLP Exporter** | otlptrace/otlptracegrpc | 1.43.0 | Экспорт в Collector (gRPC) |
+| **Gin Instrumentation** | otelgin | 0.68.0 | Автоматический трейсинг HTTP |
+| **Redis Hooks** | redisotel (go-redis/extra) | v9.17.3 | Трейсинг Redis операций |
+| **gRPC** | google.golang.org/grpc | 1.81.1 | Транспорт для OTLP-экспортёра |
 
 ### Генерация документов
 
 | Компонент | Технология | Версия | Назначение |
 |-----------|------------|--------|------------|
 | **PDF** | gofpdf | 1.16.2 | Генерация PDF-отчётов |
-| **Excel** | excelize | v2.10.0 | Экспорт в XLSX |
+| **Excel** | excelize | v2.10.1 | Экспорт в XLSX |
 
 ### Тестирование
 
 | Компонент | Технология | Версия | Назначение |
 |-----------|------------|--------|------------|
 | **Assertions** | testify | 1.11.1 | Unit/Integration тесты |
-| **Mock Redis** | miniredis | v2.35.0 | Мок Redis для тестов |
-| **Mocks** | uber/mock | 0.5.0 | Генерация моков |
+| **Mock Redis** | miniredis | v2.38.0 | Мок Redis для тестов |
+| **SQL Mock** | DATA-DOG/go-sqlmock | v1.5.2 | Мок БД для тестов репозиториев |
 
 ---
 
@@ -129,11 +140,12 @@ internal/modules/<module>/
 
 | Компонент | Технология | Версия | Назначение |
 |-----------|------------|--------|------------|
-| **Фреймворк** | Next.js + Turbopack | 15.1.0 | SSR, App Router, быстрая dev сборка |
+| **Фреймворк** | Next.js + Turbopack | 16.2.4 | SSR, App Router, быстрая dev сборка |
 | **UI-библиотека** | React | 19.0.0 | Компонентный UI |
 | **Язык** | TypeScript | 5.7.2 | Строгая типизация |
 | **Стили** | Tailwind CSS | 4.1.17 | Utility-first CSS |
 | **PostCSS** | @tailwindcss/postcss | 4.1.17 | Обработка стилей |
+| **Error Tracking** | @sentry/nextjs | 10.53.1 | Сбор ошибок фронтенда |
 
 ### UI-компоненты (Radix UI)
 
@@ -149,6 +161,10 @@ internal/modules/<module>/
 | react-slider | 1.3.6 | Слайдеры |
 | react-alert-dialog | 1.1.15 | Диалоги подтверждения |
 | react-scroll-area | 1.2.10 | Кастомный скролл |
+| react-collapsible | 1.1.12 | Сворачиваемые блоки |
+| react-label | 2.1.8 | Подписи полей форм |
+| react-separator | 1.1.8 | Разделители |
+| react-slot | 1.2.4 | Композиция компонентов (asChild) |
 
 ### Состояние и данные
 
@@ -156,8 +172,8 @@ internal/modules/<module>/
 |-----------|------------|--------|------------|
 | **State Manager** | Zustand | 5.0.2 | Глобальное состояние |
 | **Data Fetching** | SWR | 2.3.0 | Кеширование запросов, ревалидация |
-| **HTTP-клиент** | Axios | 1.7.9 | API-запросы |
-| **Cookies** | js-cookie | 3.0.5 | Работа с cookies |
+| **HTTP-клиент** | Axios | 1.16.0 | API-запросы |
+| **Cookies** | js-cookie | 3.0.7 | Работа с cookies |
 
 ### Формы и валидация
 
@@ -171,8 +187,7 @@ internal/modules/<module>/
 
 | Компонент | Технология | Версия | Назначение |
 |-----------|------------|--------|------------|
-| **Анимации** | Framer Motion | 12.23.24 | Плавные переходы |
-| **Motion** | motion | 12.23.25 | Дополнительные анимации |
+| **Анимации** | motion | 12.23.25 | Плавные переходы (преемник Framer Motion) |
 | **Графики** | Recharts | 3.5.1 | Визуализация данных |
 | **Шейдеры** | @paper-design/shaders-react | 0.0.68 | Анимированные фоны |
 
@@ -184,7 +199,7 @@ internal/modules/<module>/
 | **Иконки** | Lucide React | 0.553.0 | SVG-иконки |
 | **Toasts** | Sonner | 2.0.7 | Уведомления |
 | **Темы** | next-themes | 0.4.6 | Тёмная/светлая тема |
-| **i18n** | next-intl | 4.6.1 | Мультиязычность |
+| **i18n** | next-intl | 4.11.0 | Мультиязычность |
 | **Diff** | diff | 8.0.2 | Сравнение текстов |
 | **Crop** | react-easy-crop | 5.5.6 | Обрезка изображений |
 | **Calendar** | react-day-picker | 9.11.3 | Выбор дат |
@@ -205,11 +220,12 @@ internal/modules/<module>/
 
 | Параметр | Значение |
 |----------|----------|
-| **Версия** | PostgreSQL 17 Alpine |
+| **Версия** | PostgreSQL 17 (образ `pgvector/pgvector:pg17`) |
+| **Расширение** | pgvector — векторные эмбеддинги для AI/RAG |
 | **Кодировка** | UTF-8 |
 | **Коллация** | ru_RU.UTF-8 |
-| **Количество миграций** | 22 |
-| **Количество таблиц** | ~40 |
+| **Количество миграций** | 49 |
+| **Количество таблиц** | ~105 |
 
 ### Конфигурация подключения
 
@@ -290,15 +306,17 @@ internal/modules/<module>/
 
 ### Docker Compose
 
-| Сервис | Образ | Порт | Описание |
-|--------|-------|------|----------|
-| `postgres` | postgres:17-alpine | 5432 (internal) | База данных |
-| `redis` | redis:7-alpine | 6379 (internal) | Кеш |
-| `minio` | minio/minio:latest | 9000, 9001 | Файлы |
-| `backend` | Custom | 8080 | Go API |
-| `frontend` | Custom | 3000 | Next.js |
-| `backup` | Custom | — | Бэкап-сервис |
-| `uptime-kuma` | louislam/uptime-kuma:2 | 3002 | Status page |
+| Сервис | Образ | Порт | Профиль | Описание |
+|--------|-------|------|---------|----------|
+| `postgres` | pgvector/pgvector:pg17 | 5432 (internal) | — | База данных (с pgvector) |
+| `redis` | redis:7-alpine | 6379 (internal) | — | Кеш |
+| `minio` | minio/minio:latest | 9000, 9001 | — | Файлы |
+| `backend` | Custom | 8080 | — | Go API |
+| `frontend` | Custom | 3000 | — | Next.js |
+| `backup` | Custom | — | `backup` | Бэкап-сервис |
+| `n8n` | n8nio/n8n:latest | 5678 | `automation` | Workflow-автоматизация |
+| `agentsim` | Custom | — | `simulation` | Виртуальные пользователи (демо/тесты) |
+| `uptime-kuma` | louislam/uptime-kuma:2 | 3002 | `monitoring` | Status page |
 
 ### Система резервного копирования
 
@@ -397,6 +415,25 @@ internal/modules/<module>/
 |---------|----------|
 | **Провайдер** | Gmail API через Composio |
 | **Типы писем** | Уведомления, напоминания, дайджесты |
+
+### AI / RAG (модуль `ai`)
+
+| Параметр | Описание |
+|----------|----------|
+| **Chat-провайдеры** | OpenAI / Anthropic / Gemini (настраивается через `AI_PROVIDER`) |
+| **Embeddings** | `gemini-embedding-001` (по умолчанию), 3072 измерения |
+| **Векторное хранилище** | PostgreSQL + pgvector |
+| **Назначение** | RAG-поиск, генерация и массовая ревизия РПД (рабочих программ дисциплин) |
+| **Импорт РПД** | Парсинг .docx / PDF → LLM (модуль `work_program`) |
+| **Fallback** | Резервный провайдер при недоступности основного |
+
+### Web Push (VAPID)
+
+| Функция | Описание |
+|---------|----------|
+| **Протокол** | Web Push с VAPID-ключами (`webpush-go`) |
+| **Назначение** | Push-уведомления в браузере |
+| **Деградация** | При незаданных VAPID-ключах функция отключается без ошибок |
 
 ---
 
@@ -608,6 +645,21 @@ TELEGRAM_CHAT_ID=<chat_id>  # Для Grafana алертов
 # 1C Integration
 INTEGRATION_1C_ENABLED=false
 INTEGRATION_1C_BASE_URL=<url>
+
+# AI / RAG (модуль ai, work_program)
+AI_ENABLED=false
+AI_PROVIDER=openai            # openai | anthropic | gemini
+AI_CHAT_MODEL=gemini-2.5-flash
+AI_EMBEDDING_MODEL=gemini-embedding-001
+AI_EMBEDDING_DIMENSIONALITY=3072
+
+# Web Push (VAPID)
+VAPID_PUBLIC_KEY=<public_key>
+VAPID_PRIVATE_KEY=<private_key>
+VAPID_SUBJECT=mailto:admin@example.com
+
+# Sentry Error Tracking
+SENTRY_DSN=<dsn>
 
 # Monitoring
 LOG_LEVEL=info
