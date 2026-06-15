@@ -50,7 +50,7 @@ docs/
 │   └── AUDIT_REPORT.md        # Отчёт аудита безопасности
 ├── 🎭 features/               # Спецификации функций
 │   └── metodych-personality-assistant.md  # AI-ассистент "Методыч"
-├── 💼 business/               # Бизнес-аналитика
+├── 📊 market-research/         # Анализ рынка (issue #80)
 │   └── market-analysis.md
 ├── 🏛️ architecture/ …         # (см. выше) + LOGGING_AND_PERFORMANCE.md, er-diagram-chen.drawio
 ├── 🎓 master-thesis/          # Исходники и генераторы дипломной работы (gitignored)
