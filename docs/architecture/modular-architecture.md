@@ -433,7 +433,7 @@ internal/modules/notifications/
         └── telegram_webhook_handler.go
 ```
 
-**Telegram Integration**: См. [Telegram Bot Integration](../../integrations/telegram-bot.md)
+**Telegram Integration**: См. [Telegram Bot Integration](../integrations/telegram-bot.md)
 
 #### 9. **File Storage Module** 📁 ✅ Реализован
 **Bounded Context**: File Management & Processing
@@ -561,7 +561,7 @@ internal/modules/integration/
 └── module.go
 ```
 
-**См. также**: [1C Integration](../../integrations/README.md#1c-integration)
+**См. также**: [1C Integration](../integrations/README.md#1c-integration)
 
 ## 🔄 Межмодульное взаимодействие
 

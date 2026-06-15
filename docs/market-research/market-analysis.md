@@ -2,7 +2,7 @@
 
 > **Issue:** [#80](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/issues/80)
 > **Дата:** 2026-05-19
-> **Версия проекта:** 0.153.13
+> **Версия проекта:** 0.153.13 (ревизия — 0.214.4, см. блок «Ревизия 2026-06-15» ниже)
 > **Контекст:** дипломный проект, защита близко. Цель — обоснование позиционирования собственной системы относительно существующих российских и зарубежных решений.
 > **Методология:** 11 поисковых запросов + 20+ прямых fetch-чтений vendor-страниц (см. раздел [Источники](#источники-и-ссылки)).
 >
@@ -10,6 +10,14 @@
 > - SITITO 2026 academic peer-reviewed paper "Сравнительный анализ информационных систем для автоматизации управления учебным процессом в вузе" — таймаут при fetch, прочитан только title из search results.
 > - Реестр Минцифры (reestr.digital.gov.ru) — проверка реестровых номеров конкретных систем не выполнена; статус ✅ указан на основе vendor-страниц где это явно декларируется.
 > - Pricing для ТАНДЕМ / Галактика / Naumen / ММИС / Modeus — все используют custom quote model и публично не раскрывают; цифры являются обобщёнными по аналогии с 1С-моделью.
+
+> **⟳ Ревизия 2026-06-15 (проект v0.214.4).** Анализ переподтверждён повторным веб-ресёрчем; выводы и позиционирование остаются в силе. Что подтверждено и что изменилось с мая 2026:
+> - **Размер рынка — актуален:** 3 200 колледжей и техникумов, 393 вуза с программами СПО, **3,9 млн студентов СПО** (рекорд за 50 лет); в 2025 поступило ~1,3 млн человек, утверждено 850,8 тыс. бюджетных мест. TAM/SAM/SOM (раздел 7) пересчёта не требует.
+> - **Цены «1С» растут:** фирма «1С» анонсировала повышение цен **в 2 этапа — апрель и июль 2026**. 1С:Колледж ПРОФ ред. 2.1 — 157 300–179 300 ₽ (региональная электронная поставка — 228 000 ₽); активация обновления конфигурации 6 мес — 16 000 ₽, 12 мес — 27 400 ₽. TCO-преимущество нашей системы при этом только усиливается.
+> - **НДС повышен до 22 %**, наличие в реестре отечественного ПО даёт льготу по НДС → значимость импортозамещения и реестра выросла (наш gap «не в реестре» — приоритетный followup).
+> - **Modeus (CUSTIS)** активно расширяется в топ-вузах (ЮФУ полностью переходит с 2026 г., САФУ начинает внедрение) — подтверждает, что Modeus играет в сегменте крупных исследовательских вузов; **ниша малых/средних СПО остаётся свободной**.
+> - **Naumen University** заявляет ИИ-поиск на основе big data → уточнение дифференциатора: уникален не «ИИ вообще», а **RAG-чат по корпусу документов учреждения** (pgvector), которого нет ни у одной из проверенных систем.
+> - Факты о нашей системе обновлены под v0.214.4 (Next.js 16, 20 модулей, 179 релизов).
 
 ## Executive summary
 
@@ -424,11 +432,11 @@ Active users считаются до явного удаления (не "concur
 | Параметр | Значение |
 |----------|----------|
 | Backend | Go 1.25 + Gin + PostgreSQL 17 (pgvector) + Redis 7 + MinIO |
-| Frontend | Next.js 15 + TypeScript + Tailwind + Radix UI + SWR |
+| Frontend | Next.js 16 + React 19 + TypeScript + Tailwind + Radix UI + SWR |
 | Realtime | WebSocket для мессенджера и уведомлений |
 | Integration | 1С OData v4 client, Composio (Telegram bot), n8n workflows, Web Push (VAPID), Sentry, Grafana |
 | AI | RAG-chat с pgvector + cited generation, daily facts scheduler |
-| Architecture | Модульный монолит, Clean Architecture / DDD, 15 модулей, 90.2% backend test coverage |
+| Architecture | Модульный монолит, Clean Architecture / DDD, 20 модулей (18 доменных + 2 агрегирующих), 90%+ backend test coverage |
 | i18n | ru/en/fr/ar (RTL для арабского) |
 | MFA | TOTP RFC 6238 (self-implemented) + JWT + Redis blacklist |
 | Development | Open-source self-hosted, Docker Compose, любая Linux VM |
@@ -440,7 +448,7 @@ Active users считаются до явного удаления (не "concur
 ### 5.1 Конкурентные преимущества
 
 1. **Современный UX**:
-   - Next.js 15 + React + Tailwind вместо desktop-frame
+   - Next.js 16 + React 19 + Tailwind вместо desktop-frame
    - Mobile-friendly (PWA + Service Worker offline page)
    - Realtime via WebSocket (мессенджер, уведомления)
    - i18n × 4 (ru/en/fr/ar с RTL)
@@ -458,7 +466,7 @@ Active users считаются до явного удаления (не "concur
    - JWT + Redis blacklist (logout = revocation)
    - Audit logs persistence + read API + UI
    - GitHub Security: 0 dependabot / 0 secret-scanning / 0 CodeQL alerts (SECURITY.md + 7 toggles)
-   - **90.2% backend test coverage** (strict > 90.0%, 103 cumulative releases с code-review compliance)
+   - **90%+ backend test coverage** (strict-90 gate, 179 релизов с code-review compliance)
 
 4. **AI-первичность**:
    - RAG chat с pgvector для контекстных ответов из документов учреждения
@@ -709,3 +717,13 @@ Active users считаются до явного удаления (не "concur
 36. [1С:Колледж ПРОФ features (solutions.1c.ru)](https://solutions.1c.ru/catalog/college-prof/features)
 
 ---
+
+### Источники ревизии (fetched 2026-06-15)
+
+- [1С:Колледж ПРОФ — приобретение](https://solutions.1c.ru/catalog/college-prof/buy) — цены ред. 2.1
+- [Рост цен на программы 1С в 2026](https://itsvsem.ru/blog/news/povyshenie-cen-na-programmy-1s/) — повышение в 2 этапа (апрель, июль 2026)
+- [Число студентов СПО — рекорд за 50 лет (Фонтанка, 03.12.2025)](https://www.fontanka.ru/2025/12/03/76153591/) — 3,9 млн студентов, 3 200 колледжей, 393 вуза с СПО
+- [Около 1,3 млн поступивших в колледжи в 2025 (Интерфакс)](https://www.interfax.ru/russia/1063309)
+- [Реестр отечественного ПО вырос в 4 раза, 27 тыс. продуктов (TAdviser)](https://www.tadviser.ru/index.php/Статья:Реестр_отечественного_программного_обеспечения) — льгота по НДС
+- [ЮФУ полностью переходит на Modeus с 2026 (РБК)](https://companies.rbc.ru/news/zWa65SS0Tp/yufu-i-iot-universitet-gotovyat-perehod-institutov-yufu-na-modeus-s-2026-go/)
+- [Naumen University — ИИ-поиск и обработка big data](https://www.naumen.ru/products/university/)
