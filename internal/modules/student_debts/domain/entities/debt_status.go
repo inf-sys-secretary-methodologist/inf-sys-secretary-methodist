@@ -29,10 +29,20 @@ const (
 )
 
 // IsValid reports whether s is one of the recognized statuses.
-func (s DebtStatus) IsValid() bool { return false } // RED stub
+func (s DebtStatus) IsValid() bool {
+	switch s {
+	case DebtStatusOpen, DebtStatusResitScheduled, DebtStatusCommission,
+		DebtStatusClosedPassed, DebtStatusClosedFailed:
+		return true
+	default:
+		return false
+	}
+}
 
 // IsClosed reports whether s is a terminal status (no further transitions).
-func (s DebtStatus) IsClosed() bool { return false } // RED stub
+func (s DebtStatus) IsClosed() bool {
+	return s == DebtStatusClosedPassed || s == DebtStatusClosedFailed
+}
 
 // Validate returns nil for a recognized status, else wraps ErrInvalidDebtStatus.
 func (s DebtStatus) Validate() error {

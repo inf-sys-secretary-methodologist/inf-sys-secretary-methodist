@@ -26,10 +26,19 @@ const (
 )
 
 // IsValid reports whether r is one of the recognized results.
-func (r ResitResult) IsValid() bool { return false } // RED stub
+func (r ResitResult) IsValid() bool {
+	switch r {
+	case ResitResultPending, ResitResultPassed, ResitResultFailed, ResitResultNoShow:
+		return true
+	default:
+		return false
+	}
+}
 
 // IsFinal reports whether r is a recorded outcome (anything but pending).
-func (r ResitResult) IsFinal() bool { return false } // RED stub
+func (r ResitResult) IsFinal() bool {
+	return r == ResitResultPassed || r == ResitResultFailed || r == ResitResultNoShow
+}
 
 // Validate returns nil for a recognized result, else wraps ErrInvalidResitResult.
 func (r ResitResult) Validate() error {

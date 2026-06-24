@@ -28,7 +28,14 @@ const (
 )
 
 // IsValid reports whether c is one of the recognized forms.
-func (c ControlForm) IsValid() bool { return false } // RED stub
+func (c ControlForm) IsValid() bool {
+	switch c {
+	case ControlFormZachet, ControlFormExam, ControlFormCourseProject, ControlFormDifferentialZachet:
+		return true
+	default:
+		return false
+	}
+}
 
 // Validate returns nil for a recognized form, else wraps ErrInvalidControlForm.
 func (c ControlForm) Validate() error {
