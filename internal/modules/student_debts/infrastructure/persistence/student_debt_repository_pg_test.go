@@ -74,6 +74,19 @@ func TestStudentDebtRepositoryPG_Save_WithAttempt_InsertsBoth(t *testing.T) {
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO student_debts")).
+		WithArgs(
+			"Иванов Иван",     // student_full_name
+			"ИВТ-21",          // group_name
+			"Базы данных",     // discipline_name
+			3,                 // semester
+			"exam",            // control_form
+			sqlmock.AnyArg(),  // student_user_id (NULL)
+			sqlmock.AnyArg(),  // discipline_id (NULL)
+			"",                // source_ref
+			"",                // source_hash
+			"resit_scheduled", // status (ScheduleResit moved it off open)
+			1,                 // version
+		).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(55)))
 	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO debt_resit_attempts")).
 		WithArgs(
@@ -157,6 +170,57 @@ func TestStudentDebtRepositoryPG_GetByID_HydratesRootAndAttempts(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestStudentDebtRepositoryPG_GetByID_HydratesNullableColumns(t *testing.T) {
+	repo, mock := newSDRepoMock(t)
+
+	now := time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC)
+	sched := time.Date(2026, 7, 1, 9, 0, 0, 0, time.UTC)
+	recorded := time.Date(2026, 7, 1, 11, 0, 0, 0, time.UTC)
+
+	// Every nullable column is populated so the non-null unwrap branch of
+	// nullInt64Ptr / nullInt32Ptr / nullTimePtr is exercised — a wrong
+	// pointer or lost value would surface here, not in the all-NULL case.
+	mock.ExpectQuery(regexp.QuoteMeta("FROM student_debts WHERE id = $1")).
+		WithArgs(int64(55)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "student_full_name", "group_name", "discipline_name",
+			"semester", "control_form", "student_user_id", "discipline_id",
+			"source_ref", "source_hash", "status", "version",
+			"created_at", "updated_at",
+		}).AddRow(
+			int64(55), "Иванов Иван", "ИВТ-21", "Базы данных",
+			3, "exam", int64(42), int64(7), "ved-7", "abc", "closed_passed", 4,
+			now, now,
+		))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM debt_resit_attempts WHERE debt_id = $1")).
+		WithArgs(int64(55)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "debt_id", "attempt_no", "scheduled_date", "examiner",
+			"is_commission", "result", "grade", "recorded_by", "recorded_at",
+		}).AddRow(
+			int64(900), int64(55), 1, sched, "Петров П.П.",
+			true, "passed", int64(5), int64(42), recorded,
+		))
+
+	d, err := repo.GetByID(context.Background(), 55)
+	require.NoError(t, err)
+	require.NotNil(t, d.StudentUserID)
+	assert.Equal(t, int64(42), *d.StudentUserID)
+	require.NotNil(t, d.DisciplineID)
+	assert.Equal(t, int64(7), *d.DisciplineID)
+
+	require.Len(t, d.Attempts(), 1)
+	a := d.Attempts()[0]
+	assert.True(t, a.IsCommission)
+	require.NotNil(t, a.Grade())
+	assert.Equal(t, 5, *a.Grade())
+	require.NotNil(t, a.RecordedBy())
+	assert.Equal(t, int64(42), *a.RecordedBy())
+	require.NotNil(t, a.RecordedAt())
+	assert.Equal(t, recorded, *a.RecordedAt())
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestStudentDebtRepositoryPG_GetByID_NotFound_MapsSentinel(t *testing.T) {
 	repo, mock := newSDRepoMock(t)
 
@@ -222,6 +286,28 @@ func TestStudentDebtRepositoryPG_Update_HappyPath_BumpsVersion(t *testing.T) {
 	err := repo.Update(context.Background(), d)
 	require.NoError(t, err)
 	assert.Equal(t, 2, d.Version, "Update should reflect the server-side version bump")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestStudentDebtRepositoryPG_Update_IdentityConflict_MapsSentinel(t *testing.T) {
+	repo, mock := newSDRepoMock(t)
+	d := freshOpenDebt(t)
+	d.ID = 55
+
+	// Re-import can correct a typo in the natural key (group / name /
+	// discipline / semester); if the corrected key collides with another
+	// debt, the UPDATE raises 23505 and the repo must surface the same
+	// identity sentinel as Save so the use case treats it consistently.
+	mock.ExpectBegin()
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE student_debts SET")).
+		WillReturnError(&pq.Error{
+			Code:       "23505",
+			Constraint: "uq_student_debts_identity",
+		})
+	mock.ExpectRollback()
+
+	err := repo.Update(context.Background(), d)
+	assert.ErrorIs(t, err, repositories.ErrStudentDebtIdentityExists)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
