@@ -96,7 +96,9 @@ CREATE TABLE IF NOT EXISTS debt_resit_attempts (
     recorded_at    TIMESTAMPTZ,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    -- Mirrors NewResitAttempt: attempt number monotonic & positive.
+    -- Mirrors NewResitAttempt: attempt number positive. Monotonicity is
+    -- enforced by the domain + the (debt_id, attempt_no) UNIQUE below,
+    -- not by this CHECK.
     CONSTRAINT chk_dra_attempt_no_positive
         CHECK (attempt_no > 0),
     CONSTRAINT chk_dra_examiner_nonempty
