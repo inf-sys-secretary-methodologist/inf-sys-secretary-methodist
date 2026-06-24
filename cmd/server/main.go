@@ -176,6 +176,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
 	authCrypto "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/crypto"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/health"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/metrics"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/middleware"
@@ -202,6 +203,22 @@ func handleVersionFlag() bool {
 		return true
 	}
 	return false
+}
+
+// handleHealthCheckFlag handles the `-healthcheck` subcommand invoked by the
+// container/compose healthcheck. The runtime image is built FROM scratch and
+// has no shell/wget/curl, so the binary probes its own /health endpoint and
+// terminates the process with the probe's exit code (0 healthy, 1 unhealthy).
+// It calls os.Exit directly because a healthcheck invocation never boots the
+// server; it returns only when the flag is absent.
+func handleHealthCheckFlag() {
+	if len(os.Args) > 1 && os.Args[1] == "-healthcheck" {
+		port := os.Getenv("SERVER_PORT")
+		if port == "" {
+			port = "8080"
+		}
+		os.Exit(health.Probe("http://localhost:"+port+"/health", 3*time.Second))
+	}
 }
 
 // initSentry wires Sentry error tracking when SENTRY_DSN is set. Failures are logged, never fatal.
@@ -382,6 +399,7 @@ func main() {
 	if handleVersionFlag() {
 		return
 	}
+	handleHealthCheckFlag() // exits the process when -healthcheck is passed
 
 	cfg, err := config.Load()
 	if err != nil {
