@@ -1,0 +1,35 @@
+# Additive override for end-to-end testing of the 1С integration against a
+# local fake-1С OData server. Does NOT touch the shared compose.yml.
+#
+#   docker compose -f compose.yml -f compose.mock-1c.yml up -d --build
+#   # then trigger a sync as admin:
+#   POST /api/integration/sync/start {"entity_type":"employee"}
+#   POST /api/integration/sync/start {"entity_type":"student"}
+#   GET  /api/integration/employees   # synced rows from Postgres
+#
+# A real public 1С OData test server does not exist; this serves the exact
+# Catalog_Сотрудники / Catalog_Студенты shape the integration consumes.
+
+services:
+  mock-1c:
+    build:
+      context: .
+      dockerfile: cmd/mock-1c/Dockerfile
+    container_name: mock-1c
+    environment:
+      MOCK_1C_PORT: 9191
+    networks:
+      - default
+
+  backend:
+    environment:
+      INTEGRATION_1C_ENABLED: "true"
+      INTEGRATION_1C_BASE_URL: http://mock-1c:9191
+      INTEGRATION_1C_USERNAME: demo
+      INTEGRATION_1C_PASSWORD: demo
+      # Trigger syncs manually via the API for the demo; disable the cron jobs.
+      INTEGRATION_1C_SYNC_CRON_EMPLOYEE: ""
+      INTEGRATION_1C_SYNC_CRON_STUDENT: ""
+    depends_on:
+      mock-1c:
+        condition: service_started
