@@ -210,7 +210,9 @@ services:
       - backup_data:/var/backups:ro
       - backup_metrics:/var/backup_metrics:ro
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      # The runtime image is built FROM scratch (no shell/wget/curl), so the
+      # binary probes its own /health endpoint via the -healthcheck subcommand.
+      test: ["CMD", "/server", "-healthcheck"]
       interval: 10s
       timeout: 5s
       retries: 10
