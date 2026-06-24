@@ -2,6 +2,8 @@ package entities
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -48,7 +50,22 @@ type StudentDebt struct {
 // NewStudentDebt creates an open debt. Required: student name, group,
 // discipline name; semester ∈ [1,12]; a valid control form.
 func NewStudentDebt(studentName, group, discipline string, semester int, form ControlForm) (*StudentDebt, error) {
-	// RED stub — no validation, status not initialized through invariants.
+	studentName = strings.TrimSpace(studentName)
+	group = strings.TrimSpace(group)
+	discipline = strings.TrimSpace(discipline)
+	switch {
+	case studentName == "":
+		return nil, fmt.Errorf("%w: student name is required", ErrInvalidStudentDebt)
+	case group == "":
+		return nil, fmt.Errorf("%w: group is required", ErrInvalidStudentDebt)
+	case discipline == "":
+		return nil, fmt.Errorf("%w: discipline is required", ErrInvalidStudentDebt)
+	case semester < 1 || semester > 12:
+		return nil, fmt.Errorf("%w: semester must be in [1,12], got %d", ErrInvalidStudentDebt, semester)
+	}
+	if err := form.Validate(); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrInvalidStudentDebt, err)
+	}
 	return &StudentDebt{
 		StudentFullName: studentName,
 		GroupName:       group,
@@ -64,7 +81,20 @@ func NewStudentDebt(studentName, group, discipline string, semester int, form Co
 // resit_scheduled. Allowed only from open or commission state. A resit
 // scheduled from commission state is itself a commission attempt.
 func (d *StudentDebt) ScheduleResit(scheduledDate time.Time, examiner string, now time.Time) error {
-	// RED stub — no transition performed.
+	if d.status.IsClosed() {
+		return ErrDebtClosed
+	}
+	if d.status != DebtStatusOpen && d.status != DebtStatusCommission {
+		return fmt.Errorf("%w: cannot schedule a resit from %q", ErrInvalidTransition, d.status)
+	}
+	isCommission := d.status == DebtStatusCommission
+	attempt, err := NewResitAttempt(len(d.attempts)+1, scheduledDate, examiner, isCommission)
+	if err != nil {
+		return err
+	}
+	d.attempts = append(d.attempts, attempt)
+	d.status = DebtStatusResitScheduled
+	d.updatedAt = now
 	return nil
 }
 
@@ -73,8 +103,44 @@ func (d *StudentDebt) ScheduleResit(scheduledDate time.Time, examiner string, no
 // when it was a commission attempt, else → commission once failed regular
 // attempts reach attemptsBeforeCommission, otherwise back to open.
 func (d *StudentDebt) RecordResitResult(result ResitResult, grade *int, recordedBy int64, recordedAt time.Time, attemptsBeforeCommission int) error {
-	// RED stub — no transition performed.
+	if d.status != DebtStatusResitScheduled || len(d.attempts) == 0 {
+		return ErrNoScheduledResit
+	}
+	latest := d.attempts[len(d.attempts)-1]
+	wasCommission := latest.IsCommission
+	if err := latest.Record(result, grade, recordedBy, recordedAt); err != nil {
+		return err
+	}
+
+	if attemptsBeforeCommission < 1 {
+		attemptsBeforeCommission = 1
+	}
+	switch {
+	case result == ResitResultPassed:
+		d.status = DebtStatusClosedPassed
+	case wasCommission:
+		d.status = DebtStatusClosedFailed
+	case d.failedRegularAttempts() >= attemptsBeforeCommission:
+		d.status = DebtStatusCommission
+	default:
+		d.status = DebtStatusOpen
+	}
+	d.updatedAt = recordedAt
 	return nil
+}
+
+// failedRegularAttempts counts recorded failed/no_show non-commission attempts.
+func (d *StudentDebt) failedRegularAttempts() int {
+	n := 0
+	for _, a := range d.attempts {
+		if a.IsCommission {
+			continue
+		}
+		if r := a.Result(); r == ResitResultFailed || r == ResitResultNoShow {
+			n++
+		}
+	}
+	return n
 }
 
 // Status returns the current FSM state.
