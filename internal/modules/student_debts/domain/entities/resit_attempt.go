@@ -2,6 +2,8 @@ package entities
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -39,7 +41,16 @@ type ResitAttempt struct {
 // NewResitAttempt creates a pending attempt. attemptNo must be positive,
 // examiner non-empty, scheduledDate non-zero.
 func NewResitAttempt(attemptNo int, scheduledDate time.Time, examiner string, isCommission bool) (*ResitAttempt, error) {
-	// RED stub — no validation yet.
+	if attemptNo <= 0 {
+		return nil, fmt.Errorf("%w: attempt number must be positive, got %d", ErrInvalidResitAttempt, attemptNo)
+	}
+	examiner = strings.TrimSpace(examiner)
+	if examiner == "" {
+		return nil, fmt.Errorf("%w: examiner is required", ErrInvalidResitAttempt)
+	}
+	if scheduledDate.IsZero() {
+		return nil, fmt.Errorf("%w: scheduled date is required", ErrInvalidResitAttempt)
+	}
 	return &ResitAttempt{
 		AttemptNo:     attemptNo,
 		IsCommission:  isCommission,
@@ -49,10 +60,23 @@ func NewResitAttempt(attemptNo int, scheduledDate time.Time, examiner string, is
 	}, nil
 }
 
-// Record sets the final outcome of the attempt.
+// Record sets the final outcome of the attempt. The result must be a valid,
+// final outcome (not pending); recordedBy must be positive; an attempt whose
+// outcome is already final cannot be re-recorded.
 func (a *ResitAttempt) Record(result ResitResult, grade *int, recordedBy int64, recordedAt time.Time) error {
-	// RED stub — no invariants enforced yet.
+	if a.result.IsFinal() {
+		return ErrAttemptAlreadyRecorded
+	}
+	if !result.IsValid() || !result.IsFinal() {
+		return fmt.Errorf("%w: result %q is not a final outcome", ErrInvalidResitRecord, result)
+	}
+	if recordedBy <= 0 {
+		return fmt.Errorf("%w: recordedBy must be positive", ErrInvalidResitRecord)
+	}
 	a.result = result
+	a.grade = grade
+	a.recordedBy = &recordedBy
+	a.recordedAt = &recordedAt
 	return nil
 }
 
