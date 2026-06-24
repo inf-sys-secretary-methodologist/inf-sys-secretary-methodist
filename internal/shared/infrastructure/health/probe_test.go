@@ -47,6 +47,20 @@ func TestProbe_UnreachableHost(t *testing.T) {
 	}
 }
 
+func TestProbe_Timeout(t *testing.T) {
+	// Server responds slower than the probe timeout: the bounded context
+	// must cancel the request and report the unhealthy exit code.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		time.Sleep(200 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	if got := health.Probe(srv.URL, 20*time.Millisecond); got != 1 {
+		t.Errorf("Probe() on slow server exit = %d, want 1", got)
+	}
+}
+
 func TestProbe_InvalidURL(t *testing.T) {
 	if got := health.Probe("://not-a-url", time.Second); got != 1 {
 		t.Errorf("Probe() on invalid URL exit = %d, want 1", got)
