@@ -43,15 +43,12 @@ type Module struct {
 	mu        sync.RWMutex
 }
 
-// NewModule creates a new integration module
-func NewModule(db *sql.DB, cfg *config.IntegrationConfig, logger *logging.Logger) (*Module, error) {
-	if !cfg.Enabled {
-		logger.Info("Integration module is disabled", nil)
-		return &Module{config: cfg, logger: logger}, nil
-	}
-
-	// Initialize OData client
-	odataConfig := &odata.Config{
+// buildODataConfig maps the integration config into the OData client config.
+// The 1C catalog names MUST be carried through: without them the client falls
+// back to the empty endpoint and every fetch hits the OData service root,
+// returning zero rows (the sync then "completes" having imported nothing).
+func buildODataConfig(cfg *config.IntegrationConfig) *odata.Config {
+	return &odata.Config{
 		BaseURL:    cfg.BaseURL,
 		Username:   cfg.Username,
 		Password:   cfg.Password,
@@ -59,7 +56,17 @@ func NewModule(db *sql.DB, cfg *config.IntegrationConfig, logger *logging.Logger
 		MaxRetries: cfg.MaxRetries,
 		RetryDelay: cfg.RetryDelay,
 	}
-	odataClient := odata.NewClient(odataConfig)
+}
+
+// NewModule creates a new integration module.
+func NewModule(db *sql.DB, cfg *config.IntegrationConfig, logger *logging.Logger) (*Module, error) {
+	if !cfg.Enabled {
+		logger.Info("Integration module is disabled", nil)
+		return &Module{config: cfg, logger: logger}, nil
+	}
+
+	// Initialize OData client
+	odataClient := odata.NewClient(buildODataConfig(cfg))
 
 	// Initialize repositories
 	syncLogRepo := persistence.NewSyncLogRepositoryPg(db)
