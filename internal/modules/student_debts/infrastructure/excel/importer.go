@@ -67,7 +67,7 @@ func (i *DebtImporter) Import(_ context.Context, r io.Reader) ([]usecases.Import
 
 	var out []usecases.ImportedDebt
 	for n, row := range rows[1:] {
-		if isBlankRow(row) {
+		if isBlankImportRow(row) {
 			continue
 		}
 		parsed, err := parseRow(row)
@@ -134,10 +134,14 @@ func parseSemester(s string) int {
 	return n
 }
 
-// isBlankRow reports whether every cell in the row is empty/whitespace.
-func isBlankRow(row []string) bool {
-	for _, c := range row {
-		if strings.TrimSpace(c) != "" {
+// isBlankImportRow reports whether every import-relevant column is
+// empty/whitespace. Display-only columns are ignored, so a row carrying
+// only a stray value in (say) the Статус column is treated as blank and
+// skipped rather than parsed into an empty-identity row that the domain
+// would reject as noise.
+func isBlankImportRow(row []string) bool {
+	for i := range importColumns {
+		if at(row, i) != "" {
 			return false
 		}
 	}

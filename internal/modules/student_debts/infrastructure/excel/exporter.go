@@ -138,7 +138,8 @@ func writeAttemptRow(f *excelize.File, row int, debtID int64, a *entities.ResitA
 	})
 }
 
-// latestAttempt returns the most recent attempt (last in attempt-no order),
+// latestAttempt returns the most recent attempt (the last element, which
+// the repository hydrates and the aggregate appends in attempt-no order),
 // or nil when the debt has none.
 func latestAttempt(d *entities.StudentDebt) *entities.ResitAttempt {
 	attempts := d.Attempts()

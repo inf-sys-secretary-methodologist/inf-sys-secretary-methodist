@@ -109,36 +109,61 @@ func TestDebtImporter_NonNumericSemesterDefersToDomain(t *testing.T) {
 	}
 }
 
-func TestDebtImporter_HeaderRowShorterThanExpectedIsRejected(t *testing.T) {
-	data := buildWorkbook(t, "", [][]string{
-		{"ID", "Источник", "ФИО студента"}, // truncated header
-		{"55", "", "Иванов Иван", "ИВТ-21", "Базы данных", "3", "exam"},
-	})
-
-	_, err := excel.NewDebtImporter().Import(context.Background(), bytes.NewReader(data))
-	if err == nil {
-		t.Fatal("expected a parse error for a malformed header")
-	}
-}
-
-func TestDebtImporter_MissingRegistrySheetIsRejected(t *testing.T) {
-	data := buildWorkbook(t, "НеТот", [][]string{registryHeaderRow})
-
-	_, err := excel.NewDebtImporter().Import(context.Background(), bytes.NewReader(data))
-	if err == nil {
-		t.Fatal("expected a parse error when the registry sheet is absent")
-	}
-}
-
-func TestDebtImporter_UnparseableServiceIDIsRejected(t *testing.T) {
-	// A corrupt machine-written id means the file is not a valid export.
+func TestDebtImporter_SkipsRowsBlankInImportColumns(t *testing.T) {
+	// Only a display-only column (Статус, the 8th) carries a stray value;
+	// every import-relevant column is blank → the row is skipped rather than
+	// parsed into an empty-identity row.
 	data := buildWorkbook(t, "", [][]string{
 		registryHeaderRow,
-		{"не-число", "", "Иванов Иван", "ИВТ-21", "Базы данных", "3", "exam"},
+		{"55", "", "Иванов Иван", "ИВТ-21", "Базы данных", "3", "exam"},
+		{"", "", "", "", "", "", "", "Открыт"},
 	})
 
-	_, err := excel.NewDebtImporter().Import(context.Background(), bytes.NewReader(data))
-	if err == nil {
-		t.Fatal("expected a parse error for an unparseable service id")
+	rows, err := excel.NewDebtImporter().Import(context.Background(), bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("import: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("expected the display-only stray row skipped (1 row), got %d", len(rows))
+	}
+}
+
+func TestDebtImporter_RejectsMalformedDocuments(t *testing.T) {
+	cases := []struct {
+		name string
+		data func(t *testing.T) []byte
+	}{
+		{
+			name: "truncated header",
+			data: func(t *testing.T) []byte {
+				return buildWorkbook(t, "", [][]string{
+					{"ID", "Источник", "ФИО студента"},
+					{"55", "", "Иванов Иван", "ИВТ-21", "Базы данных", "3", "exam"},
+				})
+			},
+		},
+		{
+			name: "missing registry sheet",
+			data: func(t *testing.T) []byte {
+				return buildWorkbook(t, "НеТот", [][]string{registryHeaderRow})
+			},
+		},
+		{
+			name: "unparseable service id",
+			data: func(t *testing.T) []byte {
+				return buildWorkbook(t, "", [][]string{
+					registryHeaderRow,
+					{"не-число", "", "Иванов Иван", "ИВТ-21", "Базы данных", "3", "exam"},
+				})
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := excel.NewDebtImporter().Import(context.Background(), bytes.NewReader(tc.data(t)))
+			if err == nil {
+				t.Fatal("expected a document-level parse error")
+			}
+		})
 	}
 }
