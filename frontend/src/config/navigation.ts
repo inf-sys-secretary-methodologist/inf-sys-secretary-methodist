@@ -25,6 +25,7 @@ import {
   UserCog,
   Plug,
   Bot,
+  AlertTriangle,
   Image as ImageIcon,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
@@ -278,6 +279,23 @@ export const navigationConfig: NavEntry[] = [
           UserRole.METHODIST,
           UserRole.ACADEMIC_SECRETARY,
           UserRole.TEACHER,
+        ],
+      },
+      {
+        // Student debts (долги студентов) — academic-debt registry.
+        // Visible to all five roles: staff + teacher land on the registry
+        // (the backend scopes a teacher to owned disciplines), while a
+        // student is redirected by the page to /student-debts/my (the
+        // registry endpoint denies students; they read only their own).
+        nameKey: 'studentDebts',
+        url: '/student-debts',
+        icon: AlertTriangle,
+        roles: [
+          UserRole.SYSTEM_ADMIN,
+          UserRole.METHODIST,
+          UserRole.ACADEMIC_SECRETARY,
+          UserRole.TEACHER,
+          UserRole.STUDENT,
         ],
       },
     ],
