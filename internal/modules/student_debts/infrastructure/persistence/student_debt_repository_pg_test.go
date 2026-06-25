@@ -335,6 +335,87 @@ func TestStudentDebtRepositoryPG_List_FiltersByDisciplineIDs(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// --- ListForExport ---------------------------------------------------------
+
+func sdRootRows() *sqlmock.Rows {
+	return sqlmock.NewRows([]string{
+		"id", "student_full_name", "group_name", "discipline_name",
+		"semester", "control_form", "student_user_id", "discipline_id",
+		"source_ref", "source_hash", "status", "version",
+		"created_at", "updated_at",
+	})
+}
+
+func draAttemptRows() *sqlmock.Rows {
+	return sqlmock.NewRows([]string{
+		"id", "debt_id", "attempt_no", "scheduled_date", "examiner",
+		"is_commission", "result", "grade", "recorded_by", "recorded_at",
+	})
+}
+
+func TestStudentDebtRepositoryPG_ListForExport_HydratesAggregatesWithAttempts(t *testing.T) {
+	repo, mock := newSDRepoMock(t)
+	now := time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC)
+	sched := time.Date(2026, 7, 1, 9, 0, 0, 0, time.UTC)
+
+	// Two roots in one query (no LIMIT/OFFSET — the whole registry).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT " + sdSelectColumns + " FROM student_debts")).
+		WillReturnRows(sdRootRows().
+			AddRow(int64(1), "Иванов Иван", "ИВТ-21", "Базы данных", 3, "exam", nil, nil, "ved-1", "h1", "resit_scheduled", 2, now, now).
+			AddRow(int64(2), "Петров Пётр", "ИВТ-21", "Сети", 4, "zachet", nil, nil, "ved-2", "h2", "commission", 3, now, now))
+	// One batched attempts query keyed by debt_id = ANY(...); attempts for
+	// both debts arrive together and must be grouped onto the right root.
+	mock.ExpectQuery(regexp.QuoteMeta("FROM debt_resit_attempts WHERE debt_id = ANY")).
+		WithArgs(pq.Array([]int64{1, 2})).
+		WillReturnRows(draAttemptRows().
+			AddRow(int64(900), int64(1), 1, sched, "Петров П.П.", false, "pending", nil, nil, nil).
+			AddRow(int64(901), int64(2), 1, sched, "Сидоров С.С.", false, "failed", nil, nil, nil).
+			AddRow(int64(902), int64(2), 2, sched, "Комиссия", true, "pending", nil, nil, nil))
+
+	debts, err := repo.ListForExport(context.Background(), repositories.StudentDebtListFilter{})
+	require.NoError(t, err)
+	require.Len(t, debts, 2)
+	assert.Equal(t, int64(1), debts[0].ID)
+	require.Len(t, debts[0].Attempts(), 1)
+	assert.Equal(t, int64(2), debts[1].ID)
+	require.Len(t, debts[1].Attempts(), 2, "second debt's two attempts must group onto it, not leak to the first")
+	assert.True(t, debts[1].Attempts()[1].IsCommission)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestStudentDebtRepositoryPG_ListForExport_Empty_SkipsAttemptQuery(t *testing.T) {
+	repo, mock := newSDRepoMock(t)
+
+	// No roots → the impl must NOT issue the attempts query (ANY('{}') would
+	// be a wasted round-trip) and returns an empty slice, not an error.
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT " + sdSelectColumns + " FROM student_debts")).
+		WillReturnRows(sdRootRows())
+
+	debts, err := repo.ListForExport(context.Background(), repositories.StudentDebtListFilter{GroupName: "НЕТ"})
+	require.NoError(t, err)
+	assert.Empty(t, debts)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestStudentDebtRepositoryPG_ListForExport_FiltersByDisciplineIDs(t *testing.T) {
+	repo, mock := newSDRepoMock(t)
+	now := time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC)
+
+	// Teacher scope: the root query must carry discipline_id = ANY(...).
+	mock.ExpectQuery(regexp.QuoteMeta("discipline_id = ANY")).
+		WillReturnRows(sdRootRows().
+			AddRow(int64(5), "Иванов Иван", "ИВТ-21", "Базы данных", 3, "exam", nil, int64(7), "ved-5", "h5", "open", 1, now, now))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM debt_resit_attempts WHERE debt_id = ANY")).
+		WithArgs(pq.Array([]int64{5})).
+		WillReturnRows(draAttemptRows())
+
+	debts, err := repo.ListForExport(context.Background(), repositories.StudentDebtListFilter{DisciplineIDs: []int64{7, 9}})
+	require.NoError(t, err)
+	require.Len(t, debts, 1)
+	assert.Empty(t, debts[0].Attempts())
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 // --- Update ----------------------------------------------------------------
 
 func TestStudentDebtRepositoryPG_Update_HappyPath_BumpsVersion(t *testing.T) {
