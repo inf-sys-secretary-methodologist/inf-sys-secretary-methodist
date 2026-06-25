@@ -83,6 +83,12 @@ func NewStudentDebt(studentName, group, discipline string, semester int, form Co
 	}, nil
 }
 
+// UpdateSourceFields refreshes the denormalized identity fields from a
+// re-import (RED stub).
+func (d *StudentDebt) UpdateSourceFields(studentName, group, discipline string, semester int, form ControlForm) error {
+	return fmt.Errorf("%w: UpdateSourceFields not implemented", ErrInvalidStudentDebt)
+}
+
 // ScheduleResit appends a new resit attempt and moves the debt into
 // resit_scheduled. Allowed only from open or commission state. A resit
 // scheduled from commission state is itself a commission attempt.

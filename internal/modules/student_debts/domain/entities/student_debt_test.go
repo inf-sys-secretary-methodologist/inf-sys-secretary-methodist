@@ -54,6 +54,53 @@ func TestNewStudentDebt_Invalid(t *testing.T) {
 	}
 }
 
+func TestUpdateSourceFields(t *testing.T) {
+	t.Run("refreshes denormalized fields, preserves lifecycle", func(t *testing.T) {
+		d := newOpenDebt(t)
+		now := time.Now()
+		_ = d.ScheduleResit(now.Add(72*time.Hour), "Петров", now) // status resit_scheduled, 1 attempt
+
+		err := d.UpdateSourceFields("Кузнецов Денис Алексеевич", "БИ-21", "Базы данных и СУБД", 4, entities.ControlFormDifferentialZachet)
+		if err != nil {
+			t.Fatalf("UpdateSourceFields valid: %v", err)
+		}
+		if d.StudentFullName != "Кузнецов Денис Алексеевич" || d.DisciplineName != "Базы данных и СУБД" || d.Semester != 4 {
+			t.Errorf("fields not refreshed: %+v", d)
+		}
+		if d.ControlForm != entities.ControlFormDifferentialZachet {
+			t.Errorf("control form not refreshed: %q", d.ControlForm)
+		}
+		if d.Status() != entities.DebtStatusResitScheduled {
+			t.Errorf("status changed to %q, want resit_scheduled preserved", d.Status())
+		}
+		if len(d.Attempts()) != 1 {
+			t.Errorf("attempts changed: %d, want 1 preserved", len(d.Attempts()))
+		}
+	})
+
+	t.Run("rejects invalid input", func(t *testing.T) {
+		cases := []struct {
+			name                       string
+			student, group, discipline string
+			semester                   int
+			form                       entities.ControlForm
+		}{
+			{"empty student", "", "БИ-21", "БД", 3, entities.ControlFormExam},
+			{"semester too high", "Кузнецов", "БИ-21", "БД", 13, entities.ControlFormExam},
+			{"bad control form", "Кузнецов", "БИ-21", "БД", 3, entities.ControlForm("bogus")},
+		}
+		for _, tt := range cases {
+			t.Run(tt.name, func(t *testing.T) {
+				d := newOpenDebt(t)
+				err := d.UpdateSourceFields(tt.student, tt.group, tt.discipline, tt.semester, tt.form)
+				if !errors.Is(err, entities.ErrInvalidStudentDebt) {
+					t.Errorf("err = %v, want ErrInvalidStudentDebt", err)
+				}
+			})
+		}
+	})
+}
+
 func TestScheduleResit(t *testing.T) {
 	now := time.Now()
 	date := now.Add(72 * time.Hour)
