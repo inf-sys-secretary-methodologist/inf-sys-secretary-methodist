@@ -63,6 +63,11 @@ type StudentDebtRepository interface {
 	// for a stable document. An empty result is not an error.
 	ListForExport(ctx context.Context, filter repositories.StudentDebtListFilter) ([]*entities.StudentDebt, error)
 
+	// Stats returns the per-status debt counts matching the filter (a
+	// single GROUP BY status aggregate). Limit / Offset are ignored. An
+	// empty result is the zero aggregate, not an error.
+	Stats(ctx context.Context, filter repositories.StudentDebtListFilter) (repositories.StudentDebtStats, error)
+
 	// Update writes the (already-mutated) aggregate back atomically:
 	// UPDATE root with optimistic-lock guard (WHERE id=? AND version=?)
 	// then delete + reinsert every attempt inside the same tx. On

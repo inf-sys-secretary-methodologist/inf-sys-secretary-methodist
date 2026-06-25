@@ -439,6 +439,55 @@ func (r *StudentDebtRepositoryPG) ListForExport(ctx context.Context, filter repo
 	return debts, nil
 }
 
+// Stats returns the per-status debt counts matching the filter via a
+// single GROUP BY status query (Limit / Offset are irrelevant to an
+// aggregate). Each recognized status row maps onto its StudentDebtStats
+// field and contributes to Total; an unrecognized status (the DB CHECK
+// prevents it, but stay defensive) is ignored and excluded from Total. An
+// empty result is the zero aggregate, not an error.
+func (r *StudentDebtRepositoryPG) Stats(ctx context.Context, filter repositories.StudentDebtListFilter) (repositories.StudentDebtStats, error) {
+	statusArg, semesterArg, studentArg, disciplineArg := listFilterArgs(filter)
+
+	query := `SELECT status, COUNT(*) FROM student_debts ` + sdListFilterClause + ` GROUP BY status`
+	rows, err := r.db.QueryContext(ctx, query,
+		filter.GroupName, statusArg, semesterArg, studentArg, disciplineArg,
+	)
+	if err != nil {
+		return repositories.StudentDebtStats{}, fmt.Errorf("student_debts: stats: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var stats repositories.StudentDebtStats
+	for rows.Next() {
+		var (
+			status string
+			count  int
+		)
+		if err := rows.Scan(&status, &count); err != nil {
+			return repositories.StudentDebtStats{}, fmt.Errorf("student_debts: stats scan: %w", err)
+		}
+		switch entities.DebtStatus(status) {
+		case entities.DebtStatusOpen:
+			stats.Open = count
+		case entities.DebtStatusResitScheduled:
+			stats.ResitScheduled = count
+		case entities.DebtStatusCommission:
+			stats.Commission = count
+		case entities.DebtStatusClosedPassed:
+			stats.ClosedPassed = count
+		case entities.DebtStatusClosedFailed:
+			stats.ClosedFailed = count
+		default:
+			continue // unrecognized status: ignore, never count toward total
+		}
+		stats.Total += count
+	}
+	if err := rows.Err(); err != nil {
+		return repositories.StudentDebtStats{}, fmt.Errorf("student_debts: stats iter: %w", err)
+	}
+	return stats, nil
+}
+
 // Update writes the mutated aggregate back atomically: UPDATE root with
 // optimistic-lock guard (WHERE id=? AND version=?) and a server-side
 // version increment, then delete + reinsert every attempt inside the
