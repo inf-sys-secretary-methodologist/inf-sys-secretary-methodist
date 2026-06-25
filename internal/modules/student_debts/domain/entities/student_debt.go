@@ -9,12 +9,18 @@ import (
 
 // Domain sentinels for the StudentDebt aggregate. Handlers map them to HTTP:
 // ErrInvalidStudentDebt → 422, ErrDebtClosed/ErrInvalidTransition/
-// ErrNoScheduledResit → 409.
+// ErrNoScheduledResit → 409, ErrDebtAccessForbidden → 404 (IDOR-collapse).
 var (
 	ErrInvalidStudentDebt = errors.New("student_debts: invalid student debt")
 	ErrDebtClosed         = errors.New("student_debts: debt is closed")
 	ErrInvalidTransition  = errors.New("student_debts: invalid status transition")
 	ErrNoScheduledResit   = errors.New("student_debts: no scheduled resit to record")
+	// ErrDebtAccessForbidden signals that the actor's role/identity does
+	// not grant access to the targeted debt(s). The application layer
+	// returns it from authorization gates; handlers collapse it together
+	// with not-found onto HTTP 404 (OWASP IDOR — never reveal existence
+	// of a debt the actor may not see).
+	ErrDebtAccessForbidden = errors.New("student_debts: access forbidden")
 )
 
 // StudentDebt is the aggregate root: one student owes one discipline in one
