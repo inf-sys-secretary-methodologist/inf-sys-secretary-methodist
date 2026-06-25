@@ -116,6 +116,27 @@ func TestMigration050DownDropsTables(t *testing.T) {
 	mustContain(t, down, "student_debts", "down drops root table")
 }
 
+// TestMigration051RealignsDisciplineFK pins migration 051, which realigns
+// student_debts.discipline_id from curriculum_section_items(id) (migration
+// 050) to disciplines(id) — the canonical discipline entity the rest of the
+// system references (work_program migration 047, schedule_lessons migration
+// 004). This is what lets teacher scoping share one id space:
+// schedule_lessons.teacher_id → schedule_lessons.discipline_id (disciplines)
+// = student_debts.discipline_id. discipline_id is best-effort/nullable and
+// never populated yet, so the realignment needs no data migration.
+func TestMigration051RealignsDisciplineFK(t *testing.T) {
+	up := readMigration(t, "051_realign_student_debts_discipline_fk.up.sql")
+
+	// Drop the old curriculum_section_items FK and add the disciplines one,
+	// preserving the best-effort ON DELETE SET NULL semantics.
+	mustContain(t, up, "DROP CONSTRAINT", "051 drops the old FK")
+	mustContain(t, up, "REFERENCES disciplines(id) ON DELETE SET NULL", "051 adds disciplines FK")
+
+	down := readMigration(t, "051_realign_student_debts_discipline_fk.down.sql")
+	mustContain(t, down, "REFERENCES curriculum_section_items(id) ON DELETE SET NULL",
+		"051 down restores the curriculum_section_items FK")
+}
+
 // --- assertion helpers -----------------------------------------------------
 
 func mustContain(t *testing.T, body, needle, what string) {
