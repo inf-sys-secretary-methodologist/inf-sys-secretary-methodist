@@ -32,6 +32,21 @@ const MetodychWidget = dynamic(
   }
 )
 
+// Lazy load MyStudentDebtsWidget — student-facing own-debts panel.
+const MyStudentDebtsWidget = dynamic(
+  () =>
+    import('@/components/dashboard/MyStudentDebtsWidget').then((mod) => mod.MyStudentDebtsWidget),
+  {
+    loading: () => (
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-black/95 p-4 sm:p-6 animate-pulse">
+        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
+        <div className="h-4 w-2/3 bg-gray-200 dark:bg-gray-700 rounded" />
+      </div>
+    ),
+    ssr: false,
+  }
+)
+
 // Lazy load TrendChart to reduce initial bundle (recharts ~200KB)
 const TrendChart = dynamic(
   () => import('@/components/dashboard/TrendChart').then((mod) => mod.TrendChart),
@@ -171,6 +186,9 @@ export default function DashboardPage() {
 
         {/* Upcoming extracurricular events */}
         <UpcomingEventsWidget />
+
+        {/* Student's own academic debts (student-facing) */}
+        {user?.role === 'student' && <MyStudentDebtsWidget />}
 
         {/* Charts Row */}
         <section aria-labelledby="trends-heading">
