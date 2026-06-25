@@ -13,7 +13,7 @@ type StudentDebtListFilter struct {
 	Semester      *int                 // optional
 	StudentUserID *int64               // optional, e.g. "my debts"
 	// DisciplineIDs restricts results to debts linked to any of these
-	// curriculum_section_items ids. Used for teacher scoping (the
+	// disciplines ids (migration 051). Used for teacher scoping (the
 	// disciplines a teacher owns). nil/empty disables the predicate; a
 	// non-empty slice that matches no row yields an empty page (a teacher
 	// with zero owned disciplines sees nothing, which is correct).
