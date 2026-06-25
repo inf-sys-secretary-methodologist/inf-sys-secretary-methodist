@@ -2711,6 +2711,172 @@
       "reasonPlaceholder": "ex. : la modification n’est pas justifiée par un arrêté"
     }
   },
+  "studentDebts": {
+    "title": "Dettes des étudiants",
+    "description": "Registre des dettes académiques : rattrapages, commissions, clôture.",
+    "loading": "Chargement…",
+    "loadFailed": "Échec du chargement du registre des dettes",
+    "countLabel": "Affichage de {shown} sur {total}",
+    "importButton": "Importer",
+    "exportButton": "Exporter",
+    "empty": {
+      "title": "Aucune dette",
+      "description": "Aucune dette ne correspond aux filtres sélectionnés."
+    },
+    "pagination": {
+      "prev": "Précédent",
+      "next": "Suivant"
+    },
+    "filters": {
+      "group": "Groupe",
+      "groupPlaceholder": "ex. IS-21",
+      "semester": "Semestre",
+      "semesterPlaceholder": "ex. 4",
+      "status": "Statut",
+      "statusOptions": {
+        "all": "Tous les statuts",
+        "open": "Ouverte",
+        "resitScheduled": "Rattrapage planifié",
+        "commission": "Commission",
+        "closedPassed": "Clôturée — réussie",
+        "closedFailed": "Clôturée — échouée"
+      }
+    },
+    "card": {
+      "openAria": "Ouvrir la dette de l'étudiant {student}",
+      "status": {
+        "open": "Ouverte",
+        "resitScheduled": "Rattrapage planifié",
+        "commission": "Commission",
+        "closedPassed": "Réussie",
+        "closedFailed": "Échouée"
+      },
+      "controlForm": {
+        "zachet": "Validation",
+        "exam": "Examen",
+        "courseProject": "Projet de cours",
+        "differentialZachet": "Validation notée"
+      },
+      "semester": "Semestre {n}",
+      "group": "Groupe",
+      "discipline": "Discipline"
+    },
+    "detail": {
+      "back": "Au registre",
+      "loadFailed": "Échec du chargement de la dette",
+      "notFound": "Dette introuvable",
+      "fields": {
+        "student": "Étudiant",
+        "group": "Groupe",
+        "discipline": "Discipline",
+        "semester": "Semestre",
+        "controlForm": "Forme de contrôle",
+        "status": "Statut",
+        "sourceRef": "Source"
+      },
+      "statusHint": {
+        "open": "La dette est ouverte. Planifiez un rattrapage.",
+        "resitScheduled": "Un rattrapage est planifié. Enregistrez le résultat ensuite.",
+        "commission": "Une commission est désignée (tentatives épuisées).",
+        "closedPassed": "Dette clôturée : la discipline a été réussie.",
+        "closedFailed": "Dette clôturée : la discipline a été échouée."
+      },
+      "attempts": {
+        "title": "Tentatives de rattrapage",
+        "empty": "Aucun rattrapage planifié pour l'instant.",
+        "attemptNo": "Tentative {n}",
+        "commission": "Commission",
+        "scheduledDate": "Date",
+        "examiner": "Examinateur",
+        "result": "Résultat",
+        "grade": "Note",
+        "recordedAt": "Enregistré"
+      },
+      "actions": {
+        "scheduleResit": "Planifier un rattrapage",
+        "recordResult": "Enregistrer le résultat"
+      },
+      "resitResult": {
+        "pending": "En attente",
+        "passed": "Réussi",
+        "failed": "Échoué",
+        "noShow": "Absence"
+      }
+    },
+    "scheduleDialog": {
+      "title": "Planifier un rattrapage",
+      "description": "Indiquez la date et l'examinateur du rattrapage.",
+      "labels": {
+        "scheduledDate": "Date du rattrapage",
+        "examiner": "Examinateur"
+      },
+      "placeholders": {
+        "examiner": "Nom complet de l'examinateur"
+      },
+      "validation": {
+        "required": "Renseignez la date et l'examinateur"
+      },
+      "cancel": "Annuler",
+      "confirm": "Planifier",
+      "submitting": "Planification…",
+      "successToast": "Rattrapage planifié"
+    },
+    "recordDialog": {
+      "title": "Enregistrer le résultat",
+      "description": "Indiquez le résultat du rattrapage et, le cas échéant, la note.",
+      "labels": {
+        "result": "Résultat",
+        "grade": "Note (facultatif)"
+      },
+      "resultOptions": {
+        "passed": "Réussi",
+        "failed": "Échoué",
+        "noShow": "Absence"
+      },
+      "gradeHint": "Note de 2 à 5 (peut rester vide pour une validation)",
+      "cancel": "Annuler",
+      "confirm": "Enregistrer",
+      "submitting": "Enregistrement…",
+      "successToast": "Résultat enregistré"
+    },
+    "importDialog": {
+      "title": "Importer le registre des dettes",
+      "description": "Téléversez un fichier xlsx de dettes. Les lignes existantes sont mises à jour, les nouvelles sont créées.",
+      "selectFile": "Choisir un fichier",
+      "fileHint": "Le format .xlsx est pris en charge",
+      "cancel": "Annuler",
+      "confirm": "Importer",
+      "importing": "Importation…",
+      "successToast": "Importation terminée : {created} créées, {updated} mises à jour, {skipped} ignorées",
+      "rowErrorsTitle": "Erreurs par ligne",
+      "rowError": "Ligne {row} ({identity}) : {message}"
+    },
+    "export": {
+      "successToast": "Fichier exporté",
+      "fileName": "dettes-etudiants.xlsx"
+    },
+    "errors": {
+      "generic": "Une erreur s'est produite. Veuillez réessayer.",
+      "forbidden": "Vous n'êtes pas autorisé à effectuer cette opération",
+      "notFound": "Enregistrement introuvable",
+      "versionConflict": "L'enregistrement a été modifié. Actualisez la page.",
+      "identityExists": "Cette dette existe déjà",
+      "debtClosed": "La dette est déjà clôturée",
+      "noScheduledResit": "Aucun rattrapage planifié",
+      "alreadyRecorded": "Le résultat est déjà enregistré",
+      "invalidTransition": "Transition d'état invalide",
+      "validationError": "Vérifiez l'exactitude des données"
+    },
+    "widget": {
+      "title": "Mes dettes",
+      "empty": "Aucune dette",
+      "more": "Toutes les dettes"
+    },
+    "my": {
+      "title": "Mes dettes",
+      "description": "Vos dettes académiques et les rattrapages planifiés."
+    }
+  },
   "curriculum": {
     "title": "Programmes",
     "description": "Programmes académiques par spécialités et filières",

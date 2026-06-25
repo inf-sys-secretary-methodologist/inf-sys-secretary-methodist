@@ -2711,6 +2711,172 @@
       "reasonPlaceholder": "مثال: التغيير غير مبرر بأمر"
     }
   },
+  "studentDebts": {
+    "title": "ديون الطلاب",
+    "description": "سجل الديون الأكاديمية: إعادة الامتحانات واللجان والإغلاق.",
+    "loading": "جارٍ التحميل…",
+    "loadFailed": "تعذّر تحميل سجل الديون",
+    "countLabel": "عرض {shown} من {total}",
+    "importButton": "استيراد",
+    "exportButton": "تصدير",
+    "empty": {
+      "title": "لا توجد ديون",
+      "description": "لا توجد ديون مطابقة للمرشّحات المحددة."
+    },
+    "pagination": {
+      "prev": "السابق",
+      "next": "التالي"
+    },
+    "filters": {
+      "group": "المجموعة",
+      "groupPlaceholder": "مثال: IS-21",
+      "semester": "الفصل الدراسي",
+      "semesterPlaceholder": "مثال: 4",
+      "status": "الحالة",
+      "statusOptions": {
+        "all": "كل الحالات",
+        "open": "مفتوح",
+        "resitScheduled": "تم تحديد موعد الإعادة",
+        "commission": "لجنة",
+        "closedPassed": "مغلق — ناجح",
+        "closedFailed": "مغلق — راسب"
+      }
+    },
+    "card": {
+      "openAria": "فتح دين الطالب {student}",
+      "status": {
+        "open": "مفتوح",
+        "resitScheduled": "موعد إعادة محدد",
+        "commission": "لجنة",
+        "closedPassed": "ناجح",
+        "closedFailed": "راسب"
+      },
+      "controlForm": {
+        "zachet": "تقدير ناجح/راسب",
+        "exam": "امتحان",
+        "courseProject": "مشروع مقرر",
+        "differentialZachet": "تقدير ناجح/راسب بدرجة"
+      },
+      "semester": "الفصل {n}",
+      "group": "المجموعة",
+      "discipline": "المقرر"
+    },
+    "detail": {
+      "back": "إلى السجل",
+      "loadFailed": "تعذّر تحميل الدين",
+      "notFound": "الدين غير موجود",
+      "fields": {
+        "student": "الطالب",
+        "group": "المجموعة",
+        "discipline": "المقرر",
+        "semester": "الفصل الدراسي",
+        "controlForm": "شكل الرقابة",
+        "status": "الحالة",
+        "sourceRef": "المصدر"
+      },
+      "statusHint": {
+        "open": "الدين مفتوح. حدّد موعد إعادة.",
+        "resitScheduled": "تم تحديد موعد إعادة. سجّل النتيجة بعد ذلك.",
+        "commission": "تم تعيين لجنة (نفدت المحاولات).",
+        "closedPassed": "أُغلق الدين: تم اجتياز المقرر.",
+        "closedFailed": "أُغلق الدين: لم يُجتَز المقرر."
+      },
+      "attempts": {
+        "title": "محاولات الإعادة",
+        "empty": "لم تُحدَّد أي إعادة بعد.",
+        "attemptNo": "المحاولة {n}",
+        "commission": "لجنة",
+        "scheduledDate": "التاريخ",
+        "examiner": "الممتحِن",
+        "result": "النتيجة",
+        "grade": "الدرجة",
+        "recordedAt": "سُجّل"
+      },
+      "actions": {
+        "scheduleResit": "تحديد موعد إعادة",
+        "recordResult": "تسجيل النتيجة"
+      },
+      "resitResult": {
+        "pending": "قيد الانتظار",
+        "passed": "ناجح",
+        "failed": "راسب",
+        "noShow": "غياب"
+      }
+    },
+    "scheduleDialog": {
+      "title": "تحديد موعد إعادة",
+      "description": "حدّد تاريخ الإعادة والممتحِن.",
+      "labels": {
+        "scheduledDate": "تاريخ الإعادة",
+        "examiner": "الممتحِن"
+      },
+      "placeholders": {
+        "examiner": "اسم الممتحِن الكامل"
+      },
+      "validation": {
+        "required": "أدخل التاريخ والممتحِن"
+      },
+      "cancel": "إلغاء",
+      "confirm": "تحديد",
+      "submitting": "جارٍ التحديد…",
+      "successToast": "تم تحديد موعد الإعادة"
+    },
+    "recordDialog": {
+      "title": "تسجيل النتيجة",
+      "description": "حدّد نتيجة الإعادة، والدرجة إن لزم.",
+      "labels": {
+        "result": "النتيجة",
+        "grade": "الدرجة (اختياري)"
+      },
+      "resultOptions": {
+        "passed": "ناجح",
+        "failed": "راسب",
+        "noShow": "غياب"
+      },
+      "gradeHint": "الدرجة من 2 إلى 5 (يمكن تركها فارغة للتقدير ناجح/راسب)",
+      "cancel": "إلغاء",
+      "confirm": "حفظ",
+      "submitting": "جارٍ الحفظ…",
+      "successToast": "تم تسجيل النتيجة"
+    },
+    "importDialog": {
+      "title": "استيراد سجل الديون",
+      "description": "ارفع ملف xlsx بالديون. تُحدَّث الصفوف الموجودة وتُنشأ الجديدة.",
+      "selectFile": "اختر ملفًا",
+      "fileHint": "صيغة .xlsx مدعومة",
+      "cancel": "إلغاء",
+      "confirm": "استيراد",
+      "importing": "جارٍ الاستيراد…",
+      "successToast": "اكتمل الاستيراد: {created} أُنشئت، {updated} حُدّثت، {skipped} تُخطّيت",
+      "rowErrorsTitle": "أخطاء الصفوف",
+      "rowError": "الصف {row} ({identity}): {message}"
+    },
+    "export": {
+      "successToast": "تم تصدير الملف",
+      "fileName": "ديون-الطلاب.xlsx"
+    },
+    "errors": {
+      "generic": "حدث خطأ ما. حاول مرة أخرى.",
+      "forbidden": "ليست لديك صلاحية لهذه العملية",
+      "notFound": "السجل غير موجود",
+      "versionConflict": "تم تغيير السجل. حدّث الصفحة.",
+      "identityExists": "هذا الدين موجود بالفعل",
+      "debtClosed": "الدين مغلق بالفعل",
+      "noScheduledResit": "لا توجد إعادة محددة",
+      "alreadyRecorded": "النتيجة مسجّلة بالفعل",
+      "invalidTransition": "انتقال حالة غير صالح",
+      "validationError": "تحقق من صحة البيانات"
+    },
+    "widget": {
+      "title": "ديوني",
+      "empty": "لا توجد ديون",
+      "more": "كل الديون"
+    },
+    "my": {
+      "title": "ديوني",
+      "description": "ديونك الأكاديمية ومواعيد الإعادة المحددة."
+    }
+  },
   "curriculum": {
     "title": "المناهج الدراسية",
     "description": "قائمة المناهج الدراسية للتخصصات وبرامج التأهيل",

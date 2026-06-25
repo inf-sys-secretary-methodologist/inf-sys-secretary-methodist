@@ -2711,6 +2711,172 @@
       "reasonPlaceholder": "e.g. the change is not justified by an order"
     }
   },
+  "studentDebts": {
+    "title": "Student Debts",
+    "description": "Registry of academic debts: resits, commissions, closure.",
+    "loading": "Loading…",
+    "loadFailed": "Failed to load the debt registry",
+    "countLabel": "Showing {shown} of {total}",
+    "importButton": "Import",
+    "exportButton": "Export",
+    "empty": {
+      "title": "No debts",
+      "description": "No debts match the selected filters."
+    },
+    "pagination": {
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "filters": {
+      "group": "Group",
+      "groupPlaceholder": "e.g. IS-21",
+      "semester": "Semester",
+      "semesterPlaceholder": "e.g. 4",
+      "status": "Status",
+      "statusOptions": {
+        "all": "All statuses",
+        "open": "Open",
+        "resitScheduled": "Resit scheduled",
+        "commission": "Commission",
+        "closedPassed": "Closed — passed",
+        "closedFailed": "Closed — failed"
+      }
+    },
+    "card": {
+      "openAria": "Open debt of student {student}",
+      "status": {
+        "open": "Open",
+        "resitScheduled": "Resit scheduled",
+        "commission": "Commission",
+        "closedPassed": "Passed",
+        "closedFailed": "Failed"
+      },
+      "controlForm": {
+        "zachet": "Pass/fail",
+        "exam": "Exam",
+        "courseProject": "Course project",
+        "differentialZachet": "Graded pass/fail"
+      },
+      "semester": "Semester {n}",
+      "group": "Group",
+      "discipline": "Discipline"
+    },
+    "detail": {
+      "back": "Back to registry",
+      "loadFailed": "Failed to load the debt",
+      "notFound": "Debt not found",
+      "fields": {
+        "student": "Student",
+        "group": "Group",
+        "discipline": "Discipline",
+        "semester": "Semester",
+        "controlForm": "Control form",
+        "status": "Status",
+        "sourceRef": "Source"
+      },
+      "statusHint": {
+        "open": "The debt is open. Schedule a resit.",
+        "resitScheduled": "A resit is scheduled. Record the result afterwards.",
+        "commission": "A commission is appointed (attempts exhausted).",
+        "closedPassed": "Debt closed: the discipline was passed.",
+        "closedFailed": "Debt closed: the discipline was failed."
+      },
+      "attempts": {
+        "title": "Resit attempts",
+        "empty": "No resits scheduled yet.",
+        "attemptNo": "Attempt {n}",
+        "commission": "Commission",
+        "scheduledDate": "Date",
+        "examiner": "Examiner",
+        "result": "Result",
+        "grade": "Grade",
+        "recordedAt": "Recorded"
+      },
+      "actions": {
+        "scheduleResit": "Schedule resit",
+        "recordResult": "Record result"
+      },
+      "resitResult": {
+        "pending": "Pending",
+        "passed": "Passed",
+        "failed": "Failed",
+        "noShow": "No show"
+      }
+    },
+    "scheduleDialog": {
+      "title": "Schedule a resit",
+      "description": "Specify the date and examiner of the resit.",
+      "labels": {
+        "scheduledDate": "Resit date",
+        "examiner": "Examiner"
+      },
+      "placeholders": {
+        "examiner": "Examiner full name"
+      },
+      "validation": {
+        "required": "Fill in the date and examiner"
+      },
+      "cancel": "Cancel",
+      "confirm": "Schedule",
+      "submitting": "Scheduling…",
+      "successToast": "Resit scheduled"
+    },
+    "recordDialog": {
+      "title": "Record the result",
+      "description": "Specify the resit outcome and, optionally, a grade.",
+      "labels": {
+        "result": "Result",
+        "grade": "Grade (optional)"
+      },
+      "resultOptions": {
+        "passed": "Passed",
+        "failed": "Failed",
+        "noShow": "No show"
+      },
+      "gradeHint": "Grade from 2 to 5 (may be left empty for pass/fail)",
+      "cancel": "Cancel",
+      "confirm": "Save",
+      "submitting": "Saving…",
+      "successToast": "Result recorded"
+    },
+    "importDialog": {
+      "title": "Import the debt registry",
+      "description": "Upload an xlsx file with debts. Existing rows are updated, new ones are created.",
+      "selectFile": "Choose a file",
+      "fileHint": "The .xlsx format is supported",
+      "cancel": "Cancel",
+      "confirm": "Import",
+      "importing": "Importing…",
+      "successToast": "Import finished: {created} created, {updated} updated, {skipped} skipped",
+      "rowErrorsTitle": "Row errors",
+      "rowError": "Row {row} ({identity}): {message}"
+    },
+    "export": {
+      "successToast": "File exported",
+      "fileName": "student-debts.xlsx"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "forbidden": "You are not authorized for this operation",
+      "notFound": "Record not found",
+      "versionConflict": "The record was changed. Refresh the page.",
+      "identityExists": "This debt already exists",
+      "debtClosed": "The debt is already closed",
+      "noScheduledResit": "No scheduled resit",
+      "alreadyRecorded": "The result is already recorded",
+      "invalidTransition": "Invalid state transition",
+      "validationError": "Check the data for correctness"
+    },
+    "widget": {
+      "title": "My debts",
+      "empty": "No debts",
+      "more": "All debts"
+    },
+    "my": {
+      "title": "My debts",
+      "description": "Your academic debts and scheduled resits."
+    }
+  },
   "curriculum": {
     "title": "Curricula",
     "description": "Academic curricula across specialties and programmes",
