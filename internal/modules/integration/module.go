@@ -49,14 +49,15 @@ type Module struct {
 // returning zero rows (the sync then "completes" having imported nothing).
 func buildODataConfig(cfg *config.IntegrationConfig) *odata.Config {
 	return &odata.Config{
-		BaseURL:          cfg.BaseURL,
-		Username:         cfg.Username,
-		Password:         cfg.Password,
-		Timeout:          cfg.Timeout,
-		MaxRetries:       cfg.MaxRetries,
-		RetryDelay:       cfg.RetryDelay,
-		EmployeesCatalog: cfg.EmployeeCatalog,
-		StudentsCatalog:  cfg.StudentCatalog,
+		BaseURL:             cfg.BaseURL,
+		Username:            cfg.Username,
+		Password:            cfg.Password,
+		Timeout:             cfg.Timeout,
+		MaxRetries:          cfg.MaxRetries,
+		RetryDelay:          cfg.RetryDelay,
+		EmployeesCatalog:    cfg.EmployeeCatalog,
+		StudentsCatalog:     cfg.StudentCatalog,
+		StudentDebtsCatalog: cfg.DebtCatalog,
 	}
 }
 
