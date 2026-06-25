@@ -416,6 +416,44 @@ func TestStudentDebtRepositoryPG_ListForExport_FiltersByDisciplineIDs(t *testing
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// --- Stats ------------------------------------------------------------------
+
+func TestStudentDebtRepositoryPG_Stats_AggregatesByStatus(t *testing.T) {
+	repo, mock := newSDRepoMock(t)
+
+	// GROUP BY status returns one row per present state; absent states stay
+	// zero, and Total is the sum the impl computes from the rows.
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT status, COUNT(*) FROM student_debts")).
+		WillReturnRows(sqlmock.NewRows([]string{"status", "count"}).
+			AddRow("open", 4).
+			AddRow("resit_scheduled", 2).
+			AddRow("commission", 1).
+			AddRow("closed_passed", 1).
+			AddRow("closed_failed", 1))
+
+	stats, err := repo.Stats(context.Background(), repositories.StudentDebtListFilter{})
+	require.NoError(t, err)
+	assert.Equal(t, repositories.StudentDebtStats{
+		Total: 9, Open: 4, ResitScheduled: 2, Commission: 1, ClosedPassed: 1, ClosedFailed: 1,
+	}, stats)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestStudentDebtRepositoryPG_Stats_FiltersByDisciplineIDs(t *testing.T) {
+	repo, mock := newSDRepoMock(t)
+
+	// Teacher scope: the aggregate query must carry discipline_id = ANY(...).
+	mock.ExpectQuery(regexp.QuoteMeta("discipline_id = ANY")).
+		WithArgs("", "", sqlmock.AnyArg(), sqlmock.AnyArg(), pq.Array([]int64{7, 9})).
+		WillReturnRows(sqlmock.NewRows([]string{"status", "count"}).
+			AddRow("open", 2))
+
+	stats, err := repo.Stats(context.Background(), repositories.StudentDebtListFilter{DisciplineIDs: []int64{7, 9}})
+	require.NoError(t, err)
+	assert.Equal(t, repositories.StudentDebtStats{Total: 2, Open: 2}, stats)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 // --- Update ----------------------------------------------------------------
 
 func TestStudentDebtRepositoryPG_Update_HappyPath_BumpsVersion(t *testing.T) {
