@@ -61,11 +61,13 @@ func (s *importStore) FindByIdentity(_ context.Context, group, student, discipli
 }
 
 type fakeImporter struct {
-	rows []usecases.ImportedDebt
-	err  error
+	rows   []usecases.ImportedDebt
+	err    error
+	called bool
 }
 
 func (f *fakeImporter) Import(_ context.Context, _ io.Reader) ([]usecases.ImportedDebt, error) {
+	f.called = true
 	return f.rows, f.err
 }
 
@@ -87,7 +89,7 @@ func TestImportDebtsUseCase_DeniedForNonManager(t *testing.T) {
 	assert.ErrorIs(t, err, entities.ErrDebtAccessForbidden)
 	require.Len(t, audit.events, 1)
 	assert.Equal(t, "student_debts.import_denied", audit.events[0].action)
-	assert.Nil(t, imp.rows, "importer must not run for a denied actor")
+	assert.False(t, imp.called, "importer must not run for a denied actor")
 }
 
 func TestImportDebtsUseCase_ParseErrorPropagates(t *testing.T) {
@@ -210,4 +212,31 @@ func TestImportDebtsUseCase_InvalidRow_RowError(t *testing.T) {
 	assert.Equal(t, 1, res.Created, "only the valid row is created")
 	require.Len(t, res.Errors, 2)
 	assert.Len(t, store.byID, 1)
+}
+
+func TestImportDebtsUseCase_RepoErrorIsRowError_BatchContinues(t *testing.T) {
+	store := newImportStore()
+	// Seed an existing debt.
+	seed := usecases.NewImportDebtsUseCase(store,
+		&fakeImporter{rows: []usecases.ImportedDebt{importedRow(nil, "Иванов Иван", "ИВТ-21", "Базы данных", 3, "exam")}},
+		&recordingAudit{})
+	_, err := seed.Execute(context.Background(), 1, "methodist", src())
+	require.NoError(t, err)
+
+	// Now every Update fails (e.g. a natural-key collision → 23505). A
+	// changed existing row must surface as a row error WITHOUT aborting the
+	// batch — a fresh valid row in the same import still lands via Save.
+	store.updateErr = repositories.ErrStudentDebtIdentityExists
+	imp := &fakeImporter{rows: []usecases.ImportedDebt{
+		importedRow(nil, "Иванов Иван", "ИВТ-21", "Базы данных", 3, "differential_zachet"), // changed → Update → fails
+		importedRow(nil, "Новый Студент", "ИВТ-21", "Сети", 4, "zachet"),                   // new → Save → ok
+	}}
+	uc := usecases.NewImportDebtsUseCase(store, imp, &recordingAudit{})
+
+	res, err := uc.Execute(context.Background(), 1, "methodist", src())
+	require.NoError(t, err, "a per-row repo failure must not fail the whole import")
+	assert.Equal(t, 1, res.Created, "the fresh row still lands despite the failed update")
+	assert.Equal(t, 0, res.Updated)
+	require.Len(t, res.Errors, 1)
+	assert.Len(t, store.byID, 2)
 }

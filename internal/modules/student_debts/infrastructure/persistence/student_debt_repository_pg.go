@@ -139,8 +139,8 @@ func insertAttempt(ctx context.Context, tx execQuerier, debtID int64, a *entitie
 	return nil
 }
 
-// rowScanner is the narrow surface shared by *sql.Row and *sql.Rows so
-// scanDebtRoot serves both single-row lookups (GetByID, FindByIdentity).
+// rowScanner is the narrow Scan surface (satisfied by *sql.Row) used by
+// scanDebtRoot for the single-row lookups (GetByID, FindByIdentity).
 type rowScanner interface {
 	Scan(dest ...any) error
 }
