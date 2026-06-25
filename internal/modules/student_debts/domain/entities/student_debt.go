@@ -53,34 +53,64 @@ type StudentDebt struct {
 	updatedAt time.Time
 }
 
-// NewStudentDebt creates an open debt. Required: student name, group,
-// discipline name; semester ∈ [1,12]; a valid control form.
-func NewStudentDebt(studentName, group, discipline string, semester int, form ControlForm) (*StudentDebt, error) {
+// validateSourceFields enforces the denormalized-field invariants shared
+// by NewStudentDebt and UpdateSourceFields: non-empty (trimmed) name /
+// group / discipline, semester ∈ [1,12], a recognized control form. It
+// returns the trimmed values so callers store the canonical form.
+func validateSourceFields(studentName, group, discipline string, semester int, form ControlForm) (string, string, string, error) {
 	studentName = strings.TrimSpace(studentName)
 	group = strings.TrimSpace(group)
 	discipline = strings.TrimSpace(discipline)
 	switch {
 	case studentName == "":
-		return nil, fmt.Errorf("%w: student name is required", ErrInvalidStudentDebt)
+		return "", "", "", fmt.Errorf("%w: student name is required", ErrInvalidStudentDebt)
 	case group == "":
-		return nil, fmt.Errorf("%w: group is required", ErrInvalidStudentDebt)
+		return "", "", "", fmt.Errorf("%w: group is required", ErrInvalidStudentDebt)
 	case discipline == "":
-		return nil, fmt.Errorf("%w: discipline is required", ErrInvalidStudentDebt)
+		return "", "", "", fmt.Errorf("%w: discipline is required", ErrInvalidStudentDebt)
 	case semester < 1 || semester > 12:
-		return nil, fmt.Errorf("%w: semester must be in [1,12], got %d", ErrInvalidStudentDebt, semester)
+		return "", "", "", fmt.Errorf("%w: semester must be in [1,12], got %d", ErrInvalidStudentDebt, semester)
 	}
 	if err := form.Validate(); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrInvalidStudentDebt, err)
+		return "", "", "", fmt.Errorf("%w: %w", ErrInvalidStudentDebt, err)
+	}
+	return studentName, group, discipline, nil
+}
+
+// NewStudentDebt creates an open debt. Required: student name, group,
+// discipline name; semester ∈ [1,12]; a valid control form.
+func NewStudentDebt(studentName, group, discipline string, semester int, form ControlForm) (*StudentDebt, error) {
+	name, grp, disc, err := validateSourceFields(studentName, group, discipline, semester, form)
+	if err != nil {
+		return nil, err
 	}
 	return &StudentDebt{
-		StudentFullName: studentName,
-		GroupName:       group,
-		DisciplineName:  discipline,
+		StudentFullName: name,
+		GroupName:       grp,
+		DisciplineName:  disc,
 		Semester:        semester,
 		ControlForm:     form,
 		Version:         1,
 		status:          DebtStatusOpen,
 	}, nil
+}
+
+// UpdateSourceFields refreshes the denormalized identity fields from a
+// re-import, re-validating the same invariants as NewStudentDebt. Only
+// the source-mirrored fields change — status, attempts, version and the
+// best-effort links are preserved (a re-import corrects a typo, it does
+// not reset the lifecycle). Returns ErrInvalidStudentDebt on bad input.
+func (d *StudentDebt) UpdateSourceFields(studentName, group, discipline string, semester int, form ControlForm) error {
+	name, grp, disc, err := validateSourceFields(studentName, group, discipline, semester, form)
+	if err != nil {
+		return err
+	}
+	d.StudentFullName = name
+	d.GroupName = grp
+	d.DisciplineName = disc
+	d.Semester = semester
+	d.ControlForm = form
+	return nil
 }
 
 // ScheduleResit appends a new resit attempt and moves the debt into
