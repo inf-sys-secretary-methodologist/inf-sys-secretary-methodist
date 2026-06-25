@@ -1,5 +1,5 @@
 import { render, screen } from '@/test-utils'
-import { fireEvent } from '@testing-library/react'
+import { fireEvent, waitFor } from '@testing-library/react'
 
 const mockReplace = jest.fn()
 const mockPush = jest.fn()
@@ -222,10 +222,11 @@ describe('StudentDebtsPage', () => {
     expect(screen.getByText('importDialog.title')).toBeInTheDocument()
   })
 
-  it('calls the export api when Export is clicked', () => {
+  it('calls the export api when Export is clicked', async () => {
     mockExport.mockResolvedValueOnce(new Blob(['x']))
     render(<StudentDebtsPage />)
     fireEvent.click(screen.getByRole('button', { name: 'exportButton' }))
-    expect(mockExport).toHaveBeenCalled()
+    // await the async export handler so its trailing setState settles in act()
+    await waitFor(() => expect(mockExport).toHaveBeenCalled())
   })
 })
