@@ -34,6 +34,21 @@ type StudentDebtListResult struct {
 	Total int
 }
 
+// StudentDebtStats is the dashboard aggregate: the count of debts in each
+// FSM state plus the total, computed over the rows matching a filter (the
+// same StudentDebtListFilter shape, so teacher scoping via DisciplineIDs
+// applies identically to the registry list). Total equals the sum of the
+// recognized per-status counts (an unrecognized status, which the DB CHECK
+// prevents, is excluded from both its own field and Total).
+type StudentDebtStats struct {
+	Total          int
+	Open           int
+	ResitScheduled int
+	Commission     int
+	ClosedPassed   int
+	ClosedFailed   int
+}
+
 // StudentDebtListItem is the lightweight read projection of a StudentDebt
 // for list endpoints — root-only fields without the attempts slice.
 type StudentDebtListItem struct {
