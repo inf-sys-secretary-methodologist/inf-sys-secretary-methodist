@@ -301,30 +301,35 @@ func (r *StudentDebtRepositoryPG) selectAttemptsForDebts(ctx context.Context, de
 	return byDebt, nil
 }
 
+// listFilterArgs derives the SQL bind values for sdListFilterClause from a
+// filter: the status string (empty disables the predicate), the nullable
+// semester / student-id, and the discipline-id array. The discipline arg
+// is a nil interface → SQL NULL so the predicate disables; a non-empty
+// slice → bigint[] for the discipline_id = ANY(...) teacher scope; an
+// empty (non-nil) slice is treated as "no filter" too, never as ANY('{}')
+// which would match nothing unintentionally. GroupName is passed to the
+// query directly as $1. Shared by List, ListForExport and Stats.
+func listFilterArgs(filter repositories.StudentDebtListFilter) (statusArg string, semesterArg, studentArg sql.NullInt64, disciplineArg any) {
+	if filter.Status != nil {
+		statusArg = string(*filter.Status)
+	}
+	if filter.Semester != nil {
+		semesterArg = sql.NullInt64{Int64: int64(*filter.Semester), Valid: true}
+	}
+	if filter.StudentUserID != nil {
+		studentArg = sql.NullInt64{Int64: *filter.StudentUserID, Valid: true}
+	}
+	if len(filter.DisciplineIDs) > 0 {
+		disciplineArg = pq.Array(filter.DisciplineIDs)
+	}
+	return statusArg, semesterArg, studentArg, disciplineArg
+}
+
 // List returns a page of StudentDebt items matching the filter together
 // with the total count of matching rows (ignoring Limit / Offset). Items
 // carry root state only; callers needing attempts use GetByID.
 func (r *StudentDebtRepositoryPG) List(ctx context.Context, filter repositories.StudentDebtListFilter) (repositories.StudentDebtListResult, error) {
-	statusArg := ""
-	if filter.Status != nil {
-		statusArg = string(*filter.Status)
-	}
-	var semesterArg sql.NullInt64
-	if filter.Semester != nil {
-		semesterArg = sql.NullInt64{Int64: int64(*filter.Semester), Valid: true}
-	}
-	var studentArg sql.NullInt64
-	if filter.StudentUserID != nil {
-		studentArg = sql.NullInt64{Int64: *filter.StudentUserID, Valid: true}
-	}
-	// nil interface → SQL NULL so the predicate disables; a non-empty
-	// slice → bigint[] for the discipline_id = ANY(...) teacher scope.
-	// An empty (non-nil) slice is treated as "no filter" too, never as
-	// ANY('{}') which would match nothing unintentionally.
-	var disciplineArg any
-	if len(filter.DisciplineIDs) > 0 {
-		disciplineArg = pq.Array(filter.DisciplineIDs)
-	}
+	statusArg, semesterArg, studentArg, disciplineArg := listFilterArgs(filter)
 
 	countQuery := `SELECT COUNT(*) FROM student_debts ` + sdListFilterClause
 	var total int
@@ -391,22 +396,7 @@ func (r *StudentDebtRepositoryPG) List(ctx context.Context, filter repositories.
 // grouped in memory: two round-trips total regardless of row count, never
 // N+1. An empty result is not an error.
 func (r *StudentDebtRepositoryPG) ListForExport(ctx context.Context, filter repositories.StudentDebtListFilter) ([]*entities.StudentDebt, error) {
-	statusArg := ""
-	if filter.Status != nil {
-		statusArg = string(*filter.Status)
-	}
-	var semesterArg sql.NullInt64
-	if filter.Semester != nil {
-		semesterArg = sql.NullInt64{Int64: int64(*filter.Semester), Valid: true}
-	}
-	var studentArg sql.NullInt64
-	if filter.StudentUserID != nil {
-		studentArg = sql.NullInt64{Int64: *filter.StudentUserID, Valid: true}
-	}
-	var disciplineArg any
-	if len(filter.DisciplineIDs) > 0 {
-		disciplineArg = pq.Array(filter.DisciplineIDs)
-	}
+	statusArg, semesterArg, studentArg, disciplineArg := listFilterArgs(filter)
 
 	query := `SELECT ` + sdSelectColumns + ` FROM student_debts ` + sdListFilterClause + `
 		ORDER BY group_name, student_full_name, semester, id`
