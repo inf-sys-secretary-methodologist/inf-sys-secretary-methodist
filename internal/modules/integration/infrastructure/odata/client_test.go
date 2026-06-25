@@ -23,14 +23,15 @@ import (
 
 func testConfig(baseURL string) *Config {
 	return &Config{
-		BaseURL:          baseURL,
-		Username:         "tester",
-		Password:         "secret",
-		Timeout:          5 * time.Second,
-		MaxRetries:       1,
-		RetryDelay:       1 * time.Millisecond,
-		EmployeesCatalog: "Catalog_Сотрудники",
-		StudentsCatalog:  "Catalog_Студенты",
+		BaseURL:             baseURL,
+		Username:            "tester",
+		Password:            "secret",
+		Timeout:             5 * time.Second,
+		MaxRetries:          1,
+		RetryDelay:          1 * time.Millisecond,
+		EmployeesCatalog:    "Catalog_Сотрудники",
+		StudentsCatalog:     "Catalog_Студенты",
+		StudentDebtsCatalog: "Catalog_АкадемическиеЗадолженности",
 	}
 }
 
@@ -44,6 +45,7 @@ func TestDefaultConfig_ReturnsExpectedValues(t *testing.T) {
 	assert.Equal(t, 1*time.Second, cfg.RetryDelay)
 	assert.Equal(t, "Catalog_Сотрудники", cfg.EmployeesCatalog)
 	assert.Equal(t, "Catalog_Студенты", cfg.StudentsCatalog)
+	assert.Equal(t, "Catalog_АкадемическиеЗадолженности", cfg.StudentDebtsCatalog)
 }
 
 func TestNewClient_StoresConfigAndHTTPClient(t *testing.T) {
@@ -569,4 +571,85 @@ func TestGetStudentsByGroupFilter(t *testing.T) {
 func TestGetStudentsByFacultyFilter(t *testing.T) {
 	f := GetStudentsByFacultyFilter("Информатика")
 	assert.Contains(t, f, "Факультет eq 'Информатика'")
+}
+
+// --- GetStudentDebts + GetAllStudentDebts (PR7a — 1С debt import) ---
+
+func TestGetStudentDebts_HappyPathHitsDebtsCatalog(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// The request must target the configured academic-debts catalog,
+		// not the employees/students one. net/http decodes the percent-encoded
+		// Cyrillic path back into r.URL.Path on the server side.
+		assert.Contains(t, r.URL.Path, "Catalog_АкадемическиеЗадолженности")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"value":[{"Ref_Key":"d1","Студент":"Кузнецов Дмитрий","Группа":"БИ-21","Дисциплина":"Базы данных","Семестр":3,"ФормаКонтроля":"Экзамен"}]}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(testConfig(server.URL))
+	debts, _, err := c.GetStudentDebts(context.Background(), "", 0, 0)
+	require.NoError(t, err)
+	require.Len(t, debts, 1)
+	assert.Equal(t, "d1", debts[0].RefKey)
+	assert.Equal(t, "Кузнецов Дмитрий", debts[0].StudentName)
+	assert.Equal(t, "Базы данных", debts[0].Discipline)
+	assert.Equal(t, 3, debts[0].Semester)
+	assert.Equal(t, "Экзамен", debts[0].ControlForm)
+}
+
+func TestGetStudentDebts_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("denied"))
+	}))
+	defer server.Close()
+
+	c := NewClient(testConfig(server.URL))
+	_, _, err := c.GetStudentDebts(context.Background(), "", 0, 0)
+	require.Error(t, err)
+}
+
+func TestGetAllStudentDebts_StopsOnEmptyNextLink(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"value":[{"Ref_Key":"d1"}]}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(testConfig(server.URL))
+	debts, err := c.GetAllStudentDebts(context.Background())
+	require.NoError(t, err)
+	require.Len(t, debts, 1)
+}
+
+func TestGetAllStudentDebts_Paginates(t *testing.T) {
+	var mu sync.Mutex
+	page := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		page++
+		current := page
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+		if current == 1 {
+			items := strings.Repeat(`{"Ref_Key":"d"},`, 100)
+			items = strings.TrimSuffix(items, ",")
+			_, _ = w.Write([]byte(`{"value":[` + items + `],"odata.nextLink":"next"}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"value":[{"Ref_Key":"d-last"}]}`))
+	}))
+	defer server.Close()
+
+	c := NewClient(testConfig(server.URL))
+	debts, err := c.GetAllStudentDebts(context.Background())
+	require.NoError(t, err)
+	assert.Len(t, debts, 101)
+}
+
+func TestGetAllStudentDebts_ErrorPropagates(t *testing.T) {
+	c := NewClient(testConfig("http://127.0.0.1:1"))
+	debts, err := c.GetAllStudentDebts(context.Background())
+	require.Error(t, err)
+	assert.Nil(t, debts)
 }

@@ -16,14 +16,15 @@ import (
 
 // Config holds the 1C OData client configuration
 type Config struct {
-	BaseURL          string        `json:"base_url"`          // e.g., http://server/config/odata/standard.odata
-	Username         string        `json:"username"`          // 1C user
-	Password         string        `json:"password"`          // 1C password
-	Timeout          time.Duration `json:"timeout"`           // HTTP client timeout
-	MaxRetries       int           `json:"max_retries"`       // Max retry attempts
-	RetryDelay       time.Duration `json:"retry_delay"`       // Delay between retries
-	EmployeesCatalog string        `json:"employees_catalog"` // Catalog name for employees
-	StudentsCatalog  string        `json:"students_catalog"`  // Catalog name for students
+	BaseURL             string        `json:"base_url"`              // e.g., http://server/config/odata/standard.odata
+	Username            string        `json:"username"`              // 1C user
+	Password            string        `json:"password"`              // 1C password
+	Timeout             time.Duration `json:"timeout"`               // HTTP client timeout
+	MaxRetries          int           `json:"max_retries"`           // Max retry attempts
+	RetryDelay          time.Duration `json:"retry_delay"`           // Delay between retries
+	EmployeesCatalog    string        `json:"employees_catalog"`     // Catalog name for employees
+	StudentsCatalog     string        `json:"students_catalog"`      // Catalog name for students
+	StudentDebtsCatalog string        `json:"student_debts_catalog"` // Catalog name for academic debts
 }
 
 // DefaultConfig returns default configuration
@@ -297,6 +298,20 @@ func (c *Client) GetAllStudents(ctx context.Context) ([]entities.ODataStudent, e
 	}
 
 	return allStudents, nil
+}
+
+// GetStudentDebts fetches academic-debt records from 1C.
+//
+// RED stub — replaced by the real implementation in the GREEN commit.
+func (c *Client) GetStudentDebts(_ context.Context, _ string, _, _ int) ([]entities.ODataStudentDebt, string, error) {
+	return nil, "", fmt.Errorf("not implemented")
+}
+
+// GetAllStudentDebts fetches all academic-debt records with pagination.
+//
+// RED stub — replaced by the real implementation in the GREEN commit.
+func (c *Client) GetAllStudentDebts(_ context.Context) ([]entities.ODataStudentDebt, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 // GetStudentByID fetches a single student by Ref_Key
