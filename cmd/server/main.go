@@ -376,6 +376,41 @@ func (n *messagingNotificationNotifier) NotifyNewMessage(ctx context.Context, us
 	return err
 }
 
+// studentDebtResitNotifier adapts the notifications module's
+// NotificationUseCase to the student_debts DebtNotifier port (the
+// composition root keeps student_debts free of the notifications import).
+// The use case calls this synchronously on the request path, so the
+// adapter detaches the request context (context.WithoutCancel) and hands
+// off to a background goroutine — a fire-and-forget notification must
+// neither block the HTTP response nor be canceled when the request ends.
+type studentDebtResitNotifier struct {
+	notificationUseCase *notifUsecases.NotificationUseCase
+}
+
+// NotifyResitScheduled notifies the student that a resit was scheduled. A
+// nil use case is a silent no-op (dev/test profiles).
+func (n *studentDebtResitNotifier) NotifyResitScheduled(ctx context.Context, studentUserID, debtID int64, disciplineName string, scheduledDate time.Time) {
+	if n.notificationUseCase == nil {
+		return
+	}
+	bgCtx := context.WithoutCancel(ctx)
+	input := &notifDTO.CreateNotificationInput{
+		UserID:   studentUserID,
+		Type:     notifEntities.NotificationTypeInfo,
+		Priority: notifEntities.PriorityNormal,
+		Title:    "Назначена пересдача",
+		Message:  fmt.Sprintf("По дисциплине «%s» назначена пересдача на %s", disciplineName, scheduledDate.Format("02.01.2006 15:04")),
+		Link:     fmt.Sprintf("/student-debts/%d", debtID),
+		Metadata: map[string]any{
+			"debt_id":    debtID,
+			"discipline": disciplineName,
+		},
+	}
+	go func() {
+		_, _ = n.notificationUseCase.Create(bgCtx, input)
+	}()
+}
+
 // rolesForAudience inverts the announcements visibility matrix: which
 // roles are recipients of an announcement addressed к the given
 // audience. Empty role ("") means "any" — used for the broadcast
@@ -2891,6 +2926,19 @@ func setupRoutes(
 			debtHandler := sdHandler.NewStudentDebtHandler(getDebtUC, listDebtsUC, listMyDebtsUC, debtStatsUC)
 			sdHandler.RegisterStudentDebtRoutes(protectedGroup, debtHandler)
 			logger.Info("Student debts module read routes registered", nil)
+
+			// Write endpoints (resit lifecycle, PR5c). The resit notifier
+			// detaches the request context (see studentDebtResitNotifier).
+			// attemptsBeforeCommission is the policy N: regular failed
+			// attempts before the debt escalates to a commission resit.
+			const debtAttemptsBeforeCommission = 2
+			sdResitNotifier := &studentDebtResitNotifier{notificationUseCase: notificationUseCase}
+			scheduleResitUC := sdUsecases.NewScheduleResitUseCase(sdRepo, sdResitNotifier, auditLogger, time.Now)
+			recordResitUC := sdUsecases.NewRecordResitResultUseCase(sdRepo, auditLogger, time.Now, debtAttemptsBeforeCommission)
+
+			debtWriteHandler := sdHandler.NewStudentDebtWriteHandler(scheduleResitUC, recordResitUC)
+			sdHandler.RegisterStudentDebtWriteRoutes(protectedGroup, debtWriteHandler)
+			logger.Info("Student debts module write routes registered", nil)
 		}
 
 		// Schedule/Events module routes
