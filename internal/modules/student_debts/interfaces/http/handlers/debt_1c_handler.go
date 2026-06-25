@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	sdUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/application/usecases"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
@@ -44,8 +46,24 @@ func RegisterStudentDebt1CImportRoutes(rg *gin.RouterGroup, h *StudentDebt1CImpo
 // of the 1С academic-debt catalog into the registry (EDIT_ROLES only, enforced
 // in the use case). Per-row problems travel back inside ImportResult.Errors
 // (still 200); a forbidden actor is 403; a 1С transport/parse failure is 502.
-//
-// RED stub — replaced by the real implementation in the GREEN commit.
 func (h *StudentDebt1CImportHandler) Import1C(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, response.ErrorResponse("NOT_IMPLEMENTED", "not implemented"))
+	actorID, role, ok := authContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("missing user context"))
+		return
+	}
+
+	result, err := h.import1C.Execute(c.Request.Context(), actorID, role)
+	if err != nil {
+		// Authorization is role-based and pre-fetch — a true 403. Any other
+		// failure is a 1С transport/parse problem — an upstream-dependency
+		// error (502), not a client or server fault.
+		if errors.Is(err, entities.ErrDebtAccessForbidden) {
+			c.JSON(http.StatusForbidden, response.Forbidden("not authorized to import the debt registry from 1С"))
+			return
+		}
+		c.JSON(http.StatusBadGateway, response.ErrorResponse("UPSTREAM_1C_ERROR", "the 1С debt catalog could not be fetched"))
+		return
+	}
+	c.JSON(http.StatusOK, response.Success(mapImportResult(result)))
 }
