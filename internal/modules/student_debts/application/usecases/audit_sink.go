@@ -34,6 +34,18 @@ func denialFields(actorID, debtID int64, reason string) map[string]any {
 	}
 }
 
+// successFields composes the canonical
+// {actor_user_id, student_debt_id, status} shape every successful
+// (non-denied) write audit event carries. Use cases append extra keys
+// (e.g. result, attempt_no, scheduled_date) after the helper returns.
+func successFields(actorID, debtID int64, status string) map[string]any {
+	return map[string]any{
+		"actor_user_id":   actorID,
+		"student_debt_id": debtID,
+		"status":          status,
+	}
+}
+
 // emitAudit dispatches an audit event for the student_debts context. A
 // nil sink is a successful no-op so use cases never sprinkle nil checks.
 // The resource is fixed to auditResource so a typo can't drift the event

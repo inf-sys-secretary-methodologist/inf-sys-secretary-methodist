@@ -2,16 +2,19 @@ package usecases_test
 
 import (
 	"context"
+	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/repositories"
 )
 
-// fakeDebtRepo is a function-backed double for the read ports. Unset
-// fields panic if called, surfacing unexpected repo traffic in a test.
+// fakeDebtRepo is a function-backed double for the read+write ports.
+// Unset func fields nil-panic if called, surfacing unexpected repo
+// traffic in a test.
 type fakeDebtRepo struct {
 	getByID func(ctx context.Context, id int64) (*entities.StudentDebt, error)
 	list    func(ctx context.Context, filter repositories.StudentDebtListFilter) (repositories.StudentDebtListResult, error)
+	update  func(ctx context.Context, debt *entities.StudentDebt) error
 }
 
 func (f *fakeDebtRepo) GetByID(ctx context.Context, id int64) (*entities.StudentDebt, error) {
@@ -20,6 +23,26 @@ func (f *fakeDebtRepo) GetByID(ctx context.Context, id int64) (*entities.Student
 
 func (f *fakeDebtRepo) List(ctx context.Context, filter repositories.StudentDebtListFilter) (repositories.StudentDebtListResult, error) {
 	return f.list(ctx, filter)
+}
+
+func (f *fakeDebtRepo) Update(ctx context.Context, debt *entities.StudentDebt) error {
+	return f.update(ctx, debt)
+}
+
+// fakeNotifier records the resit-scheduled notifications it received.
+type fakeNotifier struct {
+	calls []notifyCall
+}
+
+type notifyCall struct {
+	studentUserID  int64
+	debtID         int64
+	disciplineName string
+	scheduledDate  time.Time
+}
+
+func (f *fakeNotifier) NotifyResitScheduled(_ context.Context, studentUserID, debtID int64, disciplineName string, scheduledDate time.Time) {
+	f.calls = append(f.calls, notifyCall{studentUserID, debtID, disciplineName, scheduledDate})
 }
 
 // fakeTeacherScope returns a fixed discipline set (or error) for any
