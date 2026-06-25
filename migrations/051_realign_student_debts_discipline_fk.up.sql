@@ -12,6 +12,10 @@
 -- discipline_id is a best-effort, nullable link that no code populates yet,
 -- so realigning the FK target needs no data migration. The inline FK from
 -- migration 050 carries PostgreSQL's default name student_debts_discipline_id_fkey.
+--
+-- This is a versioned (run-once) migration: the DROP ... IF EXISTS guards a
+-- name drift, but re-running the whole file would fail on the second
+-- ADD CONSTRAINT (by design — golang-migrate applies each version once).
 
 ALTER TABLE student_debts
     DROP CONSTRAINT IF EXISTS student_debts_discipline_id_fkey;

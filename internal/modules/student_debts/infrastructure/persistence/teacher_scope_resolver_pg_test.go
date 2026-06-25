@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"context"
+	"errors"
 	"regexp"
 	"testing"
 
@@ -45,5 +46,18 @@ func TestTeacherScopeResolverPG_EmptyWhenTeacherTeachesNothing(t *testing.T) {
 	ids, err := repo.DisciplineIDsForTeacher(context.Background(), 9)
 	require.NoError(t, err)
 	assert.Empty(t, ids, "a teacher scheduled for nothing owns no disciplines (empty, not error)")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTeacherScopeResolverPG_QueryErrorPropagates(t *testing.T) {
+	repo, mock := newTeacherScopeMock(t)
+	sentinel := errors.New("schedule unavailable")
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM schedule_lessons WHERE teacher_id = $1")).
+		WithArgs(int64(9)).
+		WillReturnError(sentinel)
+
+	_, err := repo.DisciplineIDsForTeacher(context.Background(), 9)
+	assert.ErrorIs(t, err, sentinel, "a query failure must propagate, not be swallowed as an empty scope")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
