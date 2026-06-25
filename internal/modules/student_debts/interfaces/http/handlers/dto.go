@@ -3,6 +3,7 @@ package handlers
 import (
 	"time"
 
+	sdUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/repositories"
 )
@@ -67,6 +68,36 @@ type DebtStatsDTO struct {
 	Commission     int `json:"commission"`
 	ClosedPassed   int `json:"closed_passed"`
 	ClosedFailed   int `json:"closed_failed"`
+}
+
+// ImportRowErrorDTO is the JSON projection of a single failed source row.
+type ImportRowErrorDTO struct {
+	Row      int    `json:"row"`
+	Identity string `json:"identity"`
+	Message  string `json:"message"`
+}
+
+// ImportResultDTO is the JSON projection of the import log: how many rows
+// were created / updated / skipped, plus per-row errors. Errors is always a
+// (possibly empty) array so the frontend can map over it unconditionally.
+type ImportResultDTO struct {
+	Created int                 `json:"created"`
+	Updated int                 `json:"updated"`
+	Skipped int                 `json:"skipped"`
+	Errors  []ImportRowErrorDTO `json:"errors"`
+}
+
+func mapImportResult(res sdUsecases.ImportResult) ImportResultDTO {
+	errs := make([]ImportRowErrorDTO, 0, len(res.Errors))
+	for _, e := range res.Errors {
+		errs = append(errs, ImportRowErrorDTO{Row: e.Row, Identity: e.Identity, Message: e.Message})
+	}
+	return ImportResultDTO{
+		Created: res.Created,
+		Updated: res.Updated,
+		Skipped: res.Skipped,
+		Errors:  errs,
+	}
 }
 
 func formatTime(t time.Time) string { return t.Format(time.RFC3339) }
