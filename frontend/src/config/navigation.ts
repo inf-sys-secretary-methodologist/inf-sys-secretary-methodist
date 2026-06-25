@@ -282,11 +282,13 @@ export const navigationConfig: NavEntry[] = [
         ],
       },
       {
-        // Student debts (долги студентов) — academic-debt registry.
-        // Visible to all five roles: staff + teacher land on the registry
-        // (the backend scopes a teacher to owned disciplines), while a
-        // student is redirected by the page to /student-debts/my (the
-        // registry endpoint denies students; they read only their own).
+        // Student debts (долги студентов) — the academic-debt registry.
+        // Split from the student view for clean role separation: only the
+        // four staff roles see this entry. The backend scopes a teacher to
+        // owned disciplines; managers (admin/methodist/secretary) get the
+        // full registry plus import/export + resit actions. A student has no
+        // registry access (read_scope.go denies them) and instead gets the
+        // myStudentDebts entry below.
         nameKey: 'studentDebts',
         url: '/student-debts',
         icon: AlertTriangle,
@@ -295,8 +297,17 @@ export const navigationConfig: NavEntry[] = [
           UserRole.METHODIST,
           UserRole.ACADEMIC_SECRETARY,
           UserRole.TEACHER,
-          UserRole.STUDENT,
         ],
+      },
+      {
+        // My debts (мои долги) — a student's own-debts view. A distinct,
+        // correctly-labeled entry pointing straight at /student-debts/my so
+        // a student never lands on the registry (which would 403) or relies
+        // on a redirect. Student-only; staff use the registry above.
+        nameKey: 'myStudentDebts',
+        url: '/student-debts/my',
+        icon: AlertTriangle,
+        roles: [UserRole.STUDENT],
       },
     ],
   },
