@@ -136,6 +136,42 @@ describe('navigationConfig', () => {
     expect(flatKeys).toContain('workPrograms')
   })
 
+  // Student debts are split by role for clean separation: staff (+ teacher,
+  // server-scoped) reach the full registry; a student gets a distinct
+  // "Мои долги" item pointing straight at their own-debts view — no shared
+  // label that bounces them through a redirect.
+  it('educationGroup studentDebts (registry) is visible to the 4 staff roles, NOT student', () => {
+    const eduGroup = navigationConfig.find((e) => e.nameKey === 'educationGroup') as NavGroup
+    const sd = eduGroup.items.find((i) => i.nameKey === 'studentDebts')
+    expect(sd).toBeDefined()
+    expect(sd!.url).toBe('/student-debts')
+    expect(sd!.roles).toEqual([
+      UserRole.SYSTEM_ADMIN,
+      UserRole.METHODIST,
+      UserRole.ACADEMIC_SECRETARY,
+      UserRole.TEACHER,
+    ])
+    expect(sd!.roles).not.toContain(UserRole.STUDENT)
+  })
+
+  it('educationGroup myStudentDebts (own view) is visible to STUDENT only', () => {
+    const eduGroup = navigationConfig.find((e) => e.nameKey === 'educationGroup') as NavGroup
+    const my = eduGroup.items.find((i) => i.nameKey === 'myStudentDebts')
+    expect(my).toBeDefined()
+    expect(my!.url).toBe('/student-debts/my')
+    expect(my!.roles).toEqual([UserRole.STUDENT])
+  })
+
+  it('student sees myStudentDebts but NOT the registry; teacher sees the registry but NOT myStudentDebts', () => {
+    const studentKeys = getAvailableNavItems(UserRole.STUDENT).map((i) => i.nameKey)
+    expect(studentKeys).toContain('myStudentDebts')
+    expect(studentKeys).not.toContain('studentDebts')
+
+    const teacherKeys = getAvailableNavItems(UserRole.TEACHER).map((i) => i.nameKey)
+    expect(teacherKeys).toContain('studentDebts')
+    expect(teacherKeys).not.toContain('myStudentDebts')
+  })
+
   it('communicationGroup contains announcements, messages, and aiAssistant', () => {
     const commGroup = navigationConfig.find((e) => e.nameKey === 'communicationGroup') as NavGroup
     expect(commGroup).toBeDefined()
