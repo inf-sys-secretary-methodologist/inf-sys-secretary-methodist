@@ -33,27 +33,27 @@ func (f *fakeGet) Execute(_ context.Context, actorID int64, role string, id int6
 }
 
 type fakeList struct {
-	res      repositories.StudentDebtListResult
-	err      error
-	gotFiler repositories.StudentDebtListFilter
-	gotActor int64
-	gotRole  string
+	res       repositories.StudentDebtListResult
+	err       error
+	gotFilter repositories.StudentDebtListFilter
+	gotActor  int64
+	gotRole   string
 }
 
 func (f *fakeList) Execute(_ context.Context, actorID int64, role string, filter repositories.StudentDebtListFilter) (repositories.StudentDebtListResult, error) {
-	f.gotActor, f.gotRole, f.gotFiler = actorID, role, filter
+	f.gotActor, f.gotRole, f.gotFilter = actorID, role, filter
 	return f.res, f.err
 }
 
 type fakeListMy struct {
-	res      repositories.StudentDebtListResult
-	err      error
-	gotActor int64
-	gotFiler repositories.StudentDebtListFilter
+	res       repositories.StudentDebtListResult
+	err       error
+	gotActor  int64
+	gotFilter repositories.StudentDebtListFilter
 }
 
 func (f *fakeListMy) Execute(_ context.Context, actorID int64, filter repositories.StudentDebtListFilter) (repositories.StudentDebtListResult, error) {
-	f.gotActor, f.gotFiler = actorID, filter
+	f.gotActor, f.gotFilter = actorID, filter
 	return f.res, f.err
 }
 
@@ -122,12 +122,54 @@ func TestStudentDebtHandler_List_HappyPath(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, int64(7), l.gotActor)
 	assert.Equal(t, "methodist", l.gotRole)
-	assert.Equal(t, "ИВТ-21", l.gotFiler.GroupName)
-	require.NotNil(t, l.gotFiler.Status)
-	assert.Equal(t, entities.DebtStatusOpen, *l.gotFiler.Status)
-	require.NotNil(t, l.gotFiler.Semester)
-	assert.Equal(t, 3, *l.gotFiler.Semester)
-	assert.Equal(t, 20, l.gotFiler.Limit)
+	assert.Equal(t, "ИВТ-21", l.gotFilter.GroupName)
+	require.NotNil(t, l.gotFilter.Status)
+	assert.Equal(t, entities.DebtStatusOpen, *l.gotFilter.Status)
+	require.NotNil(t, l.gotFilter.Semester)
+	assert.Equal(t, 3, *l.gotFilter.Semester)
+	assert.Equal(t, 20, l.gotFilter.Limit)
+}
+
+func TestStudentDebtHandler_List_PaginationClamp(t *testing.T) {
+	// The repo uses filter.Limit raw as SQL LIMIT $6, so a zero/negative
+	// limit would mean LIMIT 0 (empty page) and an unbounded limit would let
+	// a caller pull the whole registry in one query. The handler clamps both.
+	cases := []struct {
+		name       string
+		query      string
+		wantLimit  int
+		wantOffset int
+	}{
+		{"zero limit defaults", "?limit=0", 50, 0},
+		{"missing limit defaults", "", 50, 0},
+		{"over-cap clamps", "?limit=9999", 200, 0},
+		{"negative offset floored", "?limit=10&offset=-5", 10, 0},
+		{"in-range passthrough", "?limit=30&offset=60", 30, 60},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			l := &fakeList{}
+			r := newRouter(&fakeGet{}, l, &fakeListMy{}, &fakeStats{}, withAuth(7, "methodist"))
+			w := doGET(t, r, "/api/v1/student-debts"+tc.query)
+			require.Equal(t, http.StatusOK, w.Code)
+			assert.Equal(t, tc.wantLimit, l.gotFilter.Limit, "limit clamp")
+			assert.Equal(t, tc.wantOffset, l.gotFilter.Offset, "offset floor")
+		})
+	}
+}
+
+func TestStudentDebtHandler_Routing_MyDoesNotHitGet(t *testing.T) {
+	// /my and /stats are static segments registered alongside /:id; if the
+	// route tree ever lost their priority, /my would fall into Get where
+	// parsePositiveID("my") fails with 400. Pin that /my reaches My.
+	g := &fakeGet{err: repositories.ErrStudentDebtNotFound} // would 404 if hit
+	m := &fakeListMy{res: repositories.StudentDebtListResult{Total: 0}}
+	r := newRouter(g, &fakeList{}, m, &fakeStats{}, withAuth(42, "student"))
+
+	w := doGET(t, r, "/api/v1/student-debts/my")
+	assert.Equal(t, http.StatusOK, w.Code, "/my must route to My, not /:id")
+	assert.Equal(t, int64(42), m.gotActor)
+	assert.Equal(t, int64(0), g.gotID, "Get must not be invoked for /my")
 }
 
 func TestStudentDebtHandler_List_ForbiddenIs403(t *testing.T) {
@@ -197,8 +239,8 @@ func TestStudentDebtHandler_My_HappyPath(t *testing.T) {
 	w := doGET(t, r, "/api/v1/student-debts/my?semester=3")
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, int64(42), m.gotActor)
-	require.NotNil(t, m.gotFiler.Semester)
-	assert.Equal(t, 3, *m.gotFiler.Semester)
+	require.NotNil(t, m.gotFilter.Semester)
+	assert.Equal(t, 3, *m.gotFilter.Semester)
 }
 
 // --- Stats ------------------------------------------------------------------
