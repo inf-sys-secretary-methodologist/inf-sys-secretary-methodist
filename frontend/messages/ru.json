@@ -2720,6 +2720,7 @@
     "loadFailed": "Не удалось загрузить реестр долгов",
     "countLabel": "Показано {shown} из {total}",
     "importButton": "Импорт",
+    "import1CButton": "Импорт из 1С",
     "exportButton": "Экспорт",
     "empty": {
       "title": "Долгов нет",
@@ -2849,6 +2850,16 @@
       "cancel": "Отмена",
       "confirm": "Импортировать",
       "importing": "Импорт…",
+      "successToast": "Импорт завершён: создано {created}, обновлено {updated}, пропущено {skipped}",
+      "rowErrorsTitle": "Ошибки по строкам",
+      "rowError": "Строка {row} ({identity}): {message}"
+    },
+    "import1CDialog": {
+      "title": "Импорт долгов из 1С",
+      "description": "Загрузить актуальные задолженности напрямую из 1С. Существующие записи обновятся, новые — создадутся.",
+      "cancel": "Отмена",
+      "confirm": "Импортировать из 1С",
+      "importing": "Импорт из 1С…",
       "successToast": "Импорт завершён: создано {created}, обновлено {updated}, пропущено {skipped}",
       "rowErrorsTitle": "Ошибки по строкам",
       "rowError": "Строка {row} ({identity}): {message}"
