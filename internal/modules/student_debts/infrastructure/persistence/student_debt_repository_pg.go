@@ -215,6 +215,36 @@ func (r *StudentDebtRepositoryPG) FindByIdentity(ctx context.Context, groupName,
 	return r.hydrate(ctx, "find by identity", r.db.QueryRowContext(ctx, query, groupName, studentFullName, disciplineName, semester))
 }
 
+// scanResitAttempt scans one debt_resit_attempts row (draSelectColumns
+// order) and reconstitutes the attempt entity. Shared by the single-debt
+// (selectAttempts) and batched (selectAttemptsForDebts) hydration paths so
+// the column order lives in one place. Returns the scanned debt id too so
+// the batched path can group attempts onto the right root.
+func scanResitAttempt(s rowScanner) (debtID int64, _ *entities.ResitAttempt, _ error) {
+	var (
+		id, dID       int64
+		attemptNo     int
+		isCommission  bool
+		scheduledDate time.Time
+		examiner      string
+		result        string
+		grade         sql.NullInt32
+		recordedBy    sql.NullInt64
+		recordedAt    sql.NullTime
+	)
+	if err := s.Scan(
+		&id, &dID, &attemptNo, &scheduledDate, &examiner,
+		&isCommission, &result, &grade, &recordedBy, &recordedAt,
+	); err != nil {
+		return 0, nil, fmt.Errorf("student_debts: scan attempt: %w", err)
+	}
+	return dID, entities.ReconstituteResitAttempt(
+		id, dID, attemptNo, isCommission, scheduledDate, examiner,
+		entities.ResitResult(result), nullInt32Ptr(grade),
+		nullInt64Ptr(recordedBy), nullTimePtr(recordedAt),
+	), nil
+}
+
 // selectAttempts hydrates the resit attempts for a debt in attempt-no
 // order. An empty result is not an error.
 func (r *StudentDebtRepositoryPG) selectAttempts(ctx context.Context, debtID int64) ([]*entities.ResitAttempt, error) {
@@ -228,33 +258,47 @@ func (r *StudentDebtRepositoryPG) selectAttempts(ctx context.Context, debtID int
 
 	var attempts []*entities.ResitAttempt
 	for rows.Next() {
-		var (
-			id, dID       int64
-			attemptNo     int
-			isCommission  bool
-			scheduledDate time.Time
-			examiner      string
-			result        string
-			grade         sql.NullInt32
-			recordedBy    sql.NullInt64
-			recordedAt    sql.NullTime
-		)
-		if err := rows.Scan(
-			&id, &dID, &attemptNo, &scheduledDate, &examiner,
-			&isCommission, &result, &grade, &recordedBy, &recordedAt,
-		); err != nil {
-			return nil, fmt.Errorf("student_debts: scan attempt: %w", err)
+		_, a, err := scanResitAttempt(rows)
+		if err != nil {
+			return nil, err
 		}
-		attempts = append(attempts, entities.ReconstituteResitAttempt(
-			id, dID, attemptNo, isCommission, scheduledDate, examiner,
-			entities.ResitResult(result), nullInt32Ptr(grade),
-			nullInt64Ptr(recordedBy), nullTimePtr(recordedAt),
-		))
+		attempts = append(attempts, a)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("student_debts: iter attempts: %w", err)
 	}
 	return attempts, nil
+}
+
+// selectAttemptsForDebts batch-hydrates the resit attempts for every debt
+// id in one query (debt_id = ANY(...)), grouped by debt id with attempts
+// in attempt-no order within each group. Used by ListForExport to avoid
+// an N+1 attempt query per exported debt. An empty input yields an empty
+// map without a query.
+func (r *StudentDebtRepositoryPG) selectAttemptsForDebts(ctx context.Context, debtIDs []int64) (map[int64][]*entities.ResitAttempt, error) {
+	byDebt := make(map[int64][]*entities.ResitAttempt)
+	if len(debtIDs) == 0 {
+		return byDebt, nil
+	}
+
+	query := `SELECT ` + draSelectColumns + ` FROM debt_resit_attempts WHERE debt_id = ANY($1) ORDER BY debt_id, attempt_no`
+	rows, err := r.db.QueryContext(ctx, query, pq.Array(debtIDs))
+	if err != nil {
+		return nil, fmt.Errorf("student_debts: select attempts batch: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	for rows.Next() {
+		debtID, a, err := scanResitAttempt(rows)
+		if err != nil {
+			return nil, err
+		}
+		byDebt[debtID] = append(byDebt[debtID], a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("student_debts: iter attempts batch: %w", err)
+	}
+	return byDebt, nil
 }
 
 // List returns a page of StudentDebt items matching the filter together
@@ -338,6 +382,71 @@ func (r *StudentDebtRepositoryPG) List(ctx context.Context, filter repositories.
 		return repositories.StudentDebtListResult{}, fmt.Errorf("student_debts: list iter: %w", err)
 	}
 	return repositories.StudentDebtListResult{Items: items, Total: total}, nil
+}
+
+// ListForExport returns every aggregate matching the filter, fully
+// hydrated (root + attempts), ignoring Limit / Offset — the export path
+// serializes the whole matching registry. Roots are fetched in one query,
+// then every attempt for the matched debts in a second (batched) query and
+// grouped in memory: two round-trips total regardless of row count, never
+// N+1. An empty result is not an error.
+func (r *StudentDebtRepositoryPG) ListForExport(ctx context.Context, filter repositories.StudentDebtListFilter) ([]*entities.StudentDebt, error) {
+	statusArg := ""
+	if filter.Status != nil {
+		statusArg = string(*filter.Status)
+	}
+	var semesterArg sql.NullInt64
+	if filter.Semester != nil {
+		semesterArg = sql.NullInt64{Int64: int64(*filter.Semester), Valid: true}
+	}
+	var studentArg sql.NullInt64
+	if filter.StudentUserID != nil {
+		studentArg = sql.NullInt64{Int64: *filter.StudentUserID, Valid: true}
+	}
+	var disciplineArg any
+	if len(filter.DisciplineIDs) > 0 {
+		disciplineArg = pq.Array(filter.DisciplineIDs)
+	}
+
+	query := `SELECT ` + sdSelectColumns + ` FROM student_debts ` + sdListFilterClause + `
+		ORDER BY group_name, student_full_name, semester, id`
+	rows, err := r.db.QueryContext(ctx, query,
+		filter.GroupName, statusArg, semesterArg, studentArg, disciplineArg,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("student_debts: export list: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var roots []debtRoot
+	for rows.Next() {
+		root, err := scanDebtRoot(rows)
+		if err != nil {
+			return nil, fmt.Errorf("student_debts: export scan: %w", err)
+		}
+		roots = append(roots, root)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("student_debts: export iter: %w", err)
+	}
+	if len(roots) == 0 {
+		return nil, nil
+	}
+
+	ids := make([]int64, len(roots))
+	for i, root := range roots {
+		ids[i] = root.id
+	}
+	attemptsByDebt, err := r.selectAttemptsForDebts(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	debts := make([]*entities.StudentDebt, len(roots))
+	for i, root := range roots {
+		debts[i] = root.reconstitute(attemptsByDebt[root.id])
+	}
+	return debts, nil
 }
 
 // Update writes the mutated aggregate back atomically: UPDATE root with

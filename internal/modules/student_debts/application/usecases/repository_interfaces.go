@@ -56,6 +56,13 @@ type StudentDebtRepository interface {
 	// An empty result is not an error.
 	List(ctx context.Context, filter repositories.StudentDebtListFilter) (repositories.StudentDebtListResult, error)
 
+	// ListForExport returns every StudentDebt aggregate matching the
+	// filter as a fully-hydrated slice (root + attempts), ignoring
+	// Limit / Offset — the export path serializes the whole matching
+	// registry, not a page. Ordered by group, student name, semester, id
+	// for a stable document. An empty result is not an error.
+	ListForExport(ctx context.Context, filter repositories.StudentDebtListFilter) ([]*entities.StudentDebt, error)
+
 	// Update writes the (already-mutated) aggregate back atomically:
 	// UPDATE root with optimistic-lock guard (WHERE id=? AND version=?)
 	// then delete + reinsert every attempt inside the same tx. On
