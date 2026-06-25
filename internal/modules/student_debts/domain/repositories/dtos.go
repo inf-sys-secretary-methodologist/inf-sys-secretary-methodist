@@ -38,7 +38,8 @@ type StudentDebtListResult struct {
 // FSM state plus the total, computed over the rows matching a filter (the
 // same StudentDebtListFilter shape, so teacher scoping via DisciplineIDs
 // applies identically to the registry list). Total equals the sum of the
-// per-status counts.
+// recognized per-status counts (an unrecognized status, which the DB CHECK
+// prevents, is excluded from both its own field and Total).
 type StudentDebtStats struct {
 	Total          int
 	Open           int
