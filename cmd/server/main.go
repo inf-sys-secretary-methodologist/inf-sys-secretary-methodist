@@ -1202,6 +1202,18 @@ func main() {
 				errorKey: err.Error(),
 			})
 		}
+
+		// 1С debt import (PR7, #431): bridge the integration OData client into
+		// the student_debts registry. Registered here — not in setupRoutes —
+		// because the integration module is created after the router; reuses
+		// apiGroup (JWT) since debt-manager gating lives in the use case, not
+		// an admin guard.
+		sdDebtRepo := sdPersistence.NewStudentDebtRepositoryPG(db)
+		import1CUC := sdUsecases.NewImport1CDebtsUseCase(
+			sdDebtRepo, debt1CSource{catalog: integrationModule.ODataClient()}, auditLogger)
+		debt1CHandler := sdHandler.NewStudentDebt1CImportHandler(import1CUC)
+		sdHandler.RegisterStudentDebt1CImportRoutes(apiGroup, debt1CHandler)
+
 		logger.Info("Integration module initialized", nil)
 	}
 
