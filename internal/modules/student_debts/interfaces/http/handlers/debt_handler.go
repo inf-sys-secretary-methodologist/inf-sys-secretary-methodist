@@ -230,6 +230,23 @@ func mapDebtError(c *gin.Context, err error, hideForbiddenAsNotFound bool) {
 		} else {
 			c.JSON(http.StatusForbidden, response.Forbidden("not authorized for this debt registry operation"))
 		}
+	case errors.Is(err, repositories.ErrStudentDebtVersionConflict):
+		c.JSON(http.StatusConflict, response.ErrorResponse("VERSION_CONFLICT", "the debt was modified concurrently; reload and retry"))
+	case errors.Is(err, repositories.ErrStudentDebtIdentityExists):
+		c.JSON(http.StatusConflict, response.ErrorResponse("IDENTITY_EXISTS", "a debt with this identity already exists"))
+	case errors.Is(err, entities.ErrDebtClosed):
+		c.JSON(http.StatusConflict, response.ErrorResponse("DEBT_CLOSED", "the debt is closed; no further resits can be scheduled"))
+	case errors.Is(err, entities.ErrNoScheduledResit):
+		c.JSON(http.StatusConflict, response.ErrorResponse("NO_SCHEDULED_RESIT", "there is no scheduled resit to record on this attempt"))
+	case errors.Is(err, entities.ErrAttemptAlreadyRecorded):
+		c.JSON(http.StatusConflict, response.ErrorResponse("ALREADY_RECORDED", "this attempt's result has already been recorded"))
+	case errors.Is(err, entities.ErrInvalidTransition):
+		c.JSON(http.StatusConflict, response.ErrorResponse("INVALID_TRANSITION", "the requested transition is not allowed in the current state"))
+	case errors.Is(err, entities.ErrInvalidStudentDebt),
+		errors.Is(err, entities.ErrInvalidResitAttempt),
+		errors.Is(err, entities.ErrInvalidResitRecord),
+		errors.Is(err, entities.ErrInvalidResitResult):
+		c.JSON(http.StatusUnprocessableEntity, response.ErrorResponse("VALIDATION_ERROR", "the request did not satisfy a domain rule"))
 	default:
 		c.JSON(http.StatusInternalServerError, response.InternalError("internal error"))
 	}
