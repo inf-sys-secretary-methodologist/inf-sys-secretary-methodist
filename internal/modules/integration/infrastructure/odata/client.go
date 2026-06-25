@@ -16,24 +16,26 @@ import (
 
 // Config holds the 1C OData client configuration
 type Config struct {
-	BaseURL          string        `json:"base_url"`          // e.g., http://server/config/odata/standard.odata
-	Username         string        `json:"username"`          // 1C user
-	Password         string        `json:"password"`          // 1C password
-	Timeout          time.Duration `json:"timeout"`           // HTTP client timeout
-	MaxRetries       int           `json:"max_retries"`       // Max retry attempts
-	RetryDelay       time.Duration `json:"retry_delay"`       // Delay between retries
-	EmployeesCatalog string        `json:"employees_catalog"` // Catalog name for employees
-	StudentsCatalog  string        `json:"students_catalog"`  // Catalog name for students
+	BaseURL             string        `json:"base_url"`              // e.g., http://server/config/odata/standard.odata
+	Username            string        `json:"username"`              // 1C user
+	Password            string        `json:"password"`              // 1C password
+	Timeout             time.Duration `json:"timeout"`               // HTTP client timeout
+	MaxRetries          int           `json:"max_retries"`           // Max retry attempts
+	RetryDelay          time.Duration `json:"retry_delay"`           // Delay between retries
+	EmployeesCatalog    string        `json:"employees_catalog"`     // Catalog name for employees
+	StudentsCatalog     string        `json:"students_catalog"`      // Catalog name for students
+	StudentDebtsCatalog string        `json:"student_debts_catalog"` // Catalog name for academic debts
 }
 
 // DefaultConfig returns default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		Timeout:          30 * time.Second,
-		MaxRetries:       3,
-		RetryDelay:       1 * time.Second,
-		EmployeesCatalog: "Catalog_Сотрудники",
-		StudentsCatalog:  "Catalog_Студенты",
+		Timeout:             30 * time.Second,
+		MaxRetries:          3,
+		RetryDelay:          1 * time.Second,
+		EmployeesCatalog:    "Catalog_Сотрудники",
+		StudentsCatalog:     "Catalog_Студенты",
+		StudentDebtsCatalog: "Catalog_АкадемическиеЗадолженности",
 	}
 }
 
@@ -297,6 +299,62 @@ func (c *Client) GetAllStudents(ctx context.Context) ([]entities.ODataStudent, e
 	}
 
 	return allStudents, nil
+}
+
+// GetStudentDebts fetches academic-debt records from 1C
+func (c *Client) GetStudentDebts(ctx context.Context, filter string, top, skip int) ([]entities.ODataStudentDebt, string, error) {
+	params := map[string]string{
+		"$format": "application/json",
+	}
+
+	if filter != "" {
+		params["$filter"] = filter
+	}
+	if top > 0 {
+		params["$top"] = fmt.Sprintf("%d", top)
+	}
+	if skip > 0 {
+		params["$skip"] = fmt.Sprintf("%d", skip)
+	}
+
+	url := c.buildURL(c.config.StudentDebtsCatalog, params)
+
+	resp, err := c.doRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch student debts: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	result, err := parseResponse[entities.ODataStudentDebt](resp)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return result.Value, result.NextLink, nil
+}
+
+// GetAllStudentDebts fetches all academic-debt records with pagination
+func (c *Client) GetAllStudentDebts(ctx context.Context) ([]entities.ODataStudentDebt, error) {
+	var allDebts []entities.ODataStudentDebt
+	pageSize := 100
+	skip := 0
+
+	for {
+		debts, nextLink, err := c.GetStudentDebts(ctx, "", pageSize, skip)
+		if err != nil {
+			return nil, err
+		}
+
+		allDebts = append(allDebts, debts...)
+
+		if nextLink == "" || len(debts) < pageSize {
+			break
+		}
+
+		skip += pageSize
+	}
+
+	return allDebts, nil
 }
 
 // GetStudentByID fetches a single student by Ref_Key

@@ -114,6 +114,7 @@ type IntegrationConfig struct {
 	RetryDelay       time.Duration // Delay between retries
 	EmployeeCatalog  string        // 1C employee catalog name (e.g., "Catalog_Сотрудники")
 	StudentCatalog   string        // 1C student catalog name (e.g., "Catalog_Студенты")
+	DebtCatalog      string        // 1C academic-debt catalog name (e.g., "Catalog_АкадемическиеЗадолженности")
 	SyncCronEmployee string        // Cron expression for employee sync (e.g., "0 */6 * * *")
 	SyncCronStudent  string        // Cron expression for student sync (e.g., "0 */6 * * *")
 	BatchSize        int           // Batch size for sync operations
@@ -283,6 +284,7 @@ func Load() (*Config, error) {
 			RetryDelay:       getEnvAsDuration("INTEGRATION_1C_RETRY_DELAY", 5*time.Second),
 			EmployeeCatalog:  getEnv("INTEGRATION_1C_EMPLOYEE_CATALOG", "Catalog_Сотрудники"),
 			StudentCatalog:   getEnv("INTEGRATION_1C_STUDENT_CATALOG", "Catalog_Студенты"),
+			DebtCatalog:      getEnv("INTEGRATION_1C_DEBT_CATALOG", "Catalog_АкадемическиеЗадолженности"),
 			SyncCronEmployee: getEnv("INTEGRATION_1C_SYNC_CRON_EMPLOYEE", "0 */6 * * *"),
 			SyncCronStudent:  getEnv("INTEGRATION_1C_SYNC_CRON_STUDENT", "0 */6 * * *"),
 			BatchSize:        getEnvAsInt("INTEGRATION_1C_BATCH_SIZE", 100),

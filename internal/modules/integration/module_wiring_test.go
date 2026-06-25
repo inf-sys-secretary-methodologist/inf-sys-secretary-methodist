@@ -22,6 +22,7 @@ func TestBuildODataConfig_MapsCatalogNames(t *testing.T) {
 		RetryDelay:      time.Second,
 		EmployeeCatalog: "Catalog_Сотрудники",
 		StudentCatalog:  "Catalog_Студенты",
+		DebtCatalog:     "Catalog_АкадемическиеЗадолженности",
 	}
 
 	got := buildODataConfig(cfg)
@@ -32,6 +33,10 @@ func TestBuildODataConfig_MapsCatalogNames(t *testing.T) {
 	}
 	if got.StudentsCatalog != cfg.StudentCatalog {
 		t.Errorf("StudentsCatalog = %q, want %q", got.StudentsCatalog, cfg.StudentCatalog)
+	}
+	if got.StudentDebtsCatalog != cfg.DebtCatalog {
+		t.Errorf("StudentDebtsCatalog = %q, want %q — empty means the 1С debt fetch hits the OData root and imports nothing",
+			got.StudentDebtsCatalog, cfg.DebtCatalog)
 	}
 
 	// Sanity: the previously-mapped fields still carry through.
