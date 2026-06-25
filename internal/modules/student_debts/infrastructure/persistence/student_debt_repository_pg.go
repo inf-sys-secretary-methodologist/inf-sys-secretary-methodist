@@ -180,6 +180,11 @@ func (r *StudentDebtRepositoryPG) GetByID(ctx context.Context, id int64) (*entit
 	), nil
 }
 
+// FindByIdentity returns the debt matching the natural key (RED stub).
+func (r *StudentDebtRepositoryPG) FindByIdentity(_ context.Context, _, _, _ string, _ int) (*entities.StudentDebt, error) {
+	return nil, errors.New("student_debts: FindByIdentity not implemented")
+}
+
 // selectAttempts hydrates the resit attempts for a debt in attempt-no
 // order. An empty result is not an error.
 func (r *StudentDebtRepositoryPG) selectAttempts(ctx context.Context, debtID int64) ([]*entities.ResitAttempt, error) {

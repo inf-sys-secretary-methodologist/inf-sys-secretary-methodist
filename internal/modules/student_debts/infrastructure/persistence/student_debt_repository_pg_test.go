@@ -235,6 +235,50 @@ func TestStudentDebtRepositoryPG_GetByID_NotFound_MapsSentinel(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// --- FindByIdentity --------------------------------------------------------
+
+func TestStudentDebtRepositoryPG_FindByIdentity_HydratesAggregate(t *testing.T) {
+	repo, mock := newSDRepoMock(t)
+	now := time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC)
+
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE group_name = $1 AND student_full_name = $2 AND discipline_name = $3 AND semester = $4")).
+		WithArgs("ИВТ-21", "Иванов Иван", "Базы данных", 3).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "student_full_name", "group_name", "discipline_name",
+			"semester", "control_form", "student_user_id", "discipline_id",
+			"source_ref", "source_hash", "status", "version",
+			"created_at", "updated_at",
+		}).AddRow(
+			int64(55), "Иванов Иван", "ИВТ-21", "Базы данных",
+			3, "exam", nil, nil, "ved-7", "hash1", "open", 1, now, now,
+		))
+	mock.ExpectQuery(regexp.QuoteMeta("FROM debt_resit_attempts WHERE debt_id = $1")).
+		WithArgs(int64(55)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "debt_id", "attempt_no", "scheduled_date", "examiner",
+			"is_commission", "result", "grade", "recorded_by", "recorded_at",
+		}))
+
+	d, err := repo.FindByIdentity(context.Background(), "ИВТ-21", "Иванов Иван", "Базы данных", 3)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	assert.Equal(t, int64(55), d.ID)
+	assert.Equal(t, "hash1", d.SourceHash)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestStudentDebtRepositoryPG_FindByIdentity_NotFound(t *testing.T) {
+	repo, mock := newSDRepoMock(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE group_name = $1 AND student_full_name = $2 AND discipline_name = $3 AND semester = $4")).
+		WithArgs("ИВТ-21", "Нет Такого", "Сети", 4).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
+
+	_, err := repo.FindByIdentity(context.Background(), "ИВТ-21", "Нет Такого", "Сети", 4)
+	assert.ErrorIs(t, err, repositories.ErrStudentDebtNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 // --- List ------------------------------------------------------------------
 
 func TestStudentDebtRepositoryPG_List_ReturnsPageAndTotal(t *testing.T) {
