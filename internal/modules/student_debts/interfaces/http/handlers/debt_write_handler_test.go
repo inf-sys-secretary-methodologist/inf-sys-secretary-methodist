@@ -174,6 +174,34 @@ func TestStudentDebtWriteHandler_RecordResult_BadAttemptNoIs400(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
+func TestStudentDebtWriteHandler_ErrorMapping(t *testing.T) {
+	// Pin every write sentinel mapDebtError handles: state conflicts → 409,
+	// domain validation → 422. Routed through ScheduleResit (the mapper is
+	// shared by both write endpoints).
+	cases := []struct {
+		name string
+		err  error
+		want int
+	}{
+		{"version conflict", repositories.ErrStudentDebtVersionConflict, http.StatusConflict},
+		{"identity exists", repositories.ErrStudentDebtIdentityExists, http.StatusConflict},
+		{"already recorded", entities.ErrAttemptAlreadyRecorded, http.StatusConflict},
+		{"invalid transition", entities.ErrInvalidTransition, http.StatusConflict},
+		{"invalid student debt", entities.ErrInvalidStudentDebt, http.StatusUnprocessableEntity},
+		{"invalid resit attempt", entities.ErrInvalidResitAttempt, http.StatusUnprocessableEntity},
+		{"invalid resit result", entities.ErrInvalidResitResult, http.StatusUnprocessableEntity},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := &fakeSchedule{err: tc.err}
+			r := newWriteRouter(s, &fakeRecord{}, withAuth(7, "methodist"))
+			w := doJSON(t, r, http.MethodPost, "/api/v1/student-debts/55/resit",
+				map[string]any{"scheduled_date": "2026-07-01T09:00:00Z", "examiner": "Петров П.П."})
+			assert.Equal(t, tc.want, w.Code)
+		})
+	}
+}
+
 func TestStudentDebtWriteHandler_MissingAuthIs401(t *testing.T) {
 	r := newWriteRouter(&fakeSchedule{}, &fakeRecord{})
 	w := doJSON(t, r, http.MethodPost, "/api/v1/student-debts/55/resit",
