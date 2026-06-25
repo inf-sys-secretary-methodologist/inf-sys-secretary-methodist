@@ -151,6 +151,7 @@ import (
 	schedulePersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/infrastructure/persistence"
 	scheduleHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/interfaces/http/handlers"
 	sdUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/application/usecases"
+	sdExcel "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/infrastructure/excel"
 	sdPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/infrastructure/persistence"
 	sdHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/interfaces/http/handlers"
 	taskDto "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/dto"
@@ -2939,6 +2940,18 @@ func setupRoutes(
 			debtWriteHandler := sdHandler.NewStudentDebtWriteHandler(scheduleResitUC, recordResitUC)
 			sdHandler.RegisterStudentDebtWriteRoutes(protectedGroup, debtWriteHandler)
 			logger.Info("Student debts module write routes registered", nil)
+
+			// Bulk transfer endpoints (import/export, PR5d). The Excel
+			// adapter implements both DebtImporter and DebtExporter ports;
+			// export reuses the same teacher scope as the read path.
+			sdImporter := sdExcel.NewDebtImporter()
+			sdExporter := sdExcel.NewDebtExporter()
+			importUC := sdUsecases.NewImportDebtsUseCase(sdRepo, sdImporter, auditLogger)
+			exportUC := sdUsecases.NewExportDebtsUseCase(sdRepo, sdTeacherScope, sdExporter, auditLogger)
+
+			debtTransferHandler := sdHandler.NewStudentDebtTransferHandler(importUC, exportUC)
+			sdHandler.RegisterStudentDebtTransferRoutes(protectedGroup, debtTransferHandler)
+			logger.Info("Student debts module transfer routes registered", nil)
 		}
 
 		// Schedule/Events module routes
