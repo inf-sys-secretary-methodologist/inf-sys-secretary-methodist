@@ -26,7 +26,39 @@ func recordInput(attemptNo int, result entities.ResitResult, grade *int) usecase
 	return usecases.RecordResitResultInput{DebtID: 55, AttemptNo: attemptNo, Result: result, Grade: grade}
 }
 
-func TestRecordResitResultUseCase_PassedClosesDebt(t *testing.T) {
+func TestRecordResitResultUseCase_FSMOutcomes(t *testing.T) {
+	tests := []struct {
+		name       string
+		role       string
+		n          int
+		result     entities.ResitResult
+		grade      *int
+		wantStatus entities.DebtStatus
+	}{
+		{"passed closes debt", "methodist", 2, entities.ResitResultPassed, ptr(5), entities.DebtStatusClosedPassed},
+		{"failed below N returns to open", "academic_secretary", 2, entities.ResitResultFailed, nil, entities.DebtStatusOpen},
+		{"no_show below N returns to open", "methodist", 2, entities.ResitResultNoShow, nil, entities.DebtStatusOpen},
+		{"failed reaching N escalates to commission", "system_admin", 1, entities.ResitResultFailed, nil, entities.DebtStatusCommission},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			debt := scheduledDebt(t)
+			updated := false
+			repo := &fakeDebtRepo{
+				getByID: func(_ context.Context, _ int64) (*entities.StudentDebt, error) { return debt, nil },
+				update:  func(_ context.Context, _ *entities.StudentDebt) error { updated = true; return nil },
+			}
+			uc := usecases.NewRecordResitResultUseCase(repo, &recordingAudit{}, fixedClock(), tt.n)
+
+			got, err := uc.Execute(context.Background(), 7, tt.role, recordInput(1, tt.result, tt.grade))
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantStatus, got.Status())
+			assert.True(t, updated, "the advanced aggregate must be persisted")
+		})
+	}
+}
+
+func TestRecordResitResultUseCase_PersistsAndAudits(t *testing.T) {
 	debt := scheduledDebt(t)
 	var updated *entities.StudentDebt
 	repo := &fakeDebtRepo{
@@ -39,36 +71,9 @@ func TestRecordResitResultUseCase_PassedClosesDebt(t *testing.T) {
 	got, err := uc.Execute(context.Background(), 7, "methodist", recordInput(1, entities.ResitResultPassed, ptr(5)))
 	require.NoError(t, err)
 	assert.Equal(t, entities.DebtStatusClosedPassed, got.Status())
-	assert.Same(t, debt, updated)
+	assert.Same(t, debt, updated, "must persist the mutated aggregate")
 	require.Len(t, audit.events, 1)
 	assert.Equal(t, "student_debts.resit_recorded", audit.events[0].action)
-}
-
-func TestRecordResitResultUseCase_FailedBelowThresholdReopens(t *testing.T) {
-	debt := scheduledDebt(t)
-	repo := &fakeDebtRepo{
-		getByID: func(_ context.Context, _ int64) (*entities.StudentDebt, error) { return debt, nil },
-		update:  func(_ context.Context, _ *entities.StudentDebt) error { return nil },
-	}
-	uc := usecases.NewRecordResitResultUseCase(repo, &recordingAudit{}, fixedClock(), 2)
-
-	got, err := uc.Execute(context.Background(), 7, "academic_secretary", recordInput(1, entities.ResitResultFailed, nil))
-	require.NoError(t, err)
-	assert.Equal(t, entities.DebtStatusOpen, got.Status(), "1 fail with N=2 returns to open")
-}
-
-func TestRecordResitResultUseCase_FailedReachingThresholdEscalates(t *testing.T) {
-	debt := scheduledDebt(t)
-	repo := &fakeDebtRepo{
-		getByID: func(_ context.Context, _ int64) (*entities.StudentDebt, error) { return debt, nil },
-		update:  func(_ context.Context, _ *entities.StudentDebt) error { return nil },
-	}
-	// N=1: a single regular failure escalates straight to commission.
-	uc := usecases.NewRecordResitResultUseCase(repo, &recordingAudit{}, fixedClock(), 1)
-
-	got, err := uc.Execute(context.Background(), 7, "system_admin", recordInput(1, entities.ResitResultFailed, nil))
-	require.NoError(t, err)
-	assert.Equal(t, entities.DebtStatusCommission, got.Status())
 }
 
 func TestRecordResitResultUseCase_AttemptNoMismatchRejected(t *testing.T) {
