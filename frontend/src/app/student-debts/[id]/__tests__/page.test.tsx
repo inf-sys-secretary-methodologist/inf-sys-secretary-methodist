@@ -96,7 +96,8 @@ describe('StudentDebtDetailPage', () => {
       mutate: jest.fn(),
     })
     render(<StudentDebtDetailPage />)
-    expect(screen.getByText('Сидоров С.С.')).toBeInTheDocument()
+    // The examiner value shares a label-prefixed line, so match a substring.
+    expect(screen.getByText(/Сидоров С\.С\./)).toBeInTheDocument()
   })
 
   // Schedule resit is available from open / commission for a manager.
