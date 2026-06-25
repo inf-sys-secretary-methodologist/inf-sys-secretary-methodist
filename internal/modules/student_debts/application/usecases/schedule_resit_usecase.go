@@ -2,15 +2,11 @@ package usecases
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/entities"
 )
-
-// errNotImplemented marks the RED-state stubs in this slice. The GREEN
-// commit replaces every stubbed Execute with the real orchestration.
-var errNotImplemented = errors.New("student_debts: not implemented")
 
 // writeDebtRepo is the narrow port the write use cases need: load the
 // aggregate, then persist the mutated state atomically (optimistic lock).
@@ -49,7 +45,32 @@ func NewScheduleResitUseCase(repo writeDebtRepo, notifier DebtNotifier, audit Au
 	return &ScheduleResitUseCase{repo: repo, notifier: notifier, audit: audit, now: now}
 }
 
-// Execute schedules a resit and returns the updated aggregate.
+// Execute schedules a resit and returns the updated aggregate:
+// EDIT_ROLES gate → load → domain FSM (ScheduleResit) → persist → notify
+// the student (best-effort) → audit. FSM errors (ErrDebtClosed /
+// ErrInvalidTransition) and repository errors (version conflict, not
+// found) propagate unchanged; the notification only fires after a
+// successful persist so a rolled-back schedule never notifies.
 func (uc *ScheduleResitUseCase) Execute(ctx context.Context, actorID int64, actorRole string, in ScheduleResitInput) (*entities.StudentDebt, error) {
-	return nil, errNotImplemented
+	if !isDebtManager(actorRole) {
+		emitAudit(uc.audit, ctx, "student_debts.schedule_denied", denialFields(actorID, in.DebtID, "forbidden"))
+		return nil, fmt.Errorf("%w: actor %d (role %q) cannot schedule resits",
+			entities.ErrDebtAccessForbidden, actorID, actorRole)
+	}
+
+	debt, err := uc.repo.GetByID(ctx, in.DebtID)
+	if err != nil {
+		return nil, err
+	}
+	if err := debt.ScheduleResit(in.ScheduledDate, in.Examiner, uc.now()); err != nil {
+		return nil, err
+	}
+	if err := uc.repo.Update(ctx, debt); err != nil {
+		return nil, err
+	}
+
+	notifyResitScheduled(uc.notifier, ctx, debt.StudentUserID, debt.ID, debt.DisciplineName, in.ScheduledDate)
+	emitAudit(uc.audit, ctx, "student_debts.resit_scheduled",
+		successFields(actorID, debt.ID, debt.Status().String()))
+	return debt, nil
 }
