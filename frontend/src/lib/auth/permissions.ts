@@ -208,6 +208,42 @@ export function canRecordMinobrnaukiOrder(userRole?: UserRole | string): boolean
   return MINOBRNAUKI_ORDER_RECORD_ROLES.includes(userRole as UserRole)
 }
 
+// STUDENT_DEBTS_MANAGE_ROLES — roles permitted to manage the student debt
+// registry (import/export, schedule resit, record resit result). Mirrors
+// the backend isDebtManager predicate (student_debts design §5,
+// application/usecases/role_predicates.go): the staff set
+// {admin, methodist, academic_secretary} holds every write/import right
+// (EDIT_ROLES for debts). teacher has read-only access scoped to owned
+// disciplines; student reads only their own debts — both are excluded.
+export const STUDENT_DEBTS_MANAGE_ROLES: UserRole[] = [
+  UserRole.SYSTEM_ADMIN,
+  UserRole.METHODIST,
+  UserRole.ACADEMIC_SECRETARY,
+]
+
+// STUDENT_DEBTS_REGISTRY_ROLES — roles permitted to browse the full debt
+// registry (/student-debts). Mirrors the backend read scope (read_scope.go
+// + get_debt_usecase.go): staff read all; teacher reads the registry
+// server-scoped to owned disciplines. Students are denied the registry
+// endpoint and read only their own debts via /student-debts/my, so the
+// list page redirects them there.
+export const STUDENT_DEBTS_REGISTRY_ROLES: UserRole[] = [
+  UserRole.SYSTEM_ADMIN,
+  UserRole.METHODIST,
+  UserRole.ACADEMIC_SECRETARY,
+  UserRole.TEACHER,
+]
+
+export function canManageStudentDebts(userRole?: UserRole | string): boolean {
+  if (!userRole) return false
+  return STUDENT_DEBTS_MANAGE_ROLES.includes(userRole as UserRole)
+}
+
+export function canViewDebtRegistry(userRole?: UserRole | string): boolean {
+  if (!userRole) return false
+  return STUDENT_DEBTS_REGISTRY_ROLES.includes(userRole as UserRole)
+}
+
 /** @deprecated Use can(role, resource, action) instead */
 export function canEdit(userRole?: UserRole | string): boolean {
   if (!userRole) return false

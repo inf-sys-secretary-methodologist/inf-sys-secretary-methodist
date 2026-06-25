@@ -208,6 +208,7 @@
     "usersCatalog": "Каталог пользователей",
     "extracurricular": "Мероприятия",
     "workPrograms": "Рабочие программы",
+    "studentDebts": "Долги студентов",
     "minobrnaukiOrders": "Приказы Минобрнауки"
   },
   "roles": {
@@ -2709,6 +2710,172 @@
       "successToast": "Лист актуализации отклонён и возвращён автору",
       "reasonLabel": "Причина отклонения",
       "reasonPlaceholder": "Например: изменение не обосновано приказом"
+    }
+  },
+  "studentDebts": {
+    "title": "Долги студентов",
+    "description": "Реестр академических задолженностей: пересдачи, комиссии, закрытие.",
+    "loading": "Загрузка…",
+    "loadFailed": "Не удалось загрузить реестр долгов",
+    "countLabel": "Показано {shown} из {total}",
+    "importButton": "Импорт",
+    "exportButton": "Экспорт",
+    "empty": {
+      "title": "Долгов нет",
+      "description": "По выбранным фильтрам задолженностей не найдено."
+    },
+    "pagination": {
+      "prev": "Назад",
+      "next": "Вперёд"
+    },
+    "filters": {
+      "group": "Группа",
+      "groupPlaceholder": "Например, ИС-21",
+      "semester": "Семестр",
+      "semesterPlaceholder": "Например, 4",
+      "status": "Статус",
+      "statusOptions": {
+        "all": "Все статусы",
+        "open": "Открыт",
+        "resitScheduled": "Назначена пересдача",
+        "commission": "Комиссия",
+        "closedPassed": "Закрыт — сдано",
+        "closedFailed": "Закрыт — не сдано"
+      }
+    },
+    "card": {
+      "openAria": "Открыть долг студента {student}",
+      "status": {
+        "open": "Открыт",
+        "resitScheduled": "Назначена пересдача",
+        "commission": "Комиссия",
+        "closedPassed": "Сдано",
+        "closedFailed": "Не сдано"
+      },
+      "controlForm": {
+        "zachet": "Зачёт",
+        "exam": "Экзамен",
+        "courseProject": "Курсовой проект",
+        "differentialZachet": "Дифференцированный зачёт"
+      },
+      "semester": "{n} семестр",
+      "group": "Группа",
+      "discipline": "Дисциплина"
+    },
+    "detail": {
+      "back": "К реестру",
+      "loadFailed": "Не удалось загрузить долг",
+      "notFound": "Долг не найден",
+      "fields": {
+        "student": "Студент",
+        "group": "Группа",
+        "discipline": "Дисциплина",
+        "semester": "Семестр",
+        "controlForm": "Форма контроля",
+        "status": "Статус",
+        "sourceRef": "Источник"
+      },
+      "statusHint": {
+        "open": "Задолженность открыта. Назначьте пересдачу.",
+        "resitScheduled": "Пересдача назначена. Зафиксируйте результат после проведения.",
+        "commission": "Назначена комиссия (исчерпаны попытки).",
+        "closedPassed": "Долг закрыт: дисциплина сдана.",
+        "closedFailed": "Долг закрыт: дисциплина не сдана."
+      },
+      "attempts": {
+        "title": "Попытки пересдачи",
+        "empty": "Пересдачи ещё не назначались.",
+        "attemptNo": "Попытка {n}",
+        "commission": "Комиссия",
+        "scheduledDate": "Дата",
+        "examiner": "Экзаменатор",
+        "result": "Результат",
+        "grade": "Оценка",
+        "recordedAt": "Зафиксировано"
+      },
+      "actions": {
+        "scheduleResit": "Назначить пересдачу",
+        "recordResult": "Зафиксировать результат"
+      },
+      "resitResult": {
+        "pending": "Ожидается",
+        "passed": "Сдано",
+        "failed": "Не сдано",
+        "noShow": "Неявка"
+      }
+    },
+    "scheduleDialog": {
+      "title": "Назначить пересдачу",
+      "description": "Укажите дату и экзаменатора пересдачи.",
+      "labels": {
+        "scheduledDate": "Дата пересдачи",
+        "examiner": "Экзаменатор"
+      },
+      "placeholders": {
+        "examiner": "ФИО экзаменатора"
+      },
+      "validation": {
+        "required": "Заполните дату и экзаменатора"
+      },
+      "cancel": "Отмена",
+      "confirm": "Назначить",
+      "submitting": "Назначение…",
+      "successToast": "Пересдача назначена"
+    },
+    "recordDialog": {
+      "title": "Зафиксировать результат",
+      "description": "Укажите итог пересдачи и, при необходимости, оценку.",
+      "labels": {
+        "result": "Результат",
+        "grade": "Оценка (необязательно)"
+      },
+      "resultOptions": {
+        "passed": "Сдано",
+        "failed": "Не сдано",
+        "noShow": "Неявка"
+      },
+      "gradeHint": "Оценка от 2 до 5 (для зачёта можно оставить пустым)",
+      "cancel": "Отмена",
+      "confirm": "Сохранить",
+      "submitting": "Сохранение…",
+      "successToast": "Результат зафиксирован"
+    },
+    "importDialog": {
+      "title": "Импорт реестра долгов",
+      "description": "Загрузите файл xlsx с задолженностями. Существующие записи обновятся, новые — создадутся.",
+      "selectFile": "Выберите файл",
+      "fileHint": "Поддерживается формат .xlsx",
+      "cancel": "Отмена",
+      "confirm": "Импортировать",
+      "importing": "Импорт…",
+      "successToast": "Импорт завершён: создано {created}, обновлено {updated}, пропущено {skipped}",
+      "rowErrorsTitle": "Ошибки по строкам",
+      "rowError": "Строка {row} ({identity}): {message}"
+    },
+    "export": {
+      "successToast": "Файл выгружен",
+      "fileName": "долги-студентов.xlsx"
+    },
+    "errors": {
+      "generic": "Что-то пошло не так. Попробуйте ещё раз.",
+      "forbidden": "Недостаточно прав для этой операции",
+      "notFound": "Запись не найдена",
+      "versionConflict": "Запись была изменена. Обновите страницу.",
+      "identityExists": "Такая задолженность уже существует",
+      "debtClosed": "Долг уже закрыт",
+      "noScheduledResit": "Нет назначенной пересдачи",
+      "alreadyRecorded": "Результат уже зафиксирован",
+      "invalidTransition": "Недопустимый переход состояния",
+      "validationError": "Проверьте корректность данных"
+    },
+    "widget": {
+      "title": "Мои долги",
+      "empty": "Задолженностей нет",
+      "more": "Все долги"
+    },
+    "my": {
+      "title": "Мои долги",
+      "description": "Ваши академические задолженности и назначенные пересдачи."
     }
   },
   "curriculum": {
