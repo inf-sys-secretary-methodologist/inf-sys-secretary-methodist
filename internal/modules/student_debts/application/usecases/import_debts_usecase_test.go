@@ -135,27 +135,53 @@ func TestImportDebtsUseCase_IdempotentSkipsUnchanged(t *testing.T) {
 	assert.Len(t, store.byID, 1, "no duplicate created on re-import")
 }
 
-func TestImportDebtsUseCase_UpdatesChangedRow(t *testing.T) {
+func TestImportDebtsUseCase_UpdatesByNaturalKey_NonKeyField(t *testing.T) {
 	store := newImportStore()
 	// Seed via a first import.
 	uc := usecases.NewImportDebtsUseCase(store,
-		&fakeImporter{rows: []usecases.ImportedDebt{importedRow(nil, "Иванов И.", "ИВТ-21", "Базы данных", 3, "exam")}},
+		&fakeImporter{rows: []usecases.ImportedDebt{importedRow(nil, "Иванов Иван", "ИВТ-21", "Базы данных", 3, "exam")}},
 		&recordingAudit{})
 	_, err := uc.Execute(context.Background(), 1, "methodist", src())
 	require.NoError(t, err)
 
-	// Re-import the same natural key with a corrected name + control form.
+	// Same natural key (group/student/discipline/semester), corrected
+	// control form (a non-key field) → matched by identity → updated.
 	uc2 := usecases.NewImportDebtsUseCase(store,
-		&fakeImporter{rows: []usecases.ImportedDebt{importedRow(nil, "Иванов Иван Иванович", "ИВТ-21", "Базы данных", 3, "differential_zachet")}},
+		&fakeImporter{rows: []usecases.ImportedDebt{importedRow(nil, "Иванов Иван", "ИВТ-21", "Базы данных", 3, "differential_zachet")}},
 		&recordingAudit{})
 	res, err := uc2.Execute(context.Background(), 1, "methodist", src())
 	require.NoError(t, err)
 	assert.Equal(t, 1, res.Updated)
 	assert.Len(t, store.byID, 1)
 	for _, d := range store.byID {
-		assert.Equal(t, "Иванов Иван Иванович", d.StudentFullName)
 		assert.Equal(t, entities.ControlFormDifferentialZachet, d.ControlForm)
 	}
+}
+
+func TestImportDebtsUseCase_UpdatesByServiceID_CorrectsName(t *testing.T) {
+	store := newImportStore()
+	// Seed and capture the assigned service id.
+	uc := usecases.NewImportDebtsUseCase(store,
+		&fakeImporter{rows: []usecases.ImportedDebt{importedRow(nil, "Иванов И.", "ИВТ-21", "Базы данных", 3, "exam")}},
+		&recordingAudit{})
+	_, err := uc.Execute(context.Background(), 1, "methodist", src())
+	require.NoError(t, err)
+	require.Len(t, store.byID, 1)
+	var id int64
+	for k := range store.byID {
+		id = k
+	}
+
+	// Re-import with the service id and a corrected full name (a key
+	// field) → matched by id → updated, no duplicate.
+	uc2 := usecases.NewImportDebtsUseCase(store,
+		&fakeImporter{rows: []usecases.ImportedDebt{importedRow(&id, "Иванов Иван Иванович", "ИВТ-21", "Базы данных", 3, "exam")}},
+		&recordingAudit{})
+	res, err := uc2.Execute(context.Background(), 1, "methodist", src())
+	require.NoError(t, err)
+	assert.Equal(t, 1, res.Updated)
+	assert.Len(t, store.byID, 1)
+	assert.Equal(t, "Иванов Иван Иванович", store.byID[id].StudentFullName)
 }
 
 func TestImportDebtsUseCase_ServiceIDNotFound_RowError(t *testing.T) {
