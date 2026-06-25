@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/repositories"
 )
@@ -39,7 +38,9 @@ func NewGetDebtStatsUseCase(repo statsRepo, teacherScope TeacherScopeResolver, a
 // Execute authorizes the actor, applies the role-scoped filter and returns
 // the per-status aggregate. A teacher owning no disciplines returns a zero
 // aggregate without hitting the repo. Denials return ErrDebtAccessForbidden
-// with a stats_denied audit and no repo traffic; repo failures wrap through.
+// with a stats_denied audit and no repo traffic. The repo error passes
+// through unwrapped (it already carries a student_debts: stats: prefix),
+// mirroring ListDebts which likewise returns its repo error directly.
 func (uc *GetDebtStatsUseCase) Execute(ctx context.Context, actorID int64, actorRole string, filter repositories.StudentDebtListFilter) (repositories.StudentDebtStats, error) {
 	scoped, proceed, err := resolveDebtReadScope(ctx, uc.teacherScope, uc.audit, "student_debts.stats_denied", actorID, actorRole, filter)
 	if err != nil {
@@ -48,10 +49,5 @@ func (uc *GetDebtStatsUseCase) Execute(ctx context.Context, actorID int64, actor
 	if !proceed {
 		return repositories.StudentDebtStats{}, nil
 	}
-
-	stats, err := uc.repo.Stats(ctx, scoped)
-	if err != nil {
-		return repositories.StudentDebtStats{}, fmt.Errorf("student_debts: stats: %w", err)
-	}
-	return stats, nil
+	return uc.repo.Stats(ctx, scoped)
 }
