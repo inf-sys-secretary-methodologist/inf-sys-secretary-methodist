@@ -11,6 +11,7 @@ import {
   pickStudentDebtErrorKey,
 } from '../useStudentDebts'
 import { apiClient } from '@/lib/api'
+import { RESIT_RESULTS } from '@/types/studentDebts'
 
 jest.mock('@/lib/api', () => ({
   apiClient: {
@@ -139,6 +140,19 @@ describe('useStudentDebts hooks (queries)', () => {
     it('does not fetch when id is null', () => {
       renderHook(() => useStudentDebt(null), { wrapper })
       expect(mockedApiClient.get).not.toHaveBeenCalled()
+    })
+
+    it('surfaces a no_show attempt result verbatim (wire enum parity)', async () => {
+      // no_show is a real domain ResitResult (resit_result.go) reachable on
+      // both read and write — the type/array must carry it.
+      expect(RESIT_RESULTS).toContain('no_show')
+      mockedApiClient.get.mockResolvedValue({
+        data: { id: 8, attempts: [{ id: 1, attempt_no: 1, result: 'no_show' }] },
+      })
+      const { result } = renderHook(() => useStudentDebt(8), { wrapper })
+      await waitFor(() => {
+        expect(result.current.debt?.attempts[0].result).toBe('no_show')
+      })
     })
 
     it('does not fetch when enabled is false even with a valid id', () => {

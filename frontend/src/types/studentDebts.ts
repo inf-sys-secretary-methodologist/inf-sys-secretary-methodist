@@ -34,9 +34,9 @@ export const CONTROL_FORMS: ControlForm[] = [
   'differential_zachet',
 ]
 
-export type ResitResult = 'pending' | 'passed' | 'failed'
+export type ResitResult = 'pending' | 'passed' | 'failed' | 'no_show'
 
-export const RESIT_RESULTS: ResitResult[] = ['pending', 'passed', 'failed']
+export const RESIT_RESULTS: ResitResult[] = ['pending', 'passed', 'failed', 'no_show']
 
 // === Aggregate shapes (mirror AttemptDTO / DebtDTO) ===
 
