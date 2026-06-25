@@ -29,6 +29,16 @@ type DebtImporter interface {
 	Import(ctx context.Context, r io.Reader) ([]ImportedDebt, error)
 }
 
+// DebtSource fetches debt rows from an external system (1С OData) without a
+// byte stream — its source is an API, not an uploaded document. The concrete
+// adapter lives in infrastructure/ and is wired in main.go (DIP); this
+// package owns only the port. A transport/parse failure is returned as an
+// error; per-row validation problems surface as ImportResult.Errors from
+// Import1CDebts.
+type DebtSource interface {
+	Fetch(ctx context.Context) ([]ImportedDebt, error)
+}
+
 // ImportResult is the lightweight log returned by ImportDebts: how many
 // rows were created / updated / skipped (unchanged), plus per-row errors.
 // Per design §3 a full conflict-resolution workflow is YAGNI for v1 — row
