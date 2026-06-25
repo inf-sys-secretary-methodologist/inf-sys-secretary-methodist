@@ -3,6 +3,8 @@ package usecases
 import (
 	"context"
 	"fmt"
+
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/entities"
 )
 
 // Import1CDebtsUseCase syncs the academic-debt registry from 1С via a
@@ -26,8 +28,26 @@ func NewImport1CDebtsUseCase(repo importDebtsRepo, source DebtSource, audit Audi
 
 // Execute fetches debts from 1С and applies every row. A transport/parse
 // failure is a hard error; per-row problems are in ImportResult.Errors.
-//
-// RED stub — replaced by the real implementation in the GREEN commit.
-func (uc *Import1CDebtsUseCase) Execute(_ context.Context, _ int64, _ string) (ImportResult, error) {
-	return ImportResult{}, fmt.Errorf("not implemented")
+func (uc *Import1CDebtsUseCase) Execute(ctx context.Context, actorID int64, actorRole string) (ImportResult, error) {
+	if !isDebtManager(actorRole) {
+		emitAudit(uc.audit, ctx, "student_debts.import_1c_denied", denialFields(actorID, 0, "forbidden"))
+		return ImportResult{}, fmt.Errorf("%w: actor %d (role %q) cannot import debts from 1С",
+			entities.ErrDebtAccessForbidden, actorID, actorRole)
+	}
+
+	rows, err := uc.source.Fetch(ctx)
+	if err != nil {
+		return ImportResult{}, fmt.Errorf("student_debts: 1С fetch: %w", err)
+	}
+
+	result := uc.applier.applyAll(ctx, rows)
+
+	emitAudit(uc.audit, ctx, "student_debts.imported_1c", map[string]any{
+		"actor_user_id": actorID,
+		"created":       result.Created,
+		"updated":       result.Updated,
+		"skipped":       result.Skipped,
+		"errors":        len(result.Errors),
+	})
+	return result, nil
 }
