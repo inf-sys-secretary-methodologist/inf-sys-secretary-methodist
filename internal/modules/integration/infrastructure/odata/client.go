@@ -30,11 +30,12 @@ type Config struct {
 // DefaultConfig returns default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		Timeout:          30 * time.Second,
-		MaxRetries:       3,
-		RetryDelay:       1 * time.Second,
-		EmployeesCatalog: "Catalog_Сотрудники",
-		StudentsCatalog:  "Catalog_Студенты",
+		Timeout:             30 * time.Second,
+		MaxRetries:          3,
+		RetryDelay:          1 * time.Second,
+		EmployeesCatalog:    "Catalog_Сотрудники",
+		StudentsCatalog:     "Catalog_Студенты",
+		StudentDebtsCatalog: "Catalog_АкадемическиеЗадолженности",
 	}
 }
 
@@ -300,18 +301,60 @@ func (c *Client) GetAllStudents(ctx context.Context) ([]entities.ODataStudent, e
 	return allStudents, nil
 }
 
-// GetStudentDebts fetches academic-debt records from 1C.
-//
-// RED stub — replaced by the real implementation in the GREEN commit.
-func (c *Client) GetStudentDebts(_ context.Context, _ string, _, _ int) ([]entities.ODataStudentDebt, string, error) {
-	return nil, "", fmt.Errorf("not implemented")
+// GetStudentDebts fetches academic-debt records from 1C
+func (c *Client) GetStudentDebts(ctx context.Context, filter string, top, skip int) ([]entities.ODataStudentDebt, string, error) {
+	params := map[string]string{
+		"$format": "application/json",
+	}
+
+	if filter != "" {
+		params["$filter"] = filter
+	}
+	if top > 0 {
+		params["$top"] = fmt.Sprintf("%d", top)
+	}
+	if skip > 0 {
+		params["$skip"] = fmt.Sprintf("%d", skip)
+	}
+
+	url := c.buildURL(c.config.StudentDebtsCatalog, params)
+
+	resp, err := c.doRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch student debts: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	result, err := parseResponse[entities.ODataStudentDebt](resp)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return result.Value, result.NextLink, nil
 }
 
-// GetAllStudentDebts fetches all academic-debt records with pagination.
-//
-// RED stub — replaced by the real implementation in the GREEN commit.
-func (c *Client) GetAllStudentDebts(_ context.Context) ([]entities.ODataStudentDebt, error) {
-	return nil, fmt.Errorf("not implemented")
+// GetAllStudentDebts fetches all academic-debt records with pagination
+func (c *Client) GetAllStudentDebts(ctx context.Context) ([]entities.ODataStudentDebt, error) {
+	var allDebts []entities.ODataStudentDebt
+	pageSize := 100
+	skip := 0
+
+	for {
+		debts, nextLink, err := c.GetStudentDebts(ctx, "", pageSize, skip)
+		if err != nil {
+			return nil, err
+		}
+
+		allDebts = append(allDebts, debts...)
+
+		if nextLink == "" || len(debts) < pageSize {
+			break
+		}
+
+		skip += pageSize
+	}
+
+	return allDebts, nil
 }
 
 // GetStudentByID fetches a single student by Ref_Key
