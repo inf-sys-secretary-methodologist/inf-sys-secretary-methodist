@@ -44,6 +44,12 @@ type StudentDebtRepository interface {
 	// row exists.
 	GetByID(ctx context.Context, id int64) (*entities.StudentDebt, error)
 
+	// FindByIdentity returns the aggregate matching the natural key
+	// (group_name, student_full_name, discipline_name, semester) — the
+	// importer's insert-vs-update probe for a source row carrying no
+	// service id. Returns repositories.ErrStudentDebtNotFound when absent.
+	FindByIdentity(ctx context.Context, groupName, studentFullName, disciplineName string, semester int) (*entities.StudentDebt, error)
+
 	// List returns a page of StudentDebt items matching the filter
 	// together with the total number of matching rows (ignoring Limit /
 	// Offset). Items carry root state only — attempts are not hydrated.

@@ -139,50 +139,80 @@ func insertAttempt(ctx context.Context, tx execQuerier, debtID int64, a *entitie
 	return nil
 }
 
+// rowScanner is the narrow surface shared by *sql.Row and *sql.Rows so
+// scanDebtRoot serves both single-row lookups (GetByID, FindByIdentity).
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
+// debtRoot holds one student_debts row in sdSelectColumns order, with
+// nullable columns unwrapped at reconstitute time.
+type debtRoot struct {
+	id                             int64
+	studentName, group, discipline string
+	semester, version              int
+	controlForm, status            string
+	sourceRef, sourceHash          string
+	studentUserID, disciplineID    sql.NullInt64
+	createdAt, updatedAt           time.Time
+}
+
+// scanDebtRoot scans one root row (sdSelectColumns order) into debtRoot.
+func scanDebtRoot(s rowScanner) (debtRoot, error) {
+	var d debtRoot
+	err := s.Scan(
+		&d.id, &d.studentName, &d.group, &d.discipline, &d.semester, &d.controlForm,
+		&d.studentUserID, &d.disciplineID, &d.sourceRef, &d.sourceHash, &d.status,
+		&d.version, &d.createdAt, &d.updatedAt,
+	)
+	return d, err
+}
+
+// reconstitute rebuilds the aggregate from the scanned root + attempts.
+func (d debtRoot) reconstitute(attempts []*entities.ResitAttempt) *entities.StudentDebt {
+	return entities.ReconstituteStudentDebt(
+		d.id, d.studentName, d.group, d.discipline, d.semester,
+		entities.ControlForm(d.controlForm),
+		nullInt64Ptr(d.studentUserID), nullInt64Ptr(d.disciplineID),
+		d.sourceRef, d.sourceHash, d.version, entities.DebtStatus(d.status),
+		attempts, d.createdAt, d.updatedAt,
+	)
+}
+
+// hydrate runs the shared "scan root → load attempts → reconstitute"
+// path for the single-row lookups, mapping sql.ErrNoRows to the
+// not-found sentinel.
+func (r *StudentDebtRepositoryPG) hydrate(ctx context.Context, op string, row *sql.Row) (*entities.StudentDebt, error) {
+	root, err := scanDebtRoot(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, repositories.ErrStudentDebtNotFound
+		}
+		return nil, fmt.Errorf("student_debts: %s: %w", op, err)
+	}
+	attempts, err := r.selectAttempts(ctx, root.id)
+	if err != nil {
+		return nil, err
+	}
+	return root.reconstitute(attempts), nil
+}
+
 // GetByID returns the aggregate with the given id, hydrated through
 // Reconstitute*: root + its attempts in attempt-no order. Returns
 // repositories.ErrStudentDebtNotFound when no row matches.
 func (r *StudentDebtRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.StudentDebt, error) {
 	query := `SELECT ` + sdSelectColumns + ` FROM student_debts WHERE id = $1`
-
-	var (
-		idv                            int64
-		studentName, group, discipline string
-		semester, version              int
-		controlForm, status            string
-		sourceRef, sourceHash          string
-		studentUserID, disciplineID    sql.NullInt64
-		createdAt, updatedAt           time.Time
-	)
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&idv, &studentName, &group, &discipline, &semester, &controlForm,
-		&studentUserID, &disciplineID, &sourceRef, &sourceHash, &status,
-		&version, &createdAt, &updatedAt,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, repositories.ErrStudentDebtNotFound
-		}
-		return nil, fmt.Errorf("student_debts: get by id: %w", err)
-	}
-
-	attempts, err := r.selectAttempts(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return entities.ReconstituteStudentDebt(
-		idv, studentName, group, discipline, semester,
-		entities.ControlForm(controlForm),
-		nullInt64Ptr(studentUserID), nullInt64Ptr(disciplineID),
-		sourceRef, sourceHash, version, entities.DebtStatus(status),
-		attempts, createdAt, updatedAt,
-	), nil
+	return r.hydrate(ctx, "get by id", r.db.QueryRowContext(ctx, query, id))
 }
 
-// FindByIdentity returns the debt matching the natural key (RED stub).
-func (r *StudentDebtRepositoryPG) FindByIdentity(_ context.Context, _, _, _ string, _ int) (*entities.StudentDebt, error) {
-	return nil, errors.New("student_debts: FindByIdentity not implemented")
+// FindByIdentity returns the debt matching the natural key (group_name,
+// student_full_name, discipline_name, semester) — the importer's
+// insert-vs-update probe for a row with no service id. Returns
+// repositories.ErrStudentDebtNotFound when no row matches.
+func (r *StudentDebtRepositoryPG) FindByIdentity(ctx context.Context, groupName, studentFullName, disciplineName string, semester int) (*entities.StudentDebt, error) {
+	query := `SELECT ` + sdSelectColumns + ` FROM student_debts
+		WHERE group_name = $1 AND student_full_name = $2 AND discipline_name = $3 AND semester = $4`
+	return r.hydrate(ctx, "find by identity", r.db.QueryRowContext(ctx, query, groupName, studentFullName, disciplineName, semester))
 }
 
 // selectAttempts hydrates the resit attempts for a debt in attempt-no
