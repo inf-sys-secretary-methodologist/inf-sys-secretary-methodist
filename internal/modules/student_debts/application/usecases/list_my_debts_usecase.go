@@ -25,5 +25,6 @@ func NewListMyDebtsUseCase(repo listDebtsRepo) *ListMyDebtsUseCase {
 
 // Execute forces StudentUserID = actorID and lists the actor's debts.
 func (uc *ListMyDebtsUseCase) Execute(ctx context.Context, actorID int64, filter repositories.StudentDebtListFilter) (repositories.StudentDebtListResult, error) {
-	return repositories.StudentDebtListResult{}, errNotImplemented
+	filter.StudentUserID = &actorID
+	return uc.repo.List(ctx, filter)
 }

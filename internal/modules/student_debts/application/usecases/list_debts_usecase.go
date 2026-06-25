@@ -2,7 +2,10 @@ package usecases
 
 import (
 	"context"
+	"fmt"
 
+	authDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/repositories"
 )
 
@@ -32,7 +35,32 @@ func NewListDebtsUseCase(repo listDebtsRepo, teacherScope TeacherScopeResolver, 
 	return &ListDebtsUseCase{repo: repo, teacherScope: teacherScope, audit: audit}
 }
 
-// Execute applies the role-scoped filter and lists matching debts.
+// Execute applies the role-scoped filter and lists matching debts:
+//   - staff (admin/methodist/secretary) → inbound filter pass-through;
+//   - teacher → DisciplineIDs forced to the disciplines they own (any
+//     client value overridden). A teacher who owns no disciplines gets
+//     an empty page WITHOUT hitting the repo — an empty DisciplineIDs
+//     would otherwise disable the predicate and leak the whole registry;
+//   - anyone else (student, unknown) → denied + audit; students read
+//     their own debts through ListMyDebtsUseCase.
 func (uc *ListDebtsUseCase) Execute(ctx context.Context, actorID int64, actorRole string, filter repositories.StudentDebtListFilter) (repositories.StudentDebtListResult, error) {
-	return repositories.StudentDebtListResult{}, errNotImplemented
+	if isDebtManager(actorRole) {
+		return uc.repo.List(ctx, filter)
+	}
+
+	if authDomain.RoleType(actorRole) == authDomain.RoleTeacher {
+		ids, err := uc.teacherScope.DisciplineIDsForTeacher(ctx, actorID)
+		if err != nil {
+			return repositories.StudentDebtListResult{}, fmt.Errorf("student_debts: resolve teacher scope: %w", err)
+		}
+		if len(ids) == 0 {
+			return repositories.StudentDebtListResult{}, nil
+		}
+		filter.DisciplineIDs = ids
+		return uc.repo.List(ctx, filter)
+	}
+
+	emitAudit(uc.audit, ctx, "student_debts.list_denied", denialFields(actorID, 0, "forbidden"))
+	return repositories.StudentDebtListResult{}, fmt.Errorf("%w: role %q cannot list the debt registry",
+		entities.ErrDebtAccessForbidden, actorRole)
 }
