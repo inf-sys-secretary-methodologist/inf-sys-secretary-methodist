@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lib/pq"
+
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/domain/repositories"
@@ -26,7 +28,8 @@ const sdListColumns = `id, student_full_name, group_name, discipline_name, semes
 const sdListFilterClause = `WHERE ($1 = '' OR group_name = $1)
 		AND ($2 = '' OR status = $2)
 		AND ($3::bigint IS NULL OR semester = $3::bigint)
-		AND ($4::bigint IS NULL OR student_user_id = $4::bigint)`
+		AND ($4::bigint IS NULL OR student_user_id = $4::bigint)
+		AND ($5::bigint[] IS NULL OR discipline_id = ANY($5::bigint[]))`
 
 // draSelectColumns enumerates the debt_resit_attempts projection used by
 // the attempt hydration query.
@@ -235,21 +238,29 @@ func (r *StudentDebtRepositoryPG) List(ctx context.Context, filter repositories.
 	if filter.StudentUserID != nil {
 		studentArg = sql.NullInt64{Int64: *filter.StudentUserID, Valid: true}
 	}
+	// nil interface → SQL NULL so the predicate disables; a non-empty
+	// slice → bigint[] for the discipline_id = ANY(...) teacher scope.
+	// An empty (non-nil) slice is treated as "no filter" too, never as
+	// ANY('{}') which would match nothing unintentionally.
+	var disciplineArg any
+	if len(filter.DisciplineIDs) > 0 {
+		disciplineArg = pq.Array(filter.DisciplineIDs)
+	}
 
 	countQuery := `SELECT COUNT(*) FROM student_debts ` + sdListFilterClause
 	var total int
 	if err := r.db.QueryRowContext(ctx, countQuery,
-		filter.GroupName, statusArg, semesterArg, studentArg,
+		filter.GroupName, statusArg, semesterArg, studentArg, disciplineArg,
 	).Scan(&total); err != nil {
 		return repositories.StudentDebtListResult{}, fmt.Errorf("student_debts: list count: %w", err)
 	}
 
 	listQuery := `SELECT ` + sdListColumns + ` FROM student_debts ` + sdListFilterClause + `
 		ORDER BY group_name, student_full_name, semester, id
-		LIMIT $5 OFFSET $6`
+		LIMIT $6 OFFSET $7`
 
 	rows, err := r.db.QueryContext(ctx, listQuery,
-		filter.GroupName, statusArg, semesterArg, studentArg,
+		filter.GroupName, statusArg, semesterArg, studentArg, disciplineArg,
 		filter.Limit, filter.Offset,
 	)
 	if err != nil {

@@ -266,6 +266,31 @@ func TestStudentDebtRepositoryPG_List_ReturnsPageAndTotal(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestStudentDebtRepositoryPG_List_FiltersByDisciplineIDs(t *testing.T) {
+	repo, mock := newSDRepoMock(t)
+
+	filter := repositories.StudentDebtListFilter{
+		DisciplineIDs: []int64{7, 9},
+		Limit:         20,
+	}
+
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM student_debts")).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	// The list query must carry a discipline_id = ANY(...) predicate when
+	// DisciplineIDs is set — this is the teacher-scope mechanism.
+	mock.ExpectQuery(regexp.QuoteMeta("discipline_id = ANY")).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "student_full_name", "group_name", "discipline_name",
+			"semester", "control_form", "student_user_id", "status", "version",
+		}).AddRow(int64(1), "Иванов Иван", "ИВТ-21", "Базы данных", 3, "exam", nil, "open", 1))
+
+	res, err := repo.List(context.Background(), filter)
+	require.NoError(t, err)
+	assert.Equal(t, 1, res.Total)
+	require.Len(t, res.Items, 1)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 // --- Update ----------------------------------------------------------------
 
 func TestStudentDebtRepositoryPG_Update_HappyPath_BumpsVersion(t *testing.T) {

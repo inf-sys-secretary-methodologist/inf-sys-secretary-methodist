@@ -12,8 +12,14 @@ type StudentDebtListFilter struct {
 	Status        *entities.DebtStatus // optional
 	Semester      *int                 // optional
 	StudentUserID *int64               // optional, e.g. "my debts"
-	Limit         int                  // pagination, > 0
-	Offset        int                  // pagination, ≥ 0
+	// DisciplineIDs restricts results to debts linked to any of these
+	// curriculum_section_items ids. Used for teacher scoping (the
+	// disciplines a teacher owns). nil/empty disables the predicate; a
+	// non-empty slice that matches no row yields an empty page (a teacher
+	// with zero owned disciplines sees nothing, which is correct).
+	DisciplineIDs []int64
+	Limit         int // pagination, > 0
+	Offset        int // pagination, ≥ 0
 }
 
 // StudentDebtListResult bundles the page items with the total count of
