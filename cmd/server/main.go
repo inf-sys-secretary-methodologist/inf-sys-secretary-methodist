@@ -150,6 +150,9 @@ import (
 	scheduleUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	schedulePersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/infrastructure/persistence"
 	scheduleHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/interfaces/http/handlers"
+	sdUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/application/usecases"
+	sdPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/infrastructure/persistence"
+	sdHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/interfaces/http/handlers"
 	taskDto "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/dto"
 	taskUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
 	taskRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
@@ -2868,6 +2871,26 @@ func setupRoutes(
 			genRevHandler := wpHandler.NewGenerateOrderRevisionsHandler(generateOrderRevsUC)
 			wpHandler.RegisterGenerateOrderRevisionsRoutes(wpV1Group, genRevHandler)
 			logger.Info("AI bulk-revision (generate-revisions) route registered", nil)
+		}
+
+		// Student debts (Долги студентов) module — read endpoints (PR5b).
+		// The teacher scope resolves a teacher's disciplines from the
+		// schedule (schedule_lessons → discipline_id); migration 051
+		// realigned student_debts.discipline_id onto disciplines(id) so both
+		// share one id space. auditLogger satisfies the AuditSink port
+		// structurally; the read use cases need no notifier.
+		{
+			sdRepo := sdPersistence.NewStudentDebtRepositoryPG(db)
+			sdTeacherScope := sdPersistence.NewTeacherScopeResolverPG(db)
+
+			getDebtUC := sdUsecases.NewGetDebtUseCase(sdRepo, sdTeacherScope, auditLogger)
+			listDebtsUC := sdUsecases.NewListDebtsUseCase(sdRepo, sdTeacherScope, auditLogger)
+			listMyDebtsUC := sdUsecases.NewListMyDebtsUseCase(sdRepo)
+			debtStatsUC := sdUsecases.NewGetDebtStatsUseCase(sdRepo, sdTeacherScope, auditLogger)
+
+			debtHandler := sdHandler.NewStudentDebtHandler(getDebtUC, listDebtsUC, listMyDebtsUC, debtStatsUC)
+			sdHandler.RegisterStudentDebtRoutes(protectedGroup, debtHandler)
+			logger.Info("Student debts module read routes registered", nil)
 		}
 
 		// Schedule/Events module routes
