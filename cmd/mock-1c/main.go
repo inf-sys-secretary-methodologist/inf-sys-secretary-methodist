@@ -110,6 +110,39 @@ func sampleStudents() []entities.ODataStudent {
 	}
 }
 
+// sampleDebts returns a small, stable academic-debt set referencing the
+// sample students by group/name so a 1С-import demo lands realistic rows.
+// Control forms use the Russian 1С labels the student_debts adapter maps to
+// its wire codes; one row per status-worthy scenario across both groups.
+func sampleDebts() []entities.ODataStudentDebt {
+	return []entities.ODataStudentDebt{
+		{
+			RefKey:      "dddddddd-0001-0000-0000-000000000001",
+			StudentRef:  "aaaaaaaa-0001-0000-0000-000000000001",
+			StudentName: "Кузнецов Дмитрий Алексеевич", GroupName: "БИ-21",
+			Discipline: "Базы данных", Semester: 3, ControlForm: "Экзамен",
+		},
+		{
+			RefKey:      "dddddddd-0002-0000-0000-000000000002",
+			StudentRef:  "aaaaaaaa-0002-0000-0000-000000000002",
+			StudentName: "Смирнова Елена Олеговна", GroupName: "БИ-21",
+			Discipline: "Математический анализ", Semester: 3, ControlForm: "Зачёт",
+		},
+		{
+			RefKey:      "dddddddd-0003-0000-0000-000000000003",
+			StudentRef:  "aaaaaaaa-0003-0000-0000-000000000003",
+			StudentName: "Волков Артём Игоревич", GroupName: "ПИ-22",
+			Discipline: "Программирование", Semester: 2, ControlForm: "Дифференцированный зачёт",
+		},
+		{
+			RefKey:      "dddddddd-0004-0000-0000-000000000004",
+			StudentRef:  "aaaaaaaa-0003-0000-0000-000000000003",
+			StudentName: "Волков Артём Игоревич", GroupName: "ПИ-22",
+			Discipline: "Архитектура ЭВМ", Semester: 2, ControlForm: "Курсовой проект",
+		},
+	}
+}
+
 func main() {
 	port := os.Getenv("MOCK_1C_PORT")
 	if port == "" {
@@ -125,8 +158,9 @@ func main() {
 	addr := ":" + clean(port)
 	// #nosec G706 -- dev-only mock; port comes from operator env and is sanitized via clean()
 	log.Printf("mock-1c OData server listening on %s", addr)
-	log.Printf("  GET /Catalog_Сотрудники  -> %d employees", len(sampleEmployees()))
-	log.Printf("  GET /Catalog_Студенты    -> %d students", len(sampleStudents()))
+	log.Printf("  GET /Catalog_Сотрудники              -> %d employees", len(sampleEmployees()))
+	log.Printf("  GET /Catalog_Студенты                -> %d students", len(sampleStudents()))
+	log.Printf("  GET /Catalog_АкадемическиеЗадолженности -> %d debts", len(sampleDebts()))
 
 	// Explicit ReadHeaderTimeout (vs http.ListenAndServe) bounds slow-header
 	// clients — satisfies gosec G114 without an inline suppression.
@@ -149,6 +183,8 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		writeMetadata(w)
 	case strings.Contains(path, "Сотрудники"):
 		writeEmployees(w, r)
+	case strings.Contains(path, "Задолженности"):
+		writeStudentDebts(w, r)
 	case strings.Contains(path, "Студенты"):
 		writeStudents(w, r)
 	case path == "/" || path == "":
@@ -180,6 +216,14 @@ func writeStudents(w http.ResponseWriter, r *http.Request) {
 	out := odataList[entities.ODataStudent]{Metadata: "http://mock-1c/$metadata#Catalog_Студенты"}
 	if !pagedOut(r) {
 		out.Value = sampleStudents()
+	}
+	writeJSON(w, out)
+}
+
+func writeStudentDebts(w http.ResponseWriter, r *http.Request) {
+	out := odataList[entities.ODataStudentDebt]{Metadata: "http://mock-1c/$metadata#Catalog_АкадемическиеЗадолженности"}
+	if !pagedOut(r) {
+		out.Value = sampleDebts()
 	}
 	writeJSON(w, out)
 }
