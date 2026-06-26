@@ -139,7 +139,7 @@ func (h *TemplateHandler) PreviewTemplate(c *gin.Context) {
 // @Produce json
 // @Param id path int true "Document Type ID"
 // @Param request body dto.CreateFromTemplateRequest true "Document creation data"
-// @Success 201 {object} dto.DocumentResponse
+// @Success 201 {object} dto.DocumentOutput
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
 // @Failure 404 {object} map[string]string

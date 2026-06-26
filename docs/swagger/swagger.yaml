@@ -1,5 +1,479 @@
 basePath: /api
 definitions:
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.ChatResponse:
+    properties:
+      conversation_id:
+        type: integer
+      message:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.MessageResponse'
+      mood_message:
+        type: string
+      mood_state:
+        type: string
+      sources:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.SourceResponse'
+        type: array
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.ConversationListResponse
+  : properties:
+      conversations:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.ConversationResponse'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.ConversationResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      last_message_at:
+        type: string
+      message_count:
+        type: integer
+      model:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.CreateConversationRequest
+  : properties:
+      model:
+        maxLength: 64
+        type: string
+      title:
+        maxLength: 255
+        type: string
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.FunFactResponse:
+    properties:
+      category:
+        type: string
+      content:
+        type: string
+      id:
+        type: integer
+      source:
+        type: string
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.IndexDocumentRequest:
+    properties:
+      document_id:
+        type: integer
+      force_reindex:
+        type: boolean
+    required:
+    - document_id
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.IndexDocumentResponse:
+    properties:
+      chunks_created:
+        type: integer
+      document_id:
+        type: integer
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.IndexStatusResponse:
+    properties:
+      indexed_documents:
+        type: integer
+      last_indexed_at:
+        type: string
+      pending_documents:
+        type: integer
+      total_documents:
+        type: integer
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.MessageListResponse:
+    properties:
+      has_more:
+        type: boolean
+      messages:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.MessageResponse'
+        type: array
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.MessageResponse:
+    properties:
+      content:
+        type: string
+      conversation_id:
+        type: integer
+      created_at:
+        type: string
+      error_message:
+        type: string
+      id:
+        type: integer
+      model:
+        type: string
+      role:
+        type: string
+      sources:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.SourceResponse'
+        type: array
+      status:
+        type: string
+      tokens_used:
+        type: integer
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.MoodResponse:
+    properties:
+      at_risk_students:
+        type: integer
+      computed_at:
+        type: string
+      fun_fact:
+        type: string
+      greeting:
+        type: string
+      intensity:
+        type: number
+      message:
+        type: string
+      overdue_documents:
+        type: integer
+      reason:
+        type: string
+      state:
+        type: string
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.SearchRequest:
+    properties:
+      document_types:
+        items:
+          type: string
+        type: array
+      limit:
+        type: integer
+      query:
+        maxLength: 1000
+        minLength: 1
+        type: string
+      threshold:
+        type: number
+    required:
+    - query
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.SearchResponse:
+    properties:
+      query:
+        type: string
+      results:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.SearchResultResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.SearchResultResponse:
+    properties:
+      chunk_text:
+        type: string
+      document_id:
+        type: integer
+      document_title:
+        type: string
+      page_number:
+        type: integer
+      similarity_score:
+        type: number
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.SendMessageRequest:
+    properties:
+      content:
+        maxLength: 10000
+        minLength: 1
+        type: string
+      conversation_id:
+        type: integer
+      include_sources:
+        type: boolean
+      max_sources:
+        type: integer
+    required:
+    - content
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.SourceResponse:
+    properties:
+      chunk_text:
+        type: string
+      document_id:
+        type: integer
+      document_title:
+        type: string
+      id:
+        type: integer
+      page_number:
+        type: integer
+      similarity_score:
+        type: number
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.UpdateConversationRequest
+  : properties:
+      title:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - title
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.AllGroupsSummaryResponse
+  : properties:
+      groups:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.GroupSummaryResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.AtRiskStudentsResponse
+  : properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      students:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.StudentRiskResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.AttendanceRecordResponse
+  : properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      lesson_date:
+        type: string
+      lesson_id:
+        type: integer
+      marked_by:
+        type: integer
+      notes:
+        type: string
+      status:
+        type: string
+      student_id:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.AttendanceTrendResponse
+  : properties:
+      months:
+        type: integer
+      trends:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.MonthlyTrendResponse'
+        type: array
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.BulkAttendanceRecord
+  : properties:
+      notes:
+        type: string
+      status:
+        enum:
+        - present
+        - absent
+        - late
+        - excused
+        type: string
+      student_id:
+        type: integer
+    required:
+    - status
+    - student_id
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.BulkMarkAttendanceRequest
+  : properties:
+      lesson_date:
+        type: string
+      lesson_id:
+        type: integer
+      records:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.BulkAttendanceRecord'
+        minItems: 1
+        type: array
+    required:
+    - lesson_date
+    - lesson_id
+    - records
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.CreateLessonRequest
+  : properties:
+      group_name:
+        type: string
+      lesson_type:
+        enum:
+        - lecture
+        - practice
+        - lab
+        - seminar
+        - exam
+        type: string
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      subject:
+        maxLength: 255
+        minLength: 1
+        type: string
+      teacher_id:
+        type: integer
+    required:
+    - name
+    - subject
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.GroupSummaryResponse
+  : properties:
+      at_risk_percentage:
+        type: number
+      avg_attendance_rate:
+        type: number
+      avg_grade:
+        type: number
+      group_name:
+        type: string
+      risk_distribution:
+        properties:
+          critical:
+            type: integer
+          high:
+            type: integer
+          low:
+            type: integer
+          medium:
+            type: integer
+        type: object
+      total_students:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.LessonAttendanceResponse
+  : properties:
+      lesson_date:
+        type: string
+      lesson_id:
+        type: integer
+      records:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.AttendanceRecordResponse'
+        type: array
+      summary:
+        properties:
+          absent:
+            type: integer
+          excused:
+            type: integer
+          late:
+            type: integer
+          present:
+            type: integer
+          total:
+            type: integer
+        type: object
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.MarkAttendanceRequest
+  : properties:
+      lesson_date:
+        description: 'Format: "2024-01-15"'
+        type: string
+      lesson_id:
+        type: integer
+      notes:
+        type: string
+      status:
+        enum:
+        - present
+        - absent
+        - late
+        - excused
+        type: string
+      student_id:
+        type: integer
+    required:
+    - lesson_date
+    - lesson_id
+    - status
+    - student_id
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.MonthlyTrendResponse
+  : properties:
+      absent_count:
+        type: integer
+      attendance_rate:
+        type: number
+      month:
+        description: 'Format: "2024-01"'
+        type: string
+      present_count:
+        type: integer
+      total_records:
+        type: integer
+      unique_students:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.StudentRiskResponse
+  : properties:
+      attendance_rate:
+        type: number
+      grade_average:
+        type: number
+      group_name:
+        type: string
+      risk_factors:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_domain_entities.RiskFactors'
+      risk_level:
+        type: string
+      risk_score:
+        type: number
+      student_id:
+        type: integer
+      student_name:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_domain_entities.AttendanceRiskFactor
+  : properties:
+      absent_count:
+        type: integer
+      is_risk:
+        type: boolean
+      rate:
+        type: number
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_domain_entities.GradesRiskFactor
+  : properties:
+      average:
+        type: number
+      failing_count:
+        type: integer
+      is_risk:
+        type: boolean
+    type: object
+  github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_domain_entities.RiskFactors:
+    properties:
+      attendance:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_domain_entities.AttendanceRiskFactor'
+      grades:
+        $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_domain_entities.GradesRiskFactor'
+    type: object
   github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_dashboard_application_dto.ActivityItem:
     properties:
       action:
@@ -114,6 +588,22 @@ definitions:
   : properties:
       password:
         type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.CreateFromTemplateRequest
+  : properties:
+      category_id:
+        type: integer
+      title:
+        maxLength: 500
+        minLength: 1
+        type: string
+      variables:
+        additionalProperties:
+          type: string
+        type: object
+    required:
+    - title
+    - variables
     type: object
   ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.CreatePublicLinkInput
   : properties:
@@ -309,6 +799,20 @@ definitions:
       user_name:
         type: string
     type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.PreviewTemplateRequest
+  : properties:
+      variables:
+        additionalProperties:
+          type: string
+        type: object
+    required:
+    - variables
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.PreviewTemplateResponse
+  : properties:
+      content:
+        type: string
+    type: object
   ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.PublicLinkOutput
   : properties:
       created_at:
@@ -416,6 +920,48 @@ definitions:
       user_name:
         type: string
     type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.TemplateListResponse
+  : properties:
+      templates:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.TemplateResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.TemplateResponse
+  : properties:
+      code:
+        type: string
+      description:
+        type: string
+      has_template:
+        type: boolean
+      id:
+        type: integer
+      methodist_only:
+        description: 'v0.126.0: hidden from teacher / student'
+        type: boolean
+      name:
+        type: string
+      template_content:
+        type: string
+      template_variables:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_domain_entities.TemplateVariable'
+        type: array
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.UpdateTemplateRequest
+  : properties:
+      methodist_only:
+        type: boolean
+      template_content:
+        type: string
+      template_variables:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_domain_entities.TemplateVariable'
+        type: array
+    type: object
   ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.VersionDiffOutput
   : properties:
       changed_fields:
@@ -445,6 +991,29 @@ definitions:
       file_size:
         type: integer
       mime_type:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_domain_entities.TemplateVariable
+  : properties:
+      default_value:
+        description: Default value
+        type: string
+      label:
+        description: Display label
+        type: string
+      name:
+        description: Variable name (used in template as {{name}})
+        type: string
+      options:
+        description: Options for select type
+        items:
+          type: string
+        type: array
+      required:
+        description: Is variable required
+        type: boolean
+      type:
+        description: string, text, date, number, select
         type: string
     type: object
   ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_messaging_application_dto.AddParticipantsInput
@@ -951,6 +1520,74 @@ definitions:
   : properties:
       count:
         type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushStatusOutput
+  : properties:
+      is_enabled:
+        type: boolean
+      subscriptions:
+        items:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushSubscriptionOutput'
+        type: array
+      total_devices:
+        type: integer
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushSubscribeInput
+  : properties:
+      auth:
+        type: string
+      device_name:
+        maxLength: 255
+        type: string
+      endpoint:
+        type: string
+      p256dh:
+        type: string
+      user_agent:
+        type: string
+    required:
+    - auth
+    - endpoint
+    - p256dh
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushSubscriptionOutput
+  : properties:
+      created_at:
+        type: string
+      device_name:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      last_used_at:
+        type: string
+      user_agent:
+        type: string
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushTestInput
+  : properties:
+      message:
+        maxLength: 500
+        type: string
+      title:
+        maxLength: 100
+        type: string
+    required:
+    - message
+    - title
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushUnsubscribeInput
+  : properties:
+      endpoint:
+        type: string
+    required:
+    - endpoint
+    type: object
+  ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushVAPIDKeyOutput
+  : properties:
+      public_key:
+        type: string
     type: object
   ? github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_domain_entities.NotificationPriority
   : enum:
@@ -1538,7 +2175,7 @@ definitions:
         - scheduled
         - ongoing
         - completed
-        - cancelled
+        - canceled
         - postponed
         type: string
       timezone:
@@ -1598,6 +2235,245 @@ definitions:
       success:
         type: boolean
     type: object
+  internal_modules_assignments_interfaces_http_handlers.ReturnSubmissionRequest:
+    properties:
+      reason:
+        example: revisit derivation
+        type: string
+      student_id:
+        example: 7
+        type: integer
+    type: object
+  internal_modules_assignments_interfaces_http_handlers.SaveGradeRequest:
+    properties:
+      feedback:
+        example: Great work
+        type: string
+      student_id:
+        example: 7
+        type: integer
+      value:
+        example: 85
+        type: integer
+    type: object
+  internal_modules_curriculum_interfaces_http_handlers.BulkCreateItemRequest:
+    properties:
+      control_form:
+        type: string
+      credits:
+        type: integer
+      hours_lab:
+        type: integer
+      hours_lectures:
+        type: integer
+      hours_practice:
+        type: integer
+      hours_self:
+        type: integer
+      order_index:
+        type: integer
+      semester:
+        type: integer
+      title:
+        type: string
+    type: object
+  internal_modules_curriculum_interfaces_http_handlers.BulkEditConflictItem:
+    properties:
+      current_version:
+        type: integer
+      expected_version:
+        type: integer
+      id:
+        type: integer
+    type: object
+  internal_modules_curriculum_interfaces_http_handlers.BulkEditConflictResponse:
+    properties:
+      conflicts:
+        items:
+          $ref: '#/definitions/internal_modules_curriculum_interfaces_http_handlers.BulkEditConflictItem'
+        type: array
+      error:
+        type: string
+    type: object
+  internal_modules_curriculum_interfaces_http_handlers.BulkEditRequest:
+    properties:
+      creates:
+        items:
+          $ref: '#/definitions/internal_modules_curriculum_interfaces_http_handlers.BulkCreateItemRequest'
+        type: array
+      deletes:
+        items:
+          type: integer
+        type: array
+      updates:
+        items:
+          $ref: '#/definitions/internal_modules_curriculum_interfaces_http_handlers.BulkUpdateItemRequest'
+        type: array
+    type: object
+  internal_modules_curriculum_interfaces_http_handlers.BulkUpdateItemRequest:
+    properties:
+      control_form:
+        type: string
+      credits:
+        type: integer
+      hours_lab:
+        type: integer
+      hours_lectures:
+        type: integer
+      hours_practice:
+        type: integer
+      hours_self:
+        type: integer
+      id:
+        type: integer
+      order_index:
+        type: integer
+      semester:
+        type: integer
+      title:
+        type: string
+    type: object
+  internal_modules_curriculum_interfaces_http_handlers.CreateCurriculumRequest:
+    properties:
+      code:
+        example: 09.03.04-2026
+        type: string
+      description:
+        example: Учебный план направления подготовки
+        type: string
+      specialty:
+        example: Информатика и вычислительная техника
+        type: string
+      title:
+        example: ИВТ-2026 / 4 года
+        type: string
+      year:
+        example: 2026
+        type: integer
+    type: object
+  internal_modules_curriculum_interfaces_http_handlers.CreateDisciplineItemRequest:
+    properties:
+      control_form:
+        example: exam
+        type: string
+      credits:
+        example: 4
+        type: integer
+      hours_lab:
+        example: 0
+        type: integer
+      hours_lectures:
+        example: 36
+        type: integer
+      hours_practice:
+        example: 36
+        type: integer
+      hours_self:
+        example: 72
+        type: integer
+      order_index:
+        example: 0
+        type: integer
+      semester:
+        example: 1
+        type: integer
+      title:
+        example: Математический анализ
+        type: string
+    type: object
+  internal_modules_curriculum_interfaces_http_handlers.CreateSectionRequest:
+    properties:
+      description:
+        example: Дисциплины обязательной части программы
+        type: string
+      order_index:
+        example: 0
+        type: integer
+      title:
+        example: Базовая часть
+        type: string
+    type: object
+  internal_modules_curriculum_interfaces_http_handlers.RejectCurriculumRequest:
+    properties:
+      reason:
+        example: Не соответствует ФГОС, переделать раздел дисциплин
+        type: string
+    type: object
+  internal_modules_curriculum_interfaces_http_handlers.UpdateCurriculumRequest:
+    properties:
+      code:
+        type: string
+      description:
+        type: string
+      specialty:
+        type: string
+      title:
+        type: string
+      year:
+        type: integer
+    type: object
+  internal_modules_curriculum_interfaces_http_handlers.UpdateSectionRequest:
+    properties:
+      description:
+        example: Дисциплины по выбору
+        type: string
+      order_index:
+        example: 1
+        type: integer
+      title:
+        example: Вариативная часть
+        type: string
+    type: object
+  internal_modules_extracurricular_interfaces_http_handlers.CreateEventRequest:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      end_at:
+        type: string
+      location:
+        type: string
+      max_capacity:
+        type: integer
+      start_at:
+        type: string
+      target_audience:
+        type: string
+      title:
+        type: string
+    required:
+    - category
+    - end_at
+    - start_at
+    - target_audience
+    - title
+    type: object
+  internal_modules_extracurricular_interfaces_http_handlers.UpdateEventRequest:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      end_at:
+        type: string
+      location:
+        type: string
+      max_capacity:
+        type: integer
+      start_at:
+        type: string
+      target_audience:
+        type: string
+      title:
+        type: string
+    required:
+    - category
+    - end_at
+    - start_at
+    - target_audience
+    - title
+    type: object
   internal_modules_notifications_interfaces_http.GenerateVerificationCodeResponse:
     properties:
       bot_link:
@@ -1620,6 +2496,150 @@ definitions:
       username:
         type: string
     type: object
+  internal_modules_work_program_interfaces_http_handlers.AddGoalRequest:
+    properties:
+      order_index:
+        type: integer
+      text:
+        type: string
+    required:
+    - text
+    type: object
+  internal_modules_work_program_interfaces_http_handlers.AssessmentContentRequest:
+    properties:
+      description:
+        type: string
+      example_questions:
+        items:
+          type: string
+        type: array
+      max_score:
+        type: integer
+      type:
+        type: string
+    required:
+    - description
+    - type
+    type: object
+  internal_modules_work_program_interfaces_http_handlers.CompetenceContentRequest:
+    properties:
+      code:
+        type: string
+      description:
+        type: string
+      type:
+        type: string
+    required:
+    - code
+    - description
+    - type
+    type: object
+  internal_modules_work_program_interfaces_http_handlers.CreateRevisionRequest:
+    properties:
+      change_summary:
+        type: string
+      change_type:
+        type: string
+      diff_payload:
+        items:
+          type: integer
+        type: array
+    required:
+    - change_summary
+    - change_type
+    type: object
+  internal_modules_work_program_interfaces_http_handlers.CreateWorkProgramRequest:
+    properties:
+      annotation:
+        type: string
+      applicable_from_year:
+        type: integer
+      discipline_id:
+        type: integer
+      specialty_code:
+        type: string
+      title:
+        type: string
+    required:
+    - applicable_from_year
+    - discipline_id
+    - specialty_code
+    - title
+    type: object
+  internal_modules_work_program_interfaces_http_handlers.RecordMinobrnaukiOrderRequest:
+    properties:
+      affected_work_program_ids:
+        items:
+          type: integer
+        type: array
+      change_scope:
+        type: string
+      document_id:
+        type: integer
+      order_number:
+        type: string
+      published_at:
+        type: string
+      summary:
+        type: string
+      title:
+        type: string
+    required:
+    - change_scope
+    - order_number
+    - published_at
+    - title
+    type: object
+  internal_modules_work_program_interfaces_http_handlers.ReferenceContentRequest:
+    properties:
+      citation:
+        type: string
+      isbn:
+        type: string
+      kind:
+        type: string
+      order_index:
+        type: integer
+      url:
+        type: string
+      year:
+        type: integer
+    required:
+    - citation
+    - kind
+    type: object
+  internal_modules_work_program_interfaces_http_handlers.RejectRevisionRequest:
+    properties:
+      reason:
+        type: string
+    required:
+    - reason
+    type: object
+  internal_modules_work_program_interfaces_http_handlers.RejectWorkProgramRequest:
+    properties:
+      reason:
+        type: string
+    required:
+    - reason
+    type: object
+  internal_modules_work_program_interfaces_http_handlers.TopicContentRequest:
+    properties:
+      hours:
+        type: integer
+      kind:
+        type: string
+      learning_outcomes:
+        type: string
+      order_index:
+        type: integer
+      title:
+        type: string
+      week_number:
+        type: integer
+    required:
+    - kind
+    - title
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -1634,6 +2654,136 @@ info:
   title: Inf-Sys Secretary-Methodist API
   version: 0.221.0
 paths:
+  /api/admin/audit-logs:
+    get:
+      parameters:
+      - description: Filter by exact action match
+        in: query
+        name: action
+        type: string
+      - description: Filter by exact resource match
+        in: query
+        name: resource
+        type: string
+      - description: Filter by actor user id
+        in: query
+        name: user_id
+        type: integer
+      - description: Inclusive lower bound on created_at (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: Exclusive upper bound on created_at (RFC3339)
+        in: query
+        name: to
+        type: string
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: List audit logs (admin only)
+      tags:
+      - admin
+  /api/admin/backups:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: List backup files and metrics (admin only)
+      tags:
+      - admin
+  /api/admin/backups/{type}/{name}/download:
+    get:
+      parameters:
+      - description: Backup type (postgres | minio)
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Backup filename
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Download a backup file (admin only)
+      tags:
+      - admin
   /api/admin/notifications:
     post:
       consumes:
@@ -1728,6 +2878,1058 @@ paths:
       summary: Create bulk notifications (admin only)
       tags:
       - notifications
+  /api/ai/chat:
+    post:
+      consumes:
+      - application/json
+      description: Send a message and get an AI response
+      parameters:
+      - description: Chat request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.ChatResponse'
+      summary: Send a chat message
+      tags:
+      - AI
+  /api/ai/chat/stream:
+    get:
+      description: Send a message and get a streamed AI response via SSE
+      parameters:
+      - description: Message content
+        in: query
+        name: content
+        required: true
+        type: string
+      - description: Conversation ID
+        in: query
+        name: conversation_id
+        type: integer
+      - description: Include document sources
+        in: query
+        name: include_sources
+        type: boolean
+      - description: Max sources to include
+        in: query
+        name: max_sources
+        type: integer
+      - description: JWT token (EventSource cannot set headers)
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream
+          schema:
+            type: string
+      summary: Stream a chat response
+      tags:
+      - AI
+  /api/ai/conversations:
+    get:
+      description: Get a list of AI conversations for the current user
+      parameters:
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.ConversationListResponse'
+      summary: List conversations
+      tags:
+      - AI
+    post:
+      consumes:
+      - application/json
+      description: Create a new AI conversation
+      parameters:
+      - description: Conversation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.CreateConversationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.ConversationResponse'
+      summary: Create a conversation
+      tags:
+      - AI
+  /api/ai/conversations/{id}:
+    delete:
+      description: Delete an AI conversation
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a conversation
+      tags:
+      - AI
+    get:
+      description: Get a single AI conversation by ID
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.ConversationResponse'
+      summary: Get a conversation
+      tags:
+      - AI
+    patch:
+      consumes:
+      - application/json
+      description: Update an AI conversation
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.UpdateConversationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.ConversationResponse'
+      summary: Update a conversation
+      tags:
+      - AI
+  /api/ai/conversations/{id}/messages:
+    get:
+      description: Get messages for an AI conversation
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Before message ID
+        in: query
+        name: before_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.MessageListResponse'
+      summary: Get messages
+      tags:
+      - AI
+  /api/ai/fact:
+    get:
+      description: Get a random educational fun fact from Metodych
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.FunFactResponse'
+      summary: Get fun fact
+      tags:
+      - AI
+  /api/ai/index/{documentId}:
+    post:
+      consumes:
+      - application/json
+      description: Index a document for semantic search
+      parameters:
+      - description: Document ID
+        in: path
+        name: documentId
+        required: true
+        type: integer
+      - description: Index request
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.IndexDocumentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.IndexDocumentResponse'
+      summary: Index a document
+      tags:
+      - AI
+  /api/ai/index/batch:
+    post:
+      consumes:
+      - application/json
+      description: Index multiple documents for semantic search
+      parameters:
+      - description: Batch index request
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Batch index documents
+      tags:
+      - AI
+  /api/ai/index/status:
+    get:
+      description: Get the current document indexing status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.IndexStatusResponse'
+      summary: Get indexing status
+      tags:
+      - AI
+  /api/ai/mood:
+    get:
+      description: Get the current mood state of the Metodych AI character
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.MoodResponse'
+      summary: Get Metodych mood
+      tags:
+      - AI
+  /api/ai/search:
+    post:
+      consumes:
+      - application/json
+      description: Search documents using semantic similarity
+      parameters:
+      - description: Search request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.SearchRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_ai_application_dto.SearchResponse'
+      summary: Semantic search
+      tags:
+      - AI
+  /api/analytics/at-risk-students:
+    get:
+      consumes:
+      - application/json
+      description: Returns a paginated list of students who are at risk based on their
+        attendance and grades
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.AtRiskStudentsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get at-risk students
+      tags:
+      - Analytics
+  /api/analytics/attendance-trend:
+    get:
+      consumes:
+      - application/json
+      description: Returns monthly attendance trend data for the specified number
+        of months
+      parameters:
+      - default: 6
+        description: Number of months
+        in: query
+        name: months
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.AttendanceTrendResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get attendance trend
+      tags:
+      - Analytics
+  /api/analytics/groups/{name}/summary:
+    get:
+      consumes:
+      - application/json
+      description: Returns analytics summary for a specific student group
+      parameters:
+      - description: Group name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.GroupSummaryResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get group analytics summary
+      tags:
+      - Analytics
+  /api/analytics/groups/summary:
+    get:
+      consumes:
+      - application/json
+      description: Returns analytics summary for all student groups
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.AllGroupsSummaryResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get all groups analytics summary
+      tags:
+      - Analytics
+  /api/analytics/risk-level/{level}:
+    get:
+      consumes:
+      - application/json
+      description: Returns a paginated list of students filtered by risk level
+      parameters:
+      - description: Risk level (low, medium, high, critical)
+        in: path
+        name: level
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.AtRiskStudentsResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get students by risk level
+      tags:
+      - Analytics
+  /api/analytics/students/{id}/risk:
+    get:
+      consumes:
+      - application/json
+      description: Returns detailed risk assessment for a specific student
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.StudentRiskResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get student risk
+      tags:
+      - Analytics
+  /api/assignments:
+    get:
+      parameters:
+      - description: Subject filter
+        in: query
+        name: subject
+        type: string
+      - description: Group filter
+        in: query
+        name: group_name
+        type: string
+      - description: Page size (1..100, default 50)
+        in: query
+        name: page_size
+        type: integer
+      - description: Page offset (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: List assignments visible to the caller
+      tags:
+      - assignments
+  /api/assignments/{id}:
+    get:
+      parameters:
+      - description: Assignment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get a single assignment by id
+      tags:
+      - assignments
+  /api/assignments/{id}/grades:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Assignment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Grade payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_assignments_interfaces_http_handlers.SaveGradeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Save a grade for a student's submission
+      tags:
+      - assignments
+  /api/assignments/{id}/my:
+    get:
+      parameters:
+      - description: Assignment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get the student's submission view for one assignment
+      tags:
+      - assignments
+  /api/assignments/{id}/resubmit:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Assignment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Student resubmits their own returned submission
+      tags:
+      - assignments
+  /api/assignments/{id}/returns:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Assignment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Return payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_assignments_interfaces_http_handlers.ReturnSubmissionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Return a student's submission for revision
+      tags:
+      - assignments
+  /api/assignments/{id}/submissions:
+    get:
+      parameters:
+      - description: Assignment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 'Filter by status: pending, graded, returned'
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: List submissions for an assignment
+      tags:
+      - assignments
+  /api/assignments/my:
+    get:
+      parameters:
+      - description: 'Filter by status: pending, graded, returned'
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: List the student's own assignments
+      tags:
+      - assignments
+  /api/attendance/bulk:
+    post:
+      consumes:
+      - application/json
+      description: Marks attendance for multiple students in a lesson
+      parameters:
+      - description: Bulk attendance data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.BulkMarkAttendanceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.AttendanceRecordResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Bulk mark attendance
+      tags:
+      - Attendance
+  /api/attendance/lesson/{id}/date/{date}:
+    get:
+      consumes:
+      - application/json
+      description: Returns attendance records for a specific lesson on a date
+      parameters:
+      - description: Lesson ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Date (YYYY-MM-DD)
+        in: path
+        name: date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.LessonAttendanceResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Get lesson attendance
+      tags:
+      - Attendance
+  /api/attendance/lessons:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new lesson for attendance tracking
+      parameters:
+      - description: Lesson data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.CreateLessonRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Create lesson
+      tags:
+      - Attendance
+  /api/attendance/mark:
+    post:
+      consumes:
+      - application/json
+      description: Marks attendance for a single student in a lesson
+      parameters:
+      - description: Attendance data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.MarkAttendanceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_analytics_application_dto.AttendanceRecordResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Mark attendance
+      tags:
+      - Attendance
   /api/conversations:
     get:
       parameters:
@@ -2051,6 +4253,393 @@ paths:
       summary: Create group conversation
       tags:
       - Messaging
+  /api/curricula/{curriculumID}/sections:
+    get:
+      parameters:
+      - description: Curriculum ID
+        in: path
+        name: curriculumID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: List all sections in a curriculum
+      tags:
+      - sections
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Curriculum ID
+        in: path
+        name: curriculumID
+        required: true
+        type: integer
+      - description: Section payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_curriculum_interfaces_http_handlers.CreateSectionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a section in a curriculum
+      tags:
+      - sections
+  /api/curriculum:
+    get:
+      parameters:
+      - description: Status filter (draft / pending_approval / approved / archived)
+        in: query
+        name: status
+        type: string
+      - description: Academic year of program start
+        in: query
+        name: year
+        type: integer
+      - description: Specialty exact match
+        in: query
+        name: specialty
+        type: string
+      - description: Filter to a specific methodist's curricula
+        in: query
+        name: created_by
+        type: integer
+      - description: Page size (1..200, default 50)
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: List curricula matching the supplied filters
+      tags:
+      - curriculum
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Curriculum payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_curriculum_interfaces_http_handlers.CreateCurriculumRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a curriculum
+      tags:
+      - curriculum
+  /api/curriculum/{id}:
+    get:
+      parameters:
+      - description: Curriculum ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Fetch a single curriculum by id
+      tags:
+      - curriculum
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Curriculum ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Curriculum payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_curriculum_interfaces_http_handlers.UpdateCurriculumRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a draft curriculum
+      tags:
+      - curriculum
+  /api/curriculum/{id}/approve:
+    post:
+      parameters:
+      - description: Curriculum ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Approve a curriculum (methodist or system_admin)
+      tags:
+      - curriculum
+  /api/curriculum/{id}/reject:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Curriculum ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Rejection reason
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_curriculum_interfaces_http_handlers.RejectCurriculumRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Reject a curriculum (methodist or system_admin)
+      tags:
+      - curriculum
+  /api/curriculum/{id}/submit:
+    post:
+      parameters:
+      - description: Curriculum ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Submit a draft curriculum for approval
+      tags:
+      - curriculum
   /api/dashboard/activity:
     get:
       consumes:
@@ -2464,6 +5053,36 @@ paths:
       summary: Compare two versions
       tags:
       - Document Versions
+  /api/items/{id}:
+    delete:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a discipline item
+      tags:
+      - discipline-items
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Fetch a discipline item by id
+      tags:
+      - discipline-items
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update a discipline item
+      tags:
+      - discipline-items
   /api/notifications:
     delete:
       consumes:
@@ -2836,6 +5455,219 @@ paths:
       summary: Reset notification preferences
       tags:
       - notifications
+  /api/notifications/push/status:
+    get:
+      consumes:
+      - application/json
+      description: Returns the user's push notification subscription status and devices
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushStatusOutput'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get push notification status
+      tags:
+      - push
+  /api/notifications/push/subscribe:
+    post:
+      consumes:
+      - application/json
+      description: Subscribes the user's browser to Web Push notifications
+      parameters:
+      - description: Subscription details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushSubscribeInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushSubscriptionOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Subscribe to push notifications
+      tags:
+      - push
+  /api/notifications/push/subscriptions/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a specific push subscription by ID
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a push subscription
+      tags:
+      - push
+  /api/notifications/push/test:
+    post:
+      consumes:
+      - application/json
+      description: Sends a test push notification to the user's devices
+      parameters:
+      - description: Test notification content
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushTestInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Test push notification
+      tags:
+      - push
+  /api/notifications/push/unsubscribe:
+    post:
+      consumes:
+      - application/json
+      description: Removes the Web Push subscription for the given endpoint
+      parameters:
+      - description: Unsubscribe details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushUnsubscribeInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Unsubscribe from push notifications
+      tags:
+      - push
+  /api/notifications/push/vapid-key:
+    get:
+      consumes:
+      - application/json
+      description: Returns the VAPID public key for Web Push subscription
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_notifications_application_dto.WebPushVAPIDKeyOutput'
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get VAPID public key
+      tags:
+      - push
   /api/notifications/read-all:
     put:
       consumes:
@@ -2936,6 +5768,53 @@ paths:
       summary: Get unread count
       tags:
       - notifications
+  /api/reports/annual:
+    get:
+      description: |-
+        Returns a DOCX file aggregating curricula / grades / hours
+        and document activity for the given calendar year.
+      parameters:
+      - description: Calendar year (2000-2100)
+        in: query
+        name: year
+        required: true
+        type: integer
+      produces:
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      responses:
+        "200":
+          description: DOCX bytes
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Generate annual methodist report
+      tags:
+      - reports
   /api/reports/custom:
     get:
       description: List custom reports with filtering and pagination
@@ -3341,6 +6220,199 @@ paths:
       summary: Get public reports
       tags:
       - custom-reports
+  /api/sections/{id}:
+    delete:
+      parameters:
+      - description: Section ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a section
+      tags:
+      - sections
+    get:
+      parameters:
+      - description: Section ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Fetch a section by id
+      tags:
+      - sections
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Section ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Section payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_curriculum_interfaces_http_handlers.UpdateSectionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a section
+      tags:
+      - sections
+  /api/sections/{sectionID}/items:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List all discipline items in a section
+      tags:
+      - discipline-items
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Section ID
+        in: path
+        name: sectionID
+        required: true
+        type: integer
+      - description: Item payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_curriculum_interfaces_http_handlers.CreateDisciplineItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a discipline item in a section
+      tags:
+      - discipline-items
+  /api/sections/{sectionID}/items/bulk:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Section ID
+        in: path
+        name: sectionID
+        required: true
+        type: integer
+      - description: Bulk edit payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_curriculum_interfaces_http_handlers.BulkEditRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_modules_curriculum_interfaces_http_handlers.BulkEditConflictResponse'
+      security:
+      - BearerAuth: []
+      summary: Atomically apply creates+updates+deletes to a section's items
+      tags:
+      - discipline-items
   /api/telegram/disconnect:
     post:
       consumes:
@@ -3447,6 +6519,226 @@ paths:
       summary: Handle Telegram webhook
       tags:
       - telegram
+  /api/templates:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of document types that have templates, scoped to
+        the caller's role.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.TemplateListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all document templates
+      tags:
+      - templates
+  /api/templates/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Returns a specific document type's template by ID
+      parameters:
+      - description: Document Type ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.TemplateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a document template
+      tags:
+      - templates
+    put:
+      consumes:
+      - application/json
+      description: Updates the template content and variables for a document type
+      parameters:
+      - description: Document Type ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Template data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.UpdateTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update template
+      tags:
+      - templates
+  /api/templates/{id}/create:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new document by filling a template with provided variables
+      parameters:
+      - description: Document Type ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Document creation data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.CreateFromTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.DocumentOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create document from template
+      tags:
+      - templates
+  /api/templates/{id}/preview:
+    post:
+      consumes:
+      - application/json
+      description: Renders a template with the provided variables without creating
+        a document
+      parameters:
+      - description: Document Type ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Template variables
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.PreviewTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_modules_documents_application_dto.PreviewTemplateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Preview template
+      tags:
+      - templates
   /api/v1/events:
     get:
       parameters:
@@ -3799,6 +7091,1690 @@ paths:
       summary: Get upcoming events
       tags:
       - Events
+  /api/v1/extracurricular/events:
+    get:
+      parameters:
+      - description: Lifecycle status filter
+        in: query
+        name: status
+        type: string
+      - description: Category filter
+        in: query
+        name: category
+        type: string
+      - description: Organizer user id
+        in: query
+        name: organizer_id
+        type: integer
+      - description: Date lower bound (YYYY-MM-DD)
+        in: query
+        name: from
+        type: string
+      - description: Date upper bound (YYYY-MM-DD)
+        in: query
+        name: to
+        type: string
+      - description: Page size (default 100, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: List extracurricular events
+      tags:
+      - extracurricular
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_extracurricular_interfaces_http_handlers.CreateEventRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Create extracurricular event
+      tags:
+      - extracurricular
+  /api/v1/extracurricular/events/{id}:
+    delete:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete extracurricular event
+      tags:
+      - extracurricular
+    get:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Fetch event by id
+      tags:
+      - extracurricular
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Event payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_extracurricular_interfaces_http_handlers.UpdateEventRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update extracurricular event
+      tags:
+      - extracurricular
+  /api/v1/extracurricular/events/{id}/register:
+    delete:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Unregister caller от event
+      tags:
+      - extracurricular
+    post:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Register caller для event
+      tags:
+      - extracurricular
+  /api/v1/minobrnauki-orders:
+    get:
+      parameters:
+      - description: minor / major
+        in: query
+        name: change_scope
+        type: string
+      - description: Uploader user id filter
+        in: query
+        name: uploaded_by
+        type: integer
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: List Минобрнауки orders, filterable by change_scope / uploaded_by
+      tags:
+      - minobrnauki-orders
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Order payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.RecordMinobrnaukiOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Record a Минобрнауки order (приказ) and optionally mark affected РПД
+      tags:
+      - minobrnauki-orders
+  /api/v1/minobrnauki-orders/{id}:
+    get:
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Fetch one Минобрнауки order with the ids of the work programs it affects
+      tags:
+      - minobrnauki-orders
+  /api/v1/minobrnauki-orders/{id}/generate-revisions:
+    post:
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Generate draft revisions for every РПД affected by an order (AI bulk-revision)
+      tags:
+      - minobrnauki-orders
+  /api/v1/work-programs:
+    get:
+      parameters:
+      - description: Lifecycle status filter
+        in: query
+        name: status
+        type: string
+      - description: Discipline id filter
+        in: query
+        name: discipline_id
+        type: integer
+      - description: Specialty code filter
+        in: query
+        name: specialty_code
+        type: string
+      - description: Cohort year filter
+        in: query
+        name: applicable_from_year
+        type: integer
+      - description: Author user id filter
+        in: query
+        name: author_id
+        type: integer
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: List work programs (РПД), role-scoped + filterable
+      tags:
+      - work-programs
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.CreateWorkProgramRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a work program (РПД) draft
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}:
+    get:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Fetch one work program (РПД) by id with all inner collections
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/approve:
+    post:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Approve a pending work program (pending_approval → approved)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/assessments:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Assessment payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.AssessmentContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Add an assessment criterion (ФОС) to a work program (РПД)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/assessments/{childId}:
+    delete:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Assessment ID
+        in: path
+        name: childId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Remove an assessment criterion (ФОС) from a work program (РПД)
+      tags:
+      - work-programs
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Assessment ID
+        in: path
+        name: childId
+        required: true
+        type: integer
+      - description: Assessment payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.AssessmentContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update an assessment criterion (ФОС) of a work program (РПД)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/competences:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Competence payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.CompetenceContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Add a competence to a work program (РПД)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/competences/{childId}:
+    delete:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Competence ID
+        in: path
+        name: childId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Remove a competence from a work program (РПД)
+      tags:
+      - work-programs
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Competence ID
+        in: path
+        name: childId
+        required: true
+        type: integer
+      - description: Competence payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.CompetenceContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a competence of a work program (РПД)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/discard:
+    post:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Discard a draft work program (draft → archived, author abandons)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/generate:
+    post:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: LLM-generate the content of a draft work program (goals/competences/topics/references)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/goals:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Goal payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.AddGoalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Add a goal to a work program (РПД)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/goals/{childId}:
+    delete:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Goal ID
+        in: path
+        name: childId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Remove a goal from a work program (РПД)
+      tags:
+      - work-programs
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Goal ID
+        in: path
+        name: childId
+        required: true
+        type: integer
+      - description: Goal payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.AddGoalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a goal of a work program (РПД)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/references:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Reference payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.ReferenceContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Add a reference to a work program (РПД)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/references/{childId}:
+    delete:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Reference ID
+        in: path
+        name: childId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Remove a reference from a work program (РПД)
+      tags:
+      - work-programs
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Reference ID
+        in: path
+        name: childId
+        required: true
+        type: integer
+      - description: Reference payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.ReferenceContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a reference of a work program (РПД)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/reject:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Rejection reason
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.RejectWorkProgramRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Reject a pending work program back to draft with a reason
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/revisions:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Revision proposal
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.CreateRevisionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Propose a revision (лист актуализации) on a РПД
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/revisions/{rid}/approve:
+    post:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Revision ID
+        in: path
+        name: rid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Approve a revision (pending_approval → approved)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/revisions/{rid}/reject:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Revision ID
+        in: path
+        name: rid
+        required: true
+        type: integer
+      - description: Rejection reason
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.RejectRevisionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Reject a revision with a reason (pending_approval → rejected)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/revisions/{rid}/submit:
+    post:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Revision ID
+        in: path
+        name: rid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Submit a revision for approval (draft → pending_approval)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/submit:
+    post:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Submit a draft work program for approval (draft → pending_approval)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/topics:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Topic payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.TopicContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Add a topic to a work program (РПД)
+      tags:
+      - work-programs
+  /api/v1/work-programs/{id}/topics/{childId}:
+    delete:
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Topic ID
+        in: path
+        name: childId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Remove a topic from a work program (РПД)
+      tags:
+      - work-programs
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Work program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Topic ID
+        in: path
+        name: childId
+        required: true
+        type: integer
+      - description: Topic payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_work_program_interfaces_http_handlers.TopicContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a topic of a work program (РПД)
+      tags:
+      - work-programs
   /api/ws:
     get:
       responses:
@@ -4080,6 +9056,120 @@ paths:
       summary: Share document
       tags:
       - sharing
+  /documents/{id}/sign:
+    post:
+      description: Apply the current actor's cryptographic signature to the document's
+        current version. Students are not allowed to sign.
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Sign document
+      tags:
+      - signatures
+  /documents/{id}/signatures:
+    get:
+      description: List all signatures applied to a document.
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: List document signatures
+      tags:
+      - signatures
+  /documents/{id}/signatures/{sigId}/verify:
+    get:
+      description: Re-check a stored signature against the document's current state.
+        digest_match flags a changed document body; crypto_valid flags signature validity.
+      parameters:
+      - description: Document ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Signature ID
+        in: path
+        name: sigId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_inf-sys-secretary-methodologist_inf-sys-secretary-methodist_internal_shared_infrastructure_http_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Verify a document signature
+      tags:
+      - signatures
   /documents/my-shared:
     get:
       description: Get documents that the current user owns and has shared with others
