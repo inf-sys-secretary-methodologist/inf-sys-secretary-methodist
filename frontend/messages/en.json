@@ -3784,5 +3784,37 @@
         "generic": "Failed to generate revisions"
       }
     }
+  },
+  "documentSignatures": {
+    "panel": {
+      "title": "Electronic signatures",
+      "empty": "This document is not signed yet",
+      "loading": "Loading signatures…"
+    },
+    "actions": {
+      "sign": "Sign",
+      "verify": "Verify"
+    },
+    "card": {
+      "signedAt": "Signed"
+    },
+    "signDialog": {
+      "title": "Sign document",
+      "description": "A cryptographic electronic signature of the current document version will be created with your key. This action is irreversible.",
+      "cancel": "Cancel",
+      "confirm": "Sign",
+      "successToast": "Document signed"
+    },
+    "verdicts": {
+      "valid": "Valid",
+      "document_modified": "Document modified",
+      "crypto_invalid": "Invalid signature"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "forbidden": "You are not allowed to sign",
+      "notFound": "Document or signature not found",
+      "invalid": "Could not sign the document"
+    }
   }
 }

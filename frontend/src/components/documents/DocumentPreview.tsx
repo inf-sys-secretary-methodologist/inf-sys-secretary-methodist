@@ -36,6 +36,10 @@ import { AssignExecutorDialog } from './AssignExecutorDialog'
 import { MarkExecutedDialog } from './MarkExecutedDialog'
 import { ArchiveDocumentDialog } from './ArchiveDocumentDialog'
 import { ResubmitDocumentDialog } from './ResubmitDocumentDialog'
+import { SignDocumentDialog } from './SignDocumentDialog'
+import { DocumentSignaturesPanel } from './DocumentSignaturesPanel'
+import { canSignDocuments } from '@/lib/auth/permissions'
+import { mutate as globalMutate } from 'swr'
 
 type TabType = 'preview' | 'versions'
 
@@ -58,6 +62,7 @@ export function DocumentPreview({
   const tDocs = useTranslations('documents')
   const tPreview = useTranslations('documentPreview')
   const tWorkflow = useTranslations('documentsWorkflow')
+  const tSig = useTranslations('documentSignatures')
   const { user } = useAuthCheck()
   const modalRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<TabType>('preview')
@@ -71,6 +76,7 @@ export function DocumentPreview({
   const [markExecutedOpen, setMarkExecutedOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [resubmitOpen, setResubmitOpen] = useState(false)
+  const [signOpen, setSignOpen] = useState(false)
 
   // Workflow gates (v0.148.0 #227). Submit visible to author OR
   // any edit-role on a draft. Approve/Reject visible only к
@@ -120,6 +126,10 @@ export function DocumentPreview({
       role === UserRole.ACADEMIC_SECRETARY ||
       role === UserRole.SYSTEM_ADMIN ||
       role === UserRole.TEACHER)
+  // Cryptographic e-signature (#140). Non-student staff may sign any document;
+  // the backend SignDocumentUseCase enforces the same gate. A document may
+  // carry several signatures, so this is not status-gated.
+  const canSign = canSignDocuments(role)
 
   /* c8 ignore start - Keyboard and click handlers, tested in e2e */
   useEffect(() => {
@@ -264,6 +274,12 @@ export function DocumentPreview({
                 {tWorkflow('actions.resubmitButton')}
               </Button>
             )}
+            {canSign && (
+              <Button variant="default" size="sm" onClick={() => setSignOpen(true)}>
+                <FileSignature className="h-4 w-4 mr-2" />
+                {tSig('actions.sign')}
+              </Button>
+            )}
             {onDownload && (
               <Button variant="outline" size="sm" onClick={onDownload}>
                 <Download className="h-4 w-4 mr-2" />
@@ -287,6 +303,14 @@ export function DocumentPreview({
               <X className="h-5 w-5 text-gray-500" />
             </button>
           </div>
+        </div>
+
+        {/* Document signatures (#140) */}
+        <div className="border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+          <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+            {tSig('panel.title')}
+          </h3>
+          <DocumentSignaturesPanel documentId={Number(doc.id)} />
         </div>
 
         {/* c8 ignore start - Tabs conditional styling */}
@@ -432,6 +456,15 @@ export function DocumentPreview({
         open={submitOpen}
         onClose={() => setSubmitOpen(false)}
         onSubmitted={onDocumentUpdated}
+      />
+      <SignDocumentDialog
+        documentId={Number(doc.id)}
+        open={signOpen}
+        onClose={() => setSignOpen(false)}
+        onSigned={() => {
+          onDocumentUpdated?.()
+          void globalMutate(`/api/documents/${Number(doc.id)}/signatures`)
+        }}
       />
       <ApproveDocumentDialog
         documentId={Number(doc.id)}
