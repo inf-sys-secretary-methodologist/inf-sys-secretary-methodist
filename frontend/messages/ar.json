@@ -2720,6 +2720,7 @@
     "loadFailed": "تعذّر تحميل سجل الديون",
     "countLabel": "عرض {shown} من {total}",
     "importButton": "استيراد",
+    "import1CButton": "استيراد من 1С",
     "exportButton": "تصدير",
     "empty": {
       "title": "لا توجد ديون",
@@ -2849,6 +2850,16 @@
       "cancel": "إلغاء",
       "confirm": "استيراد",
       "importing": "جارٍ الاستيراد…",
+      "successToast": "اكتمل الاستيراد: {created} أُنشئت، {updated} حُدّثت، {skipped} تُخطّيت",
+      "rowErrorsTitle": "أخطاء الصفوف",
+      "rowError": "الصف {row} ({identity}): {message}"
+    },
+    "import1CDialog": {
+      "title": "استيراد الديون من 1С",
+      "description": "اسحب الديون الأكاديمية الحالية مباشرة من 1С. تُحدَّث السجلات الموجودة وتُنشأ الجديدة.",
+      "cancel": "إلغاء",
+      "confirm": "استيراد من 1С",
+      "importing": "جارٍ الاستيراد من 1С…",
       "successToast": "اكتمل الاستيراد: {created} أُنشئت، {updated} حُدّثت، {skipped} تُخطّيت",
       "rowErrorsTitle": "أخطاء الصفوف",
       "rowError": "الصف {row} ({identity}): {message}"

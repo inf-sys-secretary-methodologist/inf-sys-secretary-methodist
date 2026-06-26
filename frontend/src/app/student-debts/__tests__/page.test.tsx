@@ -229,4 +229,27 @@ describe('StudentDebtsPage', () => {
     // await the async export handler so its trailing setState settles in act()
     await waitFor(() => expect(mockExport).toHaveBeenCalled())
   })
+
+  // 1С import is the same EDIT_ROLES affordance as the xlsx import.
+  it('shows the 1С import button for a manager', () => {
+    render(<StudentDebtsPage />)
+    expect(screen.getByRole('button', { name: 'import1CButton' })).toBeInTheDocument()
+  })
+
+  it('hides the 1С import button for a teacher (read-only)', () => {
+    mockUseAuthCheck.mockReturnValue({
+      user: { id: 5, role: 'teacher' as const },
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    render(<StudentDebtsPage />)
+    expect(screen.queryByRole('button', { name: 'import1CButton' })).not.toBeInTheDocument()
+  })
+
+  it('opens the 1С import dialog when its button is clicked', () => {
+    render(<StudentDebtsPage />)
+    expect(screen.queryByText('import1CDialog.title')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'import1CButton' }))
+    expect(screen.getByText('import1CDialog.title')).toBeInTheDocument()
+  })
 })

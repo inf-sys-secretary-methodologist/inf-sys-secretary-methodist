@@ -3,7 +3,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { AlertTriangle, ChevronLeft, ChevronRight, Download, Loader2, Upload } from 'lucide-react'
+import {
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Database,
+  Download,
+  Loader2,
+  Upload,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AppLayout } from '@/components/layout'
@@ -12,6 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StudentDebtCard } from '@/components/student-debts/StudentDebtCard'
 import { ImportDebtsDialog } from '@/components/student-debts/ImportDebtsDialog'
+import { Import1CDialog } from '@/components/student-debts/Import1CDialog'
 import { statusKey } from '@/components/student-debts/status'
 import { useStudentDebts } from '@/hooks/useStudentDebts'
 import { studentDebtsApi } from '@/lib/api/studentDebts'
@@ -39,6 +48,7 @@ export default function StudentDebtsPage() {
   const [statusFilter, setStatusFilter] = useState<StudentDebtStatus | ''>('')
   const [offset, setOffset] = useState(0)
   const [importOpen, setImportOpen] = useState(false)
+  const [import1COpen, setImport1COpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const limit = 20
 
@@ -117,6 +127,10 @@ export default function StudentDebtsPage() {
               <Button variant="outline" onClick={() => setImportOpen(true)}>
                 <Upload className="h-4 w-4 mr-2" />
                 {t('importButton')}
+              </Button>
+              <Button variant="outline" onClick={() => setImport1COpen(true)}>
+                <Database className="h-4 w-4 mr-2" />
+                {t('import1CButton')}
               </Button>
               <Button variant="outline" onClick={handleExport} disabled={exporting}>
                 {exporting ? (
@@ -218,6 +232,12 @@ export default function StudentDebtsPage() {
             </div>
           </div>
         )}
+
+        <Import1CDialog
+          open={import1COpen}
+          onClose={() => setImport1COpen(false)}
+          onImported={() => mutate()}
+        />
 
         <ImportDebtsDialog
           open={importOpen}

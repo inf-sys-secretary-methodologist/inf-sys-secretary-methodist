@@ -27,6 +27,15 @@ export const studentDebtsApi = {
     return response.data
   },
 
+  // import1C triggers a server-side pull of the 1С academic-debt catalog
+  // into the registry (no upload — the source is the 1С OData API). Returns
+  // the same import log as the xlsx import. A forbidden actor → 403, a 1С
+  // upstream failure → 502 (callers branch via pickStudentDebtErrorKey).
+  async import1C(): Promise<ImportResult> {
+    const response = await apiClient.post<ApiResponse<ImportResult>>('/api/student-debts/import-1c')
+    return response.data
+  },
+
   // export GETs the role-scoped registry as an xlsx Blob. The list filter
   // (group_name / status / semester) narrows the export; pagination is
   // irrelevant server-side. Undefined/empty params are omitted.

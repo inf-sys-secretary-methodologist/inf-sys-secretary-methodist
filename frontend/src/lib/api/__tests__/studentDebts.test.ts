@@ -38,6 +38,25 @@ describe('studentDebtsApi.import', () => {
   })
 })
 
+describe('studentDebtsApi.import1C', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('POSTs to the 1С import endpoint with no body and returns the result', async () => {
+    mockedApiClient.post.mockResolvedValue({
+      data: { created: 3, updated: 1, skipped: 0, errors: [] },
+    })
+
+    const result = await studentDebtsApi.import1C()
+
+    expect(mockedApiClient.post).toHaveBeenCalledTimes(1)
+    const [url, body] = mockedApiClient.post.mock.calls[0] as [string, unknown]
+    expect(url).toBe('/api/student-debts/import-1c')
+    expect(body).toBeUndefined()
+    expect(result.created).toBe(3)
+    expect(result.updated).toBe(1)
+  })
+})
+
 describe('studentDebtsApi.export', () => {
   beforeEach(() => jest.clearAllMocks())
 

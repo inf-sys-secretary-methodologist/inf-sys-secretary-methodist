@@ -2720,6 +2720,7 @@
     "loadFailed": "Failed to load the debt registry",
     "countLabel": "Showing {shown} of {total}",
     "importButton": "Import",
+    "import1CButton": "Import from 1С",
     "exportButton": "Export",
     "empty": {
       "title": "No debts",
@@ -2849,6 +2850,16 @@
       "cancel": "Cancel",
       "confirm": "Import",
       "importing": "Importing…",
+      "successToast": "Import finished: {created} created, {updated} updated, {skipped} skipped",
+      "rowErrorsTitle": "Row errors",
+      "rowError": "Row {row} ({identity}): {message}"
+    },
+    "import1CDialog": {
+      "title": "Import debts from 1С",
+      "description": "Pull the current academic debts straight from 1С. Existing records are updated, new ones created.",
+      "cancel": "Cancel",
+      "confirm": "Import from 1С",
+      "importing": "Importing from 1С…",
       "successToast": "Import finished: {created} created, {updated} updated, {skipped} skipped",
       "rowErrorsTitle": "Row errors",
       "rowError": "Row {row} ({identity}): {message}"

@@ -2720,6 +2720,7 @@
     "loadFailed": "Échec du chargement du registre des dettes",
     "countLabel": "Affichage de {shown} sur {total}",
     "importButton": "Importer",
+    "import1CButton": "Importer depuis 1С",
     "exportButton": "Exporter",
     "empty": {
       "title": "Aucune dette",
@@ -2849,6 +2850,16 @@
       "cancel": "Annuler",
       "confirm": "Importer",
       "importing": "Importation…",
+      "successToast": "Importation terminée : {created} créées, {updated} mises à jour, {skipped} ignorées",
+      "rowErrorsTitle": "Erreurs par ligne",
+      "rowError": "Ligne {row} ({identity}) : {message}"
+    },
+    "import1CDialog": {
+      "title": "Importer les dettes depuis 1С",
+      "description": "Récupérer les dettes académiques actuelles directement depuis 1С. Les enregistrements existants sont mis à jour, les nouveaux créés.",
+      "cancel": "Annuler",
+      "confirm": "Importer depuis 1С",
+      "importing": "Importation depuis 1С…",
       "successToast": "Importation terminée : {created} créées, {updated} mises à jour, {skipped} ignorées",
       "rowErrorsTitle": "Erreurs par ligne",
       "rowError": "Ligne {row} ({identity}) : {message}"
