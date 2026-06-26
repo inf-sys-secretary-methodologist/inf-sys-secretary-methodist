@@ -140,6 +140,47 @@ func TestComputeSigningDigest_InvalidContentHash(t *testing.T) {
 	}
 }
 
+// TestComputeSigningDigest_InvalidIdentity pins that the digest contract rejects
+// the same impossible identities the constructor rejects (documentID<=0,
+// version<1, signerID<=0): the two domain functions must agree on what a valid
+// identity is.
+func TestComputeSigningDigest_InvalidIdentity(t *testing.T) {
+	cases := []struct {
+		name    string
+		docID   int64
+		version int
+		signer  int64
+	}{
+		{name: "zero document id", docID: 0, version: 1, signer: 1},
+		{name: "zero version", docID: 1, version: 0, signer: 1},
+		{name: "zero signer", docID: 1, version: 1, signer: 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := ComputeSigningDigest(tc.docID, tc.version, tc.signer, validSignedAt().Unix(), validDigestHex); !errors.Is(err, ErrInvalidDocumentSignature) {
+				t.Errorf("err = %v, want ErrInvalidDocumentSignature", err)
+			}
+		})
+	}
+}
+
+// TestComputeSigningDigest_GoldenVector locks the exact canonical wire format
+// against a known-answer vector. Determinism + per-field sensitivity tests do
+// not pin the byte layout: reordering fields or dropping the "docsig.v1" domain
+// tag would keep those green. This vector freezes the preimage so any change to
+// the canonical string (which would silently invalidate every stored signature)
+// breaks the build. signedAtUnix is in SECONDS — Unix(), never UnixNano().
+func TestComputeSigningDigest_GoldenVector(t *testing.T) {
+	const wantGolden = "2c23f19490f5ffbb1402007459ec8b5c430cdec249266eaec6036b85c2a37955"
+	got, err := ComputeSigningDigest(1, 1, 1, 1000000000, strings.Repeat("0", 64))
+	if err != nil {
+		t.Fatalf("ComputeSigningDigest() = %v, want nil", err)
+	}
+	if got != wantGolden {
+		t.Errorf("canonical wire format changed:\n got  = %s\n want = %s\n(if this is an intentional format change, bump signingDigestDomain to docsig.v2 and update the vector)", got, wantGolden)
+	}
+}
+
 // TestReconstituteDocumentSignature pins the persistence rehydration path:
 // it assigns all fields verbatim without re-validating invariants.
 func TestReconstituteDocumentSignature(t *testing.T) {
