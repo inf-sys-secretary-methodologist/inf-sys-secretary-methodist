@@ -117,6 +117,7 @@ import (
 	docUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	docEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
 	docPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/infrastructure/persistence"
+	docSigning "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/infrastructure/signing"
 	docHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
 	extUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/application/usecases"
 	extPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/extracurricular/infrastructure/persistence"
@@ -375,6 +376,22 @@ func (n *messagingNotificationNotifier) NotifyNewMessage(ctx context.Context, us
 	}
 	_, err := n.notificationUseCase.Create(ctx, input)
 	return err
+}
+
+// signerNameResolverAdapter resolves a signer's display name from the auth
+// users repository for the document e-signature handler (#140). Declared at the
+// composition root so the documents module stays free of the auth import.
+type signerNameResolverAdapter struct {
+	userRepo usecases.UserRepository
+}
+
+// FullName returns the user's display name, or an error when the lookup fails.
+func (a signerNameResolverAdapter) FullName(ctx context.Context, userID int64) (string, error) {
+	u, err := a.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	return u.Name, nil
 }
 
 // studentDebtResitNotifier adapts the notifications module's
@@ -2964,6 +2981,34 @@ func setupRoutes(
 			debtTransferHandler := sdHandler.NewStudentDebtTransferHandler(importUC, exportUC)
 			sdHandler.RegisterStudentDebtTransferRoutes(protectedGroup, debtTransferHandler)
 			logger.Info("Student debts module transfer routes registered", nil)
+		}
+
+		// Document e-signatures (#140) — cryptographic sign/list/verify.
+		// Requires object storage (to hash file bodies) and DOC_SIGNING_ENC_KEY
+		// (32-byte AES-256 KEK, 64 hex chars) to encrypt per-user private keys
+		// at rest. Absent/malformed key => feature disabled (graceful degrade).
+		if s3Client != nil {
+			if sigKEK, kekErr := authCrypto.ParseKEKHex(os.Getenv("DOC_SIGNING_ENC_KEY")); kekErr == nil {
+				sigDocRepo := docPersistence.NewDocumentRepositoryPG(db)
+				sigRepo := docPersistence.NewSignatureRepositoryPG(db)
+				sigEngine := docSigning.NewService(db, sigKEK, time.Now)
+				sigView := docSigning.NewDocumentView(sigDocRepo, s3Client)
+
+				var _ docUsecases.SignatureEngine = sigEngine // compile-time port check
+
+				signUC := docUsecases.NewSignDocumentUseCase(sigRepo, sigView, sigEngine, auditLogger, time.Now)
+				listSigUC := docUsecases.NewListSignaturesUseCase(sigRepo)
+				verifySigUC := docUsecases.NewVerifySignatureUseCase(sigRepo, sigView, sigEngine)
+				nameResolver := signerNameResolverAdapter{userRepo: userRepo}
+
+				sigHandler := docHandler.NewSignatureHandler(signUC, listSigUC, verifySigUC, nameResolver)
+				docHandler.RegisterSignatureRoutes(protectedGroup, sigHandler)
+				logger.Info("Document e-signature routes registered", nil)
+			} else if !errors.Is(kekErr, authCrypto.ErrEmptyKEK) {
+				log.Printf("[documents] DOC_SIGNING_ENC_KEY malformed — e-signature DISABLED (deploy fix required): %v", kekErr)
+			} else {
+				log.Println("[documents] DOC_SIGNING_ENC_KEY not configured — e-signature DISABLED")
+			}
 		}
 
 		// Schedule/Events module routes
