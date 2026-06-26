@@ -61,8 +61,8 @@ func TestSignatureRepositoryPG_Save_HappyPath(t *testing.T) {
 
 	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO document_signatures")).
 		WithArgs(
-			int64(42), 3, int64(7), "Иванов И.И.",
-			"ECDSA_P256_SHA256", sigDigestHex, []byte{0x30, 0x44, 0x01}, sigCertPEM,
+			int64(42), 3, int64(7), sig.SignerName,
+			"ECDSA_P256_SHA256", sigDigestHex, []byte{0x30, 0x44, 0x01}, sig.CertificatePEM,
 			sig.SignedAt,
 		).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(99)))
