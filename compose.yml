@@ -145,6 +145,10 @@ services:
       S3_PUBLIC_USE_SSL: ${S3_PUBLIC_USE_SSL:-false}
       S3_MAX_FILE_SIZE: ${S3_MAX_FILE_SIZE:-104857600}
 
+      # Document e-signature at-rest KEK (#140). When unset, the e-signature
+      # feature is disabled (sign/verify endpoints are not mounted).
+      DOC_SIGNING_ENC_KEY: ${DOC_SIGNING_ENC_KEY:-}
+
       # Application
       ENVIRONMENT: ${ENVIRONMENT:-development}
       VERSION: ${VERSION:-0.2.0}

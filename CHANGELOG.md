@@ -17,6 +17,41 @@
 
 > **Записи 0.158.0 – 0.214.4 — сжатый backfill** (одна строка на релиз; полные заметки — в [GitHub Releases](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/releases)).
 
+## [0.221.0] — 2026-06-26
+
+### Added
+
+- **Криптографическая электронная подпись документов (#140).** Полный вертикальный слайс по TDD+DDD+Clean Architecture (7 PR: domain → persistence → crypto → application → HTTP → frontend):
+  - **Домен.** Сущность `DocumentSignature` с инвариантами + перечисление `SignatureAlgorithm` (`ECDSA_P256_SHA256`) + чистая доменная функция `ComputeSigningDigest` (канонический детерминированный SHA-256 над `документ+версия+подписант+время+хеш-тела`), залоченная golden-вектором.
+  - **Криптодвижок.** Per-user пара ключей ECDSA P-256 + самоподписанный сертификат X.509, выпускаемые при первой подписи; приватный ключ шифруется AES-256-GCM (env `DOC_SIGNING_ENC_KEY`) и хранится в `signing_keys` (миграция 053).
+  - **API.** `POST /api/documents/:id/sign` (подпись текущей версии; студентам запрещено), `GET /api/documents/:id/signatures` (список), `GET /api/documents/:id/signatures/:sigId/verify` (проверка: `digest_match` ловит изменение тела документа, `crypto_valid` — корректность подписи под сертификатом). Подписи хранятся в `document_signatures` (миграция 052).
+  - **Frontend.** Кнопка «Подписать» (только для не-студентов) + панель подписей с поштучной проверкой и цветным вердиктом (действительна / документ изменён / подпись недействительна) в окне предпросмотра документа; i18n ×4 (ru/en/fr/ar).
+  - Юридически значимая КЭП по ГОСТ (CryptoPro) — за интерфейсом `SignatureEngine` на будущее; для текущего объёма достаточно криптоподписи на стандартной библиотеке Go.
+
+## [0.220.0] — 2026-06-26
+
+feat(student-debts): импорт академических долгов из 1С (OData-каталог `Catalog_АкадемическиеЗадолженности`) — закрывает инициативу «Долги студентов» (#431).
+
+## [0.219.0] — 2026-06-25
+
+feat(student-debts): фронтенд долгов завершён (PR6) — реестр, импорт/экспорт, страница долга, диалоги пересдачи, виджет студента, i18n ×4.
+
+## [0.218.0] — 2026-06-25
+
+feat(student-debts): HTTP-слой завершён — import (multipart) / export (xlsx) долгов.
+
+## [0.217.0] — 2026-06-25
+
+feat(student-debts): прикладной слой завершён.
+
+## [0.216.0] — 2026-06-25
+
+feat(student-debts): прикладной слой — usecases чтения/записи/импорта долгов + авторизация.
+
+## [0.215.0] — 2026-06-25
+
+feat(student-debts): слой персистентности — миграция 050 (`student_debts` + `debt_resit_attempts`) + репозиторий.
+
 ## [0.214.4] — 2026-06-02
 
 fix(notifications): /settings/notifications no longer logs a 404 when web push is unconfigured.

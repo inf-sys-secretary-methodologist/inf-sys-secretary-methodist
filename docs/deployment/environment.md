@@ -76,6 +76,12 @@
 | `S3_REGION` | Регион | `us-east-1` | Нет |
 | `S3_USE_SSL` | Использовать SSL | `true` | Нет |
 
+### Document E-Signature (#140)
+
+| Переменная | Описание | Default | Required |
+|------------|----------|---------|----------|
+| `DOC_SIGNING_ENC_KEY` | At-rest шифрование приватных ключей подписи (64 hex = 32-байтный AES-256 KEK; `openssl rand -hex 32`). Без ключа фича ЭП отключена — эндпоинты `/sign`/`/verify` не монтируются | - | Для ЭЦП |
+
 ### Composio (Gmail Integration)
 
 | Переменная | Описание | Default | Required |
