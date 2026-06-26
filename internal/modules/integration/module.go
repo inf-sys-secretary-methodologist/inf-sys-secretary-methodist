@@ -26,6 +26,9 @@ type Module struct {
 	config *config.IntegrationConfig
 	logger *logging.Logger
 
+	// OData client (nil when the module is disabled)
+	odataClient *odata.Client
+
 	// Use cases
 	syncUseCase     *usecases.SyncUseCase
 	employeeUseCase *usecases.EmployeeUseCase
@@ -102,6 +105,7 @@ func NewModule(db *sql.DB, cfg *config.IntegrationConfig, logger *logging.Logger
 	module := &Module{
 		config:          cfg,
 		logger:          logger,
+		odataClient:     odataClient,
 		syncUseCase:     syncUseCase,
 		employeeUseCase: employeeUseCase,
 		studentUseCase:  studentUseCase,
@@ -113,6 +117,13 @@ func NewModule(db *sql.DB, cfg *config.IntegrationConfig, logger *logging.Logger
 	}
 
 	return module, nil
+}
+
+// ODataClient returns the module's 1C OData client, or nil when the module is
+// disabled. It lets the DI layer reuse the same client for cross-module
+// adapters (e.g. the student_debts 1С debt import) without rebuilding config.
+func (m *Module) ODataClient() *odata.Client {
+	return m.odataClient
 }
 
 // RegisterRoutes registers all integration module routes under /integration.

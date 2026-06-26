@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/infrastructure/odata"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/config"
 )
 
@@ -43,5 +44,21 @@ func TestBuildODataConfig_MapsCatalogNames(t *testing.T) {
 	if got.BaseURL != cfg.BaseURL || got.Username != cfg.Username ||
 		got.MaxRetries != cfg.MaxRetries || got.RetryDelay != cfg.RetryDelay {
 		t.Errorf("base fields not mapped correctly: %+v", got)
+	}
+}
+
+// TestModule_ODataClient guards the accessor the DI layer uses to share the 1C
+// client with cross-module adapters (student_debts 1С debt import): a disabled
+// module exposes nil; a module carrying a client returns it.
+func TestModule_ODataClient(t *testing.T) {
+	disabled := &Module{}
+	if disabled.ODataClient() != nil {
+		t.Error("a disabled module must expose a nil OData client")
+	}
+
+	client := odata.NewClient(odata.DefaultConfig())
+	m := &Module{odataClient: client}
+	if m.ODataClient() != client {
+		t.Error("ODataClient must return the stored client")
 	}
 }
