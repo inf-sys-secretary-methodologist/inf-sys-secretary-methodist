@@ -24,15 +24,15 @@ func validSignedAt() time.Time {
 func TestNewDocumentSignature_HappyPath(t *testing.T) {
 	der := []byte{0x30, 0x44, 0x01, 0x02}
 	sig, err := NewDocumentSignature(
-		42,                                 // documentID
-		3,                                  // documentVersion
-		7,                                  // signerID
-		"  Иванов И.И.  ",                   // signerName (trimmed)
-		SignatureAlgorithmECDSAP256SHA256,  // algo
-		validDigestHex,                     // digestHex
-		der,                                // signatureDER
-		fakeCertPEM,                        // certificatePEM
-		validSignedAt(),                    // signedAt
+		42,                                // documentID
+		3,                                 // documentVersion
+		7,                                 // signerID
+		"  Иванов И.И.  ",                 // signerName (trimmed)
+		SignatureAlgorithmECDSAP256SHA256, // algo
+		validDigestHex,                    // digestHex
+		der,                               // signatureDER
+		fakeCertPEM,                       // certificatePEM
+		validSignedAt(),                   // signedAt
 	)
 	if err != nil {
 		t.Fatalf("NewDocumentSignature() = %v, want nil", err)
