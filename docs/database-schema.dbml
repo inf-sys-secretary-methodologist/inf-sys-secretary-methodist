@@ -382,6 +382,38 @@ Table document_history {
   Note: 'История изменений документов (аудит)'
 }
 
+Table document_signatures {
+  id bigserial [pk, increment]
+  document_id bigint [not null, ref: > documents.id, note: 'ON DELETE CASCADE']
+  document_version int [not null, note: 'подписанная версия (verify ловит изменение тела)']
+  signer_id bigint [not null, ref: > users.id, note: 'ON DELETE RESTRICT']
+  signer_name varchar(255) [not null, note: 'денормализовано — юр. след переживает переименование']
+  signature_algorithm varchar(32) [not null, note: 'ECDSA_P256_SHA256']
+  digest_hex char(64) [not null, note: 'подписанный SHA-256 дайджест канонического payload (hex)']
+  signature_der bytea [not null, note: 'сырая ECDSA-подпись (ASN.1 DER)']
+  certificate_pem text [not null, note: 'X.509-сертификат подписанта (PEM)']
+  signed_at timestamptz [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    document_id
+    signer_id
+  }
+
+  Note: 'Криптографические ЭЦП документов (#140). Несколько подписей на документ.'
+}
+
+Table signing_keys {
+  id bigserial [pk, increment]
+  user_id bigint [not null, unique, ref: > users.id, note: 'ON DELETE CASCADE — один ключ на пользователя']
+  algorithm varchar(32) [not null, note: 'ECDSA_P256_SHA256']
+  certificate_pem text [not null, note: 'самоподписанный X.509 (PEM)']
+  encrypted_private_key text [not null, note: 'AES-256-GCM(PEM приватного ключа) под DOC_SIGNING_ENC_KEY']
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Per-user ключи подписи (#140). Приватный ключ зашифрован at-rest.'
+}
+
 // ============================================================================
 // SCHEDULE MODULE - Расписание (13 таблиц)
 // ============================================================================

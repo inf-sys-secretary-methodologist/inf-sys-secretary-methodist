@@ -175,7 +175,7 @@ const DocumentGridItem = memo(function DocumentGridItem({
 
       {/* Actions */}
       <div className="mt-4 flex gap-2">
-        {onPreview && doc.status === DocumentStatus.READY && (
+        {onPreview && (
           <Button variant="outline" size="sm" onClick={() => onPreview(doc)} className="flex-1">
             <Eye className="h-4 w-4 mr-1" />
             {tList('view')}
@@ -288,7 +288,7 @@ const DocumentListItem = memo(function DocumentListItem({
 
       {/* Actions */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        {onPreview && doc.status === DocumentStatus.READY && (
+        {onPreview && (
           <Button variant="outline" size="sm" onClick={() => onPreview(doc)}>
             <Eye className="h-4 w-4 mr-1" />
             {tList('view')}
