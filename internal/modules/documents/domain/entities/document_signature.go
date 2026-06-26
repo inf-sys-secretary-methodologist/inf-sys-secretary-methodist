@@ -141,7 +141,17 @@ func ReconstituteDocumentSignature(
 // lowercase hex digest. Any change to any input yields a different digest, so a
 // verifier recomputing it can detect a swapped signer, a bumped version, or a
 // mutated document body.
+//
+// signedAtUnix is the signing time in WHOLE SECONDS (time.Time.Unix(), never
+// UnixNano): a verifier MUST recompute the digest with SignedAt.Unix() to match.
+//
+// The identity invariants mirror NewDocumentSignature exactly (documentID>=1,
+// documentVersion>=1, signerID>=1) so the two domain functions never disagree
+// on what a valid signature identity is.
 func ComputeSigningDigest(documentID int64, documentVersion int, signerID int64, signedAtUnix int64, contentSHA256Hex string) (string, error) {
+	if documentID <= 0 || documentVersion < 1 || signerID <= 0 {
+		return "", fmt.Errorf("%w: identity", ErrInvalidDocumentSignature)
+	}
 	if !isSHA256Hex(contentSHA256Hex) {
 		return "", fmt.Errorf("%w: content hash must be 64-char lowercase hex", ErrInvalidDocumentSignature)
 	}
