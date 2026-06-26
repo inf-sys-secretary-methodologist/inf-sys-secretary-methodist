@@ -64,10 +64,10 @@ func NewAnnualReportHandler(generate GenerateAnnualReportPort) *AnnualReportHand
 // @Produce application/vnd.openxmlformats-officedocument.wordprocessingml.document
 // @Param year query int true "Calendar year (2000-2100)"
 // @Success 200 {file} binary "DOCX bytes"
-// @Failure 401 {object} response.Response
-// @Failure 403 {object} response.Response
-// @Failure 422 {object} response.Response
-// @Failure 500 {object} response.Response
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 422 {object} map[string]string
+// @Failure 500 {object} map[string]string
 // @Router /api/reports/annual [get]
 func (h *AnnualReportHandler) Generate(c *gin.Context) {
 	actorID, ok := actorIDFromContext(c)

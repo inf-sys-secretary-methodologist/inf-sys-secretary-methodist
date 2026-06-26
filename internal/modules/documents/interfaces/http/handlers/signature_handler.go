@@ -62,6 +62,19 @@ func RegisterSignatureRoutes(rg *gin.RouterGroup, h *SignatureHandler) {
 }
 
 // Sign applies the actor's signature to the document.
+// @Summary Sign document
+// @Description Apply the current actor's cryptographic signature to the document's current version. Students are not allowed to sign.
+// @Tags signatures
+// @Produce json
+// @Param id path int true "Document ID"
+// @Success 201 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Failure 422 {object} response.Response
+// @Security BearerAuth
+// @Router /documents/{id}/sign [post]
 func (h *SignatureHandler) Sign(c *gin.Context) {
 	id, err := parseDocID(c)
 	if err != nil {
@@ -87,6 +100,17 @@ func (h *SignatureHandler) Sign(c *gin.Context) {
 }
 
 // List returns all signatures applied to a document.
+// @Summary List document signatures
+// @Description List all signatures applied to a document.
+// @Tags signatures
+// @Produce json
+// @Param id path int true "Document ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Security BearerAuth
+// @Router /documents/{id}/signatures [get]
 func (h *SignatureHandler) List(c *gin.Context) {
 	id, err := parseDocID(c)
 	if err != nil {
@@ -106,6 +130,18 @@ func (h *SignatureHandler) List(c *gin.Context) {
 }
 
 // Verify re-checks a stored signature against the document's current state.
+// @Summary Verify a document signature
+// @Description Re-check a stored signature against the document's current state. digest_match flags a changed document body; crypto_valid flags signature validity.
+// @Tags signatures
+// @Produce json
+// @Param id path int true "Document ID"
+// @Param sigId path int true "Signature ID"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 404 {object} response.Response
+// @Security BearerAuth
+// @Router /documents/{id}/signatures/{sigId}/verify [get]
 func (h *SignatureHandler) Verify(c *gin.Context) {
 	sigID, err := strconv.ParseInt(c.Param("sigId"), 10, 64)
 	if err != nil {

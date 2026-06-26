@@ -178,7 +178,7 @@ func (h *AttendanceHandler) GetLessonAttendance(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body dto.CreateLessonRequest true "Lesson data"
-// @Success 201 {object} response.Response{data=entities.Lesson}
+// @Success 201 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 500 {object} response.Response
