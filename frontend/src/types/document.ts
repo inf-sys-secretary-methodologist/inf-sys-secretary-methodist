@@ -115,3 +115,34 @@ export const ALLOWED_FILE_EXTENSIONS = [
 
 // Maximum file size in bytes (10MB)
 export const MAX_FILE_SIZE = 10 * 1024 * 1024
+
+// ============== E-Signatures (#140) ==============
+// Mirror of the backend signature DTO (signature_handler.go). A signature
+// binds a document version + signer; signature_base64 is the ECDSA DER
+// signature, certificate_pem the signer's self-signed X.509 certificate.
+
+export interface DocumentSignature {
+  id: number
+  document_id: number
+  document_version: number
+  signer_id: number
+  signer_name: string
+  algorithm: string
+  digest_hex: string
+  signature_base64: string
+  certificate_pem: string
+  signed_at: string
+}
+
+// SignatureVerdictStatus mirrors the backend verdict status codes.
+export type SignatureVerdictStatus = 'valid' | 'document_modified' | 'crypto_invalid'
+
+// SignatureVerification is the result of re-checking a stored signature.
+export interface SignatureVerification {
+  signature_id: number
+  valid: boolean
+  digest_match: boolean
+  crypto_valid: boolean
+  version_changed: boolean
+  status: SignatureVerdictStatus
+}

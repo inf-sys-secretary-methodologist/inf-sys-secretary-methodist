@@ -132,6 +132,14 @@ export const EDIT_ROLES: UserRole[] = [
 
 export const VIEW_ONLY_ROLES: UserRole[] = [UserRole.STUDENT]
 
+// canSignDocuments — non-student staff may apply a cryptographic signature to
+// a document. Mirrors the backend SignDocumentUseCase, which denies students
+// (#140). Students are viewers of the signatures panel only.
+export function canSignDocuments(userRole?: UserRole | string): boolean {
+  if (!userRole) return false
+  return EDIT_ROLES.includes(userRole as UserRole)
+}
+
 // CURRICULUM_WRITE_ROLES — roles permitted to create/update/submit a
 // curriculum через UI. Mirrors the backend write-whitelist enforced by
 // the POST /api/curriculum + PUT /api/curriculum/:id handlers.
