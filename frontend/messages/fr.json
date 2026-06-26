@@ -3784,5 +3784,37 @@
         "generic": "Échec de la génération des révisions"
       }
     }
+  },
+  "documentSignatures": {
+    "panel": {
+      "title": "Signatures électroniques",
+      "empty": "Ce document n'est pas encore signé",
+      "loading": "Chargement des signatures…"
+    },
+    "actions": {
+      "sign": "Signer",
+      "verify": "Vérifier"
+    },
+    "card": {
+      "signedAt": "Signé"
+    },
+    "signDialog": {
+      "title": "Signer le document",
+      "description": "Une signature électronique cryptographique de la version actuelle du document sera créée avec votre clé. Cette action est irréversible.",
+      "cancel": "Annuler",
+      "confirm": "Signer",
+      "successToast": "Document signé"
+    },
+    "verdicts": {
+      "valid": "Valide",
+      "document_modified": "Document modifié",
+      "crypto_invalid": "Signature invalide"
+    },
+    "errors": {
+      "generic": "Une erreur s'est produite. Veuillez réessayer.",
+      "forbidden": "Vous n'êtes pas autorisé à signer",
+      "notFound": "Document ou signature introuvable",
+      "invalid": "Impossible de signer le document"
+    }
   }
 }
