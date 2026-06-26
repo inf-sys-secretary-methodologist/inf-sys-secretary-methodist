@@ -103,6 +103,22 @@ describe('DocumentList', () => {
     expect(onPreview).toHaveBeenCalledWith(mockDocuments[0])
   })
 
+  // #140 regression: the preview button was gated on status === 'ready', a
+  // file-processing status the backend never sets (documents carry workflow
+  // statuses: draft/approved/…). That made the preview modal — and the
+  // e-signature panel inside it — unreachable for every real document.
+  it('shows the preview button for workflow-status (non-ready) documents', () => {
+    const onPreview = jest.fn()
+    const approvedDoc: Document = {
+      ...mockDocuments[0],
+      id: '3',
+      name: 'Approved.pdf',
+      status: DocumentStatus.APPROVED,
+    }
+    render(<DocumentList documents={[approvedDoc]} onPreview={onPreview} />)
+    expect(screen.getByRole('button', { name: /view/i })).toBeInTheDocument()
+  })
+
   it('renders download button when onDownload is provided', () => {
     const onDownload = jest.fn()
     render(<DocumentList {...defaultProps} onDownload={onDownload} />)

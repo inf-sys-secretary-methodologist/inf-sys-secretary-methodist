@@ -140,7 +140,14 @@ export function DocumentPreview({
     }
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      const target = e.target as HTMLElement | null
+      // Ignore clicks inside a portaled child dialog (sign/submit/approve/…),
+      // which Radix renders outside modalRef — otherwise interacting with any
+      // dialog would close this preview and unmount the dialog mid-action.
+      if (target?.closest('[role="dialog"]') || target?.closest('[role="alertdialog"]')) {
+        return
+      }
+      if (modalRef.current && !modalRef.current.contains(target as Node)) {
         onClose()
       }
     }
