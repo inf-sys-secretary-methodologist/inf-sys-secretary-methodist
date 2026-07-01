@@ -12,15 +12,14 @@ import (
 	aiEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 )
 
 // NotificationUseCase handles notification operations
 type NotificationUseCase struct {
-	notificationRepo    repositories.NotificationRepository
-	preferencesRepo     repositories.PreferencesRepository
-	telegramRepo        repositories.TelegramRepository
+	notificationRepo    NotificationRepository
+	preferencesRepo     PreferencesRepository
+	telegramRepo        TelegramRepository
 	emailService        services.EmailService
 	telegramService     services.TelegramService
 	webpushService      services.WebPushService
@@ -29,9 +28,9 @@ type NotificationUseCase struct {
 
 // NewNotificationUseCase creates a new notification use case
 func NewNotificationUseCase(
-	notificationRepo repositories.NotificationRepository,
-	preferencesRepo repositories.PreferencesRepository,
-	telegramRepo repositories.TelegramRepository,
+	notificationRepo NotificationRepository,
+	preferencesRepo PreferencesRepository,
+	telegramRepo TelegramRepository,
 	emailService services.EmailService,
 	telegramService services.TelegramService,
 	webpushService services.WebPushService,

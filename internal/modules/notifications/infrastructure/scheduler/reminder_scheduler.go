@@ -11,8 +11,8 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	notifEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	scheduleEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 	scheduleRepos "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
@@ -24,12 +24,12 @@ type ReminderScheduler struct {
 	db               *sql.DB
 	reminderRepo     scheduleRepos.EventReminderRepository
 	eventRepo        scheduleRepos.EventRepository
-	notificationRepo repositories.NotificationRepository
-	preferencesRepo  repositories.PreferencesRepository
+	notificationRepo usecases.NotificationRepository
+	preferencesRepo  usecases.PreferencesRepository
 	emailService     services.EmailService
-	telegramRepo     repositories.TelegramRepository
+	telegramRepo     usecases.TelegramRepository
 	telegramService  services.TelegramService
-	webPushRepo      repositories.WebPushRepository
+	webPushRepo      usecases.WebPushRepository
 	webPushService   services.WebPushService
 	checkInterval    time.Duration
 	batchSize        int
@@ -39,7 +39,7 @@ type ReminderScheduler struct {
 // existing ReminderScheduler. Chainable so wire-up reads
 // `NewReminderScheduler(...).WithTelegramDispatch(...)` in main.go.
 func (s *ReminderScheduler) WithTelegramDispatch(
-	telegramRepo repositories.TelegramRepository,
+	telegramRepo usecases.TelegramRepository,
 	telegramService services.TelegramService,
 ) *ReminderScheduler {
 	s.telegramRepo = telegramRepo
@@ -57,7 +57,7 @@ func (s *ReminderScheduler) WithTelegramDispatch(
 //
 // Issue: #226
 func (s *ReminderScheduler) WithWebPushDispatch(
-	webPushRepo repositories.WebPushRepository,
+	webPushRepo usecases.WebPushRepository,
 	webPushService services.WebPushService,
 ) *ReminderScheduler {
 	s.webPushRepo = webPushRepo
@@ -84,8 +84,8 @@ func NewReminderScheduler(
 	db *sql.DB,
 	reminderRepo scheduleRepos.EventReminderRepository,
 	eventRepo scheduleRepos.EventRepository,
-	notificationRepo repositories.NotificationRepository,
-	preferencesRepo repositories.PreferencesRepository,
+	notificationRepo usecases.NotificationRepository,
+	preferencesRepo usecases.PreferencesRepository,
 	emailService services.EmailService,
 	config *ReminderSchedulerConfig,
 ) (*ReminderScheduler, error) {

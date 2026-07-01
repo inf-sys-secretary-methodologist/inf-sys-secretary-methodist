@@ -10,15 +10,15 @@ import (
 
 	webpush "github.com/SherClockHolmes/webpush-go"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // WebPushServiceImpl implements WebPushService
 type WebPushServiceImpl struct {
-	webpushRepo     repositories.WebPushRepository
+	webpushRepo     usecases.WebPushRepository
 	vapidPublicKey  string
 	vapidPrivateKey string
 	vapidSubject    string
@@ -27,7 +27,7 @@ type WebPushServiceImpl struct {
 
 // NewWebPushService creates a new WebPush service
 func NewWebPushService(
-	webpushRepo repositories.WebPushRepository,
+	webpushRepo usecases.WebPushRepository,
 	vapidPublicKey, vapidPrivateKey, vapidSubject string,
 	auditLog *logging.AuditLogger,
 ) services.WebPushService {

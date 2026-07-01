@@ -17,13 +17,12 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/auth/domain/entities"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	notifEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	notifRepos "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/security/totp"
 )
 
 // Ensure notifRepos is used (compile check)
-var _ notifRepos.NotificationRepository = (*stubNotificationRepo)(nil)
+var _ notifUsecases.NotificationRepository = (*stubNotificationRepo)(nil)
 
 // stubNotificationRepo is a minimal mock for NotificationRepository
 type stubNotificationRepo struct{}

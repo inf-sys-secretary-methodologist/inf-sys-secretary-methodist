@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
@@ -20,8 +20,8 @@ const (
 
 // TelegramVerificationService handles Telegram account verification and linking
 type TelegramVerificationService struct {
-	telegramRepo    repositories.TelegramRepository
-	prefsRepo       repositories.PreferencesRepository
+	telegramRepo    usecases.TelegramRepository
+	prefsRepo       usecases.PreferencesRepository
 	telegramService services.TelegramService // Composio for sending messages
 	auditLog        *logging.AuditLogger
 	botUsername     string
@@ -29,8 +29,8 @@ type TelegramVerificationService struct {
 
 // NewTelegramVerificationService creates a new Telegram verification service
 func NewTelegramVerificationService(
-	telegramRepo repositories.TelegramRepository,
-	prefsRepo repositories.PreferencesRepository,
+	telegramRepo usecases.TelegramRepository,
+	prefsRepo usecases.PreferencesRepository,
 	telegramService services.TelegramService,
 	auditLog *logging.AuditLogger,
 	botUsername string,

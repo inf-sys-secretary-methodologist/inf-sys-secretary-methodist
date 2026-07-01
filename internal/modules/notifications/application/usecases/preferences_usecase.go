@@ -7,16 +7,15 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 )
 
 // PreferencesUseCase handles notification preferences operations
 type PreferencesUseCase struct {
-	preferencesRepo repositories.PreferencesRepository
+	preferencesRepo PreferencesRepository
 }
 
 // NewPreferencesUseCase creates a new preferences use case
-func NewPreferencesUseCase(preferencesRepo repositories.PreferencesRepository) *PreferencesUseCase {
+func NewPreferencesUseCase(preferencesRepo PreferencesRepository) *PreferencesUseCase {
 	return &PreferencesUseCase{
 		preferencesRepo: preferencesRepo,
 	}

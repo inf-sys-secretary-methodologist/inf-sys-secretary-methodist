@@ -8,20 +8,20 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/dto"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 )
 
 // WebPushHandler handles Web Push notification HTTP requests
 type WebPushHandler struct {
-	webpushRepo    repositories.WebPushRepository
+	webpushRepo    usecases.WebPushRepository
 	webpushService services.WebPushService
 }
 
 // NewWebPushHandler creates a new Web Push handler
 func NewWebPushHandler(
-	webpushRepo repositories.WebPushRepository,
+	webpushRepo usecases.WebPushRepository,
 	webpushService services.WebPushService,
 ) *WebPushHandler {
 	return &WebPushHandler{

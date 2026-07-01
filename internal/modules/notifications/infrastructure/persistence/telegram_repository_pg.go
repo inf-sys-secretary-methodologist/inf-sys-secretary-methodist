@@ -1,4 +1,4 @@
-// Package persistence contains PostgreSQL implementations of repositories.
+// Package persistence contains PostgreSQL implementations of usecases.
 package persistence
 
 import (
@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 )
 
 // TelegramRepositoryPG is PostgreSQL implementation of TelegramRepository
@@ -17,7 +17,7 @@ type TelegramRepositoryPG struct {
 }
 
 // NewTelegramRepositoryPG creates a new PostgreSQL Telegram repository
-func NewTelegramRepositoryPG(db *sql.DB) repositories.TelegramRepository {
+func NewTelegramRepositoryPG(db *sql.DB) usecases.TelegramRepository {
 	return &TelegramRepositoryPG{db: db}
 }
 
