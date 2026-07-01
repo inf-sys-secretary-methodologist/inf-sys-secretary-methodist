@@ -17,6 +17,12 @@
 
 > **Записи 0.158.0 – 0.214.4 — сжатый backfill** (одна строка на релиз; полные заметки — в [GitHub Releases](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/releases)).
 
+## [0.221.1] — 2026-07-01
+
+### Changed
+
+- **DIP-рефакторинг repository-интерфейсов (#210).** Интерфейсы репозиториев перенесены из `internal/modules/*/domain/` в пакет-потребитель `internal/modules/*/application/usecases/` во всех 9 затронутых модулях (integration / analytics / notifications / assignments / reporting / schedule / documents / ai / tasks) — Dependency Inversion Principle по классике: абстракция объявляется там, где потребляется, а не в доменном слое. Закрыт тех-долг из ADR 2026-04-28 («мигрировать все модули за один заход, не по одному»). Чистый рефакторинг — поведение и публичные HTTP-контракты не изменяются. Смержено каскадом PR #476→#484 (admin-squash).
+
 ## [0.221.0] — 2026-06-26
 
 ### Added
