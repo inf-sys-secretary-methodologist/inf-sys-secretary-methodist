@@ -318,6 +318,47 @@ func TestEmbeddingSearchSimilarByDocumentTypes_ScanError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// ---- SearchFullText (keyword-only FTS baseline for П1) ----
+
+func TestEmbeddingSearchFullText_Success(t *testing.T) {
+	repo, mock := newEmbRepoMock(t)
+	now := time.Now()
+
+	cols := []string{"id", "document_id", "chunk_index", "chunk_text", "chunk_tokens", "page_number", "metadata", "created_at", "document_title", "similarity"}
+	mock.ExpectQuery(regexp.QuoteMeta("ts_rank")).
+		WithArgs("отпуск", 10).
+		WillReturnRows(sqlmock.NewRows(cols).
+			AddRow(int64(1), int64(1), 0, "text", nil, nil, []byte(`{"k":"v"}`), now, "Doc", 0.7))
+
+	results, err := repo.SearchFullText(context.Background(), "отпуск", 10)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, 0.7, results[0].SimilarityScore)
+	assert.Equal(t, "Doc", results[0].DocumentTitle)
+}
+
+func TestEmbeddingSearchFullText_QueryError(t *testing.T) {
+	repo, mock := newEmbRepoMock(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta("ts_rank")).
+		WithArgs("q", 10).
+		WillReturnError(fmt.Errorf("query error"))
+
+	_, err := repo.SearchFullText(context.Background(), "q", 10)
+	assert.Error(t, err)
+}
+
+func TestEmbeddingSearchFullText_ScanError(t *testing.T) {
+	repo, mock := newEmbRepoMock(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta("ts_rank")).
+		WithArgs("q", 10).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("bad"))
+
+	_, err := repo.SearchFullText(context.Background(), "q", 10)
+	assert.Error(t, err)
+}
+
 // ---- GetIndexStatus ----
 
 func TestEmbeddingGetIndexStatus_Success(t *testing.T) {

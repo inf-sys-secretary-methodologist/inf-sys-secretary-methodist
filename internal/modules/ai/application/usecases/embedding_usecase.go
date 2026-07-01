@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,6 +45,14 @@ type EmbeddingUseCase struct {
 	auditLogger       *logging.AuditLogger
 	cache             *cache.RedisCache
 	embeddingModel    string
+	reranker          ports.LLMProvider // optional: LLM reranking stage for modified RAG
+}
+
+// WithReranker attaches an LLM provider used as the final reranking stage of the
+// modified RAG pipeline (search_mode="hybrid_rerank"). Optional; nil = disabled.
+func (uc *EmbeddingUseCase) WithReranker(p ports.LLMProvider) *EmbeddingUseCase {
+	uc.reranker = p
+	return uc
 }
 
 // NewEmbeddingUseCase creates a new EmbeddingUseCase
@@ -367,6 +376,66 @@ func rerankByKeywords(results []entities.ChunkWithScore, query string) []entitie
 	return results
 }
 
+// llmRerank reorders results using the LLM as a cross-encoder-style reranker
+// (final stage of the modified RAG pipeline). Best-effort: on any failure it
+// returns the original ordering unchanged.
+func (uc *EmbeddingUseCase) llmRerank(ctx context.Context, query string, results []entities.ChunkWithScore) []entities.ChunkWithScore {
+	if uc.reranker == nil || len(results) < 2 {
+		return results
+	}
+
+	var sb strings.Builder
+	for i, r := range results {
+		snippet := r.Chunk.ChunkText
+		if len([]rune(snippet)) > 300 {
+			snippet = string([]rune(snippet)[:300])
+		}
+		fmt.Fprintf(&sb, "[%d] %s: %s\n", i+1, r.DocumentTitle, snippet)
+	}
+
+	systemPrompt := "Ты ранжируешь фрагменты документов по релевантности запросу пользователя. " +
+		"Верни ТОЛЬКО номера кандидатов через запятую, от самого релевантного к наименее релевантному. " +
+		"Без пояснений и текста, только номера."
+	userMsg := fmt.Sprintf("Запрос: %s\n\nКандидаты:\n%s", query, sb.String())
+
+	resp, _, err := uc.reranker.GenerateResponse(ctx, systemPrompt,
+		[]entities.Message{{Role: entities.MessageRoleUser, Content: userMsg}}, "")
+	if err != nil || resp == "" {
+		return results
+	}
+
+	order := parseRerankOrder(resp, len(results))
+	if len(order) == 0 {
+		return results
+	}
+
+	reranked := make([]entities.ChunkWithScore, 0, len(results))
+	used := make([]bool, len(results))
+	for _, idx := range order {
+		if idx >= 0 && idx < len(results) && !used[idx] {
+			reranked = append(reranked, results[idx])
+			used[idx] = true
+		}
+	}
+	for i := range results {
+		if !used[i] {
+			reranked = append(reranked, results[i])
+		}
+	}
+	return reranked
+}
+
+// parseRerankOrder extracts 1-based indices from the LLM response, converting to 0-based.
+func parseRerankOrder(resp string, n int) []int {
+	var out []int
+	for _, tok := range strings.FieldsFunc(resp, func(r rune) bool { return r < '0' || r > '9' }) {
+		if v, err := strconv.Atoi(tok); err == nil && v >= 1 && v <= n {
+			out = append(out, v-1)
+		}
+	}
+	return out
+}
+
 // Search performs semantic search with optional document type filter
 func (uc *EmbeddingUseCase) Search(ctx context.Context, req *dto.SearchRequest) (*dto.SearchResponse, error) {
 	limit := req.Limit
@@ -379,22 +448,44 @@ func (uc *EmbeddingUseCase) Search(ctx context.Context, req *dto.SearchRequest) 
 		threshold = 0.7
 	}
 
-	// Generate embedding for query (cached to avoid redundant API calls)
-	embedding, err := uc.cachedQueryEmbedding(ctx, req.Query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate query embedding: %w", err)
-	}
-
-	// Search for similar chunks
 	var results []entities.ChunkWithScore
-	if len(req.DocumentTypes) > 0 {
-		results, err = uc.embeddingRepo.SearchSimilarByDocumentTypes(ctx, embedding, req.DocumentTypes, limit, threshold)
-	} else {
-		results, err = uc.embeddingRepo.SearchSimilar(ctx, embedding, limit, threshold)
-	}
+	var err error
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to search: %w", err)
+	switch req.SearchMode {
+	case "hybrid_rerank":
+		// Modified RAG + final LLM reranking stage.
+		results, err = uc.SearchSimilar(ctx, req.Query, limit, threshold)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search: %w", err)
+		}
+		results = uc.llmRerank(ctx, req.Query, results)
+	case "hybrid":
+		// Modified RAG pipeline: hybrid (vector + FTS) with RRF, adjacent chunk
+		// expansion (±1) and keyword reranking. Reuses SearchSimilar.
+		results, err = uc.SearchSimilar(ctx, req.Query, limit, threshold)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search: %w", err)
+		}
+	case "fts_only":
+		// Baseline: single-method full-text (keyword-only) search.
+		results, err = uc.embeddingRepo.SearchFullText(ctx, req.Query, limit)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search: %w", err)
+		}
+	default:
+		// Baseline: single vector-only search (no RRF / expansion / reranking).
+		embedding, embErr := uc.cachedQueryEmbedding(ctx, req.Query)
+		if embErr != nil {
+			return nil, fmt.Errorf("failed to generate query embedding: %w", embErr)
+		}
+		if len(req.DocumentTypes) > 0 {
+			results, err = uc.embeddingRepo.SearchSimilarByDocumentTypes(ctx, embedding, req.DocumentTypes, limit, threshold)
+		} else {
+			results, err = uc.embeddingRepo.SearchSimilar(ctx, embedding, limit, threshold)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to search: %w", err)
+		}
 	}
 
 	response := &dto.SearchResponse{

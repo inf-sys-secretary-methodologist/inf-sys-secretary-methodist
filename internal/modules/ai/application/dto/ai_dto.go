@@ -91,6 +91,15 @@ type SearchRequest struct {
 	Limit         int      `json:"limit,omitempty"`
 	Threshold     float64  `json:"threshold,omitempty"`
 	DocumentTypes []string `json:"document_types,omitempty"`
+	// SearchMode selects the retrieval pipeline (empty = baseline). Used for A/B
+	// benchmarking of the П1 modified-RAG novelty:
+	//   ""              baseline: vector-only (honors DocumentTypes and Threshold).
+	//   "fts_only"      baseline: keyword-only full-text search.
+	//                   Note: ignores DocumentTypes and Threshold.
+	//   "hybrid"        modified RAG: hybrid vector+FTS with RRF, adjacent-chunk
+	//                   expansion (±1) and keyword reranking.
+	//   "hybrid_rerank" modified RAG plus a final LLM reranking stage.
+	SearchMode string `json:"search_mode,omitempty"`
 }
 
 // SearchResultResponse represents a single search result

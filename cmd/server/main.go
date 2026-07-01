@@ -1395,6 +1395,8 @@ func main() {
 		if redisCache != nil {
 			aiEmbeddingUseCase.SetCache(redisCache)
 		}
+		// LLM reranking stage for modified RAG (search_mode="hybrid_rerank")
+		aiEmbeddingUseCase.WithReranker(llmProvider)
 
 		// Initialize Metodych personality (prompt provider)
 		promptProvider := aiPrompts.NewPromptProvider()
