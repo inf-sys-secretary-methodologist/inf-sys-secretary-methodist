@@ -12,17 +12,16 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/infrastructure/odata"
 )
 
 // SyncUseCase handles synchronization operations with 1C
 type SyncUseCase struct {
 	odataClient  *odata.Client
-	syncLogRepo  repositories.SyncLogRepository
-	employeeRepo repositories.ExternalEmployeeRepository
-	studentRepo  repositories.ExternalStudentRepository
-	conflictRepo repositories.SyncConflictRepository
+	syncLogRepo  SyncLogRepository
+	employeeRepo ExternalEmployeeRepository
+	studentRepo  ExternalStudentRepository
+	conflictRepo SyncConflictRepository
 	logger       *slog.Logger
 	mu           sync.Mutex
 	running      map[entities.SyncEntityType]bool
@@ -41,10 +40,10 @@ func (uc *SyncUseCase) WithAuditSink(sink AuditSink) *SyncUseCase {
 // NewSyncUseCase creates a new sync use case
 func NewSyncUseCase(
 	odataClient *odata.Client,
-	syncLogRepo repositories.SyncLogRepository,
-	employeeRepo repositories.ExternalEmployeeRepository,
-	studentRepo repositories.ExternalStudentRepository,
-	conflictRepo repositories.SyncConflictRepository,
+	syncLogRepo SyncLogRepository,
+	employeeRepo ExternalEmployeeRepository,
+	studentRepo ExternalStudentRepository,
+	conflictRepo SyncConflictRepository,
 	logger *slog.Logger,
 ) *SyncUseCase {
 	return &SyncUseCase{

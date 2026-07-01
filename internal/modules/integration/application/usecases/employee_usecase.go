@@ -6,16 +6,15 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/repositories"
 )
 
 // EmployeeUseCase handles external employee operations
 type EmployeeUseCase struct {
-	employeeRepo repositories.ExternalEmployeeRepository
+	employeeRepo ExternalEmployeeRepository
 }
 
 // NewEmployeeUseCase creates a new employee use case
-func NewEmployeeUseCase(employeeRepo repositories.ExternalEmployeeRepository) *EmployeeUseCase {
+func NewEmployeeUseCase(employeeRepo ExternalEmployeeRepository) *EmployeeUseCase {
 	return &EmployeeUseCase{
 		employeeRepo: employeeRepo,
 	}

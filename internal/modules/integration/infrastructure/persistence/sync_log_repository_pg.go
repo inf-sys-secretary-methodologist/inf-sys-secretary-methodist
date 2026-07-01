@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/repositories"
 )
 
 // SyncLogRepositoryPg implements SyncLogRepository using PostgreSQL
@@ -19,7 +19,7 @@ type SyncLogRepositoryPg struct {
 }
 
 // NewSyncLogRepositoryPg creates a new PostgreSQL sync log repository
-func NewSyncLogRepositoryPg(db *sql.DB) repositories.SyncLogRepository {
+func NewSyncLogRepositoryPg(db *sql.DB) usecases.SyncLogRepository {
 	return &SyncLogRepositoryPg{db: db}
 }
 
