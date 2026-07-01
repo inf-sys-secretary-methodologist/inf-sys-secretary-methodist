@@ -14,7 +14,6 @@ import (
 
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/interfaces/http/handlers"
 )
 
@@ -114,10 +113,10 @@ func TestResubmitHandler_InputValidationAndErrorMapping(t *testing.T) {
 		// Error mapping (use case returns sentinel)
 		{name: "ErrAssignmentNotFound → 404",
 			path:  "/api/assignments/10/resubmit",
-			ucErr: repositories.ErrAssignmentNotFound, wantCode: http.StatusNotFound},
+			ucErr: assignUsecases.ErrAssignmentNotFound, wantCode: http.StatusNotFound},
 		{name: "ErrSubmissionNotFound → 404",
 			path:  "/api/assignments/10/resubmit",
-			ucErr: repositories.ErrSubmissionNotFound, wantCode: http.StatusNotFound},
+			ucErr: assignUsecases.ErrSubmissionNotFound, wantCode: http.StatusNotFound},
 		{name: "ErrSubmissionOwnerOnly → 403",
 			path:  "/api/assignments/10/resubmit",
 			ucErr: entities.ErrSubmissionOwnerOnly, wantCode: http.StatusForbidden},

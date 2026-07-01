@@ -11,7 +11,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 var errFakeAssignmentRepoFault = errors.New("db down")
@@ -25,9 +24,9 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 		name         string
 		input        usecases.ListAssignmentsInput
 		repoErr      error
-		repoResult   repositories.AssignmentListResult
+		repoResult   usecases.AssignmentListResult
 		wantErr      error
-		wantFilter   repositories.AssignmentListFilter
+		wantFilter   usecases.AssignmentListFilter
 		wantItems    int
 		wantTotalOut int
 	}{
@@ -36,7 +35,7 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 			input: usecases.ListAssignmentsInput{
 				Caller: caller(authorTeacherID, false),
 			},
-			wantFilter: repositories.AssignmentListFilter{
+			wantFilter: usecases.AssignmentListFilter{
 				TeacherID: ptrInt64(authorTeacherID),
 				Limit:     usecases.DefaultListLimit,
 				Offset:    0,
@@ -47,7 +46,7 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 			input: usecases.ListAssignmentsInput{
 				Caller: caller(otherTeacherID, true),
 			},
-			wantFilter: repositories.AssignmentListFilter{
+			wantFilter: usecases.AssignmentListFilter{
 				TeacherID: nil,
 				Limit:     usecases.DefaultListLimit,
 				Offset:    0,
@@ -59,7 +58,7 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 				Caller:  caller(authorTeacherID, false),
 				Subject: "Algorithms",
 			},
-			wantFilter: repositories.AssignmentListFilter{
+			wantFilter: usecases.AssignmentListFilter{
 				TeacherID: ptrInt64(authorTeacherID),
 				Subject:   "Algorithms",
 				Limit:     usecases.DefaultListLimit,
@@ -71,7 +70,7 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 				Caller:    caller(authorTeacherID, false),
 				GroupName: "ИС-21",
 			},
-			wantFilter: repositories.AssignmentListFilter{
+			wantFilter: usecases.AssignmentListFilter{
 				TeacherID: ptrInt64(authorTeacherID),
 				GroupName: "ИС-21",
 				Limit:     usecases.DefaultListLimit,
@@ -83,7 +82,7 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 				Caller: caller(authorTeacherID, true),
 				Limit:  10000,
 			},
-			wantFilter: repositories.AssignmentListFilter{
+			wantFilter: usecases.AssignmentListFilter{
 				Limit: usecases.MaxListLimit,
 			},
 		},
@@ -93,7 +92,7 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 				Caller: caller(authorTeacherID, true),
 				Offset: -50,
 			},
-			wantFilter: repositories.AssignmentListFilter{
+			wantFilter: usecases.AssignmentListFilter{
 				Limit:  usecases.DefaultListLimit,
 				Offset: 0,
 			},
@@ -105,7 +104,7 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 				Limit:  25,
 				Offset: 10,
 			},
-			wantFilter: repositories.AssignmentListFilter{
+			wantFilter: usecases.AssignmentListFilter{
 				Limit:  25,
 				Offset: 10,
 			},
@@ -126,14 +125,14 @@ func TestListAssignmentsUseCase_Execute(t *testing.T) {
 			input: usecases.ListAssignmentsInput{
 				Caller: caller(authorTeacherID, true),
 			},
-			repoResult: repositories.AssignmentListResult{
+			repoResult: usecases.AssignmentListResult{
 				Items: []*entities.Assignment{
 					makeAssignmentForList(t, 1, authorTeacherID),
 					makeAssignmentForList(t, 2, authorTeacherID),
 				},
 				Total: 42,
 			},
-			wantFilter: repositories.AssignmentListFilter{
+			wantFilter: usecases.AssignmentListFilter{
 				Limit: usecases.DefaultListLimit,
 			},
 			wantItems:    2,

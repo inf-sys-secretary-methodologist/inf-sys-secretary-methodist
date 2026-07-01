@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 )
 
@@ -21,16 +20,16 @@ type GetMyAssignmentDetailInput struct {
 // — the same shape the list endpoint uses, so the frontend renders
 // the detail page with no extra mapping.
 type GetMyAssignmentDetailUseCase struct {
-	assignmentRepo repositories.AssignmentRepository
-	submissionRepo repositories.SubmissionRepository
+	assignmentRepo AssignmentRepository
+	submissionRepo SubmissionRepository
 }
 
 // NewGetMyAssignmentDetailUseCase wires the use case. Failure-closed:
 // nil assignment repo OR nil submission repo panics rather than
 // surfacing nil-pointer dereferences at request time.
 func NewGetMyAssignmentDetailUseCase(
-	assignmentRepo repositories.AssignmentRepository,
-	submissionRepo repositories.SubmissionRepository,
+	assignmentRepo AssignmentRepository,
+	submissionRepo SubmissionRepository,
 ) *GetMyAssignmentDetailUseCase {
 	if assignmentRepo == nil {
 		panic("assignments: NewGetMyAssignmentDetailUseCase requires non-nil assignmentRepo")
@@ -48,8 +47,8 @@ func NewGetMyAssignmentDetailUseCase(
 // pair, enforces the read-side ownership invariant, and assembles the
 // denormalised view. Surfaces sentinels:
 //
-//   - repositories.ErrAssignmentNotFound  → 404
-//   - repositories.ErrSubmissionNotFound  → 404 (no submission yet)
+//   - ErrAssignmentNotFound  → 404
+//   - ErrSubmissionNotFound  → 404 (no submission yet)
 //   - entities.ErrSubmissionOwnerOnly     → 403 (defense-in-depth, see ADR-2)
 func (uc *GetMyAssignmentDetailUseCase) Execute(ctx context.Context, in GetMyAssignmentDetailInput) (*views.StudentAssignmentView, error) {
 	if in.StudentID <= 0 {

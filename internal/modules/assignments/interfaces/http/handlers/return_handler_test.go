@@ -15,7 +15,6 @@ import (
 
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/interfaces/http/handlers"
 )
 
@@ -146,7 +145,7 @@ func TestReturnHandler_InputValidationAndErrorMapping(t *testing.T) {
 		{name: "ErrAssignmentNotFound → 404",
 			path:  "/api/assignments/10/returns",
 			body:  map[string]any{"student_id": 7, "reason": "x"},
-			ucErr: repositories.ErrAssignmentNotFound, wantCode: http.StatusNotFound},
+			ucErr: assignUsecases.ErrAssignmentNotFound, wantCode: http.StatusNotFound},
 		{name: "ErrAssignmentScopeForbidden → 403",
 			path:  "/api/assignments/10/returns",
 			body:  map[string]any{"student_id": 7, "reason": "x"},

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 )
 
@@ -50,7 +50,7 @@ func (r *SubmissionRepositoryPG) GetByAssignmentAndStudent(ctx context.Context, 
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, repositories.ErrSubmissionNotFound
+			return nil, usecases.ErrSubmissionNotFound
 		}
 		return nil, fmt.Errorf("submissions: get by pair: %w", err)
 	}

@@ -12,7 +12,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 )
 
@@ -76,7 +75,7 @@ func TestSaveGradeUseCase_Execute(t *testing.T) {
 			input: usecases.SaveGradeInput{
 				AssignmentID: 999, StudentID: studentID, Value: 50,
 			},
-			wantErr: repositories.ErrAssignmentNotFound,
+			wantErr: usecases.ErrAssignmentNotFound,
 		},
 		{
 			name:      "non-author teacher is forbidden",
@@ -187,9 +186,9 @@ type fakeAssignmentRepo struct {
 	byID map[int64]*entities.Assignment
 
 	// List support — used by ListAssignmentsUseCase tests.
-	listResult     repositories.AssignmentListResult
+	listResult     usecases.AssignmentListResult
 	listErr        error
-	lastListFilter *repositories.AssignmentListFilter
+	lastListFilter *usecases.AssignmentListFilter
 }
 
 func newFakeAssignmentRepo() *fakeAssignmentRepo {
@@ -200,17 +199,17 @@ func (r *fakeAssignmentRepo) GetByID(ctx context.Context, id int64) (*entities.A
 	if a, ok := r.byID[id]; ok {
 		return a, nil
 	}
-	return nil, repositories.ErrAssignmentNotFound
+	return nil, usecases.ErrAssignmentNotFound
 }
-func (r *fakeAssignmentRepo) List(ctx context.Context, filter repositories.AssignmentListFilter) (repositories.AssignmentListResult, error) {
+func (r *fakeAssignmentRepo) List(ctx context.Context, filter usecases.AssignmentListFilter) (usecases.AssignmentListResult, error) {
 	f := filter
 	r.lastListFilter = &f
 	if r.listErr != nil {
-		return repositories.AssignmentListResult{}, r.listErr
+		return usecases.AssignmentListResult{}, r.listErr
 	}
 	return r.listResult, nil
 }
-func (r *fakeAssignmentRepo) AggregateGradeDistribution(_ context.Context, _, _ time.Time) ([]repositories.AssignmentGradeDistributionAgg, error) {
+func (r *fakeAssignmentRepo) AggregateGradeDistribution(_ context.Context, _, _ time.Time) ([]usecases.AssignmentGradeDistributionAgg, error) {
 	return nil, errors.New("fake: AggregateGradeDistribution not used by save-grade / return / resubmit tests")
 }
 
@@ -246,7 +245,7 @@ func (r *fakeSubmissionRepo) GetByAssignmentAndStudent(ctx context.Context, aid,
 	if s, ok := r.byKey[subKey(aid, sid)]; ok {
 		return s, nil
 	}
-	return nil, repositories.ErrSubmissionNotFound
+	return nil, usecases.ErrSubmissionNotFound
 }
 func (r *fakeSubmissionRepo) Save(ctx context.Context, s *entities.Submission) error {
 	r.byKey[subKey(s.AssignmentID, s.StudentID)] = s

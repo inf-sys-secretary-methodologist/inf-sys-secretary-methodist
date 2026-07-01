@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"time"
-
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 // ResubmitSubmissionNotifier is the narrow port through which the use
@@ -39,8 +37,8 @@ type ResubmitSubmissionInput struct {
 // may resubmit only their own work — anyone else is rejected with
 // ErrSubmissionOwnerOnly → 403.
 type ResubmitSubmissionUseCase struct {
-	assignmentRepo repositories.AssignmentRepository
-	submissionRepo repositories.SubmissionRepository
+	assignmentRepo AssignmentRepository
+	submissionRepo SubmissionRepository
 	notifier       ResubmitSubmissionNotifier
 	auditSink      AuditSink
 	clock          func() time.Time
@@ -51,8 +49,8 @@ type ResubmitSubmissionUseCase struct {
 // auditSink takes the narrow AuditSink port; *logging.AuditLogger
 // satisfies it structurally so production wiring stays unchanged.
 func NewResubmitSubmissionUseCase(
-	assignmentRepo repositories.AssignmentRepository,
-	submissionRepo repositories.SubmissionRepository,
+	assignmentRepo AssignmentRepository,
+	submissionRepo SubmissionRepository,
 	notifier ResubmitSubmissionNotifier,
 	auditSink AuditSink,
 	clock func() time.Time,
@@ -76,8 +74,8 @@ func NewResubmitSubmissionUseCase(
 // abort the resubmit — the state transition is the system of record.
 //
 // Errors surface domain sentinels (errors.Is-friendly):
-//   - repositories.ErrAssignmentNotFound   → 404
-//   - repositories.ErrSubmissionNotFound   → 404
+//   - ErrAssignmentNotFound   → 404
+//   - ErrSubmissionNotFound   → 404
 //   - entities.ErrSubmissionOwnerOnly      → 403
 //   - entities.ErrNotReturned              → 409
 func (uc *ResubmitSubmissionUseCase) Execute(ctx context.Context, actorID int64, in ResubmitSubmissionInput) error {

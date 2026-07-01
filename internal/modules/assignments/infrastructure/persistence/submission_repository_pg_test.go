@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 func newSubmissionRepoMock(t *testing.T) (*SubmissionRepositoryPG, sqlmock.Sqlmock) {
@@ -117,7 +117,7 @@ func TestSubmissionRepositoryPG_GetByAssignmentAndStudent(t *testing.T) {
 		got, err := repo.GetByAssignmentAndStudent(context.Background(), 10, 7)
 		assert.Nil(t, got)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, repositories.ErrSubmissionNotFound))
+		assert.True(t, errors.Is(err, usecases.ErrSubmissionNotFound))
 	})
 
 	t.Run("transport error wraps with op context", func(t *testing.T) {
@@ -130,7 +130,7 @@ func TestSubmissionRepositoryPG_GetByAssignmentAndStudent(t *testing.T) {
 		assert.Nil(t, got)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "submissions: get by pair")
-		assert.False(t, errors.Is(err, repositories.ErrSubmissionNotFound),
+		assert.False(t, errors.Is(err, usecases.ErrSubmissionNotFound),
 			"transport error must NOT be misclassified as not-found")
 	})
 }

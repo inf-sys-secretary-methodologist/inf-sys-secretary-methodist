@@ -15,7 +15,6 @@ import (
 
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/interfaces/http/handlers"
 )
@@ -270,7 +269,7 @@ func TestGetAssignmentHandler(t *testing.T) {
 			name:       "404 on ErrAssignmentNotFound",
 			auth:       readAuth{withUserID: true, withRole: true, userID: 42, role: "methodist"},
 			path:       "/api/assignments/999",
-			ucErr:      repositories.ErrAssignmentNotFound,
+			ucErr:      assignUsecases.ErrAssignmentNotFound,
 			wantStatus: http.StatusNotFound,
 		},
 		{
@@ -369,7 +368,7 @@ func TestListSubmissionsHandler(t *testing.T) {
 			name:         "404 on ErrAssignmentNotFound",
 			auth:         readAuth{withUserID: true, withRole: true, userID: 42, role: "methodist"},
 			path:         "/api/assignments/999/submissions",
-			ucErr:        repositories.ErrAssignmentNotFound,
+			ucErr:        assignUsecases.ErrAssignmentNotFound,
 			wantStatus:   http.StatusNotFound,
 			wantUCCalled: true,
 		},

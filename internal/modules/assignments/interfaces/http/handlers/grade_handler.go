@@ -11,7 +11,6 @@ import (
 
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
@@ -141,7 +140,7 @@ func userIDFromContext(c *gin.Context) (int64, bool) {
 // analytics_handler in v0.108.3.
 func (h *GradeHandler) handleError(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, repositories.ErrAssignmentNotFound):
+	case errors.Is(err, assignUsecases.ErrAssignmentNotFound):
 		c.JSON(http.StatusNotFound, response.NotFound("assignment"))
 		return
 	case errors.Is(err, entities.ErrAssignmentScopeForbidden):

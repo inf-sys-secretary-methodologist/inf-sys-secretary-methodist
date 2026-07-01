@@ -16,7 +16,6 @@ import (
 
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/interfaces/http/handlers"
 )
 
@@ -128,7 +127,7 @@ func TestSaveGradeHandler_DomainErrorMapping(t *testing.T) {
 		wantBody string
 	}{
 		{name: "ErrAssignmentNotFound → 404",
-			ucErr: repositories.ErrAssignmentNotFound, wantCode: http.StatusNotFound, wantBody: "NOT_FOUND"},
+			ucErr: assignUsecases.ErrAssignmentNotFound, wantCode: http.StatusNotFound, wantBody: "NOT_FOUND"},
 		{name: "ErrAssignmentScopeForbidden → 403",
 			ucErr: entities.ErrAssignmentScopeForbidden, wantCode: http.StatusForbidden, wantBody: "FORBIDDEN"},
 		{name: "ErrInvalidScore → 422",

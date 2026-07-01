@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 // ReturnSubmissionNotifier is the narrow port through which the use case
@@ -33,8 +32,8 @@ type ReturnSubmissionInput struct {
 // State transitions allowed: pending → returned, graded → returned.
 // Already-returned is rejected by the entity (ErrAlreadyReturned → 409).
 type ReturnSubmissionUseCase struct {
-	assignmentRepo repositories.AssignmentRepository
-	submissionRepo repositories.SubmissionRepository
+	assignmentRepo AssignmentRepository
+	submissionRepo SubmissionRepository
 	notifier       ReturnSubmissionNotifier
 	auditSink      AuditSink
 	clock          func() time.Time
@@ -45,8 +44,8 @@ type ReturnSubmissionUseCase struct {
 // auditSink takes the narrow AuditSink port — *logging.AuditLogger
 // satisfies it structurally so production wiring stays unchanged.
 func NewReturnSubmissionUseCase(
-	assignmentRepo repositories.AssignmentRepository,
-	submissionRepo repositories.SubmissionRepository,
+	assignmentRepo AssignmentRepository,
+	submissionRepo SubmissionRepository,
 	notifier ReturnSubmissionNotifier,
 	auditSink AuditSink,
 	clock func() time.Time,
@@ -70,7 +69,7 @@ func NewReturnSubmissionUseCase(
 // student. Notification failure is logged but does not abort.
 //
 // Errors surface domain sentinels (errors.Is-friendly):
-//   - repositories.ErrAssignmentNotFound    → 404
+//   - ErrAssignmentNotFound    → 404
 //   - entities.ErrAssignmentScopeForbidden  → 403
 //   - entities.ErrInvalidReturn             → 422
 //   - entities.ErrAlreadyReturned           → 409
@@ -93,7 +92,7 @@ func (uc *ReturnSubmissionUseCase) Execute(ctx context.Context, actorID int64, i
 
 	submission, err := uc.submissionRepo.GetByAssignmentAndStudent(ctx, in.AssignmentID, in.StudentID)
 	switch {
-	case errors.Is(err, repositories.ErrSubmissionNotFound):
+	case errors.Is(err, ErrSubmissionNotFound):
 		// First-touch return: methodist returns an upload that was never
 		// graded. Mirror SaveGrade's first-grade-on-not-found pattern.
 		submission = entities.NewSubmission(in.AssignmentID, in.StudentID, uc.clock())

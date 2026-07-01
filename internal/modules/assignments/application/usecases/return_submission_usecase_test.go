@@ -11,7 +11,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 // auditActionReturned is the canonical audit event action emitted by
@@ -174,7 +173,7 @@ func TestReturnSubmissionUseCase_AuthzAndErrorPaths(t *testing.T) {
 			input: usecases.ReturnSubmissionInput{
 				AssignmentID: 999, StudentID: studentID, Reason: "x",
 			},
-			wantErrIs: repositories.ErrAssignmentNotFound,
+			wantErrIs: usecases.ErrAssignmentNotFound,
 		},
 		{
 			name:  "non-author actor is forbidden and audit return_denied fires",

@@ -11,7 +11,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 // TestResubmitSubmissionUseCase_ReturnedToPendingHappyPath asserts the core
@@ -181,13 +180,13 @@ func TestResubmitSubmissionUseCase_ErrorMatrix(t *testing.T) {
 		{
 			name:             "assignment not found surfaces repository sentinel",
 			assignmentExists: false,
-			wantErrIs:        repositories.ErrAssignmentNotFound,
+			wantErrIs:        usecases.ErrAssignmentNotFound,
 		},
 		{
 			name:             "submission not found surfaces repository sentinel",
 			assignmentExists: true,
 			seed:             nil,
-			wantErrIs:        repositories.ErrSubmissionNotFound,
+			wantErrIs:        usecases.ErrSubmissionNotFound,
 		},
 		{
 			name:             "pending submission rejected by entity invariant",
