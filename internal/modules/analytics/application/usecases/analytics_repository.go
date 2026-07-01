@@ -1,5 +1,4 @@
-// Package repositories defines interfaces for analytics persistence.
-package repositories
+package usecases
 
 import (
 	"context"

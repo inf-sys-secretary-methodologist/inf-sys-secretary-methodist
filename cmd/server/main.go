@@ -87,7 +87,6 @@ import (
 	aiHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/interfaces/http/handlers"
 	analyticsUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/usecases"
 	analyticsEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
-	analyticsRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/repositories"
 	analyticsPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/infrastructure/persistence"
 	analyticsScheduler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/infrastructure/scheduler"
 	analyticsHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/interfaces/http/handlers"
@@ -1784,7 +1783,7 @@ func setupRoutes(
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
 	dashboardUseCase *dashboardUsecases.DashboardUseCase,
 	analyticsUseCase *analyticsUsecases.AnalyticsUseCase,
-	teacherScopeRepo analyticsRepositories.TeacherScopeRepository,
+	teacherScopeRepo analyticsUsecases.TeacherScopeRepository,
 	userUseCase *usersUsecases.UserUseCase,
 	departmentUseCase *usersUsecases.DepartmentUseCase,
 	positionUseCase *usersUsecases.PositionUseCase,

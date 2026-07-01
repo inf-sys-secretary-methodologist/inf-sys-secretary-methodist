@@ -9,23 +9,22 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // AnalyticsUseCase handles analytics business logic
 type AnalyticsUseCase struct {
-	analyticsRepo  repositories.AnalyticsRepository
-	attendanceRepo repositories.AttendanceRepository
-	gradeRepo      repositories.GradeRepository
+	analyticsRepo  AnalyticsRepository
+	attendanceRepo AttendanceRepository
+	gradeRepo      GradeRepository
 	auditLogger    *logging.AuditLogger
 }
 
 // NewAnalyticsUseCase creates a new AnalyticsUseCase
 func NewAnalyticsUseCase(
-	analyticsRepo repositories.AnalyticsRepository,
-	attendanceRepo repositories.AttendanceRepository,
-	gradeRepo repositories.GradeRepository,
+	analyticsRepo AnalyticsRepository,
+	attendanceRepo AttendanceRepository,
+	gradeRepo GradeRepository,
 	auditLogger *logging.AuditLogger,
 ) *AnalyticsUseCase {
 	return &AnalyticsUseCase{
