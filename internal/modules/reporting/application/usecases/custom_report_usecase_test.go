@@ -13,7 +13,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 )
 
 // MockCustomReportRepository is a mock implementation of CustomReportRepository
@@ -49,7 +48,7 @@ func (m *MockCustomReportRepository) Delete(ctx context.Context, id uuid.UUID) e
 	return args.Error(0)
 }
 
-func (m *MockCustomReportRepository) List(ctx context.Context, filter repositories.CustomReportFilter) ([]*entities.CustomReport, error) {
+func (m *MockCustomReportRepository) List(ctx context.Context, filter CustomReportFilter) ([]*entities.CustomReport, error) {
 	args := m.Called(ctx, filter)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -57,7 +56,7 @@ func (m *MockCustomReportRepository) List(ctx context.Context, filter repositori
 	return args.Get(0).([]*entities.CustomReport), args.Error(1)
 }
 
-func (m *MockCustomReportRepository) Count(ctx context.Context, filter repositories.CustomReportFilter) (int64, error) {
+func (m *MockCustomReportRepository) Count(ctx context.Context, filter CustomReportFilter) (int64, error) {
 	args := m.Called(ctx, filter)
 	return args.Get(0).(int64), args.Error(1)
 }
@@ -354,8 +353,8 @@ func TestCustomReportUseCase_List(t *testing.T) {
 			newCustomReport(uuid.New(), 1, true),
 			newCustomReport(uuid.New(), 1, false),
 		}
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(2), nil).Once()
-		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(2), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(reports, nil).Once()
 
 		out, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 1, PageSize: 20}, 1)
 		require.NoError(t, err)
@@ -369,8 +368,8 @@ func TestCustomReportUseCase_List(t *testing.T) {
 			newCustomReport(uuid.New(), 2, true),  // public
 			newCustomReport(uuid.New(), 2, false), // other's private - filtered out
 		}
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(3), nil).Once()
-		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(3), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(reports, nil).Once()
 
 		out, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 1, PageSize: 20}, 1)
 		require.NoError(t, err)
@@ -379,8 +378,8 @@ func TestCustomReportUseCase_List(t *testing.T) {
 
 	t.Run("default pagination", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), nil).Once()
-		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(0), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
 
 		out, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 0, PageSize: 0}, 1)
 		require.NoError(t, err)
@@ -390,23 +389,23 @@ func TestCustomReportUseCase_List(t *testing.T) {
 
 	t.Run("count error", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), errors.New("db")).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(0), errors.New("db")).Once()
 		_, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 1, PageSize: 10}, 1)
 		assert.Error(t, err)
 	})
 
 	t.Run("list error", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
-		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(nil, errors.New("db")).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(1), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(nil, errors.New("db")).Once()
 		_, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 1, PageSize: 10}, 1)
 		assert.Error(t, err)
 	})
 
 	t.Run("empty", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), nil).Once()
-		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(0), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
 
 		out, err := uc.List(context.Background(), dto.CustomReportFilterInput{Page: 1, PageSize: 20}, 1)
 		require.NoError(t, err)
@@ -628,8 +627,8 @@ func TestCustomReportUseCase_GetMyReports(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
 		reports := []*entities.CustomReport{newCustomReport(uuid.New(), 1, false)}
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
-		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(1), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(reports, nil).Once()
 
 		out, err := uc.GetMyReports(context.Background(), 1, 10, 1)
 		require.NoError(t, err)
@@ -638,8 +637,8 @@ func TestCustomReportUseCase_GetMyReports(t *testing.T) {
 
 	t.Run("default pagination", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), nil).Once()
-		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(0), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
 
 		out, err := uc.GetMyReports(context.Background(), 0, 0, 1)
 		require.NoError(t, err)
@@ -649,15 +648,15 @@ func TestCustomReportUseCase_GetMyReports(t *testing.T) {
 
 	t.Run("count error", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), errors.New("db")).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(0), errors.New("db")).Once()
 		_, err := uc.GetMyReports(context.Background(), 1, 10, 1)
 		assert.Error(t, err)
 	})
 
 	t.Run("list error", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
-		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(nil, errors.New("db")).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(1), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(nil, errors.New("db")).Once()
 		_, err := uc.GetMyReports(context.Background(), 1, 10, 1)
 		assert.Error(t, err)
 	})
@@ -671,8 +670,8 @@ func TestCustomReportUseCase_GetPublicReports(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
 		reports := []*entities.CustomReport{newCustomReport(uuid.New(), 1, true)}
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
-		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(reports, nil).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(1), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(reports, nil).Once()
 
 		out, err := uc.GetPublicReports(context.Background(), 1, 10)
 		require.NoError(t, err)
@@ -681,8 +680,8 @@ func TestCustomReportUseCase_GetPublicReports(t *testing.T) {
 
 	t.Run("default pagination", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), nil).Once()
-		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(0), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return([]*entities.CustomReport{}, nil).Once()
 
 		out, err := uc.GetPublicReports(context.Background(), 0, 0)
 		require.NoError(t, err)
@@ -692,15 +691,15 @@ func TestCustomReportUseCase_GetPublicReports(t *testing.T) {
 
 	t.Run("count error", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(0), errors.New("db")).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(0), errors.New("db")).Once()
 		_, err := uc.GetPublicReports(context.Background(), 1, 10)
 		assert.Error(t, err)
 	})
 
 	t.Run("list error", func(t *testing.T) {
 		uc, repo, _ := newCustomUC()
-		repo.On("Count", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(int64(1), nil).Once()
-		repo.On("List", mock.Anything, mock.AnythingOfType("repositories.CustomReportFilter")).Return(nil, errors.New("db")).Once()
+		repo.On("Count", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(int64(1), nil).Once()
+		repo.On("List", mock.Anything, mock.AnythingOfType("usecases.CustomReportFilter")).Return(nil, errors.New("db")).Once()
 		_, err := uc.GetPublicReports(context.Background(), 1, 10)
 		assert.Error(t, err)
 	})

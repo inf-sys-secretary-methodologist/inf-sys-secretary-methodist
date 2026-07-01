@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 )
 
 // ReportFieldDTO represents a field definition for API
@@ -217,37 +216,6 @@ func ToCustomReportOutput(report *entities.CustomReport) CustomReportOutput {
 		CreatedBy:   report.CreatedBy,
 		IsPublic:    report.IsPublic,
 	}
-}
-
-// ToCustomReportFilter converts filter input to repository filter
-func ToCustomReportFilter(input CustomReportFilterInput, userID *int64) repositories.CustomReportFilter {
-	filter := repositories.CustomReportFilter{
-		Page:     input.Page,
-		PageSize: input.PageSize,
-		Search:   input.Search,
-	}
-
-	if input.Page < 1 {
-		filter.Page = 1
-	}
-	if input.PageSize < 1 {
-		filter.PageSize = 10
-	}
-
-	if userID != nil {
-		filter.CreatedBy = userID
-	}
-
-	if input.DataSource != "" {
-		ds := entities.DataSourceType(input.DataSource)
-		filter.DataSource = &ds
-	}
-
-	if input.IsPublic != nil {
-		filter.IsPublic = input.IsPublic
-	}
-
-	return filter
 }
 
 // ToSelectedFields converts DTO to entity fields

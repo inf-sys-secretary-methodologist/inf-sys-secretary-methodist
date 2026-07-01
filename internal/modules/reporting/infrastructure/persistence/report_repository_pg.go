@@ -1,4 +1,4 @@
-// Package persistence provides PostgreSQL implementations of reporting repositories.
+// Package persistence provides PostgreSQL implementations of reporting usecases.
 package persistence
 
 import (
@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 )
 
 // ReportRepositoryPG implements ReportRepository using PostgreSQL
@@ -24,7 +24,7 @@ func NewReportRepositoryPG(db *sql.DB) *ReportRepositoryPG {
 }
 
 // Ensure ReportRepositoryPG implements ReportRepository
-var _ repositories.ReportRepository = (*ReportRepositoryPG)(nil)
+var _ usecases.ReportRepository = (*ReportRepositoryPG)(nil)
 
 // Create inserts a new report into the database
 func (r *ReportRepositoryPG) Create(ctx context.Context, report *entities.Report) error {
@@ -132,7 +132,7 @@ func (r *ReportRepositoryPG) Delete(ctx context.Context, id int64) error {
 }
 
 // List retrieves reports with filtering and pagination
-func (r *ReportRepositoryPG) List(ctx context.Context, filter repositories.ReportFilter, limit, offset int) ([]*entities.Report, error) {
+func (r *ReportRepositoryPG) List(ctx context.Context, filter usecases.ReportFilter, limit, offset int) ([]*entities.Report, error) {
 	query, args := r.buildListQuery(filter, limit, offset, false)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
@@ -145,7 +145,7 @@ func (r *ReportRepositoryPG) List(ctx context.Context, filter repositories.Repor
 }
 
 // Count returns the total count of reports matching the filter
-func (r *ReportRepositoryPG) Count(ctx context.Context, filter repositories.ReportFilter) (int64, error) {
+func (r *ReportRepositoryPG) Count(ctx context.Context, filter usecases.ReportFilter) (int64, error) {
 	query, args := r.buildListQuery(filter, 0, 0, true)
 
 	var count int64
@@ -158,31 +158,31 @@ func (r *ReportRepositoryPG) Count(ctx context.Context, filter repositories.Repo
 
 // GetByAuthor retrieves reports by author ID
 func (r *ReportRepositoryPG) GetByAuthor(ctx context.Context, authorID int64, limit, offset int) ([]*entities.Report, error) {
-	filter := repositories.ReportFilter{AuthorID: &authorID}
+	filter := usecases.ReportFilter{AuthorID: &authorID}
 	return r.List(ctx, filter, limit, offset)
 }
 
 // GetByStatus retrieves reports by status
 func (r *ReportRepositoryPG) GetByStatus(ctx context.Context, status domain.ReportStatus, limit, offset int) ([]*entities.Report, error) {
-	filter := repositories.ReportFilter{Status: &status}
+	filter := usecases.ReportFilter{Status: &status}
 	return r.List(ctx, filter, limit, offset)
 }
 
 // GetByReportType retrieves reports by report type ID
 func (r *ReportRepositoryPG) GetByReportType(ctx context.Context, reportTypeID int64, limit, offset int) ([]*entities.Report, error) {
-	filter := repositories.ReportFilter{ReportTypeID: &reportTypeID}
+	filter := usecases.ReportFilter{ReportTypeID: &reportTypeID}
 	return r.List(ctx, filter, limit, offset)
 }
 
 // GetPublicReports retrieves public reports
 func (r *ReportRepositoryPG) GetPublicReports(ctx context.Context, limit, offset int) ([]*entities.Report, error) {
 	isPublic := true
-	filter := repositories.ReportFilter{IsPublic: &isPublic}
+	filter := usecases.ReportFilter{IsPublic: &isPublic}
 	return r.List(ctx, filter, limit, offset)
 }
 
 // buildListQuery constructs the SQL query for listing reports
-func (r *ReportRepositoryPG) buildListQuery(filter repositories.ReportFilter, limit, offset int, countOnly bool) (string, []any) {
+func (r *ReportRepositoryPG) buildListQuery(filter usecases.ReportFilter, limit, offset int, countOnly bool) (string, []any) {
 	var conditions []string
 	var args []any
 	argNum := 1

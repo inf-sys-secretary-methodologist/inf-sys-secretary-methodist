@@ -13,7 +13,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 )
 
 const updatedTitle = "Updated Title"
@@ -51,7 +50,7 @@ func (m *MockReportRepository) Delete(ctx context.Context, id int64) error {
 	return args.Error(0)
 }
 
-func (m *MockReportRepository) List(ctx context.Context, filter repositories.ReportFilter, limit, offset int) ([]*entities.Report, error) {
+func (m *MockReportRepository) List(ctx context.Context, filter ReportFilter, limit, offset int) ([]*entities.Report, error) {
 	args := m.Called(ctx, filter, limit, offset)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -59,7 +58,7 @@ func (m *MockReportRepository) List(ctx context.Context, filter repositories.Rep
 	return args.Get(0).([]*entities.Report), args.Error(1)
 }
 
-func (m *MockReportRepository) Count(ctx context.Context, filter repositories.ReportFilter) (int64, error) {
+func (m *MockReportRepository) Count(ctx context.Context, filter ReportFilter) (int64, error) {
 	args := m.Called(ctx, filter)
 	return args.Get(0).(int64), args.Error(1)
 }
@@ -215,7 +214,7 @@ func (m *MockReportTypeRepository) Delete(ctx context.Context, id int64) error {
 	return args.Error(0)
 }
 
-func (m *MockReportTypeRepository) List(ctx context.Context, filter repositories.ReportTypeFilter, limit, offset int) ([]*entities.ReportType, error) {
+func (m *MockReportTypeRepository) List(ctx context.Context, filter ReportTypeFilter, limit, offset int) ([]*entities.ReportType, error) {
 	args := m.Called(ctx, filter, limit, offset)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -223,7 +222,7 @@ func (m *MockReportTypeRepository) List(ctx context.Context, filter repositories
 	return args.Get(0).([]*entities.ReportType), args.Error(1)
 }
 
-func (m *MockReportTypeRepository) Count(ctx context.Context, filter repositories.ReportTypeFilter) (int64, error) {
+func (m *MockReportTypeRepository) Count(ctx context.Context, filter ReportTypeFilter) (int64, error) {
 	args := m.Called(ctx, filter)
 	return args.Get(0).(int64), args.Error(1)
 }
@@ -682,8 +681,8 @@ func TestReportUseCase_List(t *testing.T) {
 			{ID: 1, Title: "R1", AuthorID: 1, Status: domain.ReportStatusDraft},
 			{ID: 2, Title: "R2", AuthorID: 1, Status: domain.ReportStatusReady},
 		}
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(2), nil).Once()
-		rr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportFilter"), 20, 0).Return(reports, nil).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(2), nil).Once()
+		rr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportFilter"), 20, 0).Return(reports, nil).Once()
 
 		out, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 1, PageSize: 20})
 		require.NoError(t, err)
@@ -693,8 +692,8 @@ func TestReportUseCase_List(t *testing.T) {
 
 	t.Run("empty result", func(t *testing.T) {
 		uc, rr, _ := newReportUC()
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(0), nil).Once()
-		rr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(0), nil).Once()
+		rr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
 
 		out, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 1, PageSize: 20})
 		require.NoError(t, err)
@@ -704,8 +703,8 @@ func TestReportUseCase_List(t *testing.T) {
 	t.Run("with status filter", func(t *testing.T) {
 		uc, rr, _ := newReportUC()
 		status := "draft"
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(1), nil).Once()
-		rr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportFilter"), 20, 0).Return([]*entities.Report{{ID: 1, Status: domain.ReportStatusDraft}}, nil).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(1), nil).Once()
+		rr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportFilter"), 20, 0).Return([]*entities.Report{{ID: 1, Status: domain.ReportStatusDraft}}, nil).Once()
 
 		out, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 1, PageSize: 20, Status: &status})
 		require.NoError(t, err)
@@ -715,8 +714,8 @@ func TestReportUseCase_List(t *testing.T) {
 	t.Run("with invalid status filter", func(t *testing.T) {
 		uc, rr, _ := newReportUC()
 		status := "invalid_status"
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(0), nil).Once()
-		rr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(0), nil).Once()
+		rr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
 
 		out, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 1, PageSize: 20, Status: &status})
 		require.NoError(t, err)
@@ -727,8 +726,8 @@ func TestReportUseCase_List(t *testing.T) {
 		uc, rr, _ := newReportUC()
 		ps := "2024-01-01"
 		pe := "2024-12-31"
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(0), nil).Once()
-		rr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(0), nil).Once()
+		rr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
 
 		out, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 1, PageSize: 20, PeriodStart: &ps, PeriodEnd: &pe})
 		require.NoError(t, err)
@@ -739,8 +738,8 @@ func TestReportUseCase_List(t *testing.T) {
 		uc, rr, _ := newReportUC()
 		ps := "not-a-date"
 		pe := "also-bad"
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(0), nil).Once()
-		rr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(0), nil).Once()
+		rr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
 
 		out, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 1, PageSize: 20, PeriodStart: &ps, PeriodEnd: &pe})
 		require.NoError(t, err)
@@ -749,8 +748,8 @@ func TestReportUseCase_List(t *testing.T) {
 
 	t.Run("default pagination for bad values", func(t *testing.T) {
 		uc, rr, _ := newReportUC()
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(0), nil).Once()
-		rr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(0), nil).Once()
+		rr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
 
 		out, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 0, PageSize: 0})
 		require.NoError(t, err)
@@ -760,8 +759,8 @@ func TestReportUseCase_List(t *testing.T) {
 
 	t.Run("pageSize over 100 defaults to 20", func(t *testing.T) {
 		uc, rr, _ := newReportUC()
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(0), nil).Once()
-		rr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(0), nil).Once()
+		rr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
 
 		out, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 1, PageSize: 200})
 		require.NoError(t, err)
@@ -770,8 +769,8 @@ func TestReportUseCase_List(t *testing.T) {
 
 	t.Run("total pages rounding", func(t *testing.T) {
 		uc, rr, _ := newReportUC()
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(21), nil).Once()
-		rr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(21), nil).Once()
+		rr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportFilter"), 20, 0).Return([]*entities.Report{}, nil).Once()
 
 		out, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 1, PageSize: 20})
 		require.NoError(t, err)
@@ -780,23 +779,23 @@ func TestReportUseCase_List(t *testing.T) {
 
 	t.Run("count error", func(t *testing.T) {
 		uc, rr, _ := newReportUC()
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(0), errors.New("db")).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(0), errors.New("db")).Once()
 		_, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 1, PageSize: 20})
 		assert.Error(t, err)
 	})
 
 	t.Run("list error", func(t *testing.T) {
 		uc, rr, _ := newReportUC()
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(1), nil).Once()
-		rr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportFilter"), 20, 0).Return(nil, errors.New("db")).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(1), nil).Once()
+		rr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportFilter"), 20, 0).Return(nil, errors.New("db")).Once()
 		_, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 1, PageSize: 20})
 		assert.Error(t, err)
 	})
 
 	t.Run("page 2 offset calculation", func(t *testing.T) {
 		uc, rr, _ := newReportUC()
-		rr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportFilter")).Return(int64(30), nil).Once()
-		rr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportFilter"), 10, 10).Return([]*entities.Report{}, nil).Once()
+		rr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportFilter")).Return(int64(30), nil).Once()
+		rr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportFilter"), 10, 10).Return([]*entities.Report{}, nil).Once()
 
 		out, err := uc.List(context.Background(), 1, &dto.ReportFilterInput{Page: 2, PageSize: 10})
 		require.NoError(t, err)
@@ -1473,8 +1472,8 @@ func TestReportUseCase_GetReportTypes(t *testing.T) {
 		rts := []*entities.ReportType{
 			{ID: 1, Name: "T1", Code: "t1", OutputFormat: domain.OutputFormatPDF},
 		}
-		tr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter")).Return(int64(1), nil).Once()
-		tr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter"), 20, 0).Return(rts, nil).Once()
+		tr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter")).Return(int64(1), nil).Once()
+		tr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter"), 20, 0).Return(rts, nil).Once()
 		tr.On("GetParametersByReportType", mock.Anything, int64(1)).Return([]*entities.ReportParameter{
 			{ID: 1, ReportTypeID: 1, ParameterName: "p1", ParameterType: domain.ParameterTypeString},
 		}, nil).Once()
@@ -1487,8 +1486,8 @@ func TestReportUseCase_GetReportTypes(t *testing.T) {
 	t.Run("with category filter", func(t *testing.T) {
 		uc, _, tr := newReportUC()
 		cat := "academic"
-		tr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter")).Return(int64(0), nil).Once()
-		tr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter"), 20, 0).Return([]*entities.ReportType{}, nil).Once()
+		tr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter")).Return(int64(0), nil).Once()
+		tr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter"), 20, 0).Return([]*entities.ReportType{}, nil).Once()
 
 		out, err := uc.GetReportTypes(context.Background(), &dto.ReportTypeFilterInput{Page: 1, PageSize: 20, Category: &cat})
 		require.NoError(t, err)
@@ -1498,8 +1497,8 @@ func TestReportUseCase_GetReportTypes(t *testing.T) {
 	t.Run("with invalid category filter", func(t *testing.T) {
 		uc, _, tr := newReportUC()
 		cat := "invalid_cat"
-		tr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter")).Return(int64(0), nil).Once()
-		tr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter"), 20, 0).Return([]*entities.ReportType{}, nil).Once()
+		tr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter")).Return(int64(0), nil).Once()
+		tr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter"), 20, 0).Return([]*entities.ReportType{}, nil).Once()
 
 		out, err := uc.GetReportTypes(context.Background(), &dto.ReportTypeFilterInput{Page: 1, PageSize: 20, Category: &cat})
 		require.NoError(t, err)
@@ -1508,8 +1507,8 @@ func TestReportUseCase_GetReportTypes(t *testing.T) {
 
 	t.Run("default pagination", func(t *testing.T) {
 		uc, _, tr := newReportUC()
-		tr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter")).Return(int64(0), nil).Once()
-		tr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter"), 20, 0).Return([]*entities.ReportType{}, nil).Once()
+		tr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter")).Return(int64(0), nil).Once()
+		tr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter"), 20, 0).Return([]*entities.ReportType{}, nil).Once()
 
 		out, err := uc.GetReportTypes(context.Background(), &dto.ReportTypeFilterInput{Page: 0, PageSize: 0})
 		require.NoError(t, err)
@@ -1519,8 +1518,8 @@ func TestReportUseCase_GetReportTypes(t *testing.T) {
 
 	t.Run("total pages rounding", func(t *testing.T) {
 		uc, _, tr := newReportUC()
-		tr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter")).Return(int64(21), nil).Once()
-		tr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter"), 20, 0).Return([]*entities.ReportType{}, nil).Once()
+		tr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter")).Return(int64(21), nil).Once()
+		tr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter"), 20, 0).Return([]*entities.ReportType{}, nil).Once()
 
 		out, err := uc.GetReportTypes(context.Background(), &dto.ReportTypeFilterInput{Page: 1, PageSize: 20})
 		require.NoError(t, err)
@@ -1529,15 +1528,15 @@ func TestReportUseCase_GetReportTypes(t *testing.T) {
 
 	t.Run("count error", func(t *testing.T) {
 		uc, _, tr := newReportUC()
-		tr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter")).Return(int64(0), errors.New("db")).Once()
+		tr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter")).Return(int64(0), errors.New("db")).Once()
 		_, err := uc.GetReportTypes(context.Background(), &dto.ReportTypeFilterInput{Page: 1, PageSize: 20})
 		assert.Error(t, err)
 	})
 
 	t.Run("list error", func(t *testing.T) {
 		uc, _, tr := newReportUC()
-		tr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter")).Return(int64(1), nil).Once()
-		tr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter"), 20, 0).Return(nil, errors.New("db")).Once()
+		tr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter")).Return(int64(1), nil).Once()
+		tr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter"), 20, 0).Return(nil, errors.New("db")).Once()
 		_, err := uc.GetReportTypes(context.Background(), &dto.ReportTypeFilterInput{Page: 1, PageSize: 20})
 		assert.Error(t, err)
 	})
@@ -1547,8 +1546,8 @@ func TestReportUseCase_GetReportTypes(t *testing.T) {
 		rts := []*entities.ReportType{
 			{ID: 1, Name: "T1", Code: "t1", OutputFormat: domain.OutputFormatPDF},
 		}
-		tr.On("Count", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter")).Return(int64(1), nil).Once()
-		tr.On("List", mock.Anything, mock.AnythingOfType("repositories.ReportTypeFilter"), 20, 0).Return(rts, nil).Once()
+		tr.On("Count", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter")).Return(int64(1), nil).Once()
+		tr.On("List", mock.Anything, mock.AnythingOfType("usecases.ReportTypeFilter"), 20, 0).Return(rts, nil).Once()
 		tr.On("GetParametersByReportType", mock.Anything, int64(1)).Return(nil, nil).Once()
 
 		out, err := uc.GetReportTypes(context.Background(), &dto.ReportTypeFilterInput{Page: 1, PageSize: 20})

@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 )
 
 func newRTRepoMock(t *testing.T) (*ReportTypeRepositoryPG, sqlmock.Sqlmock) {
@@ -216,7 +216,7 @@ func TestReportTypeRepositoryPG_List_NoFilter(t *testing.T) {
 	rows := addRTRow(newRTRows(), 1, "RT1")
 	mock.ExpectQuery("SELECT id, name, code").WillReturnRows(rows)
 
-	rts, err := repo.List(context.Background(), repositories.ReportTypeFilter{}, 10, 0)
+	rts, err := repo.List(context.Background(), usecases.ReportTypeFilter{}, 10, 0)
 	require.NoError(t, err)
 	assert.Len(t, rts, 1)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -229,7 +229,7 @@ func TestReportTypeRepositoryPG_List_WithFilter(t *testing.T) {
 	rows := addRTRow(newRTRows(), 1, "RT1")
 	mock.ExpectQuery("SELECT id, name, code").WillReturnRows(rows)
 
-	rts, err := repo.List(context.Background(), repositories.ReportTypeFilter{Category: &cat, IsPeriodic: &isPeriodic}, 10, 0)
+	rts, err := repo.List(context.Background(), usecases.ReportTypeFilter{Category: &cat, IsPeriodic: &isPeriodic}, 10, 0)
 	require.NoError(t, err)
 	assert.Len(t, rts, 1)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -240,7 +240,7 @@ func TestReportTypeRepositoryPG_List_NoLimit(t *testing.T) {
 	rows := addRTRow(newRTRows(), 1, "RT1")
 	mock.ExpectQuery("SELECT id, name, code").WillReturnRows(rows)
 
-	rts, err := repo.List(context.Background(), repositories.ReportTypeFilter{}, 0, 0)
+	rts, err := repo.List(context.Background(), usecases.ReportTypeFilter{}, 0, 0)
 	require.NoError(t, err)
 	assert.Len(t, rts, 1)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -250,7 +250,7 @@ func TestReportTypeRepositoryPG_List_Error(t *testing.T) {
 	repo, mock := newRTRepoMock(t)
 	mock.ExpectQuery("SELECT id, name, code").WillReturnError(sql.ErrConnDone)
 
-	_, err := repo.List(context.Background(), repositories.ReportTypeFilter{}, 10, 0)
+	_, err := repo.List(context.Background(), usecases.ReportTypeFilter{}, 10, 0)
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -260,7 +260,7 @@ func TestReportTypeRepositoryPG_List_ScanError(t *testing.T) {
 	rows := sqlmock.NewRows(rtCols).AddRow("bad", "name", "code", nil, nil, nil, "pdf", false, nil, time.Now(), time.Now())
 	mock.ExpectQuery("SELECT id, name, code").WillReturnRows(rows)
 
-	_, err := repo.List(context.Background(), repositories.ReportTypeFilter{}, 10, 0)
+	_, err := repo.List(context.Background(), usecases.ReportTypeFilter{}, 10, 0)
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -271,7 +271,7 @@ func TestReportTypeRepositoryPG_List_RowsErr(t *testing.T) {
 	rows.RowError(0, sql.ErrConnDone)
 	mock.ExpectQuery("SELECT id, name, code").WillReturnRows(rows)
 
-	_, err := repo.List(context.Background(), repositories.ReportTypeFilter{}, 10, 0)
+	_, err := repo.List(context.Background(), usecases.ReportTypeFilter{}, 10, 0)
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -282,7 +282,7 @@ func TestReportTypeRepositoryPG_Count_Success(t *testing.T) {
 	repo, mock := newRTRepoMock(t)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(3)))
 
-	count, err := repo.Count(context.Background(), repositories.ReportTypeFilter{})
+	count, err := repo.Count(context.Background(), usecases.ReportTypeFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), count)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -292,7 +292,7 @@ func TestReportTypeRepositoryPG_Count_Error(t *testing.T) {
 	repo, mock := newRTRepoMock(t)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).WillReturnError(sql.ErrConnDone)
 
-	_, err := repo.Count(context.Background(), repositories.ReportTypeFilter{})
+	_, err := repo.Count(context.Background(), usecases.ReportTypeFilter{})
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }

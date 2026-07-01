@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 )
 
 func newReportRepoMock(t *testing.T) (*ReportRepositoryPG, sqlmock.Sqlmock) {
@@ -221,7 +221,7 @@ func TestReportRepositoryPG_List_NoFilter(t *testing.T) {
 
 	mock.ExpectQuery("SELECT id, report_type_id").WillReturnRows(rows)
 
-	reports, err := repo.List(context.Background(), repositories.ReportFilter{}, 10, 0)
+	reports, err := repo.List(context.Background(), usecases.ReportFilter{}, 10, 0)
 	require.NoError(t, err)
 	assert.Len(t, reports, 1)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -235,7 +235,7 @@ func TestReportRepositoryPG_List_AllFilters(t *testing.T) {
 	isPublic := true
 	now := time.Now()
 	search := "test"
-	filter := repositories.ReportFilter{
+	filter := usecases.ReportFilter{
 		ReportTypeID: &rtID,
 		AuthorID:     &authorID,
 		Status:       &status,
@@ -260,7 +260,7 @@ func TestReportRepositoryPG_List_NoLimit(t *testing.T) {
 
 	mock.ExpectQuery("SELECT id, report_type_id").WillReturnRows(rows)
 
-	reports, err := repo.List(context.Background(), repositories.ReportFilter{}, 0, 0)
+	reports, err := repo.List(context.Background(), usecases.ReportFilter{}, 0, 0)
 	require.NoError(t, err)
 	assert.Len(t, reports, 1)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -271,7 +271,7 @@ func TestReportRepositoryPG_List_Error(t *testing.T) {
 
 	mock.ExpectQuery("SELECT id, report_type_id").WillReturnError(sql.ErrConnDone)
 
-	_, err := repo.List(context.Background(), repositories.ReportFilter{}, 10, 0)
+	_, err := repo.List(context.Background(), usecases.ReportFilter{}, 10, 0)
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -286,7 +286,7 @@ func TestReportRepositoryPG_List_ScanError(t *testing.T) {
 
 	mock.ExpectQuery("SELECT id, report_type_id").WillReturnRows(rows)
 
-	_, err := repo.List(context.Background(), repositories.ReportFilter{}, 10, 0)
+	_, err := repo.List(context.Background(), usecases.ReportFilter{}, 10, 0)
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -298,7 +298,7 @@ func TestReportRepositoryPG_List_RowsErr(t *testing.T) {
 
 	mock.ExpectQuery("SELECT id, report_type_id").WillReturnRows(rows)
 
-	_, err := repo.List(context.Background(), repositories.ReportFilter{}, 10, 0)
+	_, err := repo.List(context.Background(), usecases.ReportFilter{}, 10, 0)
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -311,7 +311,7 @@ func TestReportRepositoryPG_Count_Success(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM reports")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(5)))
 
-	count, err := repo.Count(context.Background(), repositories.ReportFilter{})
+	count, err := repo.Count(context.Background(), usecases.ReportFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, int64(5), count)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -323,7 +323,7 @@ func TestReportRepositoryPG_Count_Error(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).
 		WillReturnError(sql.ErrConnDone)
 
-	_, err := repo.Count(context.Background(), repositories.ReportFilter{})
+	_, err := repo.Count(context.Background(), usecases.ReportFilter{})
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }

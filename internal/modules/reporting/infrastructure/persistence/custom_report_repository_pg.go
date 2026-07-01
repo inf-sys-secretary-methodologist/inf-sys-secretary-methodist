@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 )
 
 // CustomReportRepositoryPG is a PostgreSQL implementation of CustomReportRepository
@@ -245,7 +245,7 @@ func (repo *CustomReportRepositoryPG) Delete(ctx context.Context, id uuid.UUID) 
 }
 
 // List lists custom reports with filtering and pagination
-func (repo *CustomReportRepositoryPG) List(ctx context.Context, filter repositories.CustomReportFilter) ([]*entities.CustomReport, error) {
+func (repo *CustomReportRepositoryPG) List(ctx context.Context, filter usecases.CustomReportFilter) ([]*entities.CustomReport, error) {
 	var conditions []string
 	var args []interface{}
 	argIndex := 1
@@ -384,7 +384,7 @@ func (repo *CustomReportRepositoryPG) List(ctx context.Context, filter repositor
 }
 
 // Count counts custom reports matching the filter
-func (repo *CustomReportRepositoryPG) Count(ctx context.Context, filter repositories.CustomReportFilter) (int64, error) {
+func (repo *CustomReportRepositoryPG) Count(ctx context.Context, filter usecases.CustomReportFilter) (int64, error) {
 	var conditions []string
 	var args []interface{}
 	argIndex := 1
@@ -430,7 +430,7 @@ func (repo *CustomReportRepositoryPG) Count(ctx context.Context, filter reposito
 
 // GetByCreator retrieves all custom reports created by a user
 func (repo *CustomReportRepositoryPG) GetByCreator(ctx context.Context, creatorID int64, page, pageSize int) ([]*entities.CustomReport, error) {
-	filter := repositories.CustomReportFilter{
+	filter := usecases.CustomReportFilter{
 		CreatedBy: &creatorID,
 		Page:      page,
 		PageSize:  pageSize,
@@ -441,7 +441,7 @@ func (repo *CustomReportRepositoryPG) GetByCreator(ctx context.Context, creatorI
 // GetPublicReports retrieves all public custom reports
 func (repo *CustomReportRepositoryPG) GetPublicReports(ctx context.Context, page, pageSize int) ([]*entities.CustomReport, error) {
 	isPublic := true
-	filter := repositories.CustomReportFilter{
+	filter := usecases.CustomReportFilter{
 		IsPublic: &isPublic,
 		Page:     page,
 		PageSize: pageSize,
