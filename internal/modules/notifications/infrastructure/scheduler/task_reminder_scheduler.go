@@ -13,8 +13,8 @@ import (
 	notifEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
 	notifRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 	notifServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
+	tasksUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
 	tasksEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	tasksRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 // TaskReminderScheduler processes pending task reminders. Mirror к
@@ -33,7 +33,7 @@ import (
 // a fake без dragging the full TaskRepository surface.
 type TaskReminderScheduler struct {
 	scheduler        gocron.Scheduler
-	reminderRepo     tasksRepositories.TaskReminderRepository
+	reminderRepo     tasksUsecases.TaskReminderRepository
 	taskLookup       TaskLookup
 	telegramRepo     notifRepositories.TelegramRepository
 	telegramService  notifServices.TelegramService
@@ -119,7 +119,7 @@ func DefaultTaskReminderConfig() *TaskReminderSchedulerConfig {
 // userEmailLookup) may be nil — the corresponding dispatch path
 // falls back к in-app notification when missing.
 func NewTaskReminderScheduler(
-	reminderRepo tasksRepositories.TaskReminderRepository,
+	reminderRepo tasksUsecases.TaskReminderRepository,
 	taskLookup TaskLookup,
 	telegramRepo notifRepositories.TelegramRepository,
 	telegramService notifServices.TelegramService,

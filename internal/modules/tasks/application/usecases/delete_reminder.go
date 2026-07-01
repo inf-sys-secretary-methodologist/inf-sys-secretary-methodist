@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 // ErrReminderOwnerOnly is returned when the caller is not the user
@@ -38,13 +37,13 @@ type DeleteReminderInput struct {
 //
 // Audit emitted on success.
 type DeleteReminderUseCase struct {
-	repo  repositories.TaskReminderRepository
+	repo  TaskReminderRepository
 	audit AuditSink
 }
 
 // NewDeleteReminderUseCase wires the use case. Panics on nil repo.
 // audit may be nil — emission skipped (test-friendly).
-func NewDeleteReminderUseCase(repo repositories.TaskReminderRepository, audit AuditSink) *DeleteReminderUseCase {
+func NewDeleteReminderUseCase(repo TaskReminderRepository, audit AuditSink) *DeleteReminderUseCase {
 	if repo == nil {
 		panic("tasks: NewDeleteReminderUseCase requires non-nil repo")
 	}

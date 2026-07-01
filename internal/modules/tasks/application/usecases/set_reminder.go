@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 // Clock is the narrow port for current-time injection. Lets tests
@@ -38,7 +37,7 @@ type SetReminderInput struct {
 // audit emitted on success (fire-and-forget — failure not
 // propagated к the HTTP layer).
 type SetReminderUseCase struct {
-	repo  repositories.TaskReminderRepository
+	repo  TaskReminderRepository
 	clock Clock
 	audit AuditSink
 }
@@ -48,7 +47,7 @@ type SetReminderUseCase struct {
 // if nil. audit may be nil — emission is skipped в that case
 // (test-friendly).
 func NewSetReminderUseCase(
-	repo repositories.TaskReminderRepository,
+	repo TaskReminderRepository,
 	clock Clock,
 	audit AuditSink,
 ) *SetReminderUseCase {

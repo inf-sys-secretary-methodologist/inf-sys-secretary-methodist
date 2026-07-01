@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 // ListTaskRemindersInput pins the read scope: caller sees only
@@ -18,12 +17,12 @@ type ListTaskRemindersInput struct {
 // given task. Returns empty (non-nil) slice on no matches so JSON
 // renders [] not null.
 type ListTaskRemindersUseCase struct {
-	repo repositories.TaskReminderRepository
+	repo TaskReminderRepository
 }
 
 // NewListTaskRemindersUseCase wires the use case. Panics on nil
 // repo.
-func NewListTaskRemindersUseCase(repo repositories.TaskReminderRepository) *ListTaskRemindersUseCase {
+func NewListTaskRemindersUseCase(repo TaskReminderRepository) *ListTaskRemindersUseCase {
 	if repo == nil {
 		panic("tasks: NewListTaskRemindersUseCase requires non-nil repo")
 	}

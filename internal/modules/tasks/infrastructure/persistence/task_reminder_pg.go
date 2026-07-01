@@ -11,8 +11,8 @@ import (
 
 	"github.com/lib/pq"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 // ErrTaskReminderNotFound is returned by GetByID + Delete when the
@@ -35,7 +35,7 @@ func NewTaskReminderRepositoryPG(db *sql.DB) *TaskReminderRepositoryPG {
 }
 
 // Compile-time assertion that the concrete type satisfies the port.
-var _ repositories.TaskReminderRepository = (*TaskReminderRepositoryPG)(nil)
+var _ usecases.TaskReminderRepository = (*TaskReminderRepositoryPG)(nil)
 
 // Create inserts a new reminder, returning the assigned id and
 // created_at by scanning the RETURNING clause back onto the entity

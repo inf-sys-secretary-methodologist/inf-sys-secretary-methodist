@@ -13,7 +13,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 // TaskRepositoryPG implements TaskRepository using PostgreSQL.
@@ -106,7 +105,7 @@ func (r *TaskRepositoryPG) Delete(ctx context.Context, id int64) error {
 }
 
 // List lists tasks with filters.
-func (r *TaskRepositoryPG) List(ctx context.Context, filter repositories.TaskFilter, limit, offset int) ([]*entities.Task, error) {
+func (r *TaskRepositoryPG) List(ctx context.Context, filter domain.TaskFilter, limit, offset int) ([]*entities.Task, error) {
 	query, args := r.buildListQuery(filter, limit, offset, false)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
@@ -119,7 +118,7 @@ func (r *TaskRepositoryPG) List(ctx context.Context, filter repositories.TaskFil
 }
 
 // Count counts tasks with filters.
-func (r *TaskRepositoryPG) Count(ctx context.Context, filter repositories.TaskFilter) (int64, error) {
+func (r *TaskRepositoryPG) Count(ctx context.Context, filter domain.TaskFilter) (int64, error) {
 	query, args := r.buildListQuery(filter, 0, 0, true)
 
 	var count int64
@@ -127,7 +126,7 @@ func (r *TaskRepositoryPG) Count(ctx context.Context, filter repositories.TaskFi
 	return count, err
 }
 
-func (r *TaskRepositoryPG) buildListQuery(filter repositories.TaskFilter, limit, offset int, countOnly bool) (string, []interface{}) {
+func (r *TaskRepositoryPG) buildListQuery(filter domain.TaskFilter, limit, offset int, countOnly bool) (string, []interface{}) {
 	var conditions []string
 	var args []interface{}
 	argNum := 1
@@ -231,32 +230,32 @@ func (r *TaskRepositoryPG) scanTasks(rows *sql.Rows) ([]*entities.Task, error) {
 
 // GetByProject retrieves tasks by project ID.
 func (r *TaskRepositoryPG) GetByProject(ctx context.Context, projectID int64, limit, offset int) ([]*entities.Task, error) {
-	filter := repositories.TaskFilter{ProjectID: &projectID}
+	filter := domain.TaskFilter{ProjectID: &projectID}
 	return r.List(ctx, filter, limit, offset)
 }
 
 // GetByAuthor retrieves tasks by author ID.
 func (r *TaskRepositoryPG) GetByAuthor(ctx context.Context, authorID int64, limit, offset int) ([]*entities.Task, error) {
-	filter := repositories.TaskFilter{AuthorID: &authorID}
+	filter := domain.TaskFilter{AuthorID: &authorID}
 	return r.List(ctx, filter, limit, offset)
 }
 
 // GetByAssignee retrieves tasks by assignee ID.
 func (r *TaskRepositoryPG) GetByAssignee(ctx context.Context, assigneeID int64, limit, offset int) ([]*entities.Task, error) {
-	filter := repositories.TaskFilter{AssigneeID: &assigneeID}
+	filter := domain.TaskFilter{AssigneeID: &assigneeID}
 	return r.List(ctx, filter, limit, offset)
 }
 
 // GetByStatus retrieves tasks by status.
 func (r *TaskRepositoryPG) GetByStatus(ctx context.Context, status domain.TaskStatus, limit, offset int) ([]*entities.Task, error) {
-	filter := repositories.TaskFilter{Status: &status}
+	filter := domain.TaskFilter{Status: &status}
 	return r.List(ctx, filter, limit, offset)
 }
 
 // GetOverdueTasks retrieves overdue tasks.
 func (r *TaskRepositoryPG) GetOverdueTasks(ctx context.Context, limit, offset int) ([]*entities.Task, error) {
 	isOverdue := true
-	filter := repositories.TaskFilter{IsOverdue: &isOverdue}
+	filter := domain.TaskFilter{IsOverdue: &isOverdue}
 	return r.List(ctx, filter, limit, offset)
 }
 
