@@ -91,6 +91,10 @@ type SearchRequest struct {
 	Limit         int      `json:"limit,omitempty"`
 	Threshold     float64  `json:"threshold,omitempty"`
 	DocumentTypes []string `json:"document_types,omitempty"`
+	// SearchMode selects the retrieval pipeline: "baseline" (vector-only,
+	// default) or "hybrid" (modified RAG: hybrid vector+FTS with RRF, adjacent
+	// chunk expansion, keyword reranking). Used for A/B benchmarking of П1.
+	SearchMode string `json:"search_mode,omitempty"`
 }
 
 // SearchResultResponse represents a single search result

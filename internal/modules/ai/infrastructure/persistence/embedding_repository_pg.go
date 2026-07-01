@@ -475,6 +475,52 @@ func (r *EmbeddingRepositoryPg) SearchHybrid(ctx context.Context, embedding []fl
 	return results, nil
 }
 
+// SearchFullText performs a single-method full-text search (PostgreSQL FTS only),
+// ranked by ts_rank. Used as the keyword-only baseline for П1 A/B benchmarking.
+func (r *EmbeddingRepositoryPg) SearchFullText(ctx context.Context, queryText string, limit int) ([]entities.ChunkWithScore, error) {
+	query := `
+		SELECT c.id, c.document_id, c.chunk_index, c.chunk_text, c.chunk_tokens, c.page_number, c.metadata, c.created_at,
+			   d.title as document_title,
+			   ts_rank(c.search_vector, plainto_tsquery('russian', $1)) as similarity
+		FROM ai_document_chunks c
+		JOIN documents d ON c.document_id = d.id
+		WHERE c.search_vector @@ plainto_tsquery('russian', $1)
+		ORDER BY similarity DESC
+		LIMIT $2`
+
+	rows, err := r.db.QueryContext(ctx, query, queryText, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search full-text: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	results := make([]entities.ChunkWithScore, 0)
+	for rows.Next() {
+		var result entities.ChunkWithScore
+		result.Chunk = &entities.DocumentChunk{}
+		var metadata []byte
+		if err := rows.Scan(
+			&result.Chunk.ID,
+			&result.Chunk.DocumentID,
+			&result.Chunk.ChunkIndex,
+			&result.Chunk.ChunkText,
+			&result.Chunk.ChunkTokens,
+			&result.Chunk.PageNumber,
+			&metadata,
+			&result.Chunk.CreatedAt,
+			&result.DocumentTitle,
+			&result.SimilarityScore,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan result: %w", err)
+		}
+		if len(metadata) > 0 {
+			_ = json.Unmarshal(metadata, &result.Chunk.Metadata)
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
 // GetAdjacentChunks retrieves neighboring chunks (±windowSize) for the given chunk IDs.
 func (r *EmbeddingRepositoryPg) GetAdjacentChunks(ctx context.Context, chunkIDs []int64, windowSize int) ([]entities.DocumentChunk, error) {
 	if len(chunkIDs) == 0 || windowSize <= 0 {

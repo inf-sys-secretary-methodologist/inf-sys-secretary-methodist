@@ -203,6 +203,14 @@ func (m *MockEmbeddingRepo) SearchHybrid(_ context.Context, embedding []float32,
 	return args.Get(0).([]entities.ChunkWithScore), args.Error(1)
 }
 
+func (m *MockEmbeddingRepo) SearchFullText(_ context.Context, queryText string, limit int) ([]entities.ChunkWithScore, error) {
+	args := m.Called(queryText, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]entities.ChunkWithScore), args.Error(1)
+}
+
 func (m *MockEmbeddingRepo) GetAdjacentChunks(_ context.Context, chunkIDs []int64, windowSize int) ([]entities.DocumentChunk, error) {
 	args := m.Called(chunkIDs, windowSize)
 	if args.Get(0) == nil {
