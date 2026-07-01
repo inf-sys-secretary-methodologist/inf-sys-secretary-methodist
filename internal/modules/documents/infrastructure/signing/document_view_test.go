@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
 
@@ -64,7 +64,7 @@ func TestDocumentView_FileBytes(t *testing.T) {
 }
 
 func TestDocumentView_NotFoundPropagates(t *testing.T) {
-	view := NewDocumentView(&fakeDocReader{err: repositories.ErrDocumentNotFound}, &fakeDownloader{})
+	view := NewDocumentView(&fakeDocReader{err: usecases.ErrDocumentNotFound}, &fakeDownloader{})
 	_, _, err := view.GetForSigning(context.Background(), 99)
-	assert.ErrorIs(t, err, repositories.ErrDocumentNotFound)
+	assert.ErrorIs(t, err, usecases.ErrDocumentNotFound)
 }

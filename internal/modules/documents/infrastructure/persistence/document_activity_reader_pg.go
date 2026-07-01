@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 )
 
 // DocumentActivityReaderPG is the narrow read-only adapter for the
@@ -29,6 +29,6 @@ func NewDocumentActivityReaderPG(db *sql.DB) *DocumentActivityReaderPG {
 // AggregateActivityByType counts documents grouped by
 // (document_type.name, document.status) over [from, to). Empty result
 // is not an error.
-func (r *DocumentActivityReaderPG) AggregateActivityByType(ctx context.Context, from, to time.Time) ([]repositories.DocumentActivityByTypeAgg, error) {
+func (r *DocumentActivityReaderPG) AggregateActivityByType(ctx context.Context, from, to time.Time) ([]usecases.DocumentActivityByTypeAgg, error) {
 	return aggregateActivityByType(ctx, r.db, from, to)
 }

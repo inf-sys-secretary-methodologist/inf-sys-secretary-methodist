@@ -7,19 +7,18 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // TagUseCase handles business logic for document tags
 type TagUseCase struct {
-	tagRepo  repositories.DocumentTagRepository
-	docRepo  repositories.DocumentRepository
+	tagRepo  DocumentTagRepository
+	docRepo  DocumentRepository
 	auditLog *logging.AuditLogger
 }
 
 // NewTagUseCase creates a new tag use case
-func NewTagUseCase(tagRepo repositories.DocumentTagRepository, docRepo repositories.DocumentRepository, auditLog *logging.AuditLogger) *TagUseCase {
+func NewTagUseCase(tagRepo DocumentTagRepository, docRepo DocumentRepository, auditLog *logging.AuditLogger) *TagUseCase {
 	return &TagUseCase{
 		tagRepo:  tagRepo,
 		docRepo:  docRepo,
@@ -168,7 +167,7 @@ func (uc *TagUseCase) AddTagToDocument(ctx context.Context, documentID, tagID in
 	// Verify document exists
 	doc, err := uc.docRepo.GetByID(ctx, documentID)
 	if err != nil || doc == nil {
-		return repositories.ErrDocumentNotFound
+		return ErrDocumentNotFound
 	}
 
 	// Verify tag exists
@@ -210,7 +209,7 @@ func (uc *TagUseCase) GetDocumentTags(ctx context.Context, documentID int64) (*d
 	// Verify document exists
 	doc, err := uc.docRepo.GetByID(ctx, documentID)
 	if err != nil || doc == nil {
-		return nil, repositories.ErrDocumentNotFound
+		return nil, ErrDocumentNotFound
 	}
 
 	tags, err := uc.tagRepo.GetTagsByDocumentID(ctx, documentID)
@@ -237,7 +236,7 @@ func (uc *TagUseCase) SetDocumentTags(ctx context.Context, documentID int64, tag
 	// Verify document exists
 	doc, err := uc.docRepo.GetByID(ctx, documentID)
 	if err != nil || doc == nil {
-		return nil, repositories.ErrDocumentNotFound
+		return nil, ErrDocumentNotFound
 	}
 
 	// Verify all tags exist

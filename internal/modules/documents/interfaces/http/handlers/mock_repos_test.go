@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
 // --- MockDocumentRepository ---
@@ -43,7 +43,7 @@ func (m *MockDocumentRepository) SoftDelete(ctx context.Context, id int64) error
 	return args.Error(0)
 }
 
-func (m *MockDocumentRepository) List(ctx context.Context, filter repositories.DocumentFilter) ([]*entities.Document, int64, error) {
+func (m *MockDocumentRepository) List(ctx context.Context, filter usecases.DocumentFilter) ([]*entities.Document, int64, error) {
 	args := m.Called(ctx, filter)
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(int64), args.Error(2)
@@ -67,12 +67,12 @@ func (m *MockDocumentRepository) GetByStatus(ctx context.Context, status entitie
 	return args.Get(0).([]*entities.Document), args.Error(1)
 }
 
-func (m *MockDocumentRepository) Search(ctx context.Context, filter repositories.SearchFilter) ([]*repositories.SearchResult, int64, error) {
+func (m *MockDocumentRepository) Search(ctx context.Context, filter usecases.SearchFilter) ([]*usecases.SearchResult, int64, error) {
 	args := m.Called(ctx, filter)
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(int64), args.Error(2)
 	}
-	return args.Get(0).([]*repositories.SearchResult), args.Get(1).(int64), args.Error(2)
+	return args.Get(0).([]*usecases.SearchResult), args.Get(1).(int64), args.Error(2)
 }
 
 func (m *MockDocumentRepository) CreateVersion(ctx context.Context, version *entities.DocumentVersion) error {

@@ -11,7 +11,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 	handlers "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
 )
 
@@ -378,7 +377,7 @@ func TestDocumentHandler_Search(t *testing.T) {
 		catRepo := new(MockDocumentCategoryRepository)
 		h := newDocumentHandler(docRepo, typeRepo, catRepo)
 
-		docRepo.On("Search", mock.Anything, mock.Anything).Return([]*repositories.SearchResult{}, int64(0), nil)
+		docRepo.On("Search", mock.Anything, mock.Anything).Return([]*usecases.SearchResult{}, int64(0), nil)
 
 		router := setupRouter()
 		router.GET("/search", withAuth(1, "methodist"), h.Search)
@@ -518,7 +517,7 @@ func TestDocumentHandler_Search_WithPaginationAndFilters(t *testing.T) {
 	catRepo := new(MockDocumentCategoryRepository)
 	h := newDocumentHandler(docRepo, typeRepo, catRepo)
 
-	docRepo.On("Search", mock.Anything, mock.Anything).Return([]*repositories.SearchResult{}, int64(0), nil)
+	docRepo.On("Search", mock.Anything, mock.Anything).Return([]*usecases.SearchResult{}, int64(0), nil)
 
 	router := setupRouter()
 	router.GET("/search", withAuth(1, "methodist"), h.Search)

@@ -7,18 +7,17 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // CategoryUseCase handles business logic for document categories
 type CategoryUseCase struct {
-	categoryRepo repositories.DocumentCategoryRepository
+	categoryRepo DocumentCategoryRepository
 	auditLog     *logging.AuditLogger
 }
 
 // NewCategoryUseCase creates a new category use case
-func NewCategoryUseCase(categoryRepo repositories.DocumentCategoryRepository, auditLog *logging.AuditLogger) *CategoryUseCase {
+func NewCategoryUseCase(categoryRepo DocumentCategoryRepository, auditLog *logging.AuditLogger) *CategoryUseCase {
 	return &CategoryUseCase{
 		categoryRepo: categoryRepo,
 		auditLog:     auditLog,

@@ -12,7 +12,7 @@ import (
 )
 
 // documentReader is the narrow read port DocumentView needs over the document
-// repository. Returns repositories.ErrDocumentNotFound when absent.
+// repository. Returns usecases.ErrDocumentNotFound when absent.
 type documentReader interface {
 	GetByID(ctx context.Context, id int64) (*entities.Document, error)
 }

@@ -14,7 +14,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
@@ -22,18 +21,18 @@ import (
 
 // DocumentUseCase handles document business logic
 type DocumentUseCase struct {
-	documentRepo     repositories.DocumentRepository
-	documentTypeRepo repositories.DocumentTypeRepository
-	categoryRepo     repositories.DocumentCategoryRepository
+	documentRepo     DocumentRepository
+	documentTypeRepo DocumentTypeRepository
+	categoryRepo     DocumentCategoryRepository
 	s3Client         *storage.S3Client
 	auditLog         *logging.AuditLogger
 }
 
 // NewDocumentUseCase creates a new document use case
 func NewDocumentUseCase(
-	documentRepo repositories.DocumentRepository,
-	documentTypeRepo repositories.DocumentTypeRepository,
-	categoryRepo repositories.DocumentCategoryRepository,
+	documentRepo DocumentRepository,
+	documentTypeRepo DocumentTypeRepository,
+	categoryRepo DocumentCategoryRepository,
 	s3Client *storage.S3Client,
 	auditLog *logging.AuditLogger,
 ) *DocumentUseCase {
@@ -224,7 +223,7 @@ func (uc *DocumentUseCase) Delete(ctx context.Context, id int64, userID int64) e
 // List retrieves documents with filters
 func (uc *DocumentUseCase) List(ctx context.Context, filter dto.DocumentFilterInput) (*dto.DocumentListOutput, error) {
 	// Convert DTO filter to repository filter
-	repoFilter := repositories.DocumentFilter{
+	repoFilter := DocumentFilter{
 		AuthorID:        filter.AuthorID,
 		RecipientID:     filter.RecipientID,
 		DocumentTypeID:  filter.DocumentTypeID,
@@ -464,7 +463,7 @@ func (uc *DocumentUseCase) Search(ctx context.Context, input dto.SearchInput) (*
 	}
 
 	// Convert DTO to repository filter
-	filter := repositories.SearchFilter{
+	filter := SearchFilter{
 		Query:           input.Query,
 		DocumentTypeID:  input.DocumentTypeID,
 		CategoryID:      input.CategoryID,

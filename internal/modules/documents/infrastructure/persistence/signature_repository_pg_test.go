@@ -14,7 +14,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
 const sigDigestHex = "ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12"
@@ -117,6 +116,6 @@ func TestSignatureRepositoryPG_GetByID_NotFound(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 
 	_, err := repo.GetByID(context.Background(), 123)
-	assert.True(t, errors.Is(err, repositories.ErrSignatureNotFound), "want ErrSignatureNotFound, got %v", err)
+	assert.True(t, errors.Is(err, usecases.ErrSignatureNotFound), "want ErrSignatureNotFound, got %v", err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

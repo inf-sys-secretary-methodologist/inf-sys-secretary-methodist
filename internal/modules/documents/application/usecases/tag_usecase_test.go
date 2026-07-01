@@ -10,7 +10,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
 // MockTagRepository is a mock implementation of DocumentTagRepository
@@ -292,7 +291,7 @@ func TestTagUseCase_AddTagToDocument(t *testing.T) {
 		err := usecase.AddTagToDocument(ctx, 999, 1)
 
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, repositories.ErrDocumentNotFound)
+		assert.ErrorIs(t, err, ErrDocumentNotFound)
 		mockDocRepo.AssertExpectations(t)
 	})
 }
@@ -633,7 +632,7 @@ func TestTagUseCase_GetDocumentTags_Errors(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
-		assert.ErrorIs(t, err, repositories.ErrDocumentNotFound)
+		assert.ErrorIs(t, err, ErrDocumentNotFound)
 		mockDocRepo.AssertExpectations(t)
 	})
 

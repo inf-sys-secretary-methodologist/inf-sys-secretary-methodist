@@ -9,8 +9,8 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
 // newDocActivityReaderMock spins a sqlmock-backed DocumentActivityReaderPG.
@@ -32,7 +32,7 @@ func TestDocumentActivityReaderPG_AggregateActivityByType(t *testing.T) {
 	cases := []struct {
 		name string
 		rows *sqlmock.Rows
-		want []repositories.DocumentActivityByTypeAgg
+		want []usecases.DocumentActivityByTypeAgg
 	}{
 		{
 			name: "empty range returns nil slice",
@@ -45,7 +45,7 @@ func TestDocumentActivityReaderPG_AggregateActivityByType(t *testing.T) {
 				AddRow("Приказ", "approved", 5).
 				AddRow("Приказ", "draft", 2).
 				AddRow("Письмо", "approved", 7),
-			want: []repositories.DocumentActivityByTypeAgg{
+			want: []usecases.DocumentActivityByTypeAgg{
 				{TypeName: "Приказ", Status: entities.DocumentStatusApproved, Count: 5},
 				{TypeName: "Приказ", Status: entities.DocumentStatusDraft, Count: 2},
 				{TypeName: "Письмо", Status: entities.DocumentStatusApproved, Count: 7},
@@ -55,7 +55,7 @@ func TestDocumentActivityReaderPG_AggregateActivityByType(t *testing.T) {
 			name: "single type single status",
 			rows: sqlmock.NewRows([]string{"name", "status", "count"}).
 				AddRow("Протокол", "registered", 1),
-			want: []repositories.DocumentActivityByTypeAgg{
+			want: []usecases.DocumentActivityByTypeAgg{
 				{TypeName: "Протокол", Status: entities.DocumentStatusRegistered, Count: 1},
 			},
 		},

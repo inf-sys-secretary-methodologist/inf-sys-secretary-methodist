@@ -6,20 +6,15 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
-// Sentinels surfaced by the workflow use cases. Wrapped so handlers
-// can errors.Is them and map к stable 4xx responses без string parsing.
-//
-// ErrDocumentNotFound aliases the canonical sentinel в domain/repositories
-// (relocated в v0.156.0 #266 для repo+usecase shared errors.Is chain).
+// ErrDocumentForbidden is surfaced by the workflow use cases when the actor is
+// not authorized for a transition. Handlers errors.Is it to map к a stable 4xx
+// без string parsing. The companion sentinel ErrDocumentNotFound is declared
+// alongside the repository interfaces in this package (document_repository.go).
 //
 // Issue: #227
-var (
-	ErrDocumentNotFound  = repositories.ErrDocumentNotFound
-	ErrDocumentForbidden = errors.New("documents: actor not authorized for transition")
-)
+var ErrDocumentForbidden = errors.New("documents: actor not authorized for transition")
 
 // workflowRepo is the narrow port the three v0.148.0 workflow use
 // cases share: load + write back. Cannot live в a smaller interface

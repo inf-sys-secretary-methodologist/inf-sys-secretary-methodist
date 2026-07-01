@@ -12,7 +12,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
 const contentHashHex = "ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12"
@@ -109,10 +108,10 @@ func TestSignDocumentUseCase_StudentDenied(t *testing.T) {
 }
 
 func TestSignDocumentUseCase_DocumentNotFound(t *testing.T) {
-	view := &fakeView{err: repositories.ErrDocumentNotFound}
+	view := &fakeView{err: usecases.ErrDocumentNotFound}
 	uc := usecases.NewSignDocumentUseCase(&fakeSigRepo{}, view, &fakeEngine{}, &recordingAudit{}, fixedNow)
 	_, err := uc.Execute(context.Background(), 42, 7, "X", "methodist")
-	assert.True(t, errors.Is(err, repositories.ErrDocumentNotFound))
+	assert.True(t, errors.Is(err, usecases.ErrDocumentNotFound))
 }
 
 // --- ListSignatures -------------------------------------------------------
@@ -184,8 +183,8 @@ func TestVerifySignatureUseCase_CryptoInvalid(t *testing.T) {
 }
 
 func TestVerifySignatureUseCase_NotFound(t *testing.T) {
-	repo := &fakeSigRepo{getErr: repositories.ErrSignatureNotFound}
+	repo := &fakeSigRepo{getErr: usecases.ErrSignatureNotFound}
 	uc := usecases.NewVerifySignatureUseCase(repo, &fakeView{}, &fakeEngine{})
 	_, err := uc.Execute(context.Background(), 123)
-	assert.True(t, errors.Is(err, repositories.ErrSignatureNotFound))
+	assert.True(t, errors.Is(err, usecases.ErrSignatureNotFound))
 }
