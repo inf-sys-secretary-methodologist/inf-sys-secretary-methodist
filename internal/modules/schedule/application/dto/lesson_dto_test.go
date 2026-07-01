@@ -117,38 +117,6 @@ func TestToLessonOutput(t *testing.T) {
 	assert.Equal(t, "smith@example.com", output.Teacher.Email)
 }
 
-func TestLessonFilterInput_ToFilter(t *testing.T) {
-	semesterID := int64(1)
-	groupID := int64(2)
-	teacherID := int64(3)
-	dayOfWeek := 1
-	weekType := "odd"
-
-	input := &LessonFilterInput{
-		SemesterID: &semesterID,
-		GroupID:    &groupID,
-		TeacherID:  &teacherID,
-		DayOfWeek:  &dayOfWeek,
-		WeekType:   &weekType,
-		Limit:      50,
-		Offset:     10,
-	}
-
-	filter := input.ToFilter()
-
-	assert.Equal(t, &semesterID, filter.SemesterID)
-	assert.Equal(t, &groupID, filter.GroupID)
-	assert.Equal(t, &teacherID, filter.TeacherID)
-	assert.Nil(t, filter.ClassroomID)
-	assert.Nil(t, filter.DisciplineID)
-
-	require.NotNil(t, filter.DayOfWeek)
-	assert.Equal(t, domain.Monday, *filter.DayOfWeek)
-
-	require.NotNil(t, filter.WeekType)
-	assert.Equal(t, domain.WeekTypeOdd, *filter.WeekType)
-}
-
 func TestToLessonOutput_NilAssociations(t *testing.T) {
 	now := time.Now()
 	lesson := &entities.Lesson{

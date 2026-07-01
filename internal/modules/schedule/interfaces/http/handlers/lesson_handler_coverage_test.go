@@ -20,7 +20,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
 // ===== Minimal in-memory fakes for the 4 schedule repos =====
@@ -36,13 +35,13 @@ func (r *lessonRepoFake) GetByID(_ context.Context, _ int64) (*entities.Lesson, 
 	return nil, nil
 }
 func (r *lessonRepoFake) Delete(_ context.Context, _ int64) error { return nil }
-func (r *lessonRepoFake) List(_ context.Context, _ repositories.LessonFilter, _, _ int) ([]*entities.Lesson, error) {
+func (r *lessonRepoFake) List(_ context.Context, _ usecases.LessonFilter, _, _ int) ([]*entities.Lesson, error) {
 	return r.lessons, r.listErr
 }
-func (r *lessonRepoFake) Count(_ context.Context, _ repositories.LessonFilter) (int64, error) {
+func (r *lessonRepoFake) Count(_ context.Context, _ usecases.LessonFilter) (int64, error) {
 	return int64(len(r.lessons)), nil
 }
-func (r *lessonRepoFake) GetTimetable(_ context.Context, _ repositories.LessonFilter) ([]*entities.Lesson, error) {
+func (r *lessonRepoFake) GetTimetable(_ context.Context, _ usecases.LessonFilter) ([]*entities.Lesson, error) {
 	return r.lessons, r.listErr
 }
 
@@ -53,10 +52,10 @@ type classroomRepoFake struct {
 func (r *classroomRepoFake) GetByID(_ context.Context, _ int64) (*entities.Classroom, error) {
 	return nil, nil
 }
-func (r *classroomRepoFake) List(_ context.Context, _ repositories.ClassroomFilter, _, _ int) ([]*entities.Classroom, error) {
+func (r *classroomRepoFake) List(_ context.Context, _ usecases.ClassroomFilter, _, _ int) ([]*entities.Classroom, error) {
 	return r.rooms, nil
 }
-func (r *classroomRepoFake) Count(_ context.Context, _ repositories.ClassroomFilter) (int64, error) {
+func (r *classroomRepoFake) Count(_ context.Context, _ usecases.ClassroomFilter) (int64, error) {
 	return int64(len(r.rooms)), nil
 }
 

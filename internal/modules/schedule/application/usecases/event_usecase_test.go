@@ -12,7 +12,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
 // MockEventRepository is a mock implementation of EventRepository
@@ -51,7 +50,7 @@ func (m *MockEventRepository) GetByID(ctx context.Context, id int64) (*entities.
 	return args.Get(0).(*entities.Event), args.Error(1)
 }
 
-func (m *MockEventRepository) List(ctx context.Context, filter repositories.EventFilter) ([]*entities.Event, int64, error) {
+func (m *MockEventRepository) List(ctx context.Context, filter EventFilter) ([]*entities.Event, int64, error) {
 	args := m.Called(ctx, filter)
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(int64), args.Error(2)
@@ -867,7 +866,7 @@ func TestEventUseCase_List(t *testing.T) {
 
 	input := dto.EventFilterInput{Page: 1, PageSize: 20}
 
-	er.On("List", ctx, mock.AnythingOfType("repositories.EventFilter")).Return(events, int64(2), nil)
+	er.On("List", ctx, mock.AnythingOfType("EventFilter")).Return(events, int64(2), nil)
 	setupBuildOutputMocks(pr, rr, 1)
 	setupBuildOutputMocks(pr, rr, 2)
 
@@ -885,7 +884,7 @@ func TestEventUseCase_List_DefaultLimit(t *testing.T) {
 
 	input := dto.EventFilterInput{Page: 1, PageSize: 0} // zero -> default 20
 
-	er.On("List", ctx, mock.MatchedBy(func(f repositories.EventFilter) bool {
+	er.On("List", ctx, mock.MatchedBy(func(f EventFilter) bool {
 		return f.Limit == 20
 	})).Return([]*entities.Event{}, int64(0), nil)
 
@@ -901,7 +900,7 @@ func TestEventUseCase_List_NegativeLimit(t *testing.T) {
 
 	input := dto.EventFilterInput{Page: 1, PageSize: -5} // negative -> default 20
 
-	er.On("List", ctx, mock.MatchedBy(func(f repositories.EventFilter) bool {
+	er.On("List", ctx, mock.MatchedBy(func(f EventFilter) bool {
 		return f.Limit == 20
 	})).Return([]*entities.Event{}, int64(0), nil)
 
@@ -917,7 +916,7 @@ func TestEventUseCase_List_MaxLimit(t *testing.T) {
 
 	input := dto.EventFilterInput{Page: 1, PageSize: 200} // >100 -> capped to 100
 
-	er.On("List", ctx, mock.MatchedBy(func(f repositories.EventFilter) bool {
+	er.On("List", ctx, mock.MatchedBy(func(f EventFilter) bool {
 		return f.Limit == 100
 	})).Return([]*entities.Event{}, int64(0), nil)
 
@@ -953,7 +952,7 @@ func TestEventUseCase_List_WithAllFilters(t *testing.T) {
 		PageSize:    20,
 	}
 
-	er.On("List", ctx, mock.MatchedBy(func(f repositories.EventFilter) bool {
+	er.On("List", ctx, mock.MatchedBy(func(f EventFilter) bool {
 		return f.OrganizerID != nil && *f.OrganizerID == int64(5) &&
 			f.EventType != nil && *f.EventType == entities.EventTypeMeeting &&
 			f.Status != nil && *f.Status == entities.EventStatusScheduled &&
@@ -983,7 +982,7 @@ func TestEventUseCase_List_InvalidDateFormats(t *testing.T) {
 	}
 
 	// Bad dates should be silently ignored (StartFrom/StartTo remain nil)
-	er.On("List", ctx, mock.MatchedBy(func(f repositories.EventFilter) bool {
+	er.On("List", ctx, mock.MatchedBy(func(f EventFilter) bool {
 		return f.StartFrom == nil && f.StartTo == nil
 	})).Return([]*entities.Event{}, int64(0), nil)
 
@@ -999,7 +998,7 @@ func TestEventUseCase_List_RepoError(t *testing.T) {
 
 	input := dto.EventFilterInput{Page: 1, PageSize: 20}
 
-	er.On("List", ctx, mock.AnythingOfType("repositories.EventFilter")).Return(nil, int64(0), errors.New("db error"))
+	er.On("List", ctx, mock.AnythingOfType("EventFilter")).Return(nil, int64(0), errors.New("db error"))
 
 	result, err := uc.List(ctx, input)
 
@@ -1023,7 +1022,7 @@ func TestEventUseCase_List_TotalPagesRounding(t *testing.T) {
 
 	input := dto.EventFilterInput{Page: 1, PageSize: 2} // 5 total / 2 per page = 3 pages
 
-	er.On("List", ctx, mock.AnythingOfType("repositories.EventFilter")).Return(events, int64(5), nil)
+	er.On("List", ctx, mock.AnythingOfType("EventFilter")).Return(events, int64(5), nil)
 
 	result, err := uc.List(ctx, input)
 
@@ -1037,7 +1036,7 @@ func TestEventUseCase_List_ExactPage(t *testing.T) {
 
 	input := dto.EventFilterInput{Page: 1, PageSize: 5} // 10 total / 5 per page = 2 pages exact
 
-	er.On("List", ctx, mock.AnythingOfType("repositories.EventFilter")).Return([]*entities.Event{}, int64(10), nil)
+	er.On("List", ctx, mock.AnythingOfType("EventFilter")).Return([]*entities.Event{}, int64(10), nil)
 
 	result, err := uc.List(ctx, input)
 
@@ -1798,7 +1797,7 @@ func TestEventUseCase_List_BuildOutputErrorPropagation(t *testing.T) {
 
 	input := dto.EventFilterInput{Page: 1, PageSize: 20}
 
-	er.On("List", ctx, mock.AnythingOfType("repositories.EventFilter")).Return(events, int64(1), nil)
+	er.On("List", ctx, mock.AnythingOfType("EventFilter")).Return(events, int64(1), nil)
 	pr.On("GetByEventID", ctx, int64(1)).Return([]*entities.EventParticipant{
 		{ID: 1, EventID: 1, UserID: 2, ResponseStatus: entities.ParticipantStatusAccepted, Role: entities.ParticipantRoleRequired},
 	}, nil)

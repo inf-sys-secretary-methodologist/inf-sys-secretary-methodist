@@ -9,7 +9,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -65,19 +64,19 @@ type CreateChangeInputForUC struct {
 
 // LessonUseCase provides lesson management operations.
 type LessonUseCase struct {
-	lessonRepo    repositories.LessonRepository
-	classroomRepo repositories.ClassroomRepository
-	referenceRepo repositories.ReferenceRepository
-	changeRepo    repositories.ScheduleChangeRepository
+	lessonRepo    LessonRepository
+	classroomRepo ClassroomRepository
+	referenceRepo ReferenceRepository
+	changeRepo    ScheduleChangeRepository
 	auditLogger   *logging.AuditLogger
 }
 
 // NewLessonUseCase creates a new LessonUseCase.
 func NewLessonUseCase(
-	lessonRepo repositories.LessonRepository,
-	classroomRepo repositories.ClassroomRepository,
-	referenceRepo repositories.ReferenceRepository,
-	changeRepo repositories.ScheduleChangeRepository,
+	lessonRepo LessonRepository,
+	classroomRepo ClassroomRepository,
+	referenceRepo ReferenceRepository,
+	changeRepo ScheduleChangeRepository,
 	auditLogger *logging.AuditLogger,
 ) *LessonUseCase {
 	return &LessonUseCase{
@@ -204,17 +203,17 @@ func (uc *LessonUseCase) Delete(ctx context.Context, userID, lessonID int64) err
 }
 
 // List lists lessons with filters.
-func (uc *LessonUseCase) List(ctx context.Context, filter repositories.LessonFilter, limit, offset int) ([]*entities.Lesson, error) {
+func (uc *LessonUseCase) List(ctx context.Context, filter LessonFilter, limit, offset int) ([]*entities.Lesson, error) {
 	return uc.lessonRepo.List(ctx, filter, limit, offset)
 }
 
 // Count counts lessons with filters.
-func (uc *LessonUseCase) Count(ctx context.Context, filter repositories.LessonFilter) (int64, error) {
+func (uc *LessonUseCase) Count(ctx context.Context, filter LessonFilter) (int64, error) {
 	return uc.lessonRepo.Count(ctx, filter)
 }
 
 // GetTimetable returns all lessons matching the filter with associations loaded.
-func (uc *LessonUseCase) GetTimetable(ctx context.Context, filter repositories.LessonFilter) ([]*entities.Lesson, error) {
+func (uc *LessonUseCase) GetTimetable(ctx context.Context, filter LessonFilter) ([]*entities.Lesson, error) {
 	return uc.lessonRepo.GetTimetable(ctx, filter)
 }
 
@@ -244,7 +243,7 @@ func (uc *LessonUseCase) ListChanges(ctx context.Context, lessonID int64) ([]*en
 }
 
 // ListClassrooms lists classrooms with filters.
-func (uc *LessonUseCase) ListClassrooms(ctx context.Context, filter repositories.ClassroomFilter, limit, offset int) ([]*entities.Classroom, error) {
+func (uc *LessonUseCase) ListClassrooms(ctx context.Context, filter ClassroomFilter, limit, offset int) ([]*entities.Classroom, error) {
 	return uc.classroomRepo.List(ctx, filter, limit, offset)
 }
 
