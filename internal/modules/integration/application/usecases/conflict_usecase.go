@@ -6,17 +6,16 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/repositories"
 )
 
 // ConflictUseCase handles sync conflict operations
 type ConflictUseCase struct {
-	conflictRepo repositories.SyncConflictRepository
+	conflictRepo SyncConflictRepository
 	auditSink    AuditSink
 }
 
 // NewConflictUseCase creates a new conflict use case
-func NewConflictUseCase(conflictRepo repositories.SyncConflictRepository) *ConflictUseCase {
+func NewConflictUseCase(conflictRepo SyncConflictRepository) *ConflictUseCase {
 	return &ConflictUseCase{
 		conflictRepo: conflictRepo,
 	}

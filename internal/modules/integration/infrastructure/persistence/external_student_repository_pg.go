@@ -10,8 +10,8 @@ import (
 
 	"github.com/lib/pq"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/repositories"
 )
 
 // ExternalStudentRepositoryPg implements ExternalStudentRepository using PostgreSQL
@@ -20,7 +20,7 @@ type ExternalStudentRepositoryPg struct {
 }
 
 // NewExternalStudentRepositoryPg creates a new PostgreSQL external student repository
-func NewExternalStudentRepositoryPg(db *sql.DB) repositories.ExternalStudentRepository {
+func NewExternalStudentRepositoryPg(db *sql.DB) usecases.ExternalStudentRepository {
 	return &ExternalStudentRepositoryPg{db: db}
 }
 

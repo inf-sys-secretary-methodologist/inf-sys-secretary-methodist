@@ -6,16 +6,15 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/repositories"
 )
 
 // StudentUseCase handles external student operations
 type StudentUseCase struct {
-	studentRepo repositories.ExternalStudentRepository
+	studentRepo ExternalStudentRepository
 }
 
 // NewStudentUseCase creates a new student use case
-func NewStudentUseCase(studentRepo repositories.ExternalStudentRepository) *StudentUseCase {
+func NewStudentUseCase(studentRepo ExternalStudentRepository) *StudentUseCase {
 	return &StudentUseCase{
 		studentRepo: studentRepo,
 	}

@@ -11,8 +11,8 @@ import (
 
 	"github.com/lib/pq"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/repositories"
 )
 
 // SyncConflictRepositoryPg implements SyncConflictRepository using PostgreSQL
@@ -21,7 +21,7 @@ type SyncConflictRepositoryPg struct {
 }
 
 // NewSyncConflictRepositoryPg creates a new PostgreSQL sync conflict repository
-func NewSyncConflictRepositoryPg(db *sql.DB) repositories.SyncConflictRepository {
+func NewSyncConflictRepositoryPg(db *sql.DB) usecases.SyncConflictRepository {
 	return &SyncConflictRepositoryPg{db: db}
 }
 

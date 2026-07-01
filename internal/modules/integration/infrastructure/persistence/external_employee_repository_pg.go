@@ -10,8 +10,8 @@ import (
 
 	"github.com/lib/pq"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/integration/domain/repositories"
 )
 
 // ExternalEmployeeRepositoryPg implements ExternalEmployeeRepository using PostgreSQL
@@ -20,7 +20,7 @@ type ExternalEmployeeRepositoryPg struct {
 }
 
 // NewExternalEmployeeRepositoryPg creates a new PostgreSQL external employee repository
-func NewExternalEmployeeRepositoryPg(db *sql.DB) repositories.ExternalEmployeeRepository {
+func NewExternalEmployeeRepositoryPg(db *sql.DB) usecases.ExternalEmployeeRepository {
 	return &ExternalEmployeeRepositoryPg{db: db}
 }
 
