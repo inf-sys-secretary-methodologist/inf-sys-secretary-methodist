@@ -21,7 +21,7 @@ type SignatureEngine interface {
 // document: its current version and a SHA-256 hex of its canonical body (file
 // bytes if present, else text content). Implemented by an adapter over the
 // document repository + object storage (PR5). Returns
-// repositories.ErrDocumentNotFound when the document does not exist.
+// ErrDocumentNotFound when the document does not exist.
 type DocumentSigningView interface {
 	GetForSigning(ctx context.Context, documentID int64) (version int, contentSHA256Hex string, err error)
 }

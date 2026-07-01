@@ -12,7 +12,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
@@ -159,7 +158,7 @@ func (h *SignatureHandler) Verify(c *gin.Context) {
 // mapSignatureError maps domain/repository errors to stable HTTP codes.
 func mapSignatureError(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, repositories.ErrSignatureNotFound), errors.Is(err, repositories.ErrDocumentNotFound):
+	case errors.Is(err, usecases.ErrSignatureNotFound), errors.Is(err, usecases.ErrDocumentNotFound):
 		c.JSON(http.StatusNotFound, gin.H{errorKey: "not found"})
 	case errors.Is(err, entities.ErrDocumentEditDenied):
 		c.JSON(http.StatusForbidden, gin.H{errorKey: "not authorized to sign this document"})

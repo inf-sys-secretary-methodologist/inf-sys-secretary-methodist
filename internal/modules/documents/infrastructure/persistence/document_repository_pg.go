@@ -1,4 +1,4 @@
-// Package persistence provides database implementations for document repositories.
+// Package persistence provides database implementations for document usecases.
 package persistence
 
 import (
@@ -12,8 +12,8 @@ import (
 
 	"github.com/lib/pq"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
 // DocumentRepositoryPG implements DocumentRepository using PostgreSQL
@@ -126,7 +126,7 @@ func (r *DocumentRepositoryPG) Update(ctx context.Context, doc *entities.Documen
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return repositories.ErrDocumentNotFound
+		return usecases.ErrDocumentNotFound
 	}
 	return nil
 }
@@ -175,7 +175,7 @@ func (r *DocumentRepositoryPG) GetByID(ctx context.Context, id int64) (*entities
 		&doc.AuthorName, &doc.RecipientName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repositories.ErrDocumentNotFound
+		return nil, usecases.ErrDocumentNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document: %w", err)
@@ -206,7 +206,7 @@ func (r *DocumentRepositoryPG) SoftDelete(ctx context.Context, id int64) error {
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return repositories.ErrDocumentNotFound
+		return usecases.ErrDocumentNotFound
 	}
 	return nil
 }
@@ -233,10 +233,10 @@ var validDocumentOrderBy = map[string]string{
 }
 
 // List retrieves documents with filters and access control
-func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.DocumentFilter) ([]*entities.Document, int64, error) {
+func (r *DocumentRepositoryPG) List(ctx context.Context, filter usecases.DocumentFilter) ([]*entities.Document, int64, error) {
 	orderBy, ok := validDocumentOrderBy[filter.OrderBy]
 	if !ok {
-		return nil, 0, repositories.ErrInvalidOrderBy
+		return nil, 0, usecases.ErrInvalidOrderBy
 	}
 
 	var conditions []string
@@ -392,7 +392,7 @@ func (r *DocumentRepositoryPG) List(ctx context.Context, filter repositories.Doc
 
 // GetByAuthorID retrieves documents by author
 func (r *DocumentRepositoryPG) GetByAuthorID(ctx context.Context, authorID int64, limit, offset int) ([]*entities.Document, error) {
-	docs, _, err := r.List(ctx, repositories.DocumentFilter{
+	docs, _, err := r.List(ctx, usecases.DocumentFilter{
 		AuthorID: &authorID,
 		Limit:    limit,
 		Offset:   offset,
@@ -402,7 +402,7 @@ func (r *DocumentRepositoryPG) GetByAuthorID(ctx context.Context, authorID int64
 
 // GetByStatus retrieves documents by status
 func (r *DocumentRepositoryPG) GetByStatus(ctx context.Context, status entities.DocumentStatus, limit, offset int) ([]*entities.Document, error) {
-	docs, _, err := r.List(ctx, repositories.DocumentFilter{
+	docs, _, err := r.List(ctx, usecases.DocumentFilter{
 		Status: &status,
 		Limit:  limit,
 		Offset: offset,
@@ -496,7 +496,7 @@ func (r *DocumentRepositoryPG) GetVersion(ctx context.Context, documentID int64,
 		&v.ChangedByName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repositories.ErrVersionNotFound
+		return nil, usecases.ErrVersionNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get version: %w", err)
@@ -531,7 +531,7 @@ func (r *DocumentRepositoryPG) GetLatestVersion(ctx context.Context, documentID 
 		&v.ChangedByName,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repositories.ErrVersionNotFound
+		return nil, usecases.ErrVersionNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest version: %w", err)
@@ -598,7 +598,7 @@ func (r *DocumentRepositoryPG) RestoreVersion(ctx context.Context, documentID in
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return repositories.ErrDocumentNotFound
+		return usecases.ErrDocumentNotFound
 	}
 
 	return nil
@@ -625,7 +625,7 @@ func (r *DocumentRepositoryPG) DeleteVersion(ctx context.Context, documentID int
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return repositories.ErrVersionNotFound
+		return usecases.ErrVersionNotFound
 	}
 
 	return nil
@@ -897,7 +897,7 @@ func sanitizeForTsquery(query string) string {
 }
 
 // Search performs full-text search on documents with ranking and highlighting
-func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.SearchFilter) ([]*repositories.SearchResult, int64, error) {
+func (r *DocumentRepositoryPG) Search(ctx context.Context, filter usecases.SearchFilter) ([]*usecases.SearchResult, int64, error) {
 	if filter.Query == "" {
 		return nil, 0, fmt.Errorf("search query cannot be empty")
 	}
@@ -905,7 +905,7 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 	// Convert user query to prefix-enabled tsquery format
 	tsqueryStr := sanitizeForTsquery(filter.Query)
 	if tsqueryStr == "" {
-		return []*repositories.SearchResult{}, 0, nil
+		return []*usecases.SearchResult{}, 0, nil
 	}
 
 	var conditions []string
@@ -992,7 +992,7 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 	}
 
 	if total == 0 {
-		return []*repositories.SearchResult{}, 0, nil
+		return []*usecases.SearchResult{}, 0, nil
 	}
 
 	// Get search results with ranking and highlighting
@@ -1030,10 +1030,10 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 	}
 	defer func() { _ = rows.Close() }()
 
-	var results []*repositories.SearchResult
+	var results []*usecases.SearchResult
 	for rows.Next() {
 		doc := &entities.Document{}
-		result := &repositories.SearchResult{Document: doc}
+		result := &usecases.SearchResult{Document: doc}
 		var metadataJSON []byte
 
 		err := rows.Scan(
@@ -1069,7 +1069,7 @@ func (r *DocumentRepositoryPG) Search(ctx context.Context, filter repositories.S
 // interface no longer exposes this aggregate, since no production code
 // reads documents activity through the full repo. Empty result is not an
 // error; the half-open [from, to) window is the caller's responsibility.
-func aggregateActivityByType(ctx context.Context, db *sql.DB, from, to time.Time) ([]repositories.DocumentActivityByTypeAgg, error) {
+func aggregateActivityByType(ctx context.Context, db *sql.DB, from, to time.Time) ([]usecases.DocumentActivityByTypeAgg, error) {
 	const query = `SELECT dt.name, d.status, COUNT(*) FROM documents d
 		JOIN document_types dt ON dt.id = d.document_type_id
 		WHERE d.created_at >= $1 AND d.created_at < $2
@@ -1082,7 +1082,7 @@ func aggregateActivityByType(ctx context.Context, db *sql.DB, from, to time.Time
 	}
 	defer func() { _ = rows.Close() }()
 
-	var out []repositories.DocumentActivityByTypeAgg
+	var out []usecases.DocumentActivityByTypeAgg
 	for rows.Next() {
 		var (
 			name      string
@@ -1092,7 +1092,7 @@ func aggregateActivityByType(ctx context.Context, db *sql.DB, from, to time.Time
 		if err := rows.Scan(&name, &statusStr, &count); err != nil {
 			return nil, fmt.Errorf("documents: aggregate activity scan: %w", err)
 		}
-		out = append(out, repositories.DocumentActivityByTypeAgg{
+		out = append(out, usecases.DocumentActivityByTypeAgg{
 			TypeName: name,
 			Status:   entities.DocumentStatus(statusStr),
 			Count:    count,

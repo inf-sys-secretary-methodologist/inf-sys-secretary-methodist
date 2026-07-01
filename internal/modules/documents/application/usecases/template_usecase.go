@@ -10,7 +10,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -29,14 +28,14 @@ type TemplateRepository interface {
 // TemplateUseCase handles template-related business logic
 type TemplateUseCase struct {
 	templateRepo TemplateRepository
-	docRepo      repositories.DocumentRepository
+	docRepo      DocumentRepository
 	auditLogger  *logging.AuditLogger
 }
 
 // NewTemplateUseCase creates a new TemplateUseCase
 func NewTemplateUseCase(
 	templateRepo TemplateRepository,
-	docRepo repositories.DocumentRepository,
+	docRepo DocumentRepository,
 	auditLogger *logging.AuditLogger,
 ) *TemplateUseCase {
 	return &TemplateUseCase{

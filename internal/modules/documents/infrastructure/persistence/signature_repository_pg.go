@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
 // SignatureRepositoryPG implements usecases.SignatureRepository using PostgreSQL.
@@ -80,7 +80,7 @@ func (r *SignatureRepositoryPG) ListByDocument(ctx context.Context, documentID i
 	return out, nil
 }
 
-// GetByID returns a single signature or repositories.ErrSignatureNotFound.
+// GetByID returns a single signature or usecases.ErrSignatureNotFound.
 func (r *SignatureRepositoryPG) GetByID(ctx context.Context, id int64) (*entities.DocumentSignature, error) {
 	q := `SELECT ` + sigColumns + `
 		FROM document_signatures
@@ -89,7 +89,7 @@ func (r *SignatureRepositoryPG) GetByID(ctx context.Context, id int64) (*entitie
 	sig, err := scanSignature(r.db.QueryRowContext(ctx, q, id))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, repositories.ErrSignatureNotFound
+			return nil, usecases.ErrSignatureNotFound
 		}
 		return nil, fmt.Errorf("document signatures: get: %w", err)
 	}

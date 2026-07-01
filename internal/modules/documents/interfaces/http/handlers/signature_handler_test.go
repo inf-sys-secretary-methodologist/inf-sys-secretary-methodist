@@ -13,7 +13,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 	docHttp "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/interfaces/http/handlers"
 )
 
@@ -115,7 +114,7 @@ func TestSignatureHandler_Sign_Forbidden(t *testing.T) {
 }
 
 func TestSignatureHandler_Sign_DocumentNotFound(t *testing.T) {
-	sign := &fakeSign{err: repositories.ErrDocumentNotFound}
+	sign := &fakeSign{err: usecases.ErrDocumentNotFound}
 	r := newSigEngine(t, sign, &fakeList{}, &fakeVerify{}, &fakeNames{name: "X"}, 9, "methodist")
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/api/documents/42/sign", nil)
@@ -148,7 +147,7 @@ func TestSignatureHandler_Verify_OK(t *testing.T) {
 }
 
 func TestSignatureHandler_Verify_NotFound(t *testing.T) {
-	verify := &fakeVerify{err: repositories.ErrSignatureNotFound}
+	verify := &fakeVerify{err: usecases.ErrSignatureNotFound}
 	r := newSigEngine(t, &fakeSign{}, &fakeList{}, verify, &fakeNames{}, 9, "teacher")
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/documents/42/signatures/7/verify", nil)

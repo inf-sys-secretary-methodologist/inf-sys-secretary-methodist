@@ -8,7 +8,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
@@ -16,14 +15,14 @@ import (
 
 // DocumentVersionUseCase handles document version business logic
 type DocumentVersionUseCase struct {
-	documentRepo repositories.DocumentRepository
+	documentRepo DocumentRepository
 	s3Client     *storage.S3Client
 	auditLog     *logging.AuditLogger
 }
 
 // NewDocumentVersionUseCase creates a new document version use case
 func NewDocumentVersionUseCase(
-	documentRepo repositories.DocumentRepository,
+	documentRepo DocumentRepository,
 	s3Client *storage.S3Client,
 	auditLog *logging.AuditLogger,
 ) *DocumentVersionUseCase {

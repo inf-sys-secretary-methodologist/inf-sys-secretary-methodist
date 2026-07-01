@@ -8,16 +8,15 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 	domainErrors "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/domain/errors"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // SharingUseCase handles document sharing operations
 type SharingUseCase struct {
-	documentRepo   repositories.DocumentRepository
-	permissionRepo repositories.PermissionRepository
-	publicLinkRepo repositories.PublicLinkRepository
+	documentRepo   DocumentRepository
+	permissionRepo PermissionRepository
+	publicLinkRepo PublicLinkRepository
 	auditLog       *logging.AuditLogger
 	baseURL        string
 	// v0.156.0 ADR-5 (#266): ShareNotifier narrow port. Cross-module
@@ -39,9 +38,9 @@ func (uc *SharingUseCase) WithShareNotifier(n ShareNotifier) *SharingUseCase {
 
 // NewSharingUseCase creates a new SharingUseCase
 func NewSharingUseCase(
-	documentRepo repositories.DocumentRepository,
-	permissionRepo repositories.PermissionRepository,
-	publicLinkRepo repositories.PublicLinkRepository,
+	documentRepo DocumentRepository,
+	permissionRepo PermissionRepository,
+	publicLinkRepo PublicLinkRepository,
 	auditLog *logging.AuditLogger,
 	baseURL string,
 ) *SharingUseCase {

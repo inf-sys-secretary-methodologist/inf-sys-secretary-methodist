@@ -10,7 +10,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
 const (
@@ -51,7 +50,7 @@ func (m *MockDocumentRepository) SoftDelete(ctx context.Context, id int64) error
 	return args.Error(0)
 }
 
-func (m *MockDocumentRepository) List(ctx context.Context, filter repositories.DocumentFilter) ([]*entities.Document, int64, error) {
+func (m *MockDocumentRepository) List(ctx context.Context, filter DocumentFilter) ([]*entities.Document, int64, error) {
 	args := m.Called(ctx, filter)
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(int64), args.Error(2)
@@ -117,12 +116,12 @@ func (m *MockDocumentRepository) GetVersion(ctx context.Context, documentID int6
 	return args.Get(0).(*entities.DocumentVersion), args.Error(1)
 }
 
-func (m *MockDocumentRepository) Search(ctx context.Context, filter repositories.SearchFilter) ([]*repositories.SearchResult, int64, error) {
+func (m *MockDocumentRepository) Search(ctx context.Context, filter SearchFilter) ([]*SearchResult, int64, error) {
 	args := m.Called(ctx, filter)
 	if args.Get(0) == nil {
 		return nil, args.Get(1).(int64), args.Error(2)
 	}
-	return args.Get(0).([]*repositories.SearchResult), args.Get(1).(int64), args.Error(2)
+	return args.Get(0).([]*SearchResult), args.Get(1).(int64), args.Error(2)
 }
 
 func (m *MockDocumentRepository) GetLatestVersion(ctx context.Context, documentID int64) (*entities.DocumentVersion, error) {
@@ -380,7 +379,7 @@ func TestDocumentUseCase_List(t *testing.T) {
 			{ID: 2, Title: "Doc 2", Status: entities.DocumentStatusDraft},
 		}
 
-		mockDocRepo.On("List", mock.Anything, mock.AnythingOfType("repositories.DocumentFilter")).
+		mockDocRepo.On("List", mock.Anything, mock.AnythingOfType("DocumentFilter")).
 			Return(docs, int64(2), nil).Once()
 
 		filter := dto.DocumentFilterInput{
@@ -399,7 +398,7 @@ func TestDocumentUseCase_List(t *testing.T) {
 	})
 
 	t.Run("empty result", func(t *testing.T) {
-		mockDocRepo.On("List", mock.Anything, mock.AnythingOfType("repositories.DocumentFilter")).
+		mockDocRepo.On("List", mock.Anything, mock.AnythingOfType("DocumentFilter")).
 			Return([]*entities.Document{}, int64(0), nil).Once()
 
 		filter := dto.DocumentFilterInput{
@@ -614,7 +613,7 @@ func TestDocumentUseCase_Search(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("successful search with results", func(t *testing.T) {
-		searchResults := []*repositories.SearchResult{
+		searchResults := []*SearchResult{
 			{
 				Document: &entities.Document{
 					ID:             1,
@@ -643,7 +642,7 @@ func TestDocumentUseCase_Search(t *testing.T) {
 			},
 		}
 
-		mockDocRepo.On("Search", mock.Anything, mock.AnythingOfType("repositories.SearchFilter")).
+		mockDocRepo.On("Search", mock.Anything, mock.AnythingOfType("SearchFilter")).
 			Return(searchResults, int64(2), nil).Once()
 
 		input := dto.SearchInput{
@@ -682,8 +681,8 @@ func TestDocumentUseCase_Search(t *testing.T) {
 	})
 
 	t.Run("search with no results", func(t *testing.T) {
-		mockDocRepo.On("Search", mock.Anything, mock.AnythingOfType("repositories.SearchFilter")).
-			Return([]*repositories.SearchResult{}, int64(0), nil).Once()
+		mockDocRepo.On("Search", mock.Anything, mock.AnythingOfType("SearchFilter")).
+			Return([]*SearchResult{}, int64(0), nil).Once()
 
 		input := dto.SearchInput{
 			Query:    "несуществующий документ",
@@ -704,7 +703,7 @@ func TestDocumentUseCase_Search(t *testing.T) {
 
 	t.Run("search with filters", func(t *testing.T) {
 		statusApproved := "approved"
-		searchResults := []*repositories.SearchResult{
+		searchResults := []*SearchResult{
 			{
 				Document: &entities.Document{
 					ID:             1,
@@ -718,7 +717,7 @@ func TestDocumentUseCase_Search(t *testing.T) {
 			},
 		}
 
-		mockDocRepo.On("Search", mock.Anything, mock.AnythingOfType("repositories.SearchFilter")).
+		mockDocRepo.On("Search", mock.Anything, mock.AnythingOfType("SearchFilter")).
 			Return(searchResults, int64(1), nil).Once()
 
 		input := dto.SearchInput{
@@ -739,7 +738,7 @@ func TestDocumentUseCase_Search(t *testing.T) {
 	})
 
 	t.Run("search with pagination", func(t *testing.T) {
-		searchResults := []*repositories.SearchResult{
+		searchResults := []*SearchResult{
 			{
 				Document: &entities.Document{
 					ID:    11,
@@ -749,7 +748,7 @@ func TestDocumentUseCase_Search(t *testing.T) {
 			},
 		}
 
-		mockDocRepo.On("Search", mock.Anything, mock.MatchedBy(func(filter repositories.SearchFilter) bool {
+		mockDocRepo.On("Search", mock.Anything, mock.MatchedBy(func(filter SearchFilter) bool {
 			return filter.Offset == 10 && filter.Limit == 10
 		})).Return(searchResults, int64(15), nil).Once()
 
@@ -772,7 +771,7 @@ func TestDocumentUseCase_Search(t *testing.T) {
 	})
 
 	t.Run("search with repository error", func(t *testing.T) {
-		mockDocRepo.On("Search", mock.Anything, mock.AnythingOfType("repositories.SearchFilter")).
+		mockDocRepo.On("Search", mock.Anything, mock.AnythingOfType("SearchFilter")).
 			Return(nil, int64(0), assert.AnError).Once()
 
 		input := dto.SearchInput{
@@ -791,9 +790,9 @@ func TestDocumentUseCase_Search(t *testing.T) {
 	})
 
 	t.Run("search with default pagination", func(t *testing.T) {
-		searchResults := []*repositories.SearchResult{}
+		searchResults := []*SearchResult{}
 
-		mockDocRepo.On("Search", mock.Anything, mock.MatchedBy(func(filter repositories.SearchFilter) bool {
+		mockDocRepo.On("Search", mock.Anything, mock.MatchedBy(func(filter SearchFilter) bool {
 			return filter.Offset == 0 && filter.Limit == 20
 		})).Return(searchResults, int64(0), nil).Once()
 
@@ -815,9 +814,9 @@ func TestDocumentUseCase_Search(t *testing.T) {
 
 	t.Run("search with importance filter", func(t *testing.T) {
 		importance := testImportanceHigh
-		searchResults := []*repositories.SearchResult{}
+		searchResults := []*SearchResult{}
 
-		mockDocRepo.On("Search", mock.Anything, mock.MatchedBy(func(filter repositories.SearchFilter) bool {
+		mockDocRepo.On("Search", mock.Anything, mock.MatchedBy(func(filter SearchFilter) bool {
 			return filter.Importance != nil && *filter.Importance == entities.DocumentImportance("high")
 		})).Return(searchResults, int64(0), nil).Once()
 
@@ -836,9 +835,9 @@ func TestDocumentUseCase_Search(t *testing.T) {
 	})
 
 	t.Run("search with oversized page size defaults to 20", func(t *testing.T) {
-		searchResults := []*repositories.SearchResult{}
+		searchResults := []*SearchResult{}
 
-		mockDocRepo.On("Search", mock.Anything, mock.MatchedBy(func(filter repositories.SearchFilter) bool {
+		mockDocRepo.On("Search", mock.Anything, mock.MatchedBy(func(filter SearchFilter) bool {
 			return filter.Limit == 20
 		})).Return(searchResults, int64(0), nil).Once()
 
@@ -1071,7 +1070,7 @@ func TestDocumentUseCase_List_WithFilters(t *testing.T) {
 		status := "approved"
 		importance := testImportanceHigh
 
-		mockDocRepo.On("List", mock.Anything, mock.MatchedBy(func(f repositories.DocumentFilter) bool {
+		mockDocRepo.On("List", mock.Anything, mock.MatchedBy(func(f DocumentFilter) bool {
 			return f.Status != nil && *f.Status == entities.DocumentStatus("approved") &&
 				f.Importance != nil && *f.Importance == entities.DocumentImportance("high")
 		})).Return(docs, int64(1), nil).Once()
@@ -1097,7 +1096,7 @@ func TestDocumentUseCase_List_WithFilters(t *testing.T) {
 		orderBy := "title ASC"
 		docs := []*entities.Document{}
 
-		mockDocRepo.On("List", mock.Anything, mock.MatchedBy(func(f repositories.DocumentFilter) bool {
+		mockDocRepo.On("List", mock.Anything, mock.MatchedBy(func(f DocumentFilter) bool {
 			return f.OrderBy == "title ASC"
 		})).Return(docs, int64(0), nil).Once()
 
@@ -1116,7 +1115,7 @@ func TestDocumentUseCase_List_WithFilters(t *testing.T) {
 	})
 
 	t.Run("list with repo error", func(t *testing.T) {
-		mockDocRepo.On("List", mock.Anything, mock.AnythingOfType("repositories.DocumentFilter")).
+		mockDocRepo.On("List", mock.Anything, mock.AnythingOfType("DocumentFilter")).
 			Return(nil, int64(0), assert.AnError).Once()
 
 		filter := dto.DocumentFilterInput{Page: 1, PageSize: 10}
@@ -1135,7 +1134,7 @@ func TestDocumentUseCase_List_WithFilters(t *testing.T) {
 			docs[i] = &entities.Document{ID: int64(i + 1), Title: "Doc"}
 		}
 
-		mockDocRepo.On("List", mock.Anything, mock.AnythingOfType("repositories.DocumentFilter")).
+		mockDocRepo.On("List", mock.Anything, mock.AnythingOfType("DocumentFilter")).
 			Return(docs, int64(13), nil).Once()
 
 		filter := dto.DocumentFilterInput{Page: 1, PageSize: 5}

@@ -16,6 +16,6 @@ type SignatureRepository interface {
 	Save(ctx context.Context, sig *entities.DocumentSignature) (int64, error)
 	// ListByDocument returns all signatures for a document, oldest first.
 	ListByDocument(ctx context.Context, documentID int64) ([]*entities.DocumentSignature, error)
-	// GetByID returns a single signature or repositories.ErrSignatureNotFound.
+	// GetByID returns a single signature or ErrSignatureNotFound.
 	GetByID(ctx context.Context, id int64) (*entities.DocumentSignature, error)
 }

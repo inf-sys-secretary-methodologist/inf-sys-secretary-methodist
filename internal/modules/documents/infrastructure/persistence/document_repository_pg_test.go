@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/documents/domain/repositories"
 )
 
 const testHelloStr = "hello"
@@ -229,7 +229,7 @@ func TestDocumentRepositoryPG_List_Empty(t *testing.T) {
 	repo, mock := newDocRepoMock(t)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(0)))
 	mock.ExpectQuery("SELECT d.id").WillReturnRows(newDocRows())
-	docs, total, err := repo.List(context.Background(), repositories.DocumentFilter{Limit: 10})
+	docs, total, err := repo.List(context.Background(), usecases.DocumentFilter{Limit: 10})
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), total)
 	assert.Empty(t, docs)
@@ -246,7 +246,7 @@ func TestDocumentRepositoryPG_List_WithAllFilters(t *testing.T) {
 	isPublic := true
 	search := "test"
 
-	filter := repositories.DocumentFilter{
+	filter := usecases.DocumentFilter{
 		AuthorID: &authorID, RecipientID: &recipientID,
 		DocumentTypeID: &docTypeID, CategoryID: &categoryID,
 		Status: &status, Importance: &importance,
@@ -267,14 +267,14 @@ func TestDocumentRepositoryPG_List_AdminBypass(t *testing.T) {
 	repo, mock := newDocRepoMock(t)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(0)))
 	mock.ExpectQuery("SELECT d.id").WillReturnRows(newDocRows())
-	_, _, err := repo.List(context.Background(), repositories.DocumentFilter{CurrentUserID: 10, CurrentUserRole: "admin", Limit: 10})
+	_, _, err := repo.List(context.Background(), usecases.DocumentFilter{CurrentUserID: 10, CurrentUserRole: "admin", Limit: 10})
 	require.NoError(t, err)
 }
 
 func TestDocumentRepositoryPG_List_CountError(t *testing.T) {
 	repo, mock := newDocRepoMock(t)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).WillReturnError(fmt.Errorf("count error"))
-	_, _, err := repo.List(context.Background(), repositories.DocumentFilter{Limit: 10})
+	_, _, err := repo.List(context.Background(), usecases.DocumentFilter{Limit: 10})
 	assert.Contains(t, err.Error(), "failed to count documents")
 }
 
@@ -282,7 +282,7 @@ func TestDocumentRepositoryPG_List_QueryError(t *testing.T) {
 	repo, mock := newDocRepoMock(t)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(1)))
 	mock.ExpectQuery("SELECT d.id").WillReturnError(fmt.Errorf("query error"))
-	_, _, err := repo.List(context.Background(), repositories.DocumentFilter{Limit: 10})
+	_, _, err := repo.List(context.Background(), usecases.DocumentFilter{Limit: 10})
 	assert.Contains(t, err.Error(), "failed to list documents")
 }
 
@@ -293,7 +293,7 @@ func TestDocumentRepositoryPG_List_EmptyOrderByDefaultsToCreatedAtDesc(t *testin
 	mock.ExpectQuery(regexp.QuoteMeta("ORDER BY d.created_at DESC")).
 		WillReturnRows(newDocRows())
 
-	_, _, err := repo.List(context.Background(), repositories.DocumentFilter{Limit: 10})
+	_, _, err := repo.List(context.Background(), usecases.DocumentFilter{Limit: 10})
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -314,12 +314,12 @@ func TestDocumentRepositoryPG_List_RejectsInjectionInOrderBy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			repo, _ := newDocRepoMock(t)
 
-			_, _, err := repo.List(context.Background(), repositories.DocumentFilter{
+			_, _, err := repo.List(context.Background(), usecases.DocumentFilter{
 				Limit:   10,
 				OrderBy: tc.orderBy,
 			})
 			require.Error(t, err)
-			require.True(t, errors.Is(err, repositories.ErrInvalidOrderBy),
+			require.True(t, errors.Is(err, usecases.ErrInvalidOrderBy),
 				"expected ErrInvalidOrderBy, got: %v", err)
 		})
 	}
@@ -418,7 +418,7 @@ func TestDocumentRepositoryPG_GetLatestVersion_NoVersions(t *testing.T) {
 	_, err := repo.GetLatestVersion(context.Background(), 1)
 	// v0.156.0 #266: unified к canonical ErrVersionNotFound sentinel
 	// (was string "no versions found" — legacy fmt.Errorf message).
-	assert.ErrorIs(t, err, repositories.ErrVersionNotFound)
+	assert.ErrorIs(t, err, usecases.ErrVersionNotFound)
 }
 
 func TestDocumentRepositoryPG_AddHistory(t *testing.T) {
@@ -503,13 +503,13 @@ func TestDocumentRepositoryPG_GetVersionDiff_DBError(t *testing.T) {
 
 func TestDocumentRepositoryPG_Search_EmptyQuery(t *testing.T) {
 	repo, _ := newDocRepoMock(t)
-	_, _, err := repo.Search(context.Background(), repositories.SearchFilter{Query: ""})
+	_, _, err := repo.Search(context.Background(), usecases.SearchFilter{Query: ""})
 	assert.Contains(t, err.Error(), "search query cannot be empty")
 }
 
 func TestDocumentRepositoryPG_Search_SpecialCharsOnly(t *testing.T) {
 	repo, _ := newDocRepoMock(t)
-	results, total, err := repo.Search(context.Background(), repositories.SearchFilter{Query: "&|!()"})
+	results, total, err := repo.Search(context.Background(), usecases.SearchFilter{Query: "&|!()"})
 	require.NoError(t, err)
 	assert.Empty(t, results)
 	assert.Equal(t, int64(0), total)
@@ -518,7 +518,7 @@ func TestDocumentRepositoryPG_Search_SpecialCharsOnly(t *testing.T) {
 func TestDocumentRepositoryPG_Search_ZeroResults(t *testing.T) {
 	repo, mock := newDocRepoMock(t)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(0)))
-	results, total, err := repo.Search(context.Background(), repositories.SearchFilter{Query: "test", Limit: 10})
+	results, total, err := repo.Search(context.Background(), usecases.SearchFilter{Query: "test", Limit: 10})
 	require.NoError(t, err)
 	assert.Empty(t, results)
 	assert.Equal(t, int64(0), total)
@@ -533,7 +533,7 @@ func TestDocumentRepositoryPG_Search_WithFilters(t *testing.T) {
 	imp := entities.DocumentImportance("high")
 	from := "2024-01-01"
 	to := "2024-12-31"
-	filter := repositories.SearchFilter{
+	filter := usecases.SearchFilter{
 		Query: "test", DocumentTypeID: &dtID, CategoryID: &cID,
 		AuthorID: &aID, Status: &status, Importance: &imp,
 		FromDate: &from, ToDate: &to,
@@ -569,7 +569,7 @@ func TestDocumentRepositoryPG_DeleteVersion_VersionNotFound(t *testing.T) {
 }
 
 // --- v0.156.0 #266: sentinel-error tests via errors.Is ---
-// Ensure repo not-found paths return canonical repositories.ErrDocumentNotFound
+// Ensure repo not-found paths return canonical usecases.ErrDocumentNotFound
 // / ErrVersionNotFound so callers can errors.Is them и map к stable 404.
 // String-Contains assertions above remain (legacy backstop), but errors.Is
 // is the contract going forward.
@@ -579,28 +579,28 @@ func TestDocumentRepositoryPG_Update_NotFound_IsSentinel(t *testing.T) {
 	doc := &entities.Document{ID: 999, Title: "Updated"}
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE documents SET")).WillReturnResult(sqlmock.NewResult(0, 0))
 	err := repo.Update(context.Background(), doc)
-	assert.ErrorIs(t, err, repositories.ErrDocumentNotFound)
+	assert.ErrorIs(t, err, usecases.ErrDocumentNotFound)
 }
 
 func TestDocumentRepositoryPG_GetByID_NotFound_IsSentinel(t *testing.T) {
 	repo, mock := newDocRepoMock(t)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT d.id")).WithArgs(int64(999)).WillReturnError(sql.ErrNoRows)
 	_, err := repo.GetByID(context.Background(), 999)
-	assert.ErrorIs(t, err, repositories.ErrDocumentNotFound)
+	assert.ErrorIs(t, err, usecases.ErrDocumentNotFound)
 }
 
 func TestDocumentRepositoryPG_SoftDelete_NotFound_IsSentinel(t *testing.T) {
 	repo, mock := newDocRepoMock(t)
 	mock.ExpectExec(regexp.QuoteMeta("UPDATE documents SET deleted_at")).WillReturnResult(sqlmock.NewResult(0, 0))
 	err := repo.SoftDelete(context.Background(), 999)
-	assert.ErrorIs(t, err, repositories.ErrDocumentNotFound)
+	assert.ErrorIs(t, err, usecases.ErrDocumentNotFound)
 }
 
 func TestDocumentRepositoryPG_GetVersion_NotFound_IsVersionSentinel(t *testing.T) {
 	repo, mock := newDocRepoMock(t)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT dv.id")).WithArgs(int64(1), 99).WillReturnError(sql.ErrNoRows)
 	_, err := repo.GetVersion(context.Background(), 1, 99)
-	assert.ErrorIs(t, err, repositories.ErrVersionNotFound)
+	assert.ErrorIs(t, err, usecases.ErrVersionNotFound)
 }
 
 func TestDocumentRepositoryPG_DeleteVersion_NotFound_IsVersionSentinel(t *testing.T) {
@@ -608,7 +608,7 @@ func TestDocumentRepositoryPG_DeleteVersion_NotFound_IsVersionSentinel(t *testin
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT d.id")).WithArgs(int64(1)).WillReturnRows(addDocRow(newDocRows(), 1, "Test", 3, nil))
 	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM document_versions")).WithArgs(int64(1), 1).WillReturnResult(sqlmock.NewResult(0, 0))
 	err := repo.DeleteVersion(context.Background(), 1, 1)
-	assert.ErrorIs(t, err, repositories.ErrVersionNotFound)
+	assert.ErrorIs(t, err, usecases.ErrVersionNotFound)
 }
 
 // Test helper functions
@@ -814,7 +814,7 @@ func TestDocumentRepositoryPG_Search_Error(t *testing.T) {
 
 	mock.ExpectQuery("ts_rank").WillReturnError(fmt.Errorf("search error"))
 
-	filter := repositories.SearchFilter{Query: "test", Limit: 20}
+	filter := usecases.SearchFilter{Query: "test", Limit: 20}
 	_, _, err = repo.Search(context.Background(), filter)
 	assert.Error(t, err)
 }
@@ -834,7 +834,7 @@ func TestDocumentRepositoryPG_Search_CountError(t *testing.T) {
 	mock.ExpectQuery("ts_rank").WillReturnRows(sqlmock.NewRows(searchCols))
 	mock.ExpectQuery("COUNT").WillReturnError(fmt.Errorf("count error"))
 
-	filter := repositories.SearchFilter{Query: "test", Limit: 20}
+	filter := usecases.SearchFilter{Query: "test", Limit: 20}
 	_, _, err = repo.Search(context.Background(), filter)
 	assert.Error(t, err)
 }
