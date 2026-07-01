@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 )
 
 // ConversationRepositoryPg implements ConversationRepository using PostgreSQL
@@ -18,7 +18,7 @@ type ConversationRepositoryPg struct {
 }
 
 // NewConversationRepositoryPg creates a new PostgreSQL conversation repository
-func NewConversationRepositoryPg(db *sql.DB) repositories.ConversationRepository {
+func NewConversationRepositoryPg(db *sql.DB) usecases.ConversationRepository {
 	return &ConversationRepositoryPg{db: db}
 }
 
@@ -64,7 +64,7 @@ func (r *ConversationRepositoryPg) GetByID(ctx context.Context, id int64) (*enti
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repositories.ErrConversationNotFound
+		return nil, usecases.ErrConversationNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get conversation: %w", err)
@@ -191,7 +191,7 @@ type MessageRepositoryPg struct {
 }
 
 // NewMessageRepositoryPg creates a new PostgreSQL message repository
-func NewMessageRepositoryPg(db *sql.DB) repositories.MessageRepository {
+func NewMessageRepositoryPg(db *sql.DB) usecases.MessageRepository {
 	return &MessageRepositoryPg{db: db}
 }
 

@@ -1,5 +1,4 @@
-// Package repositories contains repository interfaces for the AI module.
-package repositories
+package usecases
 
 import (
 	"context"

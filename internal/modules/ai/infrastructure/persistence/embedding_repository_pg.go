@@ -13,8 +13,8 @@ import (
 	"github.com/lib/pq"
 	"github.com/pgvector/pgvector-go"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 )
 
 // EmbeddingRepositoryPg implements EmbeddingRepository using PostgreSQL with pgvector
@@ -23,7 +23,7 @@ type EmbeddingRepositoryPg struct {
 }
 
 // NewEmbeddingRepositoryPg creates a new PostgreSQL embedding repository
-func NewEmbeddingRepositoryPg(db *sql.DB) repositories.EmbeddingRepository {
+func NewEmbeddingRepositoryPg(db *sql.DB) usecases.EmbeddingRepository {
 	return &EmbeddingRepositoryPg{db: db}
 }
 

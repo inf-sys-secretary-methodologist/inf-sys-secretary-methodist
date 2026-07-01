@@ -15,7 +15,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/ports"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/cache"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
@@ -38,7 +37,7 @@ const (
 
 // EmbeddingUseCase handles document embedding and search operations
 type EmbeddingUseCase struct {
-	embeddingRepo     repositories.EmbeddingRepository
+	embeddingRepo     EmbeddingRepository
 	embeddingProvider EmbeddingProvider
 	documentProvider  DocumentProvider
 	chunkingService   *services.ChunkingService
@@ -57,7 +56,7 @@ func (uc *EmbeddingUseCase) WithReranker(p ports.LLMProvider) *EmbeddingUseCase 
 
 // NewEmbeddingUseCase creates a new EmbeddingUseCase
 func NewEmbeddingUseCase(
-	embeddingRepo repositories.EmbeddingRepository,
+	embeddingRepo EmbeddingRepository,
 	embeddingProvider EmbeddingProvider,
 	documentProvider DocumentProvider,
 	auditLogger *logging.AuditLogger,

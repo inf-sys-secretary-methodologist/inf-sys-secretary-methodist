@@ -7,18 +7,17 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 )
 
 // FunFactUseCase handles fun fact operations
 type FunFactUseCase struct {
-	factRepo    repositories.FunFactRepository
+	factRepo    FunFactRepository
 	personality services.PersonalityProvider
 }
 
 // NewFunFactUseCase creates a new FunFactUseCase
 func NewFunFactUseCase(
-	factRepo repositories.FunFactRepository,
+	factRepo FunFactRepository,
 	personality services.PersonalityProvider,
 ) *FunFactUseCase {
 	return &FunFactUseCase{
