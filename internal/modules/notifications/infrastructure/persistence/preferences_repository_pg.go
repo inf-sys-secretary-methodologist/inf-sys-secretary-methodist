@@ -1,4 +1,4 @@
-// Package persistence contains PostgreSQL implementations of repositories.
+// Package persistence contains PostgreSQL implementations of usecases.
 package persistence
 
 import (
@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 )
 
 // PreferencesRepositoryPG is PostgreSQL implementation of PreferencesRepository
@@ -18,7 +18,7 @@ type PreferencesRepositoryPG struct {
 }
 
 // NewPreferencesRepositoryPG creates a new PostgreSQL preferences repository
-func NewPreferencesRepositoryPG(db *sql.DB) repositories.PreferencesRepository {
+func NewPreferencesRepositoryPG(db *sql.DB) usecases.PreferencesRepository {
 	return &PreferencesRepositoryPG{db: db}
 }
 

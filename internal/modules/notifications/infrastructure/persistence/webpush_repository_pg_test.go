@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/infrastructure/persistence"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/testing/helpers"
 	testSuite "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/testing/suite"
@@ -16,7 +16,7 @@ import (
 // WebPushRepositoryTestSuite tests the PostgreSQL WebPush repository
 type WebPushRepositoryTestSuite struct {
 	testSuite.IntegrationSuite
-	repo repositories.WebPushRepository
+	repo usecases.WebPushRepository
 }
 
 // SetupSuite runs once before all tests

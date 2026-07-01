@@ -134,7 +134,6 @@ import (
 	notifServices "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/services"
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	notifEntities "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	notifRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 	emailDomain "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/services"
 	notifPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/infrastructure/persistence"
 	notifScheduler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/infrastructure/scheduler"
@@ -1793,7 +1792,7 @@ func setupRoutes(
 	preferencesUseCase *notifUsecases.PreferencesUseCase,
 	telegramVerificationService *notifServices.TelegramVerificationService,
 	telegramService emailDomain.TelegramService,
-	webpushRepo notifRepositories.WebPushRepository,
+	webpushRepo notifUsecases.WebPushRepository,
 	webpushService emailDomain.WebPushService,
 	messagingUseCase *messagingUsecases.MessagingUseCase,
 	messagingHub *messagingWebsocket.Hub,
@@ -3756,12 +3755,12 @@ func initTaskReminderScheduler(
 	taskReminderRepo taskRepositories.TaskReminderRepository,
 	taskRepo taskRepositories.TaskRepository,
 	db *sql.DB,
-	telegramRepo notifRepositories.TelegramRepository,
+	telegramRepo notifUsecases.TelegramRepository,
 	telegramService emailDomain.TelegramService,
-	notificationRepo notifRepositories.NotificationRepository,
-	preferencesRepo notifRepositories.PreferencesRepository,
+	notificationRepo notifUsecases.NotificationRepository,
+	preferencesRepo notifUsecases.PreferencesRepository,
 	notifEmailService emailDomain.EmailService,
-	webpushRepo notifRepositories.WebPushRepository,
+	webpushRepo notifUsecases.WebPushRepository,
 	webpushService emailDomain.WebPushService,
 ) *notifScheduler.TaskReminderScheduler {
 	scheduler, err := notifScheduler.NewTaskReminderScheduler(
@@ -3890,9 +3889,9 @@ func (a *workflowDocRepoAdapter) Update(ctx context.Context, d *docEntities.Docu
 // Issue: #226
 func wireEventReminderDispatch(
 	scheduler *notifScheduler.ReminderScheduler,
-	telegramRepo notifRepositories.TelegramRepository,
+	telegramRepo notifUsecases.TelegramRepository,
 	telegramService emailDomain.TelegramService,
-	webpushRepo notifRepositories.WebPushRepository,
+	webpushRepo notifUsecases.WebPushRepository,
 	webpushService emailDomain.WebPushService,
 ) {
 	if telegramService != nil {

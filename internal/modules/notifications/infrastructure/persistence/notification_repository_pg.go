@@ -1,4 +1,4 @@
-// Package persistence contains PostgreSQL implementations of repositories.
+// Package persistence contains PostgreSQL implementations of usecases.
 package persistence
 
 import (
@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 )
 
 // NotificationRepositoryPG is PostgreSQL implementation of NotificationRepository
@@ -19,7 +19,7 @@ type NotificationRepositoryPG struct {
 }
 
 // NewNotificationRepositoryPG creates a new PostgreSQL notification repository
-func NewNotificationRepositoryPG(db *sql.DB) repositories.NotificationRepository {
+func NewNotificationRepositoryPG(db *sql.DB) usecases.NotificationRepository {
 	return &NotificationRepositoryPG{db: db}
 }
 

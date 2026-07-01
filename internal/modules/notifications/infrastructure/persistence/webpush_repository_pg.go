@@ -1,4 +1,4 @@
-// Package persistence contains PostgreSQL implementations of repositories.
+// Package persistence contains PostgreSQL implementations of usecases.
 package persistence
 
 import (
@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/domain/repositories"
 )
 
 // WebPushRepositoryPG is PostgreSQL implementation of WebPushRepository
@@ -17,7 +17,7 @@ type WebPushRepositoryPG struct {
 }
 
 // NewWebPushRepositoryPG creates a new PostgreSQL Web Push repository
-func NewWebPushRepositoryPG(db *sql.DB) repositories.WebPushRepository {
+func NewWebPushRepositoryPG(db *sql.DB) usecases.WebPushRepository {
 	return &WebPushRepositoryPG{db: db}
 }
 
