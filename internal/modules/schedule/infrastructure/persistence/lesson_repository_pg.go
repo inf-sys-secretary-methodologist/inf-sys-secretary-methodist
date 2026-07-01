@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
 // LessonRepositoryPG implements LessonRepository using PostgreSQL.
@@ -125,7 +125,7 @@ func (r *LessonRepositoryPG) Delete(ctx context.Context, id int64) error {
 }
 
 // List lists lessons with filters and pagination.
-func (r *LessonRepositoryPG) List(ctx context.Context, filter repositories.LessonFilter, limit, offset int) ([]*entities.Lesson, error) {
+func (r *LessonRepositoryPG) List(ctx context.Context, filter usecases.LessonFilter, limit, offset int) ([]*entities.Lesson, error) {
 	whereClause, args := r.buildWhereClause(filter)
 
 	// #nosec G202 -- whereClause is composed from hardcoded column names + numbered placeholders; filter values bind via args.
@@ -152,7 +152,7 @@ func (r *LessonRepositoryPG) List(ctx context.Context, filter repositories.Lesso
 }
 
 // Count counts lessons matching the filter.
-func (r *LessonRepositoryPG) Count(ctx context.Context, filter repositories.LessonFilter) (int64, error) {
+func (r *LessonRepositoryPG) Count(ctx context.Context, filter usecases.LessonFilter) (int64, error) {
 	whereClause, args := r.buildWhereClause(filter)
 
 	var count int64
@@ -161,7 +161,7 @@ func (r *LessonRepositoryPG) Count(ctx context.Context, filter repositories.Less
 }
 
 // GetTimetable returns all lessons matching the filter with associations loaded.
-func (r *LessonRepositoryPG) GetTimetable(ctx context.Context, filter repositories.LessonFilter) ([]*entities.Lesson, error) {
+func (r *LessonRepositoryPG) GetTimetable(ctx context.Context, filter usecases.LessonFilter) ([]*entities.Lesson, error) {
 	whereClauseAliased, argsAliased := r.buildWhereClauseAliased(filter, "l")
 
 	// #nosec G202 -- whereClauseAliased uses hardcoded column names + numbered placeholders; the alias arg ("l") is internal; filter values bind via argsAliased.
@@ -194,11 +194,11 @@ func (r *LessonRepositoryPG) GetTimetable(ctx context.Context, filter repositori
 	return r.scanTimetableLessons(rows)
 }
 
-func (r *LessonRepositoryPG) buildWhereClause(filter repositories.LessonFilter) (string, []interface{}) {
+func (r *LessonRepositoryPG) buildWhereClause(filter usecases.LessonFilter) (string, []interface{}) {
 	return r.buildWhereClauseAliased(filter, "")
 }
 
-func (r *LessonRepositoryPG) buildWhereClauseAliased(filter repositories.LessonFilter, alias string) (string, []interface{}) {
+func (r *LessonRepositoryPG) buildWhereClauseAliased(filter usecases.LessonFilter, alias string) (string, []interface{}) {
 	var conditions []string
 	var args []interface{}
 	argNum := 1

@@ -8,7 +8,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
 // ========== MockLessonRepository ==========
@@ -56,7 +55,7 @@ func (m *MockLessonRepository) Delete(_ context.Context, id int64) error {
 	return nil
 }
 
-func (m *MockLessonRepository) List(_ context.Context, _ repositories.LessonFilter, limit, offset int) ([]*entities.Lesson, error) {
+func (m *MockLessonRepository) List(_ context.Context, _ LessonFilter, limit, offset int) ([]*entities.Lesson, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	var all []*entities.Lesson
@@ -73,13 +72,13 @@ func (m *MockLessonRepository) List(_ context.Context, _ repositories.LessonFilt
 	return all[offset:end], nil
 }
 
-func (m *MockLessonRepository) Count(_ context.Context, _ repositories.LessonFilter) (int64, error) {
+func (m *MockLessonRepository) Count(_ context.Context, _ LessonFilter) (int64, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return int64(len(m.lessons)), nil
 }
 
-func (m *MockLessonRepository) GetTimetable(_ context.Context, _ repositories.LessonFilter) ([]*entities.Lesson, error) {
+func (m *MockLessonRepository) GetTimetable(_ context.Context, _ LessonFilter) ([]*entities.Lesson, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	var all []*entities.Lesson
@@ -111,7 +110,7 @@ func (m *MockClassroomRepository) GetByID(_ context.Context, id int64) (*entitie
 	return nil, nil
 }
 
-func (m *MockClassroomRepository) List(_ context.Context, _ repositories.ClassroomFilter, limit, offset int) ([]*entities.Classroom, error) {
+func (m *MockClassroomRepository) List(_ context.Context, _ ClassroomFilter, limit, offset int) ([]*entities.Classroom, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	var all []*entities.Classroom
@@ -128,7 +127,7 @@ func (m *MockClassroomRepository) List(_ context.Context, _ repositories.Classro
 	return all[offset:end], nil
 }
 
-func (m *MockClassroomRepository) Count(_ context.Context, _ repositories.ClassroomFilter) (int64, error) {
+func (m *MockClassroomRepository) Count(_ context.Context, _ ClassroomFilter) (int64, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return int64(len(m.classrooms)), nil

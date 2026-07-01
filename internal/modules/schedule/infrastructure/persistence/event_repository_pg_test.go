@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
 func newEventRepoMock(t *testing.T) (*EventRepositoryPG, sqlmock.Sqlmock) {
@@ -364,7 +364,7 @@ func TestEventList_NoFilter(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, title")).
 		WillReturnRows(rows)
 
-	events, total, err := repo.List(context.Background(), repositories.EventFilter{})
+	events, total, err := repo.List(context.Background(), usecases.EventFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), total)
 	assert.Len(t, events, 1)
@@ -379,7 +379,7 @@ func TestEventList_AllFilters(t *testing.T) {
 	isRecurring := true
 	search := "test"
 
-	filter := repositories.EventFilter{
+	filter := usecases.EventFilter{
 		OrganizerID:    &orgID,
 		EventType:      &evType,
 		Status:         &status,
@@ -415,7 +415,7 @@ func TestEventList_CountError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).
 		WillReturnError(fmt.Errorf("count error"))
 
-	_, _, err := repo.List(context.Background(), repositories.EventFilter{})
+	_, _, err := repo.List(context.Background(), usecases.EventFilter{})
 	assert.Error(t, err)
 }
 
@@ -428,7 +428,7 @@ func TestEventList_QueryError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, title")).
 		WillReturnError(fmt.Errorf("query error"))
 
-	_, _, err := repo.List(context.Background(), repositories.EventFilter{})
+	_, _, err := repo.List(context.Background(), usecases.EventFilter{})
 	assert.Error(t, err)
 }
 
@@ -441,7 +441,7 @@ func TestEventList_ScanError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, title")).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("bad"))
 
-	_, _, err := repo.List(context.Background(), repositories.EventFilter{})
+	_, _, err := repo.List(context.Background(), usecases.EventFilter{})
 	assert.Error(t, err)
 }
 
@@ -453,7 +453,7 @@ func TestEventList_EmptyOrderByDefaultsToStartTimeAsc(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("ORDER BY start_time ASC")).
 		WillReturnRows(sqlmock.NewRows(eventCols))
 
-	_, _, err := repo.List(context.Background(), repositories.EventFilter{})
+	_, _, err := repo.List(context.Background(), usecases.EventFilter{})
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -474,11 +474,11 @@ func TestEventList_RejectsInjectionInOrderBy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			repo, _ := newEventRepoMock(t)
 
-			_, _, err := repo.List(context.Background(), repositories.EventFilter{
+			_, _, err := repo.List(context.Background(), usecases.EventFilter{
 				OrderBy: tc.orderBy,
 			})
 			require.Error(t, err)
-			require.True(t, errors.Is(err, repositories.ErrInvalidOrderBy),
+			require.True(t, errors.Is(err, usecases.ErrInvalidOrderBy),
 				"expected ErrInvalidOrderBy, got: %v", err)
 		})
 	}
@@ -1388,7 +1388,7 @@ func TestEventList_EmptySearchQuery(t *testing.T) {
 	repo, mock := newEventRepoMock(t)
 	emptySearch := ""
 
-	filter := repositories.EventFilter{
+	filter := usecases.EventFilter{
 		SearchQuery: &emptySearch,
 	}
 

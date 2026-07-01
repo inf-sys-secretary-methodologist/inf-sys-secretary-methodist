@@ -9,24 +9,23 @@ import (
 	notifUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/notifications/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
 // EventUseCase handles event business logic
 type EventUseCase struct {
-	eventRepo           repositories.EventRepository
-	participantRepo     repositories.EventParticipantRepository
-	reminderRepo        repositories.EventReminderRepository
+	eventRepo           EventRepository
+	participantRepo     EventParticipantRepository
+	reminderRepo        EventReminderRepository
 	auditLog            *logging.AuditLogger
 	notificationUseCase *notifUsecases.NotificationUseCase
 }
 
 // NewEventUseCase creates a new event use case
 func NewEventUseCase(
-	eventRepo repositories.EventRepository,
-	participantRepo repositories.EventParticipantRepository,
-	reminderRepo repositories.EventReminderRepository,
+	eventRepo EventRepository,
+	participantRepo EventParticipantRepository,
+	reminderRepo EventReminderRepository,
 	auditLog *logging.AuditLogger,
 	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *EventUseCase {
@@ -274,7 +273,7 @@ func (uc *EventUseCase) GetByID(ctx context.Context, id int64) (*dto.EventOutput
 
 // List retrieves events with filtering and pagination
 func (uc *EventUseCase) List(ctx context.Context, input dto.EventFilterInput) (*dto.EventListOutput, error) {
-	filter := repositories.EventFilter{
+	filter := EventFilter{
 		Limit:  input.PageSize,
 		Offset: (input.Page - 1) * input.PageSize,
 	}

@@ -1,5 +1,4 @@
-// Package repositories defines interfaces for schedule/calendar persistence.
-package repositories
+package usecases
 
 import (
 	"context"

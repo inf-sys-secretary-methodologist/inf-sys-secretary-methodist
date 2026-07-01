@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 )
 
 func newClassroomRepoMock(t *testing.T) (*ClassroomRepositoryPG, sqlmock.Sqlmock) {
@@ -105,7 +105,7 @@ func TestClassroomRepositoryPG_List_NoFilter(t *testing.T) {
 		WithArgs(10, 0).
 		WillReturnRows(rows)
 
-	result, err := repo.List(context.Background(), repositories.ClassroomFilter{}, 10, 0)
+	result, err := repo.List(context.Background(), usecases.ClassroomFilter{}, 10, 0)
 	require.NoError(t, err)
 	assert.Len(t, result, 2)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -130,7 +130,7 @@ func TestClassroomRepositoryPG_List_WithAllFilters(t *testing.T) {
 		WithArgs("A", "lecture", 30, true).
 		WillReturnRows(rows)
 
-	result, err := repo.List(context.Background(), repositories.ClassroomFilter{
+	result, err := repo.List(context.Background(), usecases.ClassroomFilter{
 		Building:    &building,
 		Type:        &classroomType,
 		MinCapacity: &minCapacity,
@@ -146,7 +146,7 @@ func TestClassroomRepositoryPG_List_QueryError(t *testing.T) {
 	mock.ExpectQuery("FROM classrooms").
 		WillReturnError(errors.New("db down"))
 
-	result, err := repo.List(context.Background(), repositories.ClassroomFilter{}, 0, 0)
+	result, err := repo.List(context.Background(), usecases.ClassroomFilter{}, 0, 0)
 	require.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to list classrooms")
@@ -158,7 +158,7 @@ func TestClassroomRepositoryPG_List_ScanError(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id"}).AddRow(int64(1))
 	mock.ExpectQuery("FROM classrooms").WillReturnRows(rows)
 
-	result, err := repo.List(context.Background(), repositories.ClassroomFilter{}, 0, 0)
+	result, err := repo.List(context.Background(), usecases.ClassroomFilter{}, 0, 0)
 	require.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to scan classroom")
@@ -169,7 +169,7 @@ func TestClassroomRepositoryPG_Count_NoFilter(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM classrooms")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(7)))
 
-	count, err := repo.Count(context.Background(), repositories.ClassroomFilter{})
+	count, err := repo.Count(context.Background(), usecases.ClassroomFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, int64(7), count)
 }
@@ -181,7 +181,7 @@ func TestClassroomRepositoryPG_Count_WithBuildingFilter(t *testing.T) {
 		WithArgs("A").
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(3)))
 
-	count, err := repo.Count(context.Background(), repositories.ClassroomFilter{Building: &building})
+	count, err := repo.Count(context.Background(), usecases.ClassroomFilter{Building: &building})
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), count)
 }

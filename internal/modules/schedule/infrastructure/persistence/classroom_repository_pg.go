@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
 // ClassroomRepositoryPG implements ClassroomRepository using PostgreSQL.
@@ -53,7 +53,7 @@ func (r *ClassroomRepositoryPG) GetByID(ctx context.Context, id int64) (*entitie
 }
 
 // List lists classrooms with filters.
-func (r *ClassroomRepositoryPG) List(ctx context.Context, filter repositories.ClassroomFilter, limit, offset int) ([]*entities.Classroom, error) {
+func (r *ClassroomRepositoryPG) List(ctx context.Context, filter usecases.ClassroomFilter, limit, offset int) ([]*entities.Classroom, error) {
 	whereClause, args := r.buildWhereClause(filter)
 
 	// #nosec G202 -- whereClause is composed from hardcoded column names + numbered placeholders; filter values bind via args.
@@ -78,7 +78,7 @@ func (r *ClassroomRepositoryPG) List(ctx context.Context, filter repositories.Cl
 }
 
 // Count counts classrooms matching the filter.
-func (r *ClassroomRepositoryPG) Count(ctx context.Context, filter repositories.ClassroomFilter) (int64, error) {
+func (r *ClassroomRepositoryPG) Count(ctx context.Context, filter usecases.ClassroomFilter) (int64, error) {
 	whereClause, args := r.buildWhereClause(filter)
 
 	var count int64
@@ -86,7 +86,7 @@ func (r *ClassroomRepositoryPG) Count(ctx context.Context, filter repositories.C
 	return count, err
 }
 
-func (r *ClassroomRepositoryPG) buildWhereClause(filter repositories.ClassroomFilter) (string, []interface{}) {
+func (r *ClassroomRepositoryPG) buildWhereClause(filter usecases.ClassroomFilter) (string, []interface{}) {
 	var conditions []string
 	var args []interface{}
 	argNum := 1

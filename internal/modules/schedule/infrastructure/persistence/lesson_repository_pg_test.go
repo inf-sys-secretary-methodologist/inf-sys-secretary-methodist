@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
 // v0.153.1 #196 coverage push: lesson_repository_pg.go was at 0% covered
@@ -225,7 +225,7 @@ func TestLessonRepoList_NoFilterNoLimit(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("FROM schedule_lessons ORDER BY day_of_week")).
 		WillReturnRows(rows)
 
-	lessons, err := repo.List(context.Background(), repositories.LessonFilter{}, 0, 0)
+	lessons, err := repo.List(context.Background(), usecases.LessonFilter{}, 0, 0)
 	require.NoError(t, err)
 	assert.Len(t, lessons, 2)
 }
@@ -235,7 +235,7 @@ func TestLessonRepoList_AllFiltersAdded(t *testing.T) {
 	semID, gID, tID, cID, dID := int64(1), int64(5), int64(4), int64(6), int64(2)
 	day := domain.Monday
 	week := domain.WeekTypeAll
-	filter := repositories.LessonFilter{
+	filter := usecases.LessonFilter{
 		SemesterID:   &semID,
 		GroupID:      &gID,
 		TeacherID:    &tID,
@@ -260,7 +260,7 @@ func TestLessonRepoList_PaginationAddsLimitOffset(t *testing.T) {
 		WithArgs(10, 20).
 		WillReturnRows(sqlmock.NewRows(flatLessonCols))
 
-	_, err := repo.List(context.Background(), repositories.LessonFilter{}, 10, 20)
+	_, err := repo.List(context.Background(), usecases.LessonFilter{}, 10, 20)
 	require.NoError(t, err)
 }
 
@@ -269,7 +269,7 @@ func TestLessonRepoList_QueryError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("FROM schedule_lessons")).
 		WillReturnError(errors.New("db down"))
 
-	lessons, err := repo.List(context.Background(), repositories.LessonFilter{}, 0, 0)
+	lessons, err := repo.List(context.Background(), usecases.LessonFilter{}, 0, 0)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to list lessons")
 	assert.Nil(t, lessons)
@@ -281,7 +281,7 @@ func TestLessonRepoList_ScanError(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "semester_id"}).AddRow(int64(1), int64(1))
 	mock.ExpectQuery(regexp.QuoteMeta("FROM schedule_lessons")).WillReturnRows(rows)
 
-	lessons, err := repo.List(context.Background(), repositories.LessonFilter{}, 0, 0)
+	lessons, err := repo.List(context.Background(), usecases.LessonFilter{}, 0, 0)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to scan lesson")
 	assert.Nil(t, lessons)
@@ -296,7 +296,7 @@ func TestLessonRepoCount_HappyPath(t *testing.T) {
 		WithArgs(semID).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(42)))
 
-	count, err := repo.Count(context.Background(), repositories.LessonFilter{SemesterID: &semID})
+	count, err := repo.Count(context.Background(), usecases.LessonFilter{SemesterID: &semID})
 	require.NoError(t, err)
 	assert.Equal(t, int64(42), count)
 }
@@ -306,7 +306,7 @@ func TestLessonRepoCount_DBError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM schedule_lessons")).
 		WillReturnError(errors.New("count failed"))
 
-	_, err := repo.Count(context.Background(), repositories.LessonFilter{})
+	_, err := repo.Count(context.Background(), usecases.LessonFilter{})
 	require.Error(t, err)
 }
 
@@ -321,7 +321,7 @@ func TestLessonRepoGetTimetable_HappyPath(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("FROM schedule_lessons l")).
 		WillReturnRows(rows)
 
-	lessons, err := repo.GetTimetable(context.Background(), repositories.LessonFilter{})
+	lessons, err := repo.GetTimetable(context.Background(), usecases.LessonFilter{})
 	require.NoError(t, err)
 	require.Len(t, lessons, 2)
 	require.NotNil(t, lessons[0].Discipline)
@@ -335,7 +335,7 @@ func TestLessonRepoGetTimetable_WithFilter(t *testing.T) {
 		WithArgs(gID).
 		WillReturnRows(sqlmock.NewRows(joinedLessonCols))
 
-	_, err := repo.GetTimetable(context.Background(), repositories.LessonFilter{GroupID: &gID})
+	_, err := repo.GetTimetable(context.Background(), usecases.LessonFilter{GroupID: &gID})
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -345,7 +345,7 @@ func TestLessonRepoGetTimetable_QueryError(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("FROM schedule_lessons l")).
 		WillReturnError(errors.New("timetable query failed"))
 
-	lessons, err := repo.GetTimetable(context.Background(), repositories.LessonFilter{})
+	lessons, err := repo.GetTimetable(context.Background(), usecases.LessonFilter{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get timetable")
 	assert.Nil(t, lessons)
@@ -357,7 +357,7 @@ func TestLessonRepoGetTimetable_ScanError(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(int64(1), "broken")
 	mock.ExpectQuery(regexp.QuoteMeta("FROM schedule_lessons l")).WillReturnRows(rows)
 
-	lessons, err := repo.GetTimetable(context.Background(), repositories.LessonFilter{})
+	lessons, err := repo.GetTimetable(context.Background(), usecases.LessonFilter{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to scan timetable lesson")
 	assert.Nil(t, lessons)

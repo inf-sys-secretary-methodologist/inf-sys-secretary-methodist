@@ -1,4 +1,4 @@
-// Package persistence provides database implementations for schedule repositories.
+// Package persistence provides database implementations for schedule usecases.
 package persistence
 
 import (
@@ -12,8 +12,8 @@ import (
 
 	"github.com/lib/pq"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
 // EventRepositoryPG implements EventRepository using PostgreSQL
@@ -211,10 +211,10 @@ var validEventOrderBy = map[string]string{
 }
 
 // List retrieves events with filtering and pagination
-func (r *EventRepositoryPG) List(ctx context.Context, filter repositories.EventFilter) ([]*entities.Event, int64, error) {
+func (r *EventRepositoryPG) List(ctx context.Context, filter usecases.EventFilter) ([]*entities.Event, int64, error) {
 	orderBy, ok := validEventOrderBy[filter.OrderBy]
 	if !ok {
-		return nil, 0, repositories.ErrInvalidOrderBy
+		return nil, 0, usecases.ErrInvalidOrderBy
 	}
 
 	var conditions []string

@@ -3,9 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
 // CreateLessonInput represents input for creating a new lesson.
@@ -51,26 +49,6 @@ type LessonFilterInput struct {
 	WeekType     *string `form:"week_type"`
 	Limit        int     `form:"limit,default=100"`
 	Offset       int     `form:"offset,default=0"`
-}
-
-// ToFilter converts LessonFilterInput to domain LessonFilter.
-func (f *LessonFilterInput) ToFilter() repositories.LessonFilter {
-	filter := repositories.LessonFilter{
-		SemesterID:   f.SemesterID,
-		GroupID:      f.GroupID,
-		TeacherID:    f.TeacherID,
-		ClassroomID:  f.ClassroomID,
-		DisciplineID: f.DisciplineID,
-	}
-	if f.DayOfWeek != nil {
-		dow := domain.DayOfWeek(*f.DayOfWeek)
-		filter.DayOfWeek = &dow
-	}
-	if f.WeekType != nil {
-		wt := domain.WeekType(*f.WeekType)
-		filter.WeekType = &wt
-	}
-	return filter
 }
 
 // CreateChangeInput represents input for creating a schedule change.

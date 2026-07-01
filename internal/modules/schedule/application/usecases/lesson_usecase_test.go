@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
 // ===================== Create =====================
@@ -187,7 +186,7 @@ func TestLessonUseCase_List(t *testing.T) {
 	_, _ = uc.Create(ctx, 1, validCreateLessonInput())
 	_, _ = uc.Create(ctx, 1, validCreateLessonInput())
 
-	lessons, err := uc.List(ctx, repositories.LessonFilter{}, 10, 0)
+	lessons, err := uc.List(ctx, LessonFilter{}, 10, 0)
 	require.NoError(t, err)
 	assert.Len(t, lessons, 2)
 }
@@ -201,7 +200,7 @@ func TestLessonUseCase_Count(t *testing.T) {
 	_, _ = uc.Create(ctx, 1, validCreateLessonInput())
 	_, _ = uc.Create(ctx, 1, validCreateLessonInput())
 
-	count, err := uc.Count(ctx, repositories.LessonFilter{})
+	count, err := uc.Count(ctx, LessonFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 }
@@ -214,7 +213,7 @@ func TestLessonUseCase_GetTimetable(t *testing.T) {
 
 	_, _ = uc.Create(ctx, 1, validCreateLessonInput())
 
-	lessons, err := uc.GetTimetable(ctx, repositories.LessonFilter{})
+	lessons, err := uc.GetTimetable(ctx, LessonFilter{})
 	require.NoError(t, err)
 	assert.Len(t, lessons, 1)
 }
@@ -278,7 +277,7 @@ func TestLessonUseCase_ListClassrooms(t *testing.T) {
 	uc, _, _, _, _ := setupLessonUseCaseAll()
 	ctx := context.Background()
 
-	classrooms, err := uc.ListClassrooms(ctx, repositories.ClassroomFilter{}, 10, 0)
+	classrooms, err := uc.ListClassrooms(ctx, ClassroomFilter{}, 10, 0)
 	require.NoError(t, err)
 	assert.Empty(t, classrooms)
 }

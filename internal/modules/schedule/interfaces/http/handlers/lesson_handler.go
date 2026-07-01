@@ -12,11 +12,30 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/repositories"
 )
 
 // errorKey is the gin.H field name for error payloads in this package. Extracted to satisfy goconst.
 const errorKey = "error"
+
+// lessonFilterFromInput maps a LessonFilterInput DTO to a usecases.LessonFilter.
+func lessonFilterFromInput(f dto.LessonFilterInput) usecases.LessonFilter {
+	filter := usecases.LessonFilter{
+		SemesterID:   f.SemesterID,
+		GroupID:      f.GroupID,
+		TeacherID:    f.TeacherID,
+		ClassroomID:  f.ClassroomID,
+		DisciplineID: f.DisciplineID,
+	}
+	if f.DayOfWeek != nil {
+		dow := domain.DayOfWeek(*f.DayOfWeek)
+		filter.DayOfWeek = &dow
+	}
+	if f.WeekType != nil {
+		wt := domain.WeekType(*f.WeekType)
+		filter.WeekType = &wt
+	}
+	return filter
+}
 
 // LessonHandler handles HTTP requests for lesson endpoints.
 type LessonHandler struct {
@@ -155,7 +174,7 @@ func (h *LessonHandler) List(c *gin.Context) {
 		input.Limit = 100
 	}
 
-	filter := input.ToFilter()
+	filter := lessonFilterFromInput(input)
 
 	lessons, err := h.lessonUseCase.List(c.Request.Context(), filter, input.Limit, input.Offset)
 	if err != nil {
@@ -190,7 +209,7 @@ func (h *LessonHandler) GetTimetable(c *gin.Context) {
 		return
 	}
 
-	filter := input.ToFilter()
+	filter := lessonFilterFromInput(input)
 
 	lessons, err := h.lessonUseCase.GetTimetable(c.Request.Context(), filter)
 	if err != nil {
@@ -365,7 +384,7 @@ func (h *LessonHandler) ListChanges(c *gin.Context) {
 
 // ListClassrooms lists classrooms.
 func (h *LessonHandler) ListClassrooms(c *gin.Context) {
-	var filter repositories.ClassroomFilter
+	var filter usecases.ClassroomFilter
 
 	if building := c.Query("building"); building != "" {
 		filter.Building = &building
