@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 // AssignmentRepositoryPG is the SQL implementation of AssignmentRepository.
@@ -47,7 +47,7 @@ func (r *AssignmentRepositoryPG) GetByID(ctx context.Context, id int64) (*entiti
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, repositories.ErrAssignmentNotFound
+			return nil, usecases.ErrAssignmentNotFound
 		}
 		return nil, fmt.Errorf("assignments: get by id: %w", err)
 	}
@@ -72,7 +72,7 @@ func (r *AssignmentRepositoryPG) GetByID(ctx context.Context, id int64) (*entiti
 // the teacher predicate, empty string for subject / group_name
 // disables those. PostgreSQL accepts the cast-style "$1::bigint IS
 // NULL" check uniformly with sql.NullInt64.
-func (r *AssignmentRepositoryPG) List(ctx context.Context, filter repositories.AssignmentListFilter) (repositories.AssignmentListResult, error) {
+func (r *AssignmentRepositoryPG) List(ctx context.Context, filter usecases.AssignmentListFilter) (usecases.AssignmentListResult, error) {
 	var tid sql.NullInt64
 	if filter.TeacherID != nil {
 		tid = sql.NullInt64{Int64: *filter.TeacherID, Valid: true}
@@ -85,7 +85,7 @@ func (r *AssignmentRepositoryPG) List(ctx context.Context, filter repositories.A
 	countQuery := `SELECT COUNT(*) FROM assignments ` + filterClause
 	var total int
 	if err := r.db.QueryRowContext(ctx, countQuery, tid, filter.Subject, filter.GroupName).Scan(&total); err != nil {
-		return repositories.AssignmentListResult{}, fmt.Errorf("assignments: count: %w", err)
+		return usecases.AssignmentListResult{}, fmt.Errorf("assignments: count: %w", err)
 	}
 
 	listQuery := `SELECT ` + assignmentSelectColumns + ` FROM assignments ` + filterClause + `
@@ -94,7 +94,7 @@ func (r *AssignmentRepositoryPG) List(ctx context.Context, filter repositories.A
 
 	rows, err := r.db.QueryContext(ctx, listQuery, tid, filter.Subject, filter.GroupName, filter.Limit, filter.Offset)
 	if err != nil {
-		return repositories.AssignmentListResult{}, fmt.Errorf("assignments: list: %w", err)
+		return usecases.AssignmentListResult{}, fmt.Errorf("assignments: list: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -114,7 +114,7 @@ func (r *AssignmentRepositoryPG) List(ctx context.Context, filter repositories.A
 		)
 		if err := rows.Scan(&id, &title, &description, &teacherID, &groupName, &subject,
 			&maxScore, &dueDate, &createdAt, &updatedAt); err != nil {
-			return repositories.AssignmentListResult{}, fmt.Errorf("assignments: list scan: %w", err)
+			return usecases.AssignmentListResult{}, fmt.Errorf("assignments: list scan: %w", err)
 		}
 		var due *time.Time
 		if dueDate.Valid {
@@ -127,16 +127,16 @@ func (r *AssignmentRepositoryPG) List(ctx context.Context, filter repositories.A
 		))
 	}
 	if err := rows.Err(); err != nil {
-		return repositories.AssignmentListResult{}, fmt.Errorf("assignments: list iter: %w", err)
+		return usecases.AssignmentListResult{}, fmt.Errorf("assignments: list iter: %w", err)
 	}
-	return repositories.AssignmentListResult{Items: items, Total: total}, nil
+	return usecases.AssignmentListResult{Items: items, Total: total}, nil
 }
 
 // AggregateGradeDistribution counts submissions grouped by
 // (assignment.subject, submission.status) for submissions whose
 // created_at lies in the half-open [from, to) range. Empty result
 // is not an error.
-func (r *AssignmentRepositoryPG) AggregateGradeDistribution(ctx context.Context, from, to time.Time) ([]repositories.AssignmentGradeDistributionAgg, error) {
+func (r *AssignmentRepositoryPG) AggregateGradeDistribution(ctx context.Context, from, to time.Time) ([]usecases.AssignmentGradeDistributionAgg, error) {
 	const query = `SELECT a.subject, s.status, COUNT(*) FROM submissions s
 		JOIN assignments a ON a.id = s.assignment_id
 		WHERE s.created_at >= $1 AND s.created_at < $2
@@ -149,7 +149,7 @@ func (r *AssignmentRepositoryPG) AggregateGradeDistribution(ctx context.Context,
 	}
 	defer func() { _ = rows.Close() }()
 
-	var out []repositories.AssignmentGradeDistributionAgg
+	var out []usecases.AssignmentGradeDistributionAgg
 	for rows.Next() {
 		var (
 			subject   string
@@ -159,7 +159,7 @@ func (r *AssignmentRepositoryPG) AggregateGradeDistribution(ctx context.Context,
 		if err := rows.Scan(&subject, &statusStr, &count); err != nil {
 			return nil, fmt.Errorf("assignments: aggregate grade scan: %w", err)
 		}
-		out = append(out, repositories.AssignmentGradeDistributionAgg{
+		out = append(out, usecases.AssignmentGradeDistributionAgg{
 			Subject: subject,
 			Status:  entities.SubmissionStatus(statusStr),
 			Count:   count,

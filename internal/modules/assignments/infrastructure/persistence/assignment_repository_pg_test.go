@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 func newAssignmentRepoMock(t *testing.T) (*AssignmentRepositoryPG, sqlmock.Sqlmock) {
@@ -56,7 +56,7 @@ func TestAssignmentRepositoryPG_GetByID(t *testing.T) {
 					WithArgs(int64(999)).
 					WillReturnError(sql.ErrNoRows)
 			},
-			wantErr: repositories.ErrAssignmentNotFound,
+			wantErr: usecases.ErrAssignmentNotFound,
 		},
 		{
 			name: "transport error wraps original",
@@ -82,8 +82,8 @@ func TestAssignmentRepositoryPG_GetByID(t *testing.T) {
 
 			if tc.wantErr != nil {
 				require.Error(t, err)
-				if errors.Is(tc.wantErr, repositories.ErrAssignmentNotFound) {
-					assert.True(t, errors.Is(err, repositories.ErrAssignmentNotFound))
+				if errors.Is(tc.wantErr, usecases.ErrAssignmentNotFound) {
+					assert.True(t, errors.Is(err, usecases.ErrAssignmentNotFound))
 				} else {
 					assert.Contains(t, err.Error(), "get by id")
 				}
@@ -124,7 +124,7 @@ func TestAssignmentRepositoryPG_List(t *testing.T) {
 			WithArgs(sql.NullInt64{}, "", "", 50, 0).
 			WillReturnRows(rows)
 
-		got, err := repo.List(context.Background(), repositories.AssignmentListFilter{Limit: 50})
+		got, err := repo.List(context.Background(), usecases.AssignmentListFilter{Limit: 50})
 		require.NoError(t, err)
 		assert.Equal(t, 2, got.Total)
 		require.Len(t, got.Items, 2)
@@ -152,7 +152,7 @@ func TestAssignmentRepositoryPG_List(t *testing.T) {
 			WillReturnRows(rows)
 
 		tid := teacherID
-		got, err := repo.List(context.Background(), repositories.AssignmentListFilter{
+		got, err := repo.List(context.Background(), usecases.AssignmentListFilter{
 			TeacherID: &tid, Limit: 50,
 		})
 		require.NoError(t, err)
@@ -175,7 +175,7 @@ func TestAssignmentRepositoryPG_List(t *testing.T) {
 				"subject", "max_score", "due_date", "created_at", "updated_at",
 			}))
 
-		got, err := repo.List(context.Background(), repositories.AssignmentListFilter{
+		got, err := repo.List(context.Background(), usecases.AssignmentListFilter{
 			Subject: "Algo", GroupName: "ИС-21", Limit: 25, Offset: 100,
 		})
 		require.NoError(t, err)
@@ -191,7 +191,7 @@ func TestAssignmentRepositoryPG_List(t *testing.T) {
 			WithArgs(sql.NullInt64{}, "", "").
 			WillReturnError(fmt.Errorf("conn refused"))
 
-		_, err := repo.List(context.Background(), repositories.AssignmentListFilter{Limit: 50})
+		_, err := repo.List(context.Background(), usecases.AssignmentListFilter{Limit: 50})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "count")
 	})
@@ -207,7 +207,7 @@ func TestAssignmentRepositoryPG_List(t *testing.T) {
 			WithArgs(sql.NullInt64{}, "", "", 50, 0).
 			WillReturnError(fmt.Errorf("query failed"))
 
-		_, err := repo.List(context.Background(), repositories.AssignmentListFilter{Limit: 50})
+		_, err := repo.List(context.Background(), usecases.AssignmentListFilter{Limit: 50})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "list")
 	})
@@ -220,7 +220,7 @@ func TestAssignmentRepositoryPG_AggregateGradeDistribution(t *testing.T) {
 	cases := []struct {
 		name string
 		rows *sqlmock.Rows
-		want []repositories.AssignmentGradeDistributionAgg
+		want []usecases.AssignmentGradeDistributionAgg
 	}{
 		{
 			name: "no matching rows returns empty slice",
@@ -234,7 +234,7 @@ func TestAssignmentRepositoryPG_AggregateGradeDistribution(t *testing.T) {
 				AddRow("Алгоритмы", "pending", 3).
 				AddRow("Базы данных", "graded", 8).
 				AddRow("Базы данных", "returned", 1),
-			want: []repositories.AssignmentGradeDistributionAgg{
+			want: []usecases.AssignmentGradeDistributionAgg{
 				{Subject: "Алгоритмы", Status: entities.StatusGraded, Count: 12},
 				{Subject: "Алгоритмы", Status: entities.StatusPending, Count: 3},
 				{Subject: "Базы данных", Status: entities.StatusGraded, Count: 8},
@@ -245,7 +245,7 @@ func TestAssignmentRepositoryPG_AggregateGradeDistribution(t *testing.T) {
 			name: "single subject single status",
 			rows: sqlmock.NewRows([]string{"subject", "status", "count"}).
 				AddRow("Дискретная математика", "graded", 4),
-			want: []repositories.AssignmentGradeDistributionAgg{
+			want: []usecases.AssignmentGradeDistributionAgg{
 				{Subject: "Дискретная математика", Status: entities.StatusGraded, Count: 4},
 			},
 		},

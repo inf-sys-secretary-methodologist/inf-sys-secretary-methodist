@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 )
 
@@ -23,14 +22,14 @@ type ListSubmissionsInput struct {
 // given assignment, after enforcing the same caller-scope rule as
 // GetAssignment.
 type ListSubmissionsUseCase struct {
-	assignmentRepo repositories.AssignmentRepository
-	submissionRepo repositories.SubmissionRepository
+	assignmentRepo AssignmentRepository
+	submissionRepo SubmissionRepository
 }
 
 // NewListSubmissionsUseCase wires the use case.
 func NewListSubmissionsUseCase(
-	assignmentRepo repositories.AssignmentRepository,
-	submissionRepo repositories.SubmissionRepository,
+	assignmentRepo AssignmentRepository,
+	submissionRepo SubmissionRepository,
 ) *ListSubmissionsUseCase {
 	return &ListSubmissionsUseCase{
 		assignmentRepo: assignmentRepo,
@@ -42,7 +41,7 @@ func NewListSubmissionsUseCase(
 // returns the submission read-models for that assignment. Errors
 // surface domain sentinels:
 //
-//   - repositories.ErrAssignmentNotFound       → 404
+//   - ErrAssignmentNotFound       → 404
 //   - entities.ErrAssignmentScopeForbidden     → 403
 func (uc *ListSubmissionsUseCase) Execute(ctx context.Context, in ListSubmissionsInput) ([]views.SubmissionView, error) {
 	a, err := uc.assignmentRepo.GetByID(ctx, in.AssignmentID)

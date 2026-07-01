@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 // ===== AssignmentRepositoryPG.List branch coverage =====
@@ -36,7 +36,7 @@ func TestAssignmentRepositoryPG_List_ScanError(t *testing.T) {
 		WithArgs(sql.NullInt64{}, "", "", 50, 0).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(1)))
 
-	_, err := repo.List(context.Background(), repositories.AssignmentListFilter{Limit: 50})
+	_, err := repo.List(context.Background(), usecases.AssignmentListFilter{Limit: 50})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "list scan")
 }
@@ -58,7 +58,7 @@ func TestAssignmentRepositoryPG_List_RowsErrPropagates(t *testing.T) {
 		WithArgs(sql.NullInt64{}, "", "", 50, 0).
 		WillReturnRows(rows)
 
-	_, err := repo.List(context.Background(), repositories.AssignmentListFilter{Limit: 50})
+	_, err := repo.List(context.Background(), usecases.AssignmentListFilter{Limit: 50})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "list iter")
 }
@@ -82,7 +82,7 @@ func TestAssignmentRepositoryPG_List_DueDateValidPopulated(t *testing.T) {
 		WithArgs(sql.NullInt64{}, "", "", 50, 0).
 		WillReturnRows(rows)
 
-	got, err := repo.List(context.Background(), repositories.AssignmentListFilter{Limit: 50})
+	got, err := repo.List(context.Background(), usecases.AssignmentListFilter{Limit: 50})
 	require.NoError(t, err)
 	require.Len(t, got.Items, 1)
 	require.NotNil(t, got.Items[0].DueDate())

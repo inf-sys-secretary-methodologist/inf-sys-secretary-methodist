@@ -15,7 +15,6 @@ import (
 
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/interfaces/http/handlers"
 )
@@ -142,8 +141,8 @@ func TestMyAssignmentsHandler_DetailErrorMapping(t *testing.T) {
 		ucErr    error
 		wantCode int
 	}{
-		{name: "ErrAssignmentNotFound → 404", ucErr: repositories.ErrAssignmentNotFound, wantCode: http.StatusNotFound},
-		{name: "ErrSubmissionNotFound → 404", ucErr: repositories.ErrSubmissionNotFound, wantCode: http.StatusNotFound},
+		{name: "ErrAssignmentNotFound → 404", ucErr: assignUsecases.ErrAssignmentNotFound, wantCode: http.StatusNotFound},
+		{name: "ErrSubmissionNotFound → 404", ucErr: assignUsecases.ErrSubmissionNotFound, wantCode: http.StatusNotFound},
 		{name: "ErrSubmissionOwnerOnly → 403", ucErr: entities.ErrSubmissionOwnerOnly, wantCode: http.StatusForbidden},
 		{name: "generic → 500", ucErr: errors.New("boom"), wantCode: http.StatusInternalServerError},
 	}

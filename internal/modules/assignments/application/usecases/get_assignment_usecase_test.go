@@ -10,7 +10,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 func TestGetAssignmentUseCase_Execute(t *testing.T) {
@@ -51,7 +50,7 @@ func TestGetAssignmentUseCase_Execute(t *testing.T) {
 			caller:  usecases.CallerScope{UserID: authorTeacherID, Unrestricted: true},
 			askID:   999,
 			seedID:  assignmentID,
-			wantErr: repositories.ErrAssignmentNotFound,
+			wantErr: usecases.ErrAssignmentNotFound,
 		},
 	}
 

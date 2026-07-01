@@ -10,7 +10,6 @@ import (
 
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
@@ -124,10 +123,10 @@ func studentIDFromContext(c *gin.Context) (int64, bool) {
 // assignments_handler.
 func (h *ResubmitHandler) handleError(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, repositories.ErrAssignmentNotFound):
+	case errors.Is(err, assignUsecases.ErrAssignmentNotFound):
 		c.JSON(http.StatusNotFound, response.NotFound("assignment"))
 		return
-	case errors.Is(err, repositories.ErrSubmissionNotFound):
+	case errors.Is(err, assignUsecases.ErrSubmissionNotFound):
 		c.JSON(http.StatusNotFound, response.NotFound("submission"))
 		return
 	case errors.Is(err, entities.ErrSubmissionOwnerOnly):

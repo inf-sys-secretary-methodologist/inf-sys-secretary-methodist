@@ -11,7 +11,6 @@ import (
 
 	assignUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
@@ -331,7 +330,7 @@ func mapSubmissionViews(in []views.SubmissionView) []SubmissionViewDTO {
 // through to the generic mapper's 500.
 func (h *AssignmentsHandler) handleError(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, repositories.ErrAssignmentNotFound):
+	case errors.Is(err, assignUsecases.ErrAssignmentNotFound):
 		c.JSON(http.StatusNotFound, response.NotFound("assignment"))
 		return
 	case errors.Is(err, entities.ErrAssignmentScopeForbidden):

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 // GetAssignmentInput is the use-case input contract.
@@ -19,18 +18,18 @@ type GetAssignmentInput struct {
 // scope at the SQL level — a single-fetch endpoint would otherwise
 // expose any assignment ID to any non-student.
 type GetAssignmentUseCase struct {
-	repo repositories.AssignmentRepository
+	repo AssignmentRepository
 }
 
 // NewGetAssignmentUseCase wires the use case.
-func NewGetAssignmentUseCase(repo repositories.AssignmentRepository) *GetAssignmentUseCase {
+func NewGetAssignmentUseCase(repo AssignmentRepository) *GetAssignmentUseCase {
 	return &GetAssignmentUseCase{repo: repo}
 }
 
 // Execute fetches the assignment, then enforces the caller-scope rule
 // before returning it. Errors surface domain sentinels:
 //
-//   - repositories.ErrAssignmentNotFound       → 404
+//   - ErrAssignmentNotFound       → 404
 //   - entities.ErrAssignmentScopeForbidden     → 403
 func (uc *GetAssignmentUseCase) Execute(ctx context.Context, in GetAssignmentInput) (*entities.Assignment, error) {
 	a, err := uc.repo.GetByID(ctx, in.AssignmentID)

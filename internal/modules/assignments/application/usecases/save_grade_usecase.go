@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 // SaveGradeNotifier is a narrow port through which the SaveGrade use case
@@ -32,8 +31,8 @@ type SaveGradeInput struct {
 // for a given assignment. It is the only entry point that mutates
 // submission state in the academic Tasks Context.
 type SaveGradeUseCase struct {
-	assignmentRepo repositories.AssignmentRepository
-	submissionRepo repositories.SubmissionRepository
+	assignmentRepo AssignmentRepository
+	submissionRepo SubmissionRepository
 	notifier       SaveGradeNotifier
 	auditSink      AuditSink
 	clock          func() time.Time
@@ -44,8 +43,8 @@ type SaveGradeUseCase struct {
 // narrow AuditSink port so tests can substitute a recording double; the
 // concrete *logging.AuditLogger satisfies it structurally.
 func NewSaveGradeUseCase(
-	assignmentRepo repositories.AssignmentRepository,
-	submissionRepo repositories.SubmissionRepository,
+	assignmentRepo AssignmentRepository,
+	submissionRepo SubmissionRepository,
 	notifier SaveGradeNotifier,
 	auditSink AuditSink,
 	clock func() time.Time,
@@ -69,7 +68,7 @@ func NewSaveGradeUseCase(
 // abort the grading — recording the grade is the system of record.
 //
 // Errors surface domain sentinels (errors.Is-friendly):
-//   - repositories.ErrAssignmentNotFound      → 404
+//   - ErrAssignmentNotFound      → 404
 //   - entities.ErrAssignmentScopeForbidden    → 403
 //   - entities.ErrInvalidScore                → 422
 //   - entities.ErrAlreadyGraded               → 409
@@ -99,7 +98,7 @@ func (uc *SaveGradeUseCase) Execute(ctx context.Context, teacherID int64, in Sav
 
 	submission, err := uc.submissionRepo.GetByAssignmentAndStudent(ctx, in.AssignmentID, in.StudentID)
 	switch {
-	case errors.Is(err, repositories.ErrSubmissionNotFound):
+	case errors.Is(err, ErrSubmissionNotFound):
 		submission = entities.NewSubmission(in.AssignmentID, in.StudentID, uc.clock())
 	case err != nil:
 		return fmt.Errorf("save grade: load submission: %w", err)

@@ -11,7 +11,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 func newReturnedSubmission(t *testing.T, aid, studentID int64, now time.Time) *entities.Submission {
@@ -69,7 +68,7 @@ func TestGetMyAssignmentDetailUseCase_Execute(t *testing.T) {
 			StudentID:    studentID,
 		})
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, repositories.ErrAssignmentNotFound))
+		assert.True(t, errors.Is(err, usecases.ErrAssignmentNotFound))
 	})
 
 	t.Run("submission not found surfaces sentinel", func(t *testing.T) {
@@ -82,7 +81,7 @@ func TestGetMyAssignmentDetailUseCase_Execute(t *testing.T) {
 			StudentID:    studentID,
 		})
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, repositories.ErrSubmissionNotFound))
+		assert.True(t, errors.Is(err, usecases.ErrSubmissionNotFound))
 	})
 
 	t.Run("non-positive student id is rejected", func(t *testing.T) {

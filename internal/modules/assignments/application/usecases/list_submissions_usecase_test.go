@@ -11,7 +11,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/views"
 )
 
@@ -67,7 +66,7 @@ func TestListSubmissionsUseCase_Execute(t *testing.T) {
 			caller:  usecases.CallerScope{UserID: authorTeacherID, Unrestricted: false},
 			askID:   999,
 			seedID:  assignmentID,
-			wantErr: repositories.ErrAssignmentNotFound,
+			wantErr: usecases.ErrAssignmentNotFound,
 		},
 		{
 			name:         "status=pending filter passes through",

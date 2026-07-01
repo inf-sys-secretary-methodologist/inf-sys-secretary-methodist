@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/assignments/domain/repositories"
 )
 
 // DefaultListLimit and MaxListLimit cap page sizes for assignment listings.
@@ -48,11 +47,11 @@ type ListAssignmentsOutput struct {
 
 // ListAssignmentsUseCase returns assignments visible to the caller.
 type ListAssignmentsUseCase struct {
-	repo repositories.AssignmentRepository
+	repo AssignmentRepository
 }
 
 // NewListAssignmentsUseCase wires the use case.
-func NewListAssignmentsUseCase(repo repositories.AssignmentRepository) *ListAssignmentsUseCase {
+func NewListAssignmentsUseCase(repo AssignmentRepository) *ListAssignmentsUseCase {
 	return &ListAssignmentsUseCase{repo: repo}
 }
 
@@ -67,7 +66,7 @@ func NewListAssignmentsUseCase(repo repositories.AssignmentRepository) *ListAssi
 // not opt out by passing huge Limit values: <=0 defaults to
 // DefaultListLimit, anything above MaxListLimit is clamped down.
 func (uc *ListAssignmentsUseCase) Execute(ctx context.Context, in ListAssignmentsInput) (ListAssignmentsOutput, error) {
-	filter := repositories.AssignmentListFilter{
+	filter := AssignmentListFilter{
 		Subject:   in.Subject,
 		GroupName: in.GroupName,
 		Limit:     clampLimit(in.Limit),
@@ -82,7 +81,7 @@ func (uc *ListAssignmentsUseCase) Execute(ctx context.Context, in ListAssignment
 	if err != nil {
 		return ListAssignmentsOutput{}, fmt.Errorf("list assignments: %w", err)
 	}
-	return ListAssignmentsOutput{Items: res.Items, Total: res.Total}, nil
+	return ListAssignmentsOutput(res), nil
 }
 
 func clampLimit(v int) int {

@@ -1,6 +1,7 @@
-// Package repositories declares the persistence ports for the assignments
-// module. Concrete implementations live in the infrastructure layer.
-package repositories
+// This file declares the persistence ports for the assignments module.
+// Interfaces live in the usecase (consumer) package per the project's DIP
+// convention; concrete implementations live in the infrastructure layer.
+package usecases
 
 import (
 	"context"
