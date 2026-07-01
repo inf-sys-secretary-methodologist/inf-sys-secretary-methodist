@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -19,7 +19,7 @@ type RiskAlertFunc func(ctx context.Context, student entities.StudentRiskScore)
 // RiskRecalcScheduler recalculates student risk scores daily and saves history.
 type RiskRecalcScheduler struct {
 	scheduler     gocron.Scheduler
-	analyticsRepo repositories.AnalyticsRepository
+	analyticsRepo usecases.AnalyticsRepository
 	logger        *logging.Logger
 	alertFunc     RiskAlertFunc
 }
@@ -27,7 +27,7 @@ type RiskRecalcScheduler struct {
 // NewRiskRecalcScheduler creates a new risk recalculation scheduler.
 // alertFunc is optional — if provided, it's called for each student with risk > 70.
 func NewRiskRecalcScheduler(
-	analyticsRepo repositories.AnalyticsRepository,
+	analyticsRepo usecases.AnalyticsRepository,
 	logger *logging.Logger,
 	alertFuncs ...RiskAlertFunc,
 ) (*RiskRecalcScheduler, error) {

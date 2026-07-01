@@ -15,7 +15,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/analytics/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
@@ -34,7 +33,7 @@ const roleTeacher = "teacher"
 // to the use case. scopeRepo MUST be non-nil — see NewAnalyticsHandler.
 type AnalyticsHandler struct {
 	usecase   *usecases.AnalyticsUseCase
-	scopeRepo repositories.TeacherScopeRepository
+	scopeRepo usecases.TeacherScopeRepository
 }
 
 // NewAnalyticsHandler creates a new analytics handler.
@@ -45,7 +44,7 @@ type AnalyticsHandler struct {
 // exercise scope behavior should pass a no-op implementation rather
 // than nil. The handler panics on construction with a nil repo to fail
 // loudly during DI wiring.
-func NewAnalyticsHandler(usecase *usecases.AnalyticsUseCase, scopeRepo repositories.TeacherScopeRepository) *AnalyticsHandler {
+func NewAnalyticsHandler(usecase *usecases.AnalyticsUseCase, scopeRepo usecases.TeacherScopeRepository) *AnalyticsHandler {
 	if scopeRepo == nil {
 		// Test-only constructor `NewAnalyticsHandler(nil, nil)` is allowed
 		// because some bootstrapping tests assert only that the handler
