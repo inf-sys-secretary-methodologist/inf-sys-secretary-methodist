@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 )
 
 func newCRRepoMock(t *testing.T) (*CustomReportRepositoryPG, sqlmock.Sqlmock) {
@@ -269,7 +269,7 @@ func TestCustomReportRepositoryPG_List_NoFilter(t *testing.T) {
 
 	mock.ExpectQuery("SELECT id, name, description").WillReturnRows(rows)
 
-	reports, err := repo.List(context.Background(), repositories.CustomReportFilter{})
+	reports, err := repo.List(context.Background(), usecases.CustomReportFilter{})
 	require.NoError(t, err)
 	assert.Len(t, reports, 1)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -280,7 +280,7 @@ func TestCustomReportRepositoryPG_List_AllFilters(t *testing.T) {
 	createdBy := int64(1)
 	ds := entities.DataSourceDocuments
 	isPublic := true
-	filter := repositories.CustomReportFilter{
+	filter := usecases.CustomReportFilter{
 		CreatedBy:  &createdBy,
 		DataSource: &ds,
 		IsPublic:   &isPublic,
@@ -301,7 +301,7 @@ func TestCustomReportRepositoryPG_List_AllFilters(t *testing.T) {
 
 func TestCustomReportRepositoryPG_List_Pagination(t *testing.T) {
 	repo, mock := newCRRepoMock(t)
-	filter := repositories.CustomReportFilter{Page: 0, PageSize: 0} // defaults
+	filter := usecases.CustomReportFilter{Page: 0, PageSize: 0} // defaults
 
 	mock.ExpectQuery("SELECT id, name, description").WillReturnRows(newCRRows())
 
@@ -313,7 +313,7 @@ func TestCustomReportRepositoryPG_List_Pagination(t *testing.T) {
 
 func TestCustomReportRepositoryPG_List_MaxPageSize(t *testing.T) {
 	repo, mock := newCRRepoMock(t)
-	filter := repositories.CustomReportFilter{Page: 1, PageSize: 200} // should be capped to 100
+	filter := usecases.CustomReportFilter{Page: 1, PageSize: 200} // should be capped to 100
 
 	mock.ExpectQuery("SELECT id, name, description").WillReturnRows(newCRRows())
 
@@ -328,7 +328,7 @@ func TestCustomReportRepositoryPG_List_Error(t *testing.T) {
 
 	mock.ExpectQuery("SELECT id, name").WillReturnError(sql.ErrConnDone)
 
-	_, err := repo.List(context.Background(), repositories.CustomReportFilter{})
+	_, err := repo.List(context.Background(), usecases.CustomReportFilter{})
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -341,7 +341,7 @@ func TestCustomReportRepositoryPG_List_ScanError(t *testing.T) {
 
 	mock.ExpectQuery("SELECT id, name").WillReturnRows(rows)
 
-	_, err := repo.List(context.Background(), repositories.CustomReportFilter{})
+	_, err := repo.List(context.Background(), usecases.CustomReportFilter{})
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -354,7 +354,7 @@ func TestCustomReportRepositoryPG_Count_NoFilter(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(5)))
 
-	count, err := repo.Count(context.Background(), repositories.CustomReportFilter{})
+	count, err := repo.Count(context.Background(), usecases.CustomReportFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, int64(5), count)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -365,7 +365,7 @@ func TestCustomReportRepositoryPG_Count_AllFilters(t *testing.T) {
 	createdBy := int64(1)
 	ds := entities.DataSourceDocuments
 	isPublic := true
-	filter := repositories.CustomReportFilter{
+	filter := usecases.CustomReportFilter{
 		CreatedBy:  &createdBy,
 		DataSource: &ds,
 		IsPublic:   &isPublic,
@@ -387,7 +387,7 @@ func TestCustomReportRepositoryPG_Count_Error(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).
 		WillReturnError(sql.ErrConnDone)
 
-	_, err := repo.Count(context.Background(), repositories.CustomReportFilter{})
+	_, err := repo.Count(context.Background(), usecases.CustomReportFilter{})
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }

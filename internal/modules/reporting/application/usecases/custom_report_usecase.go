@@ -9,7 +9,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 )
 
 var (
@@ -32,13 +31,13 @@ type QueryBuilder interface {
 
 // CustomReportUseCase handles custom report business logic
 type CustomReportUseCase struct {
-	repo         repositories.CustomReportRepository
+	repo         CustomReportRepository
 	queryBuilder QueryBuilder
 }
 
 // NewCustomReportUseCase creates a new CustomReportUseCase
 func NewCustomReportUseCase(
-	repo repositories.CustomReportRepository,
+	repo CustomReportRepository,
 	queryBuilder QueryBuilder,
 ) *CustomReportUseCase {
 	return &CustomReportUseCase{
@@ -174,7 +173,7 @@ func (uc *CustomReportUseCase) Delete(ctx context.Context, id uuid.UUID, userID 
 // List lists custom reports with filtering and pagination
 func (uc *CustomReportUseCase) List(ctx context.Context, input dto.CustomReportFilterInput, userID int64) (dto.CustomReportListOutput, error) {
 	// Build filter - show user's own reports and public reports
-	filter := dto.ToCustomReportFilter(input, nil)
+	filter := ToCustomReportFilter(input, nil)
 
 	// Get total count first
 	totalCount, err := uc.repo.Count(ctx, filter)
@@ -314,7 +313,7 @@ func (uc *CustomReportUseCase) GetMyReports(ctx context.Context, page, pageSize 
 		Page:     page,
 		PageSize: pageSize,
 	}
-	filter := dto.ToCustomReportFilter(input, &userID)
+	filter := ToCustomReportFilter(input, &userID)
 
 	totalCount, err := uc.repo.Count(ctx, filter)
 	if err != nil {
@@ -357,7 +356,7 @@ func (uc *CustomReportUseCase) GetPublicReports(ctx context.Context, page, pageS
 		Page:     page,
 		PageSize: pageSize,
 	}
-	filter := dto.ToCustomReportFilter(input, nil)
+	filter := ToCustomReportFilter(input, nil)
 
 	totalCount, err := uc.repo.Count(ctx, filter)
 	if err != nil {
@@ -390,4 +389,35 @@ func (uc *CustomReportUseCase) GetPublicReports(ctx context.Context, page, pageS
 		PageSize:   pageSize,
 		TotalPages: totalPages,
 	}, nil
+}
+
+// ToCustomReportFilter converts filter input to a repository filter.
+func ToCustomReportFilter(input dto.CustomReportFilterInput, userID *int64) CustomReportFilter {
+	filter := CustomReportFilter{
+		Page:     input.Page,
+		PageSize: input.PageSize,
+		Search:   input.Search,
+	}
+
+	if input.Page < 1 {
+		filter.Page = 1
+	}
+	if input.PageSize < 1 {
+		filter.PageSize = 10
+	}
+
+	if userID != nil {
+		filter.CreatedBy = userID
+	}
+
+	if input.DataSource != "" {
+		ds := entities.DataSourceType(input.DataSource)
+		filter.DataSource = &ds
+	}
+
+	if input.IsPublic != nil {
+		filter.IsPublic = input.IsPublic
+	}
+
+	return filter
 }

@@ -1,4 +1,4 @@
-// Package persistence provides PostgreSQL implementations of reporting repositories.
+// Package persistence provides PostgreSQL implementations of reporting usecases.
 package persistence
 
 import (
@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 )
 
 // ReportTypeRepositoryPG implements ReportTypeRepository using PostgreSQL
@@ -24,7 +24,7 @@ func NewReportTypeRepositoryPG(db *sql.DB) *ReportTypeRepositoryPG {
 }
 
 // Ensure ReportTypeRepositoryPG implements ReportTypeRepository
-var _ repositories.ReportTypeRepository = (*ReportTypeRepositoryPG)(nil)
+var _ usecases.ReportTypeRepository = (*ReportTypeRepositoryPG)(nil)
 
 // Create inserts a new report type into the database
 func (r *ReportTypeRepositoryPG) Create(ctx context.Context, reportType *entities.ReportType) error {
@@ -142,7 +142,7 @@ func (r *ReportTypeRepositoryPG) Delete(ctx context.Context, id int64) error {
 }
 
 // List retrieves report types with filtering and pagination
-func (r *ReportTypeRepositoryPG) List(ctx context.Context, filter repositories.ReportTypeFilter, limit, offset int) ([]*entities.ReportType, error) {
+func (r *ReportTypeRepositoryPG) List(ctx context.Context, filter usecases.ReportTypeFilter, limit, offset int) ([]*entities.ReportType, error) {
 	query, args := r.buildListQuery(filter, limit, offset, false)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
@@ -155,7 +155,7 @@ func (r *ReportTypeRepositoryPG) List(ctx context.Context, filter repositories.R
 }
 
 // Count returns the total count of report types matching the filter
-func (r *ReportTypeRepositoryPG) Count(ctx context.Context, filter repositories.ReportTypeFilter) (int64, error) {
+func (r *ReportTypeRepositoryPG) Count(ctx context.Context, filter usecases.ReportTypeFilter) (int64, error) {
 	query, args := r.buildListQuery(filter, 0, 0, true)
 
 	var count int64
@@ -168,19 +168,19 @@ func (r *ReportTypeRepositoryPG) Count(ctx context.Context, filter repositories.
 
 // GetByCategory retrieves report types by category
 func (r *ReportTypeRepositoryPG) GetByCategory(ctx context.Context, category domain.ReportCategory) ([]*entities.ReportType, error) {
-	filter := repositories.ReportTypeFilter{Category: &category}
+	filter := usecases.ReportTypeFilter{Category: &category}
 	return r.List(ctx, filter, 0, 0)
 }
 
 // GetPeriodic retrieves periodic report types
 func (r *ReportTypeRepositoryPG) GetPeriodic(ctx context.Context) ([]*entities.ReportType, error) {
 	isPeriodic := true
-	filter := repositories.ReportTypeFilter{IsPeriodic: &isPeriodic}
+	filter := usecases.ReportTypeFilter{IsPeriodic: &isPeriodic}
 	return r.List(ctx, filter, 0, 0)
 }
 
 // buildListQuery constructs the SQL query for listing report types
-func (r *ReportTypeRepositoryPG) buildListQuery(filter repositories.ReportTypeFilter, limit, offset int, countOnly bool) (string, []any) {
+func (r *ReportTypeRepositoryPG) buildListQuery(filter usecases.ReportTypeFilter, limit, offset int, countOnly bool) (string, []any) {
 	var conditions []string
 	var args []any
 	argNum := 1

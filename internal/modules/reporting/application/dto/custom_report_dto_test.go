@@ -90,42 +90,6 @@ func TestToCustomReportOutput(t *testing.T) {
 	assert.Equal(t, "desc", output.Sortings[0].Order)
 }
 
-func TestToCustomReportFilter(t *testing.T) {
-	userID := int64(42)
-	isPublic := true
-	input := CustomReportFilterInput{
-		DataSource: "documents",
-		IsPublic:   &isPublic,
-		Search:     "test",
-		Page:       2,
-		PageSize:   25,
-	}
-
-	filter := ToCustomReportFilter(input, &userID)
-
-	assert.Equal(t, 2, filter.Page)
-	assert.Equal(t, 25, filter.PageSize)
-	assert.Equal(t, "test", filter.Search)
-	assert.Equal(t, &userID, filter.CreatedBy)
-	require.NotNil(t, filter.DataSource)
-	assert.Equal(t, entities.DataSourceDocuments, *filter.DataSource)
-	assert.Equal(t, &isPublic, filter.IsPublic)
-}
-
-func TestToCustomReportFilter_Defaults(t *testing.T) {
-	input := CustomReportFilterInput{
-		Page:     0,
-		PageSize: 0,
-	}
-
-	filter := ToCustomReportFilter(input, nil)
-
-	assert.Equal(t, 1, filter.Page)
-	assert.Equal(t, 10, filter.PageSize)
-	assert.Nil(t, filter.CreatedBy)
-	assert.Nil(t, filter.DataSource)
-}
-
 func TestToSelectedFields(t *testing.T) {
 	dtos := []SelectedFieldDTO{
 		{

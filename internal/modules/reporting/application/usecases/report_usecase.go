@@ -11,7 +11,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/storage"
 )
@@ -33,8 +32,8 @@ var (
 
 // ReportUseCase handles report business logic
 type ReportUseCase struct {
-	reportRepo          repositories.ReportRepository
-	reportTypeRepo      repositories.ReportTypeRepository
+	reportRepo          ReportRepository
+	reportTypeRepo      ReportTypeRepository
 	s3Client            *storage.S3Client
 	auditLog            *logging.AuditLogger
 	notificationUseCase *notifUsecases.NotificationUseCase
@@ -42,8 +41,8 @@ type ReportUseCase struct {
 
 // NewReportUseCase creates a new report use case
 func NewReportUseCase(
-	reportRepo repositories.ReportRepository,
-	reportTypeRepo repositories.ReportTypeRepository,
+	reportRepo ReportRepository,
+	reportTypeRepo ReportTypeRepository,
 	s3Client *storage.S3Client,
 	auditLog *logging.AuditLogger,
 	notificationUseCase *notifUsecases.NotificationUseCase,
@@ -228,7 +227,7 @@ func (uc *ReportUseCase) Delete(ctx context.Context, id, userID int64) error {
 // Note: userID parameter is reserved for future access control filtering.
 func (uc *ReportUseCase) List(ctx context.Context, _ int64, input *dto.ReportFilterInput) (*dto.ReportListOutput, error) {
 	// Build filter
-	filter := repositories.ReportFilter{
+	filter := ReportFilter{
 		ReportTypeID: input.ReportTypeID,
 		AuthorID:     input.AuthorID,
 		IsPublic:     input.IsPublic,
@@ -628,7 +627,7 @@ func (uc *ReportUseCase) GetHistory(ctx context.Context, reportID, userID int64,
 
 // GetReportTypes retrieves all report types
 func (uc *ReportUseCase) GetReportTypes(ctx context.Context, input *dto.ReportTypeFilterInput) (*dto.ReportTypeListOutput, error) {
-	filter := repositories.ReportTypeFilter{
+	filter := ReportTypeFilter{
 		IsPeriodic: input.IsPeriodic,
 	}
 

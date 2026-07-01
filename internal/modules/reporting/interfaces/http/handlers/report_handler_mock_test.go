@@ -14,7 +14,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/reporting/interfaces/http/handlers"
 )
 
@@ -41,14 +40,14 @@ func (m *mockReportRepo) Delete(ctx context.Context, id int64) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
-func (m *mockReportRepo) List(ctx context.Context, f repositories.ReportFilter, l, o int) ([]*entities.Report, error) {
+func (m *mockReportRepo) List(ctx context.Context, f usecases.ReportFilter, l, o int) ([]*entities.Report, error) {
 	args := m.Called(ctx, f, l, o)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*entities.Report), args.Error(1)
 }
-func (m *mockReportRepo) Count(ctx context.Context, f repositories.ReportFilter) (int64, error) {
+func (m *mockReportRepo) Count(ctx context.Context, f usecases.ReportFilter) (int64, error) {
 	args := m.Called(ctx, f)
 	return args.Get(0).(int64), args.Error(1)
 }
@@ -137,14 +136,14 @@ func (m *mockReportTypeRepo) GetByCode(ctx context.Context, code string) (*entit
 	return nil, nil
 }
 func (m *mockReportTypeRepo) Delete(ctx context.Context, id int64) error { return nil }
-func (m *mockReportTypeRepo) List(ctx context.Context, f repositories.ReportTypeFilter, l, o int) ([]*entities.ReportType, error) {
+func (m *mockReportTypeRepo) List(ctx context.Context, f usecases.ReportTypeFilter, l, o int) ([]*entities.ReportType, error) {
 	args := m.Called(ctx, f, l, o)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*entities.ReportType), args.Error(1)
 }
-func (m *mockReportTypeRepo) Count(ctx context.Context, f repositories.ReportTypeFilter) (int64, error) {
+func (m *mockReportTypeRepo) Count(ctx context.Context, f usecases.ReportTypeFilter) (int64, error) {
 	args := m.Called(ctx, f)
 	return args.Get(0).(int64), args.Error(1)
 }
@@ -220,14 +219,14 @@ func (m *mockCustomReportRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
-func (m *mockCustomReportRepo) List(ctx context.Context, f repositories.CustomReportFilter) ([]*entities.CustomReport, error) {
+func (m *mockCustomReportRepo) List(ctx context.Context, f usecases.CustomReportFilter) ([]*entities.CustomReport, error) {
 	args := m.Called(ctx, f)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*entities.CustomReport), args.Error(1)
 }
-func (m *mockCustomReportRepo) Count(ctx context.Context, f repositories.CustomReportFilter) (int64, error) {
+func (m *mockCustomReportRepo) Count(ctx context.Context, f usecases.CustomReportFilter) (int64, error) {
 	args := m.Called(ctx, f)
 	return args.Get(0).(int64), args.Error(1)
 }
