@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 )
 
 // FunFactSeeder seeds the database with initial fun facts
 type FunFactSeeder struct {
-	repo   repositories.FunFactRepository
+	repo   usecases.FunFactRepository
 	logger *slog.Logger
 }
 
 // NewFunFactSeeder creates a new FunFactSeeder
-func NewFunFactSeeder(repo repositories.FunFactRepository, logger *slog.Logger) *FunFactSeeder {
+func NewFunFactSeeder(repo usecases.FunFactRepository, logger *slog.Logger) *FunFactSeeder {
 	return &FunFactSeeder{repo: repo, logger: logger}
 }
 

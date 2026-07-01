@@ -13,7 +13,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/usecases"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -43,14 +42,14 @@ func getAuthedUserID(c *gin.Context) (int64, bool) {
 // returning a generic message instead of raw err.Error() (no info disclosure
 // of PG error wording / query fragments). Issue #263 ADR-8.
 //
-//   - repositories.ErrConversationNotFound → 404
-//   - repositories.ErrConversationAccessDenied → 403
+//   - usecases.ErrConversationNotFound → 404
+//   - usecases.ErrConversationAccessDenied → 403
 //   - everything else → 500 with "internal server error"
 func respondChatError(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, repositories.ErrConversationNotFound):
+	case errors.Is(err, usecases.ErrConversationNotFound):
 		c.JSON(http.StatusNotFound, gin.H{errorKey: "conversation not found"})
-	case errors.Is(err, repositories.ErrConversationAccessDenied):
+	case errors.Is(err, usecases.ErrConversationAccessDenied):
 		c.JSON(http.StatusForbidden, gin.H{errorKey: "access denied"})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{errorKey: "internal server error"})

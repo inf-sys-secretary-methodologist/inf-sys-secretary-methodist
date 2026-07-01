@@ -10,7 +10,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/application/services"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/ports"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/ai/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -27,20 +26,11 @@ type ChatUseCaseOptions struct {
 	MoodUseCase     *MoodUseCase
 }
 
-// ErrConversationNotFound + ErrConversationAccessDenied sentinels live in
-// the domain repositories package (ai/domain/repositories) — see
-// conversation_repository.go. Re-exported here as aliases for tests and
-// usecase-package callers that want shorter qualified names. Issue #263 ADR-8.
-var (
-	ErrConversationNotFound     = repositories.ErrConversationNotFound
-	ErrConversationAccessDenied = repositories.ErrConversationAccessDenied
-)
-
 // ChatUseCase handles AI chat interactions
 type ChatUseCase struct {
-	conversationRepo    repositories.ConversationRepository
-	messageRepo         repositories.MessageRepository
-	embeddingRepo       repositories.EmbeddingRepository
+	conversationRepo    ConversationRepository
+	messageRepo         MessageRepository
+	embeddingRepo       EmbeddingRepository
 	embeddingUseCase    *EmbeddingUseCase
 	llmProvider         LLMProvider
 	auditLogger         *logging.AuditLogger
@@ -53,9 +43,9 @@ type ChatUseCase struct {
 
 // NewChatUseCase creates a new ChatUseCase
 func NewChatUseCase(
-	conversationRepo repositories.ConversationRepository,
-	messageRepo repositories.MessageRepository,
-	embeddingRepo repositories.EmbeddingRepository,
+	conversationRepo ConversationRepository,
+	messageRepo MessageRepository,
+	embeddingRepo EmbeddingRepository,
 	embeddingUseCase *EmbeddingUseCase,
 	llmProvider LLMProvider,
 	personalityProvider services.PersonalityProvider,
