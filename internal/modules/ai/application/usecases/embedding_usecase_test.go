@@ -704,3 +704,236 @@ func TestIndexPendingDocuments_NoPending(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 0, indexed)
 }
+
+// ============================================================
+// Tests: parseRerankOrder (LLM ranking response parser)
+// ============================================================
+
+func TestParseRerankOrder(t *testing.T) {
+	cases := []struct {
+		name string
+		resp string
+		n    int
+		want []int
+	}{
+		{"simple reorder to zero-based", "3,1,2", 3, []int{2, 0, 1}},
+		{"tolerates spaces", "  2, 1 ", 2, []int{1, 0}},
+		{"extracts numbers from prose", "top: 2 then 1", 2, []int{1, 0}},
+		{"empty response yields nil", "", 3, nil},
+		{"all out of range yields nil", "5,6,7", 3, nil},
+		{"drops out-of-range keeps valid", "2,9,1", 3, []int{1, 0}},
+		{"duplicates preserved (dedup happens later)", "1,1,2", 3, []int{0, 0, 1}},
+		{"no digits yields nil", "no numbers here", 3, nil},
+		{"zero is out of range (1-based input)", "0,1", 2, []int{0}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, parseRerankOrder(tc.resp, tc.n))
+		})
+	}
+}
+
+// ============================================================
+// Tests: llmRerank (LLM cross-encoder reranking stage)
+// ============================================================
+
+func TestLLMRerank_NoRerankerReturnsInput(t *testing.T) {
+	f := newEmbeddingTestFixture() // no reranker attached
+	in := []entities.ChunkWithScore{
+		{Chunk: &entities.DocumentChunk{ID: 1, ChunkText: "a"}},
+		{Chunk: &entities.DocumentChunk{ID: 2, ChunkText: "b"}},
+	}
+	out := f.useCase.llmRerank(context.Background(), "q", in)
+	assert.Equal(t, in, out)
+}
+
+func TestLLMRerank_SingleResultIsNoOp(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	llm := new(MockLLMProvider)
+	f.useCase.WithReranker(llm)
+	in := []entities.ChunkWithScore{{Chunk: &entities.DocumentChunk{ID: 1, ChunkText: "a"}}}
+
+	out := f.useCase.llmRerank(context.Background(), "q", in)
+	assert.Equal(t, in, out)
+	llm.AssertNotCalled(t, "GenerateResponse", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestLLMRerank_ReordersByLLMResponse(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	llm := new(MockLLMProvider)
+	f.useCase.WithReranker(llm)
+	llm.On("GenerateResponse", mock.Anything, mock.Anything, mock.Anything).Return("2,1", 0, nil)
+	in := []entities.ChunkWithScore{
+		{Chunk: &entities.DocumentChunk{ID: 1, ChunkText: "first"}, DocumentTitle: "A"},
+		{Chunk: &entities.DocumentChunk{ID: 2, ChunkText: "second"}, DocumentTitle: "B"},
+	}
+
+	out := f.useCase.llmRerank(context.Background(), "q", in)
+	require.Len(t, out, 2)
+	assert.Equal(t, int64(2), out[0].Chunk.ID)
+	assert.Equal(t, int64(1), out[1].Chunk.ID)
+}
+
+func TestLLMRerank_PartialOrderAppendsRemainder(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	llm := new(MockLLMProvider)
+	f.useCase.WithReranker(llm)
+	llm.On("GenerateResponse", mock.Anything, mock.Anything, mock.Anything).Return("2", 0, nil)
+	in := []entities.ChunkWithScore{
+		{Chunk: &entities.DocumentChunk{ID: 1, ChunkText: "first"}},
+		{Chunk: &entities.DocumentChunk{ID: 2, ChunkText: "second"}},
+	}
+
+	out := f.useCase.llmRerank(context.Background(), "q", in)
+	require.Len(t, out, 2)
+	assert.Equal(t, int64(2), out[0].Chunk.ID) // LLM-picked first
+	assert.Equal(t, int64(1), out[1].Chunk.ID) // unranked appended after
+}
+
+func TestLLMRerank_LLMErrorReturnsOriginalOrder(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	llm := new(MockLLMProvider)
+	f.useCase.WithReranker(llm)
+	llm.On("GenerateResponse", mock.Anything, mock.Anything, mock.Anything).Return("", 0, errors.New("llm down"))
+	in := []entities.ChunkWithScore{
+		{Chunk: &entities.DocumentChunk{ID: 1, ChunkText: "first"}},
+		{Chunk: &entities.DocumentChunk{ID: 2, ChunkText: "second"}},
+	}
+
+	out := f.useCase.llmRerank(context.Background(), "q", in)
+	assert.Equal(t, in, out)
+}
+
+func TestLLMRerank_EmptyResponseReturnsOriginalOrder(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	llm := new(MockLLMProvider)
+	f.useCase.WithReranker(llm)
+	llm.On("GenerateResponse", mock.Anything, mock.Anything, mock.Anything).Return("", 0, nil)
+	in := []entities.ChunkWithScore{
+		{Chunk: &entities.DocumentChunk{ID: 1, ChunkText: "first"}},
+		{Chunk: &entities.DocumentChunk{ID: 2, ChunkText: "second"}},
+	}
+
+	out := f.useCase.llmRerank(context.Background(), "q", in)
+	assert.Equal(t, in, out)
+}
+
+func TestLLMRerank_UnparseableResponseReturnsOriginalOrder(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	llm := new(MockLLMProvider)
+	f.useCase.WithReranker(llm)
+	llm.On("GenerateResponse", mock.Anything, mock.Anything, mock.Anything).Return("no numbers", 0, nil)
+	in := []entities.ChunkWithScore{
+		{Chunk: &entities.DocumentChunk{ID: 1, ChunkText: "first"}},
+		{Chunk: &entities.DocumentChunk{ID: 2, ChunkText: "second"}},
+	}
+
+	out := f.useCase.llmRerank(context.Background(), "q", in)
+	assert.Equal(t, in, out)
+}
+
+func TestLLMRerank_TruncatesLongSnippet(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	llm := new(MockLLMProvider)
+	f.useCase.WithReranker(llm)
+	llm.On("GenerateResponse", mock.Anything, mock.Anything, mock.Anything).Return("1,2", 0, nil)
+	longText := string(make([]rune, 400)) // > 300 runes: exercises truncation branch
+	in := []entities.ChunkWithScore{
+		{Chunk: &entities.DocumentChunk{ID: 1, ChunkText: longText}},
+		{Chunk: &entities.DocumentChunk{ID: 2, ChunkText: "short"}},
+	}
+
+	out := f.useCase.llmRerank(context.Background(), "q", in)
+	require.Len(t, out, 2)
+	assert.Equal(t, int64(1), out[0].Chunk.ID)
+}
+
+// ============================================================
+// Tests: Search — search_mode dispatch (П1 A/B pipelines)
+// ============================================================
+
+func TestSearch_FtsOnlyMode(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	req := &dto.SearchRequest{Query: "q", Limit: 5, Threshold: 0.8, SearchMode: "fts_only"}
+	results := []entities.ChunkWithScore{
+		{Chunk: &entities.DocumentChunk{ID: 1, DocumentID: 10, ChunkText: "kw"}, SimilarityScore: 0.5, DocumentTitle: "D"},
+	}
+	f.embRepo.On("SearchFullText", "q", 5).Return(results, nil)
+
+	resp, err := f.useCase.Search(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, 1, resp.Total)
+	f.embRepo.AssertExpectations(t)
+}
+
+func TestSearch_FtsOnlyMode_Error(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	req := &dto.SearchRequest{Query: "q", SearchMode: "fts_only"}
+	f.embRepo.On("SearchFullText", "q", 10).Return(nil, errors.New("fts error"))
+
+	resp, err := f.useCase.Search(context.Background(), req)
+	assert.Nil(t, resp)
+	assert.ErrorContains(t, err, "failed to search")
+}
+
+func TestSearch_HybridMode(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	req := &dto.SearchRequest{Query: "ab", Limit: 5, Threshold: 0.8, SearchMode: "hybrid"}
+	f.embProvider.On("GenerateQueryEmbedding", mock.Anything).Return([]float32{0.1}, nil)
+	results := []entities.ChunkWithScore{
+		{Chunk: &entities.DocumentChunk{ID: 1, DocumentID: 10, ChunkText: "m"}, SimilarityScore: 0.9},
+	}
+	f.embRepo.On("SearchHybrid", mock.Anything, mock.Anything, 5, 0.8).Return(results, nil)
+	f.embRepo.On("GetAdjacentChunks", mock.Anything, mock.Anything).Return(nil, nil)
+
+	resp, err := f.useCase.Search(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, 1, resp.Total)
+}
+
+func TestSearch_HybridMode_Error(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	req := &dto.SearchRequest{Query: "ab", SearchMode: "hybrid"}
+	f.embProvider.On("GenerateQueryEmbedding", mock.Anything).Return([]float32{0.1}, nil)
+	f.embRepo.On("SearchHybrid", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("hybrid error"))
+	f.embRepo.On("SearchSimilar", mock.Anything, 10, 0.7).Return(nil, errors.New("vector error"))
+
+	resp, err := f.useCase.Search(context.Background(), req)
+	assert.Nil(t, resp)
+	assert.ErrorContains(t, err, "failed to search")
+}
+
+func TestSearch_HybridRerankMode(t *testing.T) {
+	f := newEmbeddingTestFixture()
+	llm := new(MockLLMProvider)
+	f.useCase.WithReranker(llm)
+	req := &dto.SearchRequest{Query: "ab", Limit: 5, Threshold: 0.8, SearchMode: "hybrid_rerank"}
+	f.embProvider.On("GenerateQueryEmbedding", mock.Anything).Return([]float32{0.1}, nil)
+	results := []entities.ChunkWithScore{
+		{Chunk: &entities.DocumentChunk{ID: 1, DocumentID: 10, ChunkText: "m1"}, SimilarityScore: 0.9, DocumentTitle: "A"},
+		{Chunk: &entities.DocumentChunk{ID: 2, DocumentID: 11, ChunkText: "m2"}, SimilarityScore: 0.8, DocumentTitle: "B"},
+	}
+	f.embRepo.On("SearchHybrid", mock.Anything, mock.Anything, 5, 0.8).Return(results, nil)
+	f.embRepo.On("GetAdjacentChunks", mock.Anything, mock.Anything).Return(nil, nil)
+	llm.On("GenerateResponse", mock.Anything, mock.Anything, mock.Anything).Return("2,1", 0, nil)
+
+	resp, err := f.useCase.Search(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, 2, resp.Total)
+	llm.AssertExpectations(t)
+}
+
+func TestSearch_HybridRerankMode_NoRerankerConfigured(t *testing.T) {
+	f := newEmbeddingTestFixture() // reranker not attached
+	req := &dto.SearchRequest{Query: "ab", Limit: 5, Threshold: 0.8, SearchMode: "hybrid_rerank"}
+	f.embProvider.On("GenerateQueryEmbedding", mock.Anything).Return([]float32{0.1}, nil)
+	results := []entities.ChunkWithScore{
+		{Chunk: &entities.DocumentChunk{ID: 1, DocumentID: 10, ChunkText: "m"}, SimilarityScore: 0.9},
+	}
+	f.embRepo.On("SearchHybrid", mock.Anything, mock.Anything, 5, 0.8).Return(results, nil)
+	f.embRepo.On("GetAdjacentChunks", mock.Anything, mock.Anything).Return(nil, nil)
+
+	resp, err := f.useCase.Search(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, 1, resp.Total)
+}
