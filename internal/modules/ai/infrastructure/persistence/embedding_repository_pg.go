@@ -518,6 +518,9 @@ func (r *EmbeddingRepositoryPg) SearchFullText(ctx context.Context, queryText st
 		}
 		results = append(results, result)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate full-text results: %w", err)
+	}
 	return results, nil
 }
 
