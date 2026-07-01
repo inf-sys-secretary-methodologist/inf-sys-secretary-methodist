@@ -13,7 +13,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 func newProjectRepoMock(t *testing.T) (*ProjectRepositoryPG, sqlmock.Sqlmock) {
@@ -174,7 +173,7 @@ func TestProjectRepositoryPG_List_NoFilter(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name, description, owner_id, status, start_date, end_date, created_at, updated_at")).
 		WillReturnRows(rows)
 
-	projects, err := repo.List(context.Background(), repositories.ProjectFilter{}, 10, 0)
+	projects, err := repo.List(context.Background(), domain.ProjectFilter{}, 10, 0)
 	require.NoError(t, err)
 	assert.Len(t, projects, 2)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -185,7 +184,7 @@ func TestProjectRepositoryPG_List_WithFilter(t *testing.T) {
 	ownerID := int64(5)
 	status := domain.ProjectStatusActive
 	search := "test"
-	filter := repositories.ProjectFilter{
+	filter := domain.ProjectFilter{
 		OwnerID: &ownerID,
 		Status:  &status,
 		Search:  &search,
@@ -208,7 +207,7 @@ func TestProjectRepositoryPG_List_Error(t *testing.T) {
 	mock.ExpectQuery("SELECT id, name, description").
 		WillReturnError(sql.ErrConnDone)
 
-	projects, err := repo.List(context.Background(), repositories.ProjectFilter{}, 10, 0)
+	projects, err := repo.List(context.Background(), domain.ProjectFilter{}, 10, 0)
 	require.Error(t, err)
 	assert.Nil(t, projects)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -221,7 +220,7 @@ func TestProjectRepositoryPG_List_ScanError(t *testing.T) {
 	mock.ExpectQuery("SELECT id, name, description").
 		WillReturnRows(rows)
 
-	projects, err := repo.List(context.Background(), repositories.ProjectFilter{}, 10, 0)
+	projects, err := repo.List(context.Background(), domain.ProjectFilter{}, 10, 0)
 	require.Error(t, err)
 	assert.Nil(t, projects)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -235,7 +234,7 @@ func TestProjectRepositoryPG_Count_Success(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM projects")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(5)))
 
-	count, err := repo.Count(context.Background(), repositories.ProjectFilter{})
+	count, err := repo.Count(context.Background(), domain.ProjectFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, int64(5), count)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -249,7 +248,7 @@ func TestProjectRepositoryPG_Count_WithFilter(t *testing.T) {
 		WithArgs(ownerID).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(2)))
 
-	count, err := repo.Count(context.Background(), repositories.ProjectFilter{OwnerID: &ownerID})
+	count, err := repo.Count(context.Background(), domain.ProjectFilter{OwnerID: &ownerID})
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -261,7 +260,7 @@ func TestProjectRepositoryPG_Count_Error(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).
 		WillReturnError(sql.ErrConnDone)
 
-	_, err := repo.Count(context.Background(), repositories.ProjectFilter{})
+	_, err := repo.Count(context.Background(), domain.ProjectFilter{})
 	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -305,7 +304,7 @@ func TestProjectRepositoryPG_List_NoLimit(t *testing.T) {
 	mock.ExpectQuery("SELECT id, name, description").
 		WillReturnRows(rows)
 
-	projects, err := repo.List(context.Background(), repositories.ProjectFilter{}, 0, 0)
+	projects, err := repo.List(context.Background(), domain.ProjectFilter{}, 0, 0)
 	require.NoError(t, err)
 	assert.Len(t, projects, 1)
 	require.NoError(t, mock.ExpectationsWereMet())

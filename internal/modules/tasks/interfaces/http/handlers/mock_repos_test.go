@@ -7,7 +7,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 type mockArgs = mock.Arguments
@@ -24,7 +23,7 @@ var (
 	anyProject       = mock.AnythingOfType("*entities.Project")
 )
 
-// mockTaskRepo implements repositories.TaskRepository
+// mockTaskRepo implements usecases.TaskRepository
 type mockTaskRepo struct {
 	mock.Mock
 }
@@ -52,7 +51,7 @@ func (m *mockTaskRepo) Delete(ctx context.Context, id int64) error {
 	return args.Error(0)
 }
 
-func (m *mockTaskRepo) List(ctx context.Context, filter repositories.TaskFilter, limit, offset int) ([]*entities.Task, error) {
+func (m *mockTaskRepo) List(ctx context.Context, filter domain.TaskFilter, limit, offset int) ([]*entities.Task, error) {
 	args := m.Called(ctx, filter, limit, offset)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -60,7 +59,7 @@ func (m *mockTaskRepo) List(ctx context.Context, filter repositories.TaskFilter,
 	return args.Get(0).([]*entities.Task), args.Error(1)
 }
 
-func (m *mockTaskRepo) Count(ctx context.Context, filter repositories.TaskFilter) (int64, error) {
+func (m *mockTaskRepo) Count(ctx context.Context, filter domain.TaskFilter) (int64, error) {
 	args := m.Called(ctx, filter)
 	return args.Get(0).(int64), args.Error(1)
 }
@@ -244,7 +243,7 @@ func (m *mockTaskRepo) GetAttachmentByID(ctx context.Context, attachmentID int64
 	return args.Get(0).(*entities.TaskAttachment), args.Error(1)
 }
 
-// mockProjectRepo implements repositories.ProjectRepository
+// mockProjectRepo implements usecases.ProjectRepository
 type mockProjectRepo struct {
 	mock.Mock
 }
@@ -272,7 +271,7 @@ func (m *mockProjectRepo) Delete(ctx context.Context, id int64) error {
 	return args.Error(0)
 }
 
-func (m *mockProjectRepo) List(ctx context.Context, filter repositories.ProjectFilter, limit, offset int) ([]*entities.Project, error) {
+func (m *mockProjectRepo) List(ctx context.Context, filter domain.ProjectFilter, limit, offset int) ([]*entities.Project, error) {
 	args := m.Called(ctx, filter, limit, offset)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -280,7 +279,7 @@ func (m *mockProjectRepo) List(ctx context.Context, filter repositories.ProjectF
 	return args.Get(0).([]*entities.Project), args.Error(1)
 }
 
-func (m *mockProjectRepo) Count(ctx context.Context, filter repositories.ProjectFilter) (int64, error) {
+func (m *mockProjectRepo) Count(ctx context.Context, filter domain.ProjectFilter) (int64, error) {
 	args := m.Called(ctx, filter)
 	return args.Get(0).(int64), args.Error(1)
 }

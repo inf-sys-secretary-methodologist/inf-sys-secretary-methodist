@@ -9,7 +9,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 // ProjectRepositoryPG implements ProjectRepository using PostgreSQL.
@@ -77,7 +76,7 @@ func (r *ProjectRepositoryPG) Delete(ctx context.Context, id int64) error {
 }
 
 // List lists projects with filters.
-func (r *ProjectRepositoryPG) List(ctx context.Context, filter repositories.ProjectFilter, limit, offset int) ([]*entities.Project, error) {
+func (r *ProjectRepositoryPG) List(ctx context.Context, filter domain.ProjectFilter, limit, offset int) ([]*entities.Project, error) {
 	query, args := r.buildListQuery(filter, limit, offset, false)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
@@ -90,7 +89,7 @@ func (r *ProjectRepositoryPG) List(ctx context.Context, filter repositories.Proj
 }
 
 // Count counts projects with filters.
-func (r *ProjectRepositoryPG) Count(ctx context.Context, filter repositories.ProjectFilter) (int64, error) {
+func (r *ProjectRepositoryPG) Count(ctx context.Context, filter domain.ProjectFilter) (int64, error) {
 	query, args := r.buildListQuery(filter, 0, 0, true)
 
 	var count int64
@@ -98,7 +97,7 @@ func (r *ProjectRepositoryPG) Count(ctx context.Context, filter repositories.Pro
 	return count, err
 }
 
-func (r *ProjectRepositoryPG) buildListQuery(filter repositories.ProjectFilter, limit, offset int, countOnly bool) (string, []interface{}) {
+func (r *ProjectRepositoryPG) buildListQuery(filter domain.ProjectFilter, limit, offset int, countOnly bool) (string, []interface{}) {
 	var conditions []string
 	var args []interface{}
 	argNum := 1
@@ -161,12 +160,12 @@ func (r *ProjectRepositoryPG) scanProjects(rows *sql.Rows) ([]*entities.Project,
 
 // GetByOwner retrieves projects by owner ID.
 func (r *ProjectRepositoryPG) GetByOwner(ctx context.Context, ownerID int64, limit, offset int) ([]*entities.Project, error) {
-	filter := repositories.ProjectFilter{OwnerID: &ownerID}
+	filter := domain.ProjectFilter{OwnerID: &ownerID}
 	return r.List(ctx, filter, limit, offset)
 }
 
 // GetByStatus retrieves projects by status.
 func (r *ProjectRepositoryPG) GetByStatus(ctx context.Context, status domain.ProjectStatus, limit, offset int) ([]*entities.Project, error) {
-	filter := repositories.ProjectFilter{Status: &status}
+	filter := domain.ProjectFilter{Status: &status}
 	return r.List(ctx, filter, limit, offset)
 }

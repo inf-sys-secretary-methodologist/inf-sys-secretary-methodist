@@ -11,7 +11,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -27,16 +26,16 @@ var (
 
 // TaskUseCase provides task management operations.
 type TaskUseCase struct {
-	taskRepo            repositories.TaskRepository
-	projectRepo         repositories.ProjectRepository
+	taskRepo            TaskRepository
+	projectRepo         ProjectRepository
 	auditLogger         *logging.AuditLogger
 	notificationUseCase *notifUsecases.NotificationUseCase
 }
 
 // NewTaskUseCase creates a new TaskUseCase.
 func NewTaskUseCase(
-	taskRepo repositories.TaskRepository,
-	projectRepo repositories.ProjectRepository,
+	taskRepo TaskRepository,
+	projectRepo ProjectRepository,
 	auditLogger *logging.AuditLogger,
 	notificationUseCase *notifUsecases.NotificationUseCase,
 ) *TaskUseCase {

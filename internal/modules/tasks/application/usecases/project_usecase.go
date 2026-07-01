@@ -8,7 +8,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -20,13 +19,13 @@ var (
 
 // ProjectUseCase provides project management operations.
 type ProjectUseCase struct {
-	projectRepo repositories.ProjectRepository
+	projectRepo ProjectRepository
 	auditLogger *logging.AuditLogger
 }
 
 // NewProjectUseCase creates a new ProjectUseCase.
 func NewProjectUseCase(
-	projectRepo repositories.ProjectRepository,
+	projectRepo ProjectRepository,
 	auditLogger *logging.AuditLogger,
 ) *ProjectUseCase {
 	return &ProjectUseCase{

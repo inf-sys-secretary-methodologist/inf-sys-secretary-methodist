@@ -5,7 +5,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 // CreateProjectInput represents input for creating a project.
@@ -35,8 +34,8 @@ type ProjectFilterInput struct {
 }
 
 // ToProjectFilter converts ProjectFilterInput to domain ProjectFilter.
-func (f *ProjectFilterInput) ToProjectFilter() repositories.ProjectFilter {
-	filter := repositories.ProjectFilter{
+func (f *ProjectFilterInput) ToProjectFilter() domain.ProjectFilter {
+	filter := domain.ProjectFilter{
 		OwnerID: f.OwnerID,
 		Search:  f.Search,
 	}

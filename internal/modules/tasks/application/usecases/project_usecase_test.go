@@ -12,7 +12,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 const updatedProjectName = "Updated Project"
@@ -57,14 +56,14 @@ func (m *ErrorMockProjectRepository) Delete(ctx context.Context, id int64) error
 	return m.MockProjectRepository.Delete(ctx, id)
 }
 
-func (m *ErrorMockProjectRepository) List(ctx context.Context, f repositories.ProjectFilter, limit, offset int) ([]*entities.Project, error) {
+func (m *ErrorMockProjectRepository) List(ctx context.Context, f domain.ProjectFilter, limit, offset int) ([]*entities.Project, error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
 	return m.MockProjectRepository.List(ctx, f, limit, offset)
 }
 
-func (m *ErrorMockProjectRepository) Count(ctx context.Context, f repositories.ProjectFilter) (int64, error) {
+func (m *ErrorMockProjectRepository) Count(ctx context.Context, f domain.ProjectFilter) (int64, error) {
 	if m.countErr != nil {
 		return 0, m.countErr
 	}

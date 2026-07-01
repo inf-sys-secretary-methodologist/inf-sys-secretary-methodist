@@ -1,4 +1,4 @@
-package repositories
+package usecases
 
 import (
 	"context"
@@ -6,13 +6,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
 )
-
-// ProjectFilter defines filtering options for project queries.
-type ProjectFilter struct {
-	OwnerID *int64
-	Status  *domain.ProjectStatus
-	Search  *string
-}
 
 // ProjectRepository defines the interface for project data access.
 type ProjectRepository interface {
@@ -23,8 +16,8 @@ type ProjectRepository interface {
 	Delete(ctx context.Context, id int64) error
 
 	// Query operations
-	List(ctx context.Context, filter ProjectFilter, limit, offset int) ([]*entities.Project, error)
-	Count(ctx context.Context, filter ProjectFilter) (int64, error)
+	List(ctx context.Context, filter domain.ProjectFilter, limit, offset int) ([]*entities.Project, error)
+	Count(ctx context.Context, filter domain.ProjectFilter) (int64, error)
 	GetByOwner(ctx context.Context, ownerID int64, limit, offset int) ([]*entities.Project, error)
 	GetByStatus(ctx context.Context, status domain.ProjectStatus, limit, offset int) ([]*entities.Project, error)
 }

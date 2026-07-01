@@ -12,7 +12,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/logging"
 )
 
@@ -75,14 +74,14 @@ func (m *ErrorMockTaskRepository) Delete(ctx context.Context, id int64) error {
 	return m.MockTaskRepository.Delete(ctx, id)
 }
 
-func (m *ErrorMockTaskRepository) List(ctx context.Context, f repositories.TaskFilter, limit, offset int) ([]*entities.Task, error) {
+func (m *ErrorMockTaskRepository) List(ctx context.Context, f domain.TaskFilter, limit, offset int) ([]*entities.Task, error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
 	return m.MockTaskRepository.List(ctx, f, limit, offset)
 }
 
-func (m *ErrorMockTaskRepository) Count(ctx context.Context, f repositories.TaskFilter) (int64, error) {
+func (m *ErrorMockTaskRepository) Count(ctx context.Context, f domain.TaskFilter) (int64, error) {
 	if m.countErr != nil {
 		return 0, m.countErr
 	}

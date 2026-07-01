@@ -155,7 +155,6 @@ import (
 	sdHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/student_debts/interfaces/http/handlers"
 	taskDto "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/dto"
 	taskUsecases "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/application/usecases"
-	taskRepositories "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 	taskPersistence "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/infrastructure/persistence"
 	taskHandler "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/interfaces/http/handlers"
 	taskRoutes "github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/interfaces/http/routes"
@@ -3696,7 +3695,7 @@ func healthCheckHandler(db *sql.DB, redisCache *cache.RedisCache) gin.HandlerFun
 // main.go (the DI seam) so the notifications module stays free of
 // cross-module Go imports back into tasks.
 type taskDispatchLookup struct {
-	repo taskRepositories.TaskRepository
+	repo taskUsecases.TaskRepository
 }
 
 // GetByID loads the task and projects к the read-only DispatchView.
@@ -3752,8 +3751,8 @@ func (a *userEmailFromDB) GetEmailByID(ctx context.Context, userID int64) (strin
 // skip the Stop() path в graceful shutdown.
 func initTaskReminderScheduler(
 	logger *logging.Logger,
-	taskReminderRepo taskRepositories.TaskReminderRepository,
-	taskRepo taskRepositories.TaskRepository,
+	taskReminderRepo taskUsecases.TaskReminderRepository,
+	taskRepo taskUsecases.TaskRepository,
 	db *sql.DB,
 	telegramRepo notifUsecases.TelegramRepository,
 	telegramService emailDomain.TelegramService,
@@ -3804,7 +3803,7 @@ func initTaskReminderScheduler(
 func initTaskReminderModule(
 	db *sql.DB,
 	auditLogger *logging.AuditLogger,
-) (taskRepositories.TaskReminderRepository, *taskHandler.TaskReminderHandler) {
+) (taskUsecases.TaskReminderRepository, *taskHandler.TaskReminderHandler) {
 	repo := taskPersistence.NewTaskReminderRepositoryPG(db)
 	setUC := taskUsecases.NewSetReminderUseCase(repo, taskUsecases.SystemClock{}, auditLogger)
 	listUC := taskUsecases.NewListTaskRemindersUseCase(repo)

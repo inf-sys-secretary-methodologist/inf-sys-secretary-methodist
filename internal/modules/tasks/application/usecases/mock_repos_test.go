@@ -7,7 +7,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 // ========== MockTaskRepository ==========
@@ -68,7 +67,7 @@ func (m *MockTaskRepository) Delete(_ context.Context, id int64) error {
 	return nil
 }
 
-func (m *MockTaskRepository) List(_ context.Context, _ repositories.TaskFilter, limit, offset int) ([]*entities.Task, error) {
+func (m *MockTaskRepository) List(_ context.Context, _ domain.TaskFilter, limit, offset int) ([]*entities.Task, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	var all []*entities.Task
@@ -85,7 +84,7 @@ func (m *MockTaskRepository) List(_ context.Context, _ repositories.TaskFilter, 
 	return all[offset:end], nil
 }
 
-func (m *MockTaskRepository) Count(_ context.Context, _ repositories.TaskFilter) (int64, error) {
+func (m *MockTaskRepository) Count(_ context.Context, _ domain.TaskFilter) (int64, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return int64(len(m.tasks)), nil
@@ -379,7 +378,7 @@ func (m *MockProjectRepository) Delete(_ context.Context, id int64) error {
 	return nil
 }
 
-func (m *MockProjectRepository) List(_ context.Context, _ repositories.ProjectFilter, limit, offset int) ([]*entities.Project, error) {
+func (m *MockProjectRepository) List(_ context.Context, _ domain.ProjectFilter, limit, offset int) ([]*entities.Project, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	var all []*entities.Project
@@ -396,7 +395,7 @@ func (m *MockProjectRepository) List(_ context.Context, _ repositories.ProjectFi
 	return all[offset:end], nil
 }
 
-func (m *MockProjectRepository) Count(_ context.Context, _ repositories.ProjectFilter) (int64, error) {
+func (m *MockProjectRepository) Count(_ context.Context, _ domain.ProjectFilter) (int64, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return int64(len(m.projects)), nil

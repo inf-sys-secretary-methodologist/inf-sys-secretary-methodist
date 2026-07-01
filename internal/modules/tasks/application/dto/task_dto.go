@@ -6,7 +6,6 @@ import (
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
-	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/repositories"
 )
 
 // CreateTaskInput represents input for creating a task.
@@ -60,8 +59,8 @@ type TaskFilterInput struct {
 }
 
 // ToTaskFilter converts TaskFilterInput to domain TaskFilter.
-func (f *TaskFilterInput) ToTaskFilter() repositories.TaskFilter {
-	filter := repositories.TaskFilter{
+func (f *TaskFilterInput) ToTaskFilter() domain.TaskFilter {
+	filter := domain.TaskFilter{
 		ProjectID:  f.ProjectID,
 		AuthorID:   f.AuthorID,
 		AssigneeID: f.AssigneeID,

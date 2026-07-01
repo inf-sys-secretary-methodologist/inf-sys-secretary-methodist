@@ -1,5 +1,4 @@
-// Package repositories provides repository interfaces for the tasks module.
-package repositories
+package usecases
 
 import (
 	"context"
@@ -7,18 +6,6 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/tasks/domain/entities"
 )
-
-// TaskFilter defines filtering options for task queries.
-type TaskFilter struct {
-	ProjectID  *int64
-	AuthorID   *int64
-	AssigneeID *int64
-	Status     *domain.TaskStatus
-	Priority   *domain.TaskPriority
-	IsOverdue  *bool
-	Search     *string
-	Tags       []string
-}
 
 // TaskRepository defines the interface for task data access.
 type TaskRepository interface {
@@ -29,8 +16,8 @@ type TaskRepository interface {
 	Delete(ctx context.Context, id int64) error
 
 	// Query operations
-	List(ctx context.Context, filter TaskFilter, limit, offset int) ([]*entities.Task, error)
-	Count(ctx context.Context, filter TaskFilter) (int64, error)
+	List(ctx context.Context, filter domain.TaskFilter, limit, offset int) ([]*entities.Task, error)
+	Count(ctx context.Context, filter domain.TaskFilter) (int64, error)
 	GetByProject(ctx context.Context, projectID int64, limit, offset int) ([]*entities.Task, error)
 	GetByAuthor(ctx context.Context, authorID int64, limit, offset int) ([]*entities.Task, error)
 	GetByAssignee(ctx context.Context, assigneeID int64, limit, offset int) ([]*entities.Task, error)
