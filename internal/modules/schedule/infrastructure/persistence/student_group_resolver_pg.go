@@ -3,6 +3,8 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 )
@@ -24,5 +26,20 @@ func NewStudentGroupResolverPG(db *sql.DB) *StudentGroupResolverPG {
 
 // ResolveGroupID returns the student's group id, or ErrStudentGroupNotFound.
 func (r *StudentGroupResolverPG) ResolveGroupID(ctx context.Context, userID int64) (int64, error) {
-	return 0, nil
+	const query = `
+		SELECT sg.id
+		FROM external_students es
+		JOIN student_groups sg ON sg.name = es.group_name
+		WHERE es.local_user_id = $1 AND es.is_active = TRUE
+		LIMIT 1`
+
+	var groupID int64
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(&groupID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, usecases.ErrStudentGroupNotFound
+	}
+	if err != nil {
+		return 0, fmt.Errorf("failed to resolve student group: %w", err)
+	}
+	return groupID, nil
 }
