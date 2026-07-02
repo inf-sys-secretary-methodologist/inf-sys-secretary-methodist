@@ -82,35 +82,96 @@ func TestLessonToICalEvent_AdvancesToFirstMatchingWeekday(t *testing.T) {
 	}
 }
 
-func TestLessonToICalEvent_OddWeekIntervalAndParity(t *testing.T) {
+// liveOccurrences expands the weekly rule and removes EXDATEs, returning the
+// dates a calendar client would actually show.
+func liveOccurrences(ev ical.Event) []time.Time {
+	excluded := map[string]bool{}
+	for _, e := range ev.ExDates {
+		excluded[e.Format("20060102")] = true
+	}
+	step := max(ev.Recurrence.Interval, 1)
+	var out []time.Time
+	for d := ev.Start; !d.After(*ev.Recurrence.Until); d = d.AddDate(0, 0, 7*step) {
+		if !excluded[d.Format("20060102")] {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
+func assertAllParity(t *testing.T, ev ical.Event, wantOdd bool) {
+	t.Helper()
+	occ := liveOccurrences(ev)
+	if len(occ) == 0 {
+		t.Fatal("expected at least one occurrence")
+	}
+	for _, d := range occ {
+		_, wk := d.ISOWeek()
+		if (wk%2 == 1) != wantOdd {
+			t.Errorf("occurrence %s is on ISO week %d, wrong parity", d.Format("2006-01-02"), wk)
+		}
+	}
+}
+
+func TestLessonToICalEvent_OddWeekOnlyOddOccurrences(t *testing.T) {
 	l := baseLesson()
 	l.WeekType = domain.WeekTypeOdd
 	ev, ok := lessonToICalEvent(l, "methodist", feedLoc)
 	if !ok {
 		t.Fatal("expected included")
 	}
-	if ev.Recurrence.Interval != 2 {
-		t.Errorf("odd week must be interval 2, got %d", ev.Recurrence.Interval)
-	}
-	_, isoWeek := ev.Start.ISOWeek()
-	if isoWeek%2 != 1 {
-		t.Errorf("odd week anchor must fall on an odd ISO week, got week %d", isoWeek)
-	}
 	if ev.Start.Weekday() != time.Monday {
 		t.Errorf("anchor weekday = %v, want Monday", ev.Start.Weekday())
 	}
+	if len(ev.ExDates) == 0 {
+		t.Error("odd-week lesson must EXDATE the off-parity weeks")
+	}
+	assertAllParity(t, ev, true)
 }
 
-func TestLessonToICalEvent_EvenWeekParity(t *testing.T) {
+func TestLessonToICalEvent_EvenWeekOnlyEvenOccurrences(t *testing.T) {
 	l := baseLesson()
 	l.WeekType = domain.WeekTypeEven
 	ev, ok := lessonToICalEvent(l, "methodist", feedLoc)
 	if !ok {
 		t.Fatal("expected included")
 	}
-	_, isoWeek := ev.Start.ISOWeek()
-	if isoWeek%2 != 0 {
-		t.Errorf("even week anchor must fall on an even ISO week, got week %d", isoWeek)
+	assertAllParity(t, ev, false)
+}
+
+func TestLessonToICalEvent_OddWeekParityHoldsAcrossYearBoundary(t *testing.T) {
+	// 2026 is a 53-week ISO year: a fixed 14-day step would flip parity after
+	// New Year. Spanning Dec 2026 -> Feb 2027 must still yield only odd weeks.
+	l := baseLesson()
+	l.WeekType = domain.WeekTypeOdd
+	l.DateStart = time.Date(2026, 12, 1, 0, 0, 0, 0, feedLoc)
+	l.DateEnd = time.Date(2027, 2, 28, 0, 0, 0, 0, feedLoc)
+	ev, ok := lessonToICalEvent(l, "methodist", feedLoc)
+	if !ok {
+		t.Fatal("expected included")
+	}
+	occ := liveOccurrences(ev)
+	sawAfterBoundary := false
+	for _, d := range occ {
+		if d.Year() == 2027 {
+			sawAfterBoundary = true
+		}
+	}
+	if !sawAfterBoundary {
+		t.Fatal("expected occurrences after the year boundary")
+	}
+	assertAllParity(t, ev, true)
+}
+
+func TestLessonToICalEvent_SkipsWhenParityAnchorPastEnd(t *testing.T) {
+	l := baseLesson()
+	l.WeekType = domain.WeekTypeOdd
+	// Pick a range whose only Monday is on an even ISO week; the next (odd)
+	// Monday falls past DateEnd, so there is no valid occurrence.
+	l.DateStart = time.Date(2026, 1, 5, 0, 0, 0, 0, feedLoc) // Mon, ISO week 2 (even)
+	l.DateEnd = time.Date(2026, 1, 8, 0, 0, 0, 0, feedLoc)   // Thu same week
+	if _, ok := lessonToICalEvent(l, "methodist", feedLoc); ok {
+		t.Error("expected skip: no odd-week Monday within range")
 	}
 }
 
