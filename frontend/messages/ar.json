@@ -210,7 +210,8 @@
     "workPrograms": "برامج العمل",
     "studentDebts": "ديون الطلاب",
     "myStudentDebts": "ديوني",
-    "minobrnaukiOrders": "أوامر الوزارة"
+    "minobrnaukiOrders": "أوامر الوزارة",
+    "teachingLoad": "العبء التدريسي"
   },
   "roles": {
     "system_admin": "مدير النظام",
@@ -3838,6 +3839,54 @@
       "forbidden": "غير مصرّح لك بالتوقيع",
       "notFound": "المستند أو التوقيع غير موجود",
       "invalid": "تعذّر توقيع المستند"
+    }
+  },
+  "teachingLoad": {
+    "title": "العبء التدريسي",
+    "description": "العبء المخطط: من يدرّس ماذا وكم. مصدر لتوليد الجدول تلقائياً.",
+    "create": "إضافة عبء",
+    "empty": "لا يوجد عبء محدد",
+    "created": "تمت إضافة العبء",
+    "updated": "تم تحديث العبء",
+    "deleted": "تم حذف العبء",
+    "filters": {
+      "title": "عوامل التصفية",
+      "semester": "الفصل الدراسي",
+      "allSemesters": "جميع الفصول"
+    },
+    "columns": {
+      "group": "المجموعة",
+      "discipline": "المقرر",
+      "teacher": "المعلم",
+      "lessonType": "نوع الحصة",
+      "pairsPerWeek": "حصص/أسبوع",
+      "weekType": "الأسابيع"
+    },
+    "form": {
+      "createTitle": "إضافة عبء",
+      "editTitle": "تعديل العبء",
+      "semester": "الفصل الدراسي",
+      "group": "المجموعة",
+      "discipline": "المقرر",
+      "teacher": "المعلم",
+      "lessonType": "نوع الحصة",
+      "pairsPerWeek": "حصص في الأسبوع",
+      "weekType": "الأسابيع",
+      "selectPlaceholder": "اختر",
+      "requiredFields": "املأ جميع الحقول",
+      "invalidPairs": "يجب أن يكون عدد الحصص بين 1 و20",
+      "cancel": "إلغاء",
+      "save": "حفظ"
+    },
+    "weekType": {
+      "all": "الكل",
+      "odd": "فردية",
+      "even": "زوجية"
+    },
+    "errors": {
+      "loadFailed": "فشل تحميل العبء",
+      "saveFailed": "فشل حفظ العبء",
+      "deleteFailed": "فشل حذف العبء"
     }
   }
 }

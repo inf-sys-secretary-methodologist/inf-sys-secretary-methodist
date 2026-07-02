@@ -210,7 +210,8 @@
     "workPrograms": "Рабочие программы",
     "studentDebts": "Долги студентов",
     "myStudentDebts": "Мои долги",
-    "minobrnaukiOrders": "Приказы Минобрнауки"
+    "minobrnaukiOrders": "Приказы Минобрнауки",
+    "teachingLoad": "Нагрузка"
   },
   "roles": {
     "system_admin": "Администратор",
@@ -3838,6 +3839,54 @@
       "forbidden": "Недостаточно прав для подписания",
       "notFound": "Документ или подпись не найдены",
       "invalid": "Не удалось подписать документ"
+    }
+  },
+  "teachingLoad": {
+    "title": "Учебная нагрузка",
+    "description": "Планируемая нагрузка: кто, что и сколько ведёт. Источник для автогенерации расписания.",
+    "create": "Добавить нагрузку",
+    "empty": "Нагрузка не задана",
+    "created": "Нагрузка добавлена",
+    "updated": "Нагрузка обновлена",
+    "deleted": "Нагрузка удалена",
+    "filters": {
+      "title": "Фильтры",
+      "semester": "Семестр",
+      "allSemesters": "Все семестры"
+    },
+    "columns": {
+      "group": "Группа",
+      "discipline": "Дисциплина",
+      "teacher": "Преподаватель",
+      "lessonType": "Тип занятия",
+      "pairsPerWeek": "Пар в неделю",
+      "weekType": "Недели"
+    },
+    "form": {
+      "createTitle": "Добавить нагрузку",
+      "editTitle": "Изменить нагрузку",
+      "semester": "Семестр",
+      "group": "Группа",
+      "discipline": "Дисциплина",
+      "teacher": "Преподаватель",
+      "lessonType": "Тип занятия",
+      "pairsPerWeek": "Пар в неделю",
+      "weekType": "Недели",
+      "selectPlaceholder": "Выберите",
+      "requiredFields": "Заполните все поля",
+      "invalidPairs": "Число пар должно быть от 1 до 20",
+      "cancel": "Отмена",
+      "save": "Сохранить"
+    },
+    "weekType": {
+      "all": "Все",
+      "odd": "Нечётные",
+      "even": "Чётные"
+    },
+    "errors": {
+      "loadFailed": "Не удалось загрузить нагрузку",
+      "saveFailed": "Не удалось сохранить нагрузку",
+      "deleteFailed": "Не удалось удалить нагрузку"
     }
   }
 }

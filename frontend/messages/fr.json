@@ -210,7 +210,8 @@
     "workPrograms": "Programmes de travail",
     "studentDebts": "Dettes des étudiants",
     "myStudentDebts": "Mes dettes",
-    "minobrnaukiOrders": "Arrêtés du ministère"
+    "minobrnaukiOrders": "Arrêtés du ministère",
+    "teachingLoad": "Charge"
   },
   "roles": {
     "system_admin": "Administrateur",
@@ -3838,6 +3839,54 @@
       "forbidden": "Vous n'êtes pas autorisé à signer",
       "notFound": "Document ou signature introuvable",
       "invalid": "Impossible de signer le document"
+    }
+  },
+  "teachingLoad": {
+    "title": "Charge d'enseignement",
+    "description": "Charge planifiée: qui enseigne quoi et combien. Source pour la génération automatique de l'emploi du temps.",
+    "create": "Ajouter une charge",
+    "empty": "Aucune charge définie",
+    "created": "Charge ajoutée",
+    "updated": "Charge mise à jour",
+    "deleted": "Charge supprimée",
+    "filters": {
+      "title": "Filtres",
+      "semester": "Semestre",
+      "allSemesters": "Tous les semestres"
+    },
+    "columns": {
+      "group": "Groupe",
+      "discipline": "Discipline",
+      "teacher": "Enseignant",
+      "lessonType": "Type de cours",
+      "pairsPerWeek": "Cours/semaine",
+      "weekType": "Semaines"
+    },
+    "form": {
+      "createTitle": "Ajouter une charge",
+      "editTitle": "Modifier la charge",
+      "semester": "Semestre",
+      "group": "Groupe",
+      "discipline": "Discipline",
+      "teacher": "Enseignant",
+      "lessonType": "Type de cours",
+      "pairsPerWeek": "Cours par semaine",
+      "weekType": "Semaines",
+      "selectPlaceholder": "Sélectionner",
+      "requiredFields": "Remplissez tous les champs",
+      "invalidPairs": "Le nombre de cours par semaine doit être entre 1 et 20",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "weekType": {
+      "all": "Toutes",
+      "odd": "Impaires",
+      "even": "Paires"
+    },
+    "errors": {
+      "loadFailed": "Échec du chargement de la charge",
+      "saveFailed": "Échec de l'enregistrement",
+      "deleteFailed": "Échec de la suppression"
     }
   }
 }

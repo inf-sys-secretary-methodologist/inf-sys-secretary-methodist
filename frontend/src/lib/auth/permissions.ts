@@ -252,6 +252,21 @@ export function canViewDebtRegistry(userRole?: UserRole | string): boolean {
   return STUDENT_DEBTS_REGISTRY_ROLES.includes(userRole as UserRole)
 }
 
+// TEACHING_LOAD_MANAGE_ROLES — roles allowed to manage the planned teaching
+// load (/teaching-load), mirroring the backend write gate in
+// teaching_load_handler.go (requireLoadWrite). Academic planning is the
+// methodist's job, so methodist is included alongside secretary and admin.
+export const TEACHING_LOAD_MANAGE_ROLES: UserRole[] = [
+  UserRole.SYSTEM_ADMIN,
+  UserRole.METHODIST,
+  UserRole.ACADEMIC_SECRETARY,
+]
+
+export function canManageTeachingLoad(userRole?: UserRole | string): boolean {
+  if (!userRole) return false
+  return TEACHING_LOAD_MANAGE_ROLES.includes(userRole as UserRole)
+}
+
 /** @deprecated Use can(role, resource, action) instead */
 export function canEdit(userRole?: UserRole | string): boolean {
   if (!userRole) return false
