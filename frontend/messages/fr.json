@@ -883,6 +883,29 @@
         "enabled": "Heures calmes activées",
         "disabled": "Heures calmes désactivées"
       }
+    },
+    "calendar": {
+      "title": "Calendrier",
+      "description": "Abonnez-vous à votre emploi du temps dans un calendrier externe",
+      "notSubscribedTitle": "Aucun abonnement",
+      "notSubscribedDescription": "Créez un lien secret pour voir vos cours et événements dans Google Agenda, Outlook ou Calendrier Apple.",
+      "create": "Créer un abonnement",
+      "urlLabel": "Lien d'abonnement secret",
+      "urlHint": "Ne partagez pas ce lien — il donne accès à votre emploi du temps.",
+      "copy": "Copier",
+      "copied": "Lien copié",
+      "regenerate": "Régénérer le lien",
+      "regenerateConfirmTitle": "Régénérer le lien ?",
+      "regenerateConfirmDescription": "L'ancien lien cessera de fonctionner ; les abonnements existants devront être recréés.",
+      "delete": "Supprimer l'abonnement",
+      "deleteConfirmTitle": "Supprimer l'abonnement ?",
+      "deleteConfirmDescription": "Le lien cessera de fonctionner et le calendrier ne sera plus mis à jour.",
+      "howToTitle": "Comment connecter",
+      "howToDescription": "Copiez le lien et ajoutez-le comme calendrier par URL : Google Agenda → Autres agendas → S'abonner via une URL ; Calendrier Apple → Fichier → Nouvel abonnement ; Outlook → Ajouter un calendrier → S'abonner depuis le web.",
+      "created": "Abonnement créé",
+      "regenerated": "Lien régénéré",
+      "deleted": "Abonnement supprimé",
+      "error": "Échec de l'action"
     }
   },
   "notifications": {

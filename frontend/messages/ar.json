@@ -883,6 +883,29 @@
         "enabled": "ساعات الهدوء مفعلة",
         "disabled": "ساعات الهدوء معطلة"
       }
+    },
+    "calendar": {
+      "title": "التقويم",
+      "description": "اشترك في جدولك عبر تقويم خارجي",
+      "notSubscribedTitle": "لا يوجد اشتراك بعد",
+      "notSubscribedDescription": "أنشئ رابطًا سريًا لعرض دروسك وأحداثك في تقويم Google أو Outlook أو تقويم Apple.",
+      "create": "إنشاء اشتراك",
+      "urlLabel": "رابط الاشتراك السري",
+      "urlHint": "لا تشارك هذا الرابط — فهو يمنح الوصول إلى جدولك.",
+      "copy": "نسخ",
+      "copied": "تم نسخ الرابط",
+      "regenerate": "إعادة إنشاء الرابط",
+      "regenerateConfirmTitle": "إعادة إنشاء الرابط؟",
+      "regenerateConfirmDescription": "سيتوقف الرابط القديم عن العمل، ويجب إعادة إضافة الاشتراكات الحالية.",
+      "delete": "حذف الاشتراك",
+      "deleteConfirmTitle": "حذف الاشتراك؟",
+      "deleteConfirmDescription": "سيتوقف الرابط عن العمل ولن يتم تحديث التقويم بعد الآن.",
+      "howToTitle": "كيفية الربط",
+      "howToDescription": "انسخ الرابط وأضفه كتقويم عبر عنوان URL: تقويم Google ← تقويمات أخرى ← الاشتراك عبر عنوان URL؛ تقويم Apple ← ملف ← اشتراك تقويم جديد؛ Outlook ← إضافة تقويم ← الاشتراك من الويب.",
+      "created": "تم إنشاء الاشتراك",
+      "regenerated": "تمت إعادة إنشاء الرابط",
+      "deleted": "تم حذف الاشتراك",
+      "error": "فشل الإجراء"
     }
   },
   "notifications": {
