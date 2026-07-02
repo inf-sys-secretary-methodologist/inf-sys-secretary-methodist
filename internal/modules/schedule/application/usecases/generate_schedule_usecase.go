@@ -171,30 +171,35 @@ func (uc *GenerateScheduleUseCase) plan(ctx context.Context, params GeneratePara
 
 	loadByID := make(map[int64]*entities.TeachingLoad, len(loads))
 	var variables []solver.Variable
+	// Loads with an un-hydrated group have an unknown size; scheduling them would
+	// silently disable the room-capacity constraint (H4), so they are forced into
+	// the unplaced list instead of being fed to the solver.
+	var forcedUnplaced []solver.Variable
 	varID := 0
 	for _, load := range loads {
 		loadByID[load.ID] = load
-		groupSize := 0
-		if load.Group != nil {
-			groupSize = load.Group.Capacity
-		}
 		var allowed []string
 		if load.LessonType != nil {
 			allowed = domain.AllowedRoomTypesForLesson(load.LessonType.ShortName)
 		}
 		for range load.PairsPerWeek {
 			varID++
-			variables = append(variables, solver.Variable{
+			variable := solver.Variable{
 				ID:               varID,
 				LoadID:           load.ID,
 				GroupID:          load.GroupID,
 				TeacherID:        load.TeacherID,
 				DisciplineID:     load.DisciplineID,
 				LessonTypeID:     load.LessonTypeID,
-				GroupSize:        groupSize,
 				AllowedRoomTypes: allowed,
 				WeekType:         load.WeekType,
-			})
+			}
+			if load.Group == nil {
+				forcedUnplaced = append(forcedUnplaced, variable)
+				continue
+			}
+			variable.GroupSize = load.Group.Capacity
+			variables = append(variables, variable)
 		}
 	}
 
@@ -205,6 +210,7 @@ func (uc *GenerateScheduleUseCase) plan(ctx context.Context, params GeneratePara
 		Rooms:     solverRooms,
 		Weights:   uc.weights,
 	})
+	result.Unplaced = append(result.Unplaced, forcedUnplaced...)
 
 	return &generationPlan{
 		result:    result,
