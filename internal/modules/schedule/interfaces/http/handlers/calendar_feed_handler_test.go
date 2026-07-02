@@ -82,6 +82,8 @@ func TestServeFeed_OK(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Header().Get("Content-Type"), "text/calendar")
+	assert.Contains(t, w.Header().Get("Content-Disposition"), "schedule.ics")
+	assert.Contains(t, w.Header().Get("Cache-Control"), "no-store")
 	assert.Equal(t, svc.ics, w.Body.String())
 }
 
@@ -150,4 +152,53 @@ func TestDeleteSubscription_NoContent(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
 	assert.True(t, svc.deleted)
+}
+
+func TestSubscription_ErrorPathsReturn500(t *testing.T) {
+	cases := []struct {
+		name   string
+		method string
+		path   string
+		svc    *fakeFeedSvc
+	}{
+		{"get error", http.MethodGet, "/sub", &fakeFeedSvc{getErr: errors.New("boom")}},
+		{"create error", http.MethodPost, "/sub", &fakeFeedSvc{issueErr: errors.New("boom")}},
+		{"rotate error", http.MethodPost, "/sub/rotate", &fakeFeedSvc{issueErr: errors.New("boom")}},
+		{"delete error", http.MethodDelete, "/sub", &fakeFeedSvc{deleteErr: errors.New("boom")}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := do(setupRouter(tc.svc, true), tc.method, tc.path)
+			assert.Equal(t, http.StatusInternalServerError, w.Code)
+		})
+	}
+}
+
+func TestSubscription_UnauthenticatedOnAllMethods(t *testing.T) {
+	cases := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/sub"},
+		{http.MethodPost, "/sub"},
+		{http.MethodPost, "/sub/rotate"},
+		{http.MethodDelete, "/sub"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
+			w := do(setupRouter(&fakeFeedSvc{}, false), tc.method, tc.path)
+			assert.Equal(t, http.StatusUnauthorized, w.Code)
+		})
+	}
+}
+
+func TestFeedURL_NoTrailingSlashBaseURL(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	h := NewCalendarFeedHandler(&fakeFeedSvc{tok: &entities.CalendarFeedToken{Token: "abc"}}, "https://host.example") // no trailing slash
+	r.Use(func(c *gin.Context) { c.Set("user_id", int64(42)); c.Next() })
+	r.GET("/sub", h.GetSubscription)
+
+	w := do(r, http.MethodGet, "/sub")
+	assert.Contains(t, w.Body.String(), "https://host.example/api/public/calendar/abc/feed.ics")
 }
