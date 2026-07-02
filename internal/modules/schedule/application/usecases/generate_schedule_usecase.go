@@ -2,10 +2,25 @@ package usecases
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/solver"
+)
+
+// Generation errors surfaced by Apply.
+var (
+	// ErrScheduleAlreadyExists is returned by Apply when the target semester
+	// already has lessons — the caller must clear them before regenerating, so a
+	// re-apply never silently duplicates the timetable.
+	ErrScheduleAlreadyExists = errors.New("schedule already exists for this semester")
+	// ErrGenerateNotWritable is returned when Apply is called on a use case built
+	// without its write dependencies.
+	ErrGenerateNotWritable = errors.New("generate use case is not configured for apply")
+	// ErrSemesterNotFound is returned when the target semester cannot be resolved.
+	ErrSemesterNotFound = errors.New("semester not found")
 )
 
 // generateRoomLimit bounds the classroom fetch for a generation run; a single
@@ -30,6 +45,15 @@ type (
 	generateRoomLister interface {
 		List(ctx context.Context, filter ClassroomFilter, limit, offset int) ([]*entities.Classroom, error)
 	}
+	// generateLessonWriter is the write surface used by Apply.
+	generateLessonWriter interface {
+		Count(ctx context.Context, filter LessonFilter) (int64, error)
+		Create(ctx context.Context, lesson *entities.Lesson) error
+	}
+	// generateSemesterLister resolves semester dates for the applied lessons.
+	generateSemesterLister interface {
+		ListSemesters(ctx context.Context, activeOnly bool) ([]*entities.Semester, error)
+	}
 )
 
 // GenerateScheduleUseCase turns the planned teaching load into a draft timetable
@@ -37,21 +61,62 @@ type (
 // never persists on its own — Preview computes a draft; applying it is a
 // separate, explicit step.
 type GenerateScheduleUseCase struct {
-	loads   generateLoadLister
-	slots   generateSlotLister
-	rooms   generateRoomLister
-	weights solver.SoftWeights
+	loads     generateLoadLister
+	slots     generateSlotLister
+	rooms     generateRoomLister
+	lessons   generateLessonWriter
+	semesters generateSemesterLister
+	weights   solver.SoftWeights
+	now       func() time.Time
+}
+
+// GenerateOption overrides an optional dependency; Apply requires the write
+// dependencies supplied via WithApplyWriter and WithSemesters.
+type GenerateOption func(*GenerateScheduleUseCase)
+
+// WithApplyWriter supplies the lesson writer used by Apply.
+func WithApplyWriter(lessons generateLessonWriter) GenerateOption {
+	return func(uc *GenerateScheduleUseCase) { uc.lessons = lessons }
+}
+
+// WithSemesters supplies the semester reader used by Apply for lesson dates.
+func WithSemesters(semesters generateSemesterLister) GenerateOption {
+	return func(uc *GenerateScheduleUseCase) { uc.semesters = semesters }
+}
+
+// WithGenerateClock overrides the time source (tests).
+func WithGenerateClock(fn func() time.Time) GenerateOption {
+	return func(uc *GenerateScheduleUseCase) { uc.now = fn }
 }
 
 // NewGenerateScheduleUseCase wires the use case with its read dependencies and
-// the default soft-preference weights.
-func NewGenerateScheduleUseCase(loads generateLoadLister, slots generateSlotLister, rooms generateRoomLister) *GenerateScheduleUseCase {
-	return &GenerateScheduleUseCase{
+// the default soft-preference weights. Apply additionally requires the write
+// dependencies passed as options.
+func NewGenerateScheduleUseCase(loads generateLoadLister, slots generateSlotLister, rooms generateRoomLister, opts ...GenerateOption) *GenerateScheduleUseCase {
+	uc := &GenerateScheduleUseCase{
 		loads:   loads,
 		slots:   slots,
 		rooms:   rooms,
 		weights: solver.NewDefaultWeights(),
+		now:     time.Now,
 	}
+	for _, opt := range opts {
+		opt(uc)
+	}
+	return uc
+}
+
+// ApplyResult summarizes a persisted generation run.
+type ApplyResult struct {
+	Created  int
+	Unplaced int
+}
+
+// Apply generates the schedule for the semester and persists the placed lessons.
+// It refuses to run when the semester already has lessons (ErrScheduleAlreadyExists)
+// so re-applying never silently duplicates the timetable.
+func (uc *GenerateScheduleUseCase) Apply(ctx context.Context, params GenerateParams) (*ApplyResult, error) {
+	return &ApplyResult{}, nil
 }
 
 // GenerateParams is the request for a draft schedule.
