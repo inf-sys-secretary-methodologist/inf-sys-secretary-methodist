@@ -26,6 +26,14 @@ import (
 type envelope struct {
 	Success bool            `json:"success"`
 	Data    json.RawMessage `json:"data"`
+	Meta    struct {
+		Pagination *struct {
+			Page       int `json:"page"`
+			PerPage    int `json:"per_page"`
+			Total      int `json:"total"`
+			TotalPages int `json:"total_pages"`
+		} `json:"pagination"`
+	} `json:"meta"`
 }
 
 func decodeEnvelope(t *testing.T, body string) envelope {
@@ -55,6 +63,24 @@ func TestLessonHandler_List_Envelope(t *testing.T) {
 	})
 	require.Equal(t, http.StatusOK, w.Code)
 	assertDataIsArray(t, decodeEnvelope(t, w.Body.String()))
+}
+
+func TestLessonHandler_List_PaginationMeta(t *testing.T) {
+	now := time.Now()
+	lesson := entities.NewLesson(1, 1, 1, 1, 1, 1, domain.Monday, "09:00", "10:30", domain.WeekTypeAll, now, now, now)
+	h := buildLessonHandler(t, &lessonRepoFake{lessons: []*entities.Lesson{lesson}}, &changeRepoFake{}, &classroomRepoFake{}, &referenceRepoFake{})
+	w := performGet(t, h, "/schedule/lessons", "/schedule/lessons", func(r *gin.Engine, h *LessonHandler) {
+		r.GET("/schedule/lessons", h.List)
+	})
+	require.Equal(t, http.StatusOK, w.Code)
+
+	e := decodeEnvelope(t, w.Body.String())
+	require.NotNil(t, e.Meta.Pagination, "list response must carry pagination meta")
+	// default limit is 100, offset 0, one lesson total.
+	assert.Equal(t, 1, e.Meta.Pagination.Page, "first page")
+	assert.Equal(t, 100, e.Meta.Pagination.PerPage)
+	assert.Equal(t, 1, e.Meta.Pagination.Total)
+	assert.Equal(t, 1, e.Meta.Pagination.TotalPages)
 }
 
 func TestLessonHandler_GetTimetable_Envelope(t *testing.T) {
