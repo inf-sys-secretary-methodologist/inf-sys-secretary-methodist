@@ -31,6 +31,7 @@ func (r *StudentGroupResolverPG) ResolveGroupID(ctx context.Context, userID int6
 		FROM external_students es
 		JOIN student_groups sg ON sg.name = es.group_name
 		WHERE es.local_user_id = $1 AND es.is_active = TRUE
+		ORDER BY sg.id
 		LIMIT 1`
 
 	var groupID int64

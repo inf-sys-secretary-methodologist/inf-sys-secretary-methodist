@@ -46,7 +46,12 @@ func (h *CalendarFeedHandler) currentUserID(c *gin.Context) (int64, bool) {
 		c.JSON(http.StatusUnauthorized, response.Unauthorized("user not authenticated"))
 		return 0, false
 	}
-	return userID.(int64), true
+	id, ok := userID.(int64)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized("user not authenticated"))
+		return 0, false
+	}
+	return id, true
 }
 
 // GetSubscription returns the user's current subscription (or subscribed:false).
@@ -122,5 +127,8 @@ func (h *CalendarFeedHandler) ServeFeed(c *gin.Context) {
 
 	c.Header("Content-Type", "text/calendar; charset=utf-8")
 	c.Header("Content-Disposition", `inline; filename="schedule.ics"`)
+	// The URL carries a secret token; keep intermediaries from caching a
+	// user's schedule.
+	c.Header("Cache-Control", "private, no-store")
 	c.String(http.StatusOK, ics)
 }
