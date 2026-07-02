@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -45,7 +46,7 @@ func NewCalendarFeedToken(userID int64, token string, now time.Time) (*CalendarF
 func GenerateCalendarFeedToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
-		return "", err
+		return "", fmt.Errorf("generate calendar feed token: %w", err)
 	}
 	return hex.EncodeToString(b), nil
 }
