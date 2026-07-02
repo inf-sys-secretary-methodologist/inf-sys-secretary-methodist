@@ -76,9 +76,14 @@ export default function CalendarSettingsPage() {
             ) : isSubscribed ? (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>{t('urlLabel')}</Label>
+                  <Label htmlFor="calendar-feed-url">{t('urlLabel')}</Label>
                   <div className="flex gap-2">
-                    <Input readOnly value={subscription!.url} className="font-mono text-xs" />
+                    <Input
+                      id="calendar-feed-url"
+                      readOnly
+                      value={subscription!.url}
+                      className="font-mono text-xs"
+                    />
                     <Button variant="outline" onClick={handleCopy}>
                       <Copy className="h-4 w-4 mr-2" />
                       {t('copy')}
