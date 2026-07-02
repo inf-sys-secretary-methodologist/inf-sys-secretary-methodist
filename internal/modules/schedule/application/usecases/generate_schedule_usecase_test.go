@@ -182,12 +182,68 @@ func TestGenerate_Preview_UnhydratedGroupIsUnplaced(t *testing.T) {
 }
 
 func TestGenerate_Preview_PropagatesRepoError(t *testing.T) {
+	okLoad := hydratedLoad(1, 1, domain.WeekTypeAll, 25, "Лек", "Лекция")
+	tests := []struct {
+		name  string
+		loads *fakeLoadLister
+		slots *fakeSlotLister
+		rooms *fakeRoomLister
+	}{
+		{
+			name:  "loads fail",
+			loads: &fakeLoadLister{err: errors.New("db down")},
+			slots: &fakeSlotLister{slots: twoSlots()},
+			rooms: &fakeRoomLister{rooms: lectureRoom()},
+		},
+		{
+			name:  "slots fail",
+			loads: &fakeLoadLister{loads: []*entities.TeachingLoad{okLoad}},
+			slots: &fakeSlotLister{err: errors.New("db down")},
+			rooms: &fakeRoomLister{rooms: lectureRoom()},
+		},
+		{
+			name:  "rooms fail",
+			loads: &fakeLoadLister{loads: []*entities.TeachingLoad{okLoad}},
+			slots: &fakeSlotLister{slots: twoSlots()},
+			rooms: &fakeRoomLister{err: errors.New("db down")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			uc := NewGenerateScheduleUseCase(tt.loads, tt.slots, tt.rooms)
+			if _, err := uc.Preview(context.Background(), GenerateParams{SemesterID: 1}); err == nil {
+				t.Fatal("expected repo error to propagate")
+			}
+		})
+	}
+}
+
+func TestGenerate_Preview_EmptyLoadYieldsEmptyPreview(t *testing.T) {
 	uc := NewGenerateScheduleUseCase(
-		&fakeLoadLister{err: errors.New("db down")},
+		&fakeLoadLister{loads: nil},
 		&fakeSlotLister{slots: twoSlots()},
 		&fakeRoomLister{rooms: lectureRoom()},
 	)
-	if _, err := uc.Preview(context.Background(), GenerateParams{SemesterID: 1}); err == nil {
-		t.Fatal("expected repo error to propagate")
+	preview, err := uc.Preview(context.Background(), GenerateParams{SemesterID: 1})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if preview.TotalRequested != 0 || preview.PlacedCount != 0 || preview.UnplacedCount != 0 {
+		t.Errorf("empty load must yield empty preview, got %+v", preview)
+	}
+}
+
+func TestGenerate_Preview_CarriesOddWeekType(t *testing.T) {
+	uc := NewGenerateScheduleUseCase(
+		&fakeLoadLister{loads: []*entities.TeachingLoad{hydratedLoad(1, 1, domain.WeekTypeOdd, 25, "Лек", "Лекция")}},
+		&fakeSlotLister{slots: twoSlots()},
+		&fakeRoomLister{rooms: lectureRoom()},
+	)
+	preview, err := uc.Preview(context.Background(), GenerateParams{SemesterID: 1})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(preview.Lessons) != 1 || preview.Lessons[0].WeekType != "odd" {
+		t.Errorf("odd week type must be carried through, got %+v", preview.Lessons)
 	}
 }

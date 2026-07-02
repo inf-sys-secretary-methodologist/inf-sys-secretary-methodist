@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -25,7 +25,7 @@ func TestAllowedRoomTypesForLesson(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := AllowedRoomTypesForLesson(tt.shortName)
-			if !reflect.DeepEqual(got, tt.want) {
+			if !slices.Equal(got, tt.want) {
 				t.Errorf("AllowedRoomTypesForLesson(%q) = %v, want %v", tt.shortName, got, tt.want)
 			}
 		})
