@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"regexp"
 	"testing"
 	"time"
@@ -26,13 +27,31 @@ func TestCalendarFeedTokenRepositoryPG_Save_Upsert(t *testing.T) {
 	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
 	tok := &entities.CalendarFeedToken{UserID: 42, Token: "deadbeef", CreatedAt: now}
 
-	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO calendar_feed_tokens")).
+	// The upsert/rotation contract is the headline behavior of this slice:
+	// require the ON CONFLICT (user_id) DO UPDATE and RETURNING id clauses so
+	// a regression to a plain INSERT (which would fail on the second call with
+	// a unique violation) is caught.
+	mock.ExpectQuery(`INSERT INTO calendar_feed_tokens[\s\S]+ON CONFLICT \(user_id\) DO UPDATE[\s\S]+RETURNING id`).
 		WithArgs(int64(42), "deadbeef", now).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(7)))
 
 	err := repo.Save(context.Background(), tok)
 	require.NoError(t, err)
 	assert.Equal(t, int64(7), tok.ID, "Save must populate the generated id")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCalendarFeedTokenRepositoryPG_Save_DBError(t *testing.T) {
+	repo, mock := newFeedTokenRepoMock(t)
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	tok := &entities.CalendarFeedToken{UserID: 42, Token: "deadbeef", CreatedAt: now}
+
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO calendar_feed_tokens")).
+		WithArgs(int64(42), "deadbeef", now).
+		WillReturnError(errors.New("connection reset"))
+
+	err := repo.Save(context.Background(), tok)
+	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -107,5 +126,30 @@ func TestCalendarFeedTokenRepositoryPG_DeleteByUserID(t *testing.T) {
 
 	err := repo.DeleteByUserID(context.Background(), 42)
 	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCalendarFeedTokenRepositoryPG_DeleteByUserID_MissingIsNoOp(t *testing.T) {
+	repo, mock := newFeedTokenRepoMock(t)
+
+	// Zero rows affected: deleting a non-existent token is not an error.
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM calendar_feed_tokens WHERE user_id = $1")).
+		WithArgs(int64(7)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	err := repo.DeleteByUserID(context.Background(), 7)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCalendarFeedTokenRepositoryPG_DeleteByUserID_DBError(t *testing.T) {
+	repo, mock := newFeedTokenRepoMock(t)
+
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM calendar_feed_tokens WHERE user_id = $1")).
+		WithArgs(int64(42)).
+		WillReturnError(errors.New("connection reset"))
+
+	err := repo.DeleteByUserID(context.Background(), 42)
+	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
