@@ -111,6 +111,9 @@ func TestLessonSlotUseCase_Update_Valid(t *testing.T) {
 	require.NotNil(t, repo.updated)
 	assert.Equal(t, int64(7), repo.updated.ID)
 	assert.True(t, repo.updated.UpdatedAt.Equal(slotFixedClock()()))
+	// Update does not own created_at (the UPDATE never writes it); the returned
+	// entity must not carry a fabricated CreatedAt that could mislead callers.
+	assert.True(t, slot.CreatedAt.IsZero(), "update must not stamp CreatedAt")
 }
 
 func TestLessonSlotUseCase_Update_InvalidNotPersisted(t *testing.T) {
