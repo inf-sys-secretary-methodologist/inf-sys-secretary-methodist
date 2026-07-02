@@ -155,6 +155,96 @@ func TestRender_FoldsLongLinesAtOctetBoundary(t *testing.T) {
 	}
 }
 
+func TestFoldLine_Boundaries(t *testing.T) {
+	// A line of exactly 75 octets must NOT fold.
+	line75 := strings.Repeat("a", 75)
+	if got := foldLine(line75); got != line75 {
+		t.Errorf("75-octet line must not fold; got %q", got)
+	}
+
+	// 76 ASCII octets folds into 75 + CRLF + space + the remaining octet.
+	line76 := strings.Repeat("a", 76)
+	got := foldLine(line76)
+	want := strings.Repeat("a", 75) + "\r\n " + "a"
+	if got != want {
+		t.Errorf("76-octet fold\n got %q\nwant %q", got, want)
+	}
+
+	// Unfolding (drop CRLF + leading space) reconstitutes the original.
+	if unfolded := strings.ReplaceAll(got, "\r\n ", ""); unfolded != line76 {
+		t.Errorf("unfold mismatch: got %q, want %q", unfolded, line76)
+	}
+}
+
+func TestRender_EmptyCalendar(t *testing.T) {
+	cal := Calendar{ProdID: prodID}
+	got := cal.Render()
+	want := "BEGIN:VCALENDAR\r\n" +
+		"VERSION:2.0\r\n" +
+		"PRODID:" + prodID + "\r\n" +
+		"CALSCALE:GREGORIAN\r\n" +
+		"METHOD:PUBLISH\r\n" +
+		"END:VCALENDAR\r\n"
+	if got != want {
+		t.Errorf("empty calendar\n got %q\nwant %q", got, want)
+	}
+}
+
+func TestRender_MultipleEventsPreserveOrder(t *testing.T) {
+	cal := Calendar{
+		ProdID: prodID,
+		Name:   "Расписание",
+		TZID:   "Europe/Moscow",
+		Events: []Event{
+			{
+				UID:     "a@methodist",
+				Summary: "Первая пара",
+				Start:   time.Date(2026, 2, 10, 9, 0, 0, 0, msk),
+				End:     time.Date(2026, 2, 10, 10, 0, 0, 0, msk),
+				Stamp:   time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+				Status:  StatusConfirmed,
+			},
+			{
+				UID:     "b@methodist",
+				Summary: "Вторая пара",
+				Start:   time.Date(2026, 2, 11, 9, 0, 0, 0, msk),
+				End:     time.Date(2026, 2, 11, 10, 0, 0, 0, msk),
+				Stamp:   time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+				Status:  StatusConfirmed,
+			},
+		},
+	}
+
+	got := cal.Render()
+	want := loadGolden(t, "multi.ics")
+	if got != want {
+		t.Errorf("Render() mismatch\n--- got ---\n%q\n--- want ---\n%q", got, want)
+	}
+}
+
+func TestRender_AllDayExdate(t *testing.T) {
+	cal := Calendar{
+		ProdID: prodID,
+		TZID:   "Europe/Moscow",
+		Events: []Event{{
+			UID:        "e1",
+			Summary:    "Ежегодный праздник",
+			Start:      time.Date(2026, 2, 23, 0, 0, 0, 0, msk),
+			End:        time.Date(2026, 2, 24, 0, 0, 0, 0, msk),
+			AllDay:     true,
+			Stamp:      time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+			Recurrence: &Recurrence{Frequency: FreqYearly},
+			ExDates:    []time.Time{time.Date(2026, 3, 9, 0, 0, 0, 0, msk)},
+			Status:     StatusConfirmed,
+		}},
+	}
+
+	got := cal.Render()
+	if !strings.Contains(got, "EXDATE;VALUE=DATE:20260309") {
+		t.Errorf("expected all-day EXDATE as VALUE=DATE; got:\n%s", got)
+	}
+}
+
 func TestRender_CountAndCategories(t *testing.T) {
 	count := 5
 	cal := Calendar{
