@@ -49,7 +49,10 @@ type SoftWeights struct {
 	EarlySlot  float64
 }
 
-// Input is the full problem statement handed to Solve.
+// Input is the full problem statement handed to Solve. The caller must supply
+// Days, Slots, and Rooms with distinct entries: the solver takes them as the
+// timetable grid and does not deduplicate, so a repeated slot or room would
+// produce duplicate candidate placements.
 type Input struct {
 	Variables []Variable
 	Days      []domain.DayOfWeek

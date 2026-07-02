@@ -1,6 +1,9 @@
 package solver
 
-import "sort"
+import (
+	"cmp"
+	"slices"
+)
 
 // maxBacktrackSteps caps the exhaustive search so an infeasible or huge instance
 // degrades to best-effort greedy placement instead of running unbounded. It is a
@@ -16,14 +19,28 @@ const maxBacktrackSteps = 1_000_000
 func Solve(in Input) Result {
 	n := len(in.Variables)
 	domains := make([][]Value, n)
+	placeable := make([]int, 0, n)
+	var unplaceable []Variable
 	for i := range in.Variables {
 		domains[i] = buildDomain(in.Variables[i], in)
+		if len(domains[i]) == 0 {
+			// No legal (day, slot, room) exists for this variable in isolation
+			// (H4) — it can never be placed, so it does not drag down the search.
+			unplaceable = append(unplaceable, in.Variables[i])
+			continue
+		}
+		placeable = append(placeable, i)
 	}
 
-	// Phase 1: try for a complete, conflict-free assignment of every variable.
-	if assigned, ok := solveComplete(in, domains); ok {
-		res := Result{Assignments: make([]Assignment, 0, n)}
-		for i := range in.Variables {
+	// Phase 1: try for a complete, conflict-free assignment of every placeable
+	// variable. Structurally unplaceable variables are excluded so a single
+	// oversized group does not force the whole solution onto the greedy path.
+	if assigned, ok := solveComplete(in, domains, placeable); ok {
+		res := Result{
+			Assignments: make([]Assignment, 0, len(placeable)),
+			Unplaced:    unplaceable,
+		}
+		for _, i := range placeable {
 			res.Assignments = append(res.Assignments, Assignment{Variable: in.Variables[i], Value: assigned[i]})
 		}
 		return res
@@ -34,22 +51,21 @@ func Solve(in Input) Result {
 }
 
 // solveComplete runs a backtracking search (MRV variable ordering, soft-guided
-// value ordering, forward-checking via on-demand consistency counts) that tries
-// to assign all variables. It returns (assignments, true) on a complete solution
-// found within the step budget, else (nil, false).
-func solveComplete(in Input, domains [][]Value) ([]Value, bool) {
-	n := len(in.Variables)
-	assigned := make([]Value, n)
-	set := make([]bool, n)
+// value ordering, forward-checking via on-demand consistency counts) over the
+// given placeable variable indices. It returns (assignments, true) on a complete
+// solution found within the step budget, else (nil, false).
+func solveComplete(in Input, domains [][]Value, indices []int) ([]Value, bool) {
+	assigned := make([]Value, len(in.Variables))
+	set := make([]bool, len(in.Variables))
 	steps := 0
+	remaining := len(indices)
 
 	var backtrack func() bool
 	backtrack = func() bool {
-		idx := selectMRV(in, domains, assigned, set)
-		if idx == -1 {
-			return true // every variable is assigned
+		if remaining == 0 {
+			return true // every placeable variable is assigned
 		}
-		cands := consistentValues(in, domains[idx], assigned, set, idx)
+		idx, cands := selectMRV(in, domains, assigned, set, indices)
 		sortValues(cands, in.Variables[idx], currentAssignments(in, assigned, set), in.Weights)
 		for _, val := range cands {
 			steps++
@@ -58,10 +74,12 @@ func solveComplete(in Input, domains [][]Value) ([]Value, bool) {
 			}
 			assigned[idx] = val
 			set[idx] = true
+			remaining--
 			if backtrack() {
 				return true
 			}
 			set[idx] = false
+			remaining++
 		}
 		return false
 	}
@@ -84,8 +102,8 @@ func solveGreedy(in Input, domains [][]Value) Result {
 	for i := range order {
 		order[i] = i
 	}
-	sort.SliceStable(order, func(a, b int) bool {
-		return len(domains[order[a]]) < len(domains[order[b]])
+	slices.SortStableFunc(order, func(a, b int) int {
+		return cmp.Compare(len(domains[a]), len(domains[b]))
 	})
 
 	var unplaced []Variable
@@ -109,25 +127,25 @@ func solveGreedy(in Input, domains [][]Value) Result {
 	return res
 }
 
-// selectMRV returns the index of the unassigned variable with the fewest
-// remaining consistent values (Minimum Remaining Values). A variable whose
-// domain has been wiped out (count 0) is selected first so the search fails fast
-// — this is the forward-checking effect. Returns -1 when all variables are set.
-// Ties break on the lowest index for determinism.
-func selectMRV(in Input, domains [][]Value, assigned []Value, set []bool) int {
-	best := -1
-	bestCount := 0
-	for i := range in.Variables {
+// selectMRV returns the unassigned variable (from indices) with the fewest
+// remaining consistent values (Minimum Remaining Values) together with those
+// values, computed once. A wiped-out variable (count 0) is chosen first so the
+// search fails fast — the forward-checking effect. Ties break on the lowest
+// index for determinism. Callers guarantee at least one index is unassigned.
+func selectMRV(in Input, domains [][]Value, assigned []Value, set []bool, indices []int) (int, []Value) {
+	bestIdx := -1
+	var bestCands []Value
+	for _, i := range indices {
 		if set[i] {
 			continue
 		}
-		c := len(consistentValues(in, domains[i], assigned, set, i))
-		if best == -1 || c < bestCount {
-			best = i
-			bestCount = c
+		cands := consistentValues(in, domains[i], assigned, set, i)
+		if bestIdx == -1 || len(cands) < len(bestCands) {
+			bestIdx = i
+			bestCands = cands
 		}
 	}
-	return best
+	return bestIdx, bestCands
 }
 
 // consistentValues filters a variable's domain to the values that clash with no
@@ -172,18 +190,18 @@ func currentAssignments(in Input, assigned []Value, set []bool) []Assignment {
 // sortValues orders candidate values by ascending soft penalty (cheapest first),
 // with a canonical (day, slot, room) tiebreak so the search is deterministic.
 func sortValues(values []Value, v Variable, current []Assignment, w SoftWeights) {
-	sort.SliceStable(values, func(i, j int) bool {
-		pi := penalty(Assignment{Variable: v, Value: values[i]}, current, w)
-		pj := penalty(Assignment{Variable: v, Value: values[j]}, current, w)
-		if pi != pj {
-			return pi < pj
+	slices.SortStableFunc(values, func(a, b Value) int {
+		pa := penalty(Assignment{Variable: v, Value: a}, current, w)
+		pb := penalty(Assignment{Variable: v, Value: b}, current, w)
+		if c := cmp.Compare(pa, pb); c != 0 {
+			return c
 		}
-		if values[i].Day != values[j].Day {
-			return values[i].Day < values[j].Day
+		if c := cmp.Compare(a.Day, b.Day); c != 0 {
+			return c
 		}
-		if values[i].Slot != values[j].Slot {
-			return values[i].Slot < values[j].Slot
+		if c := cmp.Compare(a.Slot, b.Slot); c != 0 {
+			return c
 		}
-		return values[i].RoomID < values[j].RoomID
+		return cmp.Compare(a.RoomID, b.RoomID)
 	})
 }

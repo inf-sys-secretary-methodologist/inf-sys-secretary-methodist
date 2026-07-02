@@ -17,7 +17,7 @@ func roomTypeOK(allowed []string, roomType string) bool {
 // resource clashes (H1-H3) are handled later during search. A variable whose
 // domain comes back empty is inherently unplaceable.
 func buildDomain(v Variable, in Input) []Value {
-	var values []Value
+	values := make([]Value, 0, len(in.Days)*len(in.Slots)*len(in.Rooms))
 	for _, day := range in.Days {
 		for _, slot := range in.Slots {
 			for _, room := range in.Rooms {
