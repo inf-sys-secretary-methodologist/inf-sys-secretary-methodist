@@ -31,22 +31,38 @@ func NewLessonSlotUseCase(repo LessonSlotRepository, opts ...LessonSlotOption) *
 	return uc
 }
 
-// List returns all slots ordered by number. STUB — see GREEN commit.
+// List returns all slots ordered by number.
 func (uc *LessonSlotUseCase) List(ctx context.Context) ([]*entities.LessonSlot, error) {
-	return nil, nil
+	return uc.repo.List(ctx)
 }
 
-// Create validates and persists a new slot. STUB — see GREEN commit.
+// Create validates a new slot via the entity constructor and persists it.
 func (uc *LessonSlotUseCase) Create(ctx context.Context, number int, timeStart, timeEnd string) (*entities.LessonSlot, error) {
-	return nil, nil
+	slot, err := entities.NewLessonSlot(number, timeStart, timeEnd, uc.now())
+	if err != nil {
+		return nil, err
+	}
+	if err := uc.repo.Create(ctx, slot); err != nil {
+		return nil, err
+	}
+	return slot, nil
 }
 
-// Update validates and persists changes to an existing slot. STUB — see GREEN commit.
+// Update validates the new values via the entity constructor, carries the
+// target id and persists the change.
 func (uc *LessonSlotUseCase) Update(ctx context.Context, id int64, number int, timeStart, timeEnd string) (*entities.LessonSlot, error) {
-	return nil, nil
+	slot, err := entities.NewLessonSlot(number, timeStart, timeEnd, uc.now())
+	if err != nil {
+		return nil, err
+	}
+	slot.ID = id
+	if err := uc.repo.Update(ctx, slot); err != nil {
+		return nil, err
+	}
+	return slot, nil
 }
 
-// Delete removes a slot. STUB — see GREEN commit.
+// Delete removes a slot by id.
 func (uc *LessonSlotUseCase) Delete(ctx context.Context, id int64) error {
-	return nil
+	return uc.repo.Delete(ctx, id)
 }
