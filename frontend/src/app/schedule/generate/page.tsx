@@ -94,8 +94,16 @@ export default function GenerateSchedulePage() {
     return req
   }
 
+  // Changing the semester or day selection makes the current preview stale, so
+  // it is dropped: apply always persists exactly what the user last previewed.
+  const selectSemester = (id: number) => {
+    setSemesterId(id)
+    setPreview(null)
+  }
+
   const toggleDay = (day: number) => {
     setDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]))
+    setPreview(null)
   }
 
   const handleGenerate = async () => {
@@ -149,7 +157,7 @@ export default function GenerateSchedulePage() {
               <Label>{t('params.semester')}</Label>
               <Select
                 value={semesterId ? String(semesterId) : undefined}
-                onValueChange={(v) => setSemesterId(Number(v))}
+                onValueChange={(v) => selectSemester(Number(v))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={t('params.selectSemester')} />
@@ -176,6 +184,7 @@ export default function GenerateSchedulePage() {
                       type="button"
                       size="sm"
                       variant={on ? 'default' : 'outline'}
+                      aria-pressed={on}
                       onClick={() => toggleDay(day)}
                     >
                       {t(`days.${name}`)}
@@ -289,7 +298,7 @@ export default function GenerateSchedulePage() {
                                       >
                                         <div className="flex items-center justify-between gap-1">
                                           <span className="font-semibold">{l.group_name}</span>
-                                          {weekBadge(l.week_type as WeekType)}
+                                          {weekBadge(l.week_type)}
                                         </div>
                                         <div>{l.discipline_name}</div>
                                         <div className="text-muted-foreground">
@@ -331,7 +340,7 @@ export default function GenerateSchedulePage() {
                         <span className="font-semibold">{u.group_name}</span>
                         <span>{u.discipline_name}</span>
                         <span className="text-muted-foreground">{u.lesson_type_name}</span>
-                        {weekBadge(u.week_type as WeekType)}
+                        {weekBadge(u.week_type)}
                       </li>
                     ))}
                   </ul>
