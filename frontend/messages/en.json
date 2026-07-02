@@ -883,6 +883,29 @@
         "enabled": "Quiet hours enabled",
         "disabled": "Quiet hours disabled"
       }
+    },
+    "calendar": {
+      "title": "Calendar",
+      "description": "Subscribe to your schedule in an external calendar",
+      "notSubscribedTitle": "No subscription yet",
+      "notSubscribedDescription": "Create a secret link to see your lessons and events in Google Calendar, Outlook or Apple Calendar.",
+      "create": "Create subscription",
+      "urlLabel": "Secret subscription link",
+      "urlHint": "Do not share this link — it grants access to your schedule.",
+      "copy": "Copy",
+      "copied": "Link copied",
+      "regenerate": "Regenerate link",
+      "regenerateConfirmTitle": "Regenerate link?",
+      "regenerateConfirmDescription": "The old link will stop working; existing subscriptions must be re-added.",
+      "delete": "Delete subscription",
+      "deleteConfirmTitle": "Delete subscription?",
+      "deleteConfirmDescription": "The link will stop working and the calendar will no longer update.",
+      "howToTitle": "How to connect",
+      "howToDescription": "Copy the link and add it as a calendar by URL: Google Calendar → Other calendars → Subscribe from URL; Apple Calendar → File → New Calendar Subscription; Outlook → Add calendar → Subscribe from web.",
+      "created": "Subscription created",
+      "regenerated": "Link regenerated",
+      "deleted": "Subscription deleted",
+      "error": "Action failed"
     }
   },
   "notifications": {

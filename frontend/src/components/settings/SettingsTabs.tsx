@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Palette, Bell } from 'lucide-react'
+import { Palette, Bell, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Personal settings tabs available к all authenticated roles.
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 const tabs = [
   { href: '/settings/appearance', labelKey: 'appearance.title' as const, icon: Palette },
   { href: '/settings/notifications', labelKey: 'notifications.title' as const, icon: Bell },
+  { href: '/settings/calendar', labelKey: 'calendar.title' as const, icon: Calendar },
 ]
 
 export function SettingsTabs() {
