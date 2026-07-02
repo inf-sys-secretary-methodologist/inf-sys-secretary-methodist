@@ -11,6 +11,9 @@ import type {
   UpdateLessonInput,
   LessonFilterParams,
   CreateChangeInput,
+  GenerateScheduleRequest,
+  SchedulePreview,
+  ApplyResult,
 } from '@/types/schedule'
 
 // Backend API response wrappers
@@ -100,6 +103,27 @@ export const semestersApi = {
   async list(): Promise<Semester[]> {
     const response = await apiClient.get<ApiResponse<Semester[]>>('/api/semesters')
     return response.data || []
+  },
+}
+
+// scheduleGenerateApi drives the automatic schedule generator (#139).
+// preview computes a draft without persisting; apply writes it atomically and
+// returns 409 (surfaced as an axios error) when the semester already has one.
+export const scheduleGenerateApi = {
+  async preview(req: GenerateScheduleRequest): Promise<SchedulePreview> {
+    const response = await apiClient.post<ApiResponse<SchedulePreview>>(
+      '/api/schedule/generate',
+      req
+    )
+    return response.data
+  },
+
+  async apply(req: GenerateScheduleRequest): Promise<ApplyResult> {
+    const response = await apiClient.post<ApiResponse<ApplyResult>>(
+      '/api/schedule/generate/apply',
+      req
+    )
+    return response.data
   },
 }
 

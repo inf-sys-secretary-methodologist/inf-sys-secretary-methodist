@@ -128,6 +128,56 @@ export interface CreateChangeInput {
   reason?: string
 }
 
+// --- Automatic schedule generation (#139 Slice 5) ---
+// Mirror of the backend DTOs in
+// internal/modules/schedule/application/dto/generate_dto.go. The preview
+// endpoint returns a draft without persisting; apply writes it atomically.
+
+export interface GenerateScheduleRequest {
+  semester_id: number
+  days?: number[] // 1=Monday..6=Saturday; empty => Mon-Sat
+}
+
+export interface GeneratedLesson {
+  load_id: number
+  group_id: number
+  group_name: string
+  teacher_id: number
+  teacher_name: string
+  discipline_id: number
+  discipline_name: string
+  lesson_type_id: number
+  lesson_type_name: string
+  week_type: WeekType
+  day_of_week: number
+  slot_number: number
+  time_start: string
+  time_end: string
+  classroom_id: number
+  classroom_name: string
+}
+
+export interface UnplacedLesson {
+  load_id: number
+  group_name: string
+  discipline_name: string
+  lesson_type_name: string
+  week_type: WeekType
+}
+
+export interface SchedulePreview {
+  lessons: GeneratedLesson[]
+  unplaced: UnplacedLesson[]
+  total_requested: number
+  placed_count: number
+  unplaced_count: number
+}
+
+export interface ApplyResult {
+  created: number
+  unplaced: number
+}
+
 export type WeekType = 'all' | 'odd' | 'even'
 
 export const WEEK_TYPES: WeekType[] = ['all', 'odd', 'even']
