@@ -134,6 +134,13 @@ func TestSlotHandler_Update_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
+func TestSlotHandler_Update_Forbidden(t *testing.T) {
+	svc := &fakeSlotSvc{}
+	w := doSlot(setupSlotRouter(svc, "teacher"), http.MethodPut, "/slots/5", `{"number":1,"time_start":"08:30","time_end":"10:00"}`)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
 func TestSlotHandler_Update_BadID(t *testing.T) {
 	svc := &fakeSlotSvc{}
 	w := doSlot(setupSlotRouter(svc, "system_admin"), http.MethodPut, "/slots/abc", `{"number":1,"time_start":"08:30","time_end":"10:00"}`)
