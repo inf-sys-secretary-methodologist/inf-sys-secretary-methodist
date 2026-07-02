@@ -20,6 +20,10 @@ var (
 	ErrTeachingLoadDuplicate = errors.New("teaching load for this group/discipline/type already exists")
 )
 
+// maxPairsPerWeek caps a single load line; a week has at most a handful of
+// slots per day, so anything beyond this is a data-entry error.
+const maxPairsPerWeek = 20
+
 // TeachingLoad is one planned teaching assignment: a group studies a discipline
 // with a teacher for N pairs per week (on all/odd/even weeks). It is the source
 // of truth the auto-scheduler expands into schedulable lessons.
@@ -42,8 +46,18 @@ type TeachingLoad struct {
 	Teacher    *TeacherInfo  `json:"teacher,omitempty"`
 }
 
-// NewTeachingLoad constructs a validated TeachingLoad. STUB — see GREEN commit.
+// NewTeachingLoad constructs a validated TeachingLoad: all references must be
+// positive, pairs must be within [1, maxPairsPerWeek], week type recognized.
 func NewTeachingLoad(semesterID, groupID, disciplineID, teacherID, lessonTypeID int64, pairsPerWeek int, weekType domain.WeekType, now time.Time) (*TeachingLoad, error) {
+	if semesterID <= 0 || groupID <= 0 || disciplineID <= 0 || teacherID <= 0 || lessonTypeID <= 0 {
+		return nil, ErrInvalidLoadReference
+	}
+	if pairsPerWeek <= 0 || pairsPerWeek > maxPairsPerWeek {
+		return nil, ErrInvalidLoadPairs
+	}
+	if !weekType.IsValid() {
+		return nil, ErrInvalidLoadWeekType
+	}
 	return &TeachingLoad{
 		SemesterID:   semesterID,
 		GroupID:      groupID,
