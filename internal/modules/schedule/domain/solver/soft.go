@@ -56,6 +56,12 @@ func penalty(candidate Assignment, current []Assignment, w SoftWeights) float64 
 		if a.Value.Day != candidate.Value.Day {
 			continue
 		}
+		// Only lessons whose weeks overlap the candidate can share its day in a
+		// physical week; parity-disjoint (odd vs even) lessons never coexist, so
+		// they must not create phantom windows or inflate the day's load.
+		if !parityConflicts(candidate.Variable.WeekType, a.Variable.WeekType) {
+			continue
+		}
 		if a.Variable.GroupID == candidate.Variable.GroupID {
 			groupSlots = append(groupSlots, a.Value.Slot)
 			groupSameDay++
