@@ -164,7 +164,10 @@ export function TeachingLoadForm({ entity, onSubmit, onCancel }: TeachingLoadFor
             min={1}
             max={20}
             value={pairsPerWeek}
-            onChange={(e) => setPairsPerWeek(Number(e.target.value))}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10)
+              setPairsPerWeek(Number.isNaN(n) ? 0 : n)
+            }}
           />
         </div>
         <div className="space-y-2">
