@@ -153,4 +153,29 @@ describe('GenerateSchedulePage', () => {
     // All six days are selected by default → aria-pressed=true.
     expect(screen.getByRole('button', { name: 'days.monday', pressed: true })).toBeInTheDocument()
   })
+
+  it('toasts a generic error when preview generation fails', async () => {
+    preview.mockRejectedValue(new Error('boom'))
+    const user = userEvent.setup()
+    render(<GenerateSchedulePage />)
+
+    await user.click(screen.getByRole('button', { name: 'generate' }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('errors.generateFailed'))
+    expect(screen.queryByText('ИС-21')).not.toBeInTheDocument()
+  })
+
+  it('includes an explicit days list when the full week is not selected', async () => {
+    preview.mockResolvedValue(draft)
+    const user = userEvent.setup()
+    render(<GenerateSchedulePage />)
+
+    // Drop Monday, then generate: the request must carry the remaining days.
+    await user.click(screen.getByRole('button', { name: 'days.monday', pressed: true }))
+    await user.click(screen.getByRole('button', { name: 'generate' }))
+
+    await waitFor(() =>
+      expect(preview).toHaveBeenCalledWith({ semester_id: 7, days: [2, 3, 4, 5, 6] })
+    )
+  })
 })
