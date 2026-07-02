@@ -40,3 +40,13 @@ func lookupZone(tzid string) (tzInfo, bool) {
 	info, ok := builtinZones[tzid]
 	return info, ok
 }
+
+// Location returns the *time.Location for a builtin zone id, or UTC for an
+// unknown id. Callers building event times for Render must use this location so
+// their wall-clock times match the zone the renderer emits.
+func Location(tzid string) *time.Location {
+	if info, ok := builtinZones[tzid]; ok {
+		return info.location
+	}
+	return time.UTC
+}
