@@ -49,13 +49,19 @@ const (
 	StatusCancelled Status = "CANCELLED" //nolint:misspell // RFC 5545 STATUS value
 )
 
+// The value types below (Recurrence, Event, Calendar) are render models: plain
+// serialization structs whose only invariant is producing spec-compliant
+// output, which the renderer guarantees. Business invariants (e.g. a lesson's
+// time range) belong to the schedule domain entities and are enforced when the
+// application layer maps those entities onto these types.
+
 // Recurrence models an RFC 5545 RRULE. A nil *Recurrence means a single,
 // non-repeating event.
 type Recurrence struct {
 	Frequency Frequency
 	Interval  int        // occurrences repeat every Interval units; <=1 omits INTERVAL
 	Until     *time.Time // inclusive end of the series, always rendered in UTC
-	Count     *int       // number of occurrences; mutually exclusive with Until
+	Count     *int       // number of occurrences; ignored when Until is also set
 	ByDay     []Weekday  // BYDAY component
 }
 
@@ -99,7 +105,7 @@ func (c Calendar) Render() string {
 
 	add("BEGIN:VCALENDAR")
 	add("VERSION:2.0")
-	add("PRODID:" + c.ProdID)
+	add("PRODID:" + escapeText(c.ProdID))
 	add("CALSCALE:GREGORIAN")
 	add("METHOD:PUBLISH")
 	if c.Name != "" {
@@ -122,11 +128,15 @@ func (c Calendar) Render() string {
 // renderEvent appends the folded property lines of a single VEVENT via add.
 func (c Calendar) renderEvent(add func(string), ev Event, zone tzInfo, hasZone bool) {
 	add("BEGIN:VEVENT")
-	add("UID:" + ev.UID)
+	add("UID:" + escapeText(ev.UID))
 	add("DTSTAMP:" + formatUTC(ev.Stamp))
 
 	add(c.dateProp("DTSTART", ev.Start, ev.AllDay, zone, hasZone))
-	add(c.dateProp("DTEND", ev.End, ev.AllDay, zone, hasZone))
+	// DTEND is optional in RFC 5545; omit it rather than emit a garbage
+	// zero-value instant when the caller supplies no end time.
+	if !ev.End.IsZero() {
+		add(c.dateProp("DTEND", ev.End, ev.AllDay, zone, hasZone))
+	}
 
 	if ev.Recurrence != nil {
 		add("RRULE:" + renderRRule(*ev.Recurrence))
@@ -159,6 +169,10 @@ func (c Calendar) renderEvent(add func(string), ev Event, zone tzInfo, hasZone b
 
 // dateProp renders a date/date-time property (DTSTART/DTEND/EXDATE) choosing
 // the VALUE=DATE, TZID-local or UTC form depending on the event and zone.
+//
+// The all-day branch formats the value in its own location, so callers must
+// pass all-day times already as the intended wall-clock date; the timed branch
+// converts the instant into the calendar zone.
 func (c Calendar) dateProp(name string, t time.Time, allDay bool, zone tzInfo, hasZone bool) string {
 	switch {
 	case allDay:
@@ -181,10 +195,12 @@ func renderRRule(r Recurrence) string {
 	if r.Interval > 1 {
 		parts = append(parts, "INTERVAL="+strconv.Itoa(r.Interval))
 	}
-	if r.Until != nil {
+	// RFC 5545 §3.3.10 forbids UNTIL and COUNT in the same RRULE; UNTIL wins
+	// when a caller supplies both, so the output is always spec-compliant.
+	switch {
+	case r.Until != nil:
 		parts = append(parts, "UNTIL="+formatUTC(*r.Until))
-	}
-	if r.Count != nil {
+	case r.Count != nil:
 		parts = append(parts, "COUNT="+strconv.Itoa(*r.Count))
 	}
 	if len(r.ByDay) > 0 {
