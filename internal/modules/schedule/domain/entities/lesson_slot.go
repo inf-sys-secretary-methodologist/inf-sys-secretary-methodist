@@ -12,6 +12,12 @@ var (
 	ErrInvalidSlotTimeRange  = errors.New("slot end time must be after start time")
 )
 
+// Repository-level sentinels for LessonSlot lookups and constraints.
+var (
+	ErrLessonSlotNotFound    = errors.New("lesson slot not found")
+	ErrLessonSlotNumberTaken = errors.New("lesson slot number already exists")
+)
+
 // LessonSlot is one bell-schedule slot (пара): an ordered pair number with
 // fixed start/end times shared institution-wide. It provides the discrete time
 // domain the auto-scheduler places lessons into.
