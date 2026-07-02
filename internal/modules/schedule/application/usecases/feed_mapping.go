@@ -44,15 +44,16 @@ func lessonToICalEvent(l *entities.Lesson, uidDomain string, loc *time.Location)
 	start := withTime(first, sh, sm, ss, loc)
 	end := withTime(first, eh, em, es, loc)
 
-	interval := 1
-	if l.WeekType == domain.WeekTypeOdd || l.WeekType == domain.WeekTypeEven {
-		interval = 2
-	}
-
 	status := ical.StatusConfirmed
 	if l.IsCancelled {
 		status = ical.StatusCancelled
 	}
+
+	// A single RRULE cannot express "every odd/even ISO week": a fixed 14-day
+	// step (INTERVAL=2) does NOT preserve ISO-week parity across a 53-week ISO
+	// year (e.g. 2026). So the series is FREQ=WEEKLY (every week) and each
+	// off-parity week is removed with an EXDATE, computed per week.
+	exDates := oddEvenExdates(l.WeekType, first, until, sh, sm, ss, loc)
 
 	return ical.Event{
 		UID:         fmt.Sprintf("lesson-%d@%s", l.ID, uidDomain),
@@ -64,12 +65,31 @@ func lessonToICalEvent(l *entities.Lesson, uidDomain string, loc *time.Location)
 		Stamp:       l.UpdatedAt,
 		Recurrence: &ical.Recurrence{
 			Frequency: ical.FreqWeekly,
-			Interval:  interval,
+			Interval:  1,
 			Until:     &until,
 			ByDay:     []ical.Weekday{weekdayToICal[l.DayOfWeek]},
 		},
-		Status: status,
+		ExDates: exDates,
+		Status:  status,
 	}, true
+}
+
+// oddEvenExdates returns, for an odd/even lesson, the weekly slots between first
+// and until whose ISO-week parity does not match the lesson's week type. For an
+// "all" lesson it returns nil. Parity is evaluated per week, so it stays correct
+// across 53-week ISO year boundaries.
+func oddEvenExdates(wt domain.WeekType, first, until time.Time, h, m, s int, loc *time.Location) []time.Time {
+	if wt != domain.WeekTypeOdd && wt != domain.WeekTypeEven {
+		return nil
+	}
+	wantOdd := wt == domain.WeekTypeOdd
+	var ex []time.Time
+	for d := first; !d.After(until); d = d.AddDate(0, 0, 7) {
+		if _, week := d.ISOWeek(); (week%2 == 1) != wantOdd {
+			ex = append(ex, withTime(d, h, m, s, loc))
+		}
+	}
+	return ex
 }
 
 // eventToICalEvent maps a calendar event onto a VEVENT. The bool is false when
@@ -105,7 +125,9 @@ func eventToICalEvent(e *entities.Event, uidDomain string, loc *time.Location) (
 	return out, true
 }
 
-// recurrenceToICal maps a domain recurrence rule onto an ical.Recurrence.
+// recurrenceToICal maps a domain recurrence rule onto an ical.Recurrence. Note
+// that RecurrenceRule.WeekStart (WKST) is not carried: the feed assumes the
+// RFC 5545 default of Monday, which matches the RU locale.
 func recurrenceToICal(r *entities.RecurrenceRule) *ical.Recurrence {
 	byDay := make([]ical.Weekday, 0, len(r.ByWeekday))
 	for _, wd := range r.ByWeekday {
@@ -159,7 +181,9 @@ func endOfDay(date time.Time, loc *time.Location) time.Time {
 	return time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 0, loc)
 }
 
-// parseDayTime parses a PostgreSQL TIME value ("HH:MM" or "HH:MM:SS").
+// parseDayTime parses a PostgreSQL TIME value ("HH:MM" or "HH:MM:SS"). A
+// malformed value degrades to 00:00:00; the lesson's TimeStart<TimeEnd domain
+// invariant (Lesson.Validate) keeps such values from reaching this mapper.
 func parseDayTime(s string) (h, m, sec int) {
 	_, _ = fmt.Sscanf(s, "%d:%d:%d", &h, &m, &sec)
 	return h, m, sec

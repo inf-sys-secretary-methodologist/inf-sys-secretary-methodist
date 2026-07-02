@@ -137,8 +137,11 @@ func (uc *CalendarFeedUseCase) RenderFeed(ctx context.Context, token string) (st
 		}
 	}
 
-	from := uc.now().Add(-uc.cfg.PastWindow)
-	to := uc.now().Add(uc.cfg.FutureWindow)
+	now := uc.now()
+	from := now.Add(-uc.cfg.PastWindow)
+	to := now.Add(uc.cfg.FutureWindow)
+	// GetByDateRange scopes events to those the user is involved in (organizer
+	// or participant) within the window.
 	events, err := uc.events.GetByDateRange(ctx, from, to, &tok.UserID)
 	if err != nil {
 		return "", err
