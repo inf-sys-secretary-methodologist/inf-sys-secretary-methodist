@@ -116,7 +116,78 @@ type ApplyResult struct {
 // It refuses to run when the semester already has lessons (ErrScheduleAlreadyExists)
 // so re-applying never silently duplicates the timetable.
 func (uc *GenerateScheduleUseCase) Apply(ctx context.Context, params GenerateParams) (*ApplyResult, error) {
-	return &ApplyResult{}, nil
+	if uc.lessons == nil || uc.semesters == nil {
+		return nil, ErrGenerateNotWritable
+	}
+	if params.SemesterID <= 0 {
+		return nil, ErrInvalidInput
+	}
+	semesterID := params.SemesterID
+
+	existing, err := uc.lessons.Count(ctx, LessonFilter{SemesterID: &semesterID})
+	if err != nil {
+		return nil, err
+	}
+	if existing > 0 {
+		return nil, ErrScheduleAlreadyExists
+	}
+
+	semester, err := uc.semesterByID(ctx, semesterID)
+	if err != nil {
+		return nil, err
+	}
+
+	plan, err := uc.plan(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	now := uc.now()
+	created := 0
+	for _, a := range plan.result.Assignments {
+		slot := plan.slotByNum[a.Value.Slot]
+		if slot == nil {
+			continue
+		}
+		lesson := entities.NewLesson(
+			semesterID,
+			a.Variable.DisciplineID,
+			a.Variable.LessonTypeID,
+			a.Variable.TeacherID,
+			a.Variable.GroupID,
+			a.Value.RoomID,
+			a.Value.Day,
+			slot.TimeStart,
+			slot.TimeEnd,
+			a.Variable.WeekType,
+			semester.StartDate,
+			semester.EndDate,
+			now,
+		)
+		if err := lesson.Validate(); err != nil {
+			return nil, err
+		}
+		if err := uc.lessons.Create(ctx, lesson); err != nil {
+			return nil, err
+		}
+		created++
+	}
+
+	return &ApplyResult{Created: created, Unplaced: len(plan.result.Unplaced)}, nil
+}
+
+// semesterByID resolves a semester's dates from the reference catalog.
+func (uc *GenerateScheduleUseCase) semesterByID(ctx context.Context, id int64) (*entities.Semester, error) {
+	semesters, err := uc.semesters.ListSemesters(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range semesters {
+		if s.ID == id {
+			return s, nil
+		}
+	}
+	return nil, ErrSemesterNotFound
 }
 
 // GenerateParams is the request for a draft schedule.
