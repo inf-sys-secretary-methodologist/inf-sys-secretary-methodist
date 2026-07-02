@@ -1,6 +1,7 @@
 'use client'
 
 import useSWR from 'swr'
+import { apiClient } from '@/lib/api'
 import { swrFetcher } from '@/lib/api/fetchers'
 import { SWR_DEDUPING } from '@/config/swr'
 import type { CalendarSubscription } from '@/types/calendarFeed'
@@ -19,15 +20,15 @@ export function useCalendarSubscription() {
 
 // createCalendarSubscription creates (or returns the existing) subscription.
 export async function createCalendarSubscription(): Promise<CalendarSubscription> {
-  return {} as CalendarSubscription
+  return apiClient.post<CalendarSubscription>(CALENDAR_SUBSCRIPTION_URL)
 }
 
 // rotateCalendarSubscription issues a new secret URL, invalidating the old one.
 export async function rotateCalendarSubscription(): Promise<CalendarSubscription> {
-  return {} as CalendarSubscription
+  return apiClient.post<CalendarSubscription>(`${CALENDAR_SUBSCRIPTION_URL}/rotate`)
 }
 
 // deleteCalendarSubscription disables the feed.
 export async function deleteCalendarSubscription(): Promise<void> {
-  // stub
+  await apiClient.delete(CALENDAR_SUBSCRIPTION_URL)
 }
