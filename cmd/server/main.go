@@ -856,6 +856,8 @@ func main() {
 	lessonUseCase := scheduleUsecases.NewLessonUseCase(lessonRepo, classroomRepo, referenceRepo, changeRepo, auditLogger)
 	lessonSlotRepo := schedulePersistence.NewLessonSlotRepositoryPG(db)
 	lessonSlotUseCase := scheduleUsecases.NewLessonSlotUseCase(lessonSlotRepo)
+	teachingLoadRepo := schedulePersistence.NewTeachingLoadRepositoryPG(db)
+	teachingLoadUseCase := scheduleUsecases.NewTeachingLoadUseCase(teachingLoadRepo)
 	logger.Info("Schedule lessons module initialized", nil)
 
 	// Initialize calendar feed (external calendar subscription, issue #40)
@@ -1170,6 +1172,7 @@ func main() {
 		eventUseCase,
 		lessonUseCase,
 		lessonSlotUseCase,
+		teachingLoadUseCase,
 		calendarFeedUseCase,
 		announcementUseCase,
 		dashboardUseCase,
@@ -1799,6 +1802,7 @@ func setupRoutes(
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
 	lessonSlotUseCase *scheduleUsecases.LessonSlotUseCase,
+	teachingLoadUseCase *scheduleUsecases.TeachingLoadUseCase,
 	calendarFeedUseCase *scheduleUsecases.CalendarFeedUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
 	dashboardUseCase *dashboardUsecases.DashboardUseCase,
@@ -3122,12 +3126,21 @@ func setupRoutes(
 				scheduleGroup.PUT("/slots/:id", slotHandlerInstance.Update)
 				scheduleGroup.DELETE("/slots/:id", slotHandlerInstance.Delete)
 
+				// Planned teaching load — issue #139, Slice 2.
+				loadHandlerInstance := scheduleHandler.NewTeachingLoadHandler(teachingLoadUseCase)
+				scheduleGroup.GET("/teaching-load", loadHandlerInstance.List)
+				scheduleGroup.POST("/teaching-load", loadHandlerInstance.Create)
+				scheduleGroup.PUT("/teaching-load/:id", loadHandlerInstance.Update)
+				scheduleGroup.DELETE("/teaching-load/:id", loadHandlerInstance.Delete)
+
 				scheduleGroup.OPTIONS("/lessons", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/lessons/timetable", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/lessons/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/changes", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/slots", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/slots/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				scheduleGroup.OPTIONS("/teaching-load", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				scheduleGroup.OPTIONS("/teaching-load/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 
 			classroomsGroup := protectedGroup.Group("/classrooms")
