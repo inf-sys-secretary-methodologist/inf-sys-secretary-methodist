@@ -44,29 +44,38 @@ export function buildTeachingLoadUrl(filter?: TeachingLoadFilter): string {
   return qs ? `${TEACHING_LOAD_URL}?${qs}` : TEACHING_LOAD_URL
 }
 
-// useTeachingLoads returns the load registry, optionally filtered.
-export function useTeachingLoads(_filter?: TeachingLoadFilter, _opts?: FetchOpts) {
-  const { data, error, isLoading, mutate } = useSWR<TeachingLoadListResponse>(null, fetcher, {
+// useTeachingLoads returns the load registry, optionally filtered. The key is
+// null while disabled so the fetch is skipped until auth resolves.
+export function useTeachingLoads(filter?: TeachingLoadFilter, opts?: FetchOpts) {
+  const enabled = opts?.enabled ?? true
+  const key = enabled ? buildTeachingLoadUrl(filter) : null
+  const { data, error, isLoading, mutate } = useSWR<TeachingLoadListResponse>(key, fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: SWR_DEDUPING.SHORT,
   })
   return { items: data?.teaching_loads ?? [], isLoading, error, mutate }
 }
 
-// createTeachingLoad — STUB, see GREEN commit.
-export async function createTeachingLoad(_input: TeachingLoadInput): Promise<TeachingLoad> {
-  return {} as TeachingLoad
+// createTeachingLoad posts a new load line and returns the created record.
+// apiClient does not unwrap the {success,data} envelope, so we read .data.
+export async function createTeachingLoad(input: TeachingLoadInput): Promise<TeachingLoad> {
+  const response = await apiClient.post<ApiResponse<TeachingLoad>>(TEACHING_LOAD_URL, input)
+  return response.data
 }
 
-// updateTeachingLoad — STUB, see GREEN commit.
+// updateTeachingLoad puts changes to an existing line and returns it.
 export async function updateTeachingLoad(
-  _id: number,
-  _input: TeachingLoadInput
+  id: number,
+  input: TeachingLoadInput
 ): Promise<TeachingLoad> {
-  return {} as TeachingLoad
+  const response = await apiClient.put<ApiResponse<TeachingLoad>>(
+    `${TEACHING_LOAD_URL}/${id}`,
+    input
+  )
+  return response.data
 }
 
-// deleteTeachingLoad — STUB, see GREEN commit.
-export async function deleteTeachingLoad(_id: number): Promise<void> {
-  return
+// deleteTeachingLoad removes a load line.
+export async function deleteTeachingLoad(id: number): Promise<void> {
+  await apiClient.delete(`${TEACHING_LOAD_URL}/${id}`)
 }
