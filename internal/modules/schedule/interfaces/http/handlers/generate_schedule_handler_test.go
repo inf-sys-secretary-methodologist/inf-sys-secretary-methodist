@@ -103,3 +103,21 @@ func TestGenerateHandler_Apply_ConflictWhenExists(t *testing.T) {
 	w := postJSON(r, "/schedule/generate/apply", `{"semester_id":1}`)
 	assert.Equal(t, http.StatusConflict, w.Code)
 }
+
+func TestGenerateHandler_Apply_SemesterNotFound(t *testing.T) {
+	svc := &fakeGenerateSvc{err: usecases.ErrSemesterNotFound}
+	h := NewGenerateScheduleHandler(svc)
+	r := setupGenerateRouter(h, "academic_secretary")
+
+	w := postJSON(r, "/schedule/generate/apply", `{"semester_id":9}`)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestGenerateHandler_Apply_NotWritableMapsTo500(t *testing.T) {
+	svc := &fakeGenerateSvc{err: usecases.ErrGenerateNotWritable}
+	h := NewGenerateScheduleHandler(svc)
+	r := setupGenerateRouter(h, "academic_secretary")
+
+	w := postJSON(r, "/schedule/generate/apply", `{"semester_id":1}`)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}

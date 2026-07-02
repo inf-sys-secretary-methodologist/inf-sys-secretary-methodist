@@ -45,10 +45,12 @@ type (
 	generateRoomLister interface {
 		List(ctx context.Context, filter ClassroomFilter, limit, offset int) ([]*entities.Classroom, error)
 	}
-	// generateLessonWriter is the write surface used by Apply.
+	// generateLessonWriter is the write surface used by Apply. CreateMany persists
+	// the whole draft atomically so a mid-batch failure never leaves a half-built
+	// schedule.
 	generateLessonWriter interface {
 		Count(ctx context.Context, filter LessonFilter) (int64, error)
-		Create(ctx context.Context, lesson *entities.Lesson) error
+		CreateMany(ctx context.Context, lessons []*entities.Lesson) error
 	}
 	// generateSemesterLister resolves semester dates for the applied lessons.
 	generateSemesterLister interface {
@@ -142,8 +144,11 @@ func (uc *GenerateScheduleUseCase) Apply(ctx context.Context, params GeneratePar
 		return nil, err
 	}
 
+	// Build and validate every lesson before writing anything, then persist the
+	// whole batch atomically — so a validation or DB failure never leaves the
+	// semester half-scheduled.
 	now := uc.now()
-	created := 0
+	lessons := make([]*entities.Lesson, 0, len(plan.result.Assignments))
 	for _, a := range plan.result.Assignments {
 		slot := plan.slotByNum[a.Value.Slot]
 		if slot == nil {
@@ -167,13 +172,14 @@ func (uc *GenerateScheduleUseCase) Apply(ctx context.Context, params GeneratePar
 		if err := lesson.Validate(); err != nil {
 			return nil, err
 		}
-		if err := uc.lessons.Create(ctx, lesson); err != nil {
-			return nil, err
-		}
-		created++
+		lessons = append(lessons, lesson)
 	}
 
-	return &ApplyResult{Created: created, Unplaced: len(plan.result.Unplaced)}, nil
+	if err := uc.lessons.CreateMany(ctx, lessons); err != nil {
+		return nil, err
+	}
+
+	return &ApplyResult{Created: len(lessons), Unplaced: len(plan.result.Unplaced)}, nil
 }
 
 // semesterByID resolves a semester's dates from the reference catalog.
@@ -280,6 +286,11 @@ func (uc *GenerateScheduleUseCase) plan(ctx context.Context, params GeneratePara
 	days := params.Days
 	if len(days) == 0 {
 		days = defaultTeachingDays
+	}
+	for _, d := range days {
+		if !d.IsValid() {
+			return nil, ErrInvalidInput
+		}
 	}
 
 	slotByNum := make(map[int]*entities.LessonSlot, len(slots))

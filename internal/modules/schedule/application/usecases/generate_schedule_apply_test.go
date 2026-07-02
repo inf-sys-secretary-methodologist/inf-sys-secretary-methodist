@@ -11,21 +11,21 @@ import (
 )
 
 type fakeLessonWriter struct {
-	count     int64
-	countErr  error
-	created   []*entities.Lesson
-	createErr error
+	count         int64
+	countErr      error
+	created       []*entities.Lesson
+	createManyErr error
 }
 
 func (f *fakeLessonWriter) Count(_ context.Context, _ LessonFilter) (int64, error) {
 	return f.count, f.countErr
 }
 
-func (f *fakeLessonWriter) Create(_ context.Context, l *entities.Lesson) error {
-	if f.createErr != nil {
-		return f.createErr
+func (f *fakeLessonWriter) CreateMany(_ context.Context, lessons []*entities.Lesson) error {
+	if f.createManyErr != nil {
+		return f.createManyErr // atomic: a failed batch persists nothing
 	}
-	f.created = append(f.created, l)
+	f.created = append(f.created, lessons...)
 	return nil
 }
 
@@ -158,10 +158,10 @@ func TestGenerate_Apply_SkipsUnplaced(t *testing.T) {
 	}
 }
 
-func TestGenerate_Apply_PropagatesCreateError(t *testing.T) {
-	writer := &fakeLessonWriter{createErr: errors.New("insert failed")}
+func TestGenerate_Apply_PropagatesCreateErrorAtomically(t *testing.T) {
+	writer := &fakeLessonWriter{createManyErr: errors.New("insert failed")}
 	uc := newApplyUC(
-		&fakeLoadLister{loads: []*entities.TeachingLoad{hydratedLoad(1, 1, domain.WeekTypeAll, 25, "Лек", "Лекция")}},
+		&fakeLoadLister{loads: []*entities.TeachingLoad{hydratedLoad(1, 2, domain.WeekTypeAll, 25, "Лек", "Лекция")}},
 		&fakeSlotLister{slots: twoSlots()},
 		&fakeRoomLister{rooms: lectureRoom()},
 		writer,
@@ -170,5 +170,27 @@ func TestGenerate_Apply_PropagatesCreateError(t *testing.T) {
 
 	if _, err := uc.Apply(context.Background(), GenerateParams{SemesterID: 1}); err == nil {
 		t.Fatal("expected create error to propagate")
+	}
+	if len(writer.created) != 0 {
+		t.Errorf("a failed batch must persist nothing, got %d lessons", len(writer.created))
+	}
+}
+
+func TestGenerate_Apply_RejectsInvalidDay(t *testing.T) {
+	writer := &fakeLessonWriter{}
+	uc := newApplyUC(
+		&fakeLoadLister{loads: []*entities.TeachingLoad{hydratedLoad(1, 1, domain.WeekTypeAll, 25, "Лек", "Лекция")}},
+		&fakeSlotLister{slots: twoSlots()},
+		&fakeRoomLister{rooms: lectureRoom()},
+		writer,
+		&fakeSemesterLister{semesters: semesterOne()},
+	)
+
+	_, err := uc.Apply(context.Background(), GenerateParams{SemesterID: 1, Days: []domain.DayOfWeek{domain.DayOfWeek(99)}})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("invalid day must map to ErrInvalidInput, got %v", err)
+	}
+	if len(writer.created) != 0 {
+		t.Errorf("nothing must be written when input is invalid")
 	}
 }
