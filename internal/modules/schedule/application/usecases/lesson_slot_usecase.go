@@ -56,6 +56,10 @@ func (uc *LessonSlotUseCase) Update(ctx context.Context, id int64, number int, t
 		return nil, err
 	}
 	slot.ID = id
+	// The UPDATE only touches updated_at; created_at is owned by Create. Clear
+	// the constructor's CreatedAt so the returned entity does not advertise a
+	// value the update never persisted.
+	slot.CreatedAt = time.Time{}
 	if err := uc.repo.Update(ctx, slot); err != nil {
 		return nil, err
 	}
