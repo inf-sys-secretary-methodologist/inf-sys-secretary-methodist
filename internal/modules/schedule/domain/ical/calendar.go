@@ -7,7 +7,11 @@
 // belongs to the application layer.
 package ical
 
-import "time"
+import (
+	"strconv"
+	"strings"
+	"time"
+)
 
 // Frequency enumerates the RRULE FREQ values supported by the feed.
 type Frequency string
@@ -79,8 +83,116 @@ type Calendar struct {
 	Events []Event // calendar components
 }
 
+// dateTimeLayout is the RFC 5545 DATE-TIME form (basic ISO 8601, no separators).
+const dateTimeLayout = "20060102T150405"
+
+// dateLayout is the RFC 5545 DATE form used for all-day components.
+const dateLayout = "20060102"
+
 // Render serializes the calendar into an RFC 5545 document using CRLF line
 // endings, 75-octet line folding and RFC-compliant text escaping.
 func (c Calendar) Render() string {
-	return ""
+	zone, hasZone := lookupZone(c.TZID)
+
+	var lines []string
+	add := func(s string) { lines = append(lines, foldLine(s)) }
+
+	add("BEGIN:VCALENDAR")
+	add("VERSION:2.0")
+	add("PRODID:" + c.ProdID)
+	add("CALSCALE:GREGORIAN")
+	add("METHOD:PUBLISH")
+	if c.Name != "" {
+		add("X-WR-CALNAME:" + escapeText(c.Name))
+	}
+	if hasZone {
+		add("X-WR-TIMEZONE:" + c.TZID)
+		for l := range strings.SplitSeq(zone.vtimezone, "\n") {
+			add(l)
+		}
+	}
+	for _, ev := range c.Events {
+		c.renderEvent(add, ev, zone, hasZone)
+	}
+	add("END:VCALENDAR")
+
+	return strings.Join(lines, "\r\n") + "\r\n"
+}
+
+// renderEvent appends the folded property lines of a single VEVENT via add.
+func (c Calendar) renderEvent(add func(string), ev Event, zone tzInfo, hasZone bool) {
+	add("BEGIN:VEVENT")
+	add("UID:" + ev.UID)
+	add("DTSTAMP:" + formatUTC(ev.Stamp))
+
+	add(c.dateProp("DTSTART", ev.Start, ev.AllDay, zone, hasZone))
+	add(c.dateProp("DTEND", ev.End, ev.AllDay, zone, hasZone))
+
+	if ev.Recurrence != nil {
+		add("RRULE:" + renderRRule(*ev.Recurrence))
+	}
+	for _, ex := range ev.ExDates {
+		add(c.dateProp("EXDATE", ex, ev.AllDay, zone, hasZone))
+	}
+
+	if ev.Summary != "" {
+		add("SUMMARY:" + escapeText(ev.Summary))
+	}
+	if ev.Description != "" {
+		add("DESCRIPTION:" + escapeText(ev.Description))
+	}
+	if ev.Location != "" {
+		add("LOCATION:" + escapeText(ev.Location))
+	}
+	if ev.Status != "" {
+		add("STATUS:" + string(ev.Status))
+	}
+	if len(ev.Categories) > 0 {
+		escaped := make([]string, len(ev.Categories))
+		for i, cat := range ev.Categories {
+			escaped[i] = escapeText(cat)
+		}
+		add("CATEGORIES:" + strings.Join(escaped, ","))
+	}
+	add("END:VEVENT")
+}
+
+// dateProp renders a date/date-time property (DTSTART/DTEND/EXDATE) choosing
+// the VALUE=DATE, TZID-local or UTC form depending on the event and zone.
+func (c Calendar) dateProp(name string, t time.Time, allDay bool, zone tzInfo, hasZone bool) string {
+	switch {
+	case allDay:
+		return name + ";VALUE=DATE:" + t.Format(dateLayout)
+	case hasZone:
+		return name + ";TZID=" + c.TZID + ":" + t.In(zone.location).Format(dateTimeLayout)
+	default:
+		return name + ":" + formatUTC(t)
+	}
+}
+
+// formatUTC renders an instant in RFC 5545 UTC form (trailing Z).
+func formatUTC(t time.Time) string {
+	return t.UTC().Format(dateTimeLayout) + "Z"
+}
+
+// renderRRule serializes a Recurrence as an RFC 5545 RRULE value.
+func renderRRule(r Recurrence) string {
+	parts := []string{"FREQ=" + string(r.Frequency)}
+	if r.Interval > 1 {
+		parts = append(parts, "INTERVAL="+strconv.Itoa(r.Interval))
+	}
+	if r.Until != nil {
+		parts = append(parts, "UNTIL="+formatUTC(*r.Until))
+	}
+	if r.Count != nil {
+		parts = append(parts, "COUNT="+strconv.Itoa(*r.Count))
+	}
+	if len(r.ByDay) > 0 {
+		days := make([]string, len(r.ByDay))
+		for i, d := range r.ByDay {
+			days[i] = string(d)
+		}
+		parts = append(parts, "BYDAY="+strings.Join(days, ","))
+	}
+	return strings.Join(parts, ";")
 }

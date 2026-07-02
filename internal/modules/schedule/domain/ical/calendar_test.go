@@ -155,6 +155,33 @@ func TestRender_FoldsLongLinesAtOctetBoundary(t *testing.T) {
 	}
 }
 
+func TestRender_CountAndCategories(t *testing.T) {
+	count := 5
+	cal := Calendar{
+		ProdID: prodID,
+		TZID:   "Europe/Moscow",
+		Events: []Event{{
+			UID:        "e1",
+			Summary:    "Консультация",
+			Start:      time.Date(2026, 2, 10, 9, 0, 0, 0, msk),
+			End:        time.Date(2026, 2, 10, 10, 0, 0, 0, msk),
+			Stamp:      time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+			Recurrence: &Recurrence{Frequency: FreqDaily, Count: &count},
+			Categories: []string{"Лекция", "Важно, срочно"},
+			Status:     StatusConfirmed,
+		}},
+	}
+
+	got := cal.Render()
+	if !strings.Contains(got, "RRULE:FREQ=DAILY;COUNT=5") {
+		t.Errorf("expected RRULE with COUNT; got:\n%s", got)
+	}
+	// Category members are comma-separated; commas inside a member are escaped.
+	if !strings.Contains(got, `CATEGORIES:Лекция,Важно\, срочно`) {
+		t.Errorf("expected escaped CATEGORIES; got:\n%s", got)
+	}
+}
+
 func TestRender_UTCFallbackForUnknownZone(t *testing.T) {
 	cal := Calendar{
 		ProdID: prodID,
