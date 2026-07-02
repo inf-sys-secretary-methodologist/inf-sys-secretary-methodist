@@ -75,6 +75,12 @@ export default function GenerateSchedulePage() {
     setSemesterId(active.id)
   }, [semesters, semesterId])
 
+  // Changing the semester or day selection makes the current preview stale, so
+  // it is dropped: apply can only ever persist exactly what was last previewed.
+  useEffect(() => {
+    setPreview(null)
+  }, [semesterId, days])
+
   const rows = useMemo(() => (preview ? slotRows(preview.lessons) : []), [preview])
 
   if (!canGenerate) {
@@ -94,16 +100,8 @@ export default function GenerateSchedulePage() {
     return req
   }
 
-  // Changing the semester or day selection makes the current preview stale, so
-  // it is dropped: apply always persists exactly what the user last previewed.
-  const selectSemester = (id: number) => {
-    setSemesterId(id)
-    setPreview(null)
-  }
-
   const toggleDay = (day: number) => {
     setDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]))
-    setPreview(null)
   }
 
   const handleGenerate = async () => {
@@ -157,7 +155,7 @@ export default function GenerateSchedulePage() {
               <Label>{t('params.semester')}</Label>
               <Select
                 value={semesterId ? String(semesterId) : undefined}
-                onValueChange={(v) => selectSemester(Number(v))}
+                onValueChange={(v) => setSemesterId(Number(v))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={t('params.selectSemester')} />
