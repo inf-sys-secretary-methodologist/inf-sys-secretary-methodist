@@ -159,6 +159,28 @@ func TestGenerate_Preview_RoomTypeRuleBlocksMismatch(t *testing.T) {
 	}
 }
 
+func TestGenerate_Preview_UnhydratedGroupIsUnplaced(t *testing.T) {
+	// A load whose group could not be hydrated has an unknown size; placing it
+	// would silently disable the room-capacity check, so it must be reported
+	// unplaced rather than scheduled blindly into an arbitrary room.
+	load := hydratedLoad(1, 1, domain.WeekTypeAll, 25, "Лек", "Лекция")
+	load.Group = nil // simulate a broken/missing hydration
+	uc := NewGenerateScheduleUseCase(
+		&fakeLoadLister{loads: []*entities.TeachingLoad{load}},
+		&fakeSlotLister{slots: twoSlots()},
+		&fakeRoomLister{rooms: lectureRoom()},
+	)
+
+	preview, err := uc.Preview(context.Background(), GenerateParams{SemesterID: 1})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if preview.PlacedCount != 0 || preview.UnplacedCount != 1 {
+		t.Errorf("load with unknown group size must be unplaced: placed %d / unplaced %d",
+			preview.PlacedCount, preview.UnplacedCount)
+	}
+}
+
 func TestGenerate_Preview_PropagatesRepoError(t *testing.T) {
 	uc := NewGenerateScheduleUseCase(
 		&fakeLoadLister{err: errors.New("db down")},
