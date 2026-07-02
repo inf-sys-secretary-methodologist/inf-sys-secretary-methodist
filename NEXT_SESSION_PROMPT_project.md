@@ -1,8 +1,8 @@
 # Next session prompt — inf-sys-secretary-methodist (ДИПЛОМНЫЙ ПРОЕКТ)
 
 > Отдельно от `NEXT_SESSION_PROMPT.md` (тот — про учебные Go-курсы). Этот файл — про код дипломного проекта.
-> main `19398f7f`, VERSION **0.222.0**. **#40 (внешние календари) закрыт E2E, релиз v0.222.0.**
-> Осталась **РОВНО ОДНА open issue — #139 (автогенерация расписания)**. После неё продуктовый бэклог пуст.
+> main `a31dc259`, VERSION **0.222.0** (Slice 3 — доменный слой, без релиза/миграций).
+> Осталась **РОВНО ОДНА open issue — #139 (автогенерация расписания)**, слайсы 1-3/5 смержены. После неё продуктовый бэклог пуст.
 
 ## ШАГ 0 — прочитать
 - `SESSION_START.md` (пересобрать `python3 _tools/build_session_start.py` при надобности) + handoff `.claude/handoffs/2026-07-02_issue-40-ical-feed-релиз.md`.
@@ -16,50 +16,22 @@
 ## ГЛАВНАЯ ЗАДАЧА — #139 автогенерация расписания (в работе, 2 слайса смержены)
 CSP-солвер на чистом Go. **Продуктовые решения и полный план — в [[project_schedule_autogen_issue139]] (читать первым).** Дизайн-док: `docs/plans/2026-07-02-schedule-autogen-design.md`.
 
-**Прогресс (сессия 2026-07-02):**
+**Прогресс:**
 - ✅ Slice 1 `lesson_slots` (каталог пар) — MERGED PR#493.
 - ✅ Slice 2a `teaching_load` backend — MERGED PR#494.
 - ✅ Slice 2b `teaching_load` frontend + **envelope-fix** — MERGED PR#495, main `8d0e6d13`.
-  - ⚠️ Обнаружено: модуль schedule отдавал ГОЛЫЙ JSON вместо конверта `{success,data}` → нагрузка+reference-дропдауны читали пустоту. Починил (response.Success). **Урок: у любого schedule-эндпоинта проверяй обёртку.**
-  - **FOLLOW-UP (не сделано):** lesson List/GetTimetable/GetByID/Create/Update + changes ещё голые → `scheduleLessonsApi`-ридеры сломаны (таймтейбл). Доесть конверт по всему lesson_handler отдельным PR (можно перед Slice 4).
+  - ⚠️ Урок: модуль schedule отдавал ГОЛЫЙ JSON вместо конверта `{success,data}` → нагрузка+reference-дропдауны читали пустоту. Починил (response.Success).
+- ✅ **Slice 3 CSP-солвер (domain, чистый Go) — MERGED, main `a31dc259`.** Пакет `internal/modules/schedule/domain/solver/`: types/constraints(H1-H3 parity)/domainbuild(H4)/soft(penalty parity-aware)/solver(Solve: backtracking+MRV+forward-checking+best-effort greedy). 98.7% покрытие, code-review SHIP 9/9/10/9/9/9. TDD-парами.
+  - ⚠️ **Мерж-грабли (важно для Slice 4/5):** одиночный PR был 1020 стр → «Check PR Size» **hard-fail >1000**; ветка `feat/...` не прошла «Validate branch naming» (нужен `feature|task|bugfix|hotfix|config|chore|docs|refactor`/(`issue-<N>[.M]`|`v<x.y.z>`)-desc). Решил 2 ПОСЛЕДОВАТЕЛЬНЫМИ (не стек) PR: #497 foundation (594)→merge main→`git rebase --onto main <cut>`→#498 search (428). **Держи PR <1000 и имя ветки по конвенции.**
 
-**СЛЕДУЮЩЕЕ — Slice 3, CSP-солвер (domain, чистый Go).** Пакет `internal/modules/schedule/domain/solver/`, без I/O, полностью юнит-тестируемый. Готовый дизайн (реализовать по TDD, файл за файлом RED→GREEN):
-
-```
-types.go (данные, без логики):
-  Variable{ ID int; LoadID,GroupID,TeacherID,DisciplineID,LessonTypeID int64;
-            GroupSize int; AllowedRoomTypes []string; WeekType domain.WeekType }
-  Value{ Day domain.DayOfWeek; Slot int; RoomID int64 }
-  Room{ ID int64; Capacity int; Type string; Available bool }
-  Input{ Variables []Variable; Days []domain.DayOfWeek; Slots []int; Rooms []Room; Weights SoftWeights }
-  Assignment{ Variable; Value }
-  Result{ Assignments []Assignment; Unplaced []Variable }
-
-constraints.go (TDD первым — чистые предикаты):
-  parityConflicts(a,b domain.WeekType) bool  // all↔любой=true; odd&odd/even&even=true; odd&even=false
-  assignmentsConflict(a1,a2 Assignment) bool // тот же Day+Slot И parityConflicts И (тот же Teacher | Group | Room)
-
-domain.go (H4 — построение доменов):
-  buildDomain(v Variable, in Input) []Value // все Day×Slot×Room где room.Available && room.Capacity>=v.GroupSize && roomTypeOK(v.AllowedRoomTypes, room.Type); roomTypeOK: len(allowed)==0(любой) || contains
-  // ⚠️ пустой домен переменной = заведомо Unplaced
-
-solver.go (H1-H3, backtracking):
-  Solve(in Input) Result
-  // MRV: выбирать переменную с наименьшим числом оставшихся валидных значений
-  // forward-checking: после присваивания отсеивать конфликтующие значения у соседей; откат если у кого-то домен опустел
-  // best-effort: если полное решение не найдено (таймбокс по числу шагов ИЛИ вернуть частичное) → положить нерасставленные в Unplaced, НЕ падать
-  // порядок значений — по soft-штрафу (см. soft.go), меньше штраф раньше (эвристика LCV-подобная)
-
-soft.go (мягкие, TDD — проверять что предпочитает лучшее):
-  SoftWeights{ GroupGap,TeacherGap,DaySpread,EarlySlot float64 } (дефолты в NewDefaultWeights)
-  penalty(candidate Assignment, current []Assignment, w SoftWeights) float64
-  // GroupGap: штраф за «окно» в дне у группы (несмежные слоты) ; TeacherGap: то же для препода
-  // DaySpread: штраф за перегруз одного дня у группы (равномерность) ; EarlySlot: штраф ~ Slot (ранние лучше)
-```
-
-Импортить `schedule/domain` (WeekType/DayOfWeek) — можно (domain→domain). Детерминизм тестов: НЕ использовать map-итерацию для выбора (сортировать), Math.rand запрещён. Порядок: constraints → domain(H4) → solver(H1-H3 полное решение на маленьком входе) → best-effort(unplaced на переполненном входе) → soft(ordering). code-review ≥9. Мердж линейно в main. Правила совместимости room_type↔lesson_type (какой тип занятия→какие типы аудиторий) вычисляет Slice 4 (usecase) и кладёт в `Variable.AllowedRoomTypes` — солвер их только проверяет (остаётся чистым движком).
-- **Slice 4 — usecase генерации + HTTP** — собрать teaching_load+lesson_slots+classrooms(caps/type)+groups(size) по семестру, развернуть в переменные, прогнать солвер, вернуть черновик (preview DTO, БЕЗ записи) + отдельный `POST /schedule/generate/apply` пишет через `LessonRepository`. Использовать `lessonSlot.GetByID`/список слотов.
+**СЛЕДУЮЩЕЕ — Slice 4, usecase генерации + HTTP (preview→apply).**
+- Собрать по семестру: `teaching_load` (нагрузки) + `lesson_slots` (сетка пар, `GetByID`/список) + classrooms (caps/type — модуль classrooms) + groups (size — модуль groups) + teachers (users role=teacher).
+- **Вычислить `AllowedRoomTypes` по типу занятия** (правило room_type↔lesson_type живёт ЗДЕСЬ, в usecase, не в солвере — солвер уже готов их только проверять). Развернуть нагрузки в `[]solver.Variable` (pairs_per_week раз каждую), классы в `[]solver.Room`.
+- Прогнать `solver.Solve(Input)`, вернуть **черновик preview DTO БЕЗ записи** (`POST /api/schedule/generate`). Отдельный `POST /api/schedule/generate/apply` пишет `schedule_lessons` через `LessonRepository`.
+- ⚠️ **Follow-up перед этим слайсом:** доесть конверт `{success,data}` по всему lesson_handler (lesson List/GetTimetable/GetByID/Create/Update + changes ещё голые → `scheduleLessonsApi`-ридеры/таймтейбл сломаны). + опц. полное инкрементальное forward-checking в солвере (сейчас per-node O(n²·D), для больших семестров медленно — best-effort greedy спасает, но качество ниже).
 - **Slice 5 — frontend генерации** — кнопка «Сгенерировать расписание» + preview-сетка + «Применить», i18n×4.
+
+Солвер (готов) — конвенции: импортит только `schedule/domain`+stdlib; `Solve(in Input) Result{Assignments,Unplaced}`; детерминирован; правила room_type↔lesson_type НЕ в нём.
 
 TDD по слоям как в #40/Slice1-2. Мержить каждый слайс линейно в main (НЕ стекать).
 

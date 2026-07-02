@@ -160,7 +160,7 @@ func (h *LessonHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto.ToLessonOutput(lesson))
+	c.JSON(http.StatusCreated, response.Success(dto.ToLessonOutput(lesson)))
 }
 
 // List lists lessons with filters.
@@ -189,17 +189,23 @@ func (h *LessonHandler) List(c *gin.Context) {
 		return
 	}
 
-	output := dto.LessonListOutput{
-		Lessons: make([]dto.LessonOutput, 0, len(lessons)),
-		Total:   total,
-		Limit:   input.Limit,
-		Offset:  input.Offset,
-	}
+	lessonsOut := make([]dto.LessonOutput, 0, len(lessons))
 	for _, lesson := range lessons {
-		output.Lessons = append(output.Lessons, dto.ToLessonOutput(lesson))
+		lessonsOut = append(lessonsOut, dto.ToLessonOutput(lesson))
 	}
 
-	c.JSON(http.StatusOK, output)
+	// data carries the bare lesson array (matching the frontend contract);
+	// total/limit/offset move into the envelope's pagination meta.
+	pagination := response.Pagination{
+		PerPage: input.Limit,
+		Total:   int(total),
+	}
+	if input.Limit > 0 {
+		pagination.Page = input.Offset/input.Limit + 1
+		pagination.TotalPages = (int(total) + input.Limit - 1) / input.Limit
+	}
+
+	c.JSON(http.StatusOK, response.List(lessonsOut, pagination))
 }
 
 // GetTimetable returns the timetable (flat array, no pagination).
@@ -223,7 +229,7 @@ func (h *LessonHandler) GetTimetable(c *gin.Context) {
 		output = append(output, dto.ToLessonOutput(lesson))
 	}
 
-	c.JSON(http.StatusOK, output)
+	c.JSON(http.StatusOK, response.Success(output))
 }
 
 // GetByID retrieves a lesson by ID.
@@ -239,7 +245,7 @@ func (h *LessonHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.ToLessonOutput(lesson))
+	c.JSON(http.StatusOK, response.Success(dto.ToLessonOutput(lesson)))
 }
 
 // Update updates a lesson.
@@ -294,7 +300,7 @@ func (h *LessonHandler) Update(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.ToLessonOutput(lesson))
+	c.JSON(http.StatusOK, response.Success(dto.ToLessonOutput(lesson)))
 }
 
 // Delete deletes a lesson.
@@ -352,7 +358,7 @@ func (h *LessonHandler) CreateChange(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto.ToScheduleChangeOutput(change))
+	c.JSON(http.StatusCreated, response.Success(dto.ToScheduleChangeOutput(change)))
 }
 
 // ListChanges lists schedule changes for a lesson.
@@ -380,7 +386,7 @@ func (h *LessonHandler) ListChanges(c *gin.Context) {
 		output = append(output, dto.ToScheduleChangeOutput(change))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"changes": output})
+	c.JSON(http.StatusOK, response.Success(output))
 }
 
 // ListClassrooms lists classrooms.
