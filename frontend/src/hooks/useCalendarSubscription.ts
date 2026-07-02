@@ -18,14 +18,16 @@ export function useCalendarSubscription() {
   return { subscription: data, isLoading, error, mutate }
 }
 
-// createCalendarSubscription creates (or returns the existing) subscription.
-export async function createCalendarSubscription(): Promise<CalendarSubscription> {
-  return apiClient.post<CalendarSubscription>(CALENDAR_SUBSCRIPTION_URL)
+// createCalendarSubscription creates the subscription if none exists. Callers
+// revalidate via the hook's mutate; the response body is intentionally not
+// returned (apiClient does not unwrap the {success,data} envelope for POST).
+export async function createCalendarSubscription(): Promise<void> {
+  await apiClient.post(CALENDAR_SUBSCRIPTION_URL)
 }
 
 // rotateCalendarSubscription issues a new secret URL, invalidating the old one.
-export async function rotateCalendarSubscription(): Promise<CalendarSubscription> {
-  return apiClient.post<CalendarSubscription>(`${CALENDAR_SUBSCRIPTION_URL}/rotate`)
+export async function rotateCalendarSubscription(): Promise<void> {
+  await apiClient.post(`${CALENDAR_SUBSCRIPTION_URL}/rotate`)
 }
 
 // deleteCalendarSubscription disables the feed.
