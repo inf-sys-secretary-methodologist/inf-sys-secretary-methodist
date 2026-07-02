@@ -12,6 +12,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain/entities"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
 // TeachingLoadService is the use-case surface the load handler depends on (DIP).
@@ -102,7 +103,7 @@ func (h *TeachingLoadHandler) List(c *gin.Context) {
 	for _, l := range loads {
 		output = append(output, dto.ToTeachingLoadOutput(l))
 	}
-	c.JSON(http.StatusOK, gin.H{"teaching_loads": output})
+	c.JSON(http.StatusOK, response.Success(gin.H{"teaching_loads": output}))
 }
 
 // Create adds a new load line.
@@ -120,7 +121,7 @@ func (h *TeachingLoadHandler) Create(c *gin.Context) {
 		h.mapLoadError(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, dto.ToTeachingLoadOutput(load))
+	c.JSON(http.StatusCreated, response.Success(dto.ToTeachingLoadOutput(load)))
 }
 
 // Update edits an existing load line.
@@ -143,7 +144,7 @@ func (h *TeachingLoadHandler) Update(c *gin.Context) {
 		h.mapLoadError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, dto.ToTeachingLoadOutput(load))
+	c.JSON(http.StatusOK, response.Success(dto.ToTeachingLoadOutput(load)))
 }
 
 // Delete removes a load line.

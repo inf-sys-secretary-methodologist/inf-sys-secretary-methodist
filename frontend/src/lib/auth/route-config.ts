@@ -90,6 +90,11 @@ export const protectedRoutes: RouteConfig[] = [
       UserRole.STUDENT,
     ],
   },
+  // Teaching load (academic planning) - staff only (source for auto-scheduler)
+  {
+    path: '/teaching-load',
+    allowedRoles: [UserRole.SYSTEM_ADMIN, UserRole.ACADEMIC_SECRETARY, UserRole.METHODIST],
+  },
   // Tasks/assignments - all roles; student & teacher: own scope
   {
     path: '/tasks',

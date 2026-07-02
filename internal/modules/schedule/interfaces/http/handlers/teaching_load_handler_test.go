@@ -88,6 +88,9 @@ func TestLoadHandler_List_OK(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "IS-21")
+	// Pin the {success,data} envelope: the frontend unwraps .data, so a
+	// regression to a bare body would silently empty the screen.
+	assert.Contains(t, w.Body.String(), `"success":true`)
 	require.NotNil(t, svc.listFilter.SemesterID)
 	assert.Equal(t, int64(3), *svc.listFilter.SemesterID)
 }
@@ -106,6 +109,7 @@ func TestLoadHandler_Create_MethodistOK(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Contains(t, w.Body.String(), `"id":8`)
+	assert.Contains(t, w.Body.String(), `"success":true`)
 }
 
 func TestLoadHandler_Create_ValidationError(t *testing.T) {

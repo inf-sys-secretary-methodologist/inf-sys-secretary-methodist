@@ -169,6 +169,12 @@ export const navigationConfig: NavEntry[] = [
         ],
       },
       {
+        nameKey: 'teachingLoad',
+        url: '/teaching-load',
+        icon: ClipboardCheck,
+        roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+      },
+      {
         nameKey: 'calendar',
         url: '/calendar',
         icon: Calendar,

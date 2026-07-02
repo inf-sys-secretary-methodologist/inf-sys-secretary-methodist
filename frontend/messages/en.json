@@ -210,7 +210,8 @@
     "workPrograms": "Work Programs",
     "studentDebts": "Student Debts",
     "myStudentDebts": "My Debts",
-    "minobrnaukiOrders": "Ministry Orders"
+    "minobrnaukiOrders": "Ministry Orders",
+    "teachingLoad": "Teaching Load"
   },
   "roles": {
     "system_admin": "Administrator",
@@ -3838,6 +3839,54 @@
       "forbidden": "You are not allowed to sign",
       "notFound": "Document or signature not found",
       "invalid": "Could not sign the document"
+    }
+  },
+  "teachingLoad": {
+    "title": "Teaching Load",
+    "description": "Planned load: who teaches what and how much. Source for schedule auto-generation.",
+    "create": "Add load",
+    "empty": "No load defined",
+    "created": "Load added",
+    "updated": "Load updated",
+    "deleted": "Load deleted",
+    "filters": {
+      "title": "Filters",
+      "semester": "Semester",
+      "allSemesters": "All semesters"
+    },
+    "columns": {
+      "group": "Group",
+      "discipline": "Discipline",
+      "teacher": "Teacher",
+      "lessonType": "Lesson type",
+      "pairsPerWeek": "Pairs/week",
+      "weekType": "Weeks"
+    },
+    "form": {
+      "createTitle": "Add load",
+      "editTitle": "Edit load",
+      "semester": "Semester",
+      "group": "Group",
+      "discipline": "Discipline",
+      "teacher": "Teacher",
+      "lessonType": "Lesson type",
+      "pairsPerWeek": "Pairs per week",
+      "weekType": "Weeks",
+      "selectPlaceholder": "Select",
+      "requiredFields": "Fill in all fields",
+      "invalidPairs": "Pairs per week must be between 1 and 20",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "weekType": {
+      "all": "All",
+      "odd": "Odd",
+      "even": "Even"
+    },
+    "errors": {
+      "loadFailed": "Failed to load teaching load",
+      "saveFailed": "Failed to save load",
+      "deleteFailed": "Failed to delete load"
     }
   }
 }
