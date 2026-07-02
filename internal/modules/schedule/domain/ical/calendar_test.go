@@ -245,6 +245,17 @@ func TestRender_AllDayExdate(t *testing.T) {
 	}
 }
 
+func TestLocation(t *testing.T) {
+	if loc := Location("Europe/Moscow"); loc == nil {
+		t.Fatal("expected a location for Europe/Moscow")
+	} else if _, offset := time.Now().In(loc).Zone(); offset != 3*3600 {
+		t.Errorf("Europe/Moscow offset = %d, want %d", offset, 3*3600)
+	}
+	if loc := Location("Nowhere/Unknown"); loc != time.UTC {
+		t.Errorf("unknown zone must fall back to UTC, got %v", loc)
+	}
+}
+
 func TestRender_CountAndCategories(t *testing.T) {
 	count := 5
 	cal := Calendar{
