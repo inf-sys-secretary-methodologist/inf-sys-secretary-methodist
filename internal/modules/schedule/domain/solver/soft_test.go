@@ -77,6 +77,25 @@ func TestPenalty_TeacherGapCounted(t *testing.T) {
 	}
 }
 
+func TestPenalty_ParityDisjointNoPhantomGap(t *testing.T) {
+	// An odd-week lesson and an even-week lesson never share a physical week, so
+	// placing an even-week lesson at slot 3 while an odd-week lesson sits at slot 1
+	// must NOT be scored as a window at slot 2 — the two are on different weeks.
+	w := SoftWeights{GroupGap: 1, TeacherGap: 1, DaySpread: 1}
+	oddCurrent := []Assignment{{
+		Variable: Variable{GroupID: 1, TeacherID: 1, WeekType: domain.WeekTypeOdd},
+		Value:    Value{Day: domain.Monday, Slot: 1},
+	}}
+	evenCandidate := Assignment{
+		Variable: Variable{GroupID: 1, TeacherID: 1, WeekType: domain.WeekTypeEven},
+		Value:    Value{Day: domain.Monday, Slot: 3},
+	}
+
+	if got := penalty(evenCandidate, oddCurrent, w); got != 0 {
+		t.Errorf("parity-disjoint lessons must not incur gap/spread penalty, got %v", got)
+	}
+}
+
 func TestPenalty_DaySpreadCounted(t *testing.T) {
 	w := SoftWeights{DaySpread: 1}
 	v := Variable{GroupID: 1, TeacherID: 1}
