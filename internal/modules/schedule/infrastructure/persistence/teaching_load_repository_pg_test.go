@@ -162,3 +162,81 @@ func TestTeachingLoadRepositoryPG_List_FilterBySemester(t *testing.T) {
 	assert.Equal(t, "IS-21", got[0].Group.Name)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestTeachingLoadRepositoryPG_List_AllThreeFilters(t *testing.T) {
+	repo, mock := newLoadRepoMock(t)
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	semester, group, teacher := int64(1), int64(2), int64(4)
+
+	// Guards the dynamic $N placeholder numbering: three filters must map to
+	// $1/$2/$3 in the semester,group,teacher order with matching args.
+	mock.ExpectQuery(regexp.QuoteMeta("WHERE tl.semester_id = $1 AND tl.group_id = $2 AND tl.teacher_id = $3")).
+		WithArgs(int64(1), int64(2), int64(4)).
+		WillReturnRows(loadHydratedRows(now))
+
+	got, err := repo.List(context.Background(), usecases.TeachingLoadFilter{SemesterID: &semester, GroupID: &group, TeacherID: &teacher})
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTeachingLoadRepositoryPG_List_NoFilter(t *testing.T) {
+	repo, mock := newLoadRepoMock(t)
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	// No filter -> no WHERE clause and no args.
+	mock.ExpectQuery(regexp.QuoteMeta("ORDER BY tl.group_id, tl.discipline_id")).
+		WithArgs().
+		WillReturnRows(loadHydratedRows(now).AddRow(
+			int64(10), int64(1), int64(2), int64(3), int64(4), int64(6),
+			1, "odd", now, now,
+			int64(2), "IS-21", int64(3), "Матанализ", int64(6), "Практика", "пр", int64(4), "Иванов И.", "iv@u.ru",
+		))
+
+	got, err := repo.List(context.Background(), usecases.TeachingLoadFilter{})
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTeachingLoadRepositoryPG_List_Empty(t *testing.T) {
+	repo, mock := newLoadRepoMock(t)
+
+	mock.ExpectQuery(regexp.QuoteMeta("FROM teaching_loads")).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "semester_id", "group_id", "discipline_id", "teacher_id", "lesson_type_id",
+			"pairs_per_week", "week_type", "created_at", "updated_at",
+			"g_id", "g_name", "d_id", "d_name", "lt_id", "lt_name", "lt_short", "u_id", "u_name", "u_email",
+		}))
+
+	got, err := repo.List(context.Background(), usecases.TeachingLoadFilter{})
+	require.NoError(t, err)
+	assert.Empty(t, got)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTeachingLoadRepositoryPG_Update_Success(t *testing.T) {
+	repo, mock := newLoadRepoMock(t)
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	load := sampleLoad(now)
+	load.ID = 9
+
+	mock.ExpectExec(regexp.QuoteMeta("UPDATE teaching_loads")).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err := repo.Update(context.Background(), load)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTeachingLoadRepositoryPG_Delete_Success(t *testing.T) {
+	repo, mock := newLoadRepoMock(t)
+
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM teaching_loads WHERE id = $1")).
+		WithArgs(int64(9)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err := repo.Delete(context.Background(), 9)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}

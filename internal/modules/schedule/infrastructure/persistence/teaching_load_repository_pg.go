@@ -30,7 +30,8 @@ const teachingLoadSelect = `
 	SELECT
 		tl.id, tl.semester_id, tl.group_id, tl.discipline_id, tl.teacher_id, tl.lesson_type_id,
 		tl.pairs_per_week, tl.week_type, tl.created_at, tl.updated_at,
-		sg.id, sg.name, d.id, d.name, lt.id, lt.name, lt.short_name, u.id, u.name, u.email
+		sg.id, sg.name, d.id, d.name, lt.id, lt.name, lt.short_name,
+		u.id, COALESCE(u.name, ''), COALESCE(u.email, '')
 	FROM teaching_loads tl
 	LEFT JOIN student_groups sg ON tl.group_id = sg.id
 	LEFT JOIN disciplines d ON tl.discipline_id = d.id
