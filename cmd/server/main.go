@@ -856,6 +856,22 @@ func main() {
 	lessonUseCase := scheduleUsecases.NewLessonUseCase(lessonRepo, classroomRepo, referenceRepo, changeRepo, auditLogger)
 	logger.Info("Schedule lessons module initialized", nil)
 
+	// Initialize calendar feed (external calendar subscription, issue #40)
+	feedTokenRepo := schedulePersistence.NewCalendarFeedTokenRepositoryPG(db)
+	studentGroupResolver := schedulePersistence.NewStudentGroupResolverPG(db)
+	calendarFeedUseCase := scheduleUsecases.NewCalendarFeedUseCase(
+		feedTokenRepo, lessonRepo, eventRepo, studentGroupResolver,
+		scheduleUsecases.CalendarFeedConfig{
+			ProdID:       "-//Secretary Methodist//Calendar Feed//EN",
+			CalendarName: "Расписание",
+			TZID:         "Europe/Moscow",
+			UIDDomain:    "secretary-methodist",
+			PastWindow:   30 * 24 * time.Hour,
+			FutureWindow: 365 * 24 * time.Hour,
+		},
+	)
+	logger.Info("Calendar feed module initialized", nil)
+
 	// Initialize reminder scheduler
 	var reminderScheduler *notifScheduler.ReminderScheduler
 	reminderScheduler, err = notifScheduler.NewReminderScheduler(
@@ -1151,6 +1167,7 @@ func main() {
 		annualReportUseCase,
 		eventUseCase,
 		lessonUseCase,
+		calendarFeedUseCase,
 		announcementUseCase,
 		dashboardUseCase,
 		analyticsUseCase,
@@ -1778,6 +1795,7 @@ func setupRoutes(
 	annualReportUseCase *annualUsecases.AnnualReportUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
+	calendarFeedUseCase *scheduleUsecases.CalendarFeedUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
 	dashboardUseCase *dashboardUsecases.DashboardUseCase,
 	analyticsUseCase *analyticsUsecases.AnalyticsUseCase,
@@ -2041,6 +2059,18 @@ func setupRoutes(
 			publicGroup.OPTIONS("/documents/:token", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 		}
 		logger.Info("Public document access routes registered", nil)
+	}
+
+	// Public calendar feed (no authentication — external calendar clients
+	// subscribe with a secret token in the URL). Issue #40.
+	if calendarFeedUseCase != nil {
+		calendarFeedHandler := scheduleHandler.NewCalendarFeedHandler(calendarFeedUseCase, cfg.Server.BaseURL)
+		calendarPublicGroup := router.Group("/api/public")
+		if publicRateLimiter != nil {
+			calendarPublicGroup.Use(publicRateLimiter.RateLimitMiddleware())
+		}
+		calendarPublicGroup.GET("/calendar/:token/feed.ics", calendarFeedHandler.ServeFeed)
+		logger.Info("Public calendar feed route registered", nil)
 	}
 
 	// Telegram webhook (public - receives updates from Telegram servers)
@@ -3008,6 +3038,19 @@ func setupRoutes(
 			} else {
 				log.Println("[documents] DOC_SIGNING_ENC_KEY not configured — e-signature DISABLED")
 			}
+		}
+
+		// Calendar feed subscription management (authenticated). Issue #40.
+		if calendarFeedUseCase != nil {
+			calendarFeedHandlerInstance := scheduleHandler.NewCalendarFeedHandler(calendarFeedUseCase, cfg.Server.BaseURL)
+			subGroup := protectedGroup.Group("/schedule/calendar-subscription")
+			{
+				subGroup.GET("", calendarFeedHandlerInstance.GetSubscription)
+				subGroup.POST("", calendarFeedHandlerInstance.CreateSubscription)
+				subGroup.POST("/rotate", calendarFeedHandlerInstance.RotateSubscription)
+				subGroup.DELETE("", calendarFeedHandlerInstance.DeleteSubscription)
+			}
+			logger.Info("Calendar subscription routes registered", nil)
 		}
 
 		// Schedule/Events module routes
