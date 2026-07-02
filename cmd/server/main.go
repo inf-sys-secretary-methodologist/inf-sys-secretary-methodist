@@ -858,6 +858,11 @@ func main() {
 	lessonSlotUseCase := scheduleUsecases.NewLessonSlotUseCase(lessonSlotRepo)
 	teachingLoadRepo := schedulePersistence.NewTeachingLoadRepositoryPG(db)
 	teachingLoadUseCase := scheduleUsecases.NewTeachingLoadUseCase(teachingLoadRepo)
+	generateScheduleUseCase := scheduleUsecases.NewGenerateScheduleUseCase(
+		teachingLoadRepo, lessonSlotRepo, classroomRepo,
+		scheduleUsecases.WithApplyWriter(lessonRepo),
+		scheduleUsecases.WithSemesters(referenceRepo),
+	)
 	logger.Info("Schedule lessons module initialized", nil)
 
 	// Initialize calendar feed (external calendar subscription, issue #40)
@@ -1173,6 +1178,7 @@ func main() {
 		lessonUseCase,
 		lessonSlotUseCase,
 		teachingLoadUseCase,
+		generateScheduleUseCase,
 		calendarFeedUseCase,
 		announcementUseCase,
 		dashboardUseCase,
@@ -1803,6 +1809,7 @@ func setupRoutes(
 	lessonUseCase *scheduleUsecases.LessonUseCase,
 	lessonSlotUseCase *scheduleUsecases.LessonSlotUseCase,
 	teachingLoadUseCase *scheduleUsecases.TeachingLoadUseCase,
+	generateScheduleUseCase *scheduleUsecases.GenerateScheduleUseCase,
 	calendarFeedUseCase *scheduleUsecases.CalendarFeedUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
 	dashboardUseCase *dashboardUsecases.DashboardUseCase,
@@ -3133,6 +3140,11 @@ func setupRoutes(
 				scheduleGroup.PUT("/teaching-load/:id", loadHandlerInstance.Update)
 				scheduleGroup.DELETE("/teaching-load/:id", loadHandlerInstance.Delete)
 
+				// Automatic schedule generation (issue #139): preview a draft, then apply it.
+				generateHandlerInstance := scheduleHandler.NewGenerateScheduleHandler(generateScheduleUseCase)
+				scheduleGroup.POST("/generate", generateHandlerInstance.Preview)
+				scheduleGroup.POST("/generate/apply", generateHandlerInstance.Apply)
+
 				scheduleGroup.OPTIONS("/lessons", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/lessons/timetable", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/lessons/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
@@ -3141,6 +3153,8 @@ func setupRoutes(
 				scheduleGroup.OPTIONS("/slots/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/teaching-load", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/teaching-load/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				scheduleGroup.OPTIONS("/generate", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				scheduleGroup.OPTIONS("/generate/apply", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 
 			classroomsGroup := protectedGroup.Group("/classrooms")
