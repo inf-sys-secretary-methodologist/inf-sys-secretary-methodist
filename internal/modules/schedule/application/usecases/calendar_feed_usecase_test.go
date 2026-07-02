@@ -72,11 +72,15 @@ type recordingLessonRepo struct {
 	*MockLessonRepository
 	byTeacher []*entities.Lesson
 	byGroup   []*entities.Lesson
+	err       error
 	filters   []LessonFilter
 }
 
 func (r *recordingLessonRepo) GetTimetable(_ context.Context, f LessonFilter) ([]*entities.Lesson, error) {
 	r.filters = append(r.filters, f)
+	if r.err != nil {
+		return nil, r.err
+	}
 	switch {
 	case f.TeacherID != nil:
 		return r.byTeacher, nil
@@ -203,6 +207,59 @@ func TestRenderFeed_UnknownTokenErrors(t *testing.T) {
 	_, err := uc.RenderFeed(context.Background(), "missing")
 	if !errors.Is(err, entities.ErrCalendarFeedTokenNotFound) {
 		t.Errorf("expected not-found, got %v", err)
+	}
+}
+
+func TestEnsureToken_GeneratorError(t *testing.T) {
+	uc := NewCalendarFeedUseCase(newFakeTokenRepo(), NewMockLessonRepository(), &MockEventRepository{}, fakeGroupResolver{}, feedCfg(),
+		WithTokenGenerator(func() (string, error) { return "", errors.New("no entropy") }))
+	if _, err := uc.EnsureToken(context.Background(), 42); err == nil {
+		t.Error("expected generator error to propagate")
+	}
+}
+
+func TestRenderFeed_LessonRepoError(t *testing.T) {
+	repo := newFakeTokenRepo()
+	tok := &entities.CalendarFeedToken{ID: 1, UserID: 42, Token: "t"}
+	repo.byUser[42] = tok
+	repo.byToken["t"] = tok
+	lessons := &recordingLessonRepo{MockLessonRepository: NewMockLessonRepository(), err: errors.New("db down")}
+
+	uc := NewCalendarFeedUseCase(repo, lessons, &MockEventRepository{}, fakeGroupResolver{err: ErrStudentGroupNotFound}, feedCfg(),
+		WithClock(fixedClock()))
+	if _, err := uc.RenderFeed(context.Background(), "t"); err == nil {
+		t.Error("expected lesson repository error to propagate")
+	}
+}
+
+func TestRenderFeed_ResolverErrorPropagates(t *testing.T) {
+	repo := newFakeTokenRepo()
+	tok := &entities.CalendarFeedToken{ID: 1, UserID: 42, Token: "t"}
+	repo.byUser[42] = tok
+	repo.byToken["t"] = tok
+	lessons := &recordingLessonRepo{MockLessonRepository: NewMockLessonRepository()}
+
+	uc := NewCalendarFeedUseCase(repo, lessons, &MockEventRepository{}, fakeGroupResolver{err: errors.New("resolver down")}, feedCfg(),
+		WithClock(fixedClock()))
+	if _, err := uc.RenderFeed(context.Background(), "t"); err == nil {
+		t.Error("expected a non-not-found resolver error to propagate")
+	}
+}
+
+func TestRenderFeed_EventRepoError(t *testing.T) {
+	repo := newFakeTokenRepo()
+	tok := &entities.CalendarFeedToken{ID: 1, UserID: 42, Token: "t"}
+	repo.byUser[42] = tok
+	repo.byToken["t"] = tok
+	lessons := &recordingLessonRepo{MockLessonRepository: NewMockLessonRepository()}
+	eventsMock := &MockEventRepository{}
+	eventsMock.On("GetByDateRange", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, errors.New("events down"))
+
+	uc := NewCalendarFeedUseCase(repo, lessons, eventsMock, fakeGroupResolver{err: ErrStudentGroupNotFound}, feedCfg(),
+		WithClock(fixedClock()))
+	if _, err := uc.RenderFeed(context.Background(), "t"); err == nil {
+		t.Error("expected event repository error to propagate")
 	}
 }
 
