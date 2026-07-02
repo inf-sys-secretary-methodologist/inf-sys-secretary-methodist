@@ -43,22 +43,39 @@ type TeachingLoadParams struct {
 	WeekType     domain.WeekType
 }
 
-// List returns hydrated load lines matching the filter. STUB — see GREEN commit.
+// List returns hydrated load lines matching the filter.
 func (uc *TeachingLoadUseCase) List(ctx context.Context, filter TeachingLoadFilter) ([]*entities.TeachingLoad, error) {
-	return nil, nil
+	return uc.repo.List(ctx, filter)
 }
 
-// Create validates and persists a new load line. STUB — see GREEN commit.
+// Create validates the new load via the entity constructor and persists it.
 func (uc *TeachingLoadUseCase) Create(ctx context.Context, p TeachingLoadParams) (*entities.TeachingLoad, error) {
-	return nil, nil
+	load, err := entities.NewTeachingLoad(p.SemesterID, p.GroupID, p.DisciplineID, p.TeacherID, p.LessonTypeID, p.PairsPerWeek, p.WeekType, uc.now())
+	if err != nil {
+		return nil, err
+	}
+	if err := uc.repo.Create(ctx, load); err != nil {
+		return nil, err
+	}
+	return load, nil
 }
 
-// Update validates and persists changes to an existing line. STUB — see GREEN commit.
+// Update validates the new values, carries the target id and persists the change.
 func (uc *TeachingLoadUseCase) Update(ctx context.Context, id int64, p TeachingLoadParams) (*entities.TeachingLoad, error) {
-	return nil, nil
+	load, err := entities.NewTeachingLoad(p.SemesterID, p.GroupID, p.DisciplineID, p.TeacherID, p.LessonTypeID, p.PairsPerWeek, p.WeekType, uc.now())
+	if err != nil {
+		return nil, err
+	}
+	load.ID = id
+	// The UPDATE only touches updated_at; created_at is owned by Create.
+	load.CreatedAt = time.Time{}
+	if err := uc.repo.Update(ctx, load); err != nil {
+		return nil, err
+	}
+	return load, nil
 }
 
-// Delete removes a load line. STUB — see GREEN commit.
+// Delete removes a load line by id.
 func (uc *TeachingLoadUseCase) Delete(ctx context.Context, id int64) error {
-	return nil
+	return uc.repo.Delete(ctx, id)
 }
