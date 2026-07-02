@@ -182,6 +182,60 @@ func TestRender_CountAndCategories(t *testing.T) {
 	}
 }
 
+func TestRender_OmitsDTENDWhenEndIsZero(t *testing.T) {
+	cal := Calendar{
+		ProdID: prodID,
+		TZID:   "Europe/Moscow",
+		Events: []Event{{
+			UID:     "e1",
+			Summary: "Событие без конца",
+			Start:   time.Date(2026, 2, 10, 9, 0, 0, 0, msk),
+			Stamp:   time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+			Status:  StatusConfirmed,
+		}},
+	}
+
+	got := cal.Render()
+	if strings.Contains(got, "DTEND") {
+		t.Errorf("DTEND must be omitted when End is zero (it is optional in RFC 5545); got:\n%s", got)
+	}
+	if !strings.Contains(got, "DTSTART;TZID=Europe/Moscow:20260210T090000") {
+		t.Errorf("expected DTSTART; got:\n%s", got)
+	}
+}
+
+func TestRender_RRuleUntilTakesPrecedenceOverCount(t *testing.T) {
+	// RFC 5545 §3.3.10: UNTIL and COUNT MUST NOT both appear in one RRULE.
+	// When a caller supplies both, the renderer emits UNTIL only.
+	until := time.Date(2026, 6, 30, 20, 59, 59, 0, time.UTC)
+	count := 5
+	cal := Calendar{
+		ProdID: prodID,
+		TZID:   "Europe/Moscow",
+		Events: []Event{{
+			UID:     "e1",
+			Summary: "S",
+			Start:   time.Date(2026, 2, 10, 9, 0, 0, 0, msk),
+			End:     time.Date(2026, 2, 10, 10, 0, 0, 0, msk),
+			Stamp:   time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+			Recurrence: &Recurrence{
+				Frequency: FreqWeekly,
+				Until:     &until,
+				Count:     &count,
+			},
+			Status: StatusConfirmed,
+		}},
+	}
+
+	got := cal.Render()
+	if !strings.Contains(got, "UNTIL=20260630T205959Z") {
+		t.Errorf("expected UNTIL; got:\n%s", got)
+	}
+	if strings.Contains(got, "COUNT=") {
+		t.Errorf("COUNT must not co-occur with UNTIL; got:\n%s", got)
+	}
+}
+
 func TestRender_UTCFallbackForUnknownZone(t *testing.T) {
 	cal := Calendar{
 		ProdID: prodID,
