@@ -191,6 +191,7 @@
     "announcements": "Annonces",
     "files": "Fichiers",
     "schedule": "Planning",
+    "scheduleGenerate": "Génération de l'emploi du temps",
     "adminSettings": "Paramètres système",
     "educationGroup": "Enseignement",
     "communicationGroup": "Communication",
@@ -2295,6 +2296,51 @@
       "deleteFailed": "Impossible de supprimer le cours"
     },
     "empty": "L'emploi du temps est vide. Ajoutez des cours pour les afficher."
+  },
+  "scheduleGenerate": {
+    "title": "Génération automatique de l'emploi du temps",
+    "description": "Construire l'emploi du temps automatiquement à partir de la charge d'enseignement. Aperçu avant application.",
+    "accessDenied": "Vous n'avez pas l'autorisation de générer un emploi du temps",
+    "generate": "Générer",
+    "apply": "Appliquer",
+    "applied": "{count} cours créés",
+    "params": {
+      "title": "Paramètres",
+      "semester": "Semestre",
+      "selectSemester": "Choisir un semestre",
+      "days": "Jours de la semaine"
+    },
+    "days": {
+      "monday": "Lun",
+      "tuesday": "Mar",
+      "wednesday": "Mer",
+      "thursday": "Jeu",
+      "friday": "Ven",
+      "saturday": "Sam"
+    },
+    "weekType": {
+      "all": "Toutes",
+      "odd": "Impaires",
+      "even": "Paires"
+    },
+    "summary": {
+      "total": "Total",
+      "placed": "Placés",
+      "unplaced": "Non placés"
+    },
+    "preview": {
+      "title": "Aperçu de l'emploi du temps",
+      "empty": "Rien de placé"
+    },
+    "unplaced": {
+      "title": "Impossible à placer",
+      "hint": "Ces cours ne rentraient pas. Ajustez la charge, ajoutez des salles ou des jours, puis régénérez."
+    },
+    "errors": {
+      "generateFailed": "Échec de la génération de l'emploi du temps",
+      "applyFailed": "Échec de l'application de l'emploi du temps",
+      "alreadyExists": "Un emploi du temps existe déjà pour ce semestre"
+    }
   },
   "adminSettings": {
     "title": "Paramètres système",
