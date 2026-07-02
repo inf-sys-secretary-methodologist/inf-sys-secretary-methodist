@@ -181,6 +181,18 @@ func TestGenerate_Preview_UnhydratedGroupIsUnplaced(t *testing.T) {
 	}
 }
 
+func TestGenerate_Preview_RejectsInvalidDay(t *testing.T) {
+	uc := NewGenerateScheduleUseCase(
+		&fakeLoadLister{loads: []*entities.TeachingLoad{hydratedLoad(1, 1, domain.WeekTypeAll, 25, "Лек", "Лекция")}},
+		&fakeSlotLister{slots: twoSlots()},
+		&fakeRoomLister{rooms: lectureRoom()},
+	)
+	_, err := uc.Preview(context.Background(), GenerateParams{SemesterID: 1, Days: []domain.DayOfWeek{domain.DayOfWeek(0)}})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("preview must reject an invalid day with ErrInvalidInput, got %v", err)
+	}
+}
+
 func TestGenerate_Preview_PropagatesRepoError(t *testing.T) {
 	okLoad := hydratedLoad(1, 1, domain.WeekTypeAll, 25, "Лек", "Лекция")
 	tests := []struct {

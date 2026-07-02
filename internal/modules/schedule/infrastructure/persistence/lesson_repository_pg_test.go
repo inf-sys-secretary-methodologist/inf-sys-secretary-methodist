@@ -116,6 +116,44 @@ func TestLessonRepoCreate_DBError(t *testing.T) {
 	require.Error(t, err)
 }
 
+// --- CreateMany (transactional) ---
+
+func TestLessonRepoCreateMany_CommitsAll(t *testing.T) {
+	repo, mock := newLessonRepoMock(t)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO schedule_lessons")).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(1)))
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO schedule_lessons")).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(2)))
+	mock.ExpectCommit()
+
+	err := repo.CreateMany(context.Background(), []*entities.Lesson{sampleLesson(), sampleLesson()})
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestLessonRepoCreateMany_RollsBackOnError(t *testing.T) {
+	repo, mock := newLessonRepoMock(t)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO schedule_lessons")).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(1)))
+	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO schedule_lessons")).
+		WillReturnError(errors.New("constraint violation"))
+	mock.ExpectRollback()
+
+	err := repo.CreateMany(context.Background(), []*entities.Lesson{sampleLesson(), sampleLesson()})
+	require.Error(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestLessonRepoCreateMany_EmptyIsNoop(t *testing.T) {
+	repo, _ := newLessonRepoMock(t)
+	// No transaction expected for an empty batch.
+	require.NoError(t, repo.CreateMany(context.Background(), nil))
+}
+
 // --- Save ---
 
 func TestLessonRepoSave_HappyPath(t *testing.T) {

@@ -21,23 +21,50 @@ func NewLessonRepositoryPG(db *sql.DB) *LessonRepositoryPG {
 	return &LessonRepositoryPG{db: db}
 }
 
+// insertLessonQuery is the shared INSERT used by Create and CreateMany.
+const insertLessonQuery = `
+	INSERT INTO schedule_lessons (
+		semester_id, discipline_id, lesson_type_id, teacher_id,
+		group_id, classroom_id, day_of_week, time_start, time_end,
+		week_type, date_start, date_end, notes, is_canceled,
+		cancellation_reason, created_at, updated_at
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+	RETURNING id`
+
+// lessonInsertArgs returns the ordered arguments for insertLessonQuery.
+func lessonInsertArgs(l *entities.Lesson) []any {
+	return []any{
+		l.SemesterID, l.DisciplineID, l.LessonTypeID, l.TeacherID,
+		l.GroupID, l.ClassroomID, l.DayOfWeek, l.TimeStart, l.TimeEnd,
+		l.WeekType, l.DateStart, l.DateEnd, l.Notes, l.IsCancelled,
+		l.CancelReason, l.CreatedAt, l.UpdatedAt,
+	}
+}
+
 // Create inserts a new lesson.
 func (r *LessonRepositoryPG) Create(ctx context.Context, lesson *entities.Lesson) error {
-	query := `
-		INSERT INTO schedule_lessons (
-			semester_id, discipline_id, lesson_type_id, teacher_id,
-			group_id, classroom_id, day_of_week, time_start, time_end,
-			week_type, date_start, date_end, notes, is_canceled,
-			cancellation_reason, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-		RETURNING id`
+	return r.db.QueryRowContext(ctx, insertLessonQuery, lessonInsertArgs(lesson)...).Scan(&lesson.ID)
+}
 
-	return r.db.QueryRowContext(ctx, query,
-		lesson.SemesterID, lesson.DisciplineID, lesson.LessonTypeID, lesson.TeacherID,
-		lesson.GroupID, lesson.ClassroomID, lesson.DayOfWeek, lesson.TimeStart, lesson.TimeEnd,
-		lesson.WeekType, lesson.DateStart, lesson.DateEnd, lesson.Notes, lesson.IsCancelled,
-		lesson.CancelReason, lesson.CreatedAt, lesson.UpdatedAt,
-	).Scan(&lesson.ID)
+// CreateMany inserts several lessons atomically in a single transaction: either
+// all are persisted or none, so a mid-batch failure never leaves a half-built
+// schedule (used by the auto-generator's Apply).
+func (r *LessonRepositoryPG) CreateMany(ctx context.Context, lessons []*entities.Lesson) error {
+	if len(lessons) == 0 {
+		return nil
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for _, lesson := range lessons {
+		if err := tx.QueryRowContext(ctx, insertLessonQuery, lessonInsertArgs(lesson)...).Scan(&lesson.ID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 // Save updates an existing lesson.
