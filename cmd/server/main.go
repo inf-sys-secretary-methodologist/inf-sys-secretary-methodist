@@ -854,6 +854,8 @@ func main() {
 	referenceRepo := schedulePersistence.NewReferenceRepositoryPG(db)
 	changeRepo := schedulePersistence.NewScheduleChangeRepositoryPG(db)
 	lessonUseCase := scheduleUsecases.NewLessonUseCase(lessonRepo, classroomRepo, referenceRepo, changeRepo, auditLogger)
+	lessonSlotRepo := schedulePersistence.NewLessonSlotRepositoryPG(db)
+	lessonSlotUseCase := scheduleUsecases.NewLessonSlotUseCase(lessonSlotRepo)
 	logger.Info("Schedule lessons module initialized", nil)
 
 	// Initialize calendar feed (external calendar subscription, issue #40)
@@ -1167,6 +1169,7 @@ func main() {
 		annualReportUseCase,
 		eventUseCase,
 		lessonUseCase,
+		lessonSlotUseCase,
 		calendarFeedUseCase,
 		announcementUseCase,
 		dashboardUseCase,
@@ -1795,6 +1798,7 @@ func setupRoutes(
 	annualReportUseCase *annualUsecases.AnnualReportUseCase,
 	eventUseCase *scheduleUsecases.EventUseCase,
 	lessonUseCase *scheduleUsecases.LessonUseCase,
+	lessonSlotUseCase *scheduleUsecases.LessonSlotUseCase,
 	calendarFeedUseCase *scheduleUsecases.CalendarFeedUseCase,
 	announcementUseCase *announcementUsecases.AnnouncementUseCase,
 	dashboardUseCase *dashboardUsecases.DashboardUseCase,
@@ -3111,10 +3115,19 @@ func setupRoutes(
 				scheduleGroup.POST("/changes", lessonHandlerInstance.CreateChange)
 				scheduleGroup.GET("/changes", lessonHandlerInstance.ListChanges)
 
+				// Bell-schedule catalog (lesson slots) — issue #139, Slice 1.
+				slotHandlerInstance := scheduleHandler.NewLessonSlotHandler(lessonSlotUseCase)
+				scheduleGroup.GET("/slots", slotHandlerInstance.List)
+				scheduleGroup.POST("/slots", slotHandlerInstance.Create)
+				scheduleGroup.PUT("/slots/:id", slotHandlerInstance.Update)
+				scheduleGroup.DELETE("/slots/:id", slotHandlerInstance.Delete)
+
 				scheduleGroup.OPTIONS("/lessons", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/lessons/timetable", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/lessons/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 				scheduleGroup.OPTIONS("/changes", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				scheduleGroup.OPTIONS("/slots", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+				scheduleGroup.OPTIONS("/slots/:id", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 			}
 
 			classroomsGroup := protectedGroup.Group("/classrooms")
