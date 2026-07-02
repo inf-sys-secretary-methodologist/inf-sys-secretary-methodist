@@ -12,6 +12,7 @@ import (
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/dto"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/application/usecases"
 	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/modules/schedule/domain"
+	"github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/internal/shared/infrastructure/http/response"
 )
 
 // errorKey is the gin.H field name for error payloads in this package. Extracted to satisfy goconst.
@@ -426,7 +427,7 @@ func (h *LessonHandler) ListClassrooms(c *gin.Context) {
 		output = append(output, dto.ToClassroomOutput(cr))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"classrooms": output})
+	c.JSON(http.StatusOK, response.Success(output))
 }
 
 // ListStudentGroups lists student groups.
@@ -455,7 +456,7 @@ func (h *LessonHandler) ListStudentGroups(c *gin.Context) {
 		output = append(output, dto.ToStudentGroupOutput(g))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"student_groups": output})
+	c.JSON(http.StatusOK, response.Success(output))
 }
 
 // ListDisciplines lists disciplines.
@@ -484,7 +485,7 @@ func (h *LessonHandler) ListDisciplines(c *gin.Context) {
 		output = append(output, dto.ToDisciplineOutput(d))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"disciplines": output})
+	c.JSON(http.StatusOK, response.Success(output))
 }
 
 // ListSemesters lists semesters.
@@ -502,7 +503,7 @@ func (h *LessonHandler) ListSemesters(c *gin.Context) {
 		output = append(output, dto.ToSemesterOutput(s))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"semesters": output})
+	c.JSON(http.StatusOK, response.Success(output))
 }
 
 // ListLessonTypes lists lesson types.
@@ -518,5 +519,5 @@ func (h *LessonHandler) ListLessonTypes(c *gin.Context) {
 		output = append(output, dto.ToLessonTypeOutput(lt))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"lesson_types": output})
+	c.JSON(http.StatusOK, response.Success(output))
 }
