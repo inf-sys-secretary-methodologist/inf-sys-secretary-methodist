@@ -89,14 +89,6 @@ type LessonOutput struct {
 	Teacher      *TeacherOutput      `json:"teacher,omitempty"`
 }
 
-// LessonListOutput represents the output for a list of lessons.
-type LessonListOutput struct {
-	Lessons []LessonOutput `json:"lessons"`
-	Total   int64          `json:"total"`
-	Limit   int            `json:"limit"`
-	Offset  int            `json:"offset"`
-}
-
 // ClassroomOutput represents the output for a classroom.
 type ClassroomOutput struct {
 	ID          int64          `json:"id"`

@@ -27,12 +27,14 @@ import (
 type lessonRepoFake struct {
 	lessons []*entities.Lesson
 	listErr error
+	byID    *entities.Lesson
+	byIDErr error
 }
 
 func (r *lessonRepoFake) Create(_ context.Context, _ *entities.Lesson) error { return nil }
 func (r *lessonRepoFake) Save(_ context.Context, _ *entities.Lesson) error   { return nil }
 func (r *lessonRepoFake) GetByID(_ context.Context, _ int64) (*entities.Lesson, error) {
-	return nil, nil
+	return r.byID, r.byIDErr
 }
 func (r *lessonRepoFake) Delete(_ context.Context, _ int64) error { return nil }
 func (r *lessonRepoFake) List(_ context.Context, _ usecases.LessonFilter, _, _ int) ([]*entities.Lesson, error) {
