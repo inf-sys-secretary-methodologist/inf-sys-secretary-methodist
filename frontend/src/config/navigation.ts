@@ -26,6 +26,7 @@ import {
   Plug,
   Bot,
   AlertTriangle,
+  Wand2,
   Image as ImageIcon,
 } from 'lucide-react'
 import { UserRole } from '@/types/auth'
@@ -172,6 +173,16 @@ export const navigationConfig: NavEntry[] = [
         nameKey: 'teachingLoad',
         url: '/teaching-load',
         icon: ClipboardCheck,
+        roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
+      },
+      {
+        // Automatic schedule generation (#139). Preview + apply are gated to
+        // the same planning roles as teaching load; the backend
+        // requireGenerateWrite denies teacher/student, so the navigation
+        // mirrors that whitelist to avoid a dead-link round-trip.
+        nameKey: 'scheduleGenerate',
+        url: '/schedule/generate',
+        icon: Wand2,
         roles: [UserRole.SYSTEM_ADMIN, UserRole.METHODIST, UserRole.ACADEMIC_SECRETARY],
       },
       {

@@ -191,6 +191,7 @@
     "announcements": "Announcements",
     "files": "Files",
     "schedule": "Schedule",
+    "scheduleGenerate": "Schedule generation",
     "adminSettings": "System Settings",
     "educationGroup": "Education",
     "communicationGroup": "Communication",
@@ -2295,6 +2296,51 @@
       "deleteFailed": "Failed to delete lesson"
     },
     "empty": "Schedule is empty. Add lessons to display."
+  },
+  "scheduleGenerate": {
+    "title": "Automatic schedule generation",
+    "description": "Build the timetable automatically from the teaching load. Preview before applying.",
+    "accessDenied": "You do not have permission to generate a schedule",
+    "generate": "Generate",
+    "apply": "Apply",
+    "applied": "Created {count} lessons",
+    "params": {
+      "title": "Parameters",
+      "semester": "Semester",
+      "selectSemester": "Select a semester",
+      "days": "Days of the week"
+    },
+    "days": {
+      "monday": "Mon",
+      "tuesday": "Tue",
+      "wednesday": "Wed",
+      "thursday": "Thu",
+      "friday": "Fri",
+      "saturday": "Sat"
+    },
+    "weekType": {
+      "all": "All",
+      "odd": "Odd",
+      "even": "Even"
+    },
+    "summary": {
+      "total": "Total",
+      "placed": "Placed",
+      "unplaced": "Unplaced"
+    },
+    "preview": {
+      "title": "Schedule preview",
+      "empty": "Nothing was placed"
+    },
+    "unplaced": {
+      "title": "Could not be placed",
+      "hint": "These lessons did not fit. Adjust the load, add classrooms or days, and generate again."
+    },
+    "errors": {
+      "generateFailed": "Failed to generate the schedule",
+      "applyFailed": "Failed to apply the schedule",
+      "alreadyExists": "A schedule already exists for this semester"
+    }
   },
   "adminSettings": {
     "title": "System Settings",
