@@ -1,6 +1,8 @@
 package entities
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"time"
 )
@@ -25,11 +27,25 @@ type CalendarFeedToken struct {
 
 // NewCalendarFeedToken constructs a token, enforcing its invariants.
 func NewCalendarFeedToken(userID int64, token string, now time.Time) (*CalendarFeedToken, error) {
-	return &CalendarFeedToken{}, nil
+	if userID <= 0 {
+		return nil, ErrCalendarFeedTokenUserRequired
+	}
+	if token == "" {
+		return nil, ErrCalendarFeedTokenEmpty
+	}
+	return &CalendarFeedToken{
+		UserID:    userID,
+		Token:     token,
+		CreatedAt: now,
+	}, nil
 }
 
 // GenerateCalendarFeedToken returns a cryptographically random 256-bit token
 // encoded as 64 hex characters.
 func GenerateCalendarFeedToken() (string, error) {
-	return "", nil
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
