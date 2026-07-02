@@ -131,4 +131,26 @@ describe('GenerateSchedulePage', () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('errors.alreadyExists'))
   })
+
+  it('invalidates a stale preview when generation params change', async () => {
+    preview.mockResolvedValue(draft)
+    const user = userEvent.setup()
+    render(<GenerateSchedulePage />)
+
+    await user.click(screen.getByRole('button', { name: 'generate' }))
+    await waitFor(() => expect(screen.getByText('ИС-21')).toBeInTheDocument())
+
+    // Changing the day selection must drop the now-stale preview so a later
+    // apply can never persist params different from what was shown.
+    await user.click(screen.getByRole('button', { name: 'days.monday' }))
+
+    await waitFor(() => expect(screen.queryByText('ИС-21')).not.toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'apply' })).not.toBeInTheDocument()
+  })
+
+  it('marks selected day toggles as pressed for assistive tech', () => {
+    render(<GenerateSchedulePage />)
+    // All six days are selected by default → aria-pressed=true.
+    expect(screen.getByRole('button', { name: 'days.monday', pressed: true })).toBeInTheDocument()
+  })
 })
