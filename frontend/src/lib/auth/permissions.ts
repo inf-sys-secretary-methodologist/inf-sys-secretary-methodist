@@ -267,6 +267,22 @@ export function canManageTeachingLoad(userRole?: UserRole | string): boolean {
   return TEACHING_LOAD_MANAGE_ROLES.includes(userRole as UserRole)
 }
 
+// SCHEDULE_GENERATE_ROLES — roles allowed to run the automatic schedule
+// generator (preview + apply), mirroring the backend write gate in
+// generate_schedule_handler.go (requireGenerateWrite). Building the timetable
+// is academic planning, so methodist + academic_secretary manage it and admin
+// retains override. Teacher and student only read the resulting timetable.
+export const SCHEDULE_GENERATE_ROLES: UserRole[] = [
+  UserRole.SYSTEM_ADMIN,
+  UserRole.METHODIST,
+  UserRole.ACADEMIC_SECRETARY,
+]
+
+export function canGenerateSchedule(userRole?: UserRole | string): boolean {
+  if (!userRole) return false
+  return SCHEDULE_GENERATE_ROLES.includes(userRole as UserRole)
+}
+
 /** @deprecated Use can(role, resource, action) instead */
 export function canEdit(userRole?: UserRole | string): boolean {
   if (!userRole) return false

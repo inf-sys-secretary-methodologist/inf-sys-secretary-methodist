@@ -191,6 +191,7 @@
     "announcements": "الإعلانات",
     "files": "الملفات",
     "schedule": "جدول",
+    "scheduleGenerate": "إنشاء الجدول",
     "adminSettings": "إعدادات النظام",
     "educationGroup": "التعليم",
     "communicationGroup": "التواصل",
@@ -2295,6 +2296,51 @@
       "deleteFailed": "فشل حذف الدرس"
     },
     "empty": "الجدول فارغ. أضف دروساً لعرضها."
+  },
+  "scheduleGenerate": {
+    "title": "إنشاء الجدول تلقائيًا",
+    "description": "إنشاء الجدول الزمني تلقائيًا من العبء التدريسي. معاينة قبل التطبيق.",
+    "accessDenied": "ليس لديك إذن لإنشاء جدول",
+    "generate": "إنشاء",
+    "apply": "تطبيق",
+    "applied": "تم إنشاء {count} درسًا",
+    "params": {
+      "title": "المعطيات",
+      "semester": "الفصل الدراسي",
+      "selectSemester": "اختر فصلًا دراسيًا",
+      "days": "أيام الأسبوع"
+    },
+    "days": {
+      "monday": "الاثنين",
+      "tuesday": "الثلاثاء",
+      "wednesday": "الأربعاء",
+      "thursday": "الخميس",
+      "friday": "الجمعة",
+      "saturday": "السبت"
+    },
+    "weekType": {
+      "all": "الكل",
+      "odd": "الفردية",
+      "even": "الزوجية"
+    },
+    "summary": {
+      "total": "الإجمالي",
+      "placed": "موضوعة",
+      "unplaced": "غير موضوعة"
+    },
+    "preview": {
+      "title": "معاينة الجدول",
+      "empty": "لم يتم وضع أي شيء"
+    },
+    "unplaced": {
+      "title": "تعذّر وضعها",
+      "hint": "هذه الدروس لم تتّسع. عدّل العبء أو أضف قاعات أو أيامًا ثم أعد الإنشاء."
+    },
+    "errors": {
+      "generateFailed": "فشل إنشاء الجدول",
+      "applyFailed": "فشل تطبيق الجدول",
+      "alreadyExists": "يوجد جدول بالفعل لهذا الفصل الدراسي"
+    }
   },
   "adminSettings": {
     "title": "إعدادات النظام",
