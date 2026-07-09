@@ -2,6 +2,7 @@ package entities_test
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -82,6 +83,29 @@ func TestNewAssessmentCriterion_NilExampleQuestionsOK(t *testing.T) {
 	}
 	if len(a.ExampleQuestions()) != 0 {
 		t.Errorf("ExampleQuestions should be empty/nil, got %#v", a.ExampleQuestions())
+	}
+}
+
+// TestNewAssessmentCriterion_ScoreBoundaries pins the exact valid edges of the
+// max_score range [1,100]. Мутационное тестирование показало дыру: инвариант
+// проверялся на верхней границе (100 валиден, 101 нет) и невалидных 0/-1, но
+// нижняя валидная граница 1 не тестировалась → мутант `MaxScore < 1` → `<= 1`
+// выживал (score=1 ошибочно отвергается, тест не замечает). Кейс 1 его убивает.
+func TestNewAssessmentCriterion_ScoreBoundaries(t *testing.T) {
+	for _, score := range []int{1, 100} {
+		t.Run(fmt.Sprintf("max_score %d valid", score), func(t *testing.T) {
+			a, err := entities.NewAssessmentCriterion(entities.NewAssessmentCriterionInput{
+				Type:        domain.AssessmentTypeCurrent,
+				Description: "Граница",
+				MaxScore:    score,
+			})
+			if err != nil {
+				t.Fatalf("max_score %d must be valid, got err: %v", score, err)
+			}
+			if a.MaxScore() != score {
+				t.Errorf("MaxScore = %d, want %d", a.MaxScore(), score)
+			}
+		})
 	}
 }
 
