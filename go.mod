@@ -2,6 +2,11 @@ module github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist
 
 go 1.25.0
 
+// Пропатченный тулчейн: закрывает достижимую GO-2026-5856 (crypto/tls ECH privacy
+// leak) и прочие stdlib-фиксы. Язык остаётся 1.25, но сборка требует тулчейн
+// >=1.26.5 (минимум выше локального dev-1.26.4 → go сам подтянет пропатченный).
+toolchain go1.26.5
+
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/SherClockHolmes/webpush-go v1.4.0
