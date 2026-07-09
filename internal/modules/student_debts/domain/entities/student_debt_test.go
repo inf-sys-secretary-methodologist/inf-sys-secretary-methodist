@@ -30,6 +30,32 @@ func TestNewStudentDebt_Valid(t *testing.T) {
 	}
 }
 
+// TestNewStudentDebt_SemesterBoundaries pins the exact valid edges of the
+// semester range [1,12]. Без него мутационное тестирование показало, что
+// границы 1 и 12 не проверяются: мутанты `semester < 1` → `<= 1` и
+// `semester > 12` → `>= 12` выживали (тесты били только по 0/13 снаружи и
+// 3/4 внутри). Эти кейсы убивают оба boundary-мутанта.
+func TestNewStudentDebt_SemesterBoundaries(t *testing.T) {
+	cases := []struct {
+		name string
+		sem  int
+	}{
+		{"lower edge 1", 1},
+		{"upper edge 12", 12},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			d, err := entities.NewStudentDebt("Кузнецов", "БИ-21", "БД", tc.sem, entities.ControlFormExam)
+			if err != nil {
+				t.Fatalf("semester %d must be valid, got err: %v", tc.sem, err)
+			}
+			if d.Semester != tc.sem {
+				t.Errorf("Semester = %d, want %d", d.Semester, tc.sem)
+			}
+		})
+	}
+}
+
 func TestNewStudentDebt_Invalid(t *testing.T) {
 	tests := []struct {
 		name                       string
