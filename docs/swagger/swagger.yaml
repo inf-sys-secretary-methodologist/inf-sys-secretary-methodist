@@ -2652,7 +2652,7 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
   title: Inf-Sys Secretary-Methodist API
-  version: 0.222.0
+  version: 0.223.0
 paths:
   /api/admin/audit-logs:
     get:
