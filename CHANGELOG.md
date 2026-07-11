@@ -17,6 +17,39 @@
 
 > **Записи 0.158.0 – 0.214.4 — сжатый backfill** (одна строка на релиз; полные заметки — в [GitHub Releases](https://github.com/inf-sys-secretary-methodologist/inf-sys-secretary-methodist/releases)).
 
+## [0.223.0] — 2026-07-11
+
+**Автогенерация расписания (#139)** — последняя фича продуктового бэклога. CSP-солвер (чистый Go, backtracking + MRV + parity-aware scoring) расставляет занятия по сетке день×пара×аудитория с учётом жёстких и мягких ограничений; поток preview→apply через 5 вертикальных слайсов от каталога звонков до frontend `/schedule/generate`. Также в релизе: инструменты автогенерации CHANGELOG через git-cliff (`cliff.toml` + `scripts/changelog.sh`).
+
+### Added
+
+- lesson-slot (bell schedule) catalog — #139 Slice 1/5 (#493)
+- teaching-load (planned assignments) backend — #139 Slice 2a (#494)
+- teaching-load management UI + envelope fix — #139 Slice 2b (#495)
+- CSP solver foundation — constraints, domains, soft scoring — #139 Slice 3 (1/2) (#497)
+- CSP backtracking solver + parity-aware scoring — #139 Slice 3 (2/2) (#498)
+- schedule-generation preview use case + room-suitability rule — #139 Slice 4 (1/2) (#500)
+- schedule-generation apply + HTTP endpoints — #139 Slice 4 (2/2) (#501)
+- schedule-generation frontend — #139 Slice 5 (final) (#502)
+
+### Fixed
+
+- wrap lesson/change endpoints in response envelope — #139 (#499)
+
+### Security
+
+- npm audit fix — patch @babel/core, js-yaml, ws vulns (#504)
+
+## [0.222.0] — 2026-07-02
+
+### Added
+
+- iCal RFC 5545 renderer (calendar feed, PR1/5) (#486)
+- CalendarFeedToken entity + persistence + migration 054 (PR2/5, re-#487) (#491)
+- calendar feed application layer — mapping + use case (PR3/5) (#488)
+- calendar feed HTTP + DI wiring + resolver (PR4/5) (#489)
+- calendar subscription settings page + i18n×4 (PR5/5) (#490)
+
 ## [0.221.1] — 2026-07-01
 
 ### Changed

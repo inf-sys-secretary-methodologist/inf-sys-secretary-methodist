@@ -1,0 +1,74 @@
+# git-cliff configuration — inf-sys-secretary-methodist
+# ------------------------------------------------------------------
+# Генерирует секции CHANGELOG.md из conventional-коммитов.
+# Формат: Keep a Changelog (англ. секции Added/Changed/Fixed/Security) +
+# Semantic Versioning. Дата через « — » (em-dash), как в существующих записях.
+#
+# Рабочий процесс — ИНКРЕМЕНТ (не перегенерять весь файл):
+#   при релизе vX.Y.Z генерим только новую секцию (скелет по коммитам) и
+#   кладём её под шапку, перед самой свежей версией. Ручная детальная
+#   история остаётся нетронутой; сгенерированный скелет дополняем руками.
+#   См. scripts/changelog.sh.
+# ------------------------------------------------------------------
+
+[changelog]
+# Шапка печатается только при полной генерации (git cliff -o); при вставке
+# через scripts/changelog.sh (--strip all) она опускается и не задваивается.
+header = """
+# Changelog
+
+Все значимые изменения проекта документируются в этом файле.
+
+Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
+проект следует [Semantic Versioning 2.0.0](https://semver.org/lang/ru/).
+
+"""
+
+# Тело одной версии. Дата через em-dash « — » (стиль существующих записей).
+# Группы (Added/Changed/Fixed/Security) — из [git].commit_parsers; порядок
+# групп задаёт HTML-комментарий-индекс, striptags его убирает.
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] — {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+{% for commit in commits %}
+- {{ commit.message | trim }}\
+{% endfor %}
+{% endfor %}
+"""
+
+footer = ""
+trim = true
+
+[git]
+# Разбираем conventional-коммиты; не-conventional и релизные отсекаем.
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+filter_commits = true
+
+# Первый совпавший парсер выигрывает: security-scoped выше общего fix/chore.
+commit_parsers = [
+  { message = "^feat", group = "<!-- 0 -->Added" },
+  { message = "^perf", group = "<!-- 1 -->Changed" },
+  { message = "^refactor", group = "<!-- 1 -->Changed" },
+  { message = "^fix\\(security\\)", group = "<!-- 3 -->Security" },
+  { message = "^chore\\(security\\)", group = "<!-- 3 -->Security" },
+  { message = "^fix", group = "<!-- 2 -->Fixed" },
+  { message = "^docs", skip = true },
+  { message = "release v[0-9]", skip = true },
+  { message = "^chore", skip = true },
+  { message = "^style", skip = true },
+  { message = "^test", skip = true },
+  { message = "^ci", skip = true },
+  { message = "^build", skip = true },
+]
+
+# Учитываем только релизные теги vX.Y.Z.
+tag_pattern = "v[0-9]*"
+topo_order = false
+sort_commits = "oldest"
