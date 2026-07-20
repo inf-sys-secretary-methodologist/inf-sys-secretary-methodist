@@ -8,8 +8,8 @@ require (
 	github.com/XSAM/otelsql v0.42.0
 	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/dslipak/pdf v0.0.2
-	github.com/getsentry/sentry-go v0.47.0
-	github.com/getsentry/sentry-go/gin v0.47.0
+	github.com/getsentry/sentry-go v0.48.0
+	github.com/getsentry/sentry-go/gin v0.48.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-co-op/gocron/v2 v2.21.2
 	github.com/go-playground/validator/v10 v10.30.3
