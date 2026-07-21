@@ -41,7 +41,7 @@
     "@sentry/nextjs": "^10.58.0",
     "@swc/helpers": "^0.5.19",
     "@tailwindcss/postcss": "^4.1.17",
-    "axios": "^1.16.0",
+    "axios": "^1.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
