@@ -66,6 +66,29 @@ func TestBuildDomain_EmptyWhenNoRoomFits(t *testing.T) {
 	}
 }
 
+// TestBuildDomain_ExactCapacityFits pins the capacity boundary: a room whose
+// capacity EQUALS the group size fits (H4 is `capacity >= groupSize`).
+// Мутационное тестирование выявило дыру: TestBuildDomain_FiltersRooms брал
+// комнаты строго больше (30) и меньше (10) группы (25), но не ровно по размеру,
+// поэтому мутант `room.Capacity < v.GroupSize` → `<= v.GroupSize` (комната
+// впритык ошибочно отвергается) выживал. Этот кейс его убивает.
+func TestBuildDomain_ExactCapacityFits(t *testing.T) {
+	in := Input{
+		Days:  []domain.DayOfWeek{domain.Monday},
+		Slots: []int{1},
+		Rooms: []Room{{ID: 7, Capacity: 25, Type: "lecture", Available: true}},
+	}
+	v := Variable{GroupSize: 25, AllowedRoomTypes: []string{"lecture"}}
+
+	got := buildDomain(v, in)
+	if len(got) != 1 {
+		t.Fatalf("room with capacity == group size must fit: got %d values, want 1; %+v", len(got), got)
+	}
+	if got[0].RoomID != 7 {
+		t.Errorf("unexpected room %d, want 7", got[0].RoomID)
+	}
+}
+
 func TestBuildDomain_AnyRoomTypeWhenUnrestricted(t *testing.T) {
 	in := Input{
 		Days:  []domain.DayOfWeek{domain.Monday},
